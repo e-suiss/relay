@@ -49,14 +49,34 @@ Relay does all of that in one place, on infrastructure you already know: **Postg
 
 ## How it works
 
-```text
- event ──► accept ──► decide ──────────────► render ──► deliver ──► record
-          (idempotent) (class, consent,       (template,  (channel,   (ledger,
-                        preferences, quiet     language,   provider,   state, why
-                        hours, route)          branding)   fallback)   not sent)
+```mermaid
+flowchart LR
+    ev(["Event<br/>REST API · CloudEvents · SDK"]) --> accept["Accept<br/>idempotency · dedup"]
+    accept --> decide{"Decide<br/>message class · consent<br/>preferences · quiet hours"}
+    decide -- "not sent" --> skip["Skip record<br/>reason + rule"]
+    decide -- send --> route["Route<br/>workflow · fallback<br/>escalation"]
+    route --> render["Render<br/>template · language<br/>branding"]
+    render --> deliver["Deliver<br/>channel · provider<br/>failover"]
+    deliver --> ledger[("Ledger<br/>delivery state")]
+    skip --> ledger
+    ledger --> out["Webhooks · inbox · analytics"]
 ```
 
-One Elixir application, one release. Run it as a single process, or scale the `api`, `worker` and `socket` roles separately.
+```mermaid
+flowchart TB
+    apps["Your apps and services"] -->|events| relay
+    agents["AI agents"] <-->|"waitpoints · mailbox<br/>A2A · MCP"| relay
+    subgraph relay["Relay — one Elixir release"]
+        api["api"] --- worker["worker"] --- socket["socket"]
+    end
+    relay --> pg[("PostgreSQL")]
+    relay --> valkey[("Valkey")]
+    relay -->|"push · email · SMS<br/>WhatsApp · chat"| providers["Channel providers"]
+    relay -->|real-time inbox| users["People"]
+    relay -->|signed events| dest["Webhooks · Kafka · SQS · S3 …"]
+```
+
+One Elixir application, one release. Run it as a single process, or scale the `api`, `worker` and `socket` roles separately. PostgreSQL holds every source of truth; Valkey carries signals and counters.
 
 ## Getting started
 

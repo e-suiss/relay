@@ -1,0 +1,11 @@
+# Default owner for the whole repository.
+*                       @ademceper
+
+# Security- and compliance-sensitive paths: changes here need a threat assessment.
+/lib/relay/policy/      @ademceper
+/lib/relay/tenancy/     @ademceper
+/lib/relay/audit/       @ademceper
+/lib/relay/agents/      @ademceper
+/lib/relay/webhooks/    @ademceper
+/priv/repo/migrations/  @ademceper
+/native/                @ademceper

@@ -99,6 +99,7 @@ Her aile 1'den başlar; ID'ler yeniden kullanılmaz (§3.2, §3.7).
 | 21 | `21-decision-register.md` | Birleşik karar register'ı | Bütün ailelerin register satırları |
 | 22 | `22-open-questions.md` | Açık sorular | Kararı verilmemiş konular ve implementasyona etkisi |
 | Ek A | `appendix-a-id-families.md` | ID aileleri | Aile, bölüm, aralık |
+| Ek B | `appendix-b-feature-inventory.md` | Ek B. Özellik envanteri ve yapım sırası (normatif değil) | Aşamalar, maddeler, spec dışı ön koşullar, doğrulanacak sınırlar, kapsam dışı kararlar |
 | — | `README.md` | Spec dizini | Dosya listesi ve kısa giriş |
 
 ### 0.6 Okuma sırası

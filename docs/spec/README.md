@@ -34,4 +34,4 @@ Bu klasör Relay'in kanonik spec'idir. Spec ana bölüm başına bir dosyaya bö
 | [21. Birleşik karar register'ı](21-decision-register.md) |
 | [22. Açık sorular](22-open-questions.md) |
 | [Ek A. ID aileleri](appendix-a-id-families.md) |
-| Ek B. Yapım sırası (ayrıca yazılacak; normatif değil; kısıtları T-54) |
+| [Ek B. Özellik envanteri ve yapım sırası](appendix-b-feature-inventory.md) (normatif değil) |

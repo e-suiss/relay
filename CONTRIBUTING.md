@@ -2,7 +2,7 @@
 
 Thank you for your interest in Relay. This guide explains how to set up a development environment, the rules code must follow, and how changes get merged.
 
-The project is at the specification stage; implementation has not started. The rules below are already binding and are defined in the specification under [`docs/spec/`](docs/spec/README.md) (written in Turkish). An English overview is in [`docs/overview.md`](docs/overview.md).
+The project is in active design; implementation has not started. The rules below are already binding.
 
 ## Reporting security issues
 
@@ -25,7 +25,7 @@ There is no "development mode": compliance and security checks are never disable
 
 ## Code rules (summary)
 
-The full rules are in the specification (§19.13, T-56…T-68).
+The full rules are in the project specification (§19.13, T-56…T-68).
 
 - Code, comments, commit messages and pull requests are in English.
 - `mix format` applies; the build runs with `--warnings-as-errors`; Credo (strict), Dialyzer and Sobelow run in CI.

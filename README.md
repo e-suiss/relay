@@ -97,7 +97,7 @@ Elixir/OTP, Phoenix, PostgreSQL, Valkey, Oban (open source), React for the conso
 
 ## Related projects
 
-- **[Access](https://github.com/e-suiss/access)** — identity and authority. Relay and Access run independently and work together without extra setup: Access sends its messages through Relay, and Relay uses Access for sign-in and approvals.
+- **[Access](https://github.com/e-suiss/access)** — identity and authority. Relay and Access are parts of one system and are always deployed together: Access sends its messages through Relay, and Relay uses Access for sign-in and approvals.
 
 ## Contributing
 

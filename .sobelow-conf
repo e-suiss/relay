@@ -1,0 +1,13 @@
+[
+  verbose: false,
+  private: false,
+  skip: true,
+  router: "lib/relay_web/router.ex",
+  exit: "low",
+  format: "txt",
+  out: nil,
+  threshold: "low",
+  ignore: ["Config.HTTPS"],
+  ignore_files: [],
+  version: false
+]

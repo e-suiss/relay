@@ -1,0 +1,22 @@
+image:
+  repository: ghcr.io/e-suiss/relay
+  digest: ""
+
+host: relay.example.com
+
+database:
+  url: ""
+  passwordSecret: relay-database
+  poolSize: 10
+
+secretKeyBaseSecret: relay-secret-key-base
+
+nodes:
+  - name: all
+    roles: [api, worker, socket]
+    replicas: 1
+    resources:
+      requests: {cpu: 500m, memory: 1Gi}
+      limits: {memory: 1Gi}
+
+terminationGracePeriodSeconds: 60

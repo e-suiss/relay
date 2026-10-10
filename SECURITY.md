@@ -21,4 +21,13 @@ Please include:
 
 ## Scope
 
-The project is at the specification stage; no released software exists yet. Reports about the specification's security design are welcome through the same private channel.
+No release has been published yet. Reports about the code on `main` and about the security design are welcome through the same private channel.
+
+## Known platform limitations
+
+Relay runs on Erlang/OTP. Operators should know three properties of that platform:
+
+- **TLS throughput.** The Erlang TLS implementation is slower than native TLS stacks under bulk load. Terminate inbound TLS at a load balancer or reverse proxy; outbound certificate verification is always on and cannot be disabled.
+- **Secrets in memory.** The runtime cannot guarantee that a secret is wiped from memory. Long-lived signing keys therefore never enter application memory: signing and key unwrapping happen in an HSM through PKCS#11. Crash dumps are disabled in releases.
+- **No FIPS mode.** Relay does not offer a FIPS 140 validated build.
+

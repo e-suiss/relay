@@ -1,0 +1,11 @@
+_build
+.elixir_ls
+.git
+docs
+deploy
+test
+bench
+conformance
+cover
+doc
+priv/plts

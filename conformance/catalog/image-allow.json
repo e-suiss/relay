@@ -1,0 +1,8 @@
+[
+  {
+    "path": "deploy/compose.yaml",
+    "rule": "image_digest",
+    "reason": "T-72: the Access image is not published yet; the service stays behind the access profile until it is",
+    "match": "ghcr.io/e-suiss/access:"
+  }
+]

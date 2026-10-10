@@ -1,0 +1,40 @@
+name: bench
+
+on:
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    if: github.ref == 'refs/heads/main' && vars.BENCH_RUNNER == 'true'
+    runs-on: [self-hosted, bench]
+    timeout-minutes: 60
+    env:
+      MIX_ENV: dev
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - run: mix deps.get --check-locked
+      - run: |
+          {
+            echo "commit: $GITHUB_SHA"
+            echo "date: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "host: $(uname -srm)"
+            echo "cpu: $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2)"
+            echo "cores: $(nproc)"
+            echo "otp: $(erl -noshell -eval 'io:format("~s", [erlang:system_info(otp_release)]), halt().')"
+            echo "elixir: $(elixir --short-version)"
+            echo "command: mix run bench/hot_paths.exs"
+          } > bench-output.txt
+          mix run bench/hot_paths.exs | tee -a bench-output.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bench-${{ github.run_id }}
+          path: bench-output.txt

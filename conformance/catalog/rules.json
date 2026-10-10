@@ -1,0 +1,9178 @@
+[
+  {
+    "acceptance": "pending",
+    "id": "MD-1",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-2",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-3",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-4",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-5",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-6",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-7",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-8",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-9",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-10",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-11",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-12",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-13",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-14",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-15",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-16",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-17",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-18",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-19",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MD-20",
+    "section": "§1",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-1",
+    "section": "§2",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-2",
+    "section": "§2",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-3",
+    "section": "§2",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-4",
+    "section": "§2",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-5",
+    "section": "§2",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-6",
+    "section": "§2",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-7",
+    "section": "§2",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-8",
+    "section": "§2",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-9",
+    "section": "§2",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-10",
+    "section": "§2",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-11",
+    "section": "§2",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-12",
+    "section": "§2",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-13",
+    "section": "§2",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-14",
+    "section": "§2",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-15",
+    "section": "§2",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-16",
+    "section": "§2",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-17",
+    "section": "§2",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-18",
+    "section": "§2",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-19",
+    "section": "§2",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-20",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-21",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-22",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-23",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-24",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-25",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-26",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-27",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-28",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-29",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-30",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-31",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-32",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "F-33",
+    "section": "§3",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-1",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-2",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-3",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-4",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-5",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-6",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-7",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-8",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-9",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-10",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-11",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-12",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-13",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-14",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-15",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-16",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-17",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-18",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-19",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-20",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-21",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-22",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-23",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-24",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-25",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-26",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-27",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-28",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-29",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-30",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-31",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-32",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-33",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-34",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-35",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-36",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-37",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-38",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-39",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-40",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-41",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-42",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-43",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-44",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-45",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-46",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-47",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-48",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-49",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-50",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-51",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-52",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-53",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-54",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-55",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-56",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-57",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "L-58",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-1",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-2",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-3",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-4",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-5",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-6",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-7",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-8",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-9",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-10",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-11",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-12",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-13",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-14",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-15",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-16",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-17",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-18",
+    "section": "§4",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-19",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-20",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-21",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "MKT-22",
+    "section": "§4",
+    "status": "frozen_landscape",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-1",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-2",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-3",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-4",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-5",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-6",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-7",
+    "section": "§5",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-8",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-9",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-10",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-11",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-12",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-13",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-14",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-15",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-16",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-17",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-18",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-19",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-20",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-21",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-22",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-23",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-24",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-25",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-26",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-27",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-28",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-29",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-30",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-31",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-32",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-33",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-34",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-35",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-36",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-37",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-38",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-39",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-40",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-41",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-42",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-43",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-44",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-45",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-46",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-47",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-48",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-49",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-50",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-51",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-52",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-53",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-54",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-55",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-56",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-57",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-58",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-59",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-60",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-61",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-62",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-63",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-64",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-65",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-66",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-67",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-68",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-69",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-70",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-71",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-72",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-73",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-74",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-75",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-76",
+    "section": "§5",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-77",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-78",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-79",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-80",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-81",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-82",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-83",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-84",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-85",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-86",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-87",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-88",
+    "section": "§5",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "C-89",
+    "section": "§5",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-1",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-2",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-3",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-4",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-5",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-6",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-7",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-8",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-9",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-10",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-11",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-12",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-13",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-14",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-15",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-16",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-17",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-18",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-19",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-20",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-21",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-22",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-23",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-24",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-25",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-26",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-27",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-28",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-29",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-30",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-31",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-32",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-33",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-34",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-35",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-36",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-37",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-38",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-39",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-40",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-41",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-42",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-43",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-44",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-45",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-46",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "Unknown configuration key or role stops startup",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-47",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "No physical deletes",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-48",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-49",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-50",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-51",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-52",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-53",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-54",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-55",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-56",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-57",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "One license and full feature parity",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-58",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "No development mode and no flag that weakens security",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-59",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "INV-60",
+    "section": "§6",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-1",
+    "section": "§7",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-2",
+    "section": "§7",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-3",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-4",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-5",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-6",
+    "section": "§7",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-7",
+    "section": "§7",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-8",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-9",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-10",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-11",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-12",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-13",
+    "section": "§7",
+    "status": "unspecified",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-14",
+    "section": "§7",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-15",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-16",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-17",
+    "section": "§7",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-18",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-19",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-20",
+    "section": "§7",
+    "status": "central",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-21",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-22",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-23",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-24",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-25",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-26",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-27",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-28",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-29",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-30",
+    "section": "§7",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-31",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-32",
+    "section": "§7",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-33",
+    "section": "§7",
+    "status": "central",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-34",
+    "section": "§7",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-35",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-36",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-37",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-38",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-39",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-40",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-41",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-42",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-43",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-44",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-45",
+    "section": "§7",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-46",
+    "section": "§7",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-47",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-48",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-49",
+    "section": "§7",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-50",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-51",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-52",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-53",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-54",
+    "section": "§7",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-55",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-56",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-57",
+    "section": "§7",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-58",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-59",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-60",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-61",
+    "section": "§7",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-62",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-63",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-64",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-65",
+    "section": "§7",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-66",
+    "section": "§7",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-67",
+    "section": "§7",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-68",
+    "section": "§7",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-69",
+    "section": "§7",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-70",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-71",
+    "section": "§7",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-72",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-73",
+    "section": "§7",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-74",
+    "section": "§7",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-75",
+    "section": "§7",
+    "status": "central",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-76",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-77",
+    "section": "§7",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-1",
+    "section": "§8",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-2",
+    "section": "§8",
+    "status": "central",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-3",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-4",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-5",
+    "section": "§8",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-6",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-7",
+    "section": "§8",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-8",
+    "section": "§8",
+    "status": "central",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-9",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-10",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-11",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-12",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-13",
+    "section": "§8",
+    "status": "engineering_assumption",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-14",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-15",
+    "section": "§8",
+    "status": "unspecified",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-16",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-17",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-18",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-19",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-20",
+    "section": "§8",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-21",
+    "section": "§8",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-22",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-23",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-24",
+    "section": "§8",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-25",
+    "section": "§8",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-26",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-27",
+    "section": "§8",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-28",
+    "section": "§8",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-29",
+    "section": "§8",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-30",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-31",
+    "section": "§8",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-32",
+    "section": "§8",
+    "status": "central",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-33",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-34",
+    "section": "§8",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-35",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-36",
+    "section": "§8",
+    "status": "engineering_assumption",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-37",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-38",
+    "section": "§8",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-39",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "X-40",
+    "section": "§8",
+    "status": "frozen_technical",
+    "title": "Local environment runs the real pipeline",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-41",
+    "section": "§8",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-1",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-2",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-3",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-4",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-5",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-6",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-7",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-8",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-9",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-10",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-11",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-12",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-13",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-14",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-15",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-16",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-17",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-18",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-19",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-20",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-21",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-22",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-23",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-24",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-25",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-26",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-27",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-28",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-29",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-30",
+    "section": "§9",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-31",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-32",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-33",
+    "section": "§9",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-34",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-35",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-36",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-37",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-38",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-39",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-40",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-41",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-42",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-43",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-44",
+    "section": "§9",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-45",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-46",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-47",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-48",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-49",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-50",
+    "section": "§9",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-51",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-52",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-53",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-54",
+    "section": "§9",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-55",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-56",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-57",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-58",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-59",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-60",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-61",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-62",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-63",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-64",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-65",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-66",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-67",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-68",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-69",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-70",
+    "section": "§9",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-71",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-1",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-2",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-3",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-4",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-5",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-6",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-7",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-8",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-9",
+    "section": "§10",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-10",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-11",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-12",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-13",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-14",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-15",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-16",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-17",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-18",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-19",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-20",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-21",
+    "section": "§10",
+    "status": "unspecified",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-22",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-23",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-24",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-25",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-26",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-27",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-28",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-29",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-30",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-31",
+    "section": "§10",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-32",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-33",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-34",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-35",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-36",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-37",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-38",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-39",
+    "section": "§10",
+    "status": "unspecified",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-40",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-41",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-42",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-43",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-44",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-45",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-46",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "defined",
+    "id": "WF-47",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "No time zone conversion in SQL",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-48",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-49",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-50",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-51",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-52",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-53",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-54",
+    "section": "§10",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-55",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-56",
+    "section": "§10",
+    "status": "unspecified",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-57",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-1",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-2",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "defined",
+    "id": "TP-3",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "Tenant data never reaches code evaluation paths",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-4",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-5",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-6",
+    "section": "§11",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-7",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-8",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-9",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-10",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-11",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-12",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-13",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-14",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-15",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-16",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-17",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-18",
+    "section": "§11",
+    "status": "unspecified",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-19",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-20",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-21",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-22",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-23",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-24",
+    "section": "§11",
+    "status": "unspecified",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-25",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-26",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-27",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-28",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-29",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-30",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-31",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-32",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-33",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-34",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-35",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-36",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-37",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-38",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-39",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-40",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-41",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-42",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "defined",
+    "id": "TP-43",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "Pinned time zone data",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-44",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-1",
+    "section": "§12",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-2",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-3",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-4",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-5",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-6",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-7",
+    "section": "§12",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-8",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-9",
+    "section": "§12",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-10",
+    "section": "§12",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-11",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-12",
+    "section": "§12",
+    "status": "engineering_assumption",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-13",
+    "section": "§12",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-14",
+    "section": "§12",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-15",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-16",
+    "section": "§12",
+    "status": "engineering_assumption",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-17",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-18",
+    "section": "§12",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-19",
+    "section": "§12",
+    "status": "central",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-20",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-21",
+    "section": "§12",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-22",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-23",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-24",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-25",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-26",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-27",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-28",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-29",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-30",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-31",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-32",
+    "section": "§12",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-33",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-34",
+    "section": "§12",
+    "status": "central",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-35",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-36",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-37",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-38",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-39",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-40",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-41",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-42",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-43",
+    "section": "§12",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-44",
+    "section": "§12",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-45",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-46",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-47",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-48",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-49",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-50",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-51",
+    "section": "§12",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-52",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-53",
+    "section": "§12",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-54",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-55",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-56",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-57",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-58",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-59",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-60",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-61",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-62",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-63",
+    "section": "§12",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-64",
+    "section": "§12",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-65",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-66",
+    "section": "§12",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-67",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-68",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-1",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-2",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-3",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-4",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-5",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-6",
+    "section": "§13",
+    "status": "central",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-7",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-8",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-9",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-10",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-11",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-12",
+    "section": "§13",
+    "status": "central",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-13",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-14",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-15",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-16",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-17",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-18",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-19",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-20",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-21",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-22",
+    "section": "§13",
+    "status": "central",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-23",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-24",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-25",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-26",
+    "section": "§13",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-27",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-28",
+    "section": "§13",
+    "status": "central",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-29",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-30",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-31",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-32",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-33",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-34",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-35",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-36",
+    "section": "§13",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-37",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-38",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-39",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-40",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-41",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-42",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-43",
+    "section": "§13",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-44",
+    "section": "§13",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-45",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-46",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-47",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-48",
+    "section": "§13",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-49",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-50",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-51",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-52",
+    "section": "§13",
+    "status": "central",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-53",
+    "section": "§13",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-54",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-55",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-56",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-1",
+    "section": "§14",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-2",
+    "section": "§14",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-3",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-4",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-5",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-6",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-7",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-8",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-9",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-10",
+    "section": "§14",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-11",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-12",
+    "section": "§14",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-13",
+    "section": "§14",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-14",
+    "section": "§14",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-15",
+    "section": "§14",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-16",
+    "section": "§14",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-17",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-18",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-19",
+    "section": "§14",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-20",
+    "section": "§14",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-21",
+    "section": "§14",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-22",
+    "section": "§14",
+    "status": "engineering_assumption",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-23",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-24",
+    "section": "§14",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-25",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-26",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-27",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-28",
+    "section": "§14",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-29",
+    "section": "§14",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-30",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-31",
+    "section": "§14",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-32",
+    "section": "§14",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-33",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-34",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-35",
+    "section": "§14",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-36",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-37",
+    "section": "§14",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-38",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-39",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "defined",
+    "id": "DS-40",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-41",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-42",
+    "section": "§14",
+    "status": "engineering_assumption",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-43",
+    "section": "§14",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-44",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-45",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-46",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-1",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-2",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-3",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-4",
+    "section": "§15",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-5",
+    "section": "§15",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-6",
+    "section": "§15",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-7",
+    "section": "§15",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-8",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-9",
+    "section": "§15",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-10",
+    "section": "§15",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-11",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-12",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-13",
+    "section": "§15",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-14",
+    "section": "§15",
+    "status": "engineering_assumption",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-15",
+    "section": "§15",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-16",
+    "section": "§15",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-17",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-18",
+    "section": "§15",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-19",
+    "section": "§15",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-20",
+    "section": "§15",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-21",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-22",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-23",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-24",
+    "section": "§15",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-25",
+    "section": "§15",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-26",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-27",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-28",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-29",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-30",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-31",
+    "section": "§15",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-32",
+    "section": "§15",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-33",
+    "section": "§15",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-34",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-35",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-36",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-37",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-38",
+    "section": "§15",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-39",
+    "section": "§15",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-40",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-41",
+    "section": "§15",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-42",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-43",
+    "section": "§15",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-44",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-45",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-46",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-47",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-48",
+    "section": "§15",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-1",
+    "section": "§16",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-2",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-3",
+    "section": "§16",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-4",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-5",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-6",
+    "section": "§16",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-7",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-8",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-9",
+    "section": "§16",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-10",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-11",
+    "section": "§16",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-12",
+    "section": "§16",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-13",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-14",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-15",
+    "section": "§16",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-16",
+    "section": "§16",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-17",
+    "section": "§16",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-18",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-19",
+    "section": "§16",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-20",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-21",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-22",
+    "section": "§16",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-23",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-24",
+    "section": "§16",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-25",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-26",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-27",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-28",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-29",
+    "section": "§16",
+    "status": "unspecified",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-30",
+    "section": "§16",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-31",
+    "section": "§16",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-32",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-33",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-34",
+    "section": "§16",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-35",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-36",
+    "section": "§16",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-37",
+    "section": "§16",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-38",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-39",
+    "section": "§16",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-40",
+    "section": "§16",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-41",
+    "section": "§16",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-42",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-43",
+    "section": "§16",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-44",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-45",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-46",
+    "section": "§16",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-47",
+    "section": "§16",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-48",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-49",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-50",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-51",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-1",
+    "section": "§17",
+    "status": "central",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-2",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-3",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-4",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-5",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-6",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-7",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-8",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-9",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-10",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-11",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-12",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-13",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-14",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-15",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-16",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-17",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-18",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-19",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-20",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-21",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-22",
+    "section": "§17",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-23",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-24",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-25",
+    "section": "§17",
+    "status": "central",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-26",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-27",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-28",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-29",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-30",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-31",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-32",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-33",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-34",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-35",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-36",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-37",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-38",
+    "section": "§17",
+    "status": "unspecified",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-39",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-40",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-41",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-42",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-43",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-44",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-45",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-46",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-47",
+    "section": "§17",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-48",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-49",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-50",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-51",
+    "section": "§17",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-52",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-53",
+    "section": "§17",
+    "status": "engineering_assumption",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-54",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-55",
+    "section": "§17",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-56",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-57",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-58",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-59",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-60",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-61",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-62",
+    "section": "§17",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-63",
+    "section": "§17",
+    "status": "frozen_product",
+    "title": "",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-1",
+    "section": "§18",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-2",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-3",
+    "section": "§18",
+    "status": "central",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-4",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-5",
+    "section": "§18",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-6",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-7",
+    "section": "§18",
+    "status": "central",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "defined",
+    "id": "TN-8",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "No configuration weakens security or compliance",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-9",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-10",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-11",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-12",
+    "section": "§18",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-13",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-14",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-15",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-16",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-17",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-18",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-19",
+    "section": "§18",
+    "status": "central",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-20",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-21",
+    "section": "§18",
+    "status": "central",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-22",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-23",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-24",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-25",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-26",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-27",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-28",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-29",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-30",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-31",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-32",
+    "section": "§18",
+    "status": "central",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-33",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-34",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-35",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-36",
+    "section": "§18",
+    "status": "central",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-37",
+    "section": "§18",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-38",
+    "section": "§18",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-39",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-40",
+    "section": "§18",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-41",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-42",
+    "section": "§18",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-43",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-44",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-45",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-46",
+    "section": "§18",
+    "status": "central",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-47",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-48",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-49",
+    "section": "§18",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-50",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-51",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-52",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-53",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-54",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-55",
+    "section": "§18",
+    "status": "central",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-56",
+    "section": "§18",
+    "status": "central",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-57",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-58",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-59",
+    "section": "§18",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-60",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "defined",
+    "id": "TN-61",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "Supply chain integrity and security.txt",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-62",
+    "section": "§18",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-63",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-1",
+    "section": "§19",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-2",
+    "section": "§19",
+    "status": "watch",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-3",
+    "section": "§19",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-4",
+    "section": "§19",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-5",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-6",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-7",
+    "section": "§19",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-8",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-9",
+    "section": "§19",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-10",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-11",
+    "section": "§19",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-12",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-13",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-14",
+    "section": "§19",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-15",
+    "section": "§19",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-16",
+    "section": "§19",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-17",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-18",
+    "section": "§19",
+    "status": "central",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-19",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-20",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-21",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-22",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-23",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-24",
+    "section": "§19",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-25",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-26",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-27",
+    "section": "§19",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-28",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-29",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-30",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-31",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-32",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-33",
+    "section": "§19",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-34",
+    "section": "§19",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-35",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-36",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-37",
+    "section": "§19",
+    "status": "central",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-38",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-39",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-40",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-41",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-42",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-43",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-44",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-45",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-46",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-47",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "No background work without context",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-48",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-49",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-50",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-51",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-52",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-53",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "Native code only through the NIF gate",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-54",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-55",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-56",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "Single Mix app with compile-time context boundaries",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-57",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "Pure core, behaviours at the edge, injected clock and randomness",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-58",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "Code quality gates",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-59",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-60",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-61",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "Test layers and rule coverage",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-62",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "Supply chain and repository security",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-63",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-64",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-65",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-66",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-67",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-68",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-69",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-70",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-71",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-72",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-73",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "No explanatory comments in code",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-74",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-75",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-76",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-77",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-78",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "Seven-day wait, SHA-pinned actions, digest-pinned images",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-79",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-80",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-81",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "Tracked rule catalog",
+    "verify_stage": 0
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-1",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-2",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-3",
+    "section": "§20",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-4",
+    "section": "§20",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-5",
+    "section": "§20",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-6",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-7",
+    "section": "§20",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-8",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "defined",
+    "id": "OP-9",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-10",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-11",
+    "section": "§20",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-12",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-13",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-14",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-15",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-16",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-17",
+    "section": "§20",
+    "status": "central",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-18",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-19",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-20",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-21",
+    "section": "§20",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-22",
+    "section": "§20",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-23",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-24",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-25",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-26",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-27",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-28",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-29",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-30",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-31",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-32",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-33",
+    "section": "§20",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "defined",
+    "id": "OP-34",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-35",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-36",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-37",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-38",
+    "section": "§20",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-39",
+    "section": "§20",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-40",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-41",
+    "section": "§20",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-42",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-43",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-44",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-45",
+    "section": "§20",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-46",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-47",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-48",
+    "section": "§20",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-49",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-50",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-51",
+    "section": "§20",
+    "status": "central",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-52",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-53",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-54",
+    "section": "§20",
+    "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-55",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-56",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-57",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-58",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-59",
+    "section": "§20",
+    "status": "central",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-60",
+    "section": "§20",
+    "status": "out_of_scope",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-61",
+    "section": "§20",
+    "status": "engineering_assumption",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-62",
+    "section": "§20",
+    "status": "central",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-63",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 1
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-64",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-1",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-2",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-3",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-4",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-5",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-6",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-7",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-8",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-9",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-10",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-11",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-12",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-13",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-14",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-15",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-16",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-17",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-18",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-19",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-20",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-21",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-22",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-23",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-24",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-25",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-26",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-27",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-28",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-29",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-30",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-31",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-32",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-33",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-34",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OQ-35",
+    "section": "§22",
+    "status": "open_question",
+    "title": "",
+    "verify_stage": null
+  }
+]

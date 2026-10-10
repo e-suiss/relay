@@ -1,0 +1,8 @@
+[
+  {"id": "exactly_once_delivery", "rule": "F-25", "pattern": "exactly[- ]once\\s+(deliver|teslim)", "message": "say: at-least-once delivery with durable idempotency (effectively-once processing)"},
+  {"id": "push_delivered", "rule": "F-25", "pattern": "push(es)?\\s+((was|were|is|are)\\s+)?(delivered|teslim\\s+edildi)", "message": "say: provider accepted, or device SDK sent a displayed receipt"},
+  {"id": "email_read", "rule": "F-25", "pattern": "(e-?mails?\\s+(was|were|is|are)\\s+read\\b|e-posta\\s+okundu)", "message": "say: human click, or seen (in-app)"},
+  {"id": "compliance_guaranteed", "rule": "F-25", "pattern": "(guarantee[sd]?\\s+(regulatory\\s+)?compliance|compliance\\s+(is\\s+)?guaranteed|uyumu?\\s+garanti)", "message": "say: Relay enforces the İYS check fail-closed and keeps evidence"},
+  {"id": "idempotency_key_ietf_standard", "rule": "F-25", "pattern": "(idempotency-key[^.\\n]{0,80}ietf\\s+standard|ietf\\s+standard[^.\\n]{0,80}idempotency)", "message": "say: common practice (Stripe, IETF draft)"},
+  {"id": "permanently_deleted", "rule": "F-25", "pattern": "(permanently\\s+deleted|kalıcı\\s+olarak\\s+silindi)", "message": "say: personal data is made unreadable by crypto-shredding; the row is soft-deleted"}
+]

@@ -1,0 +1,4 @@
+{
+  "nif": [{"crate": "mjml", "rule": "T-53"}],
+  "port": [{"crate": "pkcs11_port", "rule": "TN-63"}]
+}

@@ -26,3 +26,6 @@
 - [ ] Title follows Conventional Commits (`type(scope): summary`)
 - [ ] Under ~400 changed lines, or split into smaller pull requests
 - [ ] `decision` label added if this adds or changes a specification decision (register and ranges updated)
+- [ ] Claim language checked: no "exactly-once delivery", "push delivered" or "guarantees compliance" wording <!-- claims-allow -->
+- [ ] New dependencies released at least seven days ago; license, maintenance and reason stated
+- [ ] Dependency upgrades: changelog read and golden files unchanged, or the difference explained

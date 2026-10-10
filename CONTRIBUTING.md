@@ -2,7 +2,7 @@
 
 Thank you for your interest in Relay. This guide explains how to set up a development environment, the rules code must follow, and how changes get merged.
 
-The project is in active design; implementation has not started. The rules below are already binding.
+The project foundation is in place and product features are being built. The rules below are binding and enforced in CI.
 
 ## Reporting security issues
 
@@ -10,16 +10,16 @@ Do **not** open a public issue for a vulnerability. Follow [`SECURITY.md`](SECUR
 
 ## Development environment
 
-Once the codebase exists, getting started will take three steps (T-65):
+You need Docker, `just` and the Erlang/Elixir versions in `.tool-versions` (`mise install`). Getting started takes three steps:
 
 ```sh
 git clone https://github.com/e-suiss/relay.git
 cd relay
-just dev    # starts PostgreSQL, Valkey, Mailpit and APNs/FCM/SMS simulators, with sample data and a test plane
+just dev    # starts PostgreSQL, Valkey, Mailpit, APNs/FCM/SMS simulators, tracing and metrics
 just test   # runs the same tests as CI on pull requests
 ```
 
-Other commands: `just check` (the same checks as CI) and `just gen` (regenerate SDKs and types from the OpenAPI/AsyncAPI contracts).
+Other commands: `just check` (the same checks as CI on a pull request), `just chaos` (adds Toxiproxy for fault injection) and `just bench` (wall-clock benchmarks).
 
 There is no "development mode": compliance and security checks are never disabled locally. Local equivalents replace production services instead (T-57).
 
@@ -34,7 +34,8 @@ The full rules are in the project specification (§19.13, T-56…T-68).
 - A "not sent" decision is a result (`{:skip, reason, rule_id}`), not an error.
 - Secrets, contact addresses and message content are never logged; they use self-redacting types.
 - SQL and `Repo` calls live only in each context's store modules. There are no physical deletes (`DELETE`/`TRUNCATE`).
-- Code that implements a specification rule names its ID in a comment, e.g. `# INV-12: every skip records a reason`.
+- Code carries no explanatory comments. Code that implements a specification rule names its ID on a bare comment line, e.g. `# INV-12`; the reasoning lives in the specification. Allowed otherwise: `@moduledoc`/`@doc`, tool directives, `TODO(#n):`, and `// SAFETY:` in Rust.
+- New dependencies and tool versions must have been released at least seven days earlier. GitHub Actions are pinned by commit SHA, container images by digest.
 - `TODO` comments must reference an issue.
 - Tests are named after behavior; flaky tests are quarantined, never retried until green.
 

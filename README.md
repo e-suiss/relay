@@ -80,14 +80,17 @@ One Elixir application, one release. Run it as a single process, or scale the `a
 
 ## Getting started
 
-Relay is in active design; implementation has not started yet. When the first build lands, local development will be one command:
+Relay is under active development; the project foundation is in place and the product features are being built. You need Docker, [`just`](https://github.com/casey/just) and the Erlang/Elixir versions in `.tool-versions` (install them with [`mise`](https://mise.jdx.dev)).
 
 ```sh
 git clone https://github.com/e-suiss/relay.git
 cd relay
-just dev    # PostgreSQL, Valkey, Mailpit, push and SMS simulators
-just test
+just dev     # PostgreSQL, Valkey, Mailpit, push and SMS simulators, tracing and metrics
+just test    # the test suite against the real database
+just check   # every check CI runs on a pull request
 ```
+
+Local services: Mailpit on <http://localhost:8025>, Jaeger on <http://localhost:16686>, Prometheus on <http://localhost:9090> and Grafana on <http://localhost:3000>.
 
 SDKs are planned for TypeScript/Node, Python, Go, Java, .NET, Elixir, PHP and Ruby, plus iOS, Android, React Native and Flutter, with ready-made inbox, toast and preference components (React and web components).
 

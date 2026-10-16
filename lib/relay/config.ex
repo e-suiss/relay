@@ -5,7 +5,17 @@ defmodule Relay.Config do
 
   alias Relay.Config.Error
 
-  @app_keys [:ecto_repos, :roles, :clock, :random, Relay.Repo, RelayWeb.Endpoint]
+  @app_keys [
+    :ecto_repos,
+    :roles,
+    :clock,
+    :random,
+    Relay.Repo,
+    RelayWeb.Endpoint,
+    Relay.Platform.Valkey,
+    Relay.Platform.Signal,
+    Oban
+  ]
   @os_env_keys ["RELAY_HOST", "RELAY_ROLES"]
 
   # INV-46

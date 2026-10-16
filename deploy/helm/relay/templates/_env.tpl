@@ -5,6 +5,8 @@
   value: /run/secrets/relay/database-password
 - name: POOL_SIZE
   value: {{ .Values.database.poolSize | quote }}
+- name: VALKEY_URL
+  value: {{ required "valkey.url is required" .Values.valkey.url | quote }}
 - name: RELAY_HOST
   value: {{ .Values.host | quote }}
 - name: PORT

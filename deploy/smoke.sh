@@ -4,6 +4,7 @@ set -eu
 
 image="$1"
 db_host="${SMOKE_DB_HOST:-localhost}"
+valkey_host="${SMOKE_VALKEY_HOST:-$db_host}"
 network="${SMOKE_NETWORK:-host}"
 port="${SMOKE_PORT:-4000}"
 work="$(mktemp -d)"
@@ -18,6 +19,7 @@ cat > "$work/env" <<ENV
 DATABASE_URL=ecto://relay@${db_host}:5432/relay_dev
 DATABASE_PASSWORD_FILE=/run/db-password
 POOL_SIZE=5
+VALKEY_URL=redis://${valkey_host}:6379
 RELAY_HOST=localhost
 PORT=${port}
 SECRET_KEY_BASE=$(openssl rand -hex 48)

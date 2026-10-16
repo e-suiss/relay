@@ -15,14 +15,15 @@ defmodule Relay.Application do
     :logger.update_primary_config(%{metadata: %{role: Enum.join(roles, ",")}})
     observe_heap_size()
     log_vm_topology()
+    Relay.Platform.attach_telemetry()
 
-    children = [
-      RelayWeb.Telemetry,
-      Relay.Repo,
-      {Phoenix.PubSub, name: Relay.PubSub},
-      {Task.Supervisor, name: Relay.TaskSupervisor},
-      RelayWeb.Endpoint
-    ]
+    children =
+      [
+        RelayWeb.Telemetry,
+        Relay.Repo,
+        {Phoenix.PubSub, name: Relay.PubSub},
+        {Task.Supervisor, name: Relay.TaskSupervisor}
+      ] ++ Relay.Platform.children() ++ [RelayWeb.Endpoint]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Relay.Supervisor)
   end

@@ -58,6 +58,25 @@ defmodule Relay.Config.Env do
     end
   end
 
+  # T-7
+  # TN-26
+  @doc "Returns a Valkey URL (`redis://` or `rediss://`); a password inside the URL is refused."
+  @spec valkey_url!(String.t()) :: String.t()
+  def valkey_url!(name) do
+    url = fetch!(name)
+
+    case URI.parse(url) do
+      %URI{scheme: scheme, host: host} = uri
+      when scheme in ["redis", "rediss"] and is_binary(host) and host != "" ->
+        if is_binary(uri.userinfo) and String.contains?(uri.userinfo, ":"),
+          do: raise(Error, "#{name} must not contain a password"),
+          else: url
+
+      _ ->
+        raise Error, "#{name} must be a redis:// or rediss:// URL"
+    end
+  end
+
   # T-3
   @doc "Parses a required comma-separated role list."
   @spec roles!(String.t()) :: [Relay.Role.t()]

@@ -45,6 +45,8 @@ defmodule Relay.MixProject do
       {:phoenix_ecto, "~> 4.7"},
       {:ecto_sql, "~> 3.14"},
       {:postgrex, "~> 0.22.4"},
+      {:oban, "2.24.1"},
+      {:redix, "~> 1.9.2"},
       {:bandit, "~> 1.12"},
       {:jason, "~> 1.4"},
       {:telemetry_metrics, "~> 1.2"},

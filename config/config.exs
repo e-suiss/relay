@@ -10,6 +10,20 @@ config :relay, Relay.Repo,
   migration_primary_key: [type: :binary_id],
   migration_timestamps: [type: :utc_datetime_usec]
 
+config :relay, Relay.Platform.Valkey,
+  adapter: Relay.Platform.Valkey.Redix,
+  url: "redis://localhost:6379"
+
+config :relay, Relay.Platform.Signal, poll_interval_ms: 1_000
+
+config :relay, Oban,
+  repo: Relay.Repo,
+  prefix: "oban",
+  notifier: Relay.Platform.Queue.Notifier,
+  peer: Oban.Peers.Database,
+  queues: [],
+  plugins: []
+
 config :relay, RelayWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,

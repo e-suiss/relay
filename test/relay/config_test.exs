@@ -38,6 +38,25 @@ defmodule Relay.ConfigTest do
     end
   end
 
+  describe "T-7 platform configuration" do
+    test "T-7: Valkey, signal and queue configuration keys are known" do
+      for key <- [Relay.Platform.Valkey, Relay.Platform.Signal, Oban] do
+        assert key in Config.known_app_keys()
+      end
+
+      assert :ok =
+               @valid
+               |> Keyword.put(Relay.Platform.Valkey, adapter: Relay.Platform.Valkey.Redix)
+               |> Keyword.put(Relay.Platform.Signal, poll_interval_ms: 1_000)
+               |> Keyword.put(Oban, repo: Relay.Repo)
+               |> Config.validate!(%{})
+    end
+
+    test "T-7: the running configuration passes validation" do
+      assert :ok = Config.validate!(Application.get_all_env(:relay), %{})
+    end
+  end
+
   describe "TN-8 no weakening flags" do
     test "TN-8: keys that would disable security or compliance checks are unknown" do
       for key <- [:disable_signature_verification, :disable_rls, :dev_mode, :skip_consent_check] do
@@ -67,6 +86,27 @@ defmodule Relay.ConfigTest do
       assert Env.database_url!("TEST_DB_URL") == "ecto://relay@db/relay"
     after
       System.delete_env("TEST_DB_URL")
+    end
+
+    test "TN-26: a Valkey URL must be redis:// or rediss:// and carry no password" do
+      System.put_env("TEST_VALKEY_URL", "redis://valkey:6379")
+      assert Env.valkey_url!("TEST_VALKEY_URL") == "redis://valkey:6379"
+
+      System.put_env("TEST_VALKEY_URL", "rediss://default@valkey:6380")
+      assert Env.valkey_url!("TEST_VALKEY_URL") == "rediss://default@valkey:6380"
+
+      System.put_env("TEST_VALKEY_URL", "redis://default:secret@valkey:6379")
+
+      assert_raise Error, ~r/must not contain a password/, fn ->
+        Env.valkey_url!("TEST_VALKEY_URL")
+      end
+
+      for url <- ["http://valkey:6379", "valkey:6379", "redis://"] do
+        System.put_env("TEST_VALKEY_URL", url)
+        assert_raise Error, ~r/redis:\/\//, fn -> Env.valkey_url!("TEST_VALKEY_URL") end
+      end
+    after
+      System.delete_env("TEST_VALKEY_URL")
     end
 
     test "INV-46: missing values have no default" do

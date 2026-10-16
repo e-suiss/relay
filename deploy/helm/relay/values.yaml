@@ -9,6 +9,9 @@ database:
   passwordSecret: relay-database
   poolSize: 10
 
+valkey:
+  url: ""
+
 secretKeyBaseSecret: relay-secret-key-base
 
 nodes:

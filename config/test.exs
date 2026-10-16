@@ -14,6 +14,8 @@ config :relay, RelayWeb.Endpoint,
   secret_key_base: "test-only-secret-key-base-000000000000000000000000000000000000000000000",
   server: false
 
+config :relay, Oban, testing: :manual
+
 config :logger, level: :warning
 
 config :phoenix, :plug_init_mode, :runtime

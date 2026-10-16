@@ -6,6 +6,10 @@ if config_env() == :prod do
     password: Relay.Config.Env.file!("DATABASE_PASSWORD_FILE"),
     pool_size: Relay.Config.Env.integer!("POOL_SIZE")
 
+  config :relay, Relay.Platform.Valkey,
+    adapter: Relay.Platform.Valkey.Redix,
+    url: Relay.Config.Env.valkey_url!("VALKEY_URL")
+
   config :relay, RelayWeb.Endpoint,
     url: [host: Relay.Config.Env.fetch!("RELAY_HOST"), port: 443, scheme: "https"],
     http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: Relay.Config.Env.integer!("PORT")],

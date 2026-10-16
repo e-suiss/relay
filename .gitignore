@@ -13,3 +13,4 @@ esuiss_relay-*.tar
 /.elixir_ls/
 /load/bin/
 /load/output/
+/native/*/target/

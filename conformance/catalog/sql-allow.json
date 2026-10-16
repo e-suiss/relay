@@ -1,6 +1,24 @@
 [
   {
     "path": "lib/relay/platform/store.ex",
+    "rule": "tenant_context",
+    "match": "current_setting(v.name, true)",
+    "reason": "TN-14: the startup role check detects a preset tenant context; it reads the setting without raising"
+  },
+  {
+    "path": "priv/repo/migrations/20261016000000_add_oban_jobs.exs",
+    "rule": "oban_prefix",
+    "match": "prefix: \"oban\"",
+    "reason": "T-60: committed migrations are never edited; 20261016000001 renames the schema to relay_queue"
+  },
+  {
+    "path": "lib/relay/platform/maintenance/escape_hatch.ex",
+    "rule": "set_role",
+    "match": "relay_migrator",
+    "reason": "TN-13, OP-68: the maintenance escape hatch switches to relay_migrator for DETACH CONCURRENTLY and resets the role on the same connection"
+  },
+  {
+    "path": "lib/relay/platform/store.ex",
     "rule": "physical_delete",
     "match": "@wipe \"TRUNCATE\"",
     "reason": "TN-14: the startup role check verifies that the login lacks the TRUNCATE privilege"

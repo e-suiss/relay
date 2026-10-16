@@ -53,6 +53,55 @@ defmodule RelayDev.Lint.SqlTest do
     end
   end
 
+  describe "TN-13 T-10 T-17 tenant context, roles and queue" do
+    test "TN-13: session context, missing_ok and role switching are rejected", %{tmp_dir: dir} do
+      write!(dir, %{
+        "lib/relay/tenancy/store.ex" => """
+        SELECT set_config('relay.tenant_id', $1, false)
+        SET relay.tenant_id = 'x'
+        SET SESSION relay.environment = 'live'
+        SELECT current_setting('relay.tenant_id', true)
+        SELECT current_setting('relay.tenant_id', missing_ok => true)
+        SET ROLE relay_migrator
+        SET LOCAL ROLE relay_migrator
+        """
+      })
+
+      assert rules(Sql.run(dir)) |> Enum.frequencies() == %{
+               "tenant_context" => 5,
+               "set_role" => 2
+             }
+    end
+
+    test "TN-13: a transaction-local context is allowed", %{tmp_dir: dir} do
+      write!(dir, %{
+        "lib/relay/tenancy/store.ex" => """
+        SELECT set_config('relay.tenant_id', $1, true)
+        SELECT current_setting('relay.tenant_id')::uuid
+        """
+      })
+
+      assert Sql.run(dir) == []
+    end
+
+    test "T-10: LISTEN, NOTIFY and pg_notify are rejected; the Oban notifier API is not SQL", %{
+      tmp_dir: dir
+    } do
+      write!(dir, %{
+        "priv/repo/migrations/1_a.exs" =>
+          "execute \"SELECT pg_notify('c', 'x')\"\nLISTEN jobs;\nNOTIFY jobs;\n",
+        "lib/relay/platform/queue/notifier.ex" => "def listen(conf, channels), do: :ok\n"
+      })
+
+      assert rules(Sql.run(dir)) == ["notify", "notify", "notify"]
+    end
+
+    test "T-17: the oban queue prefix is rejected", %{tmp_dir: dir} do
+      write!(dir, %{"priv/repo/migrations/1_a.exs" => ~s[Oban.Migrations.up(prefix: "oban")\n]})
+      assert rules(Sql.run(dir)) == ["oban_prefix"]
+    end
+  end
+
   describe "WF-47 TP-43 time zones" do
     test "WF-47: AT TIME ZONE is rejected", %{tmp_dir: dir} do
       write!(dir, %{

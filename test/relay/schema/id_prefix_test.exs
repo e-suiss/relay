@@ -33,7 +33,7 @@ defmodule Relay.Schema.IdPrefixTest do
       for table <- @stage_one_tables, do: assert(table in tables, table)
     end
 
-    test "T-58: an identifier is the prefix and 26 lowercase Crockford base32 characters" do
+    test "API-72: an identifier is the prefix and 26 lowercase Crockford base32 characters" do
       text = ExternalId.encode("ntf", id())
       assert text =~ ~r/^ntf_[0-9abcdefghjkmnpqrstvwxyz]{26}$/
     end

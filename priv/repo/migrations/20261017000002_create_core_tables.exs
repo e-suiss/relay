@@ -29,7 +29,9 @@ defmodule Relay.Repo.Migrations.CreateCoreTables do
     audit_leaves: [{"SELECT", "relay_owner, relay_archive"}, {"SELECT, INSERT", "relay_maint"}]
   }
 
-  @tenant_scope "tenant_id = (select current_setting('relay.tenant_id')::uuid) AND environment = (select current_setting('relay.environment')::relay.environment)"
+  @tenant_match "tenant_id = (select current_setting('relay.tenant_id')::uuid) AND environment = (select current_setting('relay.environment')::relay.environment)"
+  @context_guard "(select current_setting('relay.tenant_id')::uuid) IS NOT NULL AND (select current_setting('relay.environment')::relay.environment) IS NOT NULL"
+  @tenant_scope "#{@tenant_match} AND #{@context_guard}"
 
   # TN-11
   # TN-12
@@ -96,8 +98,10 @@ defmodule Relay.Repo.Migrations.CreateCoreTables do
       "ALTER TABLE relay.tenants FORCE ROW LEVEL SECURITY",
       """
       CREATE POLICY tenants_scope ON relay.tenants
-        USING (id = (select current_setting('relay.tenant_id')::uuid))
-        WITH CHECK (id = (select current_setting('relay.tenant_id')::uuid))
+        USING (id = (select current_setting('relay.tenant_id')::uuid)
+          AND (select current_setting('relay.tenant_id')::uuid) IS NOT NULL)
+        WITH CHECK (id = (select current_setting('relay.tenant_id')::uuid)
+          AND (select current_setting('relay.tenant_id')::uuid) IS NOT NULL)
       """,
       grant("tenants", :root),
       ~S"""
@@ -925,7 +929,7 @@ defmodule Relay.Repo.Migrations.CreateCoreTables do
     [
       "ALTER TABLE relay.#{table} ENABLE ROW LEVEL SECURITY",
       "ALTER TABLE relay.#{table} FORCE ROW LEVEL SECURITY",
-      "CREATE POLICY #{table}_scope ON relay.#{table} USING ((#{@tenant_scope}) OR tenant_id = (select relay_private.installation_tenant_id())) WITH CHECK (#{@tenant_scope})",
+      "CREATE POLICY #{table}_scope ON relay.#{table} USING ((#{@tenant_match} OR tenant_id = (select relay_private.installation_tenant_id())) AND #{@context_guard}) WITH CHECK (#{@tenant_scope})",
       grant(table, grants)
     ]
   end

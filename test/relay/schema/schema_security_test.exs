@@ -149,7 +149,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
       end
     end
 
-    test "TN-12: every unique key of a tenant table is led by tenant_id and environment, except the Access tenant id" do
+    test "OP-68: every unique key of a tenant table is led by tenant_id and environment, except the Access tenant id" do
       tenant = MapSet.new(tenant_tables(), & &1.name)
 
       for [table, index, cols] <- unique_indexes(), MapSet.member?(tenant, table) do
@@ -282,7 +282,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
       end
     end
 
-    test "TN-13: tenant policies bind both tenant_id and environment and are the same template everywhere" do
+    test "OP-68: tenant policies bind both tenant_id and environment and are the same template everywhere" do
       policies = policies()
       [[_, _, _, _, _, template, template_check]] = Map.fetch!(policies, "subtenants")
 
@@ -299,13 +299,58 @@ defmodule Relay.Schema.SchemaSecurityTest do
       for table <- @shared_read do
         [[_, _, _, _, _, using, check]] = Map.fetch!(policies, table)
         assert check == template
-        assert using =~ template
         assert using =~ "relay_private.installation_tenant_id()"
+        assert using =~ "IS NOT NULL"
       end
 
       [[_, _, _, _, _, tenants_using, tenants_check]] = Map.fetch!(policies, "tenants")
       assert tenants_using == tenants_check
       assert tenants_using =~ "(id = ( SELECT (current_setting('relay.tenant_id'::text))::uuid"
+    end
+  end
+
+  describe "TN-13 queries without context" do
+    @context_tables ["notifications", "tenants", "dataset_versions", "delivery_events"]
+
+    defp in_transaction(conn, fun) do
+      Postgrex.transaction(conn, fn tx -> Postgrex.rollback(tx, fun.(tx)) end)
+    end
+
+    test "TN-13: a query without tenant or environment context fails even on an empty table" do
+      {:ok, conn} = Postgrex.start_link(RelayDev.Database.connection("relay_worker"))
+
+      for table <- @context_tables do
+        assert {:error, %Postgrex.Error{postgres: %{code: :undefined_object}}} =
+                 Postgrex.query(conn, "SELECT * FROM relay.#{table}", []),
+               table
+      end
+
+      assert {:error, {:error, %Postgrex.Error{postgres: %{code: :undefined_object}}}} =
+               in_transaction(conn, fn tx ->
+                 Postgrex.query!(tx, "SELECT set_config('relay.tenant_id', $1, true)", [
+                   Ecto.UUID.generate()
+                 ])
+
+                 Postgrex.query(tx, "SELECT * FROM relay.notifications", [])
+               end)
+
+      assert {:error, %Postgrex.Error{postgres: %{code: :invalid_text_representation}}} =
+               Postgrex.query(conn, "SELECT * FROM relay.notifications", [])
+
+      assert {:error, results} =
+               in_transaction(conn, fn tx ->
+                 Postgrex.query!(tx, "SELECT set_config('relay.tenant_id', $1, true)", [
+                   Ecto.UUID.generate()
+                 ])
+
+                 Postgrex.query!(tx, "SELECT set_config('relay.environment', 'test', true)", [])
+
+                 for table <- @context_tables,
+                     do: Postgrex.query!(tx, "SELECT * FROM relay.#{table}", []).rows
+               end)
+
+      assert results == [[], [], [], []]
+      GenServer.stop(conn)
     end
   end
 
@@ -521,7 +566,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
     end
   end
 
-  describe "OP-13 partitions" do
+  describe "OP-13 OP-66 partitions" do
     test "OP-13: partitioned tables have no default partition and match the partition policies" do
       partitioned =
         rows("""
@@ -539,7 +584,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
       assert List.flatten(policies) == @partitioned |> Map.keys() |> Enum.sort()
     end
 
-    test "OP-13: the partition policies carry the initial intervals, horizons and hot retention" do
+    test "OP-66: the partition policies carry the initial intervals, horizons and hot retention" do
       seeded =
         rows("""
         SELECT table_name, partition_interval, premake_horizon::text, alarm_threshold::text,
@@ -672,7 +717,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
       refute Enum.any?(Map.fetch!(columns(), "subtenants"), &String.contains?(&1, "parent"))
     end
 
-    test "T-17: the job queue lives in relay_queue and there is no oban schema" do
+    test "OP-68: the job queue lives in relay_queue and there is no oban schema" do
       assert rows("SELECT 1 FROM pg_namespace WHERE nspname = 'oban'") == []
 
       tables =
@@ -683,7 +728,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
       assert tables == [["relay_queue", "oban_jobs"], ["relay_queue", "oban_peers"]]
     end
 
-    test "C-85: the retention class domain is the set of Relay.RetentionClass codes" do
+    test "OP-68: the retention class domain is the set of Relay.RetentionClass codes" do
       [[definition]] =
         rows("""
         SELECT pg_get_constraintdef(con.oid) FROM pg_constraint con

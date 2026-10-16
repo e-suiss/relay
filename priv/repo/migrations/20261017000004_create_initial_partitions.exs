@@ -55,7 +55,7 @@ defmodule Relay.Repo.Migrations.CreateInitialPartitions do
             v_leaf, v_leaf || '_bounds', v_column, v_lo, v_column, v_hi);
           EXECUTE format('ALTER TABLE relay.%I ENABLE ROW LEVEL SECURITY', v_leaf);
           EXECUTE format('ALTER TABLE relay.%I FORCE ROW LEVEL SECURITY', v_leaf);
-          EXECUTE format($f$CREATE POLICY %I ON relay.%I USING (tenant_id = (select current_setting('relay.tenant_id')::uuid) AND environment = (select current_setting('relay.environment')::relay.environment)) WITH CHECK (tenant_id = (select current_setting('relay.tenant_id')::uuid) AND environment = (select current_setting('relay.environment')::relay.environment))$f$,
+          EXECUTE format($f$CREATE POLICY %I ON relay.%I USING (tenant_id = (select current_setting('relay.tenant_id')::uuid) AND environment = (select current_setting('relay.environment')::relay.environment) AND (select current_setting('relay.tenant_id')::uuid) IS NOT NULL AND (select current_setting('relay.environment')::relay.environment) IS NOT NULL) WITH CHECK (tenant_id = (select current_setting('relay.tenant_id')::uuid) AND environment = (select current_setting('relay.environment')::relay.environment) AND (select current_setting('relay.tenant_id')::uuid) IS NOT NULL AND (select current_setting('relay.environment')::relay.environment) IS NOT NULL)$f$,
             v_leaf || '_scope', v_leaf);
           EXECUTE format('GRANT SELECT ON relay.%I TO relay_maint, relay_archive', v_leaf);
 

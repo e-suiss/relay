@@ -1,5 +1,5 @@
 defmodule Relay.Sql.TenancyTest do
-  use Relay.SqlCase, async: true
+  use Relay.SqlCase, async: false
 
   @create "SELECT * FROM relay_ops.tenant_create($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
 

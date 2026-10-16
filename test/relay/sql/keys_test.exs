@@ -1,5 +1,5 @@
 defmodule Relay.Sql.KeysTest do
-  use Relay.SqlCase, async: true
+  use Relay.SqlCase, async: false
 
   defp wrap_key(recipient) do
     one("SELECT wrapping_key_id FROM relay.subject_keys WHERE recipient_id = $1 LIMIT 1", [

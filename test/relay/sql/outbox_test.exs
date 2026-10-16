@@ -1,5 +1,5 @@
 defmodule Relay.Sql.OutboxTest do
-  use Relay.SqlCase, async: true
+  use Relay.SqlCase, async: false
 
   alias Relay.Repo
 

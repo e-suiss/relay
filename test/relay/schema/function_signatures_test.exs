@@ -1,5 +1,5 @@
 defmodule Relay.Schema.FunctionSignaturesTest do
-  use Relay.SqlCase, async: true
+  use Relay.SqlCase, async: false
 
   import Relay.Golden
 

@@ -1,5 +1,5 @@
 defmodule Relay.Sql.AuditTest do
-  use Relay.SqlCase, async: true
+  use Relay.SqlCase, async: false
 
   import Bitwise
 

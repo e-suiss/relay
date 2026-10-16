@@ -1,5 +1,5 @@
 defmodule Relay.Sql.DatasetTest do
-  use Relay.SqlCase, async: true
+  use Relay.SqlCase, async: false
 
   @publish "SELECT * FROM relay_fn.dataset_version_publish($1, $2, $3, $4, $5, 'pkg@1', now(), $6, $7, $8, $9, $10)"
   @activate "SELECT relay_fn.dataset_activate($1, $2, $3, $4, $5, $6, $7, $8)"

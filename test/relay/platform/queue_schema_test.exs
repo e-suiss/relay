@@ -44,7 +44,7 @@ defmodule Relay.Platform.QueueSchemaTest do
     functions =
       rows("""
       SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-      WHERE n.nspname = 'oban' AND pg_get_functiondef(p.oid) ILIKE '%pg_notify%'
+      WHERE n.nspname = 'oban' AND p.prokind = 'f' AND pg_get_functiondef(p.oid) ILIKE '%pg_notify%'
       """)
 
     assert functions == []

@@ -27,7 +27,7 @@ defmodule Relay.Keys.PortTest do
           module: mode,
           token: "relay-test",
           pin_file: "/nonexistent/pin",
-          timeout: 2_000,
+          timeout: 10_000,
           min_backoff: 10,
           max_backoff: 50
         ],

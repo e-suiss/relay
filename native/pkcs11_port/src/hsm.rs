@@ -53,7 +53,11 @@ impl From<Error> for Failure {
                     fatal: fatal(rv),
                 }
             }
-            _ => Failure::new(Status::Internal, "cryptoki error"),
+            other => Failure {
+                status: Status::Internal,
+                message: format!("cryptoki: {other}"),
+                fatal: false,
+            },
         }
     }
 }

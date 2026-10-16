@@ -92,14 +92,19 @@ defmodule Relay.Repo do
   # TN-13 (4)
   # TN-16 (3)
   # sobelow_skip ["SQL.Query"]
-  @doc "Runs tenant-scoped SQL inside `in_scope/3`; raises `Relay.ScopeError` without a scope or for a row outside it."
+  @doc """
+  Runs tenant-scoped SQL inside `in_scope/3`; raises `Relay.ScopeError` without a scope or for a row outside it.
+
+  With `shared: :installation`, rows of the installation tenant's `live` environment are also accepted: installation-wide data sets are readable from every scope (S-3).
+  """
   @spec scoped_query(iodata(), [term()], keyword()) ::
           {:ok, Postgrex.Result.t()} | {:error, Exception.t()}
   def scoped_query(sql, params, opts \\ []) do
     scope = scope!()
+    {shared, opts} = Keyword.pop(opts, :shared)
 
     case query(sql, params, opts) do
-      {:ok, result} -> {:ok, check_rows!(scope, result)}
+      {:ok, result} -> {:ok, check_rows!(scope, result, shared_scopes(shared))}
       {:error, error} -> {:error, error}
     end
   end
@@ -109,7 +114,8 @@ defmodule Relay.Repo do
   @spec scoped_query!(iodata(), [term()], keyword()) :: Postgrex.Result.t()
   def scoped_query!(sql, params, opts \\ []) do
     scope = scope!()
-    check_rows!(scope, query!(sql, params, opts))
+    {shared, opts} = Keyword.pop(opts, :shared)
+    check_rows!(scope, query!(sql, params, opts), shared_scopes(shared))
   end
 
   # TN-13 (4)
@@ -217,25 +223,37 @@ defmodule Relay.Repo do
   defp not_found_error, do: {:error, Relay.Error.new(:not_found, "not found")}
 
   # TN-16 (3)
-  @doc "Returns the result if every row's `tenant_id` and `environment` columns belong to `scope`; raises `Relay.ScopeError` otherwise."
-  @spec check_rows!(Scope.t(), Postgrex.Result.t()) :: Postgrex.Result.t()
-  def check_rows!(scope, %Postgrex.Result{columns: columns, rows: rows} = result)
-      when is_list(columns) and is_list(rows) do
-    checks =
-      for {column, expected} <- [
-            {"tenant_id", scope.tenant_id},
-            {"environment", Relay.Environment.dump(scope.environment)}
-          ],
-          index = Enum.find_index(columns, &(&1 == column)),
-          index != nil,
-          do: {index, expected}
+  @doc "Returns the result if every row's `tenant_id` and `environment` columns belong to `scope` or to one of the `shared` scopes; raises `Relay.ScopeError` otherwise."
+  @spec check_rows!(Scope.t(), Postgrex.Result.t(), [Scope.t()]) :: Postgrex.Result.t()
+  def check_rows!(scope, result, shared \\ [])
 
-    unless Enum.all?(rows, &row_in_scope?(&1, checks)), do: raise(ScopeError, :row_outside_scope)
+  def check_rows!(scope, %Postgrex.Result{columns: columns, rows: rows} = result, shared)
+      when is_list(columns) and is_list(rows) do
+    tenant = Enum.find_index(columns, &(&1 == "tenant_id"))
+    environment = Enum.find_index(columns, &(&1 == "environment"))
+    allowed = Enum.map([scope | shared], &{&1.tenant_id, Relay.Environment.dump(&1.environment)})
+
+    unless Enum.all?(rows, &row_allowed?(&1, tenant, environment, allowed)),
+      do: raise(ScopeError, :row_outside_scope)
+
     result
   end
 
-  def check_rows!(_scope, result), do: result
+  def check_rows!(_scope, result, _shared), do: result
 
-  defp row_in_scope?(row, checks),
-    do: Enum.all?(checks, fn {index, expected} -> Enum.at(row, index) == expected end)
+  defp row_allowed?(row, tenant, environment, allowed) do
+    Enum.any?(allowed, fn {tenant_id, env} ->
+      column_is?(row, tenant, tenant_id) and column_is?(row, environment, env)
+    end)
+  end
+
+  defp column_is?(_row, nil, _expected), do: true
+  defp column_is?(row, index, expected), do: Enum.at(row, index) == expected
+
+  defp shared_scopes(nil), do: []
+
+  defp shared_scopes(:installation) do
+    %{rows: [[installation]]} = query!("SELECT relay_private.installation_tenant_id()", [])
+    [%Scope{tenant_id: installation, environment: :live}]
+  end
 end

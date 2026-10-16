@@ -5,6 +5,8 @@ defmodule Relay.Tenancy.IsolationPropertyTest do
   alias Relay.Repo
   alias RelayTest.TenantFixture
 
+  @shared ~w(dataset_versions dataset_active)
+
   defp populate(scope) do
     keys = TenantFixture.keys!(scope)
     recipient = TenantFixture.recipient!(scope, keys)
@@ -81,7 +83,7 @@ defmodule Relay.Tenancy.IsolationPropertyTest do
       scopes: scopes,
       tables: tables
     } do
-      check all scope <- member_of(scopes), table <- member_of(tables), max_runs: 60 do
+      check all scope <- member_of(scopes), table <- member_of(tables -- @shared), max_runs: 60 do
         {:ok, rows} =
           Repo.in_scope(scope, fn _ ->
             %{rows: rows} =
@@ -92,6 +94,28 @@ defmodule Relay.Tenancy.IsolationPropertyTest do
 
         env = Relay.Environment.dump(scope.environment)
         assert Enum.all?(rows, &(&1 == [scope.tenant_id, env]))
+      end
+    end
+
+    property "TN-16: installation-wide data sets add only the installation tenant's live rows", %{
+      scopes: scopes
+    } do
+      check all scope <- member_of(scopes), table <- member_of(@shared), max_runs: 10 do
+        {:ok, {installation, rows}} =
+          Repo.in_scope(scope, fn _ ->
+            %{rows: [[installation]]} =
+              Repo.query!("SELECT relay_private.installation_tenant_id()", [])
+
+            %{rows: rows} =
+              Repo.scoped_query!("SELECT tenant_id, environment FROM relay.#{table}", [],
+                shared: :installation
+              )
+
+            {installation, rows}
+          end)
+
+        env = Relay.Environment.dump(scope.environment)
+        assert Enum.all?(rows, &(&1 in [[scope.tenant_id, env], [installation, "live"]]))
       end
     end
 

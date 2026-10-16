@@ -84,6 +84,15 @@ defmodule Relay.ScopeTest do
       assert_raise ScopeError, fn -> Repo.check_rows!(scope, result) end
     end
 
+    test "TN-16: a shared scope admits only its own rows besides the context", %{scope: scope} do
+      shared = [Scope.new!(@other, :live)]
+      result = %Postgrex.Result{columns: ["tenant_id", "environment"], rows: [[@other, "live"]]}
+      assert Repo.check_rows!(scope, result, shared) == result
+
+      other_env = %Postgrex.Result{result | rows: [[@other, "test"]]}
+      assert_raise ScopeError, fn -> Repo.check_rows!(scope, other_env, shared) end
+    end
+
     test "TN-16: results without scope columns are not inspected", %{scope: scope} do
       result = %Postgrex.Result{columns: ["result"], rows: [["created"]]}
       assert Repo.check_rows!(scope, result) == result

@@ -147,7 +147,7 @@ defmodule Relay.Repo.RoleCheckIntegrationTest do
   alias Relay.Platform.Store
 
   defp check(login, profile) do
-    conn = start_supervised!({Postgrex, login_options(login)}, id: {:conn, login})
+    conn = start_supervised!({Postgrex, login_options(login)}, id: make_ref())
 
     Store.role_check(
       fn sql, params ->

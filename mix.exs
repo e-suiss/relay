@@ -71,7 +71,7 @@ defmodule Relay.MixProject do
       setup: ["deps.get", "ecto.setup"],
       "ecto.setup": ["relay.db.setup"],
       "ecto.reset": ["relay.db.setup --drop"],
-      test: ["relay.db.setup", "test"],
+      test: ["relay.db.setup --quiet", "test"],
       lint: [
         "relay.lint.sql",
         "relay.lint.comments",

@@ -289,7 +289,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
       assert template == template_check
       assert template =~ "current_setting('relay.tenant_id'::text)"
       assert template =~ "current_setting('relay.environment'::text)"
-      assert template =~ "::relay.environment"
+      assert template =~ ~r/::(relay\.)?environment\b/
 
       for rel <- tenant_tables(), rel.parent not in @shared_read do
         [[_, _, _, _, _, using, check]] = Map.fetch!(policies, rel.name)

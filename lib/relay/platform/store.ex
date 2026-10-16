@@ -268,7 +268,8 @@ defmodule Relay.Platform.Store do
            OR s.setdatabase = (SELECT oid FROM pg_catalog.pg_database WHERE datname = current_database()))
       AND (s.setrole = 0 OR pg_catalog.pg_has_role(current_user, s.setrole, 'MEMBER'))
     UNION
-    SELECT name FROM pg_catalog.pg_settings WHERE name LIKE 'relay.%'
+    SELECT v.name FROM (VALUES ('relay.tenant_id'), ('relay.environment')) AS v(name)
+    WHERE coalesce(current_setting(v.name, true), '') <> ''
     """
   end
 end

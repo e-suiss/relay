@@ -32,9 +32,9 @@ defmodule Relay.Delivery.AttemptTest do
     end
 
     test "C-31: only one attempt is active at a time", %{scope: scope, delivery_id: id} do
-      _ = DeliveryFixture.started_attempt!(scope, id)
+      active = DeliveryFixture.started_attempt!(scope, id)
 
-      assert {:ok, {:attempt_active, nil}} =
+      assert {:ok, {:attempt_active, ^active}} =
                Relay.Delivery.open_attempt(scope, %{id: Relay.Id.generate(), delivery_id: id})
     end
 

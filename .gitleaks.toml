@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Published C2SP and golang.org/x/mod sumdb test vectors"
+paths = ['''^test/vectors/c2sp/''']

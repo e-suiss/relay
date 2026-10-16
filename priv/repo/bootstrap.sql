@@ -88,9 +88,9 @@ REVOKE ALL ON SCHEMA relay, relay_private, relay_fn, relay_ops FROM PUBLIC;
 GRANT USAGE ON SCHEMA relay TO relay_owner, relay_app, relay_maint, relay_archive, relay_report;
 GRANT USAGE ON SCHEMA relay_private TO relay_owner, relay_app, relay_maint, relay_archive, relay_report;
 GRANT USAGE ON SCHEMA relay_fn TO relay_app, relay_report;
-GRANT CREATE ON SCHEMA relay_fn TO relay_migrator;
+GRANT USAGE, CREATE ON SCHEMA relay_fn TO relay_migrator;
 GRANT USAGE ON SCHEMA relay_ops TO relay_app;
-GRANT CREATE ON SCHEMA relay_ops TO relay_migrator;
+GRANT USAGE, CREATE ON SCHEMA relay_ops TO relay_migrator;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE relay_migrator, relay_owner, relay_maint REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 

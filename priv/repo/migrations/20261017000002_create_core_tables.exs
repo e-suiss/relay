@@ -4,7 +4,8 @@ defmodule Relay.Repo.Migrations.CreateCoreTables do
   @grants %{
     root: [
       {"SELECT, UPDATE", "relay_owner"},
-      {"SELECT", "relay_app, relay_maint, relay_archive, relay_report"}
+      {"SELECT, INSERT", "relay_maint"},
+      {"SELECT", "relay_app, relay_archive, relay_report"}
     ],
     tenant: [
       {"SELECT, INSERT, UPDATE", "relay_owner"},
@@ -15,7 +16,7 @@ defmodule Relay.Repo.Migrations.CreateCoreTables do
       {"SELECT", "relay_app, relay_maint, relay_archive, relay_report"}
     ],
     key: [{"SELECT, INSERT, UPDATE", "relay_owner"}, {"SELECT", "relay_app, relay_maint"}],
-    audit: [{"SELECT, INSERT", "relay_owner"}, {"SELECT", "relay_maint, relay_archive"}],
+    audit: [{"SELECT, INSERT", "relay_owner, relay_maint"}, {"SELECT", "relay_archive"}],
     receipt: [{"SELECT, INSERT, UPDATE", "relay_owner"}, {"SELECT", "relay_maint, relay_archive"}],
     installation: [{"SELECT", "relay_owner, relay_app, relay_maint, relay_archive"}],
     installation_maint: [

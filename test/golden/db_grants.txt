@@ -28,7 +28,7 @@ table relay.audit_leaves relay_archive SELECT
 table relay.audit_leaves relay_maint INSERT,SELECT
 table relay.audit_leaves relay_owner SELECT
 table relay.audit_log relay_archive SELECT
-table relay.audit_log relay_maint SELECT
+table relay.audit_log relay_maint INSERT,SELECT
 table relay.audit_log relay_owner INSERT,SELECT
 table relay.blind_index_keys relay_app SELECT
 table relay.blind_index_keys relay_maint SELECT
@@ -128,7 +128,7 @@ table relay.tenant_keys relay_maint SELECT
 table relay.tenant_keys relay_owner INSERT,SELECT,UPDATE
 table relay.tenants relay_app SELECT
 table relay.tenants relay_archive SELECT
-table relay.tenants relay_maint SELECT
+table relay.tenants relay_maint INSERT,SELECT
 table relay.tenants relay_owner SELECT,UPDATE
 table relay.tenants relay_report SELECT
 table relay.usage_records relay_app SELECT

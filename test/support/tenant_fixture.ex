@@ -72,7 +72,7 @@ defmodule RelayTest.TenantFixture do
           %{
             id: id,
             purpose: purpose,
-            kek_ref: "pkcs11:token=relay;object=kek-test?version=1",
+            kek_ref: "pkcs11:object=kek-test?version=1",
             wrapped_key: wrapped(),
             record_digest: digest()
           },
@@ -83,7 +83,7 @@ defmodule RelayTest.TenantFixture do
     {:ok, :created} =
       Relay.Tenancy.register_blind_index_key(
         scope,
-        %{id: bidx, hsm_ref: "pkcs11:token=relay;object=bidx-test", record_digest: digest()},
+        %{id: bidx, hsm_ref: "pkcs11:object=bidx-test", record_digest: digest()},
         actor()
       )
 

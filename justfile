@@ -27,7 +27,10 @@ hsm:
     export SOFTHSM2_CONF="$PWD/deploy/softhsm/softhsm2.conf"
     softhsm2-util --show-slots | grep -q "Label:.*relay-dev" || softhsm2-util --init-token --free --label relay-dev --pin 1234 --so-pin 12345678
 
-test:
+port:
+    native/build.sh
+
+test: port
     {{compose}} up -d --wait postgres valkey
     mix test --include integration
 
@@ -44,6 +47,9 @@ check:
     mix relay.bench.reductions
     mix dialyzer
     mix docs --warnings-as-errors
+    cd native/pkcs11_port && cargo fmt --check
+    cd native/pkcs11_port && cargo clippy --locked --all-targets -- -D warnings
+    cd native/pkcs11_port && cargo test --locked
     docker compose -f deploy/compose.yaml config -q
     just test
 

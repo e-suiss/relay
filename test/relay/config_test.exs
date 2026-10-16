@@ -11,6 +11,11 @@ defmodule Relay.ConfigTest do
       assert :ok = Config.validate!(@valid, %{"RELAY_ROLES" => "api"})
     end
 
+    test "TN-63: the key store implementation is a known key" do
+      assert :keys in Config.known_app_keys()
+      assert :ok = Config.validate!(Keyword.put(@valid, :keys, Relay.Keys.Port), %{})
+    end
+
     test "INV-46: an unknown configuration key stops startup" do
       assert_raise Error, ~r/unknown configuration keys.*:retry_forever/, fn ->
         Config.validate!(Keyword.put(@valid, :retry_forever, true), %{})

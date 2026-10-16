@@ -10,6 +10,7 @@ defmodule Relay.Config do
     :roles,
     :clock,
     :random,
+    :keys,
     Relay.Repo,
     RelayWeb.Endpoint,
     Relay.Platform.Valkey,

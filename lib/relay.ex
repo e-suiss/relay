@@ -8,6 +8,7 @@ defmodule Relay do
     exports: [
       Clock,
       Random,
+      Keys,
       Error,
       Redacted,
       Decision,

@@ -4,7 +4,8 @@ config :relay,
   ecto_repos: [Relay.Repo],
   roles: [:api, :worker, :socket],
   clock: Relay.Clock.System,
-  random: Relay.Random.Strong
+  random: Relay.Random.Strong,
+  keys: Relay.Keys.Port
 
 config :relay, Relay.Repo,
   migration_primary_key: [type: :binary_id],

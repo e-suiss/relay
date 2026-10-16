@@ -3769,6 +3769,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "API-72",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "WF-1",
     "section": "§10",
     "status": "frozen_technical",
@@ -7737,6 +7745,22 @@
   },
   {
     "acceptance": "pending",
+    "id": "TN-64",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-65",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "T-1",
     "section": "§19",
     "status": "central",
@@ -8417,6 +8441,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "T-86",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "OP-1",
     "section": "§20",
     "status": "frozen_technical",
@@ -8922,6 +8954,38 @@
   {
     "acceptance": "pending",
     "id": "OP-64",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-65",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-66",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-67",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-68",
     "section": "§20",
     "status": "frozen_technical",
     "title": "",

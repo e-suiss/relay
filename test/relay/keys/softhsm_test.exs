@@ -157,7 +157,7 @@ defmodule Relay.Keys.SoftHSMTest do
   end
 
   test "TN-26: a wrong PIN keeps the server up and reports the store unavailable", %{
-    module: module,
+    pkcs11_module: module,
     dir: dir
   } do
     bad_pin = Path.join(dir, "bad-pin")

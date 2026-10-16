@@ -259,7 +259,6 @@ defmodule Relay.Repo.Migrations.CreateCoreTables do
           ON DELETE RESTRICT ON UPDATE RESTRICT
       )
       """,
-      scoped("recipients", :tenant),
       ~S"""
       CREATE TABLE relay.subject_keys (
         tenant_id uuid NOT NULL,
@@ -292,13 +291,14 @@ defmodule Relay.Repo.Migrations.CreateCoreTables do
           REFERENCES relay.tenant_keys (tenant_id, environment, id) ON DELETE RESTRICT ON UPDATE RESTRICT
       )
       """,
-      scoped("subject_keys", :key),
       """
       ALTER TABLE relay.recipients ADD CONSTRAINT recipients_external_id_key_id_fkey
         FOREIGN KEY (tenant_id, environment, external_id_key_id)
         REFERENCES relay.subject_keys (tenant_id, environment, id)
         ON DELETE RESTRICT ON UPDATE RESTRICT DEFERRABLE INITIALLY DEFERRED
       """,
+      scoped("recipients", :tenant),
+      scoped("subject_keys", :key),
       ~S"""
       CREATE TABLE relay.secret_refs (
         tenant_id uuid NOT NULL,

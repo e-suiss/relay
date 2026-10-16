@@ -20,6 +20,8 @@ defmodule Relay.Repo.Migrations.CreateInitialPartitions do
       v_hi text;
     BEGIN
       PERFORM set_config('TimeZone', 'UTC', true);
+      PERFORM set_config('relay.tenant_id', '00000000-0000-0000-0000-000000000000', true);
+      PERFORM set_config('relay.environment', 'live', true);
 
       FOR p IN
         SELECT table_name, partition_interval, premake_horizon

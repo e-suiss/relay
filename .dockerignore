@@ -9,3 +9,5 @@ conformance
 cover
 doc
 priv/plts
+native/*/target
+priv/native

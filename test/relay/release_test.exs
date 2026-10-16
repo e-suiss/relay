@@ -29,6 +29,46 @@ defmodule Relay.ReleaseTest do
     assert Mix.Project.config()[:package][:name] == "esuiss_relay"
   end
 
+  describe "TN-63 key store program in the image" do
+    test "T-62: the image builds the program with the pinned toolchain from the lock file" do
+      dockerfile = File.read!("deploy/docker/Dockerfile")
+
+      [_, channel] =
+        Regex.run(
+          ~r/^channel = "([^"]+)"$/m,
+          File.read!("native/pkcs11_port/rust-toolchain.toml")
+        )
+
+      assert dockerfile =~
+               ~r/^FROM rust:#{Regex.escape(channel)}-\S+@sha256:[0-9a-f]{64} AS native$/m
+
+      assert dockerfile =~ "cargo build --locked --release"
+    end
+
+    test "TN-65 (7): the image bundles the program and embeds its checksum before compiling" do
+      dockerfile = File.read!("deploy/docker/Dockerfile")
+
+      assert dockerfile =~
+               "COPY --from=native /build/target/release/pkcs11_port priv/native/pkcs11_port"
+
+      assert dockerfile =~
+               "RUN sha256sum priv/native/pkcs11_port > priv/native/pkcs11_port.sha256"
+
+      [checksum, compile] =
+        for marker <- ["pkcs11_port.sha256", "mix compile"],
+            do: :binary.match(dockerfile, marker) |> elem(0)
+
+      assert checksum < compile
+    end
+
+    test "TN-63: the production image carries no PKCS#11 provider" do
+      runtime =
+        "deploy/docker/Dockerfile" |> File.read!() |> String.split(~r/^FROM /m) |> List.last()
+
+      refute runtime =~ ~r/softhsm/i
+    end
+  end
+
   test "T-3: nodes with the api or socket role serve HTTP; worker-only nodes do not" do
     runtime = File.read!("config/runtime.exs")
     assert runtime =~ "server: :api in roles or :socket in roles"

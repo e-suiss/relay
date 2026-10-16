@@ -2,8 +2,6 @@ defmodule Relay.Sql.ContextTest do
   use Relay.SqlCase, async: true
 
   test "TN-13: a write function without tenant context raises scope_missing" do
-    as_role("relay_api")
-
     assert error_message("SELECT * FROM relay_fn.stream_next_seq('topic:a')") == "scope_missing"
   end
 

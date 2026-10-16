@@ -7,7 +7,6 @@ defmodule Relay.Repo.Migrations.CreateContextFunctions do
   @functions [
     {"relay_private.ctx_tenant_id()", "relay_migrator", @readers},
     {"relay_private.ctx_environment()", "relay_migrator", @readers},
-    {"relay_private.installation_tenant_id()", "relay_migrator", @readers},
     {"relay_private.assert_new_id(uuid)", "relay_migrator", @writers},
     {"relay_private.tenant_status()", "relay_migrator", @writers},
     {"relay_private.lock_scope(text[])", "relay_migrator", @writers},
@@ -23,9 +22,9 @@ defmodule Relay.Repo.Migrations.CreateContextFunctions do
     Enum.each(statements(), &execute/1)
 
     for {signature, owner, grantees} <- @functions do
-      execute("ALTER FUNCTION #{signature} OWNER TO #{owner}")
       execute("REVOKE ALL ON FUNCTION #{signature} FROM PUBLIC")
       Enum.each(grantees, &execute("GRANT EXECUTE ON FUNCTION #{signature} TO #{&1}"))
+      if owner == "relay_owner", do: execute("ALTER FUNCTION #{signature} OWNER TO #{owner}")
     end
   end
 
@@ -58,15 +57,6 @@ defmodule Relay.Repo.Migrations.CreateContextFunctions do
       EXCEPTION WHEN undefined_object OR check_violation OR invalid_text_representation THEN
         RAISE EXCEPTION 'scope_missing' USING HINT = 'TN-13';
       END
-      $fn$
-      """,
-      ~S"""
-      CREATE FUNCTION relay_private.installation_tenant_id() RETURNS uuid
-      LANGUAGE sql STABLE SECURITY DEFINER
-      SET search_path = pg_catalog, pg_temp
-      SET TimeZone = 'UTC'
-      AS $fn$
-        SELECT i.installation_tenant_id FROM relay.installation i
       $fn$
       """,
       ~S"""

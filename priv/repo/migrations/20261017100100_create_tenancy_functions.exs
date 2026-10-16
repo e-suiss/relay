@@ -25,9 +25,9 @@ defmodule Relay.Repo.Migrations.CreateTenancyFunctions do
     Enum.each(statements(), &execute/1)
 
     for {signature, owner, grantees} <- @functions do
-      execute("ALTER FUNCTION #{signature} OWNER TO #{owner}")
       execute("REVOKE ALL ON FUNCTION #{signature} FROM PUBLIC")
       Enum.each(grantees, &execute("GRANT EXECUTE ON FUNCTION #{signature} TO #{&1}"))
+      if owner == "relay_owner", do: execute("ALTER FUNCTION #{signature} OWNER TO #{owner}")
     end
   end
 

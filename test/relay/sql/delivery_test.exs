@@ -377,14 +377,29 @@ defmodule Relay.Sql.DeliveryTest do
 
       assert %{failure_kind: "cancelled", failure_rule_id: "ops.stop"} = delivery(d)
       assert_rebuilds(d)
-
-      reset_role()
-      Repo.query!("UPDATE relay.deliveries SET late_event_count = 7 WHERE id = $1", [d])
-      as_role("relay_api")
-
-      assert rows("SELECT * FROM relay_fn.delivery_projection_rebuild($1)", [d]) ==
-               [["late_event_count", "7", "0"]]
     end
+  end
+
+  test "OP-3: the rebuild reports a projection that drifted from its ledger" do
+    worker = connect("relay_worker")
+
+    {tenant, d} =
+      committed(worker, fn ->
+        %{tenant: tenant, notification: notification} = scenario!()
+        {tenant, delivery!(notification)}
+      end)
+
+    committed(connect(:admin), fn ->
+      rows("UPDATE relay.deliveries SET late_event_count = 7 WHERE id = $1", [d])
+    end)
+
+    drift =
+      rolled_back(worker, fn ->
+        ctx(tenant)
+        rows("SELECT * FROM relay_fn.delivery_projection_rebuild($1)", [d])
+      end)
+
+    assert drift == [["late_event_count", "7", "0"]]
   end
 
   test "TN-40: notification cancel cancels only pending deliveries" do

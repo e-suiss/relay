@@ -139,8 +139,6 @@ defmodule Relay.Schema.FunctionSignaturesTest do
   end
 
   test "OP-8: the application role has no direct write privilege on the relay tables" do
-    as_role("relay_api")
-
     for {table, column} <- [
           {"tenants", "id"},
           {"notifications", "tenant_id"},

@@ -45,12 +45,8 @@ defmodule Relay.Sql.AuditTest do
     assert rows(@query, [from, to, "killswitch.released", nil, 10, digest() | actor()]) ==
              [[second, "killswitch.released"]]
 
-    reset_role()
-
-    assert one(
-             "SELECT count(*) FROM relay.audit_log WHERE tenant_id = $1 AND environment = 'test' AND action = 'audit_log.read'",
-             [tenant]
-           ) == 3
+    reads = rows(@query, [from, to, "audit_log.read", nil, 10, digest() | actor()])
+    assert length(reads) == 3
   end
 
   test "TN-48: audit records require the acting identity" do
@@ -67,8 +63,6 @@ defmodule Relay.Sql.AuditTest do
     audit_ids = for n <- 1..5, do: append("pii.revealed.#{<<?a + n>>}")
     hashes = for _ <- audit_ids, do: digest()
     origin = "relay.test/relay/audit/" <> Base.encode16(digest())
-
-    as_role("relay_worker")
 
     ["acquired", token] =
       row("SELECT * FROM relay_ops.singleton_acquire('audit_checkpoint', 'node_a', '1 minute')")

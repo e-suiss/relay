@@ -25,9 +25,9 @@ defmodule Relay.Repo.Migrations.CreateMaintenanceFunctions do
     Enum.each(statements(), &execute/1)
 
     for {signature, owner, grantees} <- @functions do
-      execute("ALTER FUNCTION #{signature} OWNER TO #{owner}")
       execute("REVOKE ALL ON FUNCTION #{signature} FROM PUBLIC")
       Enum.each(grantees, &execute("GRANT EXECUTE ON FUNCTION #{signature} TO #{&1}"))
+      if owner == "relay_owner", do: execute("ALTER FUNCTION #{signature} OWNER TO #{owner}")
     end
   end
 
@@ -68,6 +68,8 @@ defmodule Relay.Repo.Migrations.CreateMaintenanceFunctions do
         v_bound text;
         v_policy_row record;
         v_trigger record;
+        v_saved_tenant text;
+        v_saved_environment text;
       BEGIN
         IF p_table IS NULL OR p_from IS NULL OR p_to IS NULL OR p_from >= p_to THEN
           RAISE EXCEPTION 'invalid_argument' USING HINT = 'OP-14';
@@ -135,16 +137,28 @@ defmodule Relay.Repo.Migrations.CreateMaintenanceFunctions do
                 ELSE ' WITH CHECK (' || v_policy_row.with_check || ')' END);
           END LOOP;
           FOR v_trigger IN
-            SELECT pg_get_triggerdef(t.oid) AS definition
+            SELECT t.tgname::text AS name, pg_get_triggerdef(t.oid) AS definition
             FROM pg_trigger t
             WHERE t.tgrelid = v_parent AND NOT t.tgisinternal AND (t.tgtype & 1) = 0
+              AND (t.tgtype & 32) <> 0
             ORDER BY t.tgname
           LOOP
-            EXECUTE replace(v_trigger.definition, format(' ON relay.%I ', p_table),
-              format(' ON relay.%I ', v_name));
+            EXECUTE replace(replace(v_trigger.definition, format(' ON relay.%I ', p_table),
+                format(' ON relay.%I ', v_name)),
+              format('CREATE TRIGGER %I ', v_trigger.name),
+              format('CREATE TRIGGER %I ', CASE WHEN starts_with(v_trigger.name, p_table)
+                THEN v_name || substr(v_trigger.name, char_length(p_table) + 1)
+                ELSE v_trigger.name END));
           END LOOP;
           EXECUTE format('GRANT SELECT ON relay.%I TO relay_maint, relay_archive', v_name);
+          SELECT s.setting INTO v_saved_tenant FROM pg_settings s WHERE s.name = 'relay.tenant_id';
+          SELECT s.setting INTO v_saved_environment FROM pg_settings s
+            WHERE s.name = 'relay.environment';
+          PERFORM set_config('relay.tenant_id', '00000000-0000-0000-0000-000000000000', true);
+          PERFORM set_config('relay.environment', 'live', true);
           EXECUTE format('ALTER TABLE relay.%I ATTACH PARTITION relay.%I %s', p_table, v_name, v_bound);
+          PERFORM set_config('relay.tenant_id', COALESCE(v_saved_tenant, ''), true);
+          PERFORM set_config('relay.environment', COALESCE(v_saved_environment, ''), true);
         EXCEPTION WHEN lock_not_available OR query_canceled THEN
           RETURN 'lock_timeout';
         END;

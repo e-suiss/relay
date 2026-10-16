@@ -1,6 +1,6 @@
 defmodule Relay.SqlCase do
   @moduledoc """
-  Case template for SQL-level tests of the `relay_fn`, `relay_ops` and `relay_private` functions. Each test runs in the SQL sandbox transaction and drives the functions directly with SQL under a database role and tenant context, without the Elixir data layer.
+  Case template for SQL-level tests of the `relay_fn`, `relay_ops` and `relay_private` functions. Queries run in the SQL sandbox transaction of `Relay.Repo` (the `relay_worker` login) unless `on/2` routes them to an unsandboxed connection of another login; the functions are driven directly with SQL, without the Elixir data layer.
   """
 
   use ExUnit.CaseTemplate
@@ -35,10 +35,10 @@ defmodule Relay.SqlCase do
   @spec actor() :: [String.t() | nil]
   def actor, do: ["operator", "acc_op_1", "acc_op_1", nil]
 
-  @doc "Runs `sql` and returns its rows."
+  @doc "Runs `sql` on the current connection and returns its rows."
   @spec rows(String.t(), list()) :: [list()]
   def rows(sql, params \\ []) do
-    case Repo.query!(sql, params) do
+    case query!(sql, params) do
       %{rows: nil} -> []
       %{rows: rows} -> rows
     end
@@ -61,33 +61,69 @@ defmodule Relay.SqlCase do
   @doc "Runs `sql` inside a savepoint that is rolled back and returns the PostgreSQL error."
   @spec sql_error(String.t(), list()) :: Postgrex.Error.t()
   def sql_error(sql, params \\ []) do
-    {:error, error} =
-      Repo.transaction(fn ->
-        case Repo.query(sql, params) do
-          {:ok, result} -> Repo.rollback({:unexpected_success, result})
-          {:error, error} -> Repo.rollback(error)
-        end
-      end)
-
-    %Postgrex.Error{} = error
+    query!("SAVEPOINT relay_sql_error", [])
+    result = query(sql, params)
+    query!("ROLLBACK TO SAVEPOINT relay_sql_error", [])
+    {:error, %Postgrex.Error{} = error} = result
+    error
   end
 
   @doc "Returns the message of the PostgreSQL error raised by `sql`."
   @spec error_message(String.t(), list()) :: String.t()
   def error_message(sql, params \\ []), do: sql_error(sql, params).postgres.message
 
-  @doc "Switches the transaction to the database role `role`."
-  @spec as_role(String.t()) :: :ok
-  def as_role(role) when role in ~w(relay_api relay_worker relay_maint relay_report) do
-    Repo.query!("SET LOCAL ROLE #{role}")
-    :ok
+  @doc "Opens an unsandboxed connection as the local login `login` (`:admin` or a role name)."
+  @spec connect(:admin | String.t()) :: pid()
+  def connect(login) do
+    username = if login == :admin, do: "relay", else: login
+
+    opts =
+      :relay
+      |> Application.fetch_env!(Repo)
+      |> Keyword.take([:hostname, :port, :database, :socket_dir, :ssl])
+      |> Keyword.merge(username: username, password: "relay")
+
+    {:ok, conn} = Postgrex.start_link(opts)
+    conn
   end
 
-  @doc "Returns to the session role of the test connection."
-  @spec reset_role() :: :ok
-  def reset_role do
-    Repo.query!("RESET ROLE")
-    :ok
+  @doc "Runs `fun` with every query of this module routed to `conn`."
+  @spec on(pid(), (-> result)) :: result when result: term()
+  def on(conn, fun) do
+    previous = Process.put(:relay_sql_conn, conn)
+
+    try do
+      fun.()
+    after
+      if previous,
+        do: Process.put(:relay_sql_conn, previous),
+        else: Process.delete(:relay_sql_conn)
+    end
+  end
+
+  @doc "Runs `fun` on `conn` inside a transaction that is committed."
+  @spec committed(pid(), (-> result)) :: result when result: term()
+  def committed(conn, fun) do
+    on(conn, fn ->
+      query!("BEGIN", [])
+      result = fun.()
+      query!("COMMIT", [])
+      result
+    end)
+  end
+
+  @doc "Runs `fun` on `conn` inside a transaction that is rolled back."
+  @spec rolled_back(pid(), (-> result)) :: result when result: term()
+  def rolled_back(conn, fun) do
+    on(conn, fn ->
+      query!("BEGIN", [])
+
+      try do
+        fun.()
+      after
+        query!("ROLLBACK", [])
+      end
+    end)
   end
 
   @doc "Sets the tenant context for the transaction and returns the tenant status."
@@ -99,10 +135,9 @@ defmodule Relay.SqlCase do
   @spec region() :: String.t()
   def region, do: one("SELECT region FROM relay.installation")
 
-  @doc "Creates an active tenant through `relay_ops.tenant_create` as `relay_api` and returns its ID."
+  @doc "Creates an active tenant through `relay_ops.tenant_create` and returns its ID."
   @spec tenant!() :: binary()
   def tenant! do
-    as_role("relay_api")
     tenant_id = id()
 
     ["created", ^tenant_id] =
@@ -246,5 +281,19 @@ defmodule Relay.SqlCase do
   @spec assert_rebuilds(binary()) :: true
   def assert_rebuilds(delivery_id) do
     assert rows("SELECT * FROM relay_fn.delivery_projection_rebuild($1)", [delivery_id]) == []
+  end
+
+  defp query!(sql, params) do
+    case Process.get(:relay_sql_conn) do
+      nil -> Repo.query!(sql, params)
+      conn -> Postgrex.query!(conn, sql, params)
+    end
+  end
+
+  defp query(sql, params) do
+    case Process.get(:relay_sql_conn) do
+      nil -> Repo.query(sql, params)
+      conn -> Postgrex.query(conn, sql, params)
+    end
   end
 end

@@ -60,51 +60,42 @@ defmodule Relay.Sql.OutboxTest do
   end
 
   test "OP-5: concurrent claimers skip rows another transaction holds" do
-    opts = Keyword.drop(Repo.config(), [:pool, :pool_size, :ownership_timeout])
-    {:ok, a} = Postgrex.start_link(opts)
-    {:ok, b} = Postgrex.start_link(opts)
-    tenant = id()
+    a = connect("relay_worker")
+    b = connect("relay_worker")
 
-    setup = fn conn ->
-      Postgrex.query!(conn, "SET LOCAL ROLE relay_api", [])
-
-      %{rows: [["created", ^tenant]]} =
-        Postgrex.query!(
-          conn,
-          "SELECT * FROM relay_ops.tenant_create($1, $2, (SELECT region FROM relay.installation), 'general', 'Europe/Istanbul', 'tr', $3, $4, $5, $6, $7)",
-          [tenant, "acc_" <> Base.encode16(tenant), digest() | actor()]
-        )
-
-      Postgrex.query!(conn, "SELECT relay_fn.ctx_set($1, 'test')", [tenant])
-
-      for _ <- 1..2,
-          do:
-            Postgrex.query!(conn, @append, [id(), "notification.accepted", "notification:c", %{}])
-    end
-
-    {:ok, _} = Postgrex.transaction(a, setup)
+    tenant =
+      committed(a, fn ->
+        tenant = tenant!()
+        ctx(tenant)
+        for _ <- 1..2, do: append("notification:c", %{})
+        tenant
+      end)
 
     claim = fn conn ->
-      Postgrex.query!(conn, "BEGIN", [])
-      Postgrex.query!(conn, "SET LOCAL ROLE relay_api", [])
-      Postgrex.query!(conn, "SELECT relay_fn.ctx_set($1, 'test')", [tenant])
-      Postgrex.query!(conn, "SELECT seq FROM relay_fn.outbox_claim(1)", []).rows
+      on(conn, fn ->
+        rows("BEGIN")
+        ctx(tenant)
+        rows("SELECT seq FROM relay_fn.outbox_claim(1)")
+      end)
     end
 
     assert Enum.sort(claim.(a) ++ claim.(b)) == [[1], [2]]
-    Postgrex.query!(a, "ROLLBACK", [])
-    Postgrex.query!(b, "ROLLBACK", [])
+    on(a, fn -> rows("ROLLBACK") end)
+    on(b, fn -> rows("ROLLBACK") end)
   end
 
   test "C-88: usage rows are written once per closed UTC day, repeats are duplicates and different counts conflict" do
     yesterday = Date.add(Date.utc_today(), -1)
     month = Date.beginning_of_month(yesterday)
-    Repo.query!("SET LOCAL TimeZone = 'UTC'")
 
-    Repo.query!(
-      "SELECT relay_private.partition_create('usage_records', $1::date::timestamptz, ($1::date + interval '1 month')::timestamptz)",
-      [month]
-    )
+    committed(connect("relay_maint"), fn ->
+      rows("SET LOCAL TimeZone = 'UTC'")
+
+      rows(
+        "SELECT relay_private.partition_create('usage_records', $1::date::timestamptz, ($1::date + interval '1 month')::timestamptz)",
+        [month]
+      )
+    end)
 
     tenant = tenant!()
     ctx(tenant)

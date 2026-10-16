@@ -1,18 +1,18 @@
 defmodule Relay.Sql.DatasetTest do
   use Relay.SqlCase, async: true
 
-  alias Relay.Repo
-
   @publish "SELECT * FROM relay_fn.dataset_version_publish($1, $2, $3, $4, $5, 'pkg@1', now(), $6, $7, $8, $9, $10)"
   @activate "SELECT relay_fn.dataset_activate($1, $2, $3, $4, $5, $6, $7, $8)"
 
   defp dataset!(scopes) do
     name = "sqltest_" <> String.downcase(Base.encode16(:crypto.strong_rand_bytes(6)))
 
-    Repo.query!(
-      "INSERT INTO relay.datasets (name, json_schema, json_schema_digest, allowed_scopes, created_at) VALUES ($1, '{}', $2, $3, now())",
-      [name, digest(), scopes]
-    )
+    committed(connect(:admin), fn ->
+      rows(
+        "INSERT INTO relay.datasets (name, json_schema, json_schema_digest, allowed_scopes, created_at) VALUES ($1, '{}', $2, $3, now())",
+        [name, digest(), scopes]
+      )
+    end)
 
     name
   end

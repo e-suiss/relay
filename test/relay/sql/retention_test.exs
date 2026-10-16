@@ -1,46 +1,44 @@
 defmodule Relay.Sql.RetentionTest do
   use Relay.SqlCase, async: false
 
-  alias Relay.Repo
-
   @retire "SELECT relay_fn.subject_key_retire($1, $2, $3, $4, $5, $6)"
 
   defp seed_periods(periods) do
-    reset_role()
-    installation = one("SELECT installation_tenant_id FROM relay.installation")
     version = id()
 
-    Repo.query!(
-      "INSERT INTO relay.datasets (name, json_schema, json_schema_digest, allowed_scopes, created_at) VALUES ('retention_periods', '{}', $1, ARRAY['installation'], now()) ON CONFLICT (name) DO NOTHING",
-      [digest()]
-    )
+    committed(connect(:admin), fn ->
+      installation = one("SELECT installation_tenant_id FROM relay.installation")
 
-    Repo.query!(
-      """
-      INSERT INTO relay.dataset_versions (tenant_id, environment, id, dataset_name, version_no,
-        content, content_digest, source, source_ref, valid_from, published_by_ref, created_at)
-      SELECT $1, 'live', $2, 'retention_periods', COALESCE(max(v.version_no), 0) + 1, $3, $4,
-        'operator', 'test', now(), 'test', now()
-      FROM relay.dataset_versions v
-      WHERE v.tenant_id = $1 AND v.environment = 'live' AND v.dataset_name = 'retention_periods'
-      """,
-      [installation, version, %{"periods" => periods}, digest()]
-    )
+      rows(
+        "INSERT INTO relay.datasets (name, json_schema, json_schema_digest, allowed_scopes, created_at) VALUES ('retention_periods', '{}', $1, ARRAY['installation'], now()) ON CONFLICT (name) DO NOTHING",
+        [digest()]
+      )
 
-    Repo.query!(
-      """
-      INSERT INTO relay.dataset_active (tenant_id, environment, dataset_name, version_id, activated_at, activated_by_ref)
-      VALUES ($1, 'live', 'retention_periods', $2, now(), 'test')
-      ON CONFLICT (tenant_id, environment, dataset_name)
-        DO UPDATE SET version_id = EXCLUDED.version_id, activated_at = now()
-      """,
-      [installation, version]
-    )
+      rows(
+        """
+        INSERT INTO relay.dataset_versions (tenant_id, environment, id, dataset_name, version_no,
+          content, content_digest, source, source_ref, valid_from, published_by_ref, created_at)
+        SELECT $1, 'live', $2, 'retention_periods', COALESCE(max(v.version_no), 0) + 1, $3, $4,
+          'operator', 'test', now(), 'test', now()
+        FROM relay.dataset_versions v
+        WHERE v.tenant_id = $1 AND v.environment = 'live' AND v.dataset_name = 'retention_periods'
+        """,
+        [installation, version, %{"periods" => periods}, digest()]
+      )
+
+      rows(
+        """
+        INSERT INTO relay.dataset_active (tenant_id, environment, dataset_name, version_id, activated_at, activated_by_ref)
+        VALUES ($1, 'live', 'retention_periods', $2, now(), 'test')
+        ON CONFLICT (tenant_id, environment, dataset_name)
+          DO UPDATE SET version_id = EXCLUDED.version_id, activated_at = now()
+        """,
+        [installation, version]
+      )
+    end)
   end
 
   defp due(tenant) do
-    as_role("relay_worker")
-
     rows(
       "SELECT subject_key_id, retention_class FROM relay_ops.retention_due(100000) WHERE tenant_id = $1",
       [tenant]
@@ -78,7 +76,6 @@ defmodule Relay.Sql.RetentionTest do
 
     assert due(tenant) == [[key, "delivery_record"]]
 
-    as_role("relay_api")
     ctx(tenant)
     assert one(@retire, [key, digest() | actor()]) == "retired"
     assert one(@retire, [key, digest() | actor()]) == "already_destroyed"
@@ -114,7 +111,6 @@ defmodule Relay.Sql.RetentionTest do
     ])
 
     assert due(tenant) == []
-    as_role("relay_api")
     ctx(tenant)
     assert one(@retire, [key, digest() | actor()]) == "held"
   end
@@ -125,7 +121,6 @@ defmodule Relay.Sql.RetentionTest do
     today = Date.utc_today()
     old = tenant_key!("receipt_day", Date.add(today, -10))
     _fresh = tenant_key!("receipt_day", Date.add(today, -2))
-    as_role("relay_worker")
 
     assert rows(
              "SELECT key_id FROM relay_ops.receipt_keys_due($1, 100000) WHERE tenant_id = $2",

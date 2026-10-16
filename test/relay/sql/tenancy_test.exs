@@ -17,7 +17,6 @@ defmodule Relay.Sql.TenancyTest do
   end
 
   test "TN-6: tenant_create creates once and a replay of the mapping event returns exists" do
-    as_role("relay_api")
     tenant = id()
     access_id = "acc_" <> Base.encode16(tenant)
 
@@ -27,7 +26,6 @@ defmodule Relay.Sql.TenancyTest do
   end
 
   test "INV-41: a tenant outside the installation region is rejected" do
-    as_role("relay_api")
     other = Enum.find(~w(tr eu us), &(&1 != region()))
 
     assert create(id(), "acc_x" <> Base.encode16(digest()), other) == ["region_mismatch", nil]

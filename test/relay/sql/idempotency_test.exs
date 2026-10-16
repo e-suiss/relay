@@ -113,123 +113,99 @@ defmodule Relay.Sql.IdempotencyTest do
     assert hd(row(@begin, [@endpoint, key, fingerprint])) == "created"
   end
 
+  defp committed_tenant(conn) do
+    committed(conn, fn ->
+      tenant = tenant!()
+      ctx(tenant)
+      {tenant, tenant_key!("data")}
+    end)
+  end
+
   test "C-79: the lookup covers the last 24 hours across the day boundary and nothing older" do
-    {tenant, data_key} = setup_tenant()
-    reset_role()
-    Repo.query!("SET LOCAL TimeZone = 'UTC'")
+    {tenant, data_key} = committed_tenant(connect("relay_worker"))
 
-    for hours <- [23, 25] do
-      Repo.query!(
-        "SELECT relay_private.partition_create('idempotency_keys', date_trunc('day', now() - make_interval(hours => $1)), date_trunc('day', now() - make_interval(hours => $1)) + interval '1 day')",
-        [hours]
-      )
-    end
+    committed(connect("relay_maint"), fn ->
+      rows("SET LOCAL TimeZone = 'UTC'")
 
-    insert = fn key, fingerprint, hours ->
-      Repo.query!(
-        """
-        INSERT INTO relay.idempotency_keys (tenant_id, environment, id, created_at, endpoint, key,
-          request_fingerprint, expires_at, response_status, response_headers, response_body_ct,
-          response_body_key_id)
-        SELECT $1, 'test', uuidv7(), t, $2, $3, $4, t + interval '24 hours', 200, '{}', $5, $6
-        FROM (SELECT now() - make_interval(hours => $7) AS t) s
-        """,
-        [tenant, @endpoint, key, fingerprint, digest(), data_key, hours]
-      )
-    end
+      for hours <- [23, 25] do
+        rows(
+          "SELECT relay_private.partition_create('idempotency_keys', date_trunc('day', now() - make_interval(hours => $1)), date_trunc('day', now() - make_interval(hours => $1)) + interval '1 day')",
+          [hours]
+        )
+      end
+    end)
 
     recent = key()
     old = key()
-    insert.(recent, digest(), 23)
-    insert.(old, digest(), 25)
-    as_role("relay_api")
 
+    committed(connect(:admin), fn ->
+      for {key, hours} <- [{recent, 23}, {old, 25}] do
+        rows(
+          """
+          INSERT INTO relay.idempotency_keys (tenant_id, environment, id, created_at, endpoint, key,
+            request_fingerprint, expires_at, response_status, response_headers, response_body_ct,
+            response_body_key_id)
+          SELECT $1, 'test', uuidv7(), t, $2, $3, $4, t + interval '24 hours', 200, '{}', $5, $6
+          FROM (SELECT now() - make_interval(hours => $7) AS t) s
+          """,
+          [tenant, @endpoint, key, digest(), digest(), data_key, hours]
+        )
+      end
+    end)
+
+    ctx(tenant)
     assert hd(row(@begin, [@endpoint, recent, digest()])) == "conflict"
     assert hd(row(@begin, [@endpoint, old, digest()])) == "created"
   end
 
   describe "concurrent requests" do
     setup do
-      opts = Keyword.drop(Repo.config(), [:pool, :pool_size, :ownership_timeout])
-      {:ok, a} = Postgrex.start_link(opts)
-      {:ok, b} = Postgrex.start_link(opts)
-
-      {:ok, {tenant, data_key}} =
-        Postgrex.transaction(a, fn conn ->
-          Postgrex.query!(conn, "SET LOCAL ROLE relay_api", [])
-          tenant = id()
-
-          %{rows: [["created", ^tenant]]} =
-            Postgrex.query!(
-              conn,
-              "SELECT * FROM relay_ops.tenant_create($1, $2, (SELECT region FROM relay.installation), 'general', 'Europe/Istanbul', 'tr', $3, $4, $5, $6, $7)",
-              [tenant, "acc_" <> Base.encode16(tenant), digest() | actor()]
-            )
-
-          Postgrex.query!(conn, "SELECT relay_fn.ctx_set($1, 'test')", [tenant])
-          data_key = id()
-
-          %{rows: [["created"]]} =
-            Postgrex.query!(
-              conn,
-              "SELECT relay_fn.tenant_key_register($1, 'data', NULL, 'pkcs11:token=relay;object=kek', $2, $3, $4, $5, $6, $7)",
-              [data_key, digest(), digest() | actor()]
-            )
-
-          {tenant, data_key}
-        end)
-
+      a = connect("relay_api")
+      b = connect("relay_api")
+      {tenant, data_key} = committed_tenant(a)
       %{a: a, b: b, tenant: tenant, data_key: data_key}
     end
 
     defp open(conn, tenant) do
-      Postgrex.query!(conn, "BEGIN", [])
-      Postgrex.query!(conn, "SET LOCAL ROLE relay_api", [])
-      Postgrex.query!(conn, "SELECT relay_fn.ctx_set($1, 'test')", [tenant])
+      on(conn, fn ->
+        rows("BEGIN")
+        ctx(tenant)
+      end)
     end
 
     defp begin_on(conn, key, fingerprint) do
-      %{rows: [[result | _]]} = Postgrex.query!(conn, @begin, [@endpoint, key, fingerprint])
-      result
+      on(conn, fn -> hd(row(@begin, [@endpoint, key, fingerprint])) end)
     end
 
-    test "API-15: two concurrent claims of one key produce exactly one created", ctx do
+    test "API-15: two concurrent claims of one key produce exactly one created", c do
       key = key()
       fingerprint = digest()
-      open(ctx.a, ctx.tenant)
-      open(ctx.b, ctx.tenant)
+      open(c.a, c.tenant)
+      open(c.b, c.tenant)
 
-      assert begin_on(ctx.a, key, fingerprint) == "created"
-      assert begin_on(ctx.b, key, fingerprint) == "in_progress"
+      assert begin_on(c.a, key, fingerprint) == "created"
+      assert begin_on(c.b, key, fingerprint) == "in_progress"
 
-      %{rows: [["stored"]]} =
-        Postgrex.query!(ctx.a, @complete, [
-          @endpoint,
-          key,
-          fingerprint,
-          201,
-          %{},
-          digest(),
-          ctx.data_key
-        ])
+      on(c.a, fn ->
+        "stored" = one(@complete, [@endpoint, key, fingerprint, 201, %{}, digest(), c.data_key])
+        rows("COMMIT")
+      end)
 
-      Postgrex.query!(ctx.a, "COMMIT", [])
-
-      assert begin_on(ctx.b, key, fingerprint) == "replayed"
-      Postgrex.query!(ctx.b, "ROLLBACK", [])
+      assert begin_on(c.b, key, fingerprint) == "replayed"
+      on(c.b, fn -> rows("ROLLBACK") end)
     end
 
-    test "API-13: a concurrent request with a different body still waits as in_progress", ctx do
+    test "API-13: a concurrent request with a different body still waits as in_progress", c do
       key = key()
-      open(ctx.a, ctx.tenant)
-      open(ctx.b, ctx.tenant)
+      open(c.a, c.tenant)
+      open(c.b, c.tenant)
 
-      assert begin_on(ctx.a, key, digest()) == "created"
-      assert begin_on(ctx.b, key, digest()) == "in_progress"
+      assert begin_on(c.a, key, digest()) == "created"
+      assert begin_on(c.b, key, digest()) == "in_progress"
 
-      Postgrex.query!(ctx.a, "ROLLBACK", [])
-      assert begin_on(ctx.b, key, digest()) == "created"
-      Postgrex.query!(ctx.b, "ROLLBACK", [])
+      on(c.a, fn -> rows("ROLLBACK") end)
+      assert begin_on(c.b, key, digest()) == "created"
+      on(c.b, fn -> rows("ROLLBACK") end)
     end
   end
 end

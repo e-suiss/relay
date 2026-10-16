@@ -1,6 +1,6 @@
 defmodule RelayDev.Database do
   @moduledoc """
-  Development and test database setup. Creates the database with the local administrator login of `deploy/compose.yaml`, runs `priv/repo/bootstrap.sql` as that login, gives the bootstrap login roles a local password, then runs the migrations as `relay_migrator`. Serving nodes connect with their own login role afterwards; the administrator login is never used by the application.
+  Development and test database setup. Creates the database with the local administrator login of `deploy/compose.yaml`, runs `priv/repo/bootstrap.sql` as that login, gives the bootstrap login roles a local password, then runs the migrations as `relay_migrator` and the idempotent bootstrap once more, which hands the `relay_ops` functions to `relay_maint`. Serving nodes connect with their own login role afterwards; the administrator login is never used by the application.
   """
 
   alias Ecto.Adapters.Postgres
@@ -34,6 +34,7 @@ defmodule RelayDev.Database do
       do: System.put_env("RELAY_REGION", @settings[:region])
 
     migrate(repo_config, @settings[:migrator], Keyword.get(opts, :log, :info))
+    bootstrap(admin, @settings[:login_password])
   end
 
   @doc "Connection options for a local login role (`:admin` or a role name), taken from the repository configuration."

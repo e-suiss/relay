@@ -34,6 +34,21 @@ defmodule Relay.RepositoryTest do
     end
   end
 
+  describe "T-82 main image" do
+    test "T-82: the main image is smoke tested before it is published, then signed with SBOM and provenance" do
+      image = File.read!(".github/workflows/image.yml")
+      [before_push, after_push] = String.split(image, "push: true", parts: 2)
+
+      assert before_push =~ "deploy/smoke.sh relay:smoke"
+      assert image =~ "ghcr.io/e-suiss/relay"
+      assert image =~ "branches: [main]"
+
+      for step <- ["cosign sign", "cosign attest", "cyclonedx-json", "attest-build-provenance"] do
+        assert after_push =~ step
+      end
+    end
+  end
+
   describe "INV-58 no development mode" do
     test "INV-58: no configuration file sets a development mode or a weakening flag" do
       for path <- Path.wildcard("config/*.exs") do

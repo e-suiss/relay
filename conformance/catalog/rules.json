@@ -8384,6 +8384,14 @@
     "verify_stage": 0
   },
   {
+    "acceptance": "defined",
+    "id": "T-82",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
     "acceptance": "pending",
     "id": "OP-1",
     "section": "§20",

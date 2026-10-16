@@ -53,9 +53,10 @@ gen:
 bench:
     mix run bench/hot_paths.exs
 
-release:
+image:
     mix deps.get --only prod --check-locked
     docker build -f deploy/docker/Dockerfile -t relay:local .
+    SMOKE_DB_HOST=host.docker.internal SMOKE_NETWORK=bridge deploy/smoke.sh relay:local
 
 migrate:
     mix ecto.migrate

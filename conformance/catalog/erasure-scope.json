@@ -1,0 +1,146 @@
+[
+  {
+    "table": "tenants",
+    "personal_columns": [],
+    "tenant_close": "status becomes closed; row kept",
+    "subject_erasure": "not subject data"
+  },
+  {
+    "table": "subtenants",
+    "personal_columns": [],
+    "tenant_close": "row kept",
+    "subject_erasure": "not subject data"
+  },
+  {
+    "table": "settings",
+    "personal_columns": [],
+    "tenant_close": "row kept",
+    "subject_erasure": "not subject data"
+  },
+  {
+    "table": "recipients",
+    "personal_columns": [
+      "external_id_ct",
+      "external_id_bidx",
+      "external_id_bidx_next"
+    ],
+    "tenant_close": "tenant keys destroyed; row kept",
+    "subject_erasure": "recipient_profile data key destroyed, row soft deleted, blind index columns set to null"
+  },
+  {
+    "table": "tenant_keys",
+    "personal_columns": [],
+    "tenant_close": "data and wrapping keys destroyed",
+    "subject_erasure": "not subject data"
+  },
+  {
+    "table": "subject_keys",
+    "personal_columns": [],
+    "tenant_close": "wrapped data keys destroyed",
+    "subject_erasure": "data keys destroyed, or restricted under a statutory retention"
+  },
+  {
+    "table": "blind_index_keys",
+    "personal_columns": [],
+    "tenant_close": "retired and the HSM object destroyed",
+    "subject_erasure": "not subject data"
+  },
+  {
+    "table": "secret_refs",
+    "personal_columns": [
+      "secret_ct"
+    ],
+    "tenant_close": "retired; the tenant data key is destroyed",
+    "subject_erasure": "not subject data"
+  },
+  {
+    "table": "legal_holds",
+    "personal_columns": [],
+    "tenant_close": "row kept",
+    "subject_erasure": "row kept"
+  },
+  {
+    "table": "erasure_log",
+    "personal_columns": [],
+    "tenant_close": "row kept",
+    "subject_erasure": "an entry is appended"
+  },
+  {
+    "table": "notifications",
+    "personal_columns": [],
+    "tenant_close": "row kept",
+    "subject_erasure": "pending deliveries are cancelled; row kept"
+  },
+  {
+    "table": "deliveries",
+    "personal_columns": [],
+    "tenant_close": "row kept",
+    "subject_erasure": "pending deliveries cancelled with a rule; target_key kept under the delivery_record retention"
+  },
+  {
+    "table": "delivery_attempts",
+    "personal_columns": [],
+    "tenant_close": "no personal fields; archived with its partition",
+    "subject_erasure": "no personal fields"
+  },
+  {
+    "table": "delivery_events",
+    "personal_columns": [],
+    "tenant_close": "no personal fields; archived with its partition",
+    "subject_erasure": "no personal fields"
+  },
+  {
+    "table": "webhook_receipts",
+    "personal_columns": [
+      "body_ct"
+    ],
+    "tenant_close": "receipt day keys destroyed",
+    "subject_erasure": "receipt day key destroyed seven days after the day"
+  },
+  {
+    "table": "idempotency_keys",
+    "personal_columns": [
+      "response_body_ct"
+    ],
+    "tenant_close": "tenant data key destroyed; archived with its partition",
+    "subject_erasure": "encrypted under the tenant data key; archived with its partition"
+  },
+  {
+    "table": "outbox_events",
+    "personal_columns": [],
+    "tenant_close": "no personal fields; archived with its partition",
+    "subject_erasure": "no personal fields"
+  },
+  {
+    "table": "stream_heads",
+    "personal_columns": [],
+    "tenant_close": "no personal fields",
+    "subject_erasure": "no personal fields"
+  },
+  {
+    "table": "usage_records",
+    "personal_columns": [],
+    "tenant_close": "no personal fields; archived with its partition",
+    "subject_erasure": "no personal fields"
+  },
+  {
+    "table": "audit_log",
+    "personal_columns": [
+      "details_ct"
+    ],
+    "tenant_close": "tenant data key destroyed; archived with its partition",
+    "subject_erasure": "encrypted under the tenant data key"
+  },
+  {
+    "table": "dataset_versions",
+    "personal_columns": [],
+    "tenant_close": "no personal fields",
+    "subject_erasure": "no personal fields"
+  },
+  {
+    "table": "dataset_active",
+    "personal_columns": [],
+    "tenant_close": "no personal fields",
+    "subject_erasure": "no personal fields"
+  }
+]

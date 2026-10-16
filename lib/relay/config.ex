@@ -17,7 +17,7 @@ defmodule Relay.Config do
     Relay.Platform.Signal,
     Oban
   ]
-  @os_env_keys ["RELAY_HOST", "RELAY_ROLES"]
+  @os_env_keys ["RELAY_HOST", "RELAY_ROLES", "RELAY_REGION"]
 
   # INV-46
   # TN-8

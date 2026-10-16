@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "path": "lib/relay/platform/store.ex",
+    "rule": "physical_delete",
+    "match": "@wipe \"TRUNCATE\"",
+    "reason": "TN-14: the startup role check verifies that the login lacks the TRUNCATE privilege"
+  },
+  {
+    "path": "priv/repo/migrations/20261017000002_create_core_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "INV-6, INV-49: the append-only trigger rejects TRUNCATE on append-only tables"
+  },
+  {
+    "path": "priv/repo/migrations/20261017000004_create_initial_partitions.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "INV-6, INV-49: the append-only trigger rejects TRUNCATE on append-only partitions"
+  }
+]

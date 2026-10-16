@@ -69,9 +69,9 @@ defmodule Relay.MixProject do
   defp aliases do
     [
       setup: ["deps.get", "ecto.setup"],
-      "ecto.setup": ["ecto.create", "ecto.migrate"],
-      "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      "ecto.setup": ["relay.db.setup"],
+      "ecto.reset": ["relay.db.setup --drop"],
+      test: ["relay.db.setup --quiet", "test"],
       lint: [
         "relay.lint.sql",
         "relay.lint.comments",

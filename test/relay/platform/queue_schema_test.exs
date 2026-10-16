@@ -23,14 +23,13 @@ defmodule Relay.Platform.QueueSchemaTest do
   test "T-12: the leadership table keeps its primary key" do
     constraints =
       rows("""
-      SELECT tc.constraint_type, kcu.column_name
-      FROM information_schema.table_constraints tc
-      JOIN information_schema.key_column_usage kcu
-        ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
-      WHERE tc.table_schema = 'relay_queue' AND tc.table_name = 'oban_peers'
+      SELECT con.contype::text, a.attname::text
+      FROM pg_constraint con
+      JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = ANY(con.conkey)
+      WHERE con.conrelid = 'relay_queue.oban_peers'::regclass
       """)
 
-    assert ["PRIMARY KEY", "name"] in constraints
+    assert ["p", "name"] in constraints
   end
 
   test "T-10: no LISTEN/NOTIFY trigger exists on the job table" do

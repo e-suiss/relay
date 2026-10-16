@@ -25,3 +25,17 @@ jobs:
       - run: mix hex.audit
       - run: mix deps.audit
       - run: mix test --include integration --include nightly
+
+  load:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: docker compose -f deploy/compose.yaml up -d --wait postgres
+      - run: docker pull ghcr.io/e-suiss/relay:main
+      - run: SMOKE_KEEP=1 deploy/smoke.sh ghcr.io/e-suiss/relay:main
+      - run: load/run.sh load/targets/health.txt 200/1s 60s
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: load-${{ github.run_id }}
+          path: load/output

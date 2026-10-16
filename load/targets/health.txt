@@ -1,0 +1,3 @@
+GET /livez
+
+GET /readyz

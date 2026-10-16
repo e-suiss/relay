@@ -50,6 +50,9 @@ check:
 gen:
     mix relay.catalog.gen
 
+load targets="load/targets/health.txt" rate="100/1s" duration="30s":
+    load/run.sh {{targets}} {{rate}} {{duration}}
+
 bench:
     mix run bench/hot_paths.exs
 

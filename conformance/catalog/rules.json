@@ -8392,6 +8392,30 @@
     "verify_stage": null
   },
   {
+    "acceptance": "defined",
+    "id": "T-83",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "defined",
+    "id": "T-84",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-85",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
     "acceptance": "pending",
     "id": "OP-1",
     "section": "§20",

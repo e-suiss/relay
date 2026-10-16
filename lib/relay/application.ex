@@ -6,11 +6,14 @@ defmodule Relay.Application do
 
   require Logger
 
+  @max_heap_words 32_000_000
+
   @impl true
   def start(_type, _args) do
     Relay.Config.validate!()
     roles = Relay.Role.configured()
     :logger.update_primary_config(%{metadata: %{role: Enum.join(roles, ",")}})
+    observe_heap_size()
     log_vm_topology()
 
     children = [
@@ -28,6 +31,11 @@ defmodule Relay.Application do
   def config_change(changed, _new, removed) do
     RelayWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  # T-83
+  defp observe_heap_size do
+    :erlang.system_flag(:max_heap_size, %{size: @max_heap_words, kill: false, error_logger: true})
   end
 
   # T-44

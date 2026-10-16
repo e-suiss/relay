@@ -9,7 +9,8 @@ port="${SMOKE_PORT:-4000}"
 work="$(mktemp -d)"
 publish=""
 [ "$network" = host ] || publish="-p ${port}:${port}"
-trap 'docker rm -f relay-smoke >/dev/null 2>&1 || true; rm -rf "$work"' EXIT
+keep="${SMOKE_KEEP:-0}"
+trap '[ "$keep" = 1 ] || docker rm -f relay-smoke >/dev/null 2>&1 || true; rm -rf "$work"' EXIT
 
 printf relay > "$work/db-password"
 chmod 644 "$work/db-password"

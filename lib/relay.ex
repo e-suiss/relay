@@ -18,6 +18,7 @@ defmodule Relay do
       Repo,
       LogRedactor,
       Id,
+      ExternalId,
       Phone,
       Email,
       TimeZone,

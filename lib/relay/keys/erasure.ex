@@ -11,13 +11,8 @@ defmodule Relay.Keys.Erasure do
 
   @subject_classes ~w(recipient_profile notification_content delivery_record commercial_consent commercial_message preference)
 
-  @type scope :: %{tenant_id: Relay.Id.t(), environment: String.t()}
-  @type actor :: %{
-          required(:kind) => String.t(),
-          required(:ref) => String.t(),
-          required(:on_behalf_of) => String.t(),
-          optional(:access_record_ref) => String.t() | nil
-        }
+  @type scope :: Relay.Scope.t()
+  @type actor :: Relay.Actor.t()
   @type plan :: %{destroy: [String.t()], restrict: [String.t()]}
 
   # OP-18
@@ -62,14 +57,25 @@ defmodule Relay.Keys.Erasure do
 
   # OP-17
   # OP-26
-  @doc "Destroys a tenant key. Returns `{:ok, :destroyed | :already_destroyed | :held | :not_allowed}`."
+  @doc "Destroys a tenant key. Returns `{:ok, :destroyed | :already_destroyed | :held | :not_allowed | :not_found}`."
   @spec destroy_tenant_key(scope(), Relay.Id.t(), String.t(), actor()) ::
-          {:ok, :destroyed | :already_destroyed | :held | :not_allowed}
+          {:ok, :destroyed | :already_destroyed | :held | :not_allowed | :not_found}
           | {:error, Relay.Error.t()}
   def destroy_tenant_key(scope, <<_::128>> = key_id, reason, actor)
       when reason in ["retention_end", "tenant_closed", "erasure"] do
     digest = record_digest(scope, "tenant_key.destroyed", actor, "tenant_key", key_id, reason)
     Store.tenant_key_destroy(scope, key_id, reason, digest, actor)
+  end
+
+  # OP-16
+  @doc "Destroys a subject data key whose retention period ended. Returns `{:ok, :retired | :already_destroyed | :held | :not_found}`."
+  @spec retire_subject_key(scope(), Relay.Id.t(), actor()) ::
+          {:ok, :retired | :already_destroyed | :held | :not_found} | {:error, Relay.Error.t()}
+  def retire_subject_key(scope, <<_::128>> = key_id, actor) do
+    digest =
+      record_digest(scope, "subject_key.retired", actor, "subject_key", key_id, "retention_end")
+
+    Store.subject_key_retire(scope, key_id, digest, actor)
   end
 
   # OP-17
@@ -80,12 +86,12 @@ defmodule Relay.Keys.Erasure do
   defp record_digest(scope, action, actor, target_type, target_id, reason) do
     Relay.Audit.record_digest(%{
       tenant_id: scope.tenant_id,
-      environment: scope.environment,
+      environment: Relay.Environment.dump(scope.environment),
       action: action,
-      actor_kind: actor.kind,
+      actor_kind: Atom.to_string(actor.kind),
       actor_ref: actor.ref,
-      on_behalf_of_ref: actor.on_behalf_of,
-      access_record_ref: Map.get(actor, :access_record_ref),
+      on_behalf_of_ref: actor.on_behalf_of_ref,
+      access_record_ref: actor.access_record_ref,
       target_type: target_type,
       target_id: Relay.Id.to_string(target_id),
       reason: reason

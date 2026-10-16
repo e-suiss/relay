@@ -218,6 +218,36 @@ defmodule Relay.Platform.Maintenance.EscapeHatch do
         [checkpoint_id, target, status, detail]
       )
 
+  @doc "Reads up to `limit` audit records committed below the current snapshot's xmin and at or above `watermark` that have no leaf yet, with that xmin as the next watermark."
+  @spec audit_pending(String.t(), pos_integer()) ::
+          {:ok, [map()], String.t() | nil} | {:error, Relay.Error.t()}
+  def audit_pending(watermark, limit) do
+    with {:ok, rows} <-
+           select(
+             """
+             SELECT tenant_id, environment, audit_id, created_at, txid::text, record_digest,
+                    upper_xmin::text
+             FROM relay_ops.audit_pending($1::text::xid8, $2)
+             """,
+             [watermark, limit],
+             & &1
+           ) do
+      upper = Enum.find_value(rows, &List.last/1)
+      {:ok, Enum.map(rows, &pending_row/1), upper}
+    end
+  end
+
+  defp pending_row([tenant, environment, id, created_at, txid, digest, _upper]) do
+    %{
+      tenant_id: tenant,
+      environment: environment,
+      audit_id: id,
+      created_at: created_at,
+      txid: String.to_integer(txid),
+      record_digest: digest
+    }
+  end
+
   @doc "Returns which of the given audit record ids already have a leaf."
   @spec integrated_audit_ids([Relay.Id.t()]) ::
           {:ok, MapSet.t(Relay.Id.t())} | {:error, Relay.Error.t()}
@@ -311,15 +341,30 @@ defmodule Relay.Platform.Maintenance.EscapeHatch do
           {:ok, [map()]} | {:error, Relay.Error.t()}
   def receipt_day_keys_due(%Date{} = last_day, limit) do
     select(
-      """
-      SELECT tenant_id, environment, id, valid_day FROM relay.tenant_keys
-      WHERE purpose = 'receipt_day' AND state <> 'destroyed' AND valid_day <= $1
-      ORDER BY valid_day, tenant_id, environment, id
-      LIMIT $2
-      """,
+      "SELECT tenant_id, environment, key_id, valid_day FROM relay_ops.receipt_keys_due($1, $2)",
       [last_day, limit],
       fn [tenant, environment, id, day] ->
         %{tenant_id: tenant, environment: environment, key_id: id, valid_day: day}
+      end
+    )
+  end
+
+  # OP-16
+  @doc "Lists subject data keys of every tenant whose retention period has ended."
+  @spec retention_due(pos_integer()) :: {:ok, [map()]} | {:error, Relay.Error.t()}
+  def retention_due(limit) do
+    select(
+      "SELECT tenant_id, environment, subject_key_id, recipient_id, retention_class, due_at FROM relay_ops.retention_due($1)",
+      [limit],
+      fn [tenant, environment, key, recipient, class, due] ->
+        %{
+          tenant_id: tenant,
+          environment: environment,
+          subject_key_id: key,
+          recipient_id: recipient,
+          retention_class: class,
+          due_at: due
+        }
       end
     )
   end

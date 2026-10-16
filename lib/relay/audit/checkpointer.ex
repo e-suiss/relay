@@ -18,7 +18,6 @@ defmodule Relay.Audit.Checkpointer do
 
   alias Relay.Audit.Checkpointer.Publisher
   alias Relay.Audit.Checkpointer.State
-  alias Relay.Audit.Checkpointer.Store
   alias Relay.Platform.Maintenance.EscapeHatch
 
   @page 1_000
@@ -49,7 +48,7 @@ defmodule Relay.Audit.Checkpointer do
   end
 
   defp integrate(state, token, now, limit) do
-    case Store.pending(state.watermark, limit) do
+    case EscapeHatch.audit_pending(state.watermark, limit) do
       {:ok, [], _upper} -> {:ok, state}
       {:ok, rows, upper} -> select(state, rows, upper, token, now, limit)
       error -> error

@@ -15,12 +15,17 @@ defmodule Relay.Keys.SubjectErasureTest do
 
   alias Relay.Keys.Erasure
 
-  @actor %{kind: "operator", ref: "op-1", on_behalf_of: "op-1", access_record_ref: "acc-rec-1"}
+  @actor %Relay.Actor{
+    kind: :operator,
+    ref: "op-1",
+    on_behalf_of_ref: "op-1",
+    access_record_ref: "acc-rec-1"
+  }
 
   setup do
     tenant = tenant!()
     keys = tenant.keys["live"]
-    scope = %{tenant_id: tenant.id, environment: "live"}
+    scope = Relay.Scope.new!(tenant.id, :live)
 
     {recipient, delivery} =
       scoped(tenant.id, "live", fn ->

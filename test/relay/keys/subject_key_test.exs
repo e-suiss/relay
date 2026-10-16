@@ -29,7 +29,7 @@ defmodule Relay.Keys.SubjectKeyDatabaseTest do
 
   setup :verify_on_exit!
 
-  @actor %{kind: "system", ref: "relay:test", on_behalf_of: "relay"}
+  @actor %Relay.Actor{kind: :system, ref: "relay:test", on_behalf_of_ref: "relay"}
 
   setup do
     tenant = tenant!()
@@ -74,7 +74,7 @@ defmodule Relay.Keys.SubjectKeyDatabaseTest do
 
     assert {:ok, :erased, 0} =
              Erasure.erase_subject(
-               %{tenant_id: tenant.id, environment: "live"},
+               Relay.Scope.new!(tenant.id, :live),
                recipient,
                "dsr-c86",
                [],

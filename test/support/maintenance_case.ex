@@ -43,8 +43,12 @@ defmodule Relay.MaintenanceCase do
   def maint_rows!(sql, params \\ []), do: MaintRepo.query!(sql, params).rows
 
   @doc "Runs `fun` in a transaction scoped to a tenant environment."
-  @spec scoped(Relay.Id.t(), String.t(), (-> result)) :: result when result: term()
+  @spec scoped(Relay.Id.t(), String.t() | Relay.Environment.t(), (-> result)) :: result
+        when result: term()
   def scoped(tenant_id, environment, fun) do
+    environment =
+      if is_atom(environment), do: Relay.Environment.dump(environment), else: environment
+
     {:ok, result} =
       Repo.transaction(fn ->
         Repo.query!("SELECT relay_fn.ctx_set($1, $2)", [tenant_id, environment])

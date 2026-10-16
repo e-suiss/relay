@@ -31,7 +31,8 @@ defmodule Relay.Platform do
   # TN-14
   # OP-12
   # T-86
-  @doc "Supervised children of the platform: the database role check, the Valkey adapter, its guard, the signal hub and the job queue; a worker node also runs the queue maintenance connection and the outbox dispatcher. A failed role check stops the node."
+  # OP-11
+  @doc "Supervised children of the platform: the database role check, the query statistics check, the Valkey adapter, its guard, the signal hub and the job queue; a worker node also runs the queue maintenance connection and the outbox dispatcher. A failed role check stops the node."
   @spec children() :: [Supervisor.child_spec() | {module(), term()} | module()]
   def children do
     valkey = Application.fetch_env!(:relay, Valkey)
@@ -39,6 +40,7 @@ defmodule Relay.Platform do
 
     [
       Store.role_check_child(),
+      Store.query_stats_check_child(),
       {Keyword.fetch!(valkey, :adapter), Keyword.delete(valkey, :adapter)},
       Valkey.Guard,
       Signal.Hub

@@ -11,6 +11,7 @@ defmodule Relay.Config do
     :clock,
     :random,
     :keys,
+    Relay.Keys.Port,
     Relay.Repo,
     RelayWeb.Endpoint,
     Relay.Platform.Valkey,
@@ -31,6 +32,7 @@ defmodule Relay.Config do
   def validate!(app_env \\ Application.get_all_env(:relay), os_env \\ System.get_env()) do
     validate_app_keys!(app_env)
     validate_roles!(Keyword.get(app_env, :roles))
+    validate_key_store!(Keyword.get(app_env, Relay.Keys.Port))
     validate_os_env!(os_env)
     :ok
   end
@@ -68,6 +70,31 @@ defmodule Relay.Config do
 
   defp validate_roles!(roles),
     do: raise(Error, "roles must be a non-empty list, got: #{inspect(roles)}")
+
+  # TN-63
+  defp validate_key_store!(nil), do: :ok
+
+  defp validate_key_store!(opts) when is_list(opts) do
+    keys = Relay.Keys.port_config_keys()
+
+    cond do
+      not Keyword.keyword?(opts) ->
+        raise Error, "Relay.Keys.Port configuration must be a keyword list"
+
+      (unknown = Keyword.keys(opts) -- keys) != [] ->
+        raise Error, "unknown Relay.Keys.Port configuration keys: #{inspect(Enum.sort(unknown))}"
+
+      (missing = Enum.reject(keys, &is_binary(opts[&1]))) != [] ->
+        raise Error, "Relay.Keys.Port configuration is missing #{inspect(missing)}"
+
+      true ->
+        :ok
+    end
+  end
+
+  defp validate_key_store!(opts),
+    do:
+      raise(Error, "Relay.Keys.Port configuration must be a keyword list, got: #{inspect(opts)}")
 
   defp validate_os_env!(os_env) do
     unknown =

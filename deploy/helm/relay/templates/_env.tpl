@@ -19,6 +19,15 @@
   value: {{ .Values.host | quote }}
 - name: PORT
   value: "4000"
+- name: PKCS11_MODULE
+  value: {{ required "keyStore.module is required" .Values.keyStore.module | quote }}
+- name: PKCS11_TOKEN
+  value: {{ required "keyStore.token is required" .Values.keyStore.token | quote }}
+- name: PKCS11_PIN_FILE
+  value: /run/secrets/relay-pkcs11/pin
+{{- with .Values.keyStore.env }}
+{{ toYaml . }}
+{{- end }}
 - name: SECRET_KEY_BASE
   valueFrom:
     secretKeyRef:

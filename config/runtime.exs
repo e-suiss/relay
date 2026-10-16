@@ -11,6 +11,11 @@ if config_env() == :prod do
     password: Relay.Config.Env.file!("MAINT_DATABASE_PASSWORD_FILE"),
     pool_size: 2
 
+  config :relay, Relay.Keys.Port,
+    module: Relay.Config.Env.fetch!("PKCS11_MODULE"),
+    token: Relay.Config.Env.fetch!("PKCS11_TOKEN"),
+    pin_file: Relay.Config.Env.fetch!("PKCS11_PIN_FILE")
+
   config :relay, Relay.Audit, log_host: Relay.Config.Env.fetch!("RELAY_HOST")
 
   config :relay, Relay.Platform.Valkey,

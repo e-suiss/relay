@@ -1,6 +1,6 @@
 defmodule Relay.Platform.Store do
   @moduledoc """
-  Database access of the platform: the readiness probe and the startup role check. A node whose database login is privileged, owns objects, may remove rows, writes the record tables directly, runs on an unsupported PostgreSQL or finds a preset tenant context refuses to start.
+  Database access of the platform: the readiness probe, the startup role check and the query statistics check. A node whose database login is privileged, owns objects, may remove rows, writes the record tables directly, runs on an unsupported PostgreSQL or finds a preset tenant context refuses to start.
   """
 
   require Logger
@@ -94,6 +94,42 @@ defmodule Relay.Platform.Store do
 
         {:error, error}
     end
+  end
+
+  # OP-11
+  @doc "Checks that the server collects query statistics (`pg_stat_statements` in `shared_preload_libraries`). A missing module is logged as an error and reported as the `[:relay, :postgres, :query_stats]` telemetry event; the node keeps running."
+  @spec query_stats_check(query_fun()) :: :ok | {:error, :query_stats_missing | String.t()}
+  def query_stats_check(query \\ &repo_query/2) do
+    case query.(query_stats_sql(), []) do
+      {:ok, [[true]]} ->
+        :ok
+
+      {:ok, _rows} ->
+        Logger.error("postgres does not collect query statistics; preload pg_stat_statements")
+        :telemetry.execute([:relay, :postgres, :query_stats], %{count: 1}, %{status: :missing})
+        {:error, :query_stats_missing}
+
+      {:error, reason} ->
+        Logger.warning("query statistics check could not run", reason: reason)
+        {:error, reason}
+    end
+  end
+
+  @doc "Child specification that runs the query statistics check once while the supervision tree starts; it never stops the node."
+  @spec query_stats_check_child() :: Supervisor.child_spec()
+  def query_stats_check_child do
+    %{
+      id: :relay_query_stats_check,
+      start: {__MODULE__, :start_query_stats_check, []},
+      restart: :temporary
+    }
+  end
+
+  @doc "Supervisor start function of `query_stats_check_child/0`: always `:ignore`."
+  @spec start_query_stats_check() :: :ignore
+  def start_query_stats_check do
+    _ = query_stats_check()
+    :ignore
   end
 
   # TN-14
@@ -256,6 +292,12 @@ defmodule Relay.Platform.Store do
       current_setting('server_version_num')::integer, current_setting('server_version'),
       current_setting('row_security'),
       (SELECT setting::integer FROM pg_catalog.pg_settings WHERE name = 'statement_timeout')
+    """
+  end
+
+  defp query_stats_sql do
+    """
+    SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_settings WHERE name = 'pg_stat_statements.max')
     """
   end
 

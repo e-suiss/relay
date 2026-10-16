@@ -22,6 +22,21 @@ defmodule Relay.Keys do
   @callback unwrap(label(), binary(), binary()) :: {:ok, Redacted.t()} | {:error, Error.t()}
 
   @algs [:es256, :rs256, :ed25519]
+  @port_keys [:module, :token, :pin_file]
+
+  # TN-63
+  @doc "Supervised children of the key store: `Relay.Keys.Port` with its `:module`, `:token` and `:pin_file` configuration, on every node that configures it."
+  @spec children() :: [{module(), keyword()}]
+  def children do
+    case Application.get_env(:relay, Relay.Keys.Port) do
+      nil -> []
+      opts -> [{Relay.Keys.Port, Keyword.take(opts, @port_keys)}]
+    end
+  end
+
+  @doc "Configuration keys of `Relay.Keys.Port`."
+  @spec port_config_keys() :: [atom()]
+  def port_config_keys, do: @port_keys
 
   # TN-63
   @doc "Checks that the key store answers."

@@ -14,3 +14,4 @@ esuiss_relay-*.tar
 /load/bin/
 /load/output/
 /native/*/target/
+/priv/native/

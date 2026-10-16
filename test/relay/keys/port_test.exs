@@ -12,7 +12,6 @@ defmodule Relay.Keys.PortTest do
     exe = Path.join(dir, "pkcs11_port")
     File.write!(exe, "#!/bin/sh\nERL_CRASH_DUMP_SECONDS=0 exec escript #{@fake} \"$@\"\n")
     File.chmod!(exe, 0o755)
-    File.write!(exe <> ".sha256", checksum(exe) <> "  pkcs11_port\n")
     %{exe: exe}
   end
 
@@ -33,6 +32,7 @@ defmodule Relay.Keys.PortTest do
         ],
         opts
       )
+      |> Keyword.put_new_lazy(:sha256, fn -> checksum(exe) end)
 
     {name, opts} = Keyword.pop(opts, :name)
     name = name || {:global, make_ref()}
@@ -119,11 +119,9 @@ defmodule Relay.Keys.PortTest do
   end
 
   test "T-53: a program whose checksum does not match is never started", %{exe: exe} do
-    File.write!(exe <> ".sha256", String.duplicate("0", 64) <> "  pkcs11_port\n")
-
     log =
       capture_log(fn ->
-        keys = start(exe, "ok")
+        keys = start(exe, "ok", sha256: String.duplicate("0", 64))
 
         assert {:error, %Relay.Error{code: :key_store_integrity}} = KeyPort.ping(keys)
       end)
@@ -131,13 +129,35 @@ defmodule Relay.Keys.PortTest do
     assert log =~ "failed verification"
   end
 
-  test "T-62: a program without a checksum file is never started", %{exe: exe} do
-    File.rm!(exe <> ".sha256")
+  test "TN-65 (7): a program replaced after the build is never started", %{exe: exe} do
+    expected = checksum(exe)
+    File.write!(exe, File.read!(exe) <> "\n")
 
     capture_log(fn ->
-      keys = start(exe, "ok")
+      keys = start(exe, "ok", sha256: expected)
       assert {:error, %Relay.Error{code: :key_store_integrity}} = KeyPort.ping(keys)
     end)
+  end
+
+  test "T-62: without an embedded checksum the program is never started", %{exe: exe} do
+    capture_log(fn ->
+      keys = start(exe, "ok", sha256: nil)
+      assert {:error, %Relay.Error{code: :key_store_integrity}} = KeyPort.ping(keys)
+    end)
+  end
+
+  test "T-62: a missing program is reported as an integrity failure", %{exe: exe} do
+    capture_log(fn ->
+      keys = start(exe <> "-absent", "ok", sha256: checksum(exe))
+      assert {:error, %Relay.Error{code: :key_store_integrity}} = KeyPort.ping(keys)
+    end)
+  end
+
+  test "TN-65 (7): the checksum is embedded from the file the release build writes" do
+    source = File.read!("lib/relay/keys/port.ex")
+    assert source =~ ~s(@program "priv/native/pkcs11_port")
+    assert source =~ "@external_resource @checksum_file"
+    refute source =~ ~s(executable <> ".sha256")
   end
 
   test "TN-63: a call to a server that is not running is a typed error" do

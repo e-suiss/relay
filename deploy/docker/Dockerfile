@@ -1,3 +1,15 @@
+FROM rust:1.99.0-slim-bookworm@sha256:2c3a22f0a5533ea2dd5a16627bc841228151faa2d4de2644ac9987e4a2f1f2fa AS native
+
+ENV SOURCE_DATE_EPOCH=0 \
+    CARGO_INCREMENTAL=0
+
+WORKDIR /build
+
+COPY native/pkcs11_port/Cargo.toml native/pkcs11_port/Cargo.lock ./
+COPY native/pkcs11_port/src src
+
+RUN cargo build --locked --release
+
 FROM hexpm/elixir:1.20.4-erlang-29.0.6-debian-trixie-20260918-slim@sha256:1907c8e173e9b65657da6ad15a2c618939368d2fc52e90f69984a31561536a7c AS build
 
 ENV MIX_ENV=prod \
@@ -14,6 +26,10 @@ COPY config config
 COPY lib lib
 COPY priv priv
 COPY rel rel
+COPY --from=native /build/target/release/pkcs11_port priv/native/pkcs11_port
+
+# TN-65 (7)
+RUN sha256sum priv/native/pkcs11_port > priv/native/pkcs11_port.sha256
 
 RUN --network=none mix deps.compile && mix compile --warnings-as-errors && mix release
 

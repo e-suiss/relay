@@ -1,0 +1,9 @@
+Relay {{ .Chart.AppVersion }} is installed as {{ .Release.Name }}.
+
+Database server requirements:
+  shared_preload_libraries must include: {{ join ", " .Values.database.serverRequirements.sharedPreloadLibraries }}
+  A node that finds query statistics missing logs an error and emits the [:relay, :postgres, :query_stats] telemetry event; it keeps running.
+
+Key store:
+  PKCS#11 module {{ .Values.keyStore.module }}, token {{ .Values.keyStore.token }}, PIN from secret {{ .Values.keyStore.pinSecret }} (key "pin").
+  The provider library is not part of the image; mount it with keyStore.volumes and keyStore.volumeMounts.

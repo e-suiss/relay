@@ -15,6 +15,8 @@ defmodule Relay.Config do
     RelayWeb.Endpoint,
     Relay.Platform.Valkey,
     Relay.Platform.Signal,
+    Relay.Platform.Outbox,
+    Relay.QueueRepo,
     Oban
   ]
   @os_env_keys ["RELAY_HOST", "RELAY_ROLES", "RELAY_REGION"]

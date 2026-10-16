@@ -67,7 +67,7 @@ defmodule Relay.Platform.QueueTest do
 
     test "T-12: leadership is database based, never :global" do
       config = Application.fetch_env!(:relay, Oban)
-      assert config[:peer] == Oban.Peers.Database
+      assert config[:peer] == Relay.Platform.Queue.Peer
     end
   end
 

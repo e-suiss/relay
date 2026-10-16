@@ -21,9 +21,15 @@ config :relay, Oban,
   repo: Relay.Repo,
   prefix: "relay_queue",
   notifier: Relay.Platform.Queue.Notifier,
-  peer: Oban.Peers.Database,
+  peer: Relay.Platform.Queue.Peer,
+  stager: [interval: 1_000],
   queues: [],
-  plugins: []
+  plugins: [
+    {Oban.Lifeline, rescue_after: 7_200_000},
+    Relay.Platform.Queue.Pruner
+  ]
+
+config :relay, Relay.Platform.Outbox, dispatcher: true
 
 config :relay, RelayWeb.Endpoint,
   url: [host: "localhost"],

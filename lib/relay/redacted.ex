@@ -19,6 +19,11 @@ defmodule Relay.Redacted do
   @spec expose(t()) :: term()
   def expose(%__MODULE__{value: value}), do: value
 
+  @doc "Returns true if the value is wrapped."
+  @spec redacted?(term()) :: boolean()
+  def redacted?(%__MODULE__{}), do: true
+  def redacted?(_other), do: false
+
   defimpl Inspect do
     def inspect(_redacted, _opts), do: "#Relay.Redacted<**redacted**>"
   end

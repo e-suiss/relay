@@ -5,5 +5,26 @@ defmodule Relay do
 
   use Boundary,
     deps: [],
-    exports: [Clock, Random, Error, Redacted, Decision, Process, Config, Role, Repo, LogRedactor]
+    exports: [
+      Clock,
+      Random,
+      Error,
+      Redacted,
+      Decision,
+      Process,
+      Config,
+      Role,
+      Repo,
+      LogRedactor,
+      Id,
+      Phone,
+      Email,
+      TimeZone,
+      Locale,
+      Environment,
+      Region,
+      RetentionClass,
+      Crypto,
+      Canonical
+    ]
 end

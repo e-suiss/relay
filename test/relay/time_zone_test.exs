@@ -1,5 +1,6 @@
 defmodule Relay.TimeZoneTest do
   use ExUnit.Case, async: true
+  use ExUnitProperties
 
   import Relay.Golden
 
@@ -21,6 +22,26 @@ defmodule Relay.TimeZoneTest do
         end
 
       assert_golden("tzdata.txt", ["tzdata #{Tzdata.tzdata_version()}\n" | lines])
+    end
+  end
+
+  describe "TN-2 C-57 IANA time zone identifiers" do
+    test "TN-2: IANA zone identifiers are accepted" do
+      for zone <- ["Europe/Istanbul", "America/New_York", "Asia/Tehran", "Etc/UTC"] do
+        assert Relay.TimeZone.new(zone) == {:ok, zone}
+      end
+    end
+
+    property "C-57: every zone of the bundled tzdata release is accepted" do
+      check all zone <- member_of(Tzdata.zone_list()) do
+        assert Relay.TimeZone.new(zone) == {:ok, zone}
+      end
+    end
+
+    test "TN-2: offsets, unknown names and non-strings are refused" do
+      for zone <- ["+03:00", "UTC+3", "GMT+0300", "Europe/Nowhere", "europe/istanbul", "", nil, 3] do
+        assert {:error, %Relay.Error{code: :invalid_time_zone}} = Relay.TimeZone.new(zone)
+      end
     end
   end
 end

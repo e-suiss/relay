@@ -118,7 +118,8 @@ impl Hsm {
         let key = self.find(ObjectClass::PRIVATE_KEY, key_type(alg), label)?;
         match alg {
             Alg::Es256 => {
-                let signature = self.session.sign(&Mechanism::EcdsaSha256, key, message)?;
+                let digest = self.session.digest(&Mechanism::Sha256, message)?;
+                let signature = self.session.sign(&Mechanism::Ecdsa, key, &digest)?;
                 der::ecdsa_raw(&signature, der::P256_SCALAR)
                     .ok_or_else(|| Failure::new(Status::Token, "unexpected ECDSA signature form"))
             }

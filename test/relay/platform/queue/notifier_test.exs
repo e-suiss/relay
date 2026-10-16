@@ -53,15 +53,15 @@ defmodule Relay.Platform.Queue.NotifierTest do
 
     test "T-55: listening subscribes each Oban channel to its own system channel", %{conf: conf} do
       :ok = Oban.Notifier.listen(conf, [:gossip, :signal])
-      assert_received {:valkey_subscribe, "relay:s:oban:oban:gossip"}
-      assert_received {:valkey_subscribe, "relay:s:oban:oban:signal"}
+      assert_received {:valkey_subscribe, "relay:s:oban:relay_queue:gossip"}
+      assert_received {:valkey_subscribe, "relay:s:oban:relay_queue:signal"}
 
       :ok = Oban.Notifier.listen(conf, [:gossip])
       refute_received {:valkey_subscribe, _}
     end
 
     test "T-55: a published notification reaches Valkey as Oban's encoded payload", %{conf: conf} do
-      expect(ValkeyMock, :pipeline, fn [["PUBLISH", "relay:s:oban:oban:gossip", payload]] ->
+      expect(ValkeyMock, :pipeline, fn [["PUBLISH", "relay:s:oban:relay_queue:gossip", payload]] ->
         assert Jason.decode!(payload) == %{"hello" => "world"}
         {:ok, [1]}
       end)
@@ -71,7 +71,7 @@ defmodule Relay.Platform.Queue.NotifierTest do
 
     test "T-55: a message from Valkey is relayed to the local listeners", %{conf: conf, pid: pid} do
       :ok = Oban.Notifier.listen(conf, [:gossip])
-      send(pid, {:valkey, :message, "relay:s:oban:oban:gossip", ~s({"n":1})})
+      send(pid, {:valkey, :message, "relay:s:oban:relay_queue:gossip", ~s({"n":1})})
       assert_receive {:notification, :gossip, %{"n" => 1}}
     end
 
@@ -83,9 +83,9 @@ defmodule Relay.Platform.Queue.NotifierTest do
 
       log =
         capture_log(fn ->
-          send(pid, {:valkey, :message, "relay:s:oban:oban:other", ~s({"n":1})})
-          send(pid, {:valkey, :message, "relay:s:oban:oban:gossip", "not json"})
-          send(pid, {:valkey, :message, "relay:s:oban:oban:gossip", ~s({"n":2})})
+          send(pid, {:valkey, :message, "relay:s:oban:relay_queue:other", ~s({"n":1})})
+          send(pid, {:valkey, :message, "relay:s:oban:relay_queue:gossip", "not json"})
+          send(pid, {:valkey, :message, "relay:s:oban:relay_queue:gossip", ~s({"n":2})})
           assert_receive {:notification, :gossip, %{"n" => 2}}
         end)
 
@@ -97,7 +97,7 @@ defmodule Relay.Platform.Queue.NotifierTest do
     test "T-55: unlisten drops the Valkey subscription once no listener is left", %{conf: conf} do
       :ok = Oban.Notifier.listen(conf, [:gossip])
       :ok = Oban.Notifier.unlisten(conf, [:gossip])
-      assert_received {:valkey_unsubscribe, "relay:s:oban:oban:gossip"}
+      assert_received {:valkey_unsubscribe, "relay:s:oban:relay_queue:gossip"}
     end
 
     test "T-55: a restarted notifier listens again on every registered channel", %{
@@ -105,13 +105,13 @@ defmodule Relay.Platform.Queue.NotifierTest do
       pid: pid
     } do
       :ok = Oban.Notifier.listen(conf, [:gossip])
-      assert_received {:valkey_subscribe, "relay:s:oban:oban:gossip"}
+      assert_received {:valkey_subscribe, "relay:s:oban:relay_queue:gossip"}
 
       ref = Process.monitor(pid)
       Process.exit(pid, :kill)
       assert_receive {:DOWN, ^ref, :process, ^pid, :killed}
 
-      assert_receive {:valkey_subscribe, "relay:s:oban:oban:gossip"}, 1_000
+      assert_receive {:valkey_subscribe, "relay:s:oban:relay_queue:gossip"}, 1_000
     end
   end
 
@@ -138,7 +138,7 @@ defmodule Relay.Platform.Queue.NotifierTest do
 
       on_exit(fn -> :telemetry.detach(handler) end)
 
-      send(pid, {:valkey, :up, "relay:s:oban:oban:gossip"})
+      send(pid, {:valkey, :up, "relay:s:oban:relay_queue:gossip"})
 
       log =
         capture_log(fn ->
@@ -148,8 +148,8 @@ defmodule Relay.Platform.Queue.NotifierTest do
 
       assert log =~ "polls"
 
-      send(pid, {:valkey, :up, "relay:s:oban:oban:gossip"})
-      send(pid, {:valkey, :message, "relay:s:oban:oban:gossip", ~s({"after":"reconnect"})})
+      send(pid, {:valkey, :up, "relay:s:oban:relay_queue:gossip"})
+      send(pid, {:valkey, :message, "relay:s:oban:relay_queue:gossip", ~s({"after":"reconnect"})})
       assert_receive {:notification, :gossip, %{"after" => "reconnect"}}
     end
   end

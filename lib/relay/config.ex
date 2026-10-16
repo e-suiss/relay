@@ -17,6 +17,9 @@ defmodule Relay.Config do
     Relay.Platform.Signal,
     Relay.Platform.Outbox,
     Relay.QueueRepo,
+    Relay.Platform.MaintRepo,
+    Relay.Platform.Leadership,
+    Relay.Audit,
     Oban
   ]
   @os_env_keys ["RELAY_HOST", "RELAY_ROLES", "RELAY_REGION"]

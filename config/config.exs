@@ -17,6 +17,21 @@ config :relay, Relay.Platform.Valkey,
 
 config :relay, Relay.Platform.Signal, poll_interval_ms: 1_000
 
+config :relay, Relay.Platform.Leadership,
+  enabled: true,
+  tasks: [
+    {"partition_maintenance", Relay.Platform.Maintenance.PartitionTask, []},
+    {"integrity_check", Relay.Platform.Maintenance.IntegrityTask, []},
+    {"audit_checkpoint", Relay.Audit.Checkpointer, []},
+    {"audit_verify", Relay.Audit.Checkpointer.Verifier, []},
+    {"retention_sweep", Relay.Tenancy.Retention, []}
+  ]
+
+config :relay, Relay.Audit,
+  log_host: "localhost",
+  checkpoint_key: "audit-checkpoint",
+  publishers: []
+
 config :relay, Oban,
   repo: Relay.Repo,
   prefix: "relay_queue",

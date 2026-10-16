@@ -27,6 +27,8 @@ config :relay, Oban, testing: :manual
 
 config :relay, Relay.Platform.Outbox, dispatcher: false
 
+config :relay, Relay.Platform.Leadership, enabled: false
+
 config :logger, level: :warning
 
 config :phoenix, :plug_init_mode, :runtime

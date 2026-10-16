@@ -1,13 +1,14 @@
 defmodule Relay.RetentionClass do
   @moduledoc """
-  Relay retention classes and the Access Appendix C classes each one maps to. Retention periods and their legal bases come from Access Appendix C; Relay keeps no periods of its own. A data key exists per subject and retention class.
+  Relay retention classes and the Access Appendix C classes each one maps to. Retention periods and their legal bases come from Access Appendix C; Relay keeps no periods of its own. A data key exists per subject and retention class, and each class carries one retention period.
   """
 
   @type t ::
           :recipient_profile
           | :notification_content
           | :delivery_record
-          | :commercial_message_record
+          | :commercial_consent
+          | :commercial_message
           | :preference
           | :audit
           | :traffic
@@ -29,7 +30,8 @@ defmodule Relay.RetentionClass do
     recipient_profile: [:profile],
     notification_content: [:profile],
     delivery_record: [:message_log],
-    commercial_message_record: [:consent, :message_log],
+    commercial_consent: [:consent],
+    commercial_message: [:message_log],
     preference: [:profile],
     audit: [:audit],
     traffic: [:traffic],
@@ -45,6 +47,7 @@ defmodule Relay.RetentionClass do
   # OP-18
   # OP-24
   # TN-60
+  # C-85
   @doc "Returns every Relay retention class."
   @spec all() :: [t(), ...]
   def all, do: @classes

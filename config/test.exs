@@ -1,7 +1,7 @@
 import Config
 
 config :relay, Relay.Repo,
-  username: "relay",
+  username: "relay_worker",
   password: "relay",
   hostname: "localhost",
   port: 5432,

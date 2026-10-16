@@ -15,7 +15,8 @@ defmodule Relay.RetentionClassTest do
                recipient_profile: [:profile],
                notification_content: [:profile],
                delivery_record: [:message_log],
-               commercial_message_record: [:consent, :message_log],
+               commercial_consent: [:consent],
+               commercial_message: [:message_log],
                preference: [:profile],
                audit: [:audit],
                traffic: [:traffic],
@@ -28,6 +29,18 @@ defmodule Relay.RetentionClassTest do
     test "OP-17: every mapped class is an Access Appendix C class" do
       for class <- RetentionClass.all(), access <- RetentionClass.access_classes(class) do
         assert access in @access_classes
+      end
+    end
+
+    test "C-85: the codes are the eleven retention classes of the data model, in order" do
+      assert Enum.map(RetentionClass.all(), &RetentionClass.dump/1) ==
+               ~w(recipient_profile notification_content delivery_record commercial_consent
+                  commercial_message preference audit traffic suppression dsr_log erasure_log)
+    end
+
+    test "C-85: every class maps to exactly one Access Appendix C class so that a data key carries one period" do
+      for class <- RetentionClass.all() do
+        assert [_one] = RetentionClass.access_classes(class)
       end
     end
 

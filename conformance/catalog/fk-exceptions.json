@@ -1,0 +1,42 @@
+[
+  {
+    "table": "delivery_events",
+    "columns": [
+      "attempt_no"
+    ],
+    "target": "delivery_attempts",
+    "reason": "the target is partitioned and a foreign key would have to carry its partition key",
+    "instead": "relay_fn.ledger_append checks the attempt against deliveries.attempt_count; nightly orphan check"
+  },
+  {
+    "table": "audit_log",
+    "columns": [
+      "target_type",
+      "target_id"
+    ],
+    "target": null,
+    "reason": "the target is polymorphic",
+    "instead": "nightly orphan check over the known target types"
+  },
+  {
+    "table": "outbox_events",
+    "columns": [
+      "stream_key"
+    ],
+    "target": null,
+    "reason": "the stream key is a polymorphic text key",
+    "instead": null
+  },
+  {
+    "table": "audit_leaves",
+    "columns": [
+      "audit_tenant_id",
+      "audit_environment",
+      "audit_id",
+      "audit_created_at"
+    ],
+    "target": "audit_log",
+    "reason": "an installation table pointing at a partitioned tenant table",
+    "instead": "tree roots are recomputed from the audit records"
+  }
+]

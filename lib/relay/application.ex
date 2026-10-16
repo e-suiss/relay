@@ -1,7 +1,10 @@
 defmodule Relay.Application do
   @moduledoc false
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Platform, RelayWeb]
+  use Boundary,
+    top_level?: true,
+    deps: [Relay, Relay.Platform, Relay.Platform.Leadership, RelayWeb]
+
   use Application
 
   require Logger
@@ -23,7 +26,9 @@ defmodule Relay.Application do
         Relay.Repo,
         {Phoenix.PubSub, name: Relay.PubSub},
         {Task.Supervisor, name: Relay.TaskSupervisor}
-      ] ++ Relay.Platform.children() ++ [RelayWeb.Endpoint]
+      ] ++
+        Relay.Platform.children() ++
+        Relay.Platform.Leadership.children(roles) ++ [RelayWeb.Endpoint]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Relay.Supervisor)
   end

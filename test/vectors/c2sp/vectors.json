@@ -1,0 +1,51 @@
+{
+  "sources": [
+    {
+      "name": "C2SP signed-note, Example",
+      "url": "https://github.com/C2SP/C2SP/blob/b2dd9892338af7009733a4575a6da05811ffae6c/signed-note.md"
+    },
+    {
+      "name": "C2SP tlog-checkpoint, Example",
+      "url": "https://github.com/C2SP/C2SP/blob/b2dd9892338af7009733a4575a6da05811ffae6c/tlog-checkpoint.md"
+    },
+    {
+      "name": "golang.org/x/mod sumdb/note TestNewVerifier, TestSign",
+      "url": "https://github.com/golang/mod/blob/fe2ec04f7c3c3aa6fad97631aafcff6e49e2d1db/sumdb/note/note_test.go"
+    },
+    {
+      "name": "golang.org/x/mod sumdb/tlog TestFormatTree, TestParseTree",
+      "url": "https://github.com/golang/mod/blob/69aa7acea306dfd277ec48fcc687ef8fa0f2bdb4/sumdb/tlog/note_test.go"
+    }
+  ],
+  "signed_notes": [
+    {
+      "source": "C2SP signed-note, Example",
+      "verifier_key": "example.com/foo+530d903a+AekyeRrm56hApGFkyQR4ZCbV54Id2LKaANYcrnKv3U2k",
+      "note": "This is an example message.\n\n— example.com/foo Uw2QOkn8srV1yJGh2VYRlL1Tnagv1YEq6TfXppzi2ONncAlTgK7Ztg1ERYNZXsYjOBH3mFXmRKuwHjG1Yu72IneyaQM=\n",
+      "text": "This is an example message.\n"
+    },
+    {
+      "source": "golang.org/x/mod sumdb/note TestNewVerifier, TestSign",
+      "verifier_key": "PeterNeumann+c74f20a3+ARpc2QcUPDhMQegwxbzhKqiBfsVkmqq/LDE4izWy10TW",
+      "private_key": "PRIVATE+KEY+PeterNeumann+c74f20a3+AYEKFALVFGyNhPJEMzD1QIDr+Y7hfZx09iUvxdXHKDFz",
+      "note": "If you think cryptography is the answer to your problem,\nthen you don't know what your problem is.\n\n— PeterNeumann x08go/ZJkuBS9UG/SffcvIAQxVBtiFupLLr8pAcElZInNIuGUgYN1FFYC2pZSNXgKvqfqdngotpRZb6KE6RyyBwJnAM=\n",
+      "text": "If you think cryptography is the answer to your problem,\nthen you don't know what your problem is.\n"
+    }
+  ],
+  "checkpoints": [
+    {
+      "source": "C2SP tlog-checkpoint, Example",
+      "note": "example.com/behind-the-sofa\n20852163\nCsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=\n\n— example.com/behind-the-sofa Az3grlgtzPICa5OS8npVmf1Myq/5IZniMp+ZJurmRDeOoRDe4URYN7u5/Zhcyv2q1gGzGku9nTo+zyWE+xeMcTOAYQ8=\n",
+      "origin": "example.com/behind-the-sofa",
+      "tree_size": 20852163,
+      "root_hash": "CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I="
+    },
+    {
+      "source": "golang.org/x/mod sumdb/tlog TestFormatTree, TestParseTree",
+      "text": "go.sum database tree\n123456789012\nTszzRgjTG6xce+z2AG31kAXYKBgQVtCSCE40HmuwBb0=\n",
+      "origin": "go.sum database tree",
+      "tree_size": 123456789012,
+      "root_hash_is_record_hash_of": "hello world"
+    }
+  ]
+}

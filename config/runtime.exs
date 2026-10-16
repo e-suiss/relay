@@ -6,6 +6,13 @@ if config_env() == :prod do
     password: Relay.Config.Env.file!("DATABASE_PASSWORD_FILE"),
     pool_size: Relay.Config.Env.integer!("POOL_SIZE")
 
+  config :relay, Relay.Platform.MaintRepo,
+    url: Relay.Config.Env.database_url!("MAINT_DATABASE_URL"),
+    password: Relay.Config.Env.file!("MAINT_DATABASE_PASSWORD_FILE"),
+    pool_size: 2
+
+  config :relay, Relay.Audit, log_host: Relay.Config.Env.fetch!("RELAY_HOST")
+
   config :relay, Relay.Platform.Valkey,
     adapter: Relay.Platform.Valkey.Redix,
     url: Relay.Config.Env.valkey_url!("VALKEY_URL")

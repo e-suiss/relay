@@ -16,6 +16,34 @@ defmodule Relay.ConfigTest do
       assert :ok = Config.validate!(Keyword.put(@valid, :keys, Relay.Keys.Port), %{})
     end
 
+    test "TN-63: the key store program takes only its module, token and PIN file" do
+      port = [module: "/usr/lib/provider.so", token: "relay", pin_file: "/run/pin"]
+      assert Relay.Keys.Port in Config.known_app_keys()
+      assert :ok = Config.validate!(Keyword.put(@valid, Relay.Keys.Port, port), %{})
+
+      for bad <- [
+            Keyword.put(port, :sha256, String.duplicate("0", 64)),
+            Keyword.put(port, :executable, "/tmp/pkcs11_port"),
+            Keyword.delete(port, :pin_file),
+            Keyword.put(port, :token, nil),
+            :enabled
+          ] do
+        assert_raise Error, ~r/Relay.Keys.Port configuration/, fn ->
+          Config.validate!(Keyword.put(@valid, Relay.Keys.Port, bad), %{})
+        end
+      end
+    end
+
+    test "TN-63: production reads the key store settings from the environment" do
+      runtime = File.read!("config/runtime.exs")
+
+      for name <- ["PKCS11_MODULE", "PKCS11_TOKEN", "PKCS11_PIN_FILE"] do
+        assert runtime =~ ~s[Relay.Config.Env.fetch!("#{name}")]
+      end
+
+      refute runtime =~ ~r/Relay\.Config\.Env\.file!\("PKCS11_PIN_FILE"\)/
+    end
+
     test "INV-46: an unknown configuration key stops startup" do
       assert_raise Error, ~r/unknown configuration keys.*:retry_forever/, fn ->
         Config.validate!(Keyword.put(@valid, :retry_forever, true), %{})

@@ -27,6 +27,7 @@ defmodule Relay.Application do
         {Phoenix.PubSub, name: Relay.PubSub},
         {Task.Supervisor, name: Relay.TaskSupervisor}
       ] ++
+        Relay.Keys.children() ++
         Relay.Platform.children() ++
         Relay.Platform.Leadership.children(roles) ++ [RelayWeb.Endpoint]
 

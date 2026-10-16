@@ -15,6 +15,33 @@ defmodule Relay.KeysTest do
     on_exit(fn -> Application.put_env(:relay, :keys, previous) end)
   end
 
+  test "TN-63: the key store program is supervised only where it is configured" do
+    previous = Application.get_env(:relay, Relay.Keys.Port)
+
+    try do
+      Application.delete_env(:relay, Relay.Keys.Port)
+      assert Keys.children() == []
+
+      Application.put_env(:relay, Relay.Keys.Port,
+        module: "/usr/lib/pkcs11/provider.so",
+        token: "relay",
+        pin_file: "/run/secrets/relay-pkcs11/pin"
+      )
+
+      assert [{Relay.Keys.Port, opts}] = Keys.children()
+
+      assert Enum.sort(opts) == [
+               module: "/usr/lib/pkcs11/provider.so",
+               pin_file: "/run/secrets/relay-pkcs11/pin",
+               token: "relay"
+             ]
+    after
+      if previous,
+        do: Application.put_env(:relay, Relay.Keys.Port, previous),
+        else: Application.delete_env(:relay, Relay.Keys.Port)
+    end
+  end
+
   test "TN-63: calls go to the configured key store" do
     expect(Relay.KeysMock, :ping, fn -> :ok end)
     expect(Relay.KeysMock, :sign, fn :es256, "apns", "jwt" -> {:ok, <<0::512>>} end)

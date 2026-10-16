@@ -1,6 +1,6 @@
 defmodule Relay.Keys.Port do
   @moduledoc """
-  `Relay.Keys` implementation that owns the `pkcs11_port` OS process. The program's SHA-256 is checked against the `.sha256` file beside it before every start; a crash or a timed-out request closes the program, fails the requests in flight with `:key_store_unavailable` and reopens it with backoff, so the server itself never crashes on the program's behalf.
+  `Relay.Keys` implementation that owns the `pkcs11_port` OS process. The program's SHA-256 is checked before every start against the checksum embedded at compile time from `priv/native/pkcs11_port.sha256`, which the release build writes next to the program it bundles; a crash or a timed-out request closes the program, fails the requests in flight with `:key_store_unavailable` and reopens it with backoff, so the server itself never crashes on the program's behalf.
   """
 
   @behaviour Relay.Keys
@@ -17,6 +17,16 @@ defmodule Relay.Keys.Port do
   @min_backoff 100
   @max_backoff 30_000
   @max_id 0xFFFFFFFF
+  @program "priv/native/pkcs11_port"
+  @checksum_file Path.expand("../../../#{@program}.sha256", __DIR__)
+  @external_resource @checksum_file
+  @embedded_sha256 (with {:ok, content} <- File.read(@checksum_file),
+                         [hash | _] <- String.split(content),
+                         true <- hash =~ ~r/\A[0-9a-fA-F]{64}\z/ do
+                      String.downcase(hash)
+                    else
+                      _ -> nil
+                    end)
 
   @type option ::
           {:name, GenServer.name()}
@@ -24,13 +34,15 @@ defmodule Relay.Keys.Port do
           | {:module, Path.t()}
           | {:token, String.t()}
           | {:pin_file, Path.t()}
+          | {:sha256, String.t() | nil}
           | {:timeout, pos_integer()}
           | {:min_backoff, pos_integer()}
           | {:max_backoff, pos_integer()}
 
   # TN-63
   # T-53
-  @doc "Starts the server. `:executable`, `:module`, `:token` and `:pin_file` are required; the PIN is read by the program from `:pin_file` and never enters the VM."
+  # TN-65 (7)
+  @doc "Starts the server. `:module`, `:token` and `:pin_file` are required; the PIN is read by the program from `:pin_file` and never enters the VM. `:executable` defaults to the program bundled in the release and `:sha256` to the embedded checksum."
   @spec start_link([option()]) :: GenServer.on_start()
   def start_link(opts) do
     {name, opts} = Keyword.pop(opts, :name, __MODULE__)
@@ -82,7 +94,8 @@ defmodule Relay.Keys.Port do
     Process.flag(:trap_exit, true)
 
     state = %{
-      executable: Keyword.fetch!(opts, :executable),
+      executable: Keyword.get_lazy(opts, :executable, &bundled_program/0),
+      sha256: Keyword.get(opts, :sha256, @embedded_sha256),
       args: args(opts),
       timeout: Keyword.get(opts, :timeout, @default_timeout),
       min_backoff: Keyword.get(opts, :min_backoff, @min_backoff),
@@ -185,7 +198,7 @@ defmodule Relay.Keys.Port do
   end
 
   defp open(state) do
-    case verify(state.executable) do
+    case verify(state.executable, state.sha256) do
       :ok ->
         port =
           Port.open({:spawn_executable, state.executable}, [
@@ -208,20 +221,26 @@ defmodule Relay.Keys.Port do
 
   # T-53
   # T-62
-  # sobelow_skip ["Traversal.FileModule"]
-  defp verify(executable) do
-    with {:ok, expected} <- File.read(executable <> ".sha256"),
-         [expected | _] <- String.split(expected),
-         {:ok, binary} <- File.read(executable) do
-      actual = :crypto.hash(:sha256, binary) |> Base.encode16(case: :lower)
+  # TN-65 (7)
+  defp verify(_executable, nil),
+    do: {:error, integrity_error("key store program has no embedded checksum")}
 
-      if String.downcase(expected) == actual,
-        do: :ok,
-        else: {:error, integrity_error("key store program checksum does not match")}
-    else
-      _ -> {:error, integrity_error("key store program or its checksum is missing")}
+  # sobelow_skip ["Traversal.FileModule"]
+  defp verify(executable, expected) do
+    case File.read(executable) do
+      {:ok, binary} ->
+        actual = :crypto.hash(:sha256, binary) |> Base.encode16(case: :lower)
+
+        if String.downcase(expected) == actual,
+          do: :ok,
+          else: {:error, integrity_error("key store program checksum does not match")}
+
+      {:error, _} ->
+        {:error, integrity_error("key store program is missing")}
     end
   end
+
+  defp bundled_program, do: Application.app_dir(:relay, @program)
 
   defp close(nil), do: :ok
 

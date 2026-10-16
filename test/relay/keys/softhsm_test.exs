@@ -61,6 +61,8 @@ defmodule Relay.Keys.SoftHSMTest do
     %{pkcs11_module: module, pin_file: pin_file, dir: dir}
   end
 
+  defp sha256, do: (@executable <> ".sha256") |> File.read!() |> String.split() |> hd()
+
   defp run!(cmd, args) do
     {out, status} = System.cmd(cmd, args, stderr_to_stdout: true)
     assert status == 0, "#{cmd} failed: #{out}"
@@ -71,7 +73,12 @@ defmodule Relay.Keys.SoftHSMTest do
 
     start_supervised!(
       {KeyPort,
-       name: name, executable: @executable, module: module, token: @token, pin_file: pin_file}
+       name: name,
+       executable: @executable,
+       sha256: sha256(),
+       module: module,
+       token: @token,
+       pin_file: pin_file}
     )
 
     %{keys: name}
@@ -168,6 +175,7 @@ defmodule Relay.Keys.SoftHSMTest do
       {KeyPort,
        name: name,
        executable: @executable,
+       sha256: sha256(),
        module: module,
        token: @token,
        pin_file: bad_pin,

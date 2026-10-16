@@ -10,11 +10,21 @@ database:
   maintUrl: ""
   passwordSecret: relay-database
   poolSize: 10
+  serverRequirements:
+    sharedPreloadLibraries: [pg_stat_statements]
 
 valkey:
   url: ""
 
 secretKeyBaseSecret: relay-secret-key-base
+
+keyStore:
+  module: ""
+  token: ""
+  pinSecret: relay-key-store-pin
+  env: []
+  volumes: []
+  volumeMounts: []
 
 nodes:
   - name: all

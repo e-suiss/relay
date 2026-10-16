@@ -52,8 +52,14 @@ spec:
             - name: database-password
               mountPath: /run/secrets/relay
               readOnly: true
+            - name: pkcs11-pin
+              mountPath: /run/secrets/relay-pkcs11
+              readOnly: true
             - name: tmp
               mountPath: /tmp
+            {{- with $.Values.keyStore.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
       volumes:
         - name: database-password
           secret:
@@ -65,6 +71,15 @@ spec:
                 path: queue-database-password
               - key: maint-password
                 path: maint-database-password
+        - name: pkcs11-pin
+          secret:
+            secretName: {{ $.Values.keyStore.pinSecret }}
+            items:
+              - key: pin
+                path: pin
         - name: tmp
           emptyDir: {}
+        {{- with $.Values.keyStore.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
 {{- end }}

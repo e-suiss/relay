@@ -139,7 +139,10 @@ defmodule Relay.Platform.PartitionMaintenanceDatabaseTest do
       {:ok, due} = EscapeHatch.partitions_due_for_archive()
 
       assert %{partition_name: name} =
-               Enum.find(due, &(&1.upper_bound == DateTime.add(from, 1, :day)))
+               Enum.find(
+                 due,
+                 &(DateTime.compare(&1.upper_bound, DateTime.add(from, 1, :day)) == :eq)
+               )
 
       assert :ok = EscapeHatch.detach("delivery_attempts", name)
       assert {:ok, [^name]} = EscapeHatch.detached_partitions([name])

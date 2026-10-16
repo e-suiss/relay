@@ -50,13 +50,31 @@ defmodule Relay.Audit.CheckpointerTest do
 
   defp lease do
     {:ok, result, token} =
-      Store.acquire("audit_checkpoint", "checkpointer-test", 600_000)
+      Store.acquire("audit_checkpoint", "checkpointer-test", 10_000)
 
     assert result in ["acquired", "renewed"]
     token
   end
 
+  defp leased(fun) do
+    committed(fn ->
+      try do
+        fun.()
+      after
+        release()
+      end
+    end)
+  end
+
+  defp release do
+    maint_rows!(
+      "UPDATE relay.singleton_tasks SET lease_until = now() WHERE name = 'audit_checkpoint' AND leader_node = 'checkpointer-test'"
+    )
+  end
+
   defp step(token, state) do
+    ^token = lease()
+
     {:ok, state, delay} =
       Checkpointer.run(%{name: "audit_checkpoint", node: "t", fencing_token: token, state: state})
 
@@ -82,7 +100,7 @@ defmodule Relay.Audit.CheckpointerTest do
 
   test "OP-63: every audit record gets exactly one leaf and the signed root is recomputed from the records",
        %{public: public} do
-    committed(fn ->
+    leased(fn ->
       tenant = tenant!()
       ids = for _ <- 1..3, do: scoped(tenant.id, "live", fn -> audit!() end)
       token = lease()
@@ -118,7 +136,7 @@ defmodule Relay.Audit.CheckpointerTest do
   end
 
   test "OP-63: an inclusion proof of a record verifies against the signed root" do
-    committed(fn ->
+    leased(fn ->
       tenant = tenant!()
       id = scoped(tenant.id, "live", fn -> audit!() end)
       token = lease()
@@ -148,7 +166,7 @@ defmodule Relay.Audit.CheckpointerTest do
   end
 
   test "TN-46: with nothing new the job only signs a heartbeat after a quiet minute" do
-    committed(fn ->
+    leased(fn ->
       token = lease()
       state = step(token, step(token, nil))
       [[before]] = maint_rows!("SELECT count(*) FROM relay.audit_checkpoints")
@@ -168,7 +186,7 @@ defmodule Relay.Audit.CheckpointerTest do
   end
 
   test "TN-46: a stale fencing token cannot append leaves" do
-    committed(fn ->
+    leased(fn ->
       tenant = tenant!()
       _ = scoped(tenant.id, "live", fn -> audit!() end)
       token = lease()

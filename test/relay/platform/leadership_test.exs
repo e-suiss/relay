@@ -55,7 +55,7 @@ defmodule Relay.Platform.LeadershipDatabaseTest do
 end
 
 defmodule Relay.Platform.LeadershipRunnerTest do
-  use Relay.DataCase, async: false
+  use Relay.MaintenanceCase, async: false
 
   alias Relay.Platform.Leadership.Runner
   alias Relay.Platform.Leadership.Store

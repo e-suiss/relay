@@ -72,7 +72,7 @@ defmodule Relay.Platform.Queue.NotifierTest do
     test "T-55: a message from Valkey is relayed to the local listeners", %{conf: conf, pid: pid} do
       :ok = Oban.Notifier.listen(conf, [:gossip])
       send(pid, {:valkey, :message, "relay:s:oban:relay_queue:gossip", ~s({"n":1})})
-      assert_receive {:notification, :gossip, %{"n" => 1}}
+      assert_receive {:notification, :gossip, %{"n" => 1}}, 1_000
     end
 
     test "T-55: messages on unknown channels and undecodable payloads are dropped", %{
@@ -86,7 +86,7 @@ defmodule Relay.Platform.Queue.NotifierTest do
           send(pid, {:valkey, :message, "relay:s:oban:relay_queue:other", ~s({"n":1})})
           send(pid, {:valkey, :message, "relay:s:oban:relay_queue:gossip", "not json"})
           send(pid, {:valkey, :message, "relay:s:oban:relay_queue:gossip", ~s({"n":2})})
-          assert_receive {:notification, :gossip, %{"n" => 2}}
+          assert_receive {:notification, :gossip, %{"n" => 2}}, 1_000
         end)
 
       refute_received {:notification, :gossip, %{"n" => 1}}
@@ -109,7 +109,7 @@ defmodule Relay.Platform.Queue.NotifierTest do
 
       ref = Process.monitor(pid)
       Process.exit(pid, :kill)
-      assert_receive {:DOWN, ^ref, :process, ^pid, :killed}
+      assert_receive {:DOWN, ^ref, :process, ^pid, :killed}, 1_000
 
       assert_receive {:valkey_subscribe, "relay:s:oban:relay_queue:gossip"}, 1_000
     end
@@ -143,14 +143,14 @@ defmodule Relay.Platform.Queue.NotifierTest do
       log =
         capture_log(fn ->
           send(pid, {:valkey, :down})
-          assert_receive :notifier_down
+          assert_receive :notifier_down, 1_000
         end)
 
       assert log =~ "polls"
 
       send(pid, {:valkey, :up, "relay:s:oban:relay_queue:gossip"})
       send(pid, {:valkey, :message, "relay:s:oban:relay_queue:gossip", ~s({"after":"reconnect"})})
-      assert_receive {:notification, :gossip, %{"after" => "reconnect"}}
+      assert_receive {:notification, :gossip, %{"after" => "reconnect"}}, 1_000
     end
   end
 

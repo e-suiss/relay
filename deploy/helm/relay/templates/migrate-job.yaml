@@ -34,3 +34,5 @@ spec:
                 path: database-password
               - key: queue-password
                 path: queue-database-password
+              - key: maint-password
+                path: maint-database-password

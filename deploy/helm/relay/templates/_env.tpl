@@ -7,6 +7,10 @@
   value: {{ required "database.queueUrl is required" .Values.database.queueUrl | quote }}
 - name: QUEUE_DATABASE_PASSWORD_FILE
   value: /run/secrets/relay/queue-database-password
+- name: MAINT_DATABASE_URL
+  value: {{ required "database.maintUrl is required" .Values.database.maintUrl | quote }}
+- name: MAINT_DATABASE_PASSWORD_FILE
+  value: /run/secrets/relay/maint-database-password
 - name: POOL_SIZE
   value: {{ .Values.database.poolSize | quote }}
 - name: VALKEY_URL

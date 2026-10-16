@@ -7,6 +7,7 @@ host: relay.example.com
 database:
   url: ""
   queueUrl: ""
+  maintUrl: ""
   passwordSecret: relay-database
   poolSize: 10
 

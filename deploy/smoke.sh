@@ -21,6 +21,8 @@ DATABASE_URL=ecto://relay_worker@${db_host}:5432/relay_dev
 DATABASE_PASSWORD_FILE=/run/db-password
 QUEUE_DATABASE_URL=ecto://relay_queue@${db_host}:5432/relay_dev
 QUEUE_DATABASE_PASSWORD_FILE=/run/db-password
+MAINT_DATABASE_URL=ecto://relay_maint@${db_host}:5432/relay_dev
+MAINT_DATABASE_PASSWORD_FILE=/run/db-password
 POOL_SIZE=5
 VALKEY_URL=redis://${valkey_host}:6379
 RELAY_HOST=localhost
@@ -45,7 +47,7 @@ psql() {
 
 # TN-14
 psql -q <priv/repo/bootstrap.sql || fail "bootstrap failed"
-for role in relay_migrator relay_worker relay_queue; do
+for role in relay_migrator relay_worker relay_queue relay_maint; do
   psql -q -c "ALTER ROLE $role PASSWORD 'relay'" || fail "role password failed"
 done
 

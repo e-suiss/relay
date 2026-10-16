@@ -4,10 +4,10 @@ schema relay relay_maint USAGE
 schema relay relay_owner USAGE
 schema relay relay_report USAGE
 schema relay_fn relay_app USAGE
-schema relay_fn relay_migrator CREATE
+schema relay_fn relay_migrator CREATE,USAGE
 schema relay_fn relay_report USAGE
 schema relay_ops relay_app USAGE
-schema relay_ops relay_migrator CREATE
+schema relay_ops relay_migrator CREATE,USAGE
 schema relay_private relay_app USAGE
 schema relay_private relay_archive USAGE
 schema relay_private relay_maint USAGE

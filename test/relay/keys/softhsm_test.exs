@@ -58,7 +58,7 @@ defmodule Relay.Keys.SoftHSMTest do
 
     pin_file = Path.join(dir, "pin")
     File.write!(pin_file, @pin <> "\n")
-    %{module: module, pin_file: pin_file, dir: dir}
+    %{pkcs11_module: module, pin_file: pin_file, dir: dir}
   end
 
   defp run!(cmd, args) do
@@ -66,7 +66,7 @@ defmodule Relay.Keys.SoftHSMTest do
     assert status == 0, "#{cmd} failed: #{out}"
   end
 
-  setup %{module: module, pin_file: pin_file} do
+  setup %{pkcs11_module: module, pin_file: pin_file} do
     name = {:global, make_ref()}
 
     start_supervised!(

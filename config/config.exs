@@ -19,7 +19,7 @@ config :relay, Relay.Platform.Signal, poll_interval_ms: 1_000
 
 config :relay, Oban,
   repo: Relay.Repo,
-  prefix: "oban",
+  prefix: "relay_queue",
   notifier: Relay.Platform.Queue.Notifier,
   peer: Oban.Peers.Database,
   queues: [],

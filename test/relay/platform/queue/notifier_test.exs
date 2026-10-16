@@ -16,7 +16,7 @@ defmodule Relay.Platform.Queue.NotifierTest do
       Oban.Config.new(
         name: @oban,
         repo: Relay.Repo,
-        prefix: "oban",
+        prefix: "relay_queue",
         testing: :manual,
         notifier: {Notifier, adapter: ValkeyMock}
       )

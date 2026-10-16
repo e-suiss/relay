@@ -5,7 +5,12 @@ defmodule Relay.Platform.QueueTest do
 
   alias Relay.Platform.Queue
 
-  @base [repo: Relay.Repo, prefix: "oban", queues: [default: 1], plugins: [Oban.Plugins.Lifeline]]
+  @base [
+    repo: Relay.Repo,
+    prefix: "relay_queue",
+    queues: [default: 1],
+    plugins: [Oban.Plugins.Lifeline]
+  ]
 
   describe "T-14 open-source Oban only" do
     test "T-14: no commercial queue package is a dependency" do
@@ -18,7 +23,7 @@ defmodule Relay.Platform.QueueTest do
   describe "T-17 queue operation" do
     test "T-17: Oban tables live in their own schema" do
       config = Application.fetch_env!(:relay, Oban)
-      assert config[:prefix] == "oban"
+      assert config[:prefix] == "relay_queue"
       refute config[:prefix] == "public"
     end
 
@@ -57,7 +62,7 @@ defmodule Relay.Platform.QueueTest do
       assert options[:queues] == []
       assert options[:plugins] == []
       assert options[:peer] == false
-      assert options[:prefix] == "oban"
+      assert options[:prefix] == "relay_queue"
     end
 
     test "T-12: leadership is database based, never :global" do

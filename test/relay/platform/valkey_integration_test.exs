@@ -86,7 +86,7 @@ defmodule Relay.Platform.ValkeyIntegrationTest do
         Oban.Config.new(
           name: @oban,
           repo: Relay.Repo,
-          prefix: "oban",
+          prefix: "relay_queue",
           testing: :manual,
           notifier: {Notifier, []}
         )

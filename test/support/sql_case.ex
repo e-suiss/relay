@@ -61,10 +61,18 @@ defmodule Relay.SqlCase do
   @doc "Runs `sql` inside a savepoint that is rolled back and returns the PostgreSQL error."
   @spec sql_error(String.t(), list()) :: Postgrex.Error.t()
   def sql_error(sql, params \\ []) do
-    query!("SAVEPOINT relay_sql_error", [])
-    result = query(sql, params)
-    query!("ROLLBACK TO SAVEPOINT relay_sql_error", [])
-    {:error, %Postgrex.Error{} = error} = result
+    {:error, %Postgrex.Error{} = error} =
+      case Process.get(:relay_sql_conn) do
+        nil ->
+          Repo.query(sql, params)
+
+        conn ->
+          Postgrex.query!(conn, "SAVEPOINT relay_sql_error", [])
+          result = Postgrex.query(conn, sql, params)
+          Postgrex.query!(conn, "ROLLBACK TO SAVEPOINT relay_sql_error", [])
+          result
+      end
+
     error
   end
 
@@ -287,13 +295,6 @@ defmodule Relay.SqlCase do
     case Process.get(:relay_sql_conn) do
       nil -> Repo.query!(sql, params)
       conn -> Postgrex.query!(conn, sql, params)
-    end
-  end
-
-  defp query(sql, params) do
-    case Process.get(:relay_sql_conn) do
-      nil -> Repo.query(sql, params)
-      conn -> Postgrex.query(conn, sql, params)
     end
   end
 end

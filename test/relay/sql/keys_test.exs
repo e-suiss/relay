@@ -7,10 +7,10 @@ defmodule Relay.Sql.KeysTest do
     ])
   end
 
-  defp subject_key(recipient, class) do
+  defp subject_key(recipient, class, wrap \\ nil) do
     row(
       "SELECT * FROM relay_fn.subject_key_create($1, $2, $3, $4, $5)",
-      [id(), recipient, class, digest(), wrap_key(recipient)]
+      [id(), recipient, class, digest(), wrap || wrap_key(recipient)]
     )
   end
 
@@ -63,7 +63,11 @@ defmodule Relay.Sql.KeysTest do
 
     assert ["created", key] = subject_key(recipient, "delivery_record")
     assert subject_key(recipient, "delivery_record") == ["exists", key]
-    assert subject_key(id(), "delivery_record") == ["recipient_not_found", nil]
+
+    assert subject_key(id(), "delivery_record", wrap_key(recipient)) == [
+             "recipient_not_found",
+             nil
+           ]
   end
 
   test "MKT-13: erasure destroys and restricts keys, deletes the recipient and cancels pending deliveries" do

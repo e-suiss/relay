@@ -35,10 +35,12 @@ defmodule Relay.Sql.TenancyTest do
     tenant = tenant!()
     ctx(tenant, "live")
 
-    assert one(
-             "SELECT action FROM relay.audit_log WHERE tenant_id = $1 AND target_id = $2",
-             [tenant, Relay.Id.to_string(tenant)]
-           ) == "tenant.created"
+    now = DateTime.utc_now()
+
+    assert rows(
+             "SELECT action, target_id FROM relay_fn.audit_query($1, $2, 'tenant.created', NULL, 10, $3, $4, $5, $6, $7)",
+             [DateTime.add(now, -3600), DateTime.add(now, 3600), digest() | actor()]
+           ) == [["tenant.created", Relay.Id.to_string(tenant)]]
   end
 
   test "TN-10: status transitions are one way into closed and versioned" do

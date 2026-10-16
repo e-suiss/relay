@@ -231,7 +231,7 @@ defmodule Relay.Sql.DeliveryTest do
                attempt_no: 2,
                event_type: "dlr.failed",
                failure_kind: "failed",
-               failure_class: "temporary"
+               failure_class: "transient"
              )
              |> hd() == "applied"
 
@@ -239,7 +239,7 @@ defmodule Relay.Sql.DeliveryTest do
                attempt_no: 1,
                event_type: "dlr.failed",
                failure_kind: "bounced",
-               failure_class: "permanent"
+               failure_class: "permanent_target"
              )
              |> hd() == "stale_ignored"
 
@@ -258,7 +258,7 @@ defmodule Relay.Sql.DeliveryTest do
     end
 
     test "DS-5: delivered clears only the same attempt's earlier failure", %{d: d} do
-      ledger!(d, attempt_no: 1, failure_kind: "failed", failure_class: "temporary")
+      ledger!(d, attempt_no: 1, failure_kind: "failed", failure_class: "transient")
       assert ledger!(d, attempt_no: 1, rank: 2) |> hd() == "applied"
       assert %{rank: 2, failure_kind: nil} = delivery(d)
       assert_rebuilds(d)
@@ -335,8 +335,7 @@ defmodule Relay.Sql.DeliveryTest do
       assert one("SELECT relay_fn.webhook_receipt_mark($1, 'rejected', 'bad')", [id()]) ==
                "not_found"
 
-      assert one("SELECT duplicate_count FROM relay.webhook_receipts WHERE id = $1", [receipt]) ==
-               1
+      assert error_message("SELECT count(*) FROM relay.webhook_receipts") =~ "permission denied"
     end
 
     test "C-32: ledger rows carry actor, event, raw code and both timestamps and cannot be updated",
@@ -462,7 +461,7 @@ defmodule Relay.Sql.DeliveryTest do
 
         "stored" =
           one(
-            "SELECT relay_fn.idempotency_complete('POST /v1/notifications', $1, $2, 202, '{}', $3, $4)",
+            "SELECT relay_fn.idempotency_complete('POST /v1/notifications', $1, $2, 202::smallint, '{}'::jsonb, $3, $4)",
             [
               key,
               fingerprint,

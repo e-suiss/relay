@@ -25,12 +25,14 @@ defmodule Relay.Platform do
 
   # T-7
   # T-55
-  @doc "Supervised children of the platform: the Valkey adapter, its guard, the signal hub and the job queue."
+  # TN-14
+  @doc "Supervised children of the platform: the database role check, the Valkey adapter, its guard, the signal hub and the job queue. A failed role check stops the node."
   @spec children() :: [Supervisor.child_spec() | {module(), term()} | module()]
   def children do
     valkey = Application.fetch_env!(:relay, Valkey)
 
     [
+      Store.role_check_child(),
       {Keyword.fetch!(valkey, :adapter), Keyword.delete(valkey, :adapter)},
       Valkey.Guard,
       Signal.Hub,

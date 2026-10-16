@@ -211,7 +211,7 @@ defmodule Relay.Repo.Migrations.CreateKeyFunctions do
           RETURN 'held';
         END IF;
         IF (v_key.purpose IN ('data', 'dek_wrap') AND relay_private.tenant_status() <> 'closed')
-          OR (v_key.purpose = 'receipt_day' AND now() < (v_key.valid_day + 8)::timestamptz) THEN
+          OR (v_key.purpose = 'receipt_day' AND current_date < v_key.valid_day + 7) THEN
           RETURN 'not_allowed';
         END IF;
         UPDATE relay.tenant_keys k SET wrapped_key = NULL, state = 'destroyed', destroyed_at = now()

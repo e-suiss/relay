@@ -21,6 +21,7 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.recipient_create" => ~w(created exists tenant_inactive),
     "relay_fn.subject_key_create" => ~w(created exists recipient_not_found recipient_deleted),
     "relay_fn.subject_erase" => ~w(erased already_erased held not_found),
+    "relay_fn.subject_key_retire" => ~w(retired already_destroyed held not_found),
     "relay_fn.tenant_key_register" => ~w(created exists active_exists),
     "relay_fn.tenant_key_destroy" => ~w(destroyed already_destroyed held not_allowed not_found),
     "relay_fn.blind_index_key_register" => ~w(created exists active_exists),

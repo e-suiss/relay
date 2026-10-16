@@ -51,7 +51,7 @@ defmodule Relay.Sql.IdempotencyTest do
     assert row(@begin, [@endpoint, key, digest()]) == ["conflict", nil, nil, nil, nil]
   end
 
-  test "API-11: the scope is tenant, environment, endpoint and key" do
+  test "OP-68: the idempotency scope is tenant, environment, endpoint and key" do
     {tenant, data_key} = setup_tenant()
     key = key()
     fingerprint = digest()

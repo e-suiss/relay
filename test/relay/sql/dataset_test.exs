@@ -36,7 +36,7 @@ defmodule Relay.Sql.DatasetTest do
     %{tenant_only: tenant_only, installation_only: installation_only}
   end
 
-  test "OP-8: dataset versions are immutable, numbered and published once per content", %{
+  test "OP-65: dataset versions are immutable, numbered and published once per content", %{
     tenant_only: name
   } do
     assert ["published", v1, 1] = publish(name, %{"v" => 1}, "operator")
@@ -48,7 +48,7 @@ defmodule Relay.Sql.DatasetTest do
              "permission denied"
   end
 
-  test "OP-8: a package activation never replaces an operator-pinned version", %{
+  test "OP-65: a package activation never replaces an operator-pinned version", %{
     tenant_only: name
   } do
     ["published", operator, 1] = publish(name, %{"v" => 1}, "operator")
@@ -61,7 +61,7 @@ defmodule Relay.Sql.DatasetTest do
     assert one(@activate, [name, id(), "operator", digest() | actor()]) == "version_not_found"
   end
 
-  test "OP-8: an installation-only dataset cannot be published by a tenant", %{
+  test "OP-65: an installation-only dataset cannot be published by a tenant", %{
     installation_only: name
   } do
     assert publish(name, %{}, "package") == ["scope_not_allowed", nil, nil]

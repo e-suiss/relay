@@ -45,7 +45,7 @@ defmodule Relay.Sql.ContextTest do
     assert rows("SELECT id FROM relay.notifications WHERE id = $1", [notification]) == []
   end
 
-  test "OP-1: a new row identifier must be a current UUIDv7" do
+  test "API-72: a new row identifier must be a current UUIDv7" do
     tenant = tenant!()
     ctx(tenant)
 

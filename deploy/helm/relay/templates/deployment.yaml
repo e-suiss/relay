@@ -61,6 +61,8 @@ spec:
             items:
               - key: password
                 path: database-password
+              - key: queue-password
+                path: queue-database-password
         - name: tmp
           emptyDir: {}
 {{- end }}

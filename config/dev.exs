@@ -8,6 +8,14 @@ config :relay, Relay.Repo,
   database: "relay_dev",
   pool_size: 10
 
+config :relay, Relay.QueueRepo,
+  username: "relay_queue",
+  password: "relay",
+  hostname: "localhost",
+  port: 5432,
+  database: "relay_dev",
+  pool_size: 2
+
 config :relay, RelayWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4000],
   check_origin: false,

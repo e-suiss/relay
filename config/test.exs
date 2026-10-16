@@ -14,7 +14,18 @@ config :relay, RelayWeb.Endpoint,
   secret_key_base: "test-only-secret-key-base-000000000000000000000000000000000000000000000",
   server: false
 
+config :relay, Relay.QueueRepo,
+  username: "relay_queue",
+  password: "relay",
+  hostname: "localhost",
+  port: 5432,
+  database: "relay_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: 2
+
 config :relay, Oban, testing: :manual
+
+config :relay, Relay.Platform.Outbox, dispatcher: false
 
 config :logger, level: :warning
 

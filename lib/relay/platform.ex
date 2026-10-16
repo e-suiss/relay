@@ -5,6 +5,9 @@ defmodule Relay.Platform do
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
+  alias Relay.Platform.Outbox
+  alias Relay.Platform.OutboxDispatcher
+  alias Relay.Platform.OutboxStore
   alias Relay.Platform.Queue
   alias Relay.Platform.Signal
   alias Relay.Platform.Store
@@ -26,19 +29,47 @@ defmodule Relay.Platform do
   # T-7
   # T-55
   # TN-14
-  @doc "Supervised children of the platform: the database role check, the Valkey adapter, its guard, the signal hub and the job queue. A failed role check stops the node."
+  # OP-12
+  # T-86
+  @doc "Supervised children of the platform: the database role check, the Valkey adapter, its guard, the signal hub and the job queue; a worker node also runs the queue maintenance connection and the outbox dispatcher. A failed role check stops the node."
   @spec children() :: [Supervisor.child_spec() | {module(), term()} | module()]
   def children do
     valkey = Application.fetch_env!(:relay, Valkey)
+    worker? = Relay.Role.enabled?(:worker)
 
     [
       Store.role_check_child(),
       {Keyword.fetch!(valkey, :adapter), Keyword.delete(valkey, :adapter)},
       Valkey.Guard,
-      Signal.Hub,
-      {Oban, Queue.configured_options()}
-    ]
+      Signal.Hub
+    ] ++
+      if(worker?, do: [Relay.QueueRepo], else: []) ++
+      [{Oban, Queue.configured_options()}] ++
+      if(worker? and outbox_dispatcher?(), do: [OutboxDispatcher], else: [])
   end
+
+  # INV-53
+  @doc "Wakes the outbox dispatchers; call it after a transaction that appended outbox rows commits."
+  @spec wake_outbox() :: :ok | {:error, Relay.Error.t()}
+  def wake_outbox, do: Outbox.wake()
+
+  # OP-5
+  # OP-7
+  @doc "Dispatches one batch of a scope's pending outbox rows; see `Relay.Platform.Outbox.dispatch/2`."
+  @spec dispatch_outbox(Relay.Scope.t(), [Outbox.option()]) ::
+          {:ok, non_neg_integer()} | {:error, term()}
+  def dispatch_outbox(scope, opts \\ []), do: Outbox.dispatch(scope, opts)
+
+  # C-71
+  # OP-5
+  @doc "Takes the next sequence number of a stream in its own scoped transaction."
+  @spec next_stream_seq(Relay.Scope.t(), String.t()) ::
+          {:ok, {non_neg_integer(), non_neg_integer()}} | {:error, term()}
+  def next_stream_seq(scope, stream_key),
+    do: OutboxStore.in_scope(scope, fn _status -> OutboxStore.stream_next_seq(stream_key) end)
+
+  defp outbox_dispatcher?,
+    do: :relay |> Application.get_env(Outbox, []) |> Keyword.get(:dispatcher, true)
 
   # T-17
   @doc "Attaches the platform's telemetry alarms; call once before the supervision tree starts."

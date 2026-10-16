@@ -17,6 +17,13 @@ if config_env() == :prod do
 
   roles = Relay.Config.Env.roles!("RELAY_ROLES")
 
+  if :worker in roles do
+    config :relay, Relay.QueueRepo,
+      url: Relay.Config.Env.database_url!("QUEUE_DATABASE_URL"),
+      password: Relay.Config.Env.file!("QUEUE_DATABASE_PASSWORD_FILE"),
+      pool_size: 2
+  end
+
   config :relay, roles: roles
   config :relay, RelayWeb.Endpoint, server: :api in roles or :socket in roles
 end

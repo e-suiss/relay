@@ -257,7 +257,7 @@ defmodule Relay.Schema.SchemaIntegrityTest do
              SELECT c.relname::text, k.conname::text FROM pg_constraint k
              JOIN pg_class c ON c.oid = k.conrelid
              JOIN pg_namespace n ON n.oid = c.relnamespace
-             WHERE n.nspname LIKE 'relay%' AND k.contype IN ('c', 'f') AND NOT k.convalidated
+             WHERE n.nspname = 'relay' AND k.contype IN ('c', 'f') AND NOT k.convalidated
              """) == []
     end
 

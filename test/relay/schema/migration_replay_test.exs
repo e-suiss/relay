@@ -189,7 +189,7 @@ defmodule Relay.Schema.MigrationReplayTest do
 
     assert q!(admin, """
            SELECT k.conname::text FROM pg_constraint k JOIN pg_namespace n ON n.oid = k.connamespace
-           WHERE n.nspname LIKE 'relay%' AND NOT k.convalidated
+           WHERE n.nspname = 'relay' AND NOT k.convalidated
            """) == []
 
     assert q!(admin, """

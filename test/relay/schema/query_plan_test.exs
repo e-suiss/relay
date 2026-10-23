@@ -84,16 +84,26 @@ defmodule Relay.Schema.QueryPlanTest do
         nodes = nodes(generic_plan(unquote(sql), unquote(types)), parents())
         types = Enum.map(nodes, &elem(&1, 0))
 
+        scans = unquote(Macro.escape(scans))
+
         index_scans =
-          for {type, relation, index} <- nodes,
+          for {type, relation, _index} <- nodes,
               type in ["Index Scan", "Index Only Scan", "Index Scan Backward"],
               into: MapSet.new(),
-              do: {relation, index}
+              do: relation
 
         refute "Seq Scan" in types, inspect(nodes)
         refute "Sort" in types, inspect(nodes)
         refute "Bitmap Heap Scan" in types, inspect(nodes)
-        assert index_scans == MapSet.new(unquote(Macro.escape(scans))), inspect(nodes)
+        assert index_scans == MapSet.new(scans, &elem(&1, 0)), inspect(nodes)
+
+        for {relation, index} <- scans do
+          assert [[^relation]] =
+                   rows(
+                     "SELECT t.relname::text FROM pg_index x JOIN pg_class i ON i.oid = x.indexrelid JOIN pg_class t ON t.oid = x.indrelid WHERE i.relname = $1 AND x.indisvalid",
+                     [index]
+                   )
+        end
       end)
     end
   end

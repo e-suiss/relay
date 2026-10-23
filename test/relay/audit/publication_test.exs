@@ -22,7 +22,7 @@ defmodule Relay.Audit.PublicationTest do
 
   setup %{store: store} do
     {public, secret} =
-      :crypto.generate_key(:eddsa, :ed25519, :crypto.hash(:sha256, "relay-test-publication"))
+      :crypto.generate_key(:eddsa, :ed25519, :crypto.hash(:sha256, "relay-test-checkpoint"))
 
     host = "p" <> Base.encode16(:crypto.strong_rand_bytes(5), case: :lower) <> ".test"
     keys = Application.fetch_env!(:relay, :keys)

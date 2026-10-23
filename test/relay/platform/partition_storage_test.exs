@@ -141,26 +141,27 @@ defmodule Relay.Platform.PartitionStorageTest do
     end)
   end
 
-  test "OP-14: a maintenance step finishes while a table is locked and leaves that table for later" do
+  test "OP-14: a maintenance step that meets a held lock is deferred and the next step completes" do
     listen([[:relay, :partition, :analyzed]])
+
+    context = %{
+      name: "partition_maintenance",
+      node: "t",
+      fencing_token: 1,
+      state: %{"analyzed_on" => "2000-01-01"}
+    }
 
     committed(fn ->
       conn = admin()
       holder = hold_lock(conn, "usage_records")
 
-      assert {:ok, %{"analyzed_on" => today}, _delay} =
-               PartitionTask.run(%{
-                 name: "partition_maintenance",
-                 node: "t",
-                 fencing_token: 1,
-                 state: %{"analyzed_on" => "2000-01-01"}
-               })
-
+      assert {:error, %Relay.Error{code: :lock_timeout}} = PartitionTask.run(context)
+      refute_received {[:relay, :partition, :analyzed], %{table: "usage_records"}}
       release(holder)
 
+      assert {:ok, %{"analyzed_on" => today}, _delay} = PartitionTask.run(context)
       assert today == Date.to_iso8601(Date.utc_today())
-      assert_received {[:relay, :partition, :analyzed], %{table: "delivery_events"}}
-      refute_received {[:relay, :partition, :analyzed], %{table: "usage_records"}}
+      assert_received {[:relay, :partition, :analyzed], %{table: "usage_records"}}
       GenServer.stop(conn)
     end)
   end

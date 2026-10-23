@@ -17,5 +17,6 @@
   {"file": "20261017100700_create_dataset_functions.exs", "sha256": "44c199b1776642c539a253a15cda5c875f45722d803e909cfbc8e03fa9ac7a5b"},
   {"file": "20261017100800_create_maintenance_functions.exs", "sha256": "eb77ac094879fc16b43b35998a23e67b4bdd999f25144f6499eb2ee214222631"},
   {"file": "20261017100900_create_retention_functions.exs", "sha256": "d4f4ac917ba9685cf69e4e7321e17623c3acfbe8e9197a077e42ad77cb5ee627"},
-  {"file": "20261023000000_create_reference_check_function.exs", "sha256": "5a61f7fc5b6866471e647e87950eafbb51113d3bf764469b30545ced980fa80f"}
+  {"file": "20261023000000_soft_delete_on_retention_end.exs", "sha256": "c4c9cc60c3dfe4d15faba5caf75f3306aa7ebdcfe7f97b88ffd5ae5632470036"},
+  {"file": "20261023000100_create_reference_check_function.exs", "sha256": "6bda95c1e99931b1681cf9430a8ef42042a49d3527a57e63139712101b936023"}
 ]

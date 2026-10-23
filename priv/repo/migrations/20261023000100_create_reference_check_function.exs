@@ -190,19 +190,19 @@ defmodule Relay.Repo.Migrations.CreateReferenceCheckFunction do
         v_to := p_to::text;
       END IF;
       v_bound := format('FOR VALUES FROM (%L) TO (%L)', v_from, v_to);
-      IF EXISTS (SELECT 1 FROM pg_inherits i JOIN pg_class c ON c.oid = i.inhrelid
-        WHERE i.inhparent = v_parent
-          AND (c.relname = v_name OR pg_get_expr(c.relpartbound, c.oid) = v_bound)) THEN
-        RETURN 'exists';
-      END IF;
-      SELECT c.reloptions, t.reloptions INTO v_options, v_toast_options
-        FROM pg_inherits i
-        JOIN pg_class c ON c.oid = i.inhrelid
-        LEFT JOIN pg_class t ON t.oid = c.reltoastrelid
-        WHERE i.inhparent = v_parent
-        ORDER BY relay_private.partition_upper_bound(c.oid) DESC NULLS LAST
-        LIMIT 1;
       BEGIN
+        IF EXISTS (SELECT 1 FROM pg_inherits i JOIN pg_class c ON c.oid = i.inhrelid
+          WHERE i.inhparent = v_parent
+            AND (c.relname = v_name OR pg_get_expr(c.relpartbound, c.oid) = v_bound)) THEN
+          RETURN 'exists';
+        END IF;
+        SELECT c.reloptions, t.reloptions INTO v_options, v_toast_options
+          FROM pg_inherits i
+          JOIN pg_class c ON c.oid = i.inhrelid
+          LEFT JOIN pg_class t ON t.oid = c.reltoastrelid
+          WHERE i.inhparent = v_parent
+          ORDER BY relay_private.partition_upper_bound(c.oid) DESC NULLS LAST
+          LIMIT 1;
         EXECUTE format('CREATE TABLE relay.%I (LIKE relay.%I INCLUDING ALL)', v_name, p_table);
         IF v_options IS NOT NULL THEN
           EXECUTE format('ALTER TABLE relay.%I SET (%s)', v_name, array_to_string(v_options, ', '));

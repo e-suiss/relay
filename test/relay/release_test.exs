@@ -16,6 +16,36 @@ defmodule Relay.ReleaseTest do
     assert function_exported?(Code.ensure_loaded!(Relay.Release), :migrate, 0)
   end
 
+  describe "OP-69 post-migration bootstrap" do
+    test "OP-69: the bootstrap is a separate release command run as the installation administrator" do
+      assert function_exported?(Code.ensure_loaded!(Relay.Release), :bootstrap, 0)
+      assert File.exists?(Relay.Release.bootstrap_script())
+      assert File.read!("lib/relay/release.ex") =~ ~s("ADMIN_DATABASE_URL")
+      assert File.read!("lib/relay/release.ex") =~ ~s("ADMIN_DATABASE_PASSWORD_FILE")
+    end
+
+    test "OP-69: the Helm migrate hook runs the bootstrap after the migration" do
+      job = File.read!("deploy/helm/relay/templates/migrate-job.yaml")
+      [init, main] = String.split(job, "      containers:\n")
+      assert init =~ "initContainers:"
+      assert init =~ ~s{args: ["eval", "Relay.Release.migrate()"]}
+      refute init =~ "bootstrap"
+      assert main =~ ~s{args: ["eval", "Relay.Release.bootstrap()"]}
+      assert main =~ "ADMIN_DATABASE_URL"
+    end
+
+    test "OP-69: the smoke test bootstraps after migrating and sees a wrong owner stop the node" do
+      smoke = File.read!("deploy/smoke.sh")
+      [_, after_migrate] = String.split(smoke, "eval 'Relay.Release.migrate()'", parts: 2)
+      assert after_migrate =~ ~r/^bootstrap \|\| fail "post-migration bootstrap failed"$/m
+      assert after_migrate =~ "relay_ops ownership check failed"
+    end
+
+    test "OP-69: the bootstrap script hands every relay_ops function to relay_maint" do
+      assert File.read!("priv/repo/bootstrap.sql") =~ "ALTER FUNCTION %s OWNER TO relay_maint"
+    end
+  end
+
   test "T-49: the release does not bundle SSH or inets" do
     release = Mix.Project.config()[:releases][:relay]
     apps = Keyword.keys(release[:applications] || [])

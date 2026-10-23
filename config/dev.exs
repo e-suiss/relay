@@ -25,3 +25,19 @@ config :relay, RelayWeb.Endpoint,
   watchers: []
 
 config :phoenix, :plug_init_mode, :runtime
+
+config :relay, Relay.Keys.Port,
+  module:
+    System.get_env("PKCS11_MODULE") ||
+      Enum.find(
+        [
+          "/opt/homebrew/lib/softhsm/libsofthsm2.so",
+          "/usr/local/lib/softhsm/libsofthsm2.so",
+          "/usr/lib/softhsm/libsofthsm2.so",
+          "/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
+        ],
+        "/usr/lib/softhsm/libsofthsm2.so",
+        &File.exists?/1
+      ),
+  token: "relay-dev",
+  pin_file: Path.expand("../deploy/softhsm/pin", __DIR__)

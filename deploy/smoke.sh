@@ -64,8 +64,13 @@ chmod -R a+rwX "$work/softhsm"
 run --entrypoint softhsm2-util "$image" --init-token --free --label relay-smoke --pin 1234 --so-pin 12345678 >/dev/null \
   || fail "token init failed"
 
+bootstrap() {
+  run -e RELAY_ROLES=worker -e "ADMIN_DATABASE_URL=ecto://relay@${db_host}:5432/relay_dev" \
+    -e ADMIN_DATABASE_PASSWORD_FILE=/run/db-password "$image" eval 'Relay.Release.bootstrap()'
+}
+
 # TN-14
-psql -q <priv/repo/bootstrap.sql || fail "bootstrap failed"
+bootstrap || fail "bootstrap failed"
 for role in relay_migrator relay_worker relay_queue relay_maint; do
   psql -q -c "ALTER ROLE $role PASSWORD 'relay'" || fail "role password failed"
 done
@@ -73,6 +78,17 @@ done
 # T-5
 run -e RELAY_ROLES=worker -e RELAY_REGION=tr -e "DATABASE_URL=ecto://relay_migrator@${db_host}:5432/relay_dev" \
   "$image" eval 'Relay.Release.migrate()' || fail "migration failed"
+
+# OP-69 (1)
+bootstrap || fail "post-migration bootstrap failed"
+psql -q -c "ALTER FUNCTION relay_ops.orphan_check() OWNER TO relay_migrator" || fail "owner change failed"
+if run -e RELAY_ROLES=worker "$image" start >"$work/owner.log" 2>&1; then
+  fail "a node started with a relay_ops function not owned by relay_maint"
+fi
+grep -q "relay_ops ownership check failed" "$work/owner.log" || { cat "$work/owner.log" >&2; fail "the ownership check did not stop the node"; }
+bootstrap || fail "bootstrap did not restore the relay_ops owner"
+[ "$(psql -tA -c "SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = 'relay_ops.orphan_check()'::regprocedure")" = relay_maint ] \
+  || fail "bootstrap did not restore the relay_ops owner"
 
 # T-3
 docker run -d --name relay-smoke --network "$network" $publish --env-file "$work/env" \

@@ -13,7 +13,7 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
-      containers:
+      initContainers:
         - name: migrate
           image: {{ include "relay.image" . }}
           args: ["eval", "Relay.Release.migrate()"]
@@ -24,6 +24,25 @@ spec:
           volumeMounts:
             - name: database-password
               mountPath: /run/secrets/relay
+              readOnly: true
+      containers:
+        - name: bootstrap
+          image: {{ include "relay.image" . }}
+          args: ["eval", "Relay.Release.bootstrap()"]
+          env:
+            {{- include "relay.env" . | nindent 12 }}
+            - name: RELAY_ROLES
+              value: worker
+            - name: ADMIN_DATABASE_URL
+              value: {{ required "database.adminUrl is required" .Values.database.adminUrl | quote }}
+            - name: ADMIN_DATABASE_PASSWORD_FILE
+              value: /run/secrets/relay-admin/password
+          volumeMounts:
+            - name: database-password
+              mountPath: /run/secrets/relay
+              readOnly: true
+            - name: admin-password
+              mountPath: /run/secrets/relay-admin
               readOnly: true
       volumes:
         - name: database-password
@@ -36,3 +55,9 @@ spec:
                 path: queue-database-password
               - key: maint-password
                 path: maint-database-password
+        - name: admin-password
+          secret:
+            secretName: {{ .Values.database.adminPasswordSecret }}
+            items:
+              - key: password
+                path: password

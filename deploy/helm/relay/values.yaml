@@ -8,7 +8,9 @@ database:
   url: ""
   queueUrl: ""
   maintUrl: ""
+  adminUrl: ""
   passwordSecret: relay-database
+  adminPasswordSecret: relay-database-admin
   poolSize: 10
   serverRequirements:
     sharedPreloadLibraries: [pg_stat_statements]

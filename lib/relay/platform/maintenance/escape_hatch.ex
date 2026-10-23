@@ -167,6 +167,24 @@ defmodule Relay.Platform.Maintenance.EscapeHatch do
     )
   end
 
+  # OP-3
+  # OP-42
+  @doc "Lists every tenant environment by identifiers only, in tenant then environment order: the scopes of the weekly projection rebuild."
+  @spec tenant_scopes() ::
+          {:ok, [%{tenant_id: Relay.Id.t(), environment: String.t()}]} | {:error, Relay.Error.t()}
+  def tenant_scopes do
+    select(
+      """
+      SELECT t.id, e.environment
+      FROM relay.tenants t CROSS JOIN (VALUES ('live'), ('test')) AS e(environment)
+      WHERE t.kind = 'tenant'
+      ORDER BY t.id, e.environment
+      """,
+      [],
+      fn [tenant, environment] -> %{tenant_id: tenant, environment: environment} end
+    )
+  end
+
   # OP-63
   @doc "Appends Merkle leaves to the audit log `origin` from `first_index`, under the fencing token."
   @spec audit_leaves_append(

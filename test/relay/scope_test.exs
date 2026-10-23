@@ -40,7 +40,7 @@ defmodule Relay.ScopeTest do
       end
 
       assert_raise ScopeError, fn -> Repo.call_unscoped!(undeclared(), "relay_ops.x", []) end
-      assert Repo.escapes() == [:tenant_bootstrap, :outbox_scope_discovery]
+      assert Repo.escapes() == [:tenant_bootstrap, :outbox_scope_discovery, :installation_lookup]
     end
 
     test "TN-13: no scope is visible outside a scoped transaction" do

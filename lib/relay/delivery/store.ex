@@ -129,6 +129,18 @@ defmodule Relay.Delivery.Store do
         do: {row["column_name"], row["stored"], row["rebuilt"]}
   end
 
+  # OP-3
+  @doc "Lists up to `limit` delivery identifiers of the established scope after `after_id`, in identifier order."
+  @spec delivery_ids_after(Relay.Id.t() | nil, pos_integer()) :: [Relay.Id.t()]
+  def delivery_ids_after(after_id, limit) do
+    for %{"id" => id} <-
+          all(
+            "SELECT tenant_id, environment, id FROM relay.deliveries WHERE $1::uuid IS NULL OR id > $1::uuid ORDER BY id LIMIT $2",
+            [after_id, limit]
+          ),
+        do: id
+  end
+
   # C-88
   # OP-38
   @doc "Appends a closed UTC day's usage row; the same key with other figures is a conflict and changes nothing."

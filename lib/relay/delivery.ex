@@ -82,6 +82,27 @@ defmodule Relay.Delivery do
   @spec delivery(Scope.t(), Relay.Id.t()) :: result(map() | nil)
   def delivery(scope, id), do: Store.in_scope(scope, fn _status -> Store.delivery(id) end)
 
+  # OP-3
+  # OP-42
+  @doc """
+  Rebuilds the projections of up to `limit` deliveries of a scope whose identifiers follow `after_id` (`nil` starts at the first) and compares each with its stored projection, in one read-only transaction. Returns the checked identifiers in order and the deliveries whose projection differs, with the differing columns.
+  """
+  @spec check_projections(Scope.t(), Relay.Id.t() | nil, pos_integer()) ::
+          result(%{
+            checked: [Relay.Id.t()],
+            differing: [{Relay.Id.t(), [{String.t(), term(), term()}]}]
+          })
+  def check_projections(scope, after_id, limit) when is_integer(limit) and limit > 0 do
+    Store.in_scope(scope, fn _status ->
+      ids = Store.delivery_ids_after(after_id, limit)
+
+      differing =
+        for id <- ids, diff = Store.projection_rebuild(id), diff != [], do: {id, diff}
+
+      %{checked: ids, differing: differing}
+    end)
+  end
+
   @doc "Reads the ledger of a delivery."
   @spec ledger(Scope.t(), Relay.Id.t()) :: result([map()])
   def ledger(scope, delivery_id),

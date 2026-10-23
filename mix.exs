@@ -53,6 +53,7 @@ defmodule Relay.MixProject do
       {:telemetry_poller, "~> 1.3"},
       {:logger_json, "~> 7.0"},
       {:tzdata, "~> 1.2.2"},
+      {:jsv, "0.26.1"},
       {:boundary, "~> 0.11", runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
@@ -79,6 +80,7 @@ defmodule Relay.MixProject do
         "relay.lint.images",
         "relay.lint.deps",
         "relay.lint.nif",
+        "relay.lint.workers",
         "relay.lint.tests",
         "relay.catalog.check"
       ]

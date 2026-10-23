@@ -53,6 +53,8 @@ defmodule RelayWeb.Telemetry do
   # OP-63
   # OP-70
   # OP-42
+  # OP-71
+  # OP-3
   # OP-11
   # T-9
   # T-17
@@ -100,6 +102,17 @@ defmodule RelayWeb.Telemetry do
         measurement: &now/1,
         tags: [:check, :table],
         description: "Last time the nightly integrity check found a violation"
+      ),
+      last_value("relay.integrity.last_run.timestamp_seconds",
+        event_name: [:relay, :integrity, :run],
+        measurement: &now/1,
+        description: "Last time the nightly integrity check completed a run"
+      ),
+      last_value("relay.projection.difference.timestamp_seconds",
+        event_name: [:relay, :projection, :difference],
+        measurement: &now/1,
+        description:
+          "Last time the weekly rebuild found a projection that differs from its ledger"
       ),
       last_value("relay.postgres.query_stats_missing",
         event_name: [:relay, :postgres, :query_stats],

@@ -18,6 +18,8 @@ trap '[ "$keep" = 1 ] || docker rm -f relay-smoke >/dev/null 2>&1 || true; docke
 
 printf relay > "$work/db-password"
 chmod 644 "$work/db-password"
+printf relay-dev-secret > "$work/s3-secret"
+chmod 644 "$work/s3-secret"
 cat > "$work/env" <<ENV
 DATABASE_URL=ecto://relay_worker@${db_host}:5432/relay_dev
 DATABASE_PASSWORD_FILE=/run/db-password
@@ -34,10 +36,15 @@ PKCS11_MODULE=/usr/lib/softhsm/libsofthsm2.so
 PKCS11_TOKEN=relay-smoke
 PKCS11_PIN_FILE=/run/softhsm/pin
 SOFTHSM2_CONF=/run/softhsm/softhsm2.conf
+AUDIT_S3_ENDPOINT=http://${db_host}:9000
+AUDIT_S3_BUCKET=relay-audit
+AUDIT_S3_REGION=us-east-1
+AUDIT_S3_ACCESS_KEY_ID=relay
+AUDIT_S3_SECRET_ACCESS_KEY_FILE=/run/s3-secret
 ENV
 
 run() {
-  docker run --rm --network "$network" --env-file "$work/env" -v "$work/db-password:/run/db-password:ro" \
+  docker run --rm --network "$network" --env-file "$work/env" -v "$work/db-password:/run/db-password:ro" -v "$work/s3-secret:/run/s3-secret:ro" \
     -v "$work/softhsm:/run/softhsm" "$@"
 }
 
@@ -92,7 +99,7 @@ bootstrap || fail "bootstrap did not restore the relay_ops owner"
 
 # T-3
 docker run -d --name relay-smoke --network "$network" $publish --env-file "$work/env" \
-  -v "$work/db-password:/run/db-password:ro" -v "$work/softhsm:/run/softhsm" \
+  -v "$work/db-password:/run/db-password:ro" -v "$work/s3-secret:/run/s3-secret:ro" -v "$work/softhsm:/run/softhsm" \
   -e RELAY_ROLES=api,worker,socket "$image" start >/dev/null
 
 base="http://localhost:${port}"
@@ -112,6 +119,12 @@ if run -e RELAY_ROLES=api -e RELAY_UNKNOWN_SETTING=1 "$image" start >"$work/bad.
   fail "unknown configuration was accepted"
 fi
 grep -q "unknown environment variables: RELAY_UNKNOWN_SETTING" "$work/bad.log" || fail "unknown configuration was not reported"
+
+# OP-70
+if run -e RELAY_ROLES=api -e AUDIT_S3_ENDPOINT= "$image" start >"$work/no-target.log" 2>&1; then
+  fail "a node without an independent audit target started"
+fi
+grep -q "AUDIT_S3_ENDPOINT is required" "$work/no-target.log" || fail "a missing audit target was not reported"
 
 # TN-63
 # TN-65 (7)

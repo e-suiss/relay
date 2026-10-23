@@ -185,6 +185,23 @@ defmodule Relay.Platform.Maintenance.EscapeHatch do
     )
   end
 
+  # OP-42
+  # TN-12
+  @doc "Runs the nightly reference check: every expected foreign key in place and validated, no unlisted one, and every outbox event covered by its stream head."
+  @spec reference_check() ::
+          {:ok,
+           [%{check_name: String.t(), table_name: String.t(), violations: non_neg_integer()}]}
+          | {:error, Relay.Error.t()}
+  def reference_check do
+    select(
+      "SELECT check_name, table_name, violations FROM relay_ops.reference_check() ORDER BY check_name, table_name",
+      [],
+      fn [check, table, violations] ->
+        %{check_name: check, table_name: table, violations: violations}
+      end
+    )
+  end
+
   # OP-63
   @doc "Appends Merkle leaves to the audit log `origin` from `first_index`, under the fencing token."
   @spec audit_leaves_append(
@@ -337,6 +354,68 @@ defmodule Relay.Platform.Maintenance.EscapeHatch do
         %{id: id, tree_size: size, root_hash: root, signed_note: note, heartbeat: heartbeat}
       end
     )
+  end
+
+  # OP-70
+  @doc "Lists up to `limit` checkpoints of `origin` after the cursor `{tree_size, heartbeat, created_at}` (from the start when `nil`) that are older than `settle_s` seconds, with the targets that reported each one published."
+  @spec audit_published_after(
+          String.t(),
+          {non_neg_integer(), boolean(), DateTime.t()} | nil,
+          non_neg_integer(),
+          pos_integer()
+        ) :: {:ok, [map()]} | {:error, Relay.Error.t()}
+  def audit_published_after(origin, cursor, settle_s, limit) do
+    {size, heartbeat, at} = cursor || {-1, false, ~U[1970-01-01 00:00:00Z]}
+
+    select(
+      """
+      SELECT c.id, c.tree_size, c.is_heartbeat, c.created_at, c.signed_note,
+        ARRAY(SELECT DISTINCT p.target FROM relay.audit_checkpoint_publications p
+          WHERE p.checkpoint_id = c.id AND p.status = 'published' ORDER BY p.target)
+      FROM (
+        SELECT * FROM relay.audit_checkpoints k
+        WHERE k.log_origin = $1 AND (k.tree_size, k.is_heartbeat, k.created_at) > ($2, $3, $4)
+          AND k.created_at < now() - $5::integer * interval '1 second'
+        ORDER BY k.tree_size, k.is_heartbeat, k.created_at
+        LIMIT $6
+      ) c
+      ORDER BY c.tree_size, c.is_heartbeat, c.created_at
+      """,
+      [origin, size, heartbeat, at, settle_s, limit],
+      fn [id, tree_size, is_heartbeat, created_at, note, targets] ->
+        %{
+          id: id,
+          tree_size: tree_size,
+          heartbeat: is_heartbeat,
+          created_at: created_at,
+          signed_note: note,
+          targets: targets
+        }
+      end
+    )
+  end
+
+  @doc "Returns the newest checkpoint of `origin` that some target reported published, with those targets, or `nil`."
+  @spec audit_latest_published(String.t()) :: {:ok, map() | nil} | {:error, Relay.Error.t()}
+  def audit_latest_published(origin) do
+    with {:ok, rows} <-
+           select(
+             """
+             SELECT c.id, c.tree_size, c.signed_note,
+               ARRAY(SELECT DISTINCT p.target FROM relay.audit_checkpoint_publications p
+                 WHERE p.checkpoint_id = c.id AND p.status = 'published' ORDER BY p.target)
+             FROM relay.audit_checkpoints c
+             WHERE c.log_origin = $1 AND EXISTS (SELECT 1 FROM relay.audit_checkpoint_publications p
+               WHERE p.checkpoint_id = c.id AND p.status = 'published')
+             ORDER BY c.tree_size DESC, c.is_heartbeat DESC, c.created_at DESC
+             LIMIT 1
+             """,
+             [origin],
+             fn [id, tree_size, note, targets] ->
+               %{id: id, tree_size: tree_size, signed_note: note, targets: targets}
+             end
+           ),
+         do: {:ok, List.first(rows)}
   end
 
   @doc "Counts audit records below the watermark that have no leaf."

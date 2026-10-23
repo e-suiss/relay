@@ -1,0 +1,92 @@
+rule_files:
+  - alerts.yaml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'relay_partition_horizon_alarm_timestamp_seconds{table="delivery_events"}'
+        values: "60x10"
+      - series: 'relay_leadership_leaderless{task="audit_checkpoint"}'
+        values: "1x10"
+      - series: 'relay_audit_checkpoint_overdue_timestamp_seconds'
+        values: "60x10"
+      - series: 'relay_audit_checkpoint_unpublished_timestamp_seconds'
+        values: "60x10"
+      - series: 'relay_audit_mismatch_timestamp_seconds{kind="published_mismatch"}'
+        values: "60x10"
+      - series: 'relay_queue_polling{component="notifier"}'
+        values: "1x10"
+      - series: 'relay_integrity_violation_timestamp_seconds{check="fk_missing",table="deliveries"}'
+        values: "60x10"
+      - series: 'relay_postgres_query_stats_missing'
+        values: "1x10"
+      - series: 'relay_valkey_eviction_policy_mismatch'
+        values: "1x10"
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: RelayPartitionHorizon
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-13, table: delivery_events}
+            exp_annotations:
+              summary: "Partition horizon of delivery_events is closer than the alarm threshold"
+      - eval_time: 6m
+        alertname: RelaySingletonLeaderless
+        exp_alerts:
+          - exp_labels: {severity: page, decision: T-86, task: audit_checkpoint}
+            exp_annotations:
+              summary: "Singleton task audit_checkpoint has had no leader for five minutes"
+      - eval_time: 6m
+        alertname: RelayAuditCheckpointOverdue
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-63}
+            exp_annotations:
+              summary: "An audit record was integrated after the declared checkpoint interval"
+      - eval_time: 6m
+        alertname: RelayAuditCheckpointUnpublished
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-70}
+            exp_annotations:
+              summary: "A signed audit checkpoint reached no publication target"
+      - eval_time: 6m
+        alertname: RelayAuditMismatch
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-63, kind: published_mismatch}
+            exp_annotations:
+              summary: "Audit verification found a published_mismatch mismatch"
+      - eval_time: 6m
+        alertname: RelayQueuePolling
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: T-17, component: notifier}
+            exp_annotations:
+              summary: "The job queue notifier falls back to polling"
+      - eval_time: 6m
+        alertname: RelayIntegrityViolation
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-42, check: fk_missing, table: deliveries}
+            exp_annotations:
+              summary: "Integrity check fk_missing found violations in deliveries"
+      - eval_time: 6m
+        alertname: RelayQueryStatsMissing
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-11}
+            exp_annotations:
+              summary: "PostgreSQL does not preload pg_stat_statements"
+      - eval_time: 6m
+        alertname: RelayValkeyEvictionPolicy
+        exp_alerts:
+          - exp_labels: {severity: page, decision: T-9}
+            exp_annotations:
+              summary: "Valkey runs with an eviction policy other than noeviction"
+  - interval: 1m
+    input_series:
+      - series: 'relay_partition_horizon_alarm_timestamp_seconds{table="delivery_events"}'
+        values: "0x60"
+      - series: 'relay_leadership_leaderless{task="audit_checkpoint"}'
+        values: "0x60"
+    alert_rule_test:
+      - eval_time: 60m
+        alertname: RelayPartitionHorizon
+        exp_alerts: []
+      - eval_time: 60m
+        alertname: RelaySingletonLeaderless
+        exp_alerts: []

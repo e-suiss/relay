@@ -1,6 +1,6 @@
 defmodule Relay.Platform.Maintenance.IntegrityTask do
   @moduledoc """
-  The `integrity_check` singleton task, run nightly: the orphan record and composite foreign key check and the partition horizon. Every violation is reported as `[:relay, :integrity, :violation]` and logged; a clean run is `[:relay, :integrity, :clean]`. The report of the last run is saved in the task state.
+  The `integrity_check` singleton task, run nightly: the orphan record check, the foreign key and stream key reference check and the partition horizon. Every violation is reported as `[:relay, :integrity, :violation]` and logged; a clean run is `[:relay, :integrity, :clean]`. The report of the last run is saved in the task state.
   """
 
   @behaviour Relay.Platform.Leadership
@@ -22,13 +22,14 @@ defmodule Relay.Platform.Maintenance.IntegrityTask do
     end
   end
 
-  @doc "Runs the orphan check and the horizon check and reports what they found."
+  @doc "Runs the orphan check, the reference check and the horizon check and reports what they found."
   @spec check() :: {:ok, %{String.t() => [map()]}} | {:error, Relay.Error.t()}
   def check do
     with {:ok, orphans} <- EscapeHatch.orphan_check(),
+         {:ok, references} <- EscapeHatch.reference_check(),
          {:ok, horizon} <- EscapeHatch.partition_horizon() do
       violations =
-        for %{violations: n} = row <- orphans, n > 0 do
+        for %{violations: n} = row <- orphans ++ references, n > 0 do
           %{"check" => row.check_name, "table" => row.table_name, "violations" => n}
         end
 

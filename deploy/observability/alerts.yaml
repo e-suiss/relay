@@ -1,0 +1,67 @@
+groups:
+  - name: relay-stage-1
+    rules:
+      - alert: RelayPartitionHorizon
+        expr: time() - relay_partition_horizon_alarm_timestamp_seconds < 1800
+        labels:
+          severity: page
+          decision: OP-13
+        annotations:
+          summary: "Partition horizon of {{ $labels.table }} is closer than the alarm threshold"
+      - alert: RelaySingletonLeaderless
+        expr: relay_leadership_leaderless == 1
+        labels:
+          severity: page
+          decision: T-86
+        annotations:
+          summary: "Singleton task {{ $labels.task }} has had no leader for five minutes"
+      - alert: RelayAuditCheckpointOverdue
+        expr: time() - relay_audit_checkpoint_overdue_timestamp_seconds < 3600
+        labels:
+          severity: page
+          decision: OP-63
+        annotations:
+          summary: "An audit record was integrated after the declared checkpoint interval"
+      - alert: RelayAuditCheckpointUnpublished
+        expr: time() - relay_audit_checkpoint_unpublished_timestamp_seconds < 3600
+        labels:
+          severity: page
+          decision: OP-70
+        annotations:
+          summary: "A signed audit checkpoint reached no publication target"
+      - alert: RelayAuditMismatch
+        expr: time() - relay_audit_mismatch_timestamp_seconds < 7200
+        labels:
+          severity: page
+          decision: OP-63
+        annotations:
+          summary: "Audit verification found a {{ $labels.kind }} mismatch"
+      - alert: RelayQueuePolling
+        expr: relay_queue_polling == 1
+        for: 5m
+        labels:
+          severity: warning
+          decision: T-17
+        annotations:
+          summary: "The job queue {{ $labels.component }} falls back to polling"
+      - alert: RelayIntegrityViolation
+        expr: time() - relay_integrity_violation_timestamp_seconds < 90000
+        labels:
+          severity: page
+          decision: OP-42
+        annotations:
+          summary: "Integrity check {{ $labels.check }} found violations in {{ $labels.table }}"
+      - alert: RelayQueryStatsMissing
+        expr: relay_postgres_query_stats_missing == 1
+        labels:
+          severity: warning
+          decision: OP-11
+        annotations:
+          summary: "PostgreSQL does not preload pg_stat_statements"
+      - alert: RelayValkeyEvictionPolicy
+        expr: relay_valkey_eviction_policy_mismatch == 1
+        labels:
+          severity: page
+          decision: T-9
+        annotations:
+          summary: "Valkey runs with an eviction policy other than noeviction"

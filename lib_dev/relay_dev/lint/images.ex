@@ -8,7 +8,7 @@ defmodule RelayDev.Lint.Images do
 
   @allowlist "conformance/catalog/image-allow.json"
   @compose "deploy/compose.yaml"
-  @services ~w(postgres valkey mailpit apns fcm sms toxiproxy otel-collector jaeger prometheus grafana access)
+  @services ~w(postgres valkey minio mailpit apns fcm sms toxiproxy otel-collector jaeger prometheus grafana access)
 
   # T-78
   # T-80

@@ -74,11 +74,11 @@ defmodule Relay.Platform.Leadership.Runner do
   defp acquire(state, now) do
     with {:ok, result, token} <- Store.acquire(state.name, state.node, state.ttl_ms),
          {:lead, token, fresh?} <- Leadership.interpret(result, token, state.token) do
-      lead(%{state | last_seen_ms: now, alarmed: false, role: :leader}, token, fresh?, now)
+      lead(%{seen(state) | last_seen_ms: now, role: :leader}, token, fresh?, now)
     else
       :follow ->
         schedule(
-          %{forget(state) | last_seen_ms: now, alarmed: false, role: :follower},
+          %{forget(seen(state)) | last_seen_ms: now, role: :follower},
           state.retry_ms
         )
 
@@ -154,6 +154,7 @@ defmodule Relay.Platform.Leadership.Runner do
         %{task: state.name}
       )
 
+      :telemetry.execute([:relay, :leadership, :state], %{leaderless: 1}, %{task: state.name})
       Logger.error("singleton task has no leader", task: state.name)
       %{state | alarmed: true}
     else
@@ -162,6 +163,14 @@ defmodule Relay.Platform.Leadership.Runner do
   end
 
   defp alarm(state, _now), do: state
+
+  # OP-69
+  defp seen(%{alarmed: true} = state) do
+    :telemetry.execute([:relay, :leadership, :state], %{leaderless: 0}, %{task: state.name})
+    %{state | alarmed: false}
+  end
+
+  defp seen(state), do: state
 
   defp forget(state), do: %{state | token: nil, saved: nil}
 

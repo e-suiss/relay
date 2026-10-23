@@ -9,6 +9,7 @@ default:
 dev: up hsm-keys port
     mix deps.get
     mix ecto.setup
+    mix relay.audit.store
     iex -S mix phx.server
 
 up:
@@ -51,7 +52,7 @@ port:
     cp native/pkcs11_port/target/release/pkcs11_port.sha256 priv/native/pkcs11_port.sha256
 
 test: port
-    {{compose}} up -d --wait postgres valkey
+    {{compose}} up -d --wait postgres valkey minio
     mix test --include integration
 
 check:

@@ -26,15 +26,23 @@ defmodule Relay.Config do
     Oban
   ]
   @os_env_keys ["RELAY_HOST", "RELAY_ROLES", "RELAY_REGION"]
+  @audit_keys [:log_host, :checkpoint_key, :publishers]
+  @production Mix.env() == :prod
 
   # INV-46
   # TN-8
-  @doc "Validates application configuration and the process environment; raises `Relay.Config.Error` on any unknown key or role."
-  @spec validate!(keyword(), %{optional(String.t()) => String.t()}) :: :ok
-  def validate!(app_env \\ Application.get_all_env(:relay), os_env \\ System.get_env()) do
+  # OP-70
+  @doc "Validates application configuration and the process environment; raises `Relay.Config.Error` on any unknown key or role. A production build (`production?: true`) also requires an audit checkpoint target independent of Relay's own operation."
+  @spec validate!(keyword(), %{optional(String.t()) => String.t()}, keyword()) :: :ok
+  def validate!(
+        app_env \\ Application.get_all_env(:relay),
+        os_env \\ System.get_env(),
+        opts \\ [production?: @production]
+      ) do
     validate_app_keys!(app_env)
     validate_roles!(Keyword.get(app_env, :roles))
     validate_key_store!(Keyword.get(app_env, Relay.Keys.Port))
+    validate_audit!(Keyword.get(app_env, Relay.Audit), Keyword.get(opts, :production?, true))
     validate_os_env!(os_env)
     :ok
   end
@@ -97,6 +105,85 @@ defmodule Relay.Config do
   defp validate_key_store!(opts),
     do:
       raise(Error, "Relay.Keys.Port configuration must be a keyword list, got: #{inspect(opts)}")
+
+  # OP-63
+  # OP-70
+  defp validate_audit!(nil, true),
+    do: raise(Error, "Relay.Audit configuration is required in production")
+
+  defp validate_audit!(nil, false), do: :ok
+
+  defp validate_audit!(opts, production?) when is_list(opts) do
+    cond do
+      not Keyword.keyword?(opts) ->
+        raise Error, "Relay.Audit configuration must be a keyword list"
+
+      (unknown = Keyword.keys(opts) -- @audit_keys) != [] ->
+        raise Error, "unknown Relay.Audit configuration keys: #{inspect(Enum.sort(unknown))}"
+
+      true ->
+        publishers = Keyword.get(opts, :publishers, [])
+        validate_publishers!(publishers)
+
+        if production? and not Enum.any?(publishers, &independent?/1),
+          do:
+            raise(
+              Error,
+              "a production node needs an audit checkpoint target independent of Relay (OP-70)"
+            ),
+          else: :ok
+    end
+  end
+
+  defp validate_audit!(opts, _production?),
+    do: raise(Error, "Relay.Audit configuration must be a keyword list, got: #{inspect(opts)}")
+
+  defp validate_publishers!(publishers) when is_list(publishers) do
+    targets =
+      for publisher <- publishers do
+        case publisher do
+          {target, module, opts} when is_binary(target) and is_atom(module) and is_list(opts) ->
+            validate_publisher!(target, module, opts)
+            target
+
+          other ->
+            raise Error,
+                  "audit publisher must be {target, module, options}, got: #{inspect(other)}"
+        end
+      end
+
+    if Enum.uniq(targets) != targets,
+      do: raise(Error, "duplicate audit publication targets: #{inspect(targets)}"),
+      else: :ok
+  end
+
+  defp validate_publishers!(other),
+    do: raise(Error, "audit publishers must be a list, got: #{inspect(other)}")
+
+  defp validate_publisher!(target, module, opts) do
+    cond do
+      not Regex.match?(~r/^(worm_store|siem|customer:[A-Za-z0-9_.-]{1,128})$/, target) ->
+        raise Error, "unknown audit publication target #{inspect(target)}"
+
+      not exported?(module, :publish, 2) ->
+        raise Error, "audit publisher #{inspect(module)} is not a publisher"
+
+      not exported?(module, :validate, 1) ->
+        :ok
+
+      true ->
+        case module.validate(opts) do
+          :ok -> :ok
+          {:error, message} -> raise Error, "audit publisher #{target}: #{message}"
+        end
+    end
+  end
+
+  defp independent?({_target, module, _opts}),
+    do: exported?(module, :independent?, 0) and module.independent?() == true
+
+  defp exported?(module, name, arity),
+    do: Code.ensure_loaded?(module) and function_exported?(module, name, arity)
 
   defp validate_os_env!(os_env) do
     unknown =

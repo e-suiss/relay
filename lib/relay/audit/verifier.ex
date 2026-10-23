@@ -1,12 +1,13 @@
 defmodule Relay.Audit.Checkpointer.Verifier do
   @moduledoc """
-  The `audit_verify` singleton task: recomputes every leaf of every yearly log from the audit records it commits to, rebuilds the roots at each recorded checkpoint's tree size, compares them with the recorded roots and verifies each signed note against the checkpoint key. It also counts audit records below the checkpoint job's watermark that never got a leaf. Any mismatch is a security event: `[:relay, :audit, :mismatch]` and an error log.
+  The `audit_verify` singleton task: recomputes every leaf of every yearly log from the audit records it commits to, rebuilds the roots at each recorded checkpoint's tree size, compares them with the recorded roots and verifies each signed note against the checkpoint key. It also counts audit records below the checkpoint job's watermark that never got a leaf, checks each checkable publication target (object lock on) and reads the newest published checkpoint of each log back from every readable target. Any mismatch is a security event: `[:relay, :audit, :mismatch]` and an error log.
   """
 
   @behaviour Relay.Platform.Leadership
 
   require Logger
 
+  alias Relay.Audit.Checkpointer.Publisher
   alias Relay.Audit.Checkpointer.State
   alias Relay.Platform.Maintenance.EscapeHatch
 
@@ -40,9 +41,64 @@ defmodule Relay.Audit.Checkpointer.Verifier do
   def verify(public_key) do
     with {:ok, origins} <- EscapeHatch.audit_origins(),
          {:ok, findings} <- verify_origins(origins, public_key),
-         {:ok, missing} <- missing() do
-      {:ok, findings ++ missing}
+         {:ok, missing} <- missing(),
+         {:ok, published} <- published(origins) do
+      {:ok, findings ++ missing ++ targets() ++ published}
     end
+  end
+
+  defp publishers, do: Keyword.get(Application.get_env(:relay, Relay.Audit, []), :publishers, [])
+
+  # OP-70
+  defp targets do
+    for {target, module, opts} <- publishers(),
+        Publisher.checkable?(module),
+        finding <- target_finding(target, module.check(opts)),
+        do: finding
+  end
+
+  defp target_finding(_target, :ok), do: []
+
+  defp target_finding(target, {:error, %Relay.Error{code: :target_unlocked}}),
+    do: [finding(:target_unlocked, nil, target)]
+
+  defp target_finding(target, {:error, %Relay.Error{code: code}}) do
+    Logger.warning("audit publication target check failed", target: target, code: code)
+    []
+  end
+
+  defp published(origins) do
+    readable = Enum.filter(publishers(), fn {_, module, _} -> Publisher.readable?(module) end)
+
+    Enum.reduce_while(origins, {:ok, []}, fn origin, {:ok, acc} ->
+      case EscapeHatch.audit_latest_published(origin) do
+        {:ok, nil} -> {:cont, {:ok, acc}}
+        {:ok, row} -> {:cont, {:ok, acc ++ latest_findings(origin, row, readable)}}
+        error -> {:halt, error}
+      end
+    end)
+  end
+
+  defp latest_findings(origin, row, readable) do
+    checkpoint = %{id: row.id, origin: origin, tree_size: row.tree_size}
+
+    for {target, module, opts} <- readable,
+        target in row.targets,
+        finding <- read_finding(origin, row, module.read(checkpoint, opts)),
+        do: finding
+  end
+
+  defp read_finding(_origin, row, {:ok, note}) when note == row.signed_note, do: []
+
+  defp read_finding(origin, row, {:ok, _other}),
+    do: [finding(:published_mismatch, origin, row.tree_size)]
+
+  defp read_finding(origin, row, {:error, %Relay.Error{code: :publication_missing}}),
+    do: [finding(:published_missing, origin, row.tree_size)]
+
+  defp read_finding(_origin, _row, {:error, %Relay.Error{code: code}}) do
+    Logger.warning("audit checkpoint read-back failed", code: code)
+    []
   end
 
   defp verify_origins(origins, public_key) do

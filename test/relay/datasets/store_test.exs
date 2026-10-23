@@ -191,6 +191,16 @@ defmodule Relay.Datasets.StoreTest do
                Datasets.load_package(root, actor)
     end
 
+    test "OP-69: the bundled retention periods load into the installation scope" do
+      assert {:ok, %{"retention_periods" => %{activation: activation}}} =
+               Datasets.load_package(Relay.Datasets.Package.root(), TenantFixture.actor())
+
+      assert activation in [:activated, :unchanged, :operator_pinned]
+
+      assert {:ok, %Version{content: %{"periods" => [_ | _]}}} =
+               Datasets.active(Datasets.installation_scope(), "retention_periods")
+    end
+
     test "OP-65: a bundled version never replaces an operator's version", %{tmp_dir: dir} do
       name = define!(["installation"])
       installation = Datasets.installation_scope()

@@ -81,6 +81,32 @@ defmodule RelayDev.ObjectStore do
     request(opts, :delete, key, [], nil, query)
   end
 
+  @doc "Returns the object lock retention of an object: `{:ok, {mode, retain_until}}`."
+  @spec retention(keyword(), String.t()) :: {:ok, {String.t(), DateTime.t()}} | {:error, term()}
+  def retention(opts, key) do
+    with {:ok, %{status: 200, body: body}} <-
+           request(opts, :get, key, [], nil, [{"retention", ""}]),
+         [_, mode] <- Regex.run(~r/<Mode>([A-Z]+)<\/Mode>/, body),
+         [_, until] <- Regex.run(~r/<RetainUntilDate>([^<]+)<\/RetainUntilDate>/, body),
+         {:ok, until, 0} <- DateTime.from_iso8601(until) do
+      {:ok, {mode, until}}
+    else
+      other -> {:error, other}
+    end
+  end
+
+  @doc "Lists the object keys under `prefix`."
+  @spec keys(keyword(), String.t()) :: {:ok, [String.t()]} | {:error, term()}
+  def keys(opts, prefix) do
+    case request(opts, :get, "", [], nil, [{"list-type", "2"}, {"prefix", prefix}]) do
+      {:ok, %{status: 200, body: body}} ->
+        {:ok, for([_, key] <- Regex.scan(~r/<Key>([^<]+)<\/Key>/, body), do: key)}
+
+      other ->
+        {:error, other}
+    end
+  end
+
   @doc "Returns the current version id of an object."
   @spec version(keyword(), String.t()) :: {:ok, String.t()} | {:error, term()}
   def version(opts, key) do

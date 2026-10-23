@@ -1,6 +1,6 @@
 defmodule Relay.Platform.Leadership.Runner do
   @moduledoc """
-  Runs one singleton task on this node while it holds the task's lease. On each tick the runner takes or renews the lease; as leader it runs the task when the task's delay has passed and saves the returned state under its fencing token, as follower it only watches. Losing the lease, a refused save or a failing database drops the cached state, so the next leadership starts from what is saved. The leaderless alarm is the telemetry event `[:relay, :leadership, :leaderless]` and an error log.
+  Runs one singleton task on this node while it holds the task's lease. A task configured with `sensitive: true` (the audit tasks, which use the publication target's credentials) runs in a process marked sensitive whose status and crash reports are redacted. On each tick the runner takes or renews the lease; as leader it runs the task when the task's delay has passed and saves the returned state under its fencing token, as follower it only watches. Losing the lease, a refused save or a failing database drops the cached state, so the next leadership starts from what is saved. The leaderless alarm is the telemetry event `[:relay, :leadership, :leaderless]` and an error log.
   """
 
   use GenServer
@@ -19,6 +19,7 @@ defmodule Relay.Platform.Leadership.Runner do
           | {:ttl_ms, pos_integer()}
           | {:retry_ms, pos_integer()}
           | {:server, GenServer.name()}
+          | {:sensitive, boolean()}
 
   # T-12
   @doc "Starts the runner of task `:name` implemented by `:module`."
@@ -36,7 +37,11 @@ defmodule Relay.Platform.Leadership.Runner do
 
   @impl GenServer
   def init(opts) do
+    sensitive = Keyword.get(opts, :sensitive, false)
+    if sensitive, do: :ok = Relay.Hygiene.sensitive!()
+
     state = %{
+      sensitive: sensitive,
       name: Keyword.fetch!(opts, :name),
       module: Keyword.fetch!(opts, :module),
       node: Keyword.get_lazy(opts, :node, &Leadership.node_id/0),
@@ -53,6 +58,14 @@ defmodule Relay.Platform.Leadership.Runner do
 
     {:ok, schedule(state, 0)}
   end
+
+  # TN-67 (3)
+  # T-46
+  @impl GenServer
+  def format_status(%{state: %{sensitive: true}} = status),
+    do: Relay.Hygiene.format_status(status, &%{&1 | saved: :redacted})
+
+  def format_status(status), do: status
 
   @impl GenServer
   def handle_call(:tick, _from, state) do

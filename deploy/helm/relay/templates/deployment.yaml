@@ -16,6 +16,10 @@ spec:
       relay.suiss.app/node: {{ .name }}
   template:
     metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ $.Values.metrics.port | quote }}
+        prometheus.io/path: /metrics
       labels:
         app.kubernetes.io/name: relay
         app.kubernetes.io/instance: {{ $.Release.Name }}
@@ -37,6 +41,8 @@ spec:
           ports:
             - name: http
               containerPort: 4000
+            - name: metrics
+              containerPort: {{ $.Values.metrics.port }}
           livenessProbe:
             httpGet: {path: /livez, port: http}
           readinessProbe:

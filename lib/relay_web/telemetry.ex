@@ -2,7 +2,7 @@ defmodule RelayWeb.Telemetry do
   @moduledoc """
   Telemetry supervisor and metric definitions. Metric tags come from bounded sets only; tenant, user, device, address or identifier never become a tag.
 
-  Every stage 1 alarm is a Prometheus metric, scraped from `GET /metrics` and matched by an alert rule in `deploy/observability/alerts.yaml`. An alarm that is a state is a 0/1 gauge; an alarm that is an event is the Unix time of its last occurrence (`*_timestamp_seconds`).
+  Every stage 1 alarm is a Prometheus metric, scraped from `GET /metrics` on the internal metrics port (`RelayWeb.Metrics`) and matched by an alert rule in `deploy/observability/alerts.yaml`. An alarm that is a state is a 0/1 gauge; an alarm that is an event is the Unix time of its last occurrence (`*_timestamp_seconds`).
   """
 
   use Supervisor

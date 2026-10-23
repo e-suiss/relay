@@ -21,6 +21,7 @@ defmodule Relay.Application do
 
   @impl true
   def start(_type, _args) do
+    :ok = Relay.Hygiene.install_log_filter()
     Relay.Config.validate!()
     roles = Relay.Role.configured()
     :logger.update_primary_config(%{metadata: %{role: Enum.join(roles, ",")}})
@@ -29,12 +30,15 @@ defmodule Relay.Application do
     Relay.Platform.attach_telemetry()
 
     children =
-      [
-        RelayWeb.Telemetry,
-        Relay.Repo,
-        {Phoenix.PubSub, name: Relay.PubSub},
-        {Task.Supervisor, name: Relay.TaskSupervisor}
-      ] ++
+      [Relay.Config.SecretFiles] ++
+        Relay.Config.startup_probes() ++
+        [RelayWeb.Telemetry] ++
+        RelayWeb.Metrics.children() ++
+        [
+          Relay.Repo,
+          {Phoenix.PubSub, name: Relay.PubSub},
+          {Task.Supervisor, name: Relay.TaskSupervisor}
+        ] ++
         Relay.Keys.children() ++
         Relay.Platform.children() ++
         Relay.Tenancy.children() ++

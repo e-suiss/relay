@@ -23,6 +23,8 @@ config :relay, Relay.QueueRepo,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: 2
 
+config :relay, RelayWeb.Metrics, server: false
+
 config :relay, Oban, testing: :manual
 
 config :relay, Relay.Platform.Outbox, dispatcher: false

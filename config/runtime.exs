@@ -3,12 +3,12 @@ import Config
 if config_env() == :prod do
   config :relay, Relay.Repo,
     url: Relay.Config.Env.database_url!("DATABASE_URL"),
-    password: Relay.Config.Env.file!("DATABASE_PASSWORD_FILE"),
+    configure: {Relay.Config.SecretFiles, :configure, [:repo]},
     pool_size: Relay.Config.Env.integer!("POOL_SIZE")
 
   config :relay, Relay.Platform.MaintRepo,
     url: Relay.Config.Env.database_url!("MAINT_DATABASE_URL"),
-    password: Relay.Config.Env.file!("MAINT_DATABASE_PASSWORD_FILE"),
+    configure: {Relay.Config.SecretFiles, :configure, [:maint_repo]},
     pool_size: 2
 
   config :relay, Relay.Keys.Port,
@@ -29,8 +29,7 @@ if config_env() == :prod do
          bucket: Relay.Config.Env.fetch!("AUDIT_S3_BUCKET"),
          region: Relay.Config.Env.fetch!("AUDIT_S3_REGION"),
          access_key_id: Relay.Config.Env.fetch!("AUDIT_S3_ACCESS_KEY_ID"),
-         secret_access_key:
-           Relay.Redacted.wrap(Relay.Config.Env.file!("AUDIT_S3_SECRET_ACCESS_KEY_FILE")),
+         secret_access_key: {Relay.Config.SecretFiles, :fetch!, [:audit_s3]},
          prefix: ""
        ]}
     ]
@@ -46,11 +45,24 @@ if config_env() == :prod do
 
   roles = Relay.Config.Env.roles!("RELAY_ROLES")
 
+  config :relay, RelayWeb.Metrics,
+    server: true,
+    ip: {0, 0, 0, 0, 0, 0, 0, 0},
+    port: Relay.Config.Env.integer!("METRICS_PORT")
+
+  config :relay, Relay.Config.SecretFiles,
+    repo: Relay.Config.Env.fetch!("DATABASE_PASSWORD_FILE"),
+    maint_repo: Relay.Config.Env.fetch!("MAINT_DATABASE_PASSWORD_FILE"),
+    audit_s3: Relay.Config.Env.fetch!("AUDIT_S3_SECRET_ACCESS_KEY_FILE")
+
   if :worker in roles do
     config :relay, Relay.QueueRepo,
       url: Relay.Config.Env.database_url!("QUEUE_DATABASE_URL"),
-      password: Relay.Config.Env.file!("QUEUE_DATABASE_PASSWORD_FILE"),
+      configure: {Relay.Config.SecretFiles, :configure, [:queue_repo]},
       pool_size: 2
+
+    config :relay, Relay.Config.SecretFiles,
+      queue_repo: Relay.Config.Env.fetch!("QUEUE_DATABASE_PASSWORD_FILE")
   end
 
   config :relay, roles: roles

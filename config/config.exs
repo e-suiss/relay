@@ -23,12 +23,12 @@ config :relay, Relay.Platform.Leadership,
   tasks: [
     {"partition_maintenance", Relay.Platform.Maintenance.PartitionTask, []},
     {"integrity_check", Relay.Platform.Maintenance.IntegrityTask, []},
-    {"audit_checkpoint", Relay.Audit.Checkpointer, []},
-    {"audit_verify", Relay.Audit.Checkpointer.Verifier, []},
+    {"audit_checkpoint", Relay.Audit.Checkpointer, [sensitive: true]},
+    {"audit_verify", Relay.Audit.Checkpointer.Verifier, [sensitive: true]},
     {"retention_sweep", Relay.Tenancy.Retention, []},
     {"dataset_packages", Relay.Datasets.PackageTask, []},
     {"projection_rebuild", Relay.Delivery.ProjectionRebuild, []},
-    {"audit_readback", Relay.Audit.Checkpointer.Readback, []}
+    {"audit_readback", Relay.Audit.Checkpointer.Readback, [sensitive: true]}
   ]
 
 config :relay, Relay.Audit,

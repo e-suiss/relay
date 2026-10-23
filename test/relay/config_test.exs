@@ -99,6 +99,90 @@ defmodule Relay.ConfigTest do
     end
   end
 
+  describe "OP-70 independent audit target" do
+    @s3 [
+      endpoint: "https://s3.eu-central-1.amazonaws.com",
+      bucket: "relay-audit",
+      region: "eu-central-1",
+      access_key_id: "AKIDEXAMPLE",
+      secret_access_key: Relay.Redacted.wrap("secret"),
+      prefix: ""
+    ]
+    @audit [log_host: "relay.example", checkpoint_key: "audit-checkpoint"]
+
+    defp audit(publishers),
+      do: Keyword.put(@valid, Relay.Audit, Keyword.put(@audit, :publishers, publishers))
+
+    test "OP-70: a production node does not start without an independent target" do
+      for config <- [@valid, audit([])] do
+        assert_raise Error, ~r/Relay.Audit|independent of Relay/, fn ->
+          Config.validate!(config, %{}, production?: true)
+        end
+      end
+
+      assert :ok =
+               Config.validate!(
+                 audit([{"worm_store", Relay.Audit.Checkpointer.Publisher.S3, @s3}]),
+                 %{},
+                 production?: true
+               )
+    end
+
+    test "OP-70: the test plane and local development may run with a local target or none" do
+      assert :ok = Config.validate!(audit([]), %{}, production?: false)
+      assert :ok = Config.validate!(@valid, %{}, production?: false)
+
+      [{"worm_store", Relay.Audit.Checkpointer.Publisher.S3, local}] =
+        "config/dev.exs"
+        |> Elixir.Config.Reader.read!(env: :dev)
+        |> get_in([:relay, Relay.Audit, :publishers])
+
+      assert local[:endpoint] == "http://localhost:9000"
+    end
+
+    test "OP-70: publisher options are checked when the node starts" do
+      s3 = Relay.Audit.Checkpointer.Publisher.S3
+
+      for {bad, message} <- [
+            {Keyword.delete(@s3, :bucket), ~r/missing options/},
+            {Keyword.put(@s3, :verify, false), ~r/unknown options/},
+            {Keyword.put(@s3, :endpoint, "ftp://store"), ~r/endpoint/},
+            {Keyword.put(@s3, :prefix, "audit"), ~r/prefix/},
+            {Keyword.put(@s3, :secret_access_key, ""), ~r/secret_access_key/}
+          ] do
+        assert_raise Error, message, fn ->
+          Config.validate!(audit([{"worm_store", s3, bad}]), %{}, production?: true)
+        end
+      end
+
+      assert_raise Error, ~r/unknown audit publication target/, fn ->
+        Config.validate!(audit([{"elsewhere", s3, @s3}]), %{}, production?: false)
+      end
+
+      assert_raise Error, ~r/not a publisher/, fn ->
+        Config.validate!(audit([{"siem", Relay.Config, []}]), %{}, production?: false)
+      end
+
+      assert_raise Error, ~r/duplicate/, fn ->
+        Config.validate!(audit([{"worm_store", s3, @s3}, {"worm_store", s3, @s3}]), %{})
+      end
+    end
+
+    test "OP-70: the object lock document check needs object lock and a default retention" do
+      s3 = Relay.Audit.Checkpointer.Publisher.S3
+
+      assert s3.locked?(
+               "<ObjectLockConfiguration><ObjectLockEnabled>Enabled</ObjectLockEnabled><Rule><DefaultRetention><Mode>COMPLIANCE</Mode><Years>10</Years></DefaultRetention></Rule></ObjectLockConfiguration>"
+             )
+
+      refute s3.locked?(
+               "<ObjectLockConfiguration><ObjectLockEnabled>Enabled</ObjectLockEnabled></ObjectLockConfiguration>"
+             )
+
+      refute s3.locked?("<ObjectLockConfiguration></ObjectLockConfiguration>")
+    end
+  end
+
   describe "WF-47 TP-43 pinned time zone data" do
     test "TP-43: tzdata never updates itself at runtime" do
       assert Application.fetch_env!(:tzdata, :autoupdate) == :disabled
@@ -140,6 +224,21 @@ defmodule Relay.ConfigTest do
       end
     after
       System.delete_env("TEST_VALKEY_URL")
+    end
+
+    test "OP-70: production reads the independent audit target from the environment" do
+      runtime = File.read!("config/runtime.exs")
+
+      for name <- [
+            "AUDIT_S3_ENDPOINT",
+            "AUDIT_S3_BUCKET",
+            "AUDIT_S3_REGION",
+            "AUDIT_S3_ACCESS_KEY_ID"
+          ],
+          do: assert(runtime =~ ~s[Relay.Config.Env.fetch!("#{name}")])
+
+      assert runtime =~ ~s[Relay.Config.Env.file!("AUDIT_S3_SECRET_ACCESS_KEY_FILE")]
+      assert runtime =~ "Relay.Audit.Checkpointer.Publisher.S3"
     end
 
     test "INV-46: missing values have no default" do

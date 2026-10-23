@@ -79,6 +79,65 @@ defmodule Relay.Schema.MigrationSafetyTest do
       end
     end
 
+    test "OP-57: raw SQL adds CHECK constraints to existing tables NOT VALID and validates them in a later migration" do
+      for file <- migrations(),
+          sql = source(file),
+          created = created_tables(sql),
+          [statement, table, name] <-
+            Regex.scan(
+              ~r/ALTER TABLE (relay\.[a-z_]+)\s+ADD CONSTRAINT ([a-z_]+)\s+CHECK[^;"]*/i,
+              sql
+            ),
+          not MapSet.member?(created, table) do
+        assert statement =~ "NOT VALID", "#{file}: #{name} must be added NOT VALID"
+
+        refute sql =~ ~r/VALIDATE CONSTRAINT #{name}\b/,
+               "#{file}: #{name} is validated in the same migration"
+
+        assert Enum.any?(
+                 migrations(),
+                 &(&1 > file and source(&1) =~ ~r/VALIDATE CONSTRAINT #{name}\b/)
+               ),
+               "#{file}: #{name} is never validated"
+      end
+    end
+
+    test "OP-57: raw SQL sets NOT NULL on an existing column only behind a validated CHECK" do
+      for file <- migrations(),
+          sql = source(file),
+          created = created_tables(sql),
+          [_, table, column] <-
+            Regex.scan(
+              ~r/ALTER TABLE (relay\.[a-z_]+)\s+ALTER COLUMN ([a-z_]+)\s+SET NOT NULL/i,
+              sql
+            ),
+          not MapSet.member?(created, table) do
+        earlier = Enum.filter(migrations(), &(&1 < file))
+
+        assert Enum.any?(earlier, fn other ->
+                 source(other) =~
+                   ~r/ADD CONSTRAINT \w+\s+CHECK \(#{column} IS NOT NULL\) NOT VALID/
+               end),
+               "#{file}: #{table}.#{column} needs a validated CHECK (#{column} IS NOT NULL) first"
+      end
+    end
+
+    test "OP-57: committed migrations are never changed; a fix is a new migration" do
+      listed =
+        "conformance/catalog/migrations.json"
+        |> File.read!()
+        |> Jason.decode!()
+        |> Map.new(&{&1["file"], &1["sha256"]})
+
+      files = migrations()
+      assert Enum.sort(Map.keys(listed)) == files, "every migration is listed exactly once"
+
+      for file <- files do
+        hash = :crypto.hash(:sha256, source(file)) |> Base.encode16(case: :lower)
+        assert Map.fetch!(listed, file) == hash, "#{file} changed after it was committed"
+      end
+    end
+
     test "OP-57: the queue migration runs before the application migrations" do
       [first | _] = migrations()
       assert first == "20261016000000_add_oban_jobs.exs"

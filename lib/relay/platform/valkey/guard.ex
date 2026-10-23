@@ -52,14 +52,17 @@ defmodule Relay.Platform.Valkey.Guard do
   def handle_info({:valkey, _event, _channel, _payload}, state), do: {:noreply, state}
 
   # T-9 (6)
+  # OP-69
   defp check(state) do
     case Valkey.eviction_policy(state.adapter) do
       {:ok, @expected} ->
+        :telemetry.execute([:relay, :valkey, :guard], %{mismatch: 0}, %{})
         %{state | status: :ok}
 
       {:ok, policy} ->
         Logger.error("valkey eviction policy must be noeviction", policy: policy)
         :telemetry.execute([:relay, :valkey, :eviction_policy], %{count: 1}, %{policy: policy})
+        :telemetry.execute([:relay, :valkey, :guard], %{mismatch: 1}, %{})
         %{state | status: {:mismatch, policy}}
 
       {:error, _error} ->

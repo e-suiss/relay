@@ -29,18 +29,28 @@ defmodule Relay.Platform.Queue do
   @spec attach_alarm() :: :ok | {:error, :already_exists}
   def attach_alarm, do: :telemetry.attach_many(@handler, @events, &__MODULE__.handle_event/4, nil)
 
-  @doc "Telemetry handler for notifier and stager mode switches."
+  # OP-69
+  @doc "Telemetry handler for notifier and stager mode switches; reports the polling state as `[:relay, :queue, :mode]`."
   @spec handle_event([atom()], map(), map(), term()) :: :ok
-  def handle_event([:oban, :notifier, :switch], _measurements, %{status: :isolated}, _config),
-    do: Logger.error("queue notifier isolated; the queue falls back to polling")
+  def handle_event([:oban, :notifier, :switch], _measurements, %{status: :isolated}, _config) do
+    mode(:notifier, 1)
+    Logger.error("queue notifier isolated; the queue falls back to polling")
+  end
 
-  def handle_event([:oban, :stager, :switch], _measurements, %{mode: :local}, _config),
-    do: Logger.error("queue stager switched to local polling")
+  def handle_event([:oban, :stager, :switch], _measurements, %{mode: :local}, _config) do
+    mode(:stager, 1)
+    Logger.error("queue stager switched to local polling")
+  end
 
-  def handle_event([:oban, _, :switch], _measurements, meta, _config) do
+  def handle_event([:oban, component, :switch], _measurements, meta, _config) do
+    mode(component, 0)
+
     Logger.info("queue notification mode changed",
       status: Map.get(meta, :status),
       mode: Map.get(meta, :mode)
     )
   end
+
+  defp mode(component, polling),
+    do: :telemetry.execute([:relay, :queue, :mode], %{polling: polling}, %{component: component})
 end

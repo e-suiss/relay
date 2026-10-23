@@ -27,7 +27,8 @@ config :relay, Relay.Platform.Leadership,
     {"audit_verify", Relay.Audit.Checkpointer.Verifier, []},
     {"retention_sweep", Relay.Tenancy.Retention, []},
     {"dataset_packages", Relay.Datasets.PackageTask, []},
-    {"projection_rebuild", Relay.Delivery.ProjectionRebuild, []}
+    {"projection_rebuild", Relay.Delivery.ProjectionRebuild, []},
+    {"audit_readback", Relay.Audit.Checkpointer.Readback, []}
   ]
 
 config :relay, Relay.Audit,

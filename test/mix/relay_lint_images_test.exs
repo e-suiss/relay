@@ -9,7 +9,7 @@ defmodule RelayDev.Lint.ImagesTest do
 
   @sha "3d3c42e5aac5ba805825da76410c181273ba90b1"
   @digest "sha256:" <> String.duplicate("a", 64)
-  @services ~w(postgres valkey mailpit apns fcm sms toxiproxy otel-collector jaeger prometheus grafana access)
+  @services ~w(postgres valkey minio mailpit apns fcm sms toxiproxy otel-collector jaeger prometheus grafana access)
 
   defp compose(services) do
     "services:\n" <> Enum.map_join(services, "", &"  #{&1}:\n    image: x/#{&1}:1@#{@digest}\n")

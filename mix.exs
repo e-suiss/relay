@@ -51,6 +51,8 @@ defmodule Relay.MixProject do
       {:jason, "~> 1.4"},
       {:telemetry_metrics, "~> 1.2"},
       {:telemetry_poller, "~> 1.3"},
+      {:peep, "~> 5.0.1"},
+      {:req, "~> 0.7.5"},
       {:logger_json, "~> 7.0"},
       {:tzdata, "~> 1.2.2"},
       {:jsv, "0.26.1"},

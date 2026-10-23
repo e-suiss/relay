@@ -16,7 +16,20 @@ if config_env() == :prod do
     token: Relay.Config.Env.fetch!("PKCS11_TOKEN"),
     pin_file: Relay.Config.Env.fetch!("PKCS11_PIN_FILE")
 
-  config :relay, Relay.Audit, log_host: Relay.Config.Env.fetch!("RELAY_HOST")
+  config :relay, Relay.Audit,
+    log_host: Relay.Config.Env.fetch!("RELAY_HOST"),
+    publishers: [
+      {"worm_store", Relay.Audit.Checkpointer.Publisher.S3,
+       [
+         endpoint: Relay.Config.Env.fetch!("AUDIT_S3_ENDPOINT"),
+         bucket: Relay.Config.Env.fetch!("AUDIT_S3_BUCKET"),
+         region: Relay.Config.Env.fetch!("AUDIT_S3_REGION"),
+         access_key_id: Relay.Config.Env.fetch!("AUDIT_S3_ACCESS_KEY_ID"),
+         secret_access_key:
+           Relay.Redacted.wrap(Relay.Config.Env.file!("AUDIT_S3_SECRET_ACCESS_KEY_FILE")),
+         prefix: ""
+       ]}
+    ]
 
   config :relay, Relay.Platform.Valkey,
     adapter: Relay.Platform.Valkey.Redix,

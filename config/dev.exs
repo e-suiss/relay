@@ -26,6 +26,19 @@ config :relay, RelayWeb.Endpoint,
 
 config :relay, Relay.NetworkGuard, enabled: true
 
+config :relay, Relay.Audit,
+  publishers: [
+    {"worm_store", Relay.Audit.Checkpointer.Publisher.S3,
+     [
+       endpoint: "http://localhost:9000",
+       bucket: "relay-audit",
+       region: "us-east-1",
+       access_key_id: "relay",
+       secret_access_key: "relay-dev-secret",
+       prefix: ""
+     ]}
+  ]
+
 config :phoenix, :plug_init_mode, :runtime
 
 config :relay, Relay.Keys.Port,

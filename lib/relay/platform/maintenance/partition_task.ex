@@ -2,7 +2,9 @@ defmodule Relay.Platform.Maintenance.PartitionTask do
   @moduledoc """
   The `partition_maintenance` singleton task. Each step pre-creates partitions up to every table's premake horizon, checks the horizon alarm, refreshes parent statistics once per UTC day, completes an interrupted detach, and detaches at most one partition whose hot retention has passed. A detached partition is handed to the archive role: its name stays in the task state under `"detached"` until the archive step removes the table. A partition DDL that hits its lock timeout is left for the next step.
 
-  Telemetry: `[:relay, :partition, :horizon_alarm]` (page), `[:relay, :partition, :created]`, `[:relay, :partition, :deferred]`, `[:relay, :partition, :detached]`.
+  A new leaf takes the storage parameters (fillfactor, autovacuum, TOAST) of the newest existing leaf of its table, so a value tuned on a leaf carries over to the partitions created after it.
+
+  Telemetry: `[:relay, :partition, :horizon_alarm]` (page), `[:relay, :partition, :created]`, `[:relay, :partition, :deferred]`, `[:relay, :partition, :analyzed]`, `[:relay, :partition, :detached]`.
   """
 
   @behaviour Relay.Platform.Leadership
@@ -105,8 +107,11 @@ defmodule Relay.Platform.Maintenance.PartitionTask do
 
   defp analyze_one(table) do
     case EscapeHatch.parent_analyze(table) do
-      {:ok, _} -> :ok
-      {:error, %{code: code}} -> Logger.warning("parent analyze failed", table: table, code: code)
+      {:ok, _} ->
+        :telemetry.execute([:relay, :partition, :analyzed], %{count: 1}, %{table: table})
+
+      {:error, %{code: code}} ->
+        Logger.warning("parent analyze failed", table: table, code: code)
     end
   end
 

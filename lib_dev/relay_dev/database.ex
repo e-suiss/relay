@@ -36,6 +36,38 @@ defmodule RelayDev.Database do
     bootstrap(admin, @settings[:login_password])
   end
 
+  # OP-57
+  @doc "Creates a separate database `name` from scratch and bootstraps it; for the nightly migration replay."
+  @spec create(String.t()) :: :ok
+  def create(name) do
+    admin = Keyword.put(connection(:admin), :database, name)
+    storage_down(admin)
+    storage_up(admin)
+    bootstrap(admin, @settings[:login_password])
+  end
+
+  @doc "Migrates the separate database `name` as `relay_migrator` up to version `to` (or `:all`) and runs the bootstrap again, as an upgrade of an installation does; returns the versions it applied."
+  @spec upgrade(String.t(), pos_integer() | :all) :: [pos_integer()]
+  def upgrade(name, to) do
+    opts =
+      connection("relay_migrator")
+      |> Keyword.merge(database: name, pool_size: 2, name: nil)
+      |> Keyword.put(:pool, DBConnection.ConnectionPool)
+
+    {:ok, repo} = Relay.Repo.start_link(opts)
+
+    applied =
+      try do
+        target = if to == :all, do: [all: true], else: [to: to]
+        Ecto.Migrator.run(Relay.Repo, :up, target ++ [dynamic_repo: repo, log: false])
+      after
+        Supervisor.stop(repo)
+      end
+
+    bootstrap(Keyword.put(connection(:admin), :database, name), @settings[:login_password])
+    applied
+  end
+
   @doc "Connection options for a local login role (`:admin` or a role name), taken from the repository configuration."
   @spec connection(:admin | String.t()) :: keyword()
   def connection(login) do

@@ -5,15 +5,18 @@ defmodule Relay.Tenancy.RetentionPeriodsTest do
 
   defp read(name), do: @dir |> Path.join(name) |> File.read!() |> Jason.decode!()
 
-  defp periods, do: read("v1.json")["periods"]
+  defp periods(version \\ "v1.json"), do: read(version)["periods"]
 
-  defp period(region, sector, class) do
+  defp period(region, sector, class, version \\ "v1.json") do
     Enum.find(
-      periods(),
+      periods(version),
       &(&1["region"] == region and &1["sector"] == sector and
           &1["retention_class"] == class)
     )
   end
+
+  @regions ~w(tr eu us)
+  @sectors ~w(general payment bank ecommerce)
 
   defp validate(schema, value, path \\ "$")
 
@@ -70,6 +73,76 @@ defmodule Relay.Tenancy.RetentionPeriodsTest do
   end
 
   defp validate(%{"type" => type}, value, path), do: ["#{path}: #{inspect(value)} is not #{type}"]
+
+  describe "OP-71 (7) retention periods version 2" do
+    test "OP-71: version 2 follows the unchanged schema and is the newest packaged version" do
+      assert validate(read("schema.json"), read("v2.json")) == []
+
+      assert @dir |> File.ls!() |> Enum.sort() == ["schema.json", "v1.json", "v2.json"]
+    end
+
+    test "OP-71: every region carries exactly the sectors general, payment, bank and ecommerce" do
+      for region <- @regions do
+        sectors =
+          for row <- periods("v2.json"), row["region"] == region, uniq: true, do: row["sector"]
+
+        assert Enum.sort(sectors) == Enum.sort(@sectors)
+      end
+
+      keys = Enum.map(periods("v2.json"), &{&1["region"], &1["sector"], &1["retention_class"]})
+      assert keys == Enum.uniq(keys)
+    end
+
+    test "OP-71: transactional delivery records are kept two years, the tenant may extend, pending legal approval" do
+      for region <- @regions, sector <- @sectors do
+        row = period(region, sector, "delivery_record", "v2.json")
+        assert row["days"] == 730
+        assert row["legal_basis"] == "pending legal approval (OP-71.7)"
+        assert row["source"] =~ "OP-71 (7)"
+        assert row["source"] =~ "the tenant may extend"
+        assert row["source"] =~ "Access Appendix C"
+      end
+    end
+
+    test "OP-71: commercial message records stay ten years in Türkiye under 6563" do
+      for sector <- @sectors, class <- ~w(commercial_consent commercial_message) do
+        assert %{"days" => 3653, "legal_basis" => basis} = period("tr", sector, class, "v2.json")
+        assert basis =~ "6563 m.11(3)"
+      end
+    end
+
+    test "OP-71: traffic is kept 90 days in the EU and the US and two years in Türkiye" do
+      for sector <- @sectors do
+        for region <- ~w(eu us) do
+          row = period(region, sector, "traffic", "v2.json")
+          assert row["days"] == 90
+          assert row["legal_basis"] =~ "policy default (OP-71.7)"
+          assert row["source"] =~ "TN-64"
+        end
+
+        assert %{"days" => 730, "legal_basis" => basis} =
+                 period("tr", sector, "traffic", "v2.json")
+
+        assert basis =~ "5651 m.5(3)"
+      end
+    end
+
+    test "OP-71: every other version 1 row is carried over unchanged" do
+      changed = fn row -> row["retention_class"] in ["delivery_record", "traffic"] end
+
+      assert Enum.reject(periods("v1.json"), changed) == Enum.reject(periods("v2.json"), changed)
+
+      for row <- periods("v1.json"), row["retention_class"] == "traffic" do
+        assert period(row["region"], row["sector"], "traffic", "v2.json") == row
+      end
+    end
+
+    test "OP-18: version 2 still has no row for classes without a statutory retention" do
+      for class <- ~w(recipient_profile notification_content preference suppression) do
+        assert Enum.filter(periods("v2.json"), &(&1["retention_class"] == class)) == [], class
+      end
+    end
+  end
 
   describe "OP-69 retention periods data set" do
     test "OP-69: the packaged version follows the data set's JSON Schema 2020-12" do

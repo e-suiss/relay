@@ -2,6 +2,7 @@ defmodule Relay.Datasets.StoreTest do
   use Relay.DataCase, async: false
 
   alias Relay.Datasets
+  alias Relay.Datasets.Package
   alias Relay.Datasets.Schema
   alias Relay.Datasets.Version
   alias RelayTest.TenantFixture
@@ -193,12 +194,28 @@ defmodule Relay.Datasets.StoreTest do
 
     test "OP-69: the bundled retention periods load into the installation scope" do
       assert {:ok, %{"retention_periods" => %{activation: activation}}} =
-               Datasets.load_package(Relay.Datasets.Package.root(), TenantFixture.actor())
+               Datasets.load_package(Package.root(), TenantFixture.actor())
 
       assert activation in [:activated, :unchanged, :operator_pinned]
 
       assert {:ok, %Version{content: %{"periods" => [_ | _]}}} =
                Datasets.active(Datasets.installation_scope(), "retention_periods")
+    end
+
+    test "OP-71: the newest bundled retention periods version is the active one" do
+      assert {:ok, %{"retention_periods" => %{published: [1, 2], activation: activation}}} =
+               Datasets.load_package(Package.root(), TenantFixture.actor())
+
+      v2 = "priv/datasets/retention_periods/v2.json" |> File.read!() |> Jason.decode!()
+      scope = Datasets.installation_scope()
+
+      case activation do
+        :activated ->
+          assert {:ok, %Version{content: ^v2}} = Datasets.active(scope, "retention_periods")
+
+        :operator_pinned ->
+          assert {:ok, %Version{source: :operator}} = Datasets.active(scope, "retention_periods")
+      end
     end
 
     test "OP-65: a bundled version never replaces an operator's version", %{tmp_dir: dir} do

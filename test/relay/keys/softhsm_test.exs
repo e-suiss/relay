@@ -189,6 +189,59 @@ defmodule Relay.Keys.SoftHSMTest do
              KeyPort.hmac_sha256(keys, "kek", message)
   end
 
+  test "TN-67 (1): an HMAC key generated in the token stays there and computes blind indexes",
+       %{keys: keys} = ctx do
+    label = "bidx-generated-#{System.unique_integer([:positive])}"
+    message = Redacted.wrap("ada@example.com")
+
+    assert KeyPort.generate_key(keys, :hmac_sha256, label, <<1::128>>) == :ok
+    assert {:ok, <<_::256>> = mac} = KeyPort.hmac_sha256(keys, label, message)
+    assert KeyPort.hmac_sha256(keys, label, message) == {:ok, mac}
+
+    assert {:error, %Relay.Error{code: :key_exists}} =
+             KeyPort.generate_key(keys, :hmac_sha256, label, <<2::128>>)
+
+    assert {:error, %Relay.Error{code: :key_not_found}} =
+             KeyPort.wrap(keys, label, "aad", Redacted.wrap(<<0::256>>))
+
+    assert {:error, %Relay.Error{code: :key_not_found}} = KeyPort.read_secret(keys, label)
+
+    object = secret_key(ctx, label)
+    assert object =~ ~r/never extractable/
+    assert object =~ ~r/\bsensitive\b/
+    assert object =~ ~r/ID: *00000000000000000000000000000001/
+  end
+
+  test "TN-67 (1): an AES-256 key generated in the token wraps and unwraps but is never extractable",
+       %{keys: keys} = ctx do
+    label = "aes-generated-#{System.unique_integer([:positive])}"
+    data_key = :crypto.strong_rand_bytes(32)
+
+    assert KeyPort.generate_key(keys, :aes_256, label, <<3::128>>) == :ok
+    assert {:ok, wrapped} = KeyPort.wrap(keys, label, "tenant-1", Redacted.wrap(data_key))
+    assert {:ok, unwrapped} = KeyPort.unwrap(keys, label, "tenant-1", wrapped)
+    assert Redacted.expose(unwrapped) == data_key
+
+    assert {:error, %Relay.Error{code: :key_not_found}} =
+             KeyPort.hmac_sha256(keys, label, Redacted.wrap("m"))
+
+    object = secret_key(ctx, label)
+    assert object =~ ~r/AES length 32/
+    assert object =~ ~r/never extractable/
+  end
+
+  defp secret_key(%{pkcs11_module: module}, label) do
+    {out, 0} =
+      System.cmd(
+        "pkcs11-tool",
+        ~w(--module #{module} --token-label #{@token} --login --pin #{@pin} --list-objects --type secrkey --label #{label}),
+        stderr_to_stdout: true
+      )
+
+    assert out =~ "label:"
+    out
+  end
+
   test "TN-26: a secret data object is read back redacted", %{keys: keys} do
     assert {:ok, secret} = KeyPort.read_secret(keys, "smtp")
     assert Redacted.expose(secret) == "smtp-password"

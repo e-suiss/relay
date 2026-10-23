@@ -1,4 +1,4 @@
-//! Token operations behind the protocol: signing, public key export, AES-256-GCM key wrapping under a KEK, HMAC-SHA256 under a secret key and reading secret data objects.
+//! Token operations behind the protocol: signing, public key export, AES-256-GCM key wrapping under a KEK, HMAC-SHA256 under a secret key, reading secret data objects and generating secret keys that never leave the token.
 
 use cryptoki::context::{CInitializeArgs, CInitializeFlags, Pkcs11};
 use cryptoki::error::{Error, RvError};
@@ -7,11 +7,12 @@ use cryptoki::mechanism::aead::GcmParams;
 use cryptoki::mechanism::eddsa::{EddsaParams, EddsaSignatureScheme};
 use cryptoki::object::{Attribute, AttributeType, KeyType, ObjectClass, ObjectHandle};
 use cryptoki::session::{Session, UserType};
+use cryptoki::slot::Slot;
 use cryptoki::types::AuthPin;
 use zeroize::Zeroizing;
 
 use crate::der;
-use crate::protocol::{Alg, Status};
+use crate::protocol::{Alg, KeyKind, Status};
 
 /// GCM nonce length in bytes.
 pub const IV_LEN: usize = 12;
@@ -21,6 +22,9 @@ pub const TAG_LEN: usize = 16;
 
 /// HMAC-SHA256 output length in bytes.
 pub const HMAC_LEN: usize = 32;
+
+/// Length in bytes of every generated secret key.
+pub const KEY_LEN: u64 = 32;
 
 /// A failed operation: the status sent back, a message without key material, and whether the session is lost.
 #[derive(Debug)]
@@ -81,7 +85,8 @@ fn fatal(rv: RvError) -> bool {
 /// A logged-in session on the configured token.
 pub struct Hsm {
     session: Session,
-    _context: Pkcs11,
+    slot: Slot,
+    context: Pkcs11,
 }
 
 impl Hsm {
@@ -106,7 +111,8 @@ impl Hsm {
         }
         Ok(Hsm {
             session,
-            _context: context,
+            slot,
+            context,
         })
     }
 
@@ -227,6 +233,47 @@ impl Hsm {
                 _ => None,
             })
             .ok_or_else(|| Failure::new(Status::Token, "attribute missing"))
+    }
+
+    /// Generates a 256-bit token secret key labelled `label` with CKA_ID `id`: sensitive, never extractable, private and usable only for its purpose. A label already in use is refused with `Exists`.
+    pub fn generate_key(&self, kind: KeyKind, label: &[u8], id: &[u8]) -> Result<(), Failure> {
+        let taken = self.session.find_objects(&[
+            Attribute::Class(ObjectClass::SECRET_KEY),
+            Attribute::Label(label.to_vec()),
+        ])?;
+        if !taken.is_empty() {
+            return Err(Failure::new(Status::Exists, "key label already exists"));
+        }
+        let (mechanism, key_type, encrypt, sign) = match kind {
+            KeyKind::Aes256 => (Mechanism::AesKeyGen, KeyType::AES, true, false),
+            KeyKind::HmacSha256 => (
+                Mechanism::GenericSecretKeyGen,
+                KeyType::GENERIC_SECRET,
+                false,
+                true,
+            ),
+        };
+        let template = [
+            Attribute::Class(ObjectClass::SECRET_KEY),
+            Attribute::KeyType(key_type),
+            Attribute::ValueLen(KEY_LEN.into()),
+            Attribute::Token(true),
+            Attribute::Private(true),
+            Attribute::Sensitive(true),
+            Attribute::Extractable(false),
+            Attribute::Encrypt(encrypt),
+            Attribute::Decrypt(encrypt),
+            Attribute::Sign(sign),
+            Attribute::Verify(sign),
+            Attribute::Wrap(false),
+            Attribute::Unwrap(false),
+            Attribute::Derive(false),
+            Attribute::Label(label.to_vec()),
+            Attribute::Id(id.to_vec()),
+        ];
+        let session = self.context.open_rw_session(self.slot)?;
+        session.generate_key(&mechanism, &template)?;
+        Ok(())
     }
 
     fn find(

@@ -32,6 +32,9 @@ defmodule Relay.SecretsDatabaseTest do
     %{scope: tenant.live, id: id, attrs: attrs}
   end
 
+  defp fingerprint(secret),
+    do: :crypto.mac(:hmac, :sha256, RelayTest.Keys.secret("fingerprint-test"), secret)
+
   defp stored(scope, id) do
     {:ok, row} =
       Relay.Repo.in_scope(scope, fn _ ->
@@ -64,13 +67,14 @@ defmodule Relay.SecretsDatabaseTest do
 
       assert ref == "${#{@v1}}"
       assert secret_ct == nil
-      assert fingerprint == :crypto.hash(:sha256, secret)
+      assert fingerprint == fingerprint(secret)
+      refute fingerprint == :crypto.hash(:sha256, secret)
       refute json =~ secret
     end
 
     test "INV-51: a stored reference reads back as its fingerprint only", ctx do
       assert {:ok, %Secrets.Ref{} = ref} = Secrets.get(ctx.scope, ctx.id)
-      assert ref.fingerprint == :crypto.hash(:sha256, System.get_env(@v1))
+      assert ref.fingerprint == fingerprint(System.get_env(@v1))
       assert ref.state == :active
       refute Map.has_key?(Map.from_struct(ref), :ref)
       refute inspect(ref, limit: :infinity) =~ System.get_env(@v1)

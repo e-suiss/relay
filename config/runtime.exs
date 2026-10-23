@@ -16,6 +16,10 @@ if config_env() == :prod do
     token: Relay.Config.Env.fetch!("PKCS11_TOKEN"),
     pin_file: Relay.Config.Env.fetch!("PKCS11_PIN_FILE")
 
+  config :relay, Relay.Keys,
+    kek_label: Relay.Config.Env.fetch!("KEY_STORE_KEK_LABEL"),
+    fingerprint_label: Relay.Config.Env.fetch!("KEY_STORE_FINGERPRINT_LABEL")
+
   config :relay, Relay.Audit,
     log_host: Relay.Config.Env.fetch!("RELAY_HOST"),
     publishers: [

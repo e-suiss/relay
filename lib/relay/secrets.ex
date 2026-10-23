@@ -1,6 +1,6 @@
 defmodule Relay.Secrets do
   @moduledoc """
-  Secret references. The database keeps a reference and its version, never the secret: `${VAR}` names an environment variable of the node, `pkcs11:object=<label>` a secret data object in the key store. A secret is resolved only by the process that uses it, comes back as `Relay.Redacted` and is never cached in shared memory; a stored reference is read back only as its fingerprint, the SHA-256 of the secret taken when it was registered. Resolving checks the fingerprint, so a secret that changed behind its reference is refused rather than used.
+  Secret references. The database keeps a reference and its version, never the secret: `${VAR}` names an environment variable of the node, `pkcs11:object=<label>` a secret data object in the key store. A secret is resolved only by the process that uses it, comes back as `Relay.Redacted` and is never cached in shared memory; a stored reference is read back only as its fingerprint, the HMAC-SHA256 of the secret under the installation's fingerprint key, computed inside the key store when it was registered. Resolving checks the fingerprint, so a secret that changed behind its reference is refused rather than used.
 
   Rotation registers the new reference and retires the old one in one transaction, then signals the tenant's `secrets` topic; processes holding the secret subscribe with `subscribe_rotations/1` and fetch it again, without a restart.
   """
@@ -44,9 +44,13 @@ defmodule Relay.Secrets do
   end
 
   # INV-51
-  @doc "The fingerprint of a secret: its SHA-256."
-  @spec fingerprint(Redacted.t()) :: <<_::256>>
-  def fingerprint(secret), do: :crypto.hash(:sha256, Redacted.expose(secret))
+  # TN-67 (4)
+  @doc "The fingerprint of a secret: HMAC-SHA256 computed inside the key store under the installation's fingerprint key (`Relay.Keys.fingerprint_label/0`); the key never leaves the key store."
+  @spec fingerprint(Redacted.t()) :: {:ok, <<_::256>>} | {:error, Error.t()}
+  def fingerprint(secret) do
+    with {:ok, label} <- Relay.Keys.fingerprint_label(),
+         do: Relay.Keys.hmac_sha256(label, secret)
+  end
 
   # TN-26 (2)
   # INV-51
@@ -54,8 +58,9 @@ defmodule Relay.Secrets do
   @spec register(Relay.Scope.t(), map(), Relay.Actor.t()) ::
           {:ok, :created | :exists} | {:error, Error.t()}
   def register(scope, %{kind: kind} = attrs, actor) when kind in @kinds do
-    with {:ok, secret} <- resolve(attrs.ref) do
-      in_scope(scope, fn -> Store.register(attrs, fingerprint(secret), actor) end)
+    with {:ok, secret} <- resolve(attrs.ref),
+         {:ok, fingerprint} <- fingerprint(secret) do
+      in_scope(scope, fn -> Store.register(attrs, fingerprint, actor) end)
     end
   end
 
@@ -73,8 +78,9 @@ defmodule Relay.Secrets do
   def fetch(scope, <<_::128>> = id) do
     with {:ok, {%Ref{state: :active} = ref, stored_ref}} <-
            in_scope(scope, fn -> Store.get(id) end),
-         {:ok, secret} <- resolve(stored_ref) do
-      if Relay.Crypto.secure_compare(fingerprint(secret), ref.fingerprint),
+         {:ok, secret} <- resolve(stored_ref),
+         {:ok, fingerprint} <- fingerprint(secret) do
+      if Relay.Crypto.secure_compare(fingerprint, ref.fingerprint),
         do: {:ok, secret},
         else: {:error, Error.new(:secret_changed, "secret does not match its fingerprint")}
     else
@@ -93,9 +99,10 @@ defmodule Relay.Secrets do
   def rotate(scope, <<_::128>> = retire_id, %{kind: kind} = new, retire_digest, actor)
       when kind in @kinds do
     with {:ok, secret} <- resolve(new.ref),
+         {:ok, fingerprint} <- fingerprint(secret),
          {:ok, :rotated} <-
            in_scope(scope, fn ->
-             Store.rotate(retire_id, new, fingerprint(secret), retire_digest, actor)
+             Store.rotate(retire_id, new, fingerprint, retire_digest, actor)
            end) do
       _ = signal(scope, new.ref_version)
       {:ok, :rotated}

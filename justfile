@@ -41,7 +41,7 @@ hsm-keys: hsm
     fi
     [ -n "$module" ] || { echo "SoftHSM module not found; set PKCS11_MODULE"; exit 1; }
     PKCS11_MODULE="$module" PKCS11_TOKEN=relay-dev PKCS11_PIN_FILE=deploy/softhsm/pin \
-      KEY_STORE_KEK_LABEL=kek-dev KEY_STORE_BLIND_INDEX_LABEL=bidx-dev deploy/hsm-keys.sh
+      KEY_STORE_KEK_LABEL=kek-dev KEY_STORE_FINGERPRINT_LABEL=fingerprint-dev KEY_STORE_BLIND_INDEX_LABEL=bidx-dev deploy/hsm-keys.sh
 
 port:
     #!/bin/sh

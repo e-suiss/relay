@@ -74,6 +74,7 @@ defmodule Relay.HsmKeysTest do
       {"PKCS11_TOKEN", @token},
       {"PKCS11_PIN_FILE", pin_file},
       {"KEY_STORE_KEK_LABEL", "kek-test"},
+      {"KEY_STORE_FINGERPRINT_LABEL", "fingerprint-test"},
       {"KEY_STORE_BLIND_INDEX_LABEL", "bidx-test"}
     ]
 
@@ -133,11 +134,13 @@ defmodule Relay.HsmKeysTest do
     assert out =~ ~r/hsm-keys: audit-checkpoint (created|exists)/
     assert out =~ "hsm-keys: kek-test created"
     assert out =~ "hsm-keys: bidx-test created"
+    assert out =~ ~r/hsm-keys: fingerprint-test (created|exists)/
 
     assert {again, 0} = script(ctx.env)
     assert again =~ "hsm-keys: audit-checkpoint exists"
     assert again =~ "hsm-keys: kek-test exists"
     assert again =~ "hsm-keys: bidx-test exists"
+    assert again =~ "hsm-keys: fingerprint-test exists"
 
     assert length(Regex.scan(~r/label: *audit-checkpoint$/m, objects(ctx, "privkey"))) == 1
 
@@ -145,6 +148,8 @@ defmodule Relay.HsmKeysTest do
     assert length(Regex.scan(~r/label: *kek-test$/m, secrets)) == 1
     assert [bidx] = Regex.run(~r/label: *bidx-test$.*?(?=^\S|\z)/ms, secrets)
     assert bidx =~ ~r/Usage:.*\bsign\b/
+    assert [fingerprint] = Regex.run(~r/label: *fingerprint-test$.*?(?=^\S|\z)/ms, secrets)
+    assert fingerprint =~ ~r/Usage:.*\bsign\b/
 
     name = {:global, make_ref()}
     sha256 = (@executable <> ".sha256") |> File.read!() |> String.split() |> hd()
@@ -169,5 +174,22 @@ defmodule Relay.HsmKeysTest do
     assert {:ok, wrapped} = KeyPort.wrap(name, "kek-test", "tenant", Redacted.wrap(data_key))
     assert {:ok, unwrapped} = KeyPort.unwrap(name, "kek-test", "tenant", wrapped)
     assert Redacted.expose(unwrapped) == data_key
+
+    assert {:ok, <<_::256>>} =
+             KeyPort.hmac_sha256(name, "fingerprint-test", Redacted.wrap("secret"))
+  end
+
+  test "TN-67 (4): the script requires the secret fingerprint key label", ctx do
+    env =
+      List.keystore(
+        ctx.env,
+        "KEY_STORE_FINGERPRINT_LABEL",
+        0,
+        {"KEY_STORE_FINGERPRINT_LABEL", nil}
+      )
+
+    assert {out, status} = script(env)
+    assert status != 0
+    assert out =~ "KEY_STORE_FINGERPRINT_LABEL is required"
   end
 end

@@ -7,18 +7,33 @@ defmodule Relay.Keys.Erasure.Store do
   @destroy [:destroyed, :already_destroyed, :held, :not_allowed, :not_found]
   @retire [:retired, :already_destroyed, :held, :not_found]
 
-  @spec subject_erase(Relay.Scope.t(), binary(), String.t(), map(), binary(), Relay.Actor.t()) ::
-          {:ok, atom(), non_neg_integer()} | {:error, Relay.Error.t()}
-  def subject_erase(scope, recipient_id, request_ref, plan, digest, actor) do
+  @spec subject_erase(
+          Relay.Scope.t(),
+          binary(),
+          String.t(),
+          (map() -> {:ok, map()} | {:error, Relay.Error.t()}),
+          binary(),
+          Relay.Actor.t()
+        ) :: {:ok, atom(), non_neg_integer()} | {:error, Relay.Error.t()}
+  def subject_erase(scope, recipient_id, request_ref, plan_for, digest, actor) do
     scoped(scope, fn ->
-      [%{"result" => result, "cancelled_deliveries" => cancelled}] =
-        Repo.call!(
-          "relay_fn.subject_erase",
-          [recipient_id, request_ref, plan.destroy, plan.restrict, digest | actor_params(actor)]
-        )
+      with {:ok, plan} <- plan_for.(tenant()) do
+        [%{"result" => result, "cancelled_deliveries" => cancelled}] =
+          Repo.call!(
+            "relay_fn.subject_erase",
+            [recipient_id, request_ref, plan.destroy, plan.restrict, digest | actor_params(actor)]
+          )
 
-      {:ok, Repo.code!(result, @erase), cancelled || 0}
+        {:ok, Repo.code!(result, @erase), cancelled || 0}
+      end
     end)
+  end
+
+  defp tenant do
+    %Postgrex.Result{rows: [[region, sector]]} =
+      Repo.scoped_query!("SELECT region, sector FROM relay.tenants", [])
+
+    %{"region" => region, "sector" => sector}
   end
 
   @spec tenant_key_destroy(Relay.Scope.t(), binary(), String.t(), binary(), Relay.Actor.t()) ::

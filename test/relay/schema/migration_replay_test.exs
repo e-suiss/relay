@@ -2,12 +2,15 @@ defmodule Relay.Schema.MigrationReplayTest do
   use ExUnit.Case, async: false
 
   @moduletag :nightly
-  @moduletag timeout: 1_800_000
+  @moduletag timeout: 2_700_000
 
   @database "relay_replay"
-  @replayed 2
-  @tenants 12
-  @seed 20_261_023
+  @seed_after 20_261_017_100_900
+  @default_deliveries 1_000_000
+  @tenants 20
+  @recipients 500
+  @workers 4
+  @infinity [timeout: :infinity]
 
   defp versions do
     "priv/repo/migrations"
@@ -20,9 +23,17 @@ defmodule Relay.Schema.MigrationReplayTest do
     |> Enum.sort()
   end
 
-  defp connect(login) do
+  defp deliveries do
+    case System.get_env("RELAY_REPLAY_DELIVERIES") do
+      nil -> @default_deliveries
+      "" -> @default_deliveries
+      value -> String.to_integer(value)
+    end
+  end
+
+  defp connect do
     {:ok, conn} =
-      login
+      :admin
       |> RelayDev.Database.connection()
       |> Keyword.put(:database, @database)
       |> Postgrex.start_link()
@@ -30,9 +41,9 @@ defmodule Relay.Schema.MigrationReplayTest do
     conn
   end
 
-  defp q!(conn, sql, params \\ []), do: Postgrex.query!(conn, sql, params).rows
+  defp q!(conn, sql, params \\ []), do: Postgrex.query!(conn, sql, params, @infinity).rows
 
-  defp scoped(conn, tenant, environment, fun) do
+  defp scoped(conn, {tenant, environment}, fun) do
     {:ok, result} =
       Postgrex.transaction(
         conn,
@@ -40,20 +51,19 @@ defmodule Relay.Schema.MigrationReplayTest do
           q!(tx, "SELECT relay_fn.ctx_set($1, $2)", [tenant, environment])
           fun.(tx)
         end,
-        timeout: :infinity
+        @infinity
       )
 
     result
   end
 
-  defp bytes(n), do: :rand.bytes(n)
+  defp id, do: Relay.Id.build(System.os_time(:millisecond), :crypto.strong_rand_bytes(10))
 
-  defp id, do: Relay.Id.build(System.os_time(:millisecond), bytes(10))
+  defp digest, do: :crypto.strong_rand_bytes(32)
 
   defp actor, do: ["system", "relay:replay", "relay", nil]
 
-  defp seed(conn) do
-    :rand.seed(:exsss, {@seed, @seed, @seed})
+  defp tenants(conn) do
     [[region]] = q!(conn, "SELECT region FROM relay.installation")
 
     for t <- 1..@tenants do
@@ -63,117 +73,166 @@ defmodule Relay.Schema.MigrationReplayTest do
         q!(
           conn,
           "SELECT result, tenant_id FROM relay_ops.tenant_create($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
-          [
-            tenant,
-            "acc-replay-#{t}",
-            region,
-            "general",
-            "Europe/Istanbul",
-            "tr",
-            bytes(32) | actor()
-          ]
+          [tenant, "acc-replay-#{t}", region, "general", "Europe/Istanbul", "tr", digest()] ++
+            actor()
         )
 
-      for environment <- ["live", "test"] do
-        scoped(conn, tenant, environment, &seed_scope(&1, t))
-      end
+      tenant
     end
   end
 
-  defp seed_scope(tx, t) do
-    wrap = key!(tx, "dek_wrap")
-    _data = key!(tx, "data")
+  defp seed(scopes, per_scope) do
+    scopes
+    |> Task.async_stream(
+      fn scope ->
+        conn = connect()
+
+        try do
+          seed_scope(conn, scope, per_scope)
+        after
+          GenServer.stop(conn)
+        end
+      end,
+      max_concurrency: @workers,
+      timeout: :infinity,
+      ordered: false
+    )
+    |> Enum.each(fn {:ok, :ok} -> :ok end)
+  end
+
+  defp seed_scope(conn, scope, notifications) do
+    {wrap, bidx} = scoped(conn, scope, &keys/1)
+
+    [[@recipients]] =
+      scoped(conn, scope, fn tx ->
+        q!(
+          tx,
+          """
+          SELECT count(*) FROM generate_series(1, $1::int) g
+          CROSS JOIN LATERAL relay_fn.recipient_create(uuidv7(), 'subscriber',
+            sha256(convert_to('replay:' || g, 'UTF8')), $2, sha256(convert_to('ct:' || g, 'UTF8')),
+            uuidv7(), sha256(convert_to('dek:' || g, 'UTF8')), $3) r
+          WHERE r.result = 'created'
+          """,
+          [@recipients, bidx, wrap]
+        )
+      end)
+
+    [[^notifications]] =
+      scoped(conn, scope, fn tx ->
+        q!(
+          tx,
+          """
+          SELECT count(*) FROM (SELECT r.id, row_number() OVER (ORDER BY r.id) AS no FROM relay.recipients r
+            WHERE r.tenant_id = $1 AND r.environment = $2) r
+          JOIN generate_series(1, $3::int) g ON g % $4::int = r.no - 1
+          CROSS JOIN LATERAL relay_fn.notification_accept(uuidv7(), r.id, NULL, 'replay:' || g,
+            'transactional', NULL, 'system', NULL, NULL, NULL, false, NULL) n
+          WHERE n.result = 'created'
+          """,
+          Tuple.to_list(scope) ++ [notifications, @recipients]
+        )
+      end)
+
+    [[opened]] =
+      scoped(conn, scope, fn tx ->
+        q!(
+          tx,
+          """
+          SELECT count(*) FROM relay.notifications n
+          CROSS JOIN LATERAL unnest(ARRAY['email', 'sms']) c
+          CROSS JOIN LATERAL relay_fn.delivery_open(uuidv7(), n.id, c, 'address', NULL,
+            sha256(convert_to(n.id::text || c, 'UTF8')), CASE c WHEN 'sms' THEN 'acme_sms' END,
+            NULL, NULL, 'send', NULL, NULL, NULL, NULL) d
+          WHERE n.tenant_id = $1 AND n.environment = $2 AND d.result = 'opened'
+          """,
+          Tuple.to_list(scope)
+        )
+      end)
+
+    true = opened == 2 * notifications
+
+    scoped(conn, scope, fn tx ->
+      q!(
+        tx,
+        """
+        SELECT count(*) FROM relay.notifications n
+        CROSS JOIN LATERAL relay_fn.outbox_append(uuidv7(), 'notification.accepted',
+          'recipient:' || n.recipient_id, jsonb_build_object('notification', n.id), NULL) o
+        WHERE n.tenant_id = $1 AND n.environment = $2 AND o.result = 'appended'
+        """,
+        Tuple.to_list(scope)
+      )
+
+      q!(
+        tx,
+        """
+        SELECT count(*) FROM relay.deliveries d
+        CROSS JOIN LATERAL relay_fn.ledger_append(uuidv7(), d.id, NULL, 'provider_api',
+          'provider.accepted', NULL, d.provider, NULL, now(), NULL, 1::smallint, NULL, NULL, NULL,
+          NULL, NULL, NULL) l
+        WHERE d.tenant_id = $1 AND d.environment = $2 AND get_byte(d.target_key, 0) % 4 = 0
+        """,
+        Tuple.to_list(scope)
+      )
+
+      [["appended"]] =
+        q!(
+          tx,
+          "SELECT relay_fn.audit_append($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+          [id(), "replay.seeded" | actor()] ++ [nil, nil, nil, nil, nil, digest()]
+        )
+    end)
+
+    :ok
+  end
+
+  defp keys(tx) do
+    register = "SELECT relay_fn.tenant_key_register($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
+    wrap = id()
+    [["created"]] = q!(tx, register, [wrap, "dek_wrap", nil, "pkcs11:object=kek;v=1"] ++ blob())
+    [["created"]] = q!(tx, register, [id(), "data", nil, "pkcs11:object=kek;v=1"] ++ blob())
     bidx = id()
 
     [["created"]] =
       q!(
         tx,
         "SELECT relay_fn.blind_index_key_register($1, $2, $3, $4, $5, $6, $7)",
-        [bidx, "pkcs11:object=bidx", bytes(32) | actor()]
+        [bidx, "pkcs11:object=bidx", digest() | actor()]
       )
 
-    for r <- 1..(5 + rem(t * 7, 40)) do
-      recipient = id()
-
-      [["created", ^recipient]] =
-        q!(
-          tx,
-          "SELECT result, recipient_id FROM relay_fn.recipient_create($1, $2, $3, $4, $5, $6, $7, $8)",
-          [recipient, "subscriber", bytes(32), bidx, bytes(48), id(), bytes(32), wrap]
-        )
-
-      for n <- 1..(1 + rem(r, 4)), do: seed_notification(tx, recipient, "#{t}-#{r}", n)
-    end
-
-    [["appended"]] =
-      q!(
-        tx,
-        "SELECT relay_fn.audit_append($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
-        [id(), "replay.seeded" | actor()] ++ [nil, nil, nil, nil, nil, bytes(32)]
-      )
+    {wrap, bidx}
   end
 
-  defp seed_notification(tx, recipient, stream, n) do
-    notification = id()
-
-    [["created", ^notification]] =
-      q!(
-        tx,
-        "SELECT result, notification_id FROM relay_fn.notification_accept($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
-        [notification, recipient, nil, "replay-#{stream}-#{n}", "transactional"] ++
-          [nil, "system", nil, nil, nil, false, nil]
-      )
-
-    for {channel, provider} <- Enum.take([{"email", nil}, {"sms", "acme_sms"}], 1 + rem(n, 2)) do
-      [["opened", _]] =
-        q!(
-          tx,
-          "SELECT result, delivery_id FROM relay_fn.delivery_open($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)",
-          [id(), notification, channel, "address", nil, bytes(32), provider] ++
-            [nil, nil, "send", nil, nil, nil, nil]
-        )
-    end
-
-    [["appended" | _]] =
-      q!(
-        tx,
-        "SELECT * FROM relay_fn.outbox_append($1, $2, $3, $4, $5)",
-        [id(), "notification.accepted", "notification:replay-#{stream}", %{"n" => n}, nil]
-      )
-  end
-
-  defp key!(tx, purpose) do
-    key = id()
-
-    [["created"]] =
-      q!(
-        tx,
-        "SELECT relay_fn.tenant_key_register($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-        [key, purpose, nil, "pkcs11:object=kek;v=1", bytes(61), bytes(32) | actor()]
-      )
-
-    key
-  end
+  defp blob, do: [:crypto.strong_rand_bytes(61), digest() | actor()]
 
   defp counts(conn) do
-    for table <- ~w(tenants recipients notifications deliveries outbox_events audit_log),
+    for table <-
+          ~w(tenants recipients notifications deliveries delivery_events outbox_events audit_log),
         into: %{},
         do: {table, q!(conn, "SELECT count(*) FROM relay.#{table}") |> hd() |> hd()}
   end
 
-  test "OP-57: the newest migrations replay over production-shaped data and leave the schema sound" do
+  test "OP-71: every migration replays from scratch over about a million synthetic deliveries and leaves the schema sound" do
     {:ok, _} = Application.ensure_all_started(:postgrex)
     all = versions()
-    {base, replayed} = Enum.split(all, length(all) - @replayed)
+    assert @seed_after in all
+    {base, replayed} = Enum.split_with(all, &(&1 <= @seed_after))
+    assert replayed != []
 
     :ok = RelayDev.Database.create(@database)
-    assert RelayDev.Database.upgrade(@database, List.last(base)) == base
+    assert RelayDev.Database.upgrade(@database, @seed_after) == base
 
-    worker = connect("relay_worker")
-    seed(worker)
-    admin = connect(:admin)
+    admin = connect()
+
+    scopes =
+      for tenant <- tenants(admin), environment <- ["live", "test"], do: {tenant, environment}
+
+    per_scope = div(deliveries(), 2 * length(scopes))
+    seed(scopes, per_scope)
     before = counts(admin)
-    assert before["notifications"] > 1_000
+    assert before["deliveries"] == per_scope * 2 * length(scopes)
+    assert before["deliveries"] >= deliveries() * 0.99
 
     {micros, applied} = :timer.tc(fn -> RelayDev.Database.upgrade(@database, :all) end)
     assert applied == replayed
@@ -203,7 +262,6 @@ defmodule Relay.Schema.MigrationReplayTest do
 
     assert Enum.filter(violations, fn [_check, _table, n] -> n > 0 end) == []
 
-    GenServer.stop(worker)
     GenServer.stop(admin)
   end
 end

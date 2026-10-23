@@ -1,9 +1,9 @@
-defmodule Relay.Platform.Queue.Worker do
+defmodule Relay.Worker do
   @moduledoc """
-  Base of every Relay job worker. `use Relay.Platform.Queue.Worker` takes the `Oban.Worker` options plus `:timeout`, a literal number of milliseconds that defaults to and may not exceed one hour; the worker's `timeout/1` is fixed to that value and cannot be overridden. A job that needs longer is split into smaller jobs, and a long wait is a row with a timer, not a running job.
+  Base of every Relay job worker. `use Relay.Worker` takes the `Oban.Worker` options plus `:timeout`, a literal number of milliseconds that defaults to and may not exceed one hour; the worker's `timeout/1` is fixed to that value and cannot be overridden. A job that needs longer is split into smaller jobs, and a long wait is a row with a timer, not a running job.
 
       defmodule Relay.Delivery.SendWorker do
-        use Relay.Platform.Queue.Worker, queue: :l1, max_attempts: 10, timeout: 30_000
+        use Relay.Worker, queue: :l1, max_attempts: 10, timeout: 30_000
 
         @impl Oban.Worker
         def perform(%Oban.Job{args: %{"delivery_id" => id}}), do: ...
@@ -38,7 +38,7 @@ defmodule Relay.Platform.Queue.Worker do
     quote location: :keep do
       use Oban.Worker, unquote(oban_opts)
 
-      @after_compile Relay.Platform.Queue.Worker
+      @after_compile Relay.Worker
 
       @impl Oban.Worker
       def timeout(%Oban.Job{}), do: unquote(timeout)

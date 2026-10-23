@@ -33,6 +33,7 @@ defmodule Relay do
       RetentionClass,
       Crypto,
       Canonical,
-      Release
+      Release,
+      Worker
     ]
 end

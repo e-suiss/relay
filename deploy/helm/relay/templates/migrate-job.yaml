@@ -14,36 +14,27 @@ spec:
         runAsNonRoot: true
         runAsUser: 10001
       initContainers:
+        {{- include "relay.bootstrap-container" (dict "root" . "name" "bootstrap") | nindent 8 }}
         - name: migrate
           image: {{ include "relay.image" . }}
           args: ["eval", "Relay.Release.migrate()"]
           env:
-            {{- include "relay.env" . | nindent 12 }}
+            - name: DATABASE_URL
+              value: {{ required "database.migratorUrl is required" .Values.database.migratorUrl | quote }}
+            - name: DATABASE_PASSWORD_FILE
+              value: /run/secrets/relay-migrator/password
+            {{- include "relay.env.shared" . | nindent 12 }}
             - name: RELAY_ROLES
               value: worker
           volumeMounts:
             - name: database-password
               mountPath: /run/secrets/relay
+              readOnly: true
+            - name: migrator-password
+              mountPath: /run/secrets/relay-migrator
               readOnly: true
       containers:
-        - name: bootstrap
-          image: {{ include "relay.image" . }}
-          args: ["eval", "Relay.Release.bootstrap()"]
-          env:
-            {{- include "relay.env" . | nindent 12 }}
-            - name: RELAY_ROLES
-              value: worker
-            - name: ADMIN_DATABASE_URL
-              value: {{ required "database.adminUrl is required" .Values.database.adminUrl | quote }}
-            - name: ADMIN_DATABASE_PASSWORD_FILE
-              value: /run/secrets/relay-admin/password
-          volumeMounts:
-            - name: database-password
-              mountPath: /run/secrets/relay
-              readOnly: true
-            - name: admin-password
-              mountPath: /run/secrets/relay-admin
-              readOnly: true
+        {{- include "relay.bootstrap-container" (dict "root" . "name" "ownership") | nindent 8 }}
       volumes:
         - name: database-password
           secret:
@@ -55,6 +46,12 @@ spec:
                 path: queue-database-password
               - key: maint-password
                 path: maint-database-password
+        - name: migrator-password
+          secret:
+            secretName: {{ .Values.database.migratorPasswordSecret }}
+            items:
+              - key: password
+                path: password
         - name: admin-password
           secret:
             secretName: {{ .Values.database.adminPasswordSecret }}

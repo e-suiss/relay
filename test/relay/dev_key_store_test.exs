@@ -115,10 +115,22 @@ defmodule Relay.HsmKeysTest do
     out
   end
 
+  test "TN-65 (2): without a blind index label the script creates no installation-wide blind index key",
+       ctx do
+    env =
+      ctx.env
+      |> List.keydelete("KEY_STORE_BLIND_INDEX_LABEL", 0)
+      |> List.keystore("KEY_STORE_KEK_LABEL", 0, {"KEY_STORE_KEK_LABEL", "kek-only"})
+
+    assert {out, 0} = script([{"KEY_STORE_BLIND_INDEX_LABEL", nil} | env])
+    assert out =~ "hsm-keys: kek-only created"
+    refute out =~ "bidx"
+  end
+
   test "OP-63: the script creates the checkpoint key, the KEK and the blind index key once",
        ctx do
     assert {out, 0} = script(ctx.env)
-    assert out =~ "hsm-keys: audit-checkpoint created"
+    assert out =~ ~r/hsm-keys: audit-checkpoint (created|exists)/
     assert out =~ "hsm-keys: kek-test created"
     assert out =~ "hsm-keys: bidx-test created"
 

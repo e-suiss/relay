@@ -1,17 +1,17 @@
-defmodule Relay.Platform.Queue.WorkerTest do
+defmodule Relay.WorkerTest do
   use ExUnit.Case, async: true
 
-  alias Relay.Platform.Queue.Worker
+  alias Relay.Worker
 
   defmodule DefaultWorker do
-    use Relay.Platform.Queue.Worker, queue: :default
+    use Relay.Worker, queue: :default
 
     @impl Oban.Worker
     def perform(%Oban.Job{}), do: :ok
   end
 
   defmodule ShortWorker do
-    use Relay.Platform.Queue.Worker, queue: :default, max_attempts: 3, timeout: 30_000
+    use Relay.Worker, queue: :default, max_attempts: 3, timeout: 30_000
 
     @impl Oban.Worker
     def perform(%Oban.Job{}), do: :ok
@@ -21,7 +21,7 @@ defmodule Relay.Platform.Queue.WorkerTest do
     Code.compile_quoted(
       quote do
         defmodule unquote(name) do
-          use Relay.Platform.Queue.Worker, unquote(opts)
+          use Relay.Worker, unquote(opts)
 
           @impl Oban.Worker
           def perform(%Oban.Job{}), do: :ok
@@ -41,6 +41,11 @@ defmodule Relay.Platform.Queue.WorkerTest do
       assert ShortWorker.__opts__()[:max_attempts] == 3
       assert ShortWorker.__opts__()[:queue] == :default
       assert ShortWorker.__relay_worker__()
+    end
+
+    test "T-15: the base worker is exported by the shared kernel, so every context can use it" do
+      [definition] = Keyword.fetch!(Relay.__info__(:attributes), Boundary)
+      assert Worker in Enum.map(definition.opts[:exports], &Module.safe_concat(Relay, &1))
     end
 
     test "OP-69: a timeout above one hour does not compile" do

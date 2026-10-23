@@ -24,14 +24,21 @@ defmodule Relay.ReleaseTest do
       assert File.read!("lib/relay/release.ex") =~ ~s("ADMIN_DATABASE_PASSWORD_FILE")
     end
 
-    test "OP-69: the Helm migrate hook runs the bootstrap after the migration" do
+    test "OP-69: the Helm migrate hook runs bootstrap, then the migration as relay_migrator, then the bootstrap again" do
       job = File.read!("deploy/helm/relay/templates/migrate-job.yaml")
       [init, main] = String.split(job, "      containers:\n")
-      assert init =~ "initContainers:"
-      assert init =~ ~s{args: ["eval", "Relay.Release.migrate()"]}
-      refute init =~ "bootstrap"
-      assert main =~ ~s{args: ["eval", "Relay.Release.bootstrap()"]}
-      assert main =~ "ADMIN_DATABASE_URL"
+      [before, migrate] = String.split(init, "        - name: migrate\n")
+      assert before =~ ~s{include "relay.bootstrap-container" (dict "root" . "name" "bootstrap")}
+      assert migrate =~ ~s{args: ["eval", "Relay.Release.migrate()"]}
+      assert migrate =~ ".Values.database.migratorUrl"
+      assert migrate =~ "/run/secrets/relay-migrator/password"
+      assert migrate =~ ~s{include "relay.env.shared"}
+      refute migrate =~ ~s{include "relay.env" }
+      assert main =~ ~s{include "relay.bootstrap-container" (dict "root" . "name" "ownership")}
+
+      helpers = File.read!("deploy/helm/relay/templates/_env.tpl")
+      assert helpers =~ ~s{args: ["eval", "Relay.Release.bootstrap()"]}
+      assert helpers =~ "ADMIN_DATABASE_URL"
     end
 
     test "OP-69: the smoke test bootstraps after migrating and sees a wrong owner stop the node" do

@@ -196,8 +196,9 @@ defmodule Relay.Schema.SchemaSecurityTest do
             into: MapSet.new(),
             do: {table, col}
 
-      for %{"table" => table, "columns" => listed, "reason" => reason} <- exceptions do
+      for %{"table" => table, "columns" => listed, "reason" => reason} = exception <- exceptions do
         assert is_binary(reason) and reason != ""
+        assert exception["basis"] in ["structural", "measured"], table
 
         for col <- listed do
           assert col in Map.fetch!(cols, table), "#{table}.#{col}"

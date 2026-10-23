@@ -1,8 +1,6 @@
 defmodule Relay.Schema.SchemaIntegrityTest do
   use Relay.SqlCase, async: false
 
-  @pending_size_checks [{"datasets", "json_schema"}, {"singleton_tasks", "state"}]
-
   defp tenant_tables do
     rows("""
     SELECT c.relname::text FROM pg_class c
@@ -33,6 +31,12 @@ defmodule Relay.Schema.SchemaIntegrityTest do
   end
 
   defp delta(before, after_, key), do: Map.get(after_, key, 0) - Map.get(before, key, 0)
+
+  defp assert_only_new_orphan(before, found, seeded) do
+    assert delta(before, found, seeded) == 1
+
+    for {key, n} <- found, key != seeded, do: assert(n == Map.get(before, key, 0), inspect(key))
+  end
 
   describe "INV-36 tenant context" do
     test "INV-36: every tenant table forces row level security and the application roles cannot bypass it" do
@@ -165,6 +169,17 @@ defmodule Relay.Schema.SchemaIntegrityTest do
       assert Map.has_key?(found, {"stream_head_missing", "outbox_events"})
     end
 
+    test "TN-12: every reference without a foreign key is covered by a nightly check",
+         %{admin: admin} do
+      found = Map.merge(on(admin, &orphan_check/0), on(admin, &reference_check/0))
+
+      exceptions =
+        "conformance/catalog/fk-exceptions.json" |> File.read!() |> Jason.decode!()
+
+      for %{"table" => table, "nightly_check" => check} <- exceptions,
+          do: assert(Map.has_key?(found, {check, table}), "#{check} #{table}")
+    end
+
     test "TN-12: a dropped, unvalidated or unlisted foreign key is reported", %{admin: admin} do
       rolled_back(admin, fn ->
         before = reference_check()
@@ -240,6 +255,54 @@ defmodule Relay.Schema.SchemaIntegrityTest do
             do: assert(n == Map.get(before, key, 0), inspect(key))
       end)
     end
+
+    test "OP-42: a ledger event whose attempt does not exist is counted as an orphan once",
+         %{admin: admin} do
+      rolled_back(admin, fn ->
+        %{tenant: tenant, notification: notification} = scenario!()
+        delivery = delivery!(notification)
+        before = orphan_check()
+
+        rows(
+          """
+          INSERT INTO relay.delivery_events (tenant_id, environment, id, received_at, delivery_id,
+            attempt_no, actor, event_type, occurred_at, projection_result, detail)
+          VALUES ($1, 'test', $2, now(), $3, 7, 'provider_webhook', 'dlr.delivered', now(),
+            'stale_ignored', '{}')
+          """,
+          [tenant, id(), delivery]
+        )
+
+        assert_only_new_orphan(
+          before,
+          orphan_check(),
+          {"ledger_attempt_missing", "delivery_events"}
+        )
+      end)
+    end
+
+    test "OP-42: an audit leaf without its audit record is counted as an orphan once",
+         %{admin: admin} do
+      rolled_back(admin, fn ->
+        tenant = tenant!()
+        before = orphan_check()
+
+        rows(
+          """
+          INSERT INTO relay.audit_leaves (log_origin, leaf_index, audit_tenant_id,
+            audit_environment, audit_id, audit_created_at, leaf_hash, integrated_at)
+          VALUES ('relay.test/op42', 0, $1, 'live', $2, now(), $3, now())
+          """,
+          [tenant, id(), digest()]
+        )
+
+        assert_only_new_orphan(
+          before,
+          orphan_check(),
+          {"audit_leaf_without_record", "audit_leaves"}
+        )
+      end)
+    end
   end
 
   describe "OP-57 OP-1 schema health" do
@@ -278,7 +341,35 @@ defmodule Relay.Schema.SchemaIntegrityTest do
         ORDER BY 1, 2
         """)
 
-      assert Enum.map(unchecked, &List.to_tuple/1) == @pending_size_checks
+      assert unchecked == []
+    end
+
+    test "OP-71: a dataset schema or a singleton task state over 64 kB is refused", %{
+      admin: admin
+    } do
+      big = %{"pad" => Base.encode64(:crypto.strong_rand_bytes(50_000))}
+      fits = %{"pad" => Base.encode64(:crypto.strong_rand_bytes(40_000))}
+      name = "size_" <> Base.encode16(:crypto.strong_rand_bytes(4), case: :lower)
+
+      dataset =
+        "INSERT INTO relay.datasets (name, json_schema, json_schema_digest, allowed_scopes, created_at) VALUES ($1, $2, $3, ARRAY['installation'], now())"
+
+      task =
+        "INSERT INTO relay.singleton_tasks (name, fencing_token, state, updated_at) VALUES ($1, 1, $2, now())"
+
+      rolled_back(admin, fn ->
+        assert rows(dataset, [name, fits, digest()]) == []
+        assert rows(task, [name, fits]) == []
+      end)
+
+      rolled_back(admin, fn ->
+        assert sql_error(dataset, [name, big, digest()]).postgres.constraint ==
+                 "datasets_json_schema_check"
+      end)
+
+      rolled_back(admin, fn ->
+        assert sql_error(task, [name, big]).postgres.constraint == "singleton_tasks_state_check"
+      end)
     end
   end
 

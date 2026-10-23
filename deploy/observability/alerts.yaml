@@ -51,6 +51,28 @@ groups:
           decision: OP-42
         annotations:
           summary: "Integrity check {{ $labels.check }} found violations in {{ $labels.table }}"
+      - alert: RelayIntegrityStale
+        expr: time() - max(relay_integrity_last_run_timestamp_seconds) > 129600
+        labels:
+          severity: page
+          decision: OP-71
+        annotations:
+          summary: "The nightly integrity check has not completed for 36 hours"
+      - alert: RelayIntegrityUnreported
+        expr: absent(relay_integrity_last_run_timestamp_seconds)
+        for: 36h
+        labels:
+          severity: page
+          decision: OP-71
+        annotations:
+          summary: "No node has reported a completed nightly integrity check for 36 hours"
+      - alert: RelayProjectionDifference
+        expr: time() - relay_projection_difference_timestamp_seconds < 691200
+        labels:
+          severity: page
+          decision: OP-71
+        annotations:
+          summary: "The weekly rebuild found a delivery projection that differs from its ledger"
       - alert: RelayQueryStatsMissing
         expr: relay_postgres_query_stats_missing == 1
         labels:

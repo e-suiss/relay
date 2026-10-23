@@ -22,6 +22,10 @@ tests:
         values: "1x10"
       - series: 'relay_valkey_eviction_policy_mismatch'
         values: "1x10"
+      - series: 'relay_integrity_last_run_timestamp_seconds'
+        values: "60x10"
+      - series: 'relay_projection_difference_timestamp_seconds'
+        values: "60x10"
     alert_rule_test:
       - eval_time: 6m
         alertname: RelayPartitionHorizon
@@ -66,6 +70,18 @@ tests:
             exp_annotations:
               summary: "Integrity check fk_missing found violations in deliveries"
       - eval_time: 6m
+        alertname: RelayIntegrityStale
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: RelayIntegrityUnreported
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: RelayProjectionDifference
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-71}
+            exp_annotations:
+              summary: "The weekly rebuild found a delivery projection that differs from its ledger"
+      - eval_time: 6m
         alertname: RelayQueryStatsMissing
         exp_alerts:
           - exp_labels: {severity: warning, decision: OP-11}
@@ -89,4 +105,51 @@ tests:
         exp_alerts: []
       - eval_time: 60m
         alertname: RelaySingletonLeaderless
+        exp_alerts: []
+  - interval: 1h
+    input_series:
+      - series: 'relay_integrity_last_run_timestamp_seconds{instance="a"}'
+        values: "0x40"
+    alert_rule_test:
+      - eval_time: 35h
+        alertname: RelayIntegrityStale
+        exp_alerts: []
+      - eval_time: 37h
+        alertname: RelayIntegrityStale
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-71}
+            exp_annotations:
+              summary: "The nightly integrity check has not completed for 36 hours"
+  - interval: 1h
+    input_series:
+      - series: 'relay_integrity_last_run_timestamp_seconds{instance="a"}'
+        values: "0x40"
+      - series: 'relay_integrity_last_run_timestamp_seconds{instance="b"}'
+        values: "_x20 72000x20"
+    alert_rule_test:
+      - eval_time: 37h
+        alertname: RelayIntegrityStale
+        exp_alerts: []
+  - interval: 1h
+    input_series:
+      - series: 'relay_projection_difference_timestamp_seconds'
+        values: "3600x200"
+    alert_rule_test:
+      - eval_time: 35h
+        alertname: RelayIntegrityUnreported
+        exp_alerts: []
+      - eval_time: 37h
+        alertname: RelayIntegrityUnreported
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-71}
+            exp_annotations:
+              summary: "No node has reported a completed nightly integrity check for 36 hours"
+      - eval_time: 7d
+        alertname: RelayProjectionDifference
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-71}
+            exp_annotations:
+              summary: "The weekly rebuild found a delivery projection that differs from its ledger"
+      - eval_time: 8d2h
+        alertname: RelayProjectionDifference
         exp_alerts: []

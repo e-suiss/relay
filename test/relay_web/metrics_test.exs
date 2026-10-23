@@ -18,6 +18,9 @@ defmodule RelayWeb.MetricsTest do
      ~s(relay_queue_polling{component="notifier"} 1)},
     {[:relay, :integrity, :violation], %{violations: 2}, %{check: "fk_missing", table: "t"},
      ~s(relay_integrity_violation_timestamp_seconds{check="fk_missing",table="t"})},
+    {[:relay, :integrity, :run], %{count: 1}, %{}, "relay_integrity_last_run_timestamp_seconds "},
+    {[:relay, :projection, :difference], %{count: 1}, %{environment: :live},
+     "relay_projection_difference_timestamp_seconds "},
     {[:relay, :postgres, :query_stats], %{count: 1}, %{status: :missing},
      "relay_postgres_query_stats_missing 1"},
     {[:relay, :valkey, :guard], %{mismatch: 1}, %{}, "relay_valkey_eviction_policy_mismatch 1"}

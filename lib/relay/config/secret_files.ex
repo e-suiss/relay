@@ -19,10 +19,12 @@ defmodule Relay.Config.SecretFiles do
   @spec names() :: [name(), ...]
   def names, do: @names
 
-  @doc "Starts the process under its registered name; `paths` defaults to the application environment."
-  @spec start_link(keyword()) :: GenServer.on_start()
-  def start_link(paths \\ Application.get_env(:relay, __MODULE__, [])),
-    do: GenServer.start_link(__MODULE__, paths, name: __MODULE__)
+  @doc "Starts the process under its registered name with the file paths of the application environment."
+  @spec start_link(term()) :: GenServer.on_start()
+  def start_link(_arg \\ []) do
+    paths = Application.get_env(:relay, __MODULE__, [])
+    GenServer.start_link(__MODULE__, paths, name: __MODULE__)
+  end
 
   @doc "Starts the process unless it is running; for release commands that run without the supervision tree."
   @spec ensure_started() :: :ok

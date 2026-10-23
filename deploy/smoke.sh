@@ -163,7 +163,7 @@ curl -fsS --aws-sigv4 "aws:amz:us-east-1:s3" --user "relay:$(cat "$work/s3-secre
 if run -e RELAY_ROLES=api -e AUDIT_S3_BUCKET=relay-audit-unlocked "$image" start >"$work/unlocked.log" 2>&1; then
   fail "a node started with an audit target without object lock"
 fi
-grep -q "audit publication target probe failed" "$work/unlocked.log" || { cat "$work/unlocked.log" >&2; fail "the audit target probe did not stop the node"; }
+grep -q "audit_target_probe_failed" "$work/unlocked.log" || { cat "$work/unlocked.log" >&2; fail "the audit target probe did not stop the node"; }
 
 # INV-46
 if run -e RELAY_ROLES=api -e RELAY_UNKNOWN_SETTING=1 "$image" start >"$work/bad.log" 2>&1; then

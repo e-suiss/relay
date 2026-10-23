@@ -46,5 +46,11 @@
     "rule": "physical_delete",
     "match": "DELETE FROM relay_queue.oban_peers",
     "reason": "OP-12, OP-68: the queue peer expires its own leadership rows in the queue schema"
+  },
+  {
+    "path": "priv/repo/migrations/20261023000000_soft_delete_on_retention_end.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "OP-16, OP-69 (4): a committed relay_fn function is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   }
 ]

@@ -90,6 +90,44 @@ defmodule Relay.Sql.RetentionTest do
     assert due(tenant) == []
   end
 
+  test "OP-16: when the profile data key's retention ends the recipient is soft deleted and its blind index cleared" do
+    %{tenant: tenant, recipient: recipient} = scenario!()
+
+    profile =
+      one(
+        "SELECT id FROM relay.subject_keys WHERE recipient_id = $1 AND retention_class = 'recipient_profile'",
+        [recipient]
+      )
+
+    wrap =
+      one("SELECT wrapping_key_id FROM relay.subject_keys WHERE recipient_id = $1", [recipient])
+
+    ["created", record] =
+      row("SELECT * FROM relay_fn.subject_key_create($1, $2, 'delivery_record', $3, $4)", [
+        id(),
+        recipient,
+        digest(),
+        wrap
+      ])
+
+    ctx(tenant)
+    assert one(@retire, [record, digest() | actor()]) == "retired"
+    assert one("SELECT state FROM relay.recipients WHERE id = $1", [recipient]) == "active"
+
+    assert one(@retire, [profile, digest() | actor()]) == "retired"
+
+    assert row(
+             """
+             SELECT state, deleted_reason, deleted_at IS NOT NULL, external_id_bidx IS NULL,
+               external_id_bidx_key_id IS NULL, external_id_bidx_next IS NULL
+             FROM relay.recipients WHERE id = $1
+             """,
+             [recipient]
+           ) == ["deleted", "retention_end", true, true, true, true]
+
+    assert one("SELECT count(*) FROM relay.recipients WHERE id = $1", [recipient]) == 1
+  end
+
   test "OP-17: a legal hold keeps keys out of retention" do
     %{tenant: tenant, recipient: recipient} = scenario!()
     key = one("SELECT id FROM relay.subject_keys WHERE recipient_id = $1", [recipient])

@@ -1,146 +1,230 @@
-[
-  {
-    "table": "tenants",
-    "personal_columns": [],
-    "tenant_close": "status becomes closed; row kept",
-    "subject_erasure": "not subject data"
-  },
-  {
-    "table": "subtenants",
-    "personal_columns": [],
-    "tenant_close": "row kept",
-    "subject_erasure": "not subject data"
-  },
-  {
-    "table": "settings",
-    "personal_columns": [],
-    "tenant_close": "row kept",
-    "subject_erasure": "not subject data"
-  },
-  {
-    "table": "recipients",
-    "personal_columns": [
-      "external_id_ct",
-      "external_id_bidx",
-      "external_id_bidx_next"
-    ],
-    "tenant_close": "tenant keys destroyed; row kept",
-    "subject_erasure": "recipient_profile data key destroyed, row soft deleted, blind index columns set to null"
-  },
-  {
-    "table": "tenant_keys",
-    "personal_columns": [],
-    "tenant_close": "data and wrapping keys destroyed",
-    "subject_erasure": "not subject data"
-  },
-  {
-    "table": "subject_keys",
-    "personal_columns": [],
-    "tenant_close": "wrapped data keys destroyed",
-    "subject_erasure": "data keys destroyed, or restricted under a statutory retention"
-  },
-  {
-    "table": "blind_index_keys",
-    "personal_columns": [],
-    "tenant_close": "retired and the HSM object destroyed",
-    "subject_erasure": "not subject data"
-  },
-  {
-    "table": "secret_refs",
-    "personal_columns": [
-      "secret_ct"
-    ],
-    "tenant_close": "retired; the tenant data key is destroyed",
-    "subject_erasure": "not subject data"
-  },
-  {
-    "table": "legal_holds",
-    "personal_columns": [],
-    "tenant_close": "row kept",
-    "subject_erasure": "row kept"
-  },
-  {
-    "table": "erasure_log",
-    "personal_columns": [],
-    "tenant_close": "row kept",
-    "subject_erasure": "an entry is appended"
-  },
-  {
-    "table": "notifications",
-    "personal_columns": [],
-    "tenant_close": "row kept",
-    "subject_erasure": "pending deliveries are cancelled; row kept"
-  },
-  {
-    "table": "deliveries",
-    "personal_columns": [],
-    "tenant_close": "row kept",
-    "subject_erasure": "pending deliveries cancelled with a rule; target_key kept under the delivery_record retention"
-  },
-  {
-    "table": "delivery_attempts",
-    "personal_columns": [],
-    "tenant_close": "no personal fields; archived with its partition",
-    "subject_erasure": "no personal fields"
-  },
-  {
-    "table": "delivery_events",
-    "personal_columns": [],
-    "tenant_close": "no personal fields; archived with its partition",
-    "subject_erasure": "no personal fields"
-  },
-  {
-    "table": "webhook_receipts",
-    "personal_columns": [
-      "body_ct"
-    ],
-    "tenant_close": "receipt day keys destroyed",
-    "subject_erasure": "receipt day key destroyed seven days after the day"
-  },
-  {
-    "table": "idempotency_keys",
-    "personal_columns": [
-      "response_body_ct"
-    ],
-    "tenant_close": "tenant data key destroyed; archived with its partition",
-    "subject_erasure": "encrypted under the tenant data key; archived with its partition"
-  },
-  {
-    "table": "outbox_events",
-    "personal_columns": [],
-    "tenant_close": "no personal fields; archived with its partition",
-    "subject_erasure": "no personal fields"
-  },
-  {
-    "table": "stream_heads",
-    "personal_columns": [],
-    "tenant_close": "no personal fields",
-    "subject_erasure": "no personal fields"
-  },
-  {
-    "table": "usage_records",
-    "personal_columns": [],
-    "tenant_close": "no personal fields; archived with its partition",
-    "subject_erasure": "no personal fields"
-  },
-  {
-    "table": "audit_log",
-    "personal_columns": [
-      "details_ct"
-    ],
-    "tenant_close": "tenant data key destroyed; archived with its partition",
-    "subject_erasure": "encrypted under the tenant data key"
-  },
-  {
-    "table": "dataset_versions",
-    "personal_columns": [],
-    "tenant_close": "no personal fields",
-    "subject_erasure": "no personal fields"
-  },
-  {
-    "table": "dataset_active",
-    "personal_columns": [],
-    "tenant_close": "no personal fields",
-    "subject_erasure": "no personal fields"
-  }
-]
+{
+  "tables": [
+    {
+      "table": "tenants",
+      "personal_columns": [],
+      "tenant_close": "status becomes closed; row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "subtenants",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "settings",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "recipients",
+      "personal_columns": [
+        "external_id_ct",
+        "external_id_bidx",
+        "external_id_bidx_next"
+      ],
+      "tenant_close": "tenant keys destroyed; row kept",
+      "subject_erasure": "recipient_profile data key destroyed, row soft deleted, blind index columns set to null"
+    },
+    {
+      "table": "tenant_keys",
+      "personal_columns": [],
+      "tenant_close": "data and wrapping keys destroyed",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "subject_keys",
+      "personal_columns": [],
+      "tenant_close": "wrapped data keys destroyed",
+      "subject_erasure": "data keys destroyed, or restricted under a statutory retention"
+    },
+    {
+      "table": "blind_index_keys",
+      "personal_columns": [],
+      "tenant_close": "retired and the HSM object destroyed",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "secret_refs",
+      "personal_columns": [
+        "secret_ct"
+      ],
+      "tenant_close": "retired; the tenant data key is destroyed",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "legal_holds",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "row kept"
+    },
+    {
+      "table": "erasure_log",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "an entry is appended"
+    },
+    {
+      "table": "notifications",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "pending deliveries are cancelled; row kept"
+    },
+    {
+      "table": "deliveries",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "pending deliveries cancelled with a rule; target_key kept under the delivery_record retention"
+    },
+    {
+      "table": "delivery_attempts",
+      "personal_columns": [],
+      "tenant_close": "no personal fields; archived with its partition",
+      "subject_erasure": "no personal fields"
+    },
+    {
+      "table": "delivery_events",
+      "personal_columns": [],
+      "tenant_close": "no personal fields; archived with its partition",
+      "subject_erasure": "no personal fields"
+    },
+    {
+      "table": "webhook_receipts",
+      "personal_columns": [
+        "body_ct"
+      ],
+      "tenant_close": "receipt day keys destroyed",
+      "subject_erasure": "receipt day key destroyed seven days after the day"
+    },
+    {
+      "table": "idempotency_keys",
+      "personal_columns": [
+        "response_body_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; archived with its partition",
+      "subject_erasure": "encrypted under the tenant data key; archived with its partition"
+    },
+    {
+      "table": "outbox_events",
+      "personal_columns": [],
+      "tenant_close": "no personal fields; archived with its partition",
+      "subject_erasure": "no personal fields"
+    },
+    {
+      "table": "stream_heads",
+      "personal_columns": [],
+      "tenant_close": "no personal fields",
+      "subject_erasure": "no personal fields"
+    },
+    {
+      "table": "usage_records",
+      "personal_columns": [],
+      "tenant_close": "no personal fields; archived with its partition",
+      "subject_erasure": "no personal fields"
+    },
+    {
+      "table": "audit_log",
+      "personal_columns": [
+        "details_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; archived with its partition",
+      "subject_erasure": "encrypted under the tenant data key"
+    },
+    {
+      "table": "dataset_versions",
+      "personal_columns": [],
+      "tenant_close": "no personal fields",
+      "subject_erasure": "no personal fields"
+    },
+    {
+      "table": "dataset_active",
+      "personal_columns": [],
+      "tenant_close": "no personal fields",
+      "subject_erasure": "no personal fields"
+    }
+  ],
+  "locations": [
+    {
+      "location": "queue_args",
+      "store": "relay_queue.oban_jobs args and errors",
+      "personal_data": "none: identifiers and the tenant scope only",
+      "encryption": "not needed; no personal field is written",
+      "subject_erasure": "pending jobs of the subject are cancelled with their deliveries; rows carry identifiers only and are pruned (OP-12)",
+      "tenant_close": "no personal fields; pruned"
+    },
+    {
+      "location": "logs",
+      "store": "application logs (LoggerJSON)",
+      "personal_data": "none: personal and secret values travel as Relay.Redacted and are replaced before encoding; stack trace arguments are pruned",
+      "encryption": "not needed; redacted at the source",
+      "subject_erasure": "nothing to erase",
+      "tenant_close": "nothing to erase"
+    },
+    {
+      "location": "traces",
+      "store": "trace spans and their attributes",
+      "personal_data": "none: identifiers, rule ids and outcome codes only",
+      "encryption": "not needed; redacted at the source",
+      "subject_erasure": "nothing to erase",
+      "tenant_close": "nothing to erase"
+    },
+    {
+      "location": "dlq",
+      "store": "dead-letter records of deliveries and webhooks",
+      "personal_data": "blind index of the address instead of the address",
+      "encryption": "blind index under the tenant HMAC key in the key store",
+      "subject_erasure": "blind index columns are cleared with the recipient; the address is not stored",
+      "tenant_close": "blind index key retired; the HSM object is destroyed"
+    },
+    {
+      "location": "analytics",
+      "store": "analytics and usage streams",
+      "personal_data": "blind index of the address instead of the address",
+      "encryption": "blind index under the tenant HMAC key in the key store",
+      "subject_erasure": "events keep only the blind index and identifiers; the blind index no longer links once the recipient's columns are cleared",
+      "tenant_close": "blind index key retired; the HSM object is destroyed"
+    },
+    {
+      "location": "cold_archive",
+      "store": "WORM copy of detached partitions (OP-15)",
+      "personal_data": "encrypted columns as stored in the hot tables",
+      "encryption": "subject and tenant data keys; keys are never archived",
+      "subject_erasure": "the data keys are destroyed; archived ciphertext stays and no longer decrypts",
+      "tenant_close": "tenant and subject data keys destroyed; archived ciphertext no longer decrypts"
+    },
+    {
+      "location": "backups",
+      "store": "database backups and point-in-time recovery",
+      "personal_data": "encrypted columns and wrapped data keys",
+      "encryption": "wrapped under the tenant keys and the region KEK",
+      "subject_erasure": "the destroyed data key's copy expires with the 35-day backup window; erasure_log.backup_copies_expire_at records the date",
+      "tenant_close": "copies expire with the 35-day backup window"
+    },
+    {
+      "location": "outgoing_webhooks",
+      "store": "outgoing webhook bodies and their delivery attempts",
+      "personal_data": "none by default: thin events carry identifiers; a fat payload is encrypted under the tenant data key",
+      "encryption": "tenant data key for stored bodies",
+      "subject_erasure": "thin events carry nothing personal; stored bodies follow the tenant data key",
+      "tenant_close": "tenant data key destroyed"
+    },
+    {
+      "location": "key_cache",
+      "store": "unwrapped data keys in the node-local key cache process (TN-66)",
+      "personal_data": "data keys, not data",
+      "encryption": "in process memory only, never ETS or persistent_term, for at most ten minutes",
+      "subject_erasure": "every node drops its cached keys on the key destruction signal",
+      "tenant_close": "every node drops its cached keys on the key destruction signal"
+    },
+    {
+      "location": "valkey",
+      "store": "signals, counters and rate limiter keys",
+      "personal_data": "none: signals carry a sequence number only; keys are identifiers with a TTL",
+      "encryption": "not needed",
+      "subject_erasure": "nothing to erase",
+      "tenant_close": "keys expire with their TTL"
+    }
+  ]
+}

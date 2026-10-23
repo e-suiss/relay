@@ -11,8 +11,4 @@ defmodule RelayWeb.Router do
     get "/livez", HealthController, :live
     get "/readyz", HealthController, :ready
   end
-
-  scope "/", RelayWeb do
-    get "/metrics", MetricsController, :index
-  end
 end

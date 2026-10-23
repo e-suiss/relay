@@ -1,0 +1,20 @@
+image:
+  digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+database:
+  url: ecto://relay_worker@postgres:5432/relay
+  queueUrl: ecto://relay_queue@postgres:5432/relay
+  maintUrl: ecto://relay_maint@postgres:5432/relay
+  migratorUrl: ecto://relay_migrator@postgres:5432/relay
+  adminUrl: ecto://relay@postgres:5432/relay
+valkey:
+  url: redis://valkey:6379
+keyStore:
+  module: /usr/lib/softhsm/libsofthsm2.so
+  token: relay
+  kekLabel: kek
+  fingerprintLabel: fingerprint
+auditStore:
+  endpoint: https://s3.example.com
+  bucket: relay-audit
+  region: eu-central-1
+  accessKeyId: relay

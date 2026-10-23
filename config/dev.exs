@@ -24,6 +24,8 @@ config :relay, RelayWeb.Endpoint,
   secret_key_base: "dev-only-secret-key-base-0000000000000000000000000000000000000000000000",
   watchers: []
 
+config :relay, RelayWeb.Metrics, server: true, ip: {127, 0, 0, 1}, port: 9568
+
 config :relay, Relay.NetworkGuard, enabled: true
 
 config :relay, Relay.Audit,

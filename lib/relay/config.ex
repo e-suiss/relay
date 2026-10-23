@@ -3,6 +3,8 @@ defmodule Relay.Config do
   Strict configuration validation run before the supervision tree starts. An unknown configuration key, an unknown role or an unknown `RELAY_` environment variable stops the node; there is no silent default and no key that weakens a security or compliance check.
   """
 
+  require Logger
+
   alias Relay.Config.Error
 
   @app_keys [
@@ -24,8 +26,11 @@ defmodule Relay.Config do
     Relay.Platform.Leadership,
     Relay.Audit,
     Relay.NetworkGuard,
+    Relay.Config.SecretFiles,
+    RelayWeb.Metrics,
     Oban
   ]
+  @repos [Relay.Repo, Relay.QueueRepo, Relay.Platform.MaintRepo]
   @os_env_keys ["RELAY_HOST", "RELAY_ROLES", "RELAY_REGION"]
   @audit_keys [:log_host, :checkpoint_key, :publishers]
   @production Mix.env() == :prod
@@ -44,10 +49,85 @@ defmodule Relay.Config do
     validate_roles!(Keyword.get(app_env, :roles))
     validate_key_store!(Keyword.get(app_env, Relay.Keys.Port))
     validate_key_labels!(Keyword.get(app_env, Relay.Keys))
-    validate_audit!(Keyword.get(app_env, Relay.Audit), Keyword.get(opts, :production?, true))
+    production? = Keyword.get(opts, :production?, true)
+    validate_audit!(Keyword.get(app_env, Relay.Audit), production?)
+    validate_secret_files!(Keyword.get(app_env, Relay.Config.SecretFiles, []))
+    if production?, do: validate_no_plain_secrets!(app_env)
     validate_os_env!(os_env)
     :ok
   end
+
+  # OP-71 (6)
+  # OP-70
+  @doc "Startup probes of a production node: one child per audit publication target that can be probed. Each writes and reads back a probe object when the node starts; a failed probe stops the node."
+  @spec startup_probes(boolean()) :: [Supervisor.child_spec()]
+  def startup_probes(production? \\ @production)
+
+  def startup_probes(true) do
+    for {target, module, opts} <- publishers(), exported?(module, :probe, 1) do
+      %{
+        id: {:audit_target_probe, target},
+        start: {__MODULE__, :probe, [target, module, opts]},
+        restart: :temporary
+      }
+    end
+  end
+
+  def startup_probes(false), do: []
+
+  # OP-71 (6)
+  @doc "Runs the startup probe of one audit publication target; returns `:ignore` when it passed, so the supervisor moves on."
+  @spec probe(String.t(), module(), keyword()) :: :ignore | {:error, term()}
+  def probe(target, module, opts) do
+    case module.probe(opts) do
+      :ok ->
+        :ignore
+
+      {:error, %Relay.Error{code: code}} ->
+        Logger.error("audit publication target probe failed", target: target, code: code)
+        {:error, {:audit_target_probe_failed, target, code}}
+    end
+  end
+
+  defp publishers,
+    do: :relay |> Application.get_env(Relay.Audit, []) |> Keyword.get(:publishers, [])
+
+  # TN-67 (3)
+  defp validate_secret_files!(paths) do
+    names = Relay.Config.SecretFiles.names()
+
+    valid? =
+      Keyword.keyword?(paths) and
+        Enum.all?(paths, fn {name, path} -> name in names and is_binary(path) and path != "" end)
+
+    if valid?,
+      do: :ok,
+      else: raise(Error, "Relay.Config.SecretFiles takes #{inspect(names)} mapped to file paths")
+  end
+
+  # TN-67 (3)
+  # TN-26 (4)
+  defp validate_no_plain_secrets!(app_env) do
+    for repo <- @repos, Keyword.has_key?(Keyword.get(app_env, repo) || [], :password) do
+      raise Error, "#{inspect(repo)} must take its password from Relay.Config.SecretFiles"
+    end
+
+    audit = Keyword.get(app_env, Relay.Audit) || []
+
+    for {target, _module, opts} <- Keyword.get(audit, :publishers, []),
+        Keyword.has_key?(opts, :secret_access_key),
+        not callback?(opts[:secret_access_key]) do
+      raise Error, "audit publisher #{target} must take its secret from Relay.Config.SecretFiles"
+    end
+
+    :ok
+  end
+
+  defp callback?({module, function, args})
+       when is_atom(module) and is_atom(function) and is_list(args),
+       do: true
+
+  defp callback?(_value), do: false
 
   @doc "Configuration keys the application recognises."
   @spec known_app_keys() :: [atom()]

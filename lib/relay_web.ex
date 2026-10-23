@@ -3,7 +3,7 @@ defmodule RelayWeb do
   The web edge: the HTTP API, realtime transports, the MCP endpoint and static serving of the console.
   """
 
-  use Boundary, deps: [Relay, Relay.Platform], exports: [Endpoint, Telemetry]
+  use Boundary, deps: [Relay, Relay.Platform], exports: [Endpoint, Metrics, Telemetry]
 
   @doc false
   def static_paths, do: ~w(.well-known robots.txt)

@@ -160,6 +160,133 @@ defmodule Relay.Datasets.StoreTest do
     end
   end
 
+  describe "OP-65 (3) audited activation and the node signal" do
+    defp audit_rows(scope) do
+      now = DateTime.utc_now()
+      actor = TenantFixture.actor()
+
+      {:ok, rows} =
+        Relay.Repo.in_scope(scope, fn _status ->
+          Relay.Repo.query!(
+            "SELECT action, target_type, target_id, reason FROM relay_fn.audit_query($1, $2, NULL, NULL, 100, $3, $4, $5, $6, $7)",
+            [
+              DateTime.add(now, -3600),
+              DateTime.add(now, 3600),
+              TenantFixture.digest(),
+              Atom.to_string(actor.kind),
+              actor.ref,
+              actor.on_behalf_of_ref,
+              actor.access_record_ref
+            ]
+          ).rows
+        end)
+
+      Enum.filter(rows, fn [action | _] -> String.starts_with?(action, "dataset.") end)
+    end
+
+    defp subscribe!(scope, name) do
+      {:ok, topic} =
+        Relay.Platform.signal_topic(Relay.Scope.tenant_text(scope), "live", ["dataset", name])
+
+      :ok = Relay.Platform.subscribe_signal(topic)
+      await_up(topic)
+      topic
+    end
+
+    defp await_up(topic, tries \\ 100) do
+      case Relay.Platform.Signal.Hub.topics(Relay.Platform.Signal.Hub) do
+        %{^topic => :up} ->
+          :ok
+
+        _ when tries > 0 ->
+          Process.sleep(50)
+          await_up(topic, tries - 1)
+      end
+    end
+
+    defp with_competing_activation(scope, name, version_id, fun) do
+      test = self()
+
+      holder =
+        spawn_link(fn ->
+          conn = Relay.SqlCase.connect(:admin)
+
+          Postgrex.transaction(conn, fn tx ->
+            Postgrex.query!(tx, "SET LOCAL session_replication_role = replica", [])
+
+            Postgrex.query!(
+              tx,
+              "INSERT INTO relay.dataset_active (tenant_id, environment, dataset_name, version_id, activated_at, activated_by_ref) VALUES ($1, 'live', $2, $3, now(), 'competing')",
+              [scope.tenant_id, name, version_id]
+            )
+
+            send(test, :held)
+
+            receive do
+              :release -> Postgrex.rollback(tx, :released)
+            end
+          end)
+
+          send(test, :released)
+        end)
+
+      assert_receive :held, 5_000
+      Relay.Repo.query!("SET lock_timeout = '200ms'", [])
+
+      try do
+        fun.()
+      after
+        Relay.Repo.query!("SET lock_timeout = 0", [])
+        send(holder, :release)
+        assert_receive :released, 5_000
+      end
+    end
+
+    test "OP-65: publishing and activating a version each write an audit record", %{tenant: t} do
+      name = define!(["tenant"])
+      {:ok, {:published, v1, 1}} = publish(t.live, name, content("a"))
+      {:ok, :activated} = Datasets.activate(t.live, name, v1, :operator, operator())
+      id = Relay.Id.to_string(v1)
+
+      assert [
+               ["dataset.version_published", "dataset_version", ^id, nil],
+               ["dataset.activated", "dataset_version", ^id, "operator"]
+             ] = audit_rows(t.live)
+    end
+
+    test "OP-65: a committed activation signals every node to drop its cached version", %{
+      tenant: t
+    } do
+      name = define!(["tenant"])
+      {:ok, {:published, v1, 1}} = publish(t.live, name, content("a"))
+      topic = subscribe!(t.live, name)
+
+      {:ok, :activated} = Datasets.activate(t.live, name, v1, :operator, operator())
+      assert_receive {:relay_signal, ^topic, {:seq, _}}, 5_000
+
+      {:ok, :already_active} = Datasets.activate(t.live, name, v1, :operator, operator())
+      refute_receive {:relay_signal, ^topic, {:seq, _}}, 1_500
+    end
+
+    test "OP-65: an activation that rolls back sends no signal and leaves no audit record", %{
+      tenant: t
+    } do
+      name = define!(["tenant"])
+      {:ok, {:published, v1, 1}} = publish(t.live, name, content("a"))
+      topic = subscribe!(t.live, name)
+
+      with_competing_activation(t.live, name, v1, fn ->
+        assert_raise Postgrex.Error, ~r/lock timeout/, fn ->
+          Datasets.activate(t.live, name, v1, :operator, operator())
+        end
+      end)
+
+      refute_receive {:relay_signal, ^topic, {:seq, _}}, 1_500
+      assert Datasets.active(t.live, name) == {:ok, nil}
+      assert [["dataset.version_published", _, _, _]] = audit_rows(t.live)
+    end
+  end
+
   describe "OP-65 (5) bundled versions" do
     defp bundle!(dir, name, versions) do
       root = Path.join(dir, "datasets")

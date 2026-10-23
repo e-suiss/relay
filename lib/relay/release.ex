@@ -19,6 +19,7 @@ defmodule Relay.Release do
   @spec migrate() :: :ok
   def migrate do
     Application.load(:relay)
+    :ok = Relay.Config.SecretFiles.ensure_started()
 
     for repo <- Application.fetch_env!(:relay, :ecto_repos) do
       with_lock_retry(fn ->

@@ -149,9 +149,12 @@ defmodule Relay.ConfigTest do
         end
       end
 
+      secret = {Relay.Config.SecretFiles, :fetch!, [:audit_s3]}
+      s3 = Keyword.put(@s3, :secret_access_key, secret)
+
       assert :ok =
                Config.validate!(
-                 audit([{"worm_store", Relay.Audit.Checkpointer.Publisher.S3, @s3}]),
+                 audit([{"worm_store", Relay.Audit.Checkpointer.Publisher.S3, s3}]),
                  %{},
                  production?: true
                )
@@ -266,7 +269,7 @@ defmodule Relay.ConfigTest do
           ],
           do: assert(runtime =~ ~s[Relay.Config.Env.fetch!("#{name}")])
 
-      assert runtime =~ ~s[Relay.Config.Env.file!("AUDIT_S3_SECRET_ACCESS_KEY_FILE")]
+      assert runtime =~ ~s[Relay.Config.Env.fetch!("AUDIT_S3_SECRET_ACCESS_KEY_FILE")]
       assert runtime =~ "Relay.Audit.Checkpointer.Publisher.S3"
     end
 

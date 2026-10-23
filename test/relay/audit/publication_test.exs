@@ -198,6 +198,123 @@ defmodule Relay.Audit.PublicationTest do
     end
   end
 
+  describe "OP-71 (6) object lock per object and the startup probe" do
+    test "OP-71: every checkpoint object carries its own lock mode and retain-until date",
+         %{store: store, host: host} do
+      clock = Application.fetch_env!(:relay, :clock)
+      Application.put_env(:relay, :clock, Relay.ClockMock)
+      on_exit(fn -> Application.put_env(:relay, :clock, clock) end)
+      now = DateTime.add(DateTime.utc_now(), 600, :second)
+      stub(Relay.ClockMock, :utc_now, fn -> now end)
+      stub(Relay.ClockMock, :monotonic_ms, fn -> System.monotonic_time(:millisecond) end)
+
+      cp = checkpoint(host <> "/relay/audit/2026")
+      :ok = S3.publish(cp, store)
+
+      expected = DateTime.shift(%{now | microsecond: {0, 0}}, day: 1)
+      assert {:ok, {"GOVERNANCE", until}} = ObjectStore.retention(store, S3.key(cp, store))
+      assert DateTime.compare(until, expected) == :eq
+    end
+
+    test "OP-71: the lock headers follow the bucket's default rule" do
+      now = ~U[2026-10-23 10:15:30.123456Z]
+
+      assert S3.lock_headers({"COMPLIANCE", {:years, 10}}, now) == [
+               {"x-amz-object-lock-mode", "COMPLIANCE"},
+               {"x-amz-object-lock-retain-until-date", "2036-10-23T10:15:30Z"}
+             ]
+
+      assert S3.lock_headers({"GOVERNANCE", {:days, 1}}, ~U[2028-02-28 23:00:00Z]) == [
+               {"x-amz-object-lock-mode", "GOVERNANCE"},
+               {"x-amz-object-lock-retain-until-date", "2028-02-29T23:00:00Z"}
+             ]
+
+      assert {:ok, {"GOVERNANCE", {:days, 1}}} =
+               S3.lock_rule_of(
+                 "<ObjectLockConfiguration><ObjectLockEnabled>Enabled</ObjectLockEnabled><Rule><DefaultRetention><Mode>GOVERNANCE</Mode><Days>1</Days></DefaultRetention></Rule></ObjectLockConfiguration>"
+               )
+
+      assert S3.lock_rule_of(
+               "<ObjectLockConfiguration><ObjectLockEnabled>Enabled</ObjectLockEnabled></ObjectLockConfiguration>"
+             ) == :error
+    end
+
+    test "OP-71: a checkpoint is not written to a bucket without a default lock rule", %{
+      store: store,
+      host: host
+    } do
+      unlocked = Keyword.put(store, :bucket, "relay-audit-unlocked")
+      :ok = ObjectStore.setup_unlocked(unlocked)
+      cp = checkpoint(host <> "/relay/audit/2026")
+
+      assert {:error, %Relay.Error{code: :target_unlocked}} = S3.publish(cp, unlocked)
+      assert {:error, %Relay.Error{code: :publication_missing}} = S3.read(cp, unlocked)
+    end
+
+    test "OP-71: the startup probe writes a locked object and reads it back", %{store: store} do
+      probe =
+        Keyword.put(
+          store,
+          :prefix,
+          "probe-" <> Base.encode16(:crypto.strong_rand_bytes(4), case: :lower) <> "/"
+        )
+
+      assert Relay.Config.probe("worm_store", S3, probe) == :ignore
+      assert {:ok, [key]} = ObjectStore.keys(probe, probe[:prefix] <> "_probe/")
+      assert {:ok, {"GOVERNANCE", _until}} = ObjectStore.retention(probe, key)
+    end
+
+    test "OP-71: a production node does not start when its audit target fails the probe", %{
+      store: store
+    } do
+      unlocked = Keyword.put(store, :bucket, "relay-audit-unlocked")
+      :ok = ObjectStore.setup_unlocked(unlocked)
+      down = Keyword.put(store, :endpoint, "http://127.0.0.1:9")
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          assert Relay.Config.probe("worm_store", S3, unlocked) ==
+                   {:error, {:audit_target_probe_failed, "worm_store", :target_unlocked}}
+
+          assert Relay.Config.probe("worm_store", S3, down) ==
+                   {:error, {:audit_target_probe_failed, "worm_store", :publication_unreachable}}
+        end)
+
+      assert log =~ "audit publication target probe failed"
+
+      assert [%{id: {:audit_target_probe, "worm_store"}, start: {Relay.Config, :probe, _}}] =
+               Relay.Config.startup_probes(true)
+
+      assert Relay.Config.startup_probes(false) == []
+    end
+
+    test "TN-67: the object store secret is read through its callback in a sensitive process", %{
+      store: store,
+      host: host
+    } do
+      secret = Relay.Redacted.wrap(store[:secret_access_key])
+      via_callback = Keyword.put(store, :secret_access_key, fn -> secret end)
+
+      task =
+        Task.async(fn ->
+          :ok = S3.publish(checkpoint(host <> "/relay/audit/2026"), via_callback)
+          Process.info(self(), :dictionary)
+        end)
+
+      assert Task.await(task) == {:dictionary, []}
+      assert S3.validate(via_callback) == :ok
+
+      assert S3.validate(
+               Keyword.put(
+                 store,
+                 :secret_access_key,
+                 {Relay.Config.SecretFiles, :fetch!, [:audit_s3]}
+               )
+             ) ==
+               :ok
+    end
+  end
+
   describe "OP-70 read-back of recorded checkpoints" do
     test "OP-70: recorded checkpoints are read back from the target and compared with the record",
          %{public: public, store: store} do

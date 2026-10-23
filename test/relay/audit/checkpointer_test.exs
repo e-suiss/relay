@@ -131,7 +131,7 @@ defmodule Relay.Audit.CheckpointerTest do
                )
 
       assert {:ok, findings} = Verifier.verify(public)
-      assert Enum.reject(findings, &(&1.kind == :record_unintegrated)) == []
+      assert Enum.filter(findings, &(&1.origin == origin)) == []
     end)
   end
 

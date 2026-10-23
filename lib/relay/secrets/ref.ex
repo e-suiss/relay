@@ -6,6 +6,7 @@ defmodule Relay.Secrets.Ref do
   @enforce_keys [:id, :kind, :ref_version, :fingerprint, :state]
   @derive {Inspect, only: [:id, :kind, :ref_version, :state, :fingerprint]}
   defstruct [:id, :kind, :ref_version, :fingerprint, :state, :created_at, :retired_at]
+  use Relay.Hygiene, shown_fields: [:id, :kind, :ref_version, :state, :fingerprint]
 
   @type t :: %__MODULE__{
           id: Relay.Id.t(),

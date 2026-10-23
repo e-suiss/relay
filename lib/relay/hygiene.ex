@@ -8,13 +8,19 @@ defmodule Relay.Hygiene do
   # T-46
   @doc """
   Declares the secret fields of a struct: `use Relay.Hygiene, secret_fields: [:field]` after `@derive {Inspect, only: [...]}` and `defstruct`. Every build, the release build included, inspects a struct carrying a marker in each secret field and fails to compile the module if the marker shows.
+
+  A struct that must show only an allowlist declares it instead: `use Relay.Hygiene, shown_fields: [:field]` makes every other field secret, so a field added later stays hidden unless it is added to both lists.
   """
   defmacro __using__(opts) do
-    fields = Keyword.fetch!(opts, :secret_fields)
+    {attribute, fields} =
+      case opts do
+        [secret_fields: fields] -> {:relay_secret_fields, fields}
+        [shown_fields: fields] -> {:relay_shown_fields, fields}
+      end
 
     quote do
-      Module.register_attribute(__MODULE__, :relay_secret_fields, persist: true)
-      @relay_secret_fields unquote(fields)
+      Module.register_attribute(__MODULE__, unquote(attribute), persist: true)
+      Module.put_attribute(__MODULE__, unquote(attribute), unquote(fields))
       @after_compile Relay.Hygiene
     end
   end
@@ -22,14 +28,24 @@ defmodule Relay.Hygiene do
   @doc false
   @spec __after_compile__(Macro.Env.t(), binary()) :: :ok
   def __after_compile__(env, _bytecode) do
-    fields = env.module.__info__(:attributes) |> Keyword.get_values(:relay_secret_fields)
-
-    case check_inspect(env.module, List.flatten(fields)) do
+    case check_inspect(env.module, secret_fields(env.module)) do
       :ok ->
         :ok
 
       {:error, message} ->
         raise CompileError, file: env.file, line: env.line, description: message
+    end
+  end
+
+  @doc "The secret fields a struct module declared, directly or as every field outside its shown fields."
+  @spec secret_fields(module()) :: [atom()]
+  def secret_fields(module) do
+    attributes = module.__info__(:attributes)
+    secret = attributes |> Keyword.get_values(:relay_secret_fields) |> List.flatten()
+
+    case attributes |> Keyword.get_values(:relay_shown_fields) |> List.flatten() do
+      [] -> secret
+      shown -> (module.__struct__() |> Map.keys() |> List.delete(:__struct__)) -- shown
     end
   end
 
@@ -72,6 +88,46 @@ defmodule Relay.Hygiene do
     |> update(:queue, fn _ -> [] end)
     |> update(:reason, &prune_reason/1)
   end
+
+  # T-46
+  @doc "Installs `crash_report_filter/2` as a primary logger filter, ahead of the Elixir translator; idempotent."
+  @spec install_log_filter() :: :ok
+  def install_log_filter do
+    case :logger.add_primary_filter(__MODULE__, {&__MODULE__.crash_report_filter/2, []}) do
+      :ok -> :ok
+      {:error, {:already_exist, __MODULE__}} -> :ok
+    end
+  end
+
+  # T-46
+  @doc "Primary logger filter: prunes the arguments of every stack trace frame and the exception arguments in the reason of a process crash report. A process's `format_status/1` cannot reach the stack trace, which OTP appends to the reason after it."
+  @spec crash_report_filter(:logger.log_event(), term()) :: :logger.filter_return()
+  def crash_report_filter(%{msg: {:report, %{} = report}} = event, _extra),
+    do: %{event | msg: {:report, prune_report(report)}}
+
+  def crash_report_filter(event, _extra), do: event
+
+  defp prune_report(report) do
+    report
+    |> update(:reason, &(&1 |> prune_frames() |> prune_reason()))
+    |> update(:report, fn
+      %{} = inner -> prune_report(inner)
+      other -> other
+    end)
+  end
+
+  defp prune_frames(list) when is_list(list), do: Enum.map(list, &prune_frames/1)
+
+  defp prune_frames({module, function, args, location} = entry)
+       when is_atom(module) and is_atom(function) and is_list(args) and is_list(location),
+       do: frame(entry)
+
+  defp prune_frames(%_{} = struct), do: exception(struct)
+
+  defp prune_frames(tuple) when is_tuple(tuple),
+    do: tuple |> Tuple.to_list() |> Enum.map(&prune_frames/1) |> List.to_tuple()
+
+  defp prune_frames(other), do: other
 
   @doc "Replaces the arguments of every stack trace frame with their count."
   @spec prune_stacktrace(Exception.stacktrace() | term()) :: Exception.stacktrace() | term()

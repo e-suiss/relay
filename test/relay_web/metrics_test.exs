@@ -23,6 +23,21 @@ defmodule RelayWeb.MetricsTest do
     {[:relay, :valkey, :guard], %{mismatch: 1}, %{}, "relay_valkey_eviction_policy_mismatch 1"}
   ]
 
+  defp with_metrics(config, fun) do
+    previous = Application.get_env(:relay, RelayWeb.Metrics)
+    Application.put_env(:relay, RelayWeb.Metrics, config)
+
+    try do
+      fun.()
+    after
+      Application.put_env(:relay, RelayWeb.Metrics, previous)
+    end
+  end
+
+  defp children, do: RelayWeb.Metrics.children()
+
+  defp metrics, do: RelayWeb.Metrics.call(Plug.Test.conn(:get, "/metrics"), [])
+
   defp prometheus_name(metric), do: Enum.map_join(metric.name, "_", &Atom.to_string/1)
 
   defp rules do
@@ -48,13 +63,11 @@ defmodule RelayWeb.MetricsTest do
       end
     end
 
-    test "OP-69: every alarm event is exported on /metrics in the Prometheus format", %{
-      conn: conn
-    } do
+    test "OP-69: every alarm event is exported on /metrics in the Prometheus format" do
       for {event, measurements, meta, _line} <- @events,
           do: :telemetry.execute(event, measurements, meta)
 
-      conn = get(conn, "/metrics")
+      conn = metrics()
       body = response(conn, 200)
       assert [type] = get_resp_header(conn, "content-type")
       assert type =~ "text/plain"
@@ -64,11 +77,11 @@ defmodule RelayWeb.MetricsTest do
       assert body =~ "# TYPE relay_leadership_leaderless gauge"
     end
 
-    test "OP-69: a state alarm clears when the state returns to normal", %{conn: conn} do
+    test "OP-69: a state alarm clears when the state returns to normal" do
       :telemetry.execute([:relay, :queue, :mode], %{polling: 1}, %{component: :stager})
       :telemetry.execute([:relay, :queue, :mode], %{polling: 0}, %{component: :stager})
 
-      assert response(get(conn, "/metrics"), 200) =~ ~s(relay_queue_polling{component="stager"} 0)
+      assert response(metrics(), 200) =~ ~s(relay_queue_polling{component="stager"} 0)
     end
 
     test "OP-69: the local Prometheus loads the alert rules and scrapes the node" do
@@ -77,7 +90,34 @@ defmodule RelayWeb.MetricsTest do
 
       assert config =~ "/etc/prometheus/alerts.yaml"
       assert config =~ "metrics_path: /metrics"
+      assert config =~ "host.docker.internal:9568"
       assert compose =~ "./observability/alerts.yaml:/etc/prometheus/alerts.yaml:ro"
+    end
+
+    test "OP-71: /metrics is served on the internal metrics port and not by the API endpoint", %{
+      conn: conn
+    } do
+      assert response(get(conn, "/metrics"), 404)
+      assert response(RelayWeb.Metrics.call(Plug.Test.conn(:get, "/livez"), []), 404)
+
+      runtime = File.read!("config/runtime.exs")
+      assert runtime =~ ~s[port: Relay.Config.Env.integer!("METRICS_PORT")]
+
+      values = File.read!("deploy/helm/relay/values.yaml")
+      env = File.read!("deploy/helm/relay/templates/_env.tpl")
+      deployment = File.read!("deploy/helm/relay/templates/deployment.yaml")
+      service = File.read!("deploy/helm/relay/templates/service.yaml")
+
+      assert values =~ ~r/^metrics:\n  port: \d+$/m
+      assert env =~ "METRICS_PORT"
+      assert deployment =~ "containerPort: {{ $.Values.metrics.port }}"
+      refute service =~ "metrics"
+
+      config = [server: true, ip: {127, 0, 0, 1}, port: 9999]
+      assert [%{start: {Bandit, :start_link, [opts]}}] = with_metrics(config, &children/0)
+      assert opts[:plug] == RelayWeb.Metrics
+      assert opts[:port] == 9999
+      assert with_metrics([server: false], &children/0) == []
     end
 
     test "T-63: alarm metric tags come from bounded sets" do

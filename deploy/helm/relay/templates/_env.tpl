@@ -23,6 +23,8 @@
   value: {{ .Values.host | quote }}
 - name: PORT
   value: "4000"
+- name: METRICS_PORT
+  value: {{ required "metrics.port is required" .Values.metrics.port | quote }}
 - name: PKCS11_MODULE
   value: {{ required "keyStore.module is required" .Values.keyStore.module | quote }}
 - name: PKCS11_TOKEN

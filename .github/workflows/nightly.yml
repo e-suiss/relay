@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: docker compose -f deploy/compose.yaml up -d --wait postgres valkey
+      - run: docker compose -f deploy/compose.yaml up -d --wait postgres valkey minio
       - run: docker pull ghcr.io/e-suiss/relay:main
       - run: SMOKE_KEEP=1 deploy/smoke.sh ghcr.io/e-suiss/relay:main
       - run: load/run.sh load/targets/health.txt 200/1s 60s

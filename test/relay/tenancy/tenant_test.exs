@@ -11,10 +11,6 @@ defmodule Relay.Tenancy.TenantTest do
 
   defp create(attrs), do: Relay.Tenancy.create_tenant(attrs, TenantFixture.actor())
 
-  defp create_in_savepoint(attrs) do
-    Repo.transaction(fn -> create(attrs) end)
-  end
-
   defp tenant(scope) do
     {:ok, row} = Relay.Tenancy.tenant(scope)
     row
@@ -64,7 +60,8 @@ defmodule Relay.Tenancy.TenantTest do
             access_tenant_id: "acc_" <> TenantFixture.random()
         }
 
-        assert_raise Postgrex.Error, fn -> create_in_savepoint(Map.put(attrs, field, nil)) end
+        assert {:error, %Relay.Error{code: code}} = create(Map.put(attrs, field, nil))
+        assert code in [:invalid_time_zone, :invalid_locale]
       end
     end
 
@@ -96,9 +93,13 @@ defmodule Relay.Tenancy.TenantTest do
           access_tenant_id: "acc_" <> TenantFixture.random()
       }
 
-      assert_raise Postgrex.Error, fn ->
-        create_in_savepoint(%{attrs | default_locale: "Turkish"})
+      for locale <- ["Turkish", "tr_TR", "en-u-ca-gregory"] do
+        assert {:error, %Relay.Error{code: :invalid_locale}} =
+                 create(%{attrs | default_locale: locale})
       end
+
+      assert {:created, id} = create(%{attrs | default_locale: "TR-tr"})
+      assert tenant(Relay.Scope.new!(id, :live))["default_locale"] == "tr-TR"
     end
 
     test "WF-45: an offset time zone is refused", %{tenant: t} do
@@ -110,8 +111,74 @@ defmodule Relay.Tenancy.TenantTest do
             default_timezone: zone
         }
 
-        assert_raise Postgrex.Error, fn -> create_in_savepoint(attrs) end
+        assert {:error, %Relay.Error{code: :invalid_time_zone}} = create(attrs)
       end
+    end
+
+    test "TN-65: a link time zone is stored under the name of its zone", %{tenant: t} do
+      attrs = %{
+        t.attrs
+        | id: Relay.Id.generate(),
+          access_tenant_id: "acc_" <> TenantFixture.random(),
+          default_timezone: "Turkey"
+      }
+
+      assert {:created, id} = create(attrs)
+      assert tenant(Relay.Scope.new!(id, :live))["default_timezone"] == "Europe/Istanbul"
+    end
+  end
+
+  describe "TN-2 TN-46 changing the defaults" do
+    defp update(t, change) do
+      Relay.Tenancy.update_tenant_defaults(
+        t.live,
+        Map.merge(
+          %{
+            default_timezone: nil,
+            default_locale: nil,
+            sector: nil,
+            expected_version: tenant(t.live)["version"],
+            record_digest: TenantFixture.digest()
+          },
+          change
+        ),
+        TenantFixture.actor()
+      )
+    end
+
+    defp audit_actions(scope) do
+      {:ok, actions} =
+        Repo.in_scope(scope, fn _status ->
+          %{rows: rows} =
+            Repo.query!(
+              "SELECT action FROM relay_fn.audit_query(now() - interval '1 hour', now() + interval '1 hour', 'tenant.defaults_updated', NULL, 10, $1, 'system', 'relay-test', 'relay-test', NULL)",
+              [TenantFixture.digest()]
+            )
+
+          Enum.map(rows, &hd/1)
+        end)
+
+      actions
+    end
+
+    test "TN-2: a time zone or locale change writes its audit record", %{tenant: t} do
+      assert audit_actions(t.live) == []
+      assert {:ok, {:updated, _}} = update(t, %{default_timezone: "Europe/Berlin"})
+      assert {:ok, {:updated, _}} = update(t, %{default_locale: "de-DE"})
+      assert audit_actions(t.live) == ["tenant.defaults_updated", "tenant.defaults_updated"]
+      assert {:ok, {:unchanged, _}} = update(t, %{default_locale: "de-DE"})
+      assert length(audit_actions(t.live)) == 2
+    end
+
+    test "TN-65: a changed time zone is canonicalised and an offset zone is refused", %{
+      tenant: t
+    } do
+      assert {:error, %Relay.Error{code: :invalid_time_zone}} =
+               update(t, %{default_timezone: "Etc/GMT-3"})
+
+      assert {:error, %Relay.Error{code: :invalid_locale}} = update(t, %{default_locale: "x-y"})
+      assert {:ok, {:updated, _}} = update(t, %{default_timezone: "Europe/Kiev"})
+      assert tenant(t.live)["default_timezone"] == "Europe/Kyiv"
     end
   end
 

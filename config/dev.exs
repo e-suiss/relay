@@ -24,6 +24,8 @@ config :relay, RelayWeb.Endpoint,
   secret_key_base: "dev-only-secret-key-base-0000000000000000000000000000000000000000000000",
   watchers: []
 
+config :relay, Relay.NetworkGuard, enabled: true
+
 config :phoenix, :plug_init_mode, :runtime
 
 config :relay, Relay.Keys.Port,

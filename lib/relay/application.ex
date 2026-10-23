@@ -9,6 +9,7 @@ defmodule Relay.Application do
       Relay.Platform.Leadership,
       Relay.Tenancy,
       Relay.Keys.Eviction,
+      Relay.Datasets,
       RelayWeb
     ]
 
@@ -38,6 +39,7 @@ defmodule Relay.Application do
         Relay.Platform.children() ++
         Relay.Tenancy.children() ++
         [Relay.Keys.Eviction] ++
+        Relay.Datasets.children() ++
         Relay.Platform.Leadership.children(roles) ++ [RelayWeb.Endpoint]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Relay.Supervisor)

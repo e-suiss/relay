@@ -17,8 +17,8 @@ defmodule Relay.Tenancy.IsolationPropertyTest do
         scope,
         %{
           subtenant_id: subtenant,
-          key: "quiet_hours.enabled",
-          value: true,
+          key: "default_locale",
+          value: "en-GB",
           record_digest: TenantFixture.digest()
         },
         TenantFixture.actor()

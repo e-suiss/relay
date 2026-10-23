@@ -11,10 +11,12 @@ defmodule Relay.Tenancy do
   alias Relay.Scope
   alias Relay.Tenancy.BlindIndex
   alias Relay.Tenancy.Context
+  alias Relay.Tenancy.Defaults
   alias Relay.Tenancy.FieldCipher
   alias Relay.Tenancy.KeyCache
   alias Relay.Tenancy.KeyProvider
   alias Relay.Tenancy.Keyring
+  alias Relay.Tenancy.SettingKeys
   alias Relay.Tenancy.Settings
   alias Relay.Tenancy.Store
 
@@ -71,10 +73,16 @@ defmodule Relay.Tenancy do
   defdelegate require_active(status), to: Context
 
   # TN-1
-  @doc "Creates a tenant mapped from an Access tenant; see `Relay.Tenancy.Store.tenant_create/2`."
+  # TN-2
+  # TN-65 (6)
+  @doc "Creates a tenant mapped from an Access tenant after validating its time zone and locale and replacing them with their canonical forms; see `Relay.Tenancy.Store.tenant_create/2`."
   @spec create_tenant(map(), Actor.t()) ::
           {:created | :exists | :conflict | :region_mismatch, Relay.Id.t() | nil}
-  defdelegate create_tenant(attrs, actor), to: Store, as: :tenant_create
+          | {:error, Relay.Error.t()}
+  def create_tenant(attrs, actor) do
+    with {:ok, attrs} <- Defaults.canonical(attrs, [:default_timezone, :default_locale]),
+         do: Store.tenant_create(attrs, actor)
+  end
 
   @doc "Reads the tenant of a scope."
   @spec tenant(Scope.t()) :: {:ok, map() | nil} | {:error, term()}
@@ -97,13 +105,18 @@ defmodule Relay.Tenancy do
   end
 
   # TN-2
-  @doc "Updates the tenant defaults; the region is not updatable."
+  # TN-46
+  # TN-65 (6)
+  @doc "Updates the tenant defaults with an audit record; a time zone or locale is validated and canonicalised first, `nil` keeps the current value, and the region is not updatable."
   @spec update_tenant_defaults(Scope.t(), map(), Actor.t()) ::
           {:ok, {atom(), integer() | nil}} | {:error, term()}
   def update_tenant_defaults(scope, change, actor) do
-    within(scope, fn _status ->
-      Store.tenant_update_defaults(change, change.expected_version, change.record_digest, actor)
-    end)
+    with {:ok, change} <-
+           Defaults.canonical(change, [:default_timezone, :default_locale], required: false) do
+      within(scope, fn _status ->
+        Store.tenant_update_defaults(change, change.expected_version, change.record_digest, actor)
+      end)
+    end
   end
 
   # TN-3
@@ -120,20 +133,22 @@ defmodule Relay.Tenancy do
     do: within(scope, fn _status -> Store.subtenant_archive(subtenant_id, digest, actor) end)
 
   # TN-4
-  @doc "Sets or clears a stored setting at tenant level or, with `:subtenant_id`, at sub-tenant level."
+  @doc "Sets or clears a stored setting at tenant level or, with `:subtenant_id`, at sub-tenant level. The key must be in the setting catalog and the value must pass its check (`Relay.Tenancy.SettingKeys`); `nil` clears."
   @spec put_setting(Scope.t(), map(), Actor.t()) ::
           {:ok, {atom(), integer() | nil}} | {:error, term()}
   def put_setting(scope, change, actor) do
-    within(scope, fn _status ->
-      Store.setting_set(
-        Map.get(change, :subtenant_id),
-        change.key,
-        change.value,
-        Map.get(change, :expected_version),
-        change.record_digest,
-        actor
-      )
-    end)
+    with {:ok, value} <- SettingKeys.cast(change.key, change.value) do
+      within(scope, fn _status ->
+        Store.setting_set(
+          Map.get(change, :subtenant_id),
+          change.key,
+          value,
+          Map.get(change, :expected_version),
+          change.record_digest,
+          actor
+        )
+      end)
+    end
   end
 
   # TN-4

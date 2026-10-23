@@ -35,6 +35,8 @@ defmodule Relay do
       Crypto,
       Canonical,
       Release,
-      Worker
+      Worker,
+      NetworkGuard,
+      NetworkGuard.Error
     ]
 end

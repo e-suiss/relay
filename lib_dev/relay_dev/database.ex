@@ -51,7 +51,7 @@ defmodule RelayDev.Database do
   def upgrade(name, to) do
     opts =
       connection("relay_migrator")
-      |> Keyword.merge(database: name, pool_size: 1, name: nil)
+      |> Keyword.merge(database: name, pool_size: 2, name: nil)
       |> Keyword.put(:pool, DBConnection.ConnectionPool)
 
     {:ok, repo} = Relay.Repo.start_link(opts)

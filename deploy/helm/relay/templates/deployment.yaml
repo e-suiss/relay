@@ -55,6 +55,9 @@ spec:
             - name: pkcs11-pin
               mountPath: /run/secrets/relay-pkcs11
               readOnly: true
+            - name: audit-store-secret
+              mountPath: /run/secrets/relay-audit-store
+              readOnly: true
             - name: tmp
               mountPath: /tmp
             {{- with $.Values.keyStore.volumeMounts }}
@@ -77,6 +80,12 @@ spec:
             items:
               - key: pin
                 path: pin
+        - name: audit-store-secret
+          secret:
+            secretName: {{ $.Values.auditStore.secretAccessKeySecret }}
+            items:
+              - key: secret-access-key
+                path: secret-access-key
         - name: tmp
           emptyDir: {}
         {{- with $.Values.keyStore.volumes }}

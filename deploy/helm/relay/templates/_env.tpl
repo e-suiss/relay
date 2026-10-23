@@ -29,6 +29,16 @@
   value: {{ required "keyStore.token is required" .Values.keyStore.token | quote }}
 - name: PKCS11_PIN_FILE
   value: /run/secrets/relay-pkcs11/pin
+- name: AUDIT_S3_ENDPOINT
+  value: {{ required "auditStore.endpoint is required" .Values.auditStore.endpoint | quote }}
+- name: AUDIT_S3_BUCKET
+  value: {{ required "auditStore.bucket is required" .Values.auditStore.bucket | quote }}
+- name: AUDIT_S3_REGION
+  value: {{ required "auditStore.region is required" .Values.auditStore.region | quote }}
+- name: AUDIT_S3_ACCESS_KEY_ID
+  value: {{ required "auditStore.accessKeyId is required" .Values.auditStore.accessKeyId | quote }}
+- name: AUDIT_S3_SECRET_ACCESS_KEY_FILE
+  value: /run/secrets/relay-audit-store/secret-access-key
 {{- with .Values.keyStore.env }}
 {{ toYaml . }}
 {{- end }}
@@ -61,5 +71,8 @@
       readOnly: true
     - name: admin-password
       mountPath: /run/secrets/relay-admin
+      readOnly: true
+    - name: audit-store-secret
+      mountPath: /run/secrets/relay-audit-store
       readOnly: true
 {{- end -}}

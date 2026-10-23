@@ -5,8 +5,10 @@
       "attempt_no"
     ],
     "target": "delivery_attempts",
+    "basis": "structural",
     "reason": "the target is partitioned and a foreign key would have to carry its partition key",
-    "instead": "relay_fn.ledger_append checks the attempt against deliveries.attempt_count; nightly orphan check"
+    "instead": "relay_fn.ledger_append checks the attempt against deliveries.attempt_count; nightly orphan check",
+    "nightly_check": "ledger_attempt_missing"
   },
   {
     "table": "audit_log",
@@ -15,8 +17,10 @@
       "target_id"
     ],
     "target": null,
+    "basis": "structural",
     "reason": "the target is polymorphic",
-    "instead": "nightly orphan check over the known target types"
+    "instead": "nightly orphan check over the known target types",
+    "nightly_check": "audit_target_missing"
   },
   {
     "table": "outbox_events",
@@ -24,8 +28,10 @@
       "stream_key"
     ],
     "target": null,
+    "basis": "structural",
     "reason": "the stream key is a polymorphic text key",
-    "instead": "nightly reference check: every event is covered by the epoch and sequence of its stream head"
+    "instead": "nightly reference check: every event is covered by the epoch and sequence of its stream head",
+    "nightly_check": "stream_head_missing"
   },
   {
     "table": "audit_leaves",
@@ -36,7 +42,9 @@
       "audit_created_at"
     ],
     "target": "audit_log",
+    "basis": "structural",
     "reason": "an installation table pointing at a partitioned tenant table",
-    "instead": "tree roots are recomputed from the audit records"
+    "instead": "nightly orphan check; tree roots are recomputed from the audit records",
+    "nightly_check": "audit_leaf_without_record"
   }
 ]

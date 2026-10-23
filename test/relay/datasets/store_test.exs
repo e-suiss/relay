@@ -204,14 +204,41 @@ defmodule Relay.Datasets.StoreTest do
       end
     end
 
-    defp read_only(fun) do
-      Relay.Repo.query!("SAVEPOINT relay_read_only_test", [])
-      Relay.Repo.query!("SET LOCAL transaction_read_only = on", [])
+    defp with_competing_activation(scope, name, version_id, fun) do
+      test = self()
+
+      holder =
+        spawn_link(fn ->
+          conn = Relay.SqlCase.connect(:admin)
+
+          Postgrex.transaction(conn, fn tx ->
+            Postgrex.query!(tx, "SET LOCAL session_replication_role = replica", [])
+
+            Postgrex.query!(
+              tx,
+              "INSERT INTO relay.dataset_active (tenant_id, environment, dataset_name, version_id, activated_at, activated_by_ref) VALUES ($1, 'live', $2, $3, now(), 'competing')",
+              [scope.tenant_id, name, version_id]
+            )
+
+            send(test, :held)
+
+            receive do
+              :release -> Postgrex.rollback(tx, :released)
+            end
+          end)
+
+          send(test, :released)
+        end)
+
+      assert_receive :held, 5_000
+      Relay.Repo.query!("SET lock_timeout = '200ms'", [])
 
       try do
         fun.()
       after
-        Relay.Repo.query!("ROLLBACK TO SAVEPOINT relay_read_only_test", [])
+        Relay.Repo.query!("SET lock_timeout = 0", [])
+        send(holder, :release)
+        assert_receive :released, 5_000
       end
     end
 
@@ -248,8 +275,8 @@ defmodule Relay.Datasets.StoreTest do
       {:ok, {:published, v1, 1}} = publish(t.live, name, content("a"))
       topic = subscribe!(t.live, name)
 
-      read_only(fn ->
-        assert_raise Postgrex.Error, ~r/read-only transaction/, fn ->
+      with_competing_activation(t.live, name, v1, fn ->
+        assert_raise Postgrex.Error, ~r/lock timeout/, fn ->
           Datasets.activate(t.live, name, v1, :operator, operator())
         end
       end)

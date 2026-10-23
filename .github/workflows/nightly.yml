@@ -24,6 +24,10 @@ jobs:
       - run: mix deps.get --check-locked
       - run: mix hex.audit
       - run: mix deps.audit
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends softhsm2 opensc
+      - run: rustup toolchain install
+        working-directory: native/pkcs11_port
+      - run: native/build.sh
       - run: mix test --include integration --include nightly
 
   load:

@@ -1,14 +1,18 @@
 defmodule Relay.Datasets.Cache do
   @moduledoc """
-  Node-local cache of active data set versions, held in a private ETS table of the cache process (T-46). A miss subscribes the cache to the entry's signal topic before the caller reads PostgreSQL, so a signal that arrives during the read discards the stale result instead of caching it. Any signal or re-read tick on a topic drops its entries, so while Valkey is unavailable every read goes to PostgreSQL (T-9).
+  Node-local cache of active data set versions, held in a private ETS table of the cache process (T-46). A miss subscribes the cache to the entry's signal topic before the caller reads PostgreSQL, so a signal that arrives during the read discards the stale result instead of caching it. Any signal or re-read tick on a topic drops its entries, so while Valkey is unavailable every read goes to PostgreSQL (T-9). An entry older than ten minutes on the monotonic clock is re-read on access (OP-71).
   """
 
   use GenServer
 
   @type key :: term()
-  @type option :: {:name, atom()} | {:subscribe, (String.t() -> term())}
+  @type option ::
+          {:name, atom()} | {:subscribe, (String.t() -> term())} | {:max_age_ms, pos_integer()}
 
-  @doc "Starts the cache; `:subscribe` subscribes the cache process to a signal topic."
+  # OP-71 (8)
+  @max_age_ms 10 * 60_000
+
+  @doc "Starts the cache; `:subscribe` subscribes the cache process to a signal topic and `:max_age_ms` overrides the ten-minute entry age limit."
   @spec start_link([option()]) :: GenServer.on_start()
   def start_link(opts \\ []) do
     name = Keyword.get(opts, :name, __MODULE__)
@@ -55,6 +59,7 @@ defmodule Relay.Datasets.Cache do
      %{
        table: :ets.new(__MODULE__, [:set, :private]),
        subscribe: Keyword.get(opts, :subscribe, &Relay.Platform.subscribe_signal/1),
+       max_age_ms: Keyword.get(opts, :max_age_ms, @max_age_ms),
        topics: %{},
        generations: %{}
      }}
@@ -62,15 +67,24 @@ defmodule Relay.Datasets.Cache do
 
   @impl GenServer
   def handle_call({:lookup, key, topic}, _from, state) do
+    now = Relay.Clock.monotonic_ms()
+
     case :ets.lookup(state.table, key) do
-      [{^key, value}] -> {:reply, {:hit, value}, state}
-      [] -> {:reply, {:miss, Map.get(state.generations, key, 0)}, watch(state, key, topic)}
+      [{^key, value, expires_at}] when now < expires_at ->
+        {:reply, {:hit, value}, state}
+
+      [_expired] ->
+        state = drop(state, key)
+        {:reply, {:miss, Map.fetch!(state.generations, key)}, watch(state, key, topic)}
+
+      [] ->
+        {:reply, {:miss, Map.get(state.generations, key, 0)}, watch(state, key, topic)}
     end
   end
 
   def handle_call({:put, key, generation, value}, _from, state) do
     if Map.get(state.generations, key, 0) == generation,
-      do: :ets.insert(state.table, {key, value})
+      do: :ets.insert(state.table, {key, value, Relay.Clock.monotonic_ms() + state.max_age_ms})
 
     {:reply, :ok, state}
   end

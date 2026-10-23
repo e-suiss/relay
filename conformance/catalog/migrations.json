@@ -1,5 +1,4 @@
 [
-  {"file": ".formatter.exs", "sha256": "0214526079b381af52379d2b1fff614512fe4f5bb9a04394ef3246e5b1f61c87"},
   {"file": "20261016000000_add_oban_jobs.exs", "sha256": "30758405026464b757c3564ca4f0204aa6ec751c2e1cd05302bad17937029c6c"},
   {"file": "20261016000001_move_queue_schema.exs", "sha256": "823bac0d4407aafe500724e4e62c20422b44b482511cf7a443ec120021bed189"},
   {"file": "20261017000000_grant_queue_schema.exs", "sha256": "94058d7d2fec6d96386a24135a7a69f476f0c6293fbc7c7309f1b269a482adcf"},
@@ -18,5 +17,6 @@
   {"file": "20261017100800_create_maintenance_functions.exs", "sha256": "eb77ac094879fc16b43b35998a23e67b4bdd999f25144f6499eb2ee214222631"},
   {"file": "20261017100900_create_retention_functions.exs", "sha256": "d4f4ac917ba9685cf69e4e7321e17623c3acfbe8e9197a077e42ad77cb5ee627"},
   {"file": "20261023000000_soft_delete_on_retention_end.exs", "sha256": "c4c9cc60c3dfe4d15faba5caf75f3306aa7ebdcfe7f97b88ffd5ae5632470036"},
-  {"file": "20261023000100_create_reference_check_function.exs", "sha256": "6bda95c1e99931b1681cf9430a8ef42042a49d3527a57e63139712101b936023"}
+  {"file": "20261023000100_create_reference_check_function.exs", "sha256": "6bda95c1e99931b1681cf9430a8ef42042a49d3527a57e63139712101b936023"},
+  {"file": "20261023100000_register_retention_periods.exs", "sha256": "c5ad51cc91b5a72702815c331ce80706bafcea8c3ca29cc75713965e9a8d03f4"}
 ]

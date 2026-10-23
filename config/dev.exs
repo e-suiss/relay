@@ -25,6 +25,7 @@ config :relay, RelayWeb.Endpoint,
   watchers: []
 
 config :relay, Relay.NetworkGuard, enabled: true
+
 config :relay, Relay.Audit,
   publishers: [
     {"worm_store", Relay.Audit.Checkpointer.Publisher.S3,

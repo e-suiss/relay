@@ -195,6 +195,8 @@ defmodule Relay.Audit.Checkpointer.Publisher.S3 do
         ]
       )
 
+    :ok = Relay.NetworkGuard.check!(:http)
+
     case Req.request(req) do
       {:ok, response} ->
         {:ok, response}

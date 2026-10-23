@@ -62,6 +62,16 @@ defmodule Relay.KeysTest do
     assert Redacted.expose(unwrapped) == <<7::256>>
   end
 
+  test "TN-66: blind index HMACs are computed by the key store from a redacted message" do
+    message = Redacted.wrap("ada@example.com")
+    expect(Relay.KeysMock, :hmac_sha256, fn "bidx", ^message -> {:ok, <<1::256>>} end)
+    expect(Relay.KeysMock, :read_secret, fn "smtp" -> {:ok, Redacted.wrap("pw")} end)
+
+    assert Keys.hmac_sha256("bidx", message) == {:ok, <<1::256>>}
+    assert {:ok, secret} = Keys.read_secret("smtp")
+    assert Redacted.expose(secret) == "pw"
+  end
+
   test "TN-63: errors are typed" do
     error = Error.new(:key_not_found, "key store: key not found")
     expect(Relay.KeysMock, :sign, fn :ed25519, "checkpoint", "note" -> {:error, error} end)

@@ -5,7 +5,8 @@ config :relay,
   roles: [:api, :worker, :socket],
   clock: Relay.Clock.System,
   random: Relay.Random.Strong,
-  keys: Relay.Keys.Port
+  keys: Relay.Keys.Port,
+  key_provider: Relay.Tenancy.Keyring
 
 config :relay, Relay.Repo,
   migration_primary_key: [type: :binary_id],

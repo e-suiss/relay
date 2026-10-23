@@ -1,0 +1,613 @@
+{
+  "source_ref": "Access Appendix C, retention and erasure rules",
+  "periods": [
+    {
+      "region": "tr",
+      "sector": "general",
+      "retention_class": "audit",
+      "days": 400,
+      "legal_basis": "6698 m.12, m.4(2)(d)",
+      "source": "Access Appendix C C.3.4; C.5 (9); TN-49"
+    },
+    {
+      "region": "tr",
+      "sector": "general",
+      "retention_class": "commercial_consent",
+      "days": 3653,
+      "legal_basis": "6563 m.11(3); Yönetmelik m.13(2)",
+      "source": "Access Appendix C C.2.1; C.5 (1), (2)"
+    },
+    {
+      "region": "tr",
+      "sector": "general",
+      "retention_class": "commercial_message",
+      "days": 3653,
+      "legal_basis": "6563 m.11(3); Yönetmelik m.13(2)",
+      "source": "Access Appendix C C.2.1; C.5 (1)"
+    },
+    {
+      "region": "tr",
+      "sector": "general",
+      "retention_class": "delivery_record",
+      "days": 3653,
+      "legal_basis": "6563 m.11(3); Yönetmelik m.13(2)",
+      "source": "Access Appendix C C.2.1 message_log; OP-18"
+    },
+    {
+      "region": "tr",
+      "sector": "general",
+      "retention_class": "dsr_log",
+      "days": 1096,
+      "legal_basis": "6698 m.13, m.14",
+      "source": "Access Appendix C C.2.1; C.5 (17)"
+    },
+    {
+      "region": "tr",
+      "sector": "general",
+      "retention_class": "erasure_log",
+      "days": 1096,
+      "legal_basis": "Silme Yönetmeliği m.7",
+      "source": "Access Appendix C C.2.1; C.5 (16)"
+    },
+    {
+      "region": "tr",
+      "sector": "general",
+      "retention_class": "traffic",
+      "days": 730,
+      "legal_basis": "5651 m.5(3), m.2(1)(j)",
+      "source": "Access Appendix C C.2.1; C.5 (4); TN-64"
+    },
+    {
+      "region": "tr",
+      "sector": "payment",
+      "retention_class": "audit",
+      "days": 3653,
+      "legal_basis": "TCMB BS Tebliği m.13(2), (5), (6)",
+      "source": "Access Appendix C C.3.1"
+    },
+    {
+      "region": "tr",
+      "sector": "payment",
+      "retention_class": "commercial_consent",
+      "days": 3653,
+      "legal_basis": "6563 m.11(3); Yönetmelik m.13(2)",
+      "source": "Access Appendix C C.2.1; C.5 (1), (2)"
+    },
+    {
+      "region": "tr",
+      "sector": "payment",
+      "retention_class": "commercial_message",
+      "days": 3653,
+      "legal_basis": "6563 m.11(3); Yönetmelik m.13(2)",
+      "source": "Access Appendix C C.2.1; C.5 (1)"
+    },
+    {
+      "region": "tr",
+      "sector": "payment",
+      "retention_class": "delivery_record",
+      "days": 3653,
+      "legal_basis": "6563 m.11(3); Yönetmelik m.13(2)",
+      "source": "Access Appendix C C.2.1 message_log; OP-18"
+    },
+    {
+      "region": "tr",
+      "sector": "payment",
+      "retention_class": "dsr_log",
+      "days": 1096,
+      "legal_basis": "6698 m.13, m.14",
+      "source": "Access Appendix C C.2.1; C.5 (17)"
+    },
+    {
+      "region": "tr",
+      "sector": "payment",
+      "retention_class": "erasure_log",
+      "days": 1096,
+      "legal_basis": "Silme Yönetmeliği m.7",
+      "source": "Access Appendix C C.2.1; C.5 (16)"
+    },
+    {
+      "region": "tr",
+      "sector": "payment",
+      "retention_class": "traffic",
+      "days": 730,
+      "legal_basis": "5651 m.5(3), m.2(1)(j)",
+      "source": "Access Appendix C C.2.1; C.5 (4); TN-64"
+    },
+    {
+      "region": "tr",
+      "sector": "bank",
+      "retention_class": "audit",
+      "days": 1827,
+      "legal_basis": "BDDK BS Yönetmeliği m.13(3)-(4)",
+      "source": "Access Appendix C C.3.2"
+    },
+    {
+      "region": "tr",
+      "sector": "bank",
+      "retention_class": "commercial_consent",
+      "days": 3653,
+      "legal_basis": "6563 m.11(3); Yönetmelik m.13(2)",
+      "source": "Access Appendix C C.2.1; C.5 (1), (2)"
+    },
+    {
+      "region": "tr",
+      "sector": "bank",
+      "retention_class": "commercial_message",
+      "days": 3653,
+      "legal_basis": "6563 m.11(3); Yönetmelik m.13(2)",
+      "source": "Access Appendix C C.2.1; C.5 (1)"
+    },
+    {
+      "region": "tr",
+      "sector": "bank",
+      "retention_class": "delivery_record",
+      "days": 3653,
+      "legal_basis": "6563 m.11(3); Yönetmelik m.13(2)",
+      "source": "Access Appendix C C.2.1 message_log; OP-18"
+    },
+    {
+      "region": "tr",
+      "sector": "bank",
+      "retention_class": "dsr_log",
+      "days": 1096,
+      "legal_basis": "6698 m.13, m.14",
+      "source": "Access Appendix C C.2.1; C.5 (17)"
+    },
+    {
+      "region": "tr",
+      "sector": "bank",
+      "retention_class": "erasure_log",
+      "days": 1096,
+      "legal_basis": "Silme Yönetmeliği m.7",
+      "source": "Access Appendix C C.2.1; C.5 (16)"
+    },
+    {
+      "region": "tr",
+      "sector": "bank",
+      "retention_class": "traffic",
+      "days": 730,
+      "legal_basis": "5651 m.5(3), m.2(1)(j)",
+      "source": "Access Appendix C C.2.1; C.5 (4); TN-64"
+    },
+    {
+      "region": "tr",
+      "sector": "ecommerce",
+      "retention_class": "audit",
+      "days": 400,
+      "legal_basis": "6698 m.12, m.4(2)(d)",
+      "source": "Access Appendix C C.3.3; C.5 (9)"
+    },
+    {
+      "region": "tr",
+      "sector": "ecommerce",
+      "retention_class": "commercial_consent",
+      "days": 3653,
+      "legal_basis": "6563 m.11(3); Yönetmelik m.13(2)",
+      "source": "Access Appendix C C.2.1; C.5 (1), (2)"
+    },
+    {
+      "region": "tr",
+      "sector": "ecommerce",
+      "retention_class": "commercial_message",
+      "days": 3653,
+      "legal_basis": "6563 m.11(3); Yönetmelik m.13(2)",
+      "source": "Access Appendix C C.2.1; C.5 (1)"
+    },
+    {
+      "region": "tr",
+      "sector": "ecommerce",
+      "retention_class": "delivery_record",
+      "days": 3653,
+      "legal_basis": "6563 m.11(3); Yönetmelik m.13(2)",
+      "source": "Access Appendix C C.2.1 message_log; OP-18"
+    },
+    {
+      "region": "tr",
+      "sector": "ecommerce",
+      "retention_class": "dsr_log",
+      "days": 1096,
+      "legal_basis": "6698 m.13, m.14",
+      "source": "Access Appendix C C.2.1; C.5 (17)"
+    },
+    {
+      "region": "tr",
+      "sector": "ecommerce",
+      "retention_class": "erasure_log",
+      "days": 1096,
+      "legal_basis": "Silme Yönetmeliği m.7",
+      "source": "Access Appendix C C.2.1; C.5 (16)"
+    },
+    {
+      "region": "tr",
+      "sector": "ecommerce",
+      "retention_class": "traffic",
+      "days": 730,
+      "legal_basis": "5651 m.5(3), m.2(1)(j)",
+      "source": "Access Appendix C C.2.1; C.5 (4); TN-64"
+    },
+    {
+      "region": "eu",
+      "sector": "general",
+      "retention_class": "audit",
+      "days": 400,
+      "legal_basis": "GDPR Art. 5(1)(e), 6(1)(f), 32",
+      "source": "Access Appendix C C.3.4; C.5 (9); TN-49"
+    },
+    {
+      "region": "eu",
+      "sector": "general",
+      "retention_class": "commercial_consent",
+      "days": 1827,
+      "legal_basis": "GDPR Art. 7(1); ePrivacy Art. 13",
+      "source": "Access Appendix C C.2.2; C.5 (11)"
+    },
+    {
+      "region": "eu",
+      "sector": "general",
+      "retention_class": "commercial_message",
+      "days": 1827,
+      "legal_basis": "GDPR Art. 5(1)(e), 17(3)(e)",
+      "source": "Access Appendix C C.2.2 message_log mapped to consent"
+    },
+    {
+      "region": "eu",
+      "sector": "general",
+      "retention_class": "delivery_record",
+      "days": 1827,
+      "legal_basis": "GDPR Art. 5(1)(e), 17(3)(e)",
+      "source": "Access Appendix C C.2.2 message_log mapped to consent; OP-18"
+    },
+    {
+      "region": "eu",
+      "sector": "general",
+      "retention_class": "dsr_log",
+      "days": 1096,
+      "legal_basis": "GDPR Art. 5(2), 12",
+      "source": "Access Appendix C C.2.2; C.5 (17)"
+    },
+    {
+      "region": "eu",
+      "sector": "general",
+      "retention_class": "erasure_log",
+      "days": 1096,
+      "legal_basis": "GDPR Art. 5(2), 12, 17",
+      "source": "Access Appendix C C.2.2; C.5 (16)"
+    },
+    {
+      "region": "eu",
+      "sector": "payment",
+      "retention_class": "audit",
+      "days": 1827,
+      "legal_basis": "DORA Art. 9–10, 17; RTS (EU) 2024/1774 Art. 12",
+      "source": "Access Appendix C C.3.1; C.5 (10)"
+    },
+    {
+      "region": "eu",
+      "sector": "payment",
+      "retention_class": "commercial_consent",
+      "days": 1827,
+      "legal_basis": "GDPR Art. 7(1); ePrivacy Art. 13",
+      "source": "Access Appendix C C.2.2; C.5 (11)"
+    },
+    {
+      "region": "eu",
+      "sector": "payment",
+      "retention_class": "commercial_message",
+      "days": 1827,
+      "legal_basis": "GDPR Art. 5(1)(e), 17(3)(e)",
+      "source": "Access Appendix C C.2.2 message_log mapped to consent"
+    },
+    {
+      "region": "eu",
+      "sector": "payment",
+      "retention_class": "delivery_record",
+      "days": 1827,
+      "legal_basis": "GDPR Art. 5(1)(e), 17(3)(e)",
+      "source": "Access Appendix C C.2.2 message_log mapped to consent; OP-18"
+    },
+    {
+      "region": "eu",
+      "sector": "payment",
+      "retention_class": "dsr_log",
+      "days": 1096,
+      "legal_basis": "GDPR Art. 5(2), 12",
+      "source": "Access Appendix C C.2.2; C.5 (17)"
+    },
+    {
+      "region": "eu",
+      "sector": "payment",
+      "retention_class": "erasure_log",
+      "days": 1096,
+      "legal_basis": "GDPR Art. 5(2), 12, 17",
+      "source": "Access Appendix C C.2.2; C.5 (16)"
+    },
+    {
+      "region": "eu",
+      "sector": "bank",
+      "retention_class": "audit",
+      "days": 1827,
+      "legal_basis": "DORA Art. 9–10, 17; RTS (EU) 2024/1774 Art. 12",
+      "source": "Access Appendix C C.3.2; C.5 (10)"
+    },
+    {
+      "region": "eu",
+      "sector": "bank",
+      "retention_class": "commercial_consent",
+      "days": 1827,
+      "legal_basis": "GDPR Art. 7(1); ePrivacy Art. 13",
+      "source": "Access Appendix C C.2.2; C.5 (11)"
+    },
+    {
+      "region": "eu",
+      "sector": "bank",
+      "retention_class": "commercial_message",
+      "days": 1827,
+      "legal_basis": "GDPR Art. 5(1)(e), 17(3)(e)",
+      "source": "Access Appendix C C.2.2 message_log mapped to consent"
+    },
+    {
+      "region": "eu",
+      "sector": "bank",
+      "retention_class": "delivery_record",
+      "days": 1827,
+      "legal_basis": "GDPR Art. 5(1)(e), 17(3)(e)",
+      "source": "Access Appendix C C.2.2 message_log mapped to consent; OP-18"
+    },
+    {
+      "region": "eu",
+      "sector": "bank",
+      "retention_class": "dsr_log",
+      "days": 1096,
+      "legal_basis": "GDPR Art. 5(2), 12",
+      "source": "Access Appendix C C.2.2; C.5 (17)"
+    },
+    {
+      "region": "eu",
+      "sector": "bank",
+      "retention_class": "erasure_log",
+      "days": 1096,
+      "legal_basis": "GDPR Art. 5(2), 12, 17",
+      "source": "Access Appendix C C.2.2; C.5 (16)"
+    },
+    {
+      "region": "eu",
+      "sector": "ecommerce",
+      "retention_class": "audit",
+      "days": 400,
+      "legal_basis": "GDPR Art. 5(1)(e), 6(1)(f), 32",
+      "source": "Access Appendix C C.3.3; C.5 (9)"
+    },
+    {
+      "region": "eu",
+      "sector": "ecommerce",
+      "retention_class": "commercial_consent",
+      "days": 1827,
+      "legal_basis": "GDPR Art. 7(1); ePrivacy Art. 13",
+      "source": "Access Appendix C C.2.2; C.5 (11)"
+    },
+    {
+      "region": "eu",
+      "sector": "ecommerce",
+      "retention_class": "commercial_message",
+      "days": 1827,
+      "legal_basis": "GDPR Art. 5(1)(e), 17(3)(e)",
+      "source": "Access Appendix C C.2.2 message_log mapped to consent"
+    },
+    {
+      "region": "eu",
+      "sector": "ecommerce",
+      "retention_class": "delivery_record",
+      "days": 1827,
+      "legal_basis": "GDPR Art. 5(1)(e), 17(3)(e)",
+      "source": "Access Appendix C C.2.2 message_log mapped to consent; OP-18"
+    },
+    {
+      "region": "eu",
+      "sector": "ecommerce",
+      "retention_class": "dsr_log",
+      "days": 1096,
+      "legal_basis": "GDPR Art. 5(2), 12",
+      "source": "Access Appendix C C.2.2; C.5 (17)"
+    },
+    {
+      "region": "eu",
+      "sector": "ecommerce",
+      "retention_class": "erasure_log",
+      "days": 1096,
+      "legal_basis": "GDPR Art. 5(2), 12, 17",
+      "source": "Access Appendix C C.2.2; C.5 (16)"
+    },
+    {
+      "region": "us",
+      "sector": "general",
+      "retention_class": "audit",
+      "days": 400,
+      "legal_basis": "16 CFR §314.4(c)(8); CCPA §1798.100(a)(3)",
+      "source": "Access Appendix C C.3.4; C.5 (9); TN-49"
+    },
+    {
+      "region": "us",
+      "sector": "general",
+      "retention_class": "commercial_consent",
+      "days": 1827,
+      "legal_basis": "47 U.S.C. §227; 47 CFR §64.1200(a)(2), (f)(9); 16 CFR §310.5",
+      "source": "Access Appendix C C.2.4; C.5 (12)"
+    },
+    {
+      "region": "us",
+      "sector": "general",
+      "retention_class": "commercial_message",
+      "days": 1827,
+      "legal_basis": "16 CFR §310.5",
+      "source": "Access Appendix C C.2.4 message_log"
+    },
+    {
+      "region": "us",
+      "sector": "general",
+      "retention_class": "delivery_record",
+      "days": 1827,
+      "legal_basis": "16 CFR §310.5",
+      "source": "Access Appendix C C.2.4 message_log; OP-18"
+    },
+    {
+      "region": "us",
+      "sector": "general",
+      "retention_class": "dsr_log",
+      "days": 1096,
+      "legal_basis": "11 CCR §7101(a)",
+      "source": "Access Appendix C C.2.4; C.5 (17)"
+    },
+    {
+      "region": "us",
+      "sector": "general",
+      "retention_class": "erasure_log",
+      "days": 1096,
+      "legal_basis": "FRCP 37(e); 11 CCR §7022(e)",
+      "source": "Access Appendix C C.2.4; C.5 (16)"
+    },
+    {
+      "region": "us",
+      "sector": "payment",
+      "retention_class": "audit",
+      "days": 400,
+      "legal_basis": "16 CFR §314.4(c)(8); CCPA §1798.100(a)(3)",
+      "source": "Access Appendix C C.3.1; C.5 (9)"
+    },
+    {
+      "region": "us",
+      "sector": "payment",
+      "retention_class": "commercial_consent",
+      "days": 1827,
+      "legal_basis": "47 U.S.C. §227; 47 CFR §64.1200(a)(2), (f)(9); 16 CFR §310.5",
+      "source": "Access Appendix C C.2.4; C.5 (12)"
+    },
+    {
+      "region": "us",
+      "sector": "payment",
+      "retention_class": "commercial_message",
+      "days": 1827,
+      "legal_basis": "16 CFR §310.5",
+      "source": "Access Appendix C C.2.4 message_log"
+    },
+    {
+      "region": "us",
+      "sector": "payment",
+      "retention_class": "delivery_record",
+      "days": 1827,
+      "legal_basis": "16 CFR §310.5",
+      "source": "Access Appendix C C.2.4 message_log; OP-18"
+    },
+    {
+      "region": "us",
+      "sector": "payment",
+      "retention_class": "dsr_log",
+      "days": 1096,
+      "legal_basis": "11 CCR §7101(a)",
+      "source": "Access Appendix C C.2.4; C.5 (17)"
+    },
+    {
+      "region": "us",
+      "sector": "payment",
+      "retention_class": "erasure_log",
+      "days": 1096,
+      "legal_basis": "FRCP 37(e); 11 CCR §7022(e)",
+      "source": "Access Appendix C C.2.4; C.5 (16)"
+    },
+    {
+      "region": "us",
+      "sector": "bank",
+      "retention_class": "audit",
+      "days": 400,
+      "legal_basis": "16 CFR §314.4(c)(8); CCPA §1798.100(a)(3)",
+      "source": "Access Appendix C C.3.2; C.5 (9)"
+    },
+    {
+      "region": "us",
+      "sector": "bank",
+      "retention_class": "commercial_consent",
+      "days": 1827,
+      "legal_basis": "47 U.S.C. §227; 47 CFR §64.1200(a)(2), (f)(9); 16 CFR §310.5",
+      "source": "Access Appendix C C.2.4; C.5 (12)"
+    },
+    {
+      "region": "us",
+      "sector": "bank",
+      "retention_class": "commercial_message",
+      "days": 1827,
+      "legal_basis": "16 CFR §310.5",
+      "source": "Access Appendix C C.2.4 message_log"
+    },
+    {
+      "region": "us",
+      "sector": "bank",
+      "retention_class": "delivery_record",
+      "days": 1827,
+      "legal_basis": "16 CFR §310.5",
+      "source": "Access Appendix C C.2.4 message_log; OP-18"
+    },
+    {
+      "region": "us",
+      "sector": "bank",
+      "retention_class": "dsr_log",
+      "days": 1096,
+      "legal_basis": "11 CCR §7101(a)",
+      "source": "Access Appendix C C.2.4; C.5 (17)"
+    },
+    {
+      "region": "us",
+      "sector": "bank",
+      "retention_class": "erasure_log",
+      "days": 1096,
+      "legal_basis": "FRCP 37(e); 11 CCR §7022(e)",
+      "source": "Access Appendix C C.2.4; C.5 (16)"
+    },
+    {
+      "region": "us",
+      "sector": "ecommerce",
+      "retention_class": "audit",
+      "days": 400,
+      "legal_basis": "16 CFR §314.4(c)(8); CCPA §1798.100(a)(3)",
+      "source": "Access Appendix C C.3.3; C.5 (9)"
+    },
+    {
+      "region": "us",
+      "sector": "ecommerce",
+      "retention_class": "commercial_consent",
+      "days": 1827,
+      "legal_basis": "47 U.S.C. §227; 47 CFR §64.1200(a)(2), (f)(9); 16 CFR §310.5",
+      "source": "Access Appendix C C.2.4; C.5 (12)"
+    },
+    {
+      "region": "us",
+      "sector": "ecommerce",
+      "retention_class": "commercial_message",
+      "days": 1827,
+      "legal_basis": "16 CFR §310.5",
+      "source": "Access Appendix C C.2.4 message_log"
+    },
+    {
+      "region": "us",
+      "sector": "ecommerce",
+      "retention_class": "delivery_record",
+      "days": 1827,
+      "legal_basis": "16 CFR §310.5",
+      "source": "Access Appendix C C.2.4 message_log; OP-18"
+    },
+    {
+      "region": "us",
+      "sector": "ecommerce",
+      "retention_class": "dsr_log",
+      "days": 1096,
+      "legal_basis": "11 CCR §7101(a)",
+      "source": "Access Appendix C C.2.4; C.5 (17)"
+    },
+    {
+      "region": "us",
+      "sector": "ecommerce",
+      "retention_class": "erasure_log",
+      "days": 1096,
+      "legal_basis": "FRCP 37(e); 11 CCR §7022(e)",
+      "source": "Access Appendix C C.2.4; C.5 (16)"
+    }
+  ]
+}

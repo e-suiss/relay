@@ -10,6 +10,7 @@ defmodule Relay.Keys.SoftHSMTest do
   @moduletag :tmp_dir
 
   @pin "1234"
+  @hmac_key :binary.copy(<<0x0B>>, 32)
   @token "relay-test"
   @executable Path.expand("../../../native/pkcs11_port/target/release/pkcs11_port", __DIR__)
   @modules [
@@ -55,6 +56,25 @@ defmodule Relay.Keys.SoftHSMTest do
 
     run!("pkcs11-tool", tool ++ ~w(--keygen --key-type AES:32 --label kek --id 04))
     run!("pkcs11-tool", tool ++ ~w(--keygen --key-type AES:32 --label other-kek --id 05))
+    run!("pkcs11-tool", tool ++ ~w(--keygen --key-type GENERIC:32 --label bidx --id 06))
+
+    known = Path.join(dir, "bidx-known")
+    File.write!(known, @hmac_key)
+
+    run!(
+      "pkcs11-tool",
+      tool ++
+        ["--write-object", known] ++
+        ~w(--type secrkey --key-type GENERIC:32 --label bidx-known --id 07 --sensitive)
+    )
+
+    secret = Path.join(dir, "smtp")
+    File.write!(secret, "smtp-password")
+
+    run!(
+      "pkcs11-tool",
+      tool ++ ["--write-object", secret] ++ ~w(--type data --label smtp --private)
+    )
 
     pin_file = Path.join(dir, "pin")
     File.write!(pin_file, @pin <> "\n")
@@ -151,6 +171,29 @@ defmodule Relay.Keys.SoftHSMTest do
 
     assert {:error, %Relay.Error{code: :key_integrity}} =
              KeyPort.unwrap(keys, "kek", "tenant-1", "short")
+  end
+
+  test "TN-66: the blind index HMAC is computed inside the token", %{keys: keys} do
+    message = Redacted.wrap("ada@example.com")
+
+    assert KeyPort.hmac_sha256(keys, "bidx-known", message) ==
+             {:ok, :crypto.mac(:hmac, :sha256, @hmac_key, "ada@example.com")}
+
+    assert {:ok, <<_::256>> = mac} = KeyPort.hmac_sha256(keys, "bidx", message)
+    assert KeyPort.hmac_sha256(keys, "bidx", message) == {:ok, mac}
+    refute KeyPort.hmac_sha256(keys, "bidx", Redacted.wrap("other@example.com")) == {:ok, mac}
+
+    assert {:error, %Relay.Error{code: :key_not_found}} = KeyPort.read_secret(keys, "bidx")
+
+    assert {:error, %Relay.Error{code: :key_not_found}} =
+             KeyPort.hmac_sha256(keys, "kek", message)
+  end
+
+  test "TN-26: a secret data object is read back redacted", %{keys: keys} do
+    assert {:ok, secret} = KeyPort.read_secret(keys, "smtp")
+    assert Redacted.expose(secret) == "smtp-password"
+    refute inspect(secret) =~ "smtp-password"
+    assert {:error, %Relay.Error{code: :key_not_found}} = KeyPort.read_secret(keys, "absent")
   end
 
   test "TN-63: a missing or mistyped key is not found", %{keys: keys} do

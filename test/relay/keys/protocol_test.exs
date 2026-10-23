@@ -30,6 +30,16 @@ defmodule Relay.Keys.ProtocolTest do
 
       assert <<1, 0, 0, 0, 2, 4, _::binary>> = bin(Protocol.encode(2, {:unwrap, "k", "a", "w"}))
     end
+
+    test "TN-66: HMAC carries the key label and the message" do
+      assert bin(Protocol.encode(4, {:hmac, "bidx", "m"})) ==
+               <<1, 0, 0, 0, 4, 5, 0, 0, 0, 4, "bidx", 0, 0, 0, 1, "m">>
+    end
+
+    test "TN-26: a secret read carries only the label" do
+      assert bin(Protocol.encode(5, {:read_secret, "smtp"})) ==
+               <<1, 0, 0, 0, 5, 6, 0, 0, 0, 4, "smtp">>
+    end
   end
 
   describe "TN-63 response decoding" do
@@ -59,6 +69,19 @@ defmodule Relay.Keys.ProtocolTest do
       assert {:ok, key} = Protocol.result(:unwrap, 0, ["secret-key-bytes"])
       refute inspect(key) =~ "secret-key-bytes"
       assert Redacted.expose(key) == "secret-key-bytes"
+    end
+
+    test "TN-66: an HMAC result is exactly 32 bytes" do
+      assert Protocol.result(:hmac, 0, [<<1::256>>]) == {:ok, <<1::256>>}
+
+      assert {:error, %Relay.Error{code: :key_store_protocol}} =
+               Protocol.result(:hmac, 0, [<<1::248>>])
+    end
+
+    test "INV-51: a secret read comes back redacted" do
+      assert {:ok, secret} = Protocol.result(:read_secret, 0, ["smtp-password"])
+      refute inspect(secret) =~ "smtp-password"
+      assert Redacted.expose(secret) == "smtp-password"
     end
 
     test "TN-63: status codes map to typed errors" do

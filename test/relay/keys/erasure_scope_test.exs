@@ -29,4 +29,45 @@ defmodule Relay.Keys.ErasureScopeTest do
     assert tables != []
     assert Enum.reject(tables, &MapSet.member?(listed, &1)) == []
   end
+
+  test "OP-25: the scope lists every place outside the tables where a personal value could be copied" do
+    locations = (@scope |> File.read!() |> Jason.decode!())["locations"]
+    names = Enum.map(locations, & &1["location"])
+
+    required =
+      ~w(queue_args logs traces dlq analytics cold_archive backups outgoing_webhooks key_cache valkey)
+
+    assert Enum.sort(names) == Enum.sort(required)
+    assert names == Enum.uniq(names)
+
+    for location <- locations,
+        field <- ~w(store personal_data encryption subject_erasure tenant_close) do
+      assert is_binary(location[field]) and location[field] != "",
+             "#{location["location"]}.#{field}"
+    end
+  end
+
+  test "OP-25: personal columns listed for a table are exactly its encrypted and blind index columns" do
+    %{rows: rows} =
+      Relay.Repo.query!("""
+      SELECT c.relname, a.attname
+      FROM pg_catalog.pg_class c
+      JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+      JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
+      WHERE n.nspname = 'relay' AND c.relkind IN ('r', 'p') AND NOT c.relispartition
+        AND a.attname ~ '_(ct|bidx|bidx_next)$'
+      """)
+
+    actual =
+      Enum.group_by(rows, &hd/1, &List.last/1)
+      |> Map.new(fn {t, cols} -> {t, Enum.sort(cols)} end)
+
+    listed =
+      for entry <- (@scope |> File.read!() |> Jason.decode!())["tables"],
+          entry["personal_columns"] != [],
+          into: %{},
+          do: {entry["table"], Enum.sort(entry["personal_columns"])}
+
+    assert listed == actual
+  end
 end

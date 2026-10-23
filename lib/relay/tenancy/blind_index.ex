@@ -1,6 +1,6 @@
 defmodule Relay.Tenancy.BlindIndex do
   @moduledoc """
-  Keyed blind indexes for equality search over addresses and tokens: HMAC-SHA256 under a versioned key from the key provider, over the canonical encoding of tenant, environment, purpose and the normalized value. While a key is rotated out the index has one column per readable key; writes fill every column and reads match any of them.
+  Keyed blind indexes for equality search over addresses and tokens: HMAC-SHA256, computed inside the key store under the tenant's blind index key, over the canonical encoding of tenant, environment, purpose and the normalized value. The output is not truncated. While a key is rotated in the index has one column per readable key; writes fill every column and reads match any of them.
   """
 
   alias Relay.Tenancy.KeyProvider
@@ -9,14 +9,17 @@ defmodule Relay.Tenancy.BlindIndex do
   @type entry :: {KeyProvider.version(), digest()}
 
   # TN-33
+  # TN-65 (2)
+  # TN-66 (1)
   # OP-1
   @doc "Computes the index under every readable key, the current key first."
   @spec digests(module(), KeyProvider.index_scope(), binary() | Relay.Redacted.t()) ::
           {:ok, [entry(), ...]} | {:error, Relay.Error.t()}
   def digests(provider, scope, value) do
     with {:ok, message} <- message(scope, value),
-         {:ok, [_ | _] = keys} <- provider.blind_index_keys(scope) do
-      {:ok, for({version, key} <- keys, do: {version, Relay.Crypto.hmac_sha256(key, message)})}
+         {:ok, [_ | _] = entries} <-
+           provider.blind_index_macs(scope, Relay.Redacted.wrap(message)) do
+      {:ok, entries}
     else
       {:ok, []} -> {:error, Relay.Error.new(:blind_index_key_unavailable, "no blind index key")}
       {:error, error} -> {:error, error}

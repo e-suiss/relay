@@ -193,6 +193,54 @@ defmodule Relay.Tenancy.Store do
     Repo.code!(row["blind_index_key_register"], [:created, :exists, :active_exists])
   end
 
+  # TN-33 (3)
+  # TN-65 (2)
+  @doc "Reads the readable blind index keys of the established scope: the active key first, then a key being rotated in."
+  @spec blind_index_keys() :: [%{id: Relay.Id.t(), hsm_ref: String.t()}]
+  def blind_index_keys do
+    """
+    SELECT tenant_id, environment::text AS environment, id, hsm_ref
+    FROM relay.blind_index_keys
+    WHERE state IN ('active', 'rotating')
+    ORDER BY CASE state WHEN 'active' THEN 0 ELSE 1 END, created_at
+    """
+    |> Repo.scoped_query!([])
+    |> rows()
+    |> Enum.map(&%{id: &1["id"], hsm_ref: &1["hsm_ref"]})
+  end
+
+  # TN-27
+  # OP-18
+  @doc "Reads the data key record of a subject and retention class together with the tenant key that wraps it."
+  @spec subject_key(Relay.Id.t(), String.t()) :: map() | nil
+  def subject_key(recipient_id, retention_class) do
+    """
+    SELECT k.tenant_id, k.environment::text AS environment, k.id, k.state, k.wrapped_dek,
+      w.id AS wrapping_key_id, w.purpose, w.state AS wrapping_state, w.kek_ref, w.wrapped_key
+    FROM relay.subject_keys k
+    JOIN relay.tenant_keys w
+      ON w.tenant_id = k.tenant_id AND w.environment = k.environment AND w.id = k.wrapping_key_id
+    WHERE k.recipient_id = $1 AND k.retention_class::text = $2
+    """
+    |> Repo.scoped_query!([recipient_id, retention_class])
+    |> rows()
+    |> List.first()
+  end
+
+  # TN-27
+  @doc "Reads a tenant key record."
+  @spec tenant_key(Relay.Id.t()) :: map() | nil
+  def tenant_key(key_id) do
+    """
+    SELECT tenant_id, environment::text AS environment, id, purpose, state, kek_ref, wrapped_key
+    FROM relay.tenant_keys
+    WHERE id = $1
+    """
+    |> Repo.scoped_query!([key_id])
+    |> rows()
+    |> List.first()
+  end
+
   defp rows(%Postgrex.Result{columns: columns, rows: rows}),
     do: Enum.map(rows, &(columns |> Enum.zip(&1) |> Map.new()))
 end

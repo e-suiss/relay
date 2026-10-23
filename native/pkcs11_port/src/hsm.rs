@@ -1,4 +1,4 @@
-//! Token operations behind the protocol: signing, public key export and AES-256-GCM key wrapping under a KEK.
+//! Token operations behind the protocol: signing, public key export, AES-256-GCM key wrapping under a KEK, HMAC-SHA256 under a secret key and reading secret data objects.
 
 use cryptoki::context::{CInitializeArgs, CInitializeFlags, Pkcs11};
 use cryptoki::error::{Error, RvError};
@@ -18,6 +18,9 @@ pub const IV_LEN: usize = 12;
 
 /// GCM tag length in bytes.
 pub const TAG_LEN: usize = 16;
+
+/// HMAC-SHA256 output length in bytes.
+pub const HMAC_LEN: usize = 32;
 
 /// A failed operation: the status sent back, a message without key material, and whether the session is lost.
 #[derive(Debug)]
@@ -191,6 +194,41 @@ impl Hsm {
         }
     }
 
+    /// Computes HMAC-SHA256 of `message` under the generic secret or HMAC key labelled `label`; the key never leaves the token.
+    pub fn hmac(&self, label: &[u8], message: &[u8]) -> Result<Vec<u8>, Failure> {
+        let key = match self.find(ObjectClass::SECRET_KEY, KeyType::GENERIC_SECRET, label) {
+            Err(failure) if failure.status == Status::NotFound => {
+                self.find(ObjectClass::SECRET_KEY, KeyType::SHA256_HMAC, label)?
+            }
+            found => found?,
+        };
+        let mac = self.session.sign(&Mechanism::Sha256Hmac, key, message)?;
+        if mac.len() == HMAC_LEN {
+            Ok(mac)
+        } else {
+            Err(Failure::new(Status::Token, "unexpected HMAC length"))
+        }
+    }
+
+    /// Returns the value of the data object labelled `label`.
+    pub fn read_secret(&self, label: &[u8]) -> Result<Zeroizing<Vec<u8>>, Failure> {
+        let template = [
+            Attribute::Class(ObjectClass::DATA),
+            Attribute::Label(label.to_vec()),
+        ];
+        let object = self.unique(&template)?;
+        let attributes = self
+            .session
+            .get_attributes(object, &[AttributeType::Value])?;
+        attributes
+            .into_iter()
+            .find_map(|attribute| match attribute {
+                Attribute::Value(value) => Some(Zeroizing::new(value)),
+                _ => None,
+            })
+            .ok_or_else(|| Failure::new(Status::Token, "attribute missing"))
+    }
+
     fn find(
         &self,
         class: ObjectClass,
@@ -202,7 +240,11 @@ impl Hsm {
             Attribute::KeyType(key_type),
             Attribute::Label(label.to_vec()),
         ];
-        let mut found = self.session.find_objects(&template)?;
+        self.unique(&template)
+    }
+
+    fn unique(&self, template: &[Attribute]) -> Result<ObjectHandle, Failure> {
+        let mut found = self.session.find_objects(template)?;
         match (found.pop(), found.is_empty()) {
             (Some(handle), true) => Ok(handle),
             (Some(_), false) => Err(Failure::new(Status::NotFound, "key label is not unique")),

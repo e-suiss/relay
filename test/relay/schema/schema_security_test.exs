@@ -644,7 +644,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
 
   describe "OP-25 TN-16 erasure scope" do
     test "OP-25: every table with tenant_id or a personal column is in the erasure scope list" do
-      scope = Map.new(catalog("erasure-scope.json"), &{&1["table"], &1})
+      scope = Map.new(catalog("erasure-scope.json")["tables"], &{&1["table"], &1})
       cols = columns()
 
       for {table, table_cols} <- cols, not String.match?(table, ~r/_p\d{6,8}$/) do

@@ -50,6 +50,13 @@ pub enum Op {
         aad: Vec<u8>,
         wrapped: Vec<u8>,
     },
+    Hmac {
+        label: Vec<u8>,
+        message: Zeroizing<Vec<u8>>,
+    },
+    ReadSecret {
+        label: Vec<u8>,
+    },
 }
 
 /// Response status codes.
@@ -136,6 +143,8 @@ pub fn decode(frame: &[u8]) -> Result<(u32, Op), DecodeError> {
         2 => decode_public_key(&mut reader),
         3 => decode_wrap(&mut reader),
         4 => decode_unwrap(&mut reader),
+        5 => decode_hmac(&mut reader),
+        6 => decode_read_secret(&mut reader),
         _ => None,
     };
 
@@ -182,6 +191,17 @@ fn decode_unwrap(reader: &mut Reader<'_>) -> Option<Op> {
         aad,
         wrapped,
     })
+}
+
+fn decode_hmac(reader: &mut Reader<'_>) -> Option<Op> {
+    let label = reader.field()?.to_vec();
+    let message = Zeroizing::new(reader.field()?.to_vec());
+    Some(Op::Hmac { label, message })
+}
+
+fn decode_read_secret(reader: &mut Reader<'_>) -> Option<Op> {
+    let label = reader.field()?.to_vec();
+    Some(Op::ReadSecret { label })
 }
 
 /// Encodes a response frame body. The buffer is zeroized when dropped.
@@ -252,6 +272,41 @@ mod tests {
         );
         let (_, op) = decode(&request(2, 4, &body)).unwrap();
         assert!(matches!(op, Op::Unwrap { .. }));
+    }
+
+    #[test]
+    fn tn_66_decodes_hmac() {
+        let body = [field(b"bidx"), field(b"message")].concat();
+        assert_eq!(
+            decode(&request(10, 5, &body)),
+            Ok((
+                10,
+                Op::Hmac {
+                    label: b"bidx".to_vec(),
+                    message: Zeroizing::new(b"message".to_vec())
+                }
+            ))
+        );
+        let body = [field(b"bidx")].concat();
+        assert_eq!(
+            decode(&request(11, 5, &body)).unwrap_err().status,
+            Status::BadRequest
+        );
+    }
+
+    #[test]
+    fn tn_26_decodes_read_secret() {
+        assert_eq!(
+            decode(&request(12, 6, &field(b"smtp"))),
+            Ok((
+                12,
+                Op::ReadSecret {
+                    label: b"smtp".to_vec()
+                }
+            ))
+        );
+        let body = [field(b"smtp"), field(b"x")].concat();
+        assert_eq!(decode(&request(13, 6, &body)).unwrap_err().id, 13);
     }
 
     #[test]

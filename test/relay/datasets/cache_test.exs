@@ -1,6 +1,8 @@
 defmodule Relay.Datasets.CacheTest do
   use ExUnit.Case, async: false
 
+  import Mox
+
   alias Relay.Datasets.Cache
 
   setup do
@@ -77,6 +79,59 @@ defmodule Relay.Datasets.CacheTest do
       :ok = Cache.invalidate(cache, :none)
       assert Cache.fetch(cache, :a, "topic:a", counting_load(2)) == {:ok, 2}
       assert Cache.fetch(cache, :b, "topic:b", counting_load(2)) == {:ok, 1}
+    end
+  end
+
+  describe "OP-71 (8) cached data set versions have a ten-minute age limit" do
+    setup %{pid: pid} do
+      previous = Application.fetch_env!(:relay, :clock)
+      Application.put_env(:relay, :clock, Relay.ClockMock)
+      on_exit(fn -> Application.put_env(:relay, :clock, previous) end)
+
+      now = :counters.new(1, [])
+      stub(Relay.ClockMock, :monotonic_ms, fn -> :counters.get(now, 1) end)
+      allow(Relay.ClockMock, self(), pid)
+      %{now: now}
+    end
+
+    test "OP-71: a fresh cached data set version is served from the cache", %{
+      cache: cache,
+      now: now
+    } do
+      assert Cache.fetch(cache, :k, "topic:a", counting_load(1)) == {:ok, 1}
+      assert_received :loaded
+      :counters.put(now, 1, 599_999)
+      assert Cache.fetch(cache, :k, "topic:a", counting_load(2)) == {:ok, 1}
+      refute_received :loaded
+    end
+
+    test "OP-71: a cached data set version is re-read after ten minutes", %{
+      cache: cache,
+      now: now
+    } do
+      assert Cache.fetch(cache, :k, "topic:a", counting_load(1)) == {:ok, 1}
+      assert_received :loaded
+      :counters.put(now, 1, 600_000)
+      assert Cache.fetch(cache, :k, "topic:a", counting_load(2)) == {:ok, 2}
+      assert_received :loaded
+      assert Cache.fetch(cache, :k, "topic:a", counting_load(3)) == {:ok, 2}
+      refute_received :loaded
+      assert_received {:subscribed, "topic:a"}
+      refute_received {:subscribed, _}
+    end
+
+    test "OP-71: the age limit is configurable", %{now: now} do
+      test = self()
+
+      pid =
+        start_supervised!({Cache, name: nil, max_age_ms: 1_000, subscribe: &send(test, &1)},
+          id: :short
+        )
+
+      allow(Relay.ClockMock, self(), pid)
+      {:ok, 1} = Cache.fetch(pid, :k, "topic:a", counting_load(1))
+      :counters.put(now, 1, 1_000)
+      assert Cache.fetch(pid, :k, "topic:a", counting_load(2)) == {:ok, 2}
     end
   end
 end

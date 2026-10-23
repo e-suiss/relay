@@ -3,6 +3,7 @@
 set -eu
 
 base_image="$1"
+here="$(cd "$(dirname "$0")" && pwd)"
 image="relay-smoke-hsm:$$"
 hsm_builder="relay-smoke-hsm-$$"
 db_host="${SMOKE_DB_HOST:-localhost}"
@@ -10,9 +11,12 @@ valkey_host="${SMOKE_VALKEY_HOST:-$db_host}"
 network="${SMOKE_NETWORK:-host}"
 postgres_image="postgres:18.6@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336"
 port="${SMOKE_PORT:-4000}"
+metrics_port="${SMOKE_METRICS_PORT:-9568}"
+s3_url="http://${db_host}:9000"
+bucket=relay-audit
 work="$(mktemp -d)"
 publish=""
-[ "$network" = host ] || publish="-p ${port}:${port}"
+[ "$network" = host ] || publish="-p ${port}:${port} -p ${metrics_port}:${metrics_port}"
 keep="${SMOKE_KEEP:-0}"
 trap '[ "$keep" = 1 ] || docker rm -f relay-smoke >/dev/null 2>&1 || true; docker rm -f "$hsm_builder" >/dev/null 2>&1 || true; docker rmi "$image" >/dev/null 2>&1 || true; rm -rf "$work" 2>/dev/null || true' EXIT
 
@@ -31,6 +35,7 @@ POOL_SIZE=5
 VALKEY_URL=redis://${valkey_host}:6379
 RELAY_HOST=localhost
 PORT=${port}
+METRICS_PORT=${metrics_port}
 SECRET_KEY_BASE=$(openssl rand -hex 48)
 PKCS11_MODULE=/usr/lib/softhsm/libsofthsm2.so
 PKCS11_TOKEN=relay-smoke
@@ -38,8 +43,8 @@ PKCS11_PIN_FILE=/run/softhsm/pin
 KEY_STORE_KEK_LABEL=kek-smoke
 KEY_STORE_FINGERPRINT_LABEL=fingerprint-smoke
 SOFTHSM2_CONF=/run/softhsm/softhsm2.conf
-AUDIT_S3_ENDPOINT=http://${db_host}:9000
-AUDIT_S3_BUCKET=relay-audit
+AUDIT_S3_ENDPOINT=${s3_url}
+AUDIT_S3_BUCKET=${bucket}
 AUDIT_S3_REGION=us-east-1
 AUDIT_S3_ACCESS_KEY_ID=relay
 AUDIT_S3_SECRET_ACCESS_KEY_FILE=/run/s3-secret
@@ -61,9 +66,27 @@ psql() {
     psql -h "$db_host" -U relay -d relay_dev -v ON_ERROR_STOP=1 "$@"
 }
 
+s3_call() {
+  curl -sS -o /dev/null -w '%{http_code}' --aws-sigv4 "aws:amz:us-east-1:s3" --user "relay:$(cat "$work/s3-secret")" "$@"
+}
+
+# OP-70
+# OP-71 (6)
+lock='<ObjectLockConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><ObjectLockEnabled>Enabled</ObjectLockEnabled><Rule><DefaultRetention><Mode>GOVERNANCE</Mode><Days>1</Days></DefaultRetention></Rule></ObjectLockConfiguration>'
+case "$(s3_call -X PUT -H 'x-amz-bucket-object-lock-enabled: true' "$s3_url/$bucket")" in
+  200|409) ;;
+  *) fail "audit bucket creation failed" ;;
+esac
+[ "$(s3_call -X PUT -H "content-md5: $(printf %s "$lock" | openssl dgst -md5 -binary | base64)" --data-binary "$lock" "$s3_url/$bucket?object-lock")" = 200 ] \
+  || fail "audit bucket lock failed"
+case "$(s3_call -X PUT "$s3_url/relay-audit-unlocked")" in
+  200|409) ;;
+  *) fail "unlocked bucket creation failed" ;;
+esac
+
 # TN-63
 docker run --name "$hsm_builder" --network "$network" --user root --entrypoint sh "$base_image" -c \
-  'apt-get update -qq && apt-get install -y -qq --no-install-recommends softhsm2 >/dev/null && rm -rf /var/lib/apt/lists/*' \
+  'apt-get update -qq && apt-get install -y -qq --no-install-recommends softhsm2 opensc >/dev/null && rm -rf /var/lib/apt/lists/*' \
   || fail "softhsm install failed"
 docker commit -c 'USER relay' -c 'ENTRYPOINT ["/app/bin/relay"]' -c 'CMD ["start"]' "$hsm_builder" "$image" >/dev/null
 mkdir -p "$work/softhsm/tokens"
@@ -72,6 +95,10 @@ printf 1234 > "$work/softhsm/pin"
 chmod -R a+rwX "$work/softhsm"
 run --entrypoint softhsm2-util "$image" --init-token --free --label relay-smoke --pin 1234 --so-pin 12345678 >/dev/null \
   || fail "token init failed"
+
+# OP-63
+run -e KEY_STORE_KEK_LABEL=relay-smoke-kek -v "$here/hsm-keys.sh:/run/hsm-keys.sh:ro" --entrypoint sh "$image" /run/hsm-keys.sh \
+  || fail "key creation failed"
 
 bootstrap() {
   run -e RELAY_ROLES=worker -e "ADMIN_DATABASE_URL=ecto://relay@${db_host}:5432/relay_dev" \
@@ -115,6 +142,28 @@ done
 curl -fsS "$base/readyz" | grep -q '"ok"' || fail "node is not ready"
 curl -fsSI "$base/livez" | grep -qi '^correlation-id: ' || fail "correlation id header missing"
 curl -fsS "$base/.well-known/security.txt" | grep -q '^Contact: ' || fail "security.txt missing"
+
+# OP-71 (9)
+curl -fsS "http://localhost:${metrics_port}/metrics" | grep -q '^# TYPE relay_' || fail "metrics port does not serve /metrics"
+[ "$(curl -s -o /dev/null -w '%{http_code}' "$base/metrics")" = 404 ] || fail "the API port serves /metrics"
+
+# OP-63
+# OP-70
+i=0
+until [ "$(psql -tA -c "SELECT count(*) FROM relay.audit_checkpoints c JOIN relay.audit_checkpoint_publications p ON p.checkpoint_id = c.id WHERE p.target = 'worm_store' AND p.status = 'published'")" -gt 0 ]; do
+  i=$((i + 1))
+  [ "$i" -lt 60 ] || fail "no audit checkpoint was signed and published"
+  sleep 1
+done
+key="$(psql -tA -c "SELECT c.log_origin || '/' || c.tree_size || '/' || c.id FROM relay.audit_checkpoints c JOIN relay.audit_checkpoint_publications p ON p.checkpoint_id = c.id WHERE p.status = 'published' ORDER BY c.created_at LIMIT 1")"
+curl -fsS --aws-sigv4 "aws:amz:us-east-1:s3" --user "relay:$(cat "$work/s3-secret")" "$s3_url/$bucket/$key" | grep -q '^localhost/relay/audit/' \
+  || fail "the published checkpoint cannot be read back"
+
+# OP-71 (6)
+if run -e RELAY_ROLES=api -e AUDIT_S3_BUCKET=relay-audit-unlocked "$image" start >"$work/unlocked.log" 2>&1; then
+  fail "a node started with an audit target without object lock"
+fi
+grep -q "audit publication target probe failed" "$work/unlocked.log" || { cat "$work/unlocked.log" >&2; fail "the audit target probe did not stop the node"; }
 
 # INV-46
 if run -e RELAY_ROLES=api -e RELAY_UNKNOWN_SETTING=1 "$image" start >"$work/bad.log" 2>&1; then

@@ -34,6 +34,9 @@ jobs:
       - run: docker compose -f deploy/compose.yaml config -q
       - run: docker run --rm --entrypoint promtool -v "$PWD/deploy/observability:/etc/prometheus:ro" prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e check config /etc/prometheus/prometheus.yaml
       - run: docker run --rm --entrypoint promtool -v "$PWD/deploy/observability:/etc/prometheus:ro" -w /etc/prometheus prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e test rules alerts.test.yaml
+      - run: helm lint --strict deploy/helm/relay -f deploy/helm/ci-values.yaml
+      - run: helm template relay deploy/helm/relay -f deploy/helm/ci-values.yaml > /dev/null
+      - run: if helm template relay deploy/helm/relay > /dev/null 2>&1; then exit 1; fi
       - run: docker compose -f deploy/compose.yaml up -d --wait postgres valkey minio
       - run: mix deps.get --check-locked
       - run: mix deps.unlock --check-unused

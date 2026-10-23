@@ -58,8 +58,6 @@ jobs:
         working-directory: native/pkcs11_port
       - run: native/build.sh
       - run: mix test --include integration --warnings-as-errors
-      - if: failure()
-        run: GOLDEN_UPDATE=1 mix test --include integration test/relay/schema/function_signatures_test.exs; git diff test/golden
 
   native:
     runs-on: ubuntu-24.04

@@ -2,10 +2,10 @@ defmodule Relay.Keys.Erasure do
   @moduledoc """
   Crypto-shredding. Personal data is erased by destroying the data key it is encrypted under; rows stay, unreadable. A subject erasure destroys the subject's data keys of every class without a legal retention obligation, restricts those with one (kept, never used in normal processing), soft-deletes the recipient, clears its blind indexes and cancels its pending deliveries, all in one tenant-scoped transaction with its audit record and erasure log row. An active legal hold on the tenant or the recipient stops it with `:held` and changes nothing. Tenant keys are destroyed the same way: a receipt day key seven days after its day, data and wrapping keys only for a closed tenant.
 
-  Which classes carry an obligation comes from the retention data set (Access Appendix C by region and sector); the caller passes it.
+  Which classes carry an obligation comes from the retention data set (Access Appendix C by region and sector); the caller passes it. After a key is destroyed or restricted every node drops it from its key cache (`Relay.Keys.Eviction`).
   """
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Audit], exports: []
+  use Boundary, top_level?: true, deps: [Relay, Relay.Audit, Relay.Keys.Eviction], exports: []
 
   alias Relay.Keys.Erasure.Store
 
@@ -51,7 +51,9 @@ defmodule Relay.Keys.Erasure do
       digest =
         record_digest(scope, "subject.erased", actor, "recipient", recipient_id, request_ref)
 
-      Store.subject_erase(scope, recipient_id, request_ref, plan, digest, actor)
+      result = Store.subject_erase(scope, recipient_id, request_ref, plan, digest, actor)
+      evict(result, :erased)
+      result
     end
   end
 
@@ -64,7 +66,10 @@ defmodule Relay.Keys.Erasure do
   def destroy_tenant_key(scope, <<_::128>> = key_id, reason, actor)
       when reason in ["retention_end", "tenant_closed", "erasure"] do
     digest = record_digest(scope, "tenant_key.destroyed", actor, "tenant_key", key_id, reason)
-    Store.tenant_key_destroy(scope, key_id, reason, digest, actor)
+
+    result = Store.tenant_key_destroy(scope, key_id, reason, digest, actor)
+    evict(result, :destroyed)
+    result
   end
 
   # OP-16
@@ -75,13 +80,21 @@ defmodule Relay.Keys.Erasure do
     digest =
       record_digest(scope, "subject_key.retired", actor, "subject_key", key_id, "retention_end")
 
-    Store.subject_key_retire(scope, key_id, digest, actor)
+    result = Store.subject_key_retire(scope, key_id, digest, actor)
+    evict(result, :retired)
+    result
   end
 
   # OP-17
   @doc "Returns true if a receipt day key may be destroyed on `today`: seven days after its day."
   @spec receipt_key_due?(Date.t(), Date.t()) :: boolean()
   def receipt_key_due?(%Date{} = valid_day, %Date{} = today), do: Date.diff(today, valid_day) >= 7
+
+  # TN-66 (2)
+  defp evict(result, changed) when elem(result, 0) == :ok and elem(result, 1) == changed,
+    do: Relay.Keys.Eviction.notify()
+
+  defp evict(_result, _changed), do: :ok
 
   defp record_digest(scope, action, actor, target_type, target_id, reason) do
     Relay.Audit.record_digest(%{

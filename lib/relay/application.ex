@@ -3,7 +3,14 @@ defmodule Relay.Application do
 
   use Boundary,
     top_level?: true,
-    deps: [Relay, Relay.Platform, Relay.Platform.Leadership, RelayWeb]
+    deps: [
+      Relay,
+      Relay.Platform,
+      Relay.Platform.Leadership,
+      Relay.Tenancy,
+      Relay.Keys.Eviction,
+      RelayWeb
+    ]
 
   use Application
 
@@ -29,6 +36,8 @@ defmodule Relay.Application do
       ] ++
         Relay.Keys.children() ++
         Relay.Platform.children() ++
+        Relay.Tenancy.children() ++
+        [Relay.Keys.Eviction] ++
         Relay.Platform.Leadership.children(roles) ++ [RelayWeb.Endpoint]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Relay.Supervisor)

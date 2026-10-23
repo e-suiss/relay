@@ -94,6 +94,12 @@ defmodule Relay.Platform do
   def signal_topic(tenant_id, environment, segments),
     do: Signal.topic(tenant_id, environment, segments)
 
+  # T-9
+  @doc "Builds a system signal topic from fixed segments; no tenant name can reach it."
+  @spec system_signal_topic([String.t(), ...]) :: Signal.topic()
+  def system_signal_topic(segments),
+    do: Relay.Platform.Valkey.Key.system_channel(["signal" | segments])
+
   # INV-52
   # INV-53
   @doc "Publishes a signal with only a sequence number; call it after the transaction commits."

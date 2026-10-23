@@ -2,7 +2,7 @@ defmodule Relay.Tenancy do
   @moduledoc """
   Tenants, sub-tenants, environments, identities and the kill switch. Other contexts use only the functions of this module.
 
-  Blind indexes and field encryption take their keys from the key provider configured as `:key_provider` in the `:relay` application environment, or from the `:key_provider` option.
+  Blind indexes and field encryption take their keys from the key provider configured as `:key_provider` in the `:relay` application environment (`Relay.Tenancy.Keyring`), or from the `:key_provider` option.
   """
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
@@ -12,11 +12,13 @@ defmodule Relay.Tenancy do
   alias Relay.Tenancy.BlindIndex
   alias Relay.Tenancy.Context
   alias Relay.Tenancy.FieldCipher
+  alias Relay.Tenancy.KeyCache
   alias Relay.Tenancy.KeyProvider
+  alias Relay.Tenancy.Keyring
   alias Relay.Tenancy.Settings
   alias Relay.Tenancy.Store
 
-  @type option :: {:key_provider, module()}
+  @type option :: {:key_provider, module()} | {:data_key, Relay.Redacted.t()}
 
   # TN-4
   @doc "Resolves sub-tenant settings over tenant settings; see `Relay.Tenancy.Settings.resolve/2`."
@@ -44,7 +46,7 @@ defmodule Relay.Tenancy do
   @spec blind_index_match?([BlindIndex.entry()], BlindIndex.entry()) :: boolean()
   defdelegate blind_index_match?(computed, stored), to: BlindIndex, as: :matches?
 
-  @doc "Encrypts a personal field under the data key of its subject and retention class."
+  @doc "Encrypts a personal field under the data key of its subject and retention class; with `:data_key` under that key, before its record exists."
   @spec encrypt_field(KeyProvider.data_key_scope(), binary() | Relay.Redacted.t(), [option()]) ::
           {:ok, binary()} | {:error, Relay.Error.t()}
   def encrypt_field(scope, plaintext, opts \\ []),
@@ -156,6 +158,35 @@ defmodule Relay.Tenancy do
     end)
   end
 
+  # TN-27
+  # TN-65 (1)
+  @doc "Generates a tenant key, wraps it under the region KEK `:kek_label` inside the key store and registers it; `attrs` carries `:id`, `:purpose` (`:data` or `:dek_wrap`), `:kek_label` and `:record_digest`."
+  @spec provision_tenant_key(Scope.t(), map(), Actor.t()) :: {:ok, atom()} | {:error, term()}
+  def provision_tenant_key(scope, attrs, actor) do
+    with {:ok, generated} <-
+           Keyring.generate_tenant_key(scope, attrs.id, attrs.purpose, attrs.kek_label) do
+      register_tenant_key(scope, Map.merge(attrs, generated), actor)
+    end
+  end
+
+  # TN-33
+  # OP-18
+  @doc "Generates a subject data key for a retention class, wrapped under the tenant key `wrapping_key_id`. The wrapped form is registered with the recipient or the subject key record; the returned data key encrypts the record's first fields through the `:data_key` option."
+  @spec generate_subject_key(Scope.t(), Relay.Id.t(), Relay.Id.t(), Relay.RetentionClass.t()) ::
+          {:ok, %{wrapped_dek: binary(), data_key: Relay.Redacted.t()}}
+          | {:error, Relay.Error.t()}
+  defdelegate generate_subject_key(scope, wrapping_key_id, recipient_id, class), to: Keyring
+
+  # TN-66 (2)
+  @doc "Drops every unwrapped key cached on this node."
+  @spec flush_key_cache() :: :ok
+  def flush_key_cache, do: KeyCache.flush()
+
+  # TN-66 (2)
+  @doc "Supervised children of the context: the node's data key cache."
+  @spec children() :: [module()]
+  def children, do: [KeyCache]
+
   # TN-65
   @doc "Registers the tenant's blind index key reference."
   @spec register_blind_index_key(Scope.t(), map(), Actor.t()) :: {:ok, atom()} | {:error, term()}
@@ -165,9 +196,15 @@ defmodule Relay.Tenancy do
     end)
   end
 
-  defp provider(opts),
-    do:
-      Keyword.get_lazy(opts, :key_provider, fn ->
-        Application.fetch_env!(:relay, :key_provider)
-      end)
+  defp provider(opts) do
+    case Keyword.fetch(opts, :data_key) do
+      {:ok, key} ->
+        {:key, key}
+
+      :error ->
+        Keyword.get_lazy(opts, :key_provider, fn ->
+          Application.fetch_env!(:relay, :key_provider)
+        end)
+    end
+  end
 end

@@ -44,7 +44,9 @@ defmodule Relay.Keys.SubjectKeyDatabaseTest do
       tenant_id: tenant.id,
       environment: "live",
       subject_id: recipient,
-      retention_class: :recipient_profile
+      retention_class: :recipient_profile,
+      table: "recipients",
+      column: "external_id_ct"
     }
 
   defp stub_provider(tenant) do

@@ -11,6 +11,7 @@ defmodule Relay.Config do
     :clock,
     :random,
     :keys,
+    :key_provider,
     Relay.Keys.Port,
     Relay.Repo,
     RelayWeb.Endpoint,

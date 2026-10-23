@@ -98,12 +98,12 @@ defmodule Relay.HsmKeysTest do
       File.rm_rf!(dir)
     end)
 
-    %{env: env, module: module, pin_file: pin_file}
+    %{env: env, pkcs11_module: module, pin_file: pin_file}
   end
 
   defp script(env), do: System.cmd(@script, [], env: env, stderr_to_stdout: true)
 
-  defp objects(%{env: env, module: module}, type) do
+  defp objects(%{env: env, pkcs11_module: module}, type) do
     {out, 0} =
       System.cmd(
         "pkcs11-tool",
@@ -142,7 +142,7 @@ defmodule Relay.HsmKeysTest do
        name: name,
        executable: @executable,
        sha256: sha256,
-       module: ctx.module,
+       module: ctx.pkcs11_module,
        token: @token,
        pin_file: ctx.pin_file}
     )

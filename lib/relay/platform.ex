@@ -3,7 +3,7 @@ defmodule Relay.Platform do
   Platform components shared by the contexts: Valkey, signals, rate limiting, fairness, lanes and queue components. Other contexts use only the functions of this module.
   """
 
-  use Boundary, top_level?: true, deps: [Relay], exports: [Queue.Worker]
+  use Boundary, top_level?: true, deps: [Relay], exports: []
 
   alias Relay.Platform.Outbox
   alias Relay.Platform.OutboxDispatcher

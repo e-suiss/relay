@@ -82,6 +82,18 @@ defmodule Relay.Keys.Port do
   def unwrap(server \\ __MODULE__, label, aad, wrapped),
     do: request(server, {:unwrap, label, aad, wrapped})
 
+  @impl Relay.Keys
+  @doc "Computes an HMAC inside the token through the program. See `Relay.Keys.hmac_sha256/2`."
+  @spec hmac_sha256(GenServer.server(), String.t(), Redacted.t()) ::
+          {:ok, <<_::256>>} | {:error, Error.t()}
+  def hmac_sha256(server \\ __MODULE__, label, message),
+    do: request(server, {:hmac, label, fn -> Redacted.expose(message) end})
+
+  @impl Relay.Keys
+  @doc "Reads a secret data object through the program. See `Relay.Keys.read_secret/1`."
+  @spec read_secret(GenServer.server(), String.t()) :: {:ok, Redacted.t()} | {:error, Error.t()}
+  def read_secret(server \\ __MODULE__, label), do: request(server, {:read_secret, label})
+
   defp request(server, request) do
     GenServer.call(server, {:request, request}, :infinity)
   catch
@@ -175,6 +187,15 @@ defmodule Relay.Keys.Port do
   def handle_info(:reopen, %{port: nil} = state), do: {:noreply, open(state)}
   def handle_info(_message, state), do: {:noreply, state}
 
+  # T-46
+  @impl GenServer
+  def format_status(status) do
+    Relay.Hygiene.format_status(status, fn
+      %{pending: pending} = state -> %{state | pending: map_size(pending), args: :redacted}
+      other -> other
+    end)
+  end
+
   @impl GenServer
   def terminate(_reason, state) do
     close(state.port)
@@ -182,6 +203,7 @@ defmodule Relay.Keys.Port do
   end
 
   defp materialize({:wrap, label, aad, data_key}), do: {:wrap, label, aad, data_key.()}
+  defp materialize({:hmac, label, message}), do: {:hmac, label, message.()}
   defp materialize(request), do: request
 
   defp restart(state, error) do

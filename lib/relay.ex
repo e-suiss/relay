@@ -11,6 +11,7 @@ defmodule Relay do
       Keys,
       Error,
       Redacted,
+      Hygiene,
       Decision,
       Process,
       Config,

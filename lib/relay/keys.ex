@@ -1,6 +1,6 @@
 defmodule Relay.Keys do
   @moduledoc """
-  Key store port. Provider signing keys, the regional KEK that wraps tenant data keys, and the audit checkpoint key live in a PKCS#11 token; code reaches them only through this module, and the configured implementation talks to the token through a separate OS process.
+  Key store port. Provider signing keys, the regional KEK that wraps tenant data keys, the blind index HMAC keys, secret data objects and the audit checkpoint key live in a PKCS#11 token; code reaches them only through this module, and the configured implementation talks to the token through a separate OS process. Blind index keys never leave the token: the HMAC is computed inside it.
   """
 
   alias Relay.Error
@@ -20,6 +20,8 @@ defmodule Relay.Keys do
   @callback public_key(alg(), label()) :: {:ok, public_key()} | {:error, Error.t()}
   @callback wrap(label(), binary(), Redacted.t()) :: {:ok, binary()} | {:error, Error.t()}
   @callback unwrap(label(), binary(), binary()) :: {:ok, Redacted.t()} | {:error, Error.t()}
+  @callback hmac_sha256(label(), Redacted.t()) :: {:ok, <<_::256>>} | {:error, Error.t()}
+  @callback read_secret(label()) :: {:ok, Redacted.t()} | {:error, Error.t()}
 
   @algs [:es256, :rs256, :ed25519]
   @port_keys [:module, :token, :pin_file]
@@ -70,6 +72,66 @@ defmodule Relay.Keys do
   def unwrap(label, aad, wrapped)
       when is_binary(label) and label != "" and is_binary(aad) and is_binary(wrapped),
       do: impl().unwrap(label, aad, wrapped)
+
+  # TN-66 (1)
+  # TN-33
+  @doc "Computes HMAC-SHA256 of `message` inside the token under the secret key `label`; the key never leaves the token."
+  @spec hmac_sha256(label(), Redacted.t()) :: {:ok, <<_::256>>} | {:error, Error.t()}
+  def hmac_sha256(label, message)
+      when is_binary(label) and label != "" and is_struct(message, Redacted),
+      do: impl().hmac_sha256(label, message)
+
+  # TN-26
+  @doc "Reads the value of the secret data object `label`; the value comes back redacted."
+  @spec read_secret(label()) :: {:ok, Redacted.t()} | {:error, Error.t()}
+  def read_secret(label) when is_binary(label) and label != "", do: impl().read_secret(label)
+
+  # TN-26
+  # TN-27
+  @doc "Builds the PKCS#11 URI (RFC 7512) of the object `label`."
+  @spec uri(label()) :: String.t()
+  def uri(label) when is_binary(label) and label != "",
+    do: "pkcs11:object=" <> URI.encode(label, &URI.char_unreserved?/1)
+
+  @doc "Returns the object label of a PKCS#11 URI (RFC 7512). A URI that carries a PIN is refused, and so is one without an object label."
+  @spec label(String.t()) :: {:ok, label()} | {:error, Error.t()}
+  def label("pkcs11:" <> rest) do
+    {path, query} =
+      case String.split(rest, "?", parts: 2) do
+        [path, query] -> {path, query}
+        [path] -> {path, ""}
+      end
+
+    attributes = attributes(path, ";") ++ attributes(query, "&")
+
+    if Enum.any?(attributes, fn {name, _} -> name in ["pin-value", "pin-source"] end),
+      do: {:error, Error.new(:invalid_key_ref, "a key reference must not carry a PIN")},
+      else: object_label(for({"object", value} <- attributes, do: value))
+  end
+
+  def label(_ref), do: {:error, Error.new(:invalid_key_ref, "not a PKCS#11 URI")}
+
+  defp object_label([label]) when is_binary(label) and label != "", do: {:ok, label}
+
+  defp object_label(_labels),
+    do: {:error, Error.new(:invalid_key_ref, "a key reference names one object")}
+
+  defp attributes("", _separator), do: []
+
+  defp attributes(text, separator) do
+    for pair <- String.split(text, separator, trim: true) do
+      case String.split(pair, "=", parts: 2) do
+        [name, value] -> {String.downcase(name), decode(value)}
+        [name] -> {String.downcase(name), ""}
+      end
+    end
+  end
+
+  defp decode(value) do
+    URI.decode(value)
+  rescue
+    ArgumentError -> nil
+  end
 
   defp impl, do: Application.fetch_env!(:relay, :keys)
 end

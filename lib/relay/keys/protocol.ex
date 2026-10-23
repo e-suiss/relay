@@ -14,9 +14,17 @@ defmodule Relay.Keys.Protocol do
           | {:public_key, Relay.Keys.alg(), binary()}
           | {:wrap, binary(), binary(), binary()}
           | {:unwrap, binary(), binary(), binary()}
+          | {:hmac, binary(), binary()}
+          | {:read_secret, binary()}
 
   @type kind ::
-          :ping | {:sign, Relay.Keys.alg()} | {:public_key, Relay.Keys.alg()} | :wrap | :unwrap
+          :ping
+          | {:sign, Relay.Keys.alg()}
+          | {:public_key, Relay.Keys.alg()}
+          | :wrap
+          | :unwrap
+          | :hmac
+          | :read_secret
 
   @type result ::
           :ok | {:ok, binary() | Relay.Keys.public_key() | Redacted.t()} | {:error, Error.t()}
@@ -37,6 +45,10 @@ defmodule Relay.Keys.Protocol do
   def encode(id, {:unwrap, label, aad, wrapped}),
     do: [header(id, 4), field(label), field(aad), field(wrapped)]
 
+  def encode(id, {:hmac, label, message}), do: [header(id, 5), field(label), field(message)]
+
+  def encode(id, {:read_secret, label}), do: [header(id, 6), field(label)]
+
   @doc "Returns the response shape expected for a request."
   @spec kind(request()) :: kind()
   def kind(:ping), do: :ping
@@ -44,6 +56,8 @@ defmodule Relay.Keys.Protocol do
   def kind({:public_key, alg, _}), do: {:public_key, alg}
   def kind({:wrap, _, _, _}), do: :wrap
   def kind({:unwrap, _, _, _}), do: :unwrap
+  def kind({:hmac, _, _}), do: :hmac
+  def kind({:read_secret, _}), do: :read_secret
 
   @doc "Decodes a response frame into its request id, status byte and fields."
   @spec decode(binary()) ::
@@ -57,7 +71,7 @@ defmodule Relay.Keys.Protocol do
 
   def decode(_frame), do: malformed()
 
-  @doc "Turns a decoded response into the typed result for a request kind; unwrapped key material comes back redacted."
+  @doc "Turns a decoded response into the typed result for a request kind; unwrapped key material and secrets come back redacted."
   @spec result(kind(), non_neg_integer(), [binary()]) :: result()
   def result(:ping, 0, []), do: :ok
   def result({:sign, _alg}, 0, [signature]), do: {:ok, signature}
@@ -65,6 +79,8 @@ defmodule Relay.Keys.Protocol do
   def result({:public_key, _alg}, 0, [point]), do: {:ok, point}
   def result(:wrap, 0, [wrapped]), do: {:ok, wrapped}
   def result(:unwrap, 0, [plaintext]), do: {:ok, Redacted.wrap(plaintext)}
+  def result(:hmac, 0, [<<_::256>> = mac]), do: {:ok, mac}
+  def result(:read_secret, 0, [secret]), do: {:ok, Redacted.wrap(secret)}
   def result(_kind, 0, _fields), do: malformed()
 
   def result(_kind, status, [message]) when status in 1..6 and is_binary(message),

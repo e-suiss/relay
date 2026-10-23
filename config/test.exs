@@ -31,4 +31,6 @@ config :relay, Relay.Platform.Leadership, enabled: false
 
 config :logger, level: :warning
 
+config :relay, Relay.NetworkGuard, enabled: true
+
 config :phoenix, :plug_init_mode, :runtime

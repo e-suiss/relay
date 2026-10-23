@@ -22,6 +22,7 @@ defmodule Relay.Config do
     Relay.Platform.MaintRepo,
     Relay.Platform.Leadership,
     Relay.Audit,
+    Relay.NetworkGuard,
     Oban
   ]
   @os_env_keys ["RELAY_HOST", "RELAY_ROLES", "RELAY_REGION"]

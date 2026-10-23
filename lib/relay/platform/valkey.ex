@@ -26,6 +26,8 @@ defmodule Relay.Platform.Valkey do
   @doc "Stores a short-lived value under a tenant key with the key's time to live."
   @spec put(Key.t(), String.t(), adapter()) :: :ok | {:error, Relay.Error.t()}
   def put(%Key{name: name, ttl_ms: ttl_ms}, value, adapter \\ adapter()) when is_binary(value) do
+    :ok = guard()
+
     case adapter.command(["SET", name, value, "PX", Integer.to_string(ttl_ms)]) do
       {:ok, "OK"} -> :ok
       other -> failure(other)
@@ -35,6 +37,8 @@ defmodule Relay.Platform.Valkey do
   @doc "Reads a short-lived value; a missing or expired entry is `{:ok, nil}`."
   @spec get(Key.t(), adapter()) :: {:ok, String.t() | nil} | {:error, Relay.Error.t()}
   def get(%Key{name: name}, adapter \\ adapter()) do
+    :ok = guard()
+
     case adapter.command(["GET", name]) do
       {:ok, value} when is_binary(value) or is_nil(value) -> {:ok, value}
       other -> failure(other)
@@ -46,6 +50,8 @@ defmodule Relay.Platform.Valkey do
   @spec publish(channel(), String.t(), adapter()) :: :ok | {:error, Relay.Error.t()}
   def publish(channel, payload, adapter \\ adapter())
       when is_binary(channel) and is_binary(payload) do
+    :ok = guard()
+
     case adapter.command(["PUBLISH", channel, payload]) do
       {:ok, receivers} when is_integer(receivers) -> :ok
       other -> failure(other)
@@ -59,6 +65,8 @@ defmodule Relay.Platform.Valkey do
   def publish_many(_channel, [], _adapter), do: :ok
 
   def publish_many(channel, payloads, adapter) when is_binary(channel) and is_list(payloads) do
+    :ok = guard()
+
     case adapter.pipeline(Enum.map(payloads, &["PUBLISH", channel, &1])) do
       {:ok, replies} when is_list(replies) ->
         if Enum.all?(replies, &is_integer/1), do: :ok, else: failure({:ok, replies})
@@ -71,6 +79,8 @@ defmodule Relay.Platform.Valkey do
   @doc "Subscribes the calling process to a channel."
   @spec subscribe(channel(), adapter()) :: :ok | {:error, Relay.Error.t()}
   def subscribe(channel, adapter \\ adapter()) when is_binary(channel) do
+    :ok = guard()
+
     case adapter.subscribe(channel) do
       :ok -> :ok
       other -> failure(other)
@@ -86,6 +96,8 @@ defmodule Relay.Platform.Valkey do
   @doc "Reads the server's eviction policy."
   @spec eviction_policy(adapter()) :: {:ok, String.t()} | {:error, Relay.Error.t()}
   def eviction_policy(adapter \\ adapter()) do
+    :ok = guard()
+
     with {:ok, info} when is_binary(info) <- adapter.command(["INFO", "memory"]),
          [_, policy] <- Regex.run(~r/^maxmemory_policy:(\S+)/m, info) do
       {:ok, policy}
@@ -94,6 +106,9 @@ defmodule Relay.Platform.Valkey do
       _ -> {:error, Relay.Error.new(:valkey_reply, "eviction policy missing from INFO memory")}
     end
   end
+
+  # INV-55
+  defp guard, do: Relay.NetworkGuard.check!(:valkey)
 
   defp failure({:error, reason}),
     do:

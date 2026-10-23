@@ -133,5 +133,9 @@ defmodule Relay.Keys do
     ArgumentError -> nil
   end
 
-  defp impl, do: Application.fetch_env!(:relay, :keys)
+  # INV-55
+  defp impl do
+    :ok = Relay.NetworkGuard.check!(:keys)
+    Application.fetch_env!(:relay, :keys)
+  end
 end

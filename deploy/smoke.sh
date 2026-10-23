@@ -97,7 +97,7 @@ run --entrypoint softhsm2-util "$image" --init-token --free --label relay-smoke 
   || fail "token init failed"
 
 # OP-63
-run -e KEY_STORE_KEK_LABEL=relay-smoke-kek -v "$here/hsm-keys.sh:/run/hsm-keys.sh:ro" --entrypoint sh "$image" /run/hsm-keys.sh \
+run -v "$here/hsm-keys.sh:/run/hsm-keys.sh:ro" --entrypoint sh "$image" /run/hsm-keys.sh \
   || fail "key creation failed"
 
 bootstrap() {

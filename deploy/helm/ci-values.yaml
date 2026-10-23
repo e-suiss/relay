@@ -11,6 +11,8 @@ valkey:
 keyStore:
   module: /usr/lib/softhsm/libsofthsm2.so
   token: relay
+  kekLabel: kek
+  fingerprintLabel: fingerprint
 auditStore:
   endpoint: https://s3.example.com
   bucket: relay-audit

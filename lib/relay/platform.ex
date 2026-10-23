@@ -13,16 +13,20 @@ defmodule Relay.Platform do
   alias Relay.Platform.Store
   alias Relay.Platform.Valkey
 
-  # T-63
-  @doc "Checks the dependencies a node needs to serve traffic."
+  # T-63 (6)
+  # TN-66 (4)
+  @doc "Checks the dependencies a node needs to serve traffic: PostgreSQL and the key store."
   @spec readiness() :: :ok | {:error, Relay.Error.t()}
   def readiness do
-    case Store.ping() do
-      :ok ->
-        :ok
-
-      {:error, reason} ->
+    with {:database, :ok} <- {:database, Store.ping()},
+         {:key_store, :ok} <- {:key_store, Relay.Keys.ping()} do
+      :ok
+    else
+      {:database, {:error, reason}} ->
         {:error, Relay.Error.new(:not_ready, "database unavailable", %{reason: reason})}
+
+      {:key_store, {:error, %Relay.Error{code: code}}} ->
+        {:error, Relay.Error.new(:not_ready, "key store unavailable", %{reason: code})}
     end
   end
 
@@ -32,7 +36,8 @@ defmodule Relay.Platform do
   # OP-12
   # T-86
   # OP-11
-  @doc "Supervised children of the platform: the database role check, the query statistics check, the Valkey adapter, its guard, the signal hub and the job queue; a worker node also runs the queue maintenance connection and the outbox dispatcher. A failed role check stops the node."
+  # OP-69 (1)
+  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the signal hub and the job queue; a worker node also runs the queue maintenance connection and the outbox dispatcher. A failed role or ownership check stops the node."
   @spec children() :: [Supervisor.child_spec() | {module(), term()} | module()]
   def children do
     valkey = Application.fetch_env!(:relay, Valkey)
@@ -40,6 +45,7 @@ defmodule Relay.Platform do
 
     [
       Store.role_check_child(),
+      Store.ops_owner_check_child(),
       Store.query_stats_check_child(),
       {Keyword.fetch!(valkey, :adapter), Keyword.delete(valkey, :adapter)},
       Valkey.Guard,

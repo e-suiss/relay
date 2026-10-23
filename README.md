@@ -80,12 +80,12 @@ One Elixir application, one release. Run it as a single process, or scale the `a
 
 ## Getting started
 
-Relay is under active development; the project foundation is in place and the product features are being built. You need Docker, [`just`](https://github.com/casey/just) and the Erlang/Elixir versions in `.tool-versions` (install them with [`mise`](https://mise.jdx.dev)).
+Relay is under active development; the project foundation is in place and the product features are being built. You need Docker, [`just`](https://github.com/casey/just), the Erlang/Elixir versions in `.tool-versions` (install them with [`mise`](https://mise.jdx.dev)), a Rust toolchain, SoftHSM and OpenSC (`brew install softhsm opensc`, `apt install softhsm2 opensc`).
 
 ```sh
 git clone https://github.com/e-suiss/relay.git
 cd relay
-just dev     # PostgreSQL, Valkey, Mailpit, push and SMS simulators, tracing and metrics
+just dev     # local services, a SoftHSM key store with its keys, then the node itself
 just test    # the test suite against the real database
 just check   # every check CI runs on a pull request
 ```

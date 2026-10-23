@@ -8,7 +8,11 @@ database:
   url: ""
   queueUrl: ""
   maintUrl: ""
+  migratorUrl: ""
+  adminUrl: ""
   passwordSecret: relay-database
+  migratorPasswordSecret: relay-database-migrator
+  adminPasswordSecret: relay-database-admin
   poolSize: 10
   serverRequirements:
     sharedPreloadLibraries: [pg_stat_statements]

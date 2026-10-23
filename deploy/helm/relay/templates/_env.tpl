@@ -3,6 +3,10 @@
   value: {{ required "database.url is required" .Values.database.url | quote }}
 - name: DATABASE_PASSWORD_FILE
   value: /run/secrets/relay/database-password
+{{ include "relay.env.shared" . }}
+{{- end -}}
+
+{{- define "relay.env.shared" -}}
 - name: QUEUE_DATABASE_URL
   value: {{ required "database.queueUrl is required" .Values.database.queueUrl | quote }}
 - name: QUEUE_DATABASE_PASSWORD_FILE
@@ -37,4 +41,25 @@
 
 {{- define "relay.image" -}}
 {{ .Values.image.repository }}@{{ required "image.digest is required" .Values.image.digest }}
+{{- end -}}
+
+{{- define "relay.bootstrap-container" -}}
+- name: {{ .name }}
+  image: {{ include "relay.image" .root }}
+  args: ["eval", "Relay.Release.bootstrap()"]
+  env:
+    {{- include "relay.env" .root | nindent 4 }}
+    - name: RELAY_ROLES
+      value: worker
+    - name: ADMIN_DATABASE_URL
+      value: {{ required "database.adminUrl is required" .root.Values.database.adminUrl | quote }}
+    - name: ADMIN_DATABASE_PASSWORD_FILE
+      value: /run/secrets/relay-admin/password
+  volumeMounts:
+    - name: database-password
+      mountPath: /run/secrets/relay
+      readOnly: true
+    - name: admin-password
+      mountPath: /run/secrets/relay-admin
+      readOnly: true
 {{- end -}}

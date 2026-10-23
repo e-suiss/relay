@@ -1,11 +1,15 @@
 compose := "docker compose -f deploy/compose.yaml"
+softhsm_modules := "/opt/homebrew/lib/softhsm/libsofthsm2.so /usr/local/lib/softhsm/libsofthsm2.so /usr/lib/softhsm/libsofthsm2.so /usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so"
+
+export SOFTHSM2_CONF := justfile_directory() / "deploy/softhsm/softhsm2.conf"
 
 default:
     @just --list
 
-dev: up hsm
+dev: up hsm-keys port
     mix deps.get
     mix ecto.setup
+    iex -S mix phx.server
 
 up:
     {{compose}} up -d --wait
@@ -24,11 +28,27 @@ hsm:
     set -eu
     if ! command -v softhsm2-util >/dev/null; then echo "softhsm2-util not found; install SoftHSM (brew install softhsm, apt install softhsm2)"; exit 1; fi
     mkdir -p deploy/softhsm/tokens
-    export SOFTHSM2_CONF="$PWD/deploy/softhsm/softhsm2.conf"
     softhsm2-util --show-slots | grep -q "Label:.*relay-dev" || softhsm2-util --init-token --free --label relay-dev --pin 1234 --so-pin 12345678
+    printf 1234 > deploy/softhsm/pin
+
+hsm-keys: hsm
+    #!/bin/sh
+    set -eu
+    module="${PKCS11_MODULE:-}"
+    if [ -z "$module" ]; then
+      for candidate in {{softhsm_modules}}; do [ -f "$candidate" ] && module="$candidate" && break; done
+    fi
+    [ -n "$module" ] || { echo "SoftHSM module not found; set PKCS11_MODULE"; exit 1; }
+    PKCS11_MODULE="$module" PKCS11_TOKEN=relay-dev PKCS11_PIN_FILE=deploy/softhsm/pin \
+      KEY_STORE_KEK_LABEL=kek-dev KEY_STORE_BLIND_INDEX_LABEL=bidx-dev deploy/hsm-keys.sh
 
 port:
+    #!/bin/sh
+    set -eu
     native/build.sh
+    mkdir -p priv/native
+    cp native/pkcs11_port/target/release/pkcs11_port priv/native/pkcs11_port
+    cp native/pkcs11_port/target/release/pkcs11_port.sha256 priv/native/pkcs11_port.sha256
 
 test: port
     {{compose}} up -d --wait postgres valkey

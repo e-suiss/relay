@@ -7,3 +7,16 @@ Database server requirements:
 Key store:
   PKCS#11 module {{ .Values.keyStore.module }}, token {{ .Values.keyStore.token }}, PIN from secret {{ .Values.keyStore.pinSecret }} (key "pin").
   The provider library is not part of the image; mount it with keyStore.volumes and keyStore.volumeMounts.
+
+Database ownership:
+  The migrate hook runs Relay.Release.bootstrap() as the installation administrator (database.adminUrl, password from
+  secret {{ .Values.database.adminPasswordSecret }}, key "password"), then Relay.Release.migrate() as relay_migrator
+  (database.migratorUrl, password from secret {{ .Values.database.migratorPasswordSecret }}, key "password"), then the
+  bootstrap again. The bootstrap is idempotent; the second run hands the relay_ops functions to relay_maint, and a node
+  that finds another owner does not start.
+
+Key store keys:
+  Create the stage-1 keys in the token once, from a host that can reach it, with OpenSC's pkcs11-tool:
+    PKCS11_MODULE=<library> PKCS11_TOKEN={{ .Values.keyStore.token }} PKCS11_PIN_FILE=<pin file> \
+      KEY_STORE_KEK_LABEL=<KEK label> deploy/hsm-keys.sh
+  The script is idempotent; existing keys are left untouched. Blind index keys are per tenant and are not created here.

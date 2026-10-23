@@ -1,6 +1,6 @@
 defmodule Relay.Platform.Store do
   @moduledoc """
-  Database access of the platform: the readiness probe, the startup role check and the query statistics check. A node whose database login is privileged, owns objects, may remove rows, writes the record tables directly, runs on an unsupported PostgreSQL or finds a preset tenant context refuses to start.
+  Database access of the platform: the readiness probe, the startup role check, the `relay_ops` ownership check and the query statistics check. A node whose database login is privileged, owns objects, may remove rows, writes the record tables directly, runs on an unsupported PostgreSQL or finds a preset tenant context refuses to start, and so does a node that finds a `relay_ops` function not owned by `relay_maint`.
   """
 
   require Logger
@@ -38,6 +38,7 @@ defmodule Relay.Platform.Store do
   @logins %{api: "relay_api", socket: "relay_api", worker: "relay_worker"}
   @statement_timeout_ms %{"relay_api" => 5_000, "relay_worker" => 30_000, "relay_queue" => 60_000}
   @min_server_version 180_000
+  @ops_owner "relay_maint"
   @wipe "TRUNCATE"
   @privileges ["SELECT", "INSERT", "UPDATE", "DELETE", @wipe]
 
@@ -88,6 +89,60 @@ defmodule Relay.Platform.Store do
 
       {:error, error} ->
         Logger.error("database role check failed; the node does not start",
+          code: error.code,
+          details: inspect(error.details)
+        )
+
+        {:error, error}
+    end
+  end
+
+  # OP-69 (1)
+  @doc "Checks that every function in the `relay_ops` schema is owned by `relay_maint`; the post-migration bootstrap (`Relay.Release.bootstrap/0`) hands them over."
+  @spec ops_owner_check(query_fun()) :: :ok | {:error, Relay.Error.t()}
+  def ops_owner_check(query \\ &repo_query/2) do
+    case query.(ops_owner_sql(), [@ops_owner]) do
+      {:ok, []} ->
+        :ok
+
+      {:ok, rows} ->
+        {:error,
+         Relay.Error.new(
+           :wrong_function_owner,
+           "relay_ops functions are not owned by relay_maint",
+           %{
+             functions:
+               Enum.map(rows, fn [function, owner] -> "#{function} owned by #{owner}" end)
+           }
+         )}
+
+      {:error, reason} ->
+        {:error,
+         Relay.Error.new(:ops_owner_check_failed, "relay_ops ownership could not be checked", %{
+           reason: reason
+         })}
+    end
+  end
+
+  @doc "Child specification that runs the `relay_ops` ownership check while the supervision tree starts; a failed check stops the node."
+  @spec ops_owner_check_child() :: Supervisor.child_spec()
+  def ops_owner_check_child do
+    %{
+      id: :relay_ops_owner_check,
+      start: {__MODULE__, :start_ops_owner_check, []},
+      restart: :temporary
+    }
+  end
+
+  @doc "Supervisor start function of `ops_owner_check_child/0`: `:ignore` when the check passes."
+  @spec start_ops_owner_check() :: :ignore | {:error, Relay.Error.t()}
+  def start_ops_owner_check do
+    case ops_owner_check() do
+      :ok ->
+        :ignore
+
+      {:error, error} ->
+        Logger.error("relay_ops ownership check failed; the node does not start",
           code: error.code,
           details: inspect(error.details)
         )
@@ -292,6 +347,16 @@ defmodule Relay.Platform.Store do
       current_setting('server_version_num')::integer, current_setting('server_version'),
       current_setting('row_security'),
       (SELECT setting::integer FROM pg_catalog.pg_settings WHERE name = 'statement_timeout')
+    """
+  end
+
+  defp ops_owner_sql do
+    """
+    SELECT p.oid::regprocedure::text, pg_catalog.pg_get_userbyid(p.proowner)::text
+    FROM pg_catalog.pg_proc p
+    JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'relay_ops' AND pg_catalog.pg_get_userbyid(p.proowner) <> $1
+    ORDER BY 1
     """
   end
 

@@ -32,6 +32,8 @@ defmodule Relay do
       Region,
       RetentionClass,
       Crypto,
-      Canonical
+      Canonical,
+      Release,
+      Worker
     ]
 end

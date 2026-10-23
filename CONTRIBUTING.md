@@ -10,12 +10,12 @@ Do **not** open a public issue for a vulnerability. Follow [`SECURITY.md`](SECUR
 
 ## Development environment
 
-You need Docker, `just` and the Erlang/Elixir versions in `.tool-versions` (`mise install`). Getting started takes three steps:
+You need Docker, `just`, the Erlang/Elixir versions in `.tool-versions` (`mise install`), a Rust toolchain, SoftHSM and OpenSC. Getting started takes three steps:
 
 ```sh
 git clone https://github.com/e-suiss/relay.git
 cd relay
-just dev    # starts PostgreSQL, Valkey, Mailpit, APNs/FCM/SMS simulators, tracing and metrics
+just dev    # starts the local services, a SoftHSM token with its keys (just hsm-keys) and the node
 just test   # runs the same tests as CI on pull requests
 ```
 

@@ -36,6 +36,37 @@ defmodule Relay.HygieneTest do
       assert {_, [{Relay.Keys.Port, :handle_call, 3, [line: 1]}]} = status.reason
     end
 
+    test "T-46: process crash reports lose stack trace and exception arguments before any handler" do
+      assert {Relay.Hygiene, _} =
+               :logger.get_primary_config().filters |> List.keyfind(Relay.Hygiene, 0)
+
+      report = %{
+        label: {:gen_server, :terminate},
+        reason:
+          {:function_clause, [{M, :handle_call, [{:leak, @secret}, self(), %{}], [line: 1]}]},
+        state: :kept
+      }
+
+      assert %{msg: {:report, pruned}} =
+               Hygiene.crash_report_filter(
+                 %{msg: {:report, report}, meta: %{}, level: :error},
+                 []
+               )
+
+      refute inspect(pruned, limit: :infinity, printable_limit: :infinity) =~ @secret
+      assert pruned.state == :kept
+
+      statem = %{reason: {:error, %MatchError{term: @secret}, [{M, :f, [@secret], []}]}}
+
+      assert %{msg: {:report, pruned}} =
+               Hygiene.crash_report_filter(%{msg: {:report, statem}}, [])
+
+      refute inspect(pruned, limit: :infinity, printable_limit: :infinity) =~ @secret
+
+      other = %{msg: {:string, "plain"}}
+      assert Hygiene.crash_report_filter(other, []) == other
+    end
+
     test "T-46: stack trace arguments are pruned to their count" do
       assert Hygiene.prune_stacktrace([{M, :f, [@secret, 2], [file: ~c"m.ex"]}, {M, :g, 1, []}]) ==
                [{M, :f, 2, [file: ~c"m.ex"]}, {M, :g, 1, []}]
@@ -59,6 +90,23 @@ defmodule Relay.HygieneTest do
 
       assert {:error, message} = Hygiene.check_inspect(Relay.Secrets.Ref, [:fingerprint])
       assert message =~ "shows a secret field"
+    end
+
+    test "T-46: a struct with an allowlist of shown fields does not compile when another field shows" do
+      leaky = """
+      defmodule Relay.HygieneTest.LeakyRef do
+        @derive {Inspect, only: [:id, :ref]}
+        defstruct [:id, :ref]
+        use Relay.Hygiene, shown_fields: [:id]
+      end
+      """
+
+      assert_raise CompileError, ~r/Relay.HygieneTest.LeakyRef/, fn ->
+        Code.compile_string(leaky)
+      end
+
+      assert Hygiene.secret_fields(Relay.Secrets.Ref) == [:created_at, :retired_at]
+      assert Hygiene.check_inspect(Relay.Secrets.Ref, [:created_at, :retired_at]) == :ok
     end
 
     test "T-46: structs that hold secrets restrict their inspection with only:" do

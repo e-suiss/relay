@@ -160,6 +160,106 @@ defmodule Relay.Datasets.StoreTest do
     end
   end
 
+  describe "OP-65 (3) audited activation and the node signal" do
+    defp audit_rows(scope) do
+      now = DateTime.utc_now()
+      actor = TenantFixture.actor()
+
+      {:ok, rows} =
+        Relay.Repo.in_scope(scope, fn _status ->
+          Relay.Repo.query!(
+            "SELECT action, target_type, target_id, reason FROM relay_fn.audit_query($1, $2, NULL, NULL, 100, $3, $4, $5, $6, $7)",
+            [
+              DateTime.add(now, -3600),
+              DateTime.add(now, 3600),
+              TenantFixture.digest(),
+              Atom.to_string(actor.kind),
+              actor.ref,
+              actor.on_behalf_of_ref,
+              actor.access_record_ref
+            ]
+          ).rows
+        end)
+
+      Enum.filter(rows, fn [action | _] -> String.starts_with?(action, "dataset.") end)
+    end
+
+    defp subscribe!(scope, name) do
+      {:ok, topic} =
+        Relay.Platform.signal_topic(Relay.Scope.tenant_text(scope), "live", ["dataset", name])
+
+      :ok = Relay.Platform.subscribe_signal(topic)
+      await_up(topic)
+      topic
+    end
+
+    defp await_up(topic, tries \\ 100) do
+      case Relay.Platform.Signal.Hub.topics(Relay.Platform.Signal.Hub) do
+        %{^topic => :up} ->
+          :ok
+
+        _ when tries > 0 ->
+          Process.sleep(50)
+          await_up(topic, tries - 1)
+      end
+    end
+
+    defp read_only(fun) do
+      Relay.Repo.query!("SAVEPOINT relay_read_only_test", [])
+      Relay.Repo.query!("SET LOCAL transaction_read_only = on", [])
+
+      try do
+        fun.()
+      after
+        Relay.Repo.query!("ROLLBACK TO SAVEPOINT relay_read_only_test", [])
+      end
+    end
+
+    test "OP-65: publishing and activating a version each write an audit record", %{tenant: t} do
+      name = define!(["tenant"])
+      {:ok, {:published, v1, 1}} = publish(t.live, name, content("a"))
+      {:ok, :activated} = Datasets.activate(t.live, name, v1, :operator, operator())
+      id = Relay.Id.to_string(v1)
+
+      assert [
+               ["dataset.version_published", "dataset_version", ^id, nil],
+               ["dataset.activated", "dataset_version", ^id, "operator"]
+             ] = audit_rows(t.live)
+    end
+
+    test "OP-65: a committed activation signals every node to drop its cached version", %{
+      tenant: t
+    } do
+      name = define!(["tenant"])
+      {:ok, {:published, v1, 1}} = publish(t.live, name, content("a"))
+      topic = subscribe!(t.live, name)
+
+      {:ok, :activated} = Datasets.activate(t.live, name, v1, :operator, operator())
+      assert_receive {:relay_signal, ^topic, {:seq, _}}, 5_000
+
+      {:ok, :already_active} = Datasets.activate(t.live, name, v1, :operator, operator())
+      refute_receive {:relay_signal, ^topic, {:seq, _}}, 1_500
+    end
+
+    test "OP-65: an activation that rolls back sends no signal and leaves no audit record", %{
+      tenant: t
+    } do
+      name = define!(["tenant"])
+      {:ok, {:published, v1, 1}} = publish(t.live, name, content("a"))
+      topic = subscribe!(t.live, name)
+
+      read_only(fn ->
+        assert_raise Postgrex.Error, ~r/read-only transaction/, fn ->
+          Datasets.activate(t.live, name, v1, :operator, operator())
+        end
+      end)
+
+      refute_receive {:relay_signal, ^topic, {:seq, _}}, 1_500
+      assert Datasets.active(t.live, name) == {:ok, nil}
+      assert [["dataset.version_published", _, _, _]] = audit_rows(t.live)
+    end
+  end
+
   describe "OP-65 (5) bundled versions" do
     defp bundle!(dir, name, versions) do
       root = Path.join(dir, "datasets")

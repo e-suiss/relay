@@ -7769,6 +7769,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "TN-67",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "T-1",
     "section": "§19",
     "status": "central",
@@ -8465,6 +8473,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "T-88",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "OP-1",
     "section": "§20",
     "status": "frozen_technical",
@@ -9018,6 +9034,14 @@
   {
     "acceptance": "pending",
     "id": "OP-70",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-71",
     "section": "§20",
     "status": "frozen_technical",
     "title": "",

@@ -44,6 +44,35 @@ defmodule Relay.ConfigTest do
       refute runtime =~ ~r/Relay\.Config\.Env\.file!\("PKCS11_PIN_FILE"\)/
     end
 
+    test "TN-67 (1): the region KEK and the fingerprint key labels are installation configuration" do
+      labels = [kek_label: "kek-tr-1", fingerprint_label: "fingerprint-tr-1"]
+      assert Relay.Keys in Config.known_app_keys()
+      assert :ok = Config.validate!(Keyword.put(@valid, Relay.Keys, labels), %{})
+
+      for bad <- [
+            Keyword.delete(labels, :kek_label),
+            Keyword.put(labels, :fingerprint_label, ""),
+            Keyword.put(labels, :blind_index_label, "bidx"),
+            :kek
+          ] do
+        assert_raise Error, ~r/Relay.Keys configuration/, fn ->
+          Config.validate!(Keyword.put(@valid, Relay.Keys, bad), %{})
+        end
+      end
+
+      runtime = File.read!("config/runtime.exs")
+      assert runtime =~ ~s[kek_label: Relay.Config.Env.fetch!("KEY_STORE_KEK_LABEL")]
+
+      assert runtime =~
+               ~s[fingerprint_label: Relay.Config.Env.fetch!("KEY_STORE_FINGERPRINT_LABEL")]
+
+      env = File.read!("deploy/helm/relay/templates/_env.tpl")
+      assert env =~ ~s[required "keyStore.kekLabel is required" .Values.keyStore.kekLabel]
+
+      assert env =~
+               ~s[required "keyStore.fingerprintLabel is required" .Values.keyStore.fingerprintLabel]
+    end
+
     test "INV-46: an unknown configuration key stops startup" do
       assert_raise Error, ~r/unknown configuration keys.*:retry_forever/, fn ->
         Config.validate!(Keyword.put(@valid, :retry_forever, true), %{})

@@ -2,14 +2,18 @@ defmodule Relay.Keys.Erasure do
   @moduledoc """
   Crypto-shredding. Personal data is erased by destroying the data key it is encrypted under; rows stay, unreadable. A subject erasure destroys the subject's data keys of every class without a legal retention obligation, restricts those with one (kept, never used in normal processing), soft-deletes the recipient, clears its blind indexes and cancels its pending deliveries, all in one tenant-scoped transaction with its audit record and erasure log row. An active legal hold on the tenant or the recipient stops it with `:held` and changes nothing. Tenant keys are destroyed the same way: a receipt day key seven days after its day, data and wrapping keys only for a closed tenant.
 
-  Which classes carry an obligation comes from the retention data set (Access Appendix C by region and sector); the caller passes it. After a key is destroyed or restricted every node drops it from its key cache (`Relay.Keys.Eviction`).
+  Which classes carry an obligation is never taken from the caller: inside the erasure transaction it is derived from the active `retention_periods` data set (Access Appendix C) for the tenant's region and sector, and a subject class with a period of more than zero days is restricted. A tenant whose region and sector have no row in the data set, or an installation without an active version, is refused and nothing changes. After a key is destroyed or restricted every node drops it from its key cache (`Relay.Keys.Eviction`).
   """
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Audit, Relay.Keys.Eviction], exports: []
+  use Boundary,
+    top_level?: true,
+    deps: [Relay, Relay.Audit, Relay.Datasets, Relay.Keys.Eviction],
+    exports: []
 
   alias Relay.Keys.Erasure.Store
 
   @subject_classes ~w(recipient_profile notification_content delivery_record commercial_consent commercial_message preference)
+  @dataset "retention_periods"
 
   @type scope :: Relay.Scope.t()
   @type actor :: Relay.Actor.t()
@@ -21,39 +25,68 @@ defmodule Relay.Keys.Erasure do
   @spec subject_classes() :: [String.t(), ...]
   def subject_classes, do: @subject_classes
 
-  @doc "Splits the subject classes into those to destroy and those to restrict, given the classes under a legal retention obligation."
-  @spec plan([String.t()]) :: {:ok, plan()} | {:error, Relay.Error.t()}
-  def plan(obligated) when is_list(obligated) do
-    case Enum.reject(obligated, &(&1 in @subject_classes)) do
-      [] ->
-        restrict = Enum.filter(@subject_classes, &(&1 in obligated))
-        {:ok, %{destroy: @subject_classes -- restrict, restrict: restrict}}
+  # TN-67 (2)
+  # OP-18
+  # OP-69 (3)
+  @doc "Splits the subject classes into those to destroy and those to restrict for a region and sector, from the content of a `retention_periods` version: a subject class with a period of more than zero days is under a legal retention obligation. A region and sector without any row is refused."
+  @spec plan(map(), String.t(), String.t()) :: {:ok, plan()} | {:error, Relay.Error.t()}
+  def plan(%{"periods" => periods}, region, sector)
+      when is_list(periods) and is_binary(region) and is_binary(sector) do
+    rows = Enum.filter(periods, &(&1["region"] == region and &1["sector"] == sector))
 
-      unknown ->
-        {:error,
-         Relay.Error.new(:invalid_argument, "unknown retention class", %{classes: unknown})}
+    obligated =
+      for %{"retention_class" => class, "days" => days} <- rows,
+          class in @subject_classes and is_integer(days) and days > 0,
+          do: class
+
+    if rows == [] do
+      {:error,
+       Relay.Error.new(
+         :retention_rule_missing,
+         "no retention periods for the region and sector",
+         %{
+           region: region,
+           sector: sector
+         }
+       )}
+    else
+      restrict = Enum.filter(@subject_classes, &(&1 in obligated))
+      {:ok, %{destroy: @subject_classes -- restrict, restrict: restrict}}
     end
   end
+
+  def plan(_content, _region, _sector),
+    do: {:error, Relay.Error.new(:invalid_dataset, "not a retention_periods version")}
 
   # MKT-13
   # OP-17
   # OP-24
   # C-86
+  # TN-67 (2)
   @doc """
-  Erases a subject. Returns `{:ok, :erased | :already_erased | :held | :not_found, cancelled_deliveries}`.
+  Erases a subject; the classes to restrict come from the active `retention_periods` data set for the tenant's region and sector (`plan/3`). Returns `{:ok, :erased | :already_erased | :held | :not_found, cancelled_deliveries}`.
   """
-  @spec erase_subject(scope(), Relay.Id.t(), String.t(), [String.t()], actor()) ::
+  @spec erase_subject(scope(), Relay.Id.t(), String.t(), actor()) ::
           {:ok, :erased | :already_erased | :held | :not_found, non_neg_integer()}
           | {:error, Relay.Error.t()}
-  def erase_subject(scope, <<_::128>> = recipient_id, request_ref, obligated, actor)
+  def erase_subject(scope, <<_::128>> = recipient_id, request_ref, actor)
       when is_binary(request_ref) and request_ref != "" do
-    with {:ok, plan} <- plan(obligated) do
-      digest =
-        record_digest(scope, "subject.erased", actor, "recipient", recipient_id, request_ref)
+    digest =
+      record_digest(scope, "subject.erased", actor, "recipient", recipient_id, request_ref)
 
-      result = Store.subject_erase(scope, recipient_id, request_ref, plan, digest, actor)
-      evict(result, :erased)
-      result
+    result = Store.subject_erase(scope, recipient_id, request_ref, &tenant_plan/1, digest, actor)
+    evict(result, :erased)
+    result
+  end
+
+  defp tenant_plan(%{"region" => region, "sector" => sector}) do
+    case Relay.Datasets.decide(
+           Relay.Datasets.installation_scope(),
+           @dataset,
+           &plan(&1, region, sector)
+         ) do
+      {:ok, {plan, _ref}} -> plan
+      {:error, error} -> {:error, error}
     end
   end
 

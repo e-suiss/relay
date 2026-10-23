@@ -27,6 +27,23 @@ impl Alg {
     }
 }
 
+/// Kinds of secret key the port generates inside the token.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyKind {
+    Aes256,
+    HmacSha256,
+}
+
+impl KeyKind {
+    fn from_byte(byte: u8) -> Option<Self> {
+        match byte {
+            1 => Some(KeyKind::Aes256),
+            2 => Some(KeyKind::HmacSha256),
+            _ => None,
+        }
+    }
+}
+
 /// A decoded request. Plaintext key material stays in zeroizing buffers.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Op {
@@ -57,6 +74,11 @@ pub enum Op {
     ReadSecret {
         label: Vec<u8>,
     },
+    GenerateKey {
+        kind: KeyKind,
+        label: Vec<u8>,
+        id: Vec<u8>,
+    },
 }
 
 /// Response status codes.
@@ -69,6 +91,7 @@ pub enum Status {
     Integrity = 4,
     Token = 5,
     Internal = 6,
+    Exists = 7,
 }
 
 /// A request that could not be decoded, with the request id when it was readable.
@@ -145,6 +168,7 @@ pub fn decode(frame: &[u8]) -> Result<(u32, Op), DecodeError> {
         4 => decode_unwrap(&mut reader),
         5 => decode_hmac(&mut reader),
         6 => decode_read_secret(&mut reader),
+        7 => decode_generate_key(&mut reader),
         _ => None,
     };
 
@@ -202,6 +226,16 @@ fn decode_hmac(reader: &mut Reader<'_>) -> Option<Op> {
 fn decode_read_secret(reader: &mut Reader<'_>) -> Option<Op> {
     let label = reader.field()?.to_vec();
     Some(Op::ReadSecret { label })
+}
+
+fn decode_generate_key(reader: &mut Reader<'_>) -> Option<Op> {
+    let kind = KeyKind::from_byte(reader.u8()?)?;
+    let label = reader.field()?.to_vec();
+    let id = reader.field()?.to_vec();
+    if label.is_empty() || id.is_empty() {
+        return None;
+    }
+    Some(Op::GenerateKey { kind, label, id })
 }
 
 /// Encodes a response frame body. The buffer is zeroized when dropped.
@@ -307,6 +341,44 @@ mod tests {
         );
         let body = [field(b"smtp"), field(b"x")].concat();
         assert_eq!(decode(&request(13, 6, &body)).unwrap_err().id, 13);
+    }
+
+    #[test]
+    fn tn_67_decodes_generate_key() {
+        let body = [vec![2], field(b"bidx-t1"), field(&[0xab; 16])].concat();
+        assert_eq!(
+            decode(&request(14, 7, &body)),
+            Ok((
+                14,
+                Op::GenerateKey {
+                    kind: KeyKind::HmacSha256,
+                    label: b"bidx-t1".to_vec(),
+                    id: vec![0xab; 16]
+                }
+            ))
+        );
+        let body = [vec![1], field(b"data"), field(b"1")].concat();
+        assert!(matches!(
+            decode(&request(15, 7, &body)),
+            Ok((
+                15,
+                Op::GenerateKey {
+                    kind: KeyKind::Aes256,
+                    ..
+                }
+            ))
+        ));
+        for body in [
+            [vec![3], field(b"k"), field(b"1")].concat(),
+            [vec![1], field(b""), field(b"1")].concat(),
+            [vec![1], field(b"k"), field(b"")].concat(),
+            [vec![1], field(b"k")].concat(),
+        ] {
+            assert_eq!(
+                decode(&request(16, 7, &body)).unwrap_err().status,
+                Status::BadRequest
+            );
+        }
     }
 
     #[test]

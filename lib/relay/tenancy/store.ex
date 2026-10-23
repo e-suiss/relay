@@ -193,6 +193,40 @@ defmodule Relay.Tenancy.Store do
     Repo.code!(row["blind_index_key_register"], [:created, :exists, :active_exists])
   end
 
+  # TN-27
+  @doc "Reads the identifier of the established scope's active tenant key of a purpose."
+  @spec active_tenant_key(String.t()) :: Relay.Id.t() | nil
+  def active_tenant_key(purpose) when purpose in ["data", "dek_wrap"] do
+    """
+    SELECT tenant_id, environment::text AS environment, id
+    FROM relay.tenant_keys
+    WHERE state = 'active' AND purpose = $1
+    """
+    |> Repo.scoped_query!([purpose])
+    |> rows()
+    |> Enum.map(& &1["id"])
+    |> List.first()
+  end
+
+  # TN-67 (1)
+  @doc "Names the keys the established scope already has: `:data` and `:dek_wrap` for an active tenant key of that purpose, `:blind_index` for an active or rotating blind index key."
+  @spec active_key_purposes() :: [:data | :dek_wrap | :blind_index]
+  def active_key_purposes do
+    """
+    SELECT tenant_id, environment::text AS environment, purpose
+    FROM relay.tenant_keys
+    WHERE state = 'active' AND purpose IN ('data', 'dek_wrap')
+    UNION ALL
+    SELECT tenant_id, environment::text AS environment, 'blind_index' AS purpose
+    FROM relay.blind_index_keys
+    WHERE state IN ('active', 'rotating')
+    """
+    |> Repo.scoped_query!([])
+    |> rows()
+    |> Enum.map(&Repo.code!(&1["purpose"], [:data, :dek_wrap, :blind_index]))
+    |> Enum.uniq()
+  end
+
   # TN-33 (3)
   # TN-65 (2)
   @doc "Reads the readable blind index keys of the established scope: the active key first, then a key being rotated in."

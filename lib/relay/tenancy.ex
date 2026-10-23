@@ -75,13 +75,25 @@ defmodule Relay.Tenancy do
   # TN-1
   # TN-2
   # TN-65 (6)
-  @doc "Creates a tenant mapped from an Access tenant after validating its time zone and locale and replacing them with their canonical forms; see `Relay.Tenancy.Store.tenant_create/2`."
+  @doc "Creates the tenant row mapped from an Access tenant after validating its time zone and locale and replacing them with their canonical forms; see `Relay.Tenancy.Store.tenant_create/2`. `Relay.Tenancy.Provisioning.create_tenant/2` creates the tenant together with its keys."
   @spec create_tenant(map(), Actor.t()) ::
           {:created | :exists | :conflict | :region_mismatch, Relay.Id.t() | nil}
           | {:error, Relay.Error.t()}
   def create_tenant(attrs, actor) do
     with {:ok, attrs} <- Defaults.canonical(attrs, [:default_timezone, :default_locale]),
          do: Store.tenant_create(attrs, actor)
+  end
+
+  # TN-67 (1)
+  @doc "Names the keys a scope already has: `:data` and `:dek_wrap` for an active tenant key of that purpose, `:blind_index` for an active or rotating blind index key."
+  @spec active_key_purposes(Scope.t()) ::
+          {:ok, [:data | :dek_wrap | :blind_index]} | {:error, Relay.Error.t()}
+  def active_key_purposes(scope) do
+    case within(scope, fn _status -> Store.active_key_purposes() end) do
+      {:ok, purposes} -> {:ok, purposes}
+      {:error, %Relay.Error{} = error} -> {:error, error}
+      {:error, _reason} -> {:error, Relay.Error.new(:database_error, "tenant key read failed")}
+    end
   end
 
   @doc "Reads the tenant of a scope."
@@ -158,11 +170,66 @@ defmodule Relay.Tenancy do
   def resolve_stored_settings(scope, subtenant_id, keys),
     do: within(scope, fn _status -> Store.setting_resolve(subtenant_id, keys) end)
 
-  @doc "Creates a recipient with its profile data key."
-  @spec create_recipient(Scope.t(), map()) ::
-          {:ok, {atom(), Relay.Id.t() | nil}} | {:error, term()}
-  def create_recipient(scope, attrs),
-    do: within(scope, fn _status -> Store.recipient_create(attrs) end)
+  # C-19
+  # C-20
+  # TN-33
+  # OP-18
+  @doc "Creates a recipient: generates its `recipient_profile` data key under the tenant's active `dek_wrap` key, encrypts its external identifier under that key and indexes it under the current blind index key, then writes the recipient and its data key in one call. `attrs` carries `:id`, `:kind` and `:external_id`. The key store is called outside any transaction, so this function must not run inside one."
+  @spec create_recipient(Scope.t(), map(), [option()]) ::
+          {:ok, {:created | :exists | :tenant_inactive, Relay.Id.t() | nil}} | {:error, term()}
+  def create_recipient(
+        scope,
+        %{id: <<_::128>> = id, kind: kind, external_id: external_id},
+        opts \\ []
+      )
+      when kind in [:subscriber, :agent] do
+    index_scope = %{
+      tenant_id: scope.tenant_id,
+      environment: scope.environment,
+      purpose: "external_id"
+    }
+
+    field_scope = %{
+      tenant_id: scope.tenant_id,
+      environment: scope.environment,
+      subject_id: id,
+      retention_class: :recipient_profile,
+      table: "recipients",
+      column: "external_id_ct"
+    }
+
+    with {:ok, wrapping_key_id} <- active_tenant_key(scope, :dek_wrap),
+         {:ok, {bidx_key_id, bidx}} <- blind_index(index_scope, external_id, opts),
+         {:ok, %{wrapped_dek: wrapped_dek, data_key: data_key}} <-
+           Keyring.generate_subject_key(scope, wrapping_key_id, id, :recipient_profile),
+         {:ok, external_id_ct} <- encrypt_field(field_scope, external_id, data_key: data_key) do
+      within(scope, fn _status ->
+        Store.recipient_create(%{
+          id: id,
+          kind: kind,
+          external_id_bidx: bidx,
+          bidx_key_id: bidx_key_id,
+          external_id_ct: external_id_ct,
+          profile_dek_id: Relay.Id.generate(),
+          profile_wrapped_dek: wrapped_dek,
+          wrapping_key_id: wrapping_key_id
+        })
+      end)
+    end
+  end
+
+  # TN-27
+  @doc "Returns the identifier of the scope's active tenant key of a purpose (`:data` or `:dek_wrap`)."
+  @spec active_tenant_key(Scope.t(), :data | :dek_wrap) ::
+          {:ok, Relay.Id.t()} | {:error, Relay.Error.t()}
+  def active_tenant_key(scope, purpose) when purpose in [:data, :dek_wrap] do
+    case within(scope, fn _status -> Store.active_tenant_key(Atom.to_string(purpose)) end) do
+      {:ok, <<_::128>> = id} -> {:ok, id}
+      {:ok, nil} -> {:error, Relay.Error.new(:data_key_not_found, "no active tenant key")}
+      {:error, %Relay.Error{} = error} -> {:error, error}
+      {:error, _reason} -> {:error, Relay.Error.new(:database_error, "tenant key read failed")}
+    end
+  end
 
   # TN-27
   @doc "Registers a wrapped tenant key."

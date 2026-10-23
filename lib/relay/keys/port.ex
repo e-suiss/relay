@@ -94,6 +94,13 @@ defmodule Relay.Keys.Port do
   @spec read_secret(GenServer.server(), String.t()) :: {:ok, Redacted.t()} | {:error, Error.t()}
   def read_secret(server \\ __MODULE__, label), do: request(server, {:read_secret, label})
 
+  @impl Relay.Keys
+  @doc "Generates a secret key inside the token through the program. See `Relay.Keys.generate_key/3`."
+  @spec generate_key(GenServer.server(), Relay.Keys.key_kind(), String.t(), binary()) ::
+          :ok | {:error, Error.t()}
+  def generate_key(server \\ __MODULE__, kind, label, id),
+    do: request(server, {:generate_key, kind, label, id})
+
   defp request(server, request) do
     GenServer.call(server, {:request, request}, :infinity)
   catch

@@ -1,7 +1,10 @@
 defmodule RelayTest.TenantFixture do
   @moduledoc "Tenants, keys and recipients written through the database functions for data layer tests."
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Tenancy], exports: [SendWorker]
+  use Boundary,
+    top_level?: true,
+    deps: [Relay, Relay.Tenancy, Relay.Tenancy.Provisioning, Relay.Datasets],
+    exports: [SendWorker]
 
   alias Relay.Repo
   alias Relay.Scope
@@ -50,61 +53,64 @@ defmodule RelayTest.TenantFixture do
       record_digest: digest()
     }
 
-    {:created, ^id} = Relay.Tenancy.create_tenant(attrs, actor())
+    {:created, ^id} = Relay.Tenancy.Provisioning.create_tenant(attrs, actor())
     %{id: id, attrs: attrs, live: Scope.new!(id, :live), test: Scope.new!(id, :test)}
   end
 
-  @doc "Registers the tenant keys of a scope and returns their identifiers."
+  @doc "Activates the packaged `retention_periods` version 2 as an operator version in the sandbox, so a test reads it whatever other versions the database holds."
+  @spec retention_periods!() :: :ok
+  def retention_periods! do
+    scope = Relay.Datasets.installation_scope()
+
+    content =
+      [:code.priv_dir(:relay), "datasets", "retention_periods", "v2.json"]
+      |> Path.join()
+      |> File.read!()
+      |> Jason.decode!()
+
+    {:ok, {result, id, _no}} =
+      Relay.Datasets.publish(scope, "retention_periods", content, actor(), source_ref: "test")
+
+    true = result in [:published, :exists]
+
+    {:ok, activation} =
+      Relay.Datasets.activate(scope, "retention_periods", id, :operator, actor())
+
+    true = activation in [:activated, :already_active]
+    :ok
+  end
+
+  @doc "Returns the identifiers of the keys provisioned for a scope when its tenant was created."
   @spec keys!(Scope.t()) :: %{
           data: Relay.Id.t(),
           dek_wrap: Relay.Id.t(),
           blind_index: Relay.Id.t()
         }
   def keys!(scope) do
-    data = Relay.Id.generate()
-    wrap = Relay.Id.generate()
-    bidx = Relay.Id.generate()
+    {:ok, data} = Relay.Tenancy.active_tenant_key(scope, :data)
+    {:ok, wrap} = Relay.Tenancy.active_tenant_key(scope, :dek_wrap)
 
-    for {id, purpose} <- [{data, :data}, {wrap, :dek_wrap}] do
-      {:ok, :created} =
-        Relay.Tenancy.register_tenant_key(
-          scope,
-          %{
-            id: id,
-            purpose: purpose,
-            kek_ref: "pkcs11:object=kek-test?version=1",
-            wrapped_key: wrapped(),
-            record_digest: digest()
-          },
-          actor()
-        )
-    end
-
-    {:ok, :created} =
-      Relay.Tenancy.register_blind_index_key(
-        scope,
-        %{id: bidx, hsm_ref: "pkcs11:object=bidx-test", record_digest: digest()},
-        actor()
-      )
+    {:ok, [[bidx]]} =
+      Repo.in_scope(scope, fn _status ->
+        Repo.scoped_query!(
+          "SELECT id FROM relay.blind_index_keys WHERE state = 'active'",
+          []
+        ).rows
+      end)
 
     %{data: data, dek_wrap: wrap, blind_index: bidx}
   end
 
-  @doc "Creates a recipient in a scope with registered keys."
+  @doc "Creates a recipient in a scope through the tenancy API; `:external_id` defaults to a random identifier."
   @spec recipient!(Scope.t(), map(), keyword()) :: Relay.Id.t()
-  def recipient!(scope, keys, opts \\ []) do
+  def recipient!(scope, _keys, opts \\ []) do
     id = Relay.Id.generate()
 
     {:ok, {:created, ^id}} =
       Relay.Tenancy.create_recipient(scope, %{
         id: id,
         kind: Keyword.get(opts, :kind, :subscriber),
-        external_id_bidx: :crypto.strong_rand_bytes(32),
-        bidx_key_id: keys.blind_index,
-        external_id_ct: wrapped(),
-        profile_dek_id: Relay.Id.generate(),
-        profile_wrapped_dek: wrapped(),
-        wrapping_key_id: keys.dek_wrap
+        external_id: Keyword.get_lazy(opts, :external_id, fn -> "user-" <> random() end)
       })
 
     id
@@ -182,8 +188,6 @@ defmodule RelayTest.TenantFixture do
   @doc "A random lowercase hex string."
   @spec random() :: String.t()
   def random, do: Base.encode16(:crypto.strong_rand_bytes(8), case: :lower)
-
-  defp wrapped, do: <<1>> <> :crypto.strong_rand_bytes(12 + 32 + 16)
 end
 
 defmodule RelayTest.TenantFixture.SendWorker do

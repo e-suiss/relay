@@ -219,6 +219,18 @@ defmodule Relay.Tenancy.Keyring do
   defp stored(nil), do: {:error, Error.new(:data_key_destroyed, "data key destroyed")}
   defp stored(_other), do: {:error, Error.new(:invalid_wrapped_key, "unknown wrapped key form")}
 
+  # TN-67 (5)
+  @doc "The associated data that binds a tenant key wrapped under the region KEK: deterministic CBOR of `[1, tenant, environment, key id, purpose]`."
+  @spec tenant_key_aad(Relay.Scope.t(), Relay.Id.t(), String.t()) ::
+          {:ok, binary()} | {:error, Error.t()}
+  def tenant_key_aad(scope, key_id, purpose), do: kek_aad(scope, key_id, purpose)
+
+  # TN-67 (5)
+  @doc "The associated data that binds a subject data key wrapped under a tenant `dek_wrap` key: deterministic CBOR of `[1, tenant, environment, recipient, retention class, wrapping key id]`."
+  @spec subject_key_aad(Relay.Scope.t(), Relay.Id.t(), String.t(), Relay.Id.t()) :: binary()
+  def subject_key_aad(scope, recipient_id, class, wrapping_key_id),
+    do: dek_aad(scope, recipient_id, class, wrapping_key_id)
+
   defp kek_aad(scope, <<_::128>> = key_id, purpose) do
     Relay.Canonical.encode([
       @version,

@@ -33,4 +33,8 @@ config :logger, level: :warning
 
 config :relay, Relay.NetworkGuard, enabled: true
 
+config :relay, keys: RelayTest.Keys
+
+config :relay, Relay.Keys, kek_label: "kek-test", fingerprint_label: "fingerprint-test"
+
 config :phoenix, :plug_init_mode, :runtime

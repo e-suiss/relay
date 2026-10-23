@@ -32,6 +32,8 @@ auditStore:
 keyStore:
   module: ""
   token: ""
+  kekLabel: ""
+  fingerprintLabel: ""
   pinSecret: relay-key-store-pin
   env: []
   volumes: []

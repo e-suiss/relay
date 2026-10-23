@@ -16,6 +16,7 @@ defmodule Relay.Keys.Protocol do
           | {:unwrap, binary(), binary(), binary()}
           | {:hmac, binary(), binary()}
           | {:read_secret, binary()}
+          | {:generate_key, Relay.Keys.key_kind(), binary(), binary()}
 
   @type kind ::
           :ping
@@ -25,6 +26,7 @@ defmodule Relay.Keys.Protocol do
           | :unwrap
           | :hmac
           | :read_secret
+          | :generate_key
 
   @type result ::
           :ok | {:ok, binary() | Relay.Keys.public_key() | Redacted.t()} | {:error, Error.t()}
@@ -49,6 +51,9 @@ defmodule Relay.Keys.Protocol do
 
   def encode(id, {:read_secret, label}), do: [header(id, 6), field(label)]
 
+  def encode(id, {:generate_key, kind, label, key_id}),
+    do: [header(id, 7), key_kind(kind), field(label), field(key_id)]
+
   @doc "Returns the response shape expected for a request."
   @spec kind(request()) :: kind()
   def kind(:ping), do: :ping
@@ -58,6 +63,7 @@ defmodule Relay.Keys.Protocol do
   def kind({:unwrap, _, _, _}), do: :unwrap
   def kind({:hmac, _, _}), do: :hmac
   def kind({:read_secret, _}), do: :read_secret
+  def kind({:generate_key, _, _, _}), do: :generate_key
 
   @doc "Decodes a response frame into its request id, status byte and fields."
   @spec decode(binary()) ::
@@ -81,9 +87,10 @@ defmodule Relay.Keys.Protocol do
   def result(:unwrap, 0, [plaintext]), do: {:ok, Redacted.wrap(plaintext)}
   def result(:hmac, 0, [<<_::256>> = mac]), do: {:ok, mac}
   def result(:read_secret, 0, [secret]), do: {:ok, Redacted.wrap(secret)}
+  def result(:generate_key, 0, []), do: :ok
   def result(_kind, 0, _fields), do: malformed()
 
-  def result(_kind, status, [message]) when status in 1..6 and is_binary(message),
+  def result(_kind, status, [message]) when status in 1..7 and is_binary(message),
     do: {:error, Error.new(code(status), "key store: " <> message)}
 
   def result(_kind, _status, _fields), do: malformed()
@@ -93,6 +100,9 @@ defmodule Relay.Keys.Protocol do
   defp alg(:es256), do: <<1>>
   defp alg(:rs256), do: <<2>>
   defp alg(:ed25519), do: <<3>>
+
+  defp key_kind(:aes_256), do: <<1>>
+  defp key_kind(:hmac_sha256), do: <<2>>
 
   defp field(bytes), do: [<<byte_size(bytes)::32>>, bytes]
 
@@ -109,6 +119,7 @@ defmodule Relay.Keys.Protocol do
   defp code(4), do: :key_integrity
   defp code(5), do: :key_store_token
   defp code(6), do: :key_store_internal
+  defp code(7), do: :key_exists
 
   defp malformed, do: {:error, Error.new(:key_store_protocol, "malformed key store response")}
 end

@@ -171,6 +171,10 @@ fn run(hsm: &Hsm, op: Op) -> Result<Vec<Zeroizing<Vec<u8>>>, Failure> {
         } => return Ok(vec![hsm.unwrap(&label, &aad, &wrapped)?]),
         Op::Hmac { label, message } => vec![hsm.hmac(&label, &message)?],
         Op::ReadSecret { label } => return Ok(vec![hsm.read_secret(&label)?]),
+        Op::GenerateKey { kind, label, id } => {
+            hsm.generate_key(kind, &label, &id)?;
+            vec![]
+        }
     };
     Ok(fields.into_iter().map(Zeroizing::new).collect())
 }

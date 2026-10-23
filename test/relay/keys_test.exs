@@ -72,6 +72,31 @@ defmodule Relay.KeysTest do
     assert Redacted.expose(secret) == "pw"
   end
 
+  test "TN-67 (1): keys are generated inside the key store under a label and an object identifier" do
+    expect(Relay.KeysMock, :generate_key, fn :hmac_sha256, "bidx-t1", <<1::128>> -> :ok end)
+    assert Keys.generate_key(:hmac_sha256, "bidx-t1", <<1::128>>) == :ok
+
+    for args <- [[:rsa, "k", "i"], [:aes_256, "", "i"], [:aes_256, "k", ""]] do
+      assert_raise FunctionClauseError, fn -> apply(Keys, :generate_key, args) end
+    end
+  end
+
+  test "TN-67 (1): the region KEK and fingerprint key labels come from the installation configuration" do
+    previous = Application.get_env(:relay, Relay.Keys)
+
+    try do
+      Application.put_env(:relay, Relay.Keys, kek_label: "kek-tr", fingerprint_label: "fp-tr")
+      assert Keys.kek_label() == {:ok, "kek-tr"}
+      assert Keys.fingerprint_label() == {:ok, "fp-tr"}
+
+      Application.delete_env(:relay, Relay.Keys)
+      assert {:error, %Error{code: :key_store_config}} = Keys.kek_label()
+      assert {:error, %Error{code: :key_store_config}} = Keys.fingerprint_label()
+    after
+      Application.put_env(:relay, Relay.Keys, previous)
+    end
+  end
+
   test "TN-63: errors are typed" do
     error = Error.new(:key_not_found, "key store: key not found")
     expect(Relay.KeysMock, :sign, fn :ed25519, "checkpoint", "note" -> {:error, error} end)

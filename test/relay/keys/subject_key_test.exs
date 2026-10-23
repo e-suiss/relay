@@ -3,16 +3,57 @@ defmodule Relay.Keys.SubjectKeyTest do
 
   alias Relay.Keys.Erasure
 
+  defp row(region, sector, class, days),
+    do: %{"region" => region, "sector" => sector, "retention_class" => class, "days" => days}
+
   test "OP-18: classes under an obligation are restricted, every other subject class is destroyed" do
+    content = %{
+      "periods" => [
+        row("tr", "general", "commercial_message", 3653),
+        row("tr", "general", "commercial_consent", 3653),
+        row("tr", "general", "audit", 400),
+        row("tr", "bank", "delivery_record", 730),
+        row("eu", "general", "delivery_record", 730)
+      ]
+    }
+
     assert {:ok, %{destroy: destroy, restrict: ["commercial_consent", "commercial_message"]}} =
-             Erasure.plan(["commercial_message", "commercial_consent"])
+             Erasure.plan(content, "tr", "general")
 
     assert Enum.sort(destroy ++ ["commercial_consent", "commercial_message"]) ==
              Enum.sort(Erasure.subject_classes())
 
-    assert {:ok, %{destroy: all, restrict: []}} = Erasure.plan([])
+    assert {:ok, %{restrict: ["delivery_record"]}} = Erasure.plan(content, "tr", "bank")
+  end
+
+  test "TN-67 (2): the obligated classes come from the data set for the tenant's region and sector" do
+    content = %{
+      "periods" => [
+        row("tr", "general", "delivery_record", 0),
+        row("tr", "general", "audit", 400)
+      ]
+    }
+
+    assert {:ok, %{destroy: all, restrict: []}} = Erasure.plan(content, "tr", "general")
     assert all == Erasure.subject_classes()
-    assert {:error, %{code: :invalid_argument}} = Erasure.plan(["audit"])
+
+    assert {:error, %{code: :retention_rule_missing}} = Erasure.plan(content, "tr", "insurance")
+    assert {:error, %{code: :retention_rule_missing}} = Erasure.plan(content, "us", "general")
+    assert {:error, %{code: :invalid_dataset}} = Erasure.plan(%{}, "tr", "general")
+
+    {:ok, v2} = File.read("priv/datasets/retention_periods/v2.json")
+
+    for region <- ~w(tr eu us), sector <- ~w(general payment bank ecommerce) do
+      assert {:ok, %{restrict: restrict}} = Erasure.plan(Jason.decode!(v2), region, sector)
+      assert restrict == ["delivery_record", "commercial_consent", "commercial_message"]
+    end
+  end
+
+  test "TN-67 (2): the caller cannot pass the obligated classes" do
+    Code.ensure_loaded!(Erasure)
+    refute function_exported?(Erasure, :erase_subject, 5)
+    assert function_exported?(Erasure, :erase_subject, 4)
+    refute function_exported?(Erasure, :plan, 1)
   end
 end
 
@@ -32,6 +73,7 @@ defmodule Relay.Keys.SubjectKeyDatabaseTest do
   @actor %Relay.Actor{kind: :system, ref: "relay:test", on_behalf_of_ref: "relay"}
 
   setup do
+    :ok = RelayTest.TenantFixture.retention_periods!()
     tenant = tenant!()
     keys = tenant.keys["live"]
     dek = :crypto.strong_rand_bytes(32)
@@ -79,7 +121,6 @@ defmodule Relay.Keys.SubjectKeyDatabaseTest do
                Relay.Scope.new!(tenant.id, :live),
                recipient,
                "dsr-c86",
-               [],
                @actor
              )
 

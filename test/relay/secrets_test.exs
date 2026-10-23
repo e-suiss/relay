@@ -76,9 +76,32 @@ defmodule Relay.SecretsTest do
         end)
 
       refute log =~ "hunter2"
-      fingerprint = Secrets.fingerprint(secret)
-      assert fingerprint == :crypto.hash(:sha256, "hunter2-smtp")
+
+      expect(Relay.KeysMock, :hmac_sha256, fn "fingerprint-test", ^secret ->
+        {:ok, :crypto.mac(:hmac, :sha256, <<7::256>>, Redacted.expose(secret))}
+      end)
+
+      assert {:ok, fingerprint} = Secrets.fingerprint(secret)
+      assert fingerprint == :crypto.mac(:hmac, :sha256, <<7::256>>, "hunter2-smtp")
       refute fingerprint =~ "hunter2"
+    end
+
+    test "TN-67 (4): the fingerprint is an HMAC inside the key store, never a plain digest" do
+      {:ok, secret} = Secrets.resolve("${SECRETS_TEST_SMTP_PASSWORD}")
+      error = Relay.Error.new(:key_store_unavailable, "down")
+      expect(Relay.KeysMock, :hmac_sha256, fn "fingerprint-test", ^secret -> {:error, error} end)
+
+      assert Secrets.fingerprint(secret) == {:error, error}
+
+      previous = Application.get_env(:relay, Relay.Keys)
+
+      try do
+        Application.put_env(:relay, Relay.Keys, kek_label: "kek-test")
+
+        assert {:error, %Relay.Error{code: :key_store_config}} = Secrets.fingerprint(secret)
+      after
+        Application.put_env(:relay, Relay.Keys, previous)
+      end
     end
   end
 end

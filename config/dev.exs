@@ -56,3 +56,5 @@ config :relay, Relay.Keys.Port,
       ),
   token: "relay-dev",
   pin_file: Path.expand("../deploy/softhsm/pin", __DIR__)
+
+config :relay, Relay.Keys, kek_label: "kek-dev", fingerprint_label: "fingerprint-dev"

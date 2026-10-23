@@ -22,7 +22,9 @@ defmodule Relay.Keys.SubjectErasureTest do
     access_record_ref: "acc-rec-1"
   }
 
-  setup do
+  setup tags do
+    unless tags[:without_retention_periods], do: RelayTest.TenantFixture.retention_periods!()
+
     tenant = tenant!()
     keys = tenant.keys["live"]
     scope = Relay.Scope.new!(tenant.id, :live)
@@ -50,7 +52,7 @@ defmodule Relay.Keys.SubjectErasureTest do
   test "MKT-13: pending deliveries are cancelled with the erasure rule and the data keys are destroyed",
        %{scope: scope, recipient: recipient, delivery: delivery} do
     assert {:ok, :erased, 1} =
-             Erasure.erase_subject(scope, recipient, "dsr-1", ["delivery_record"], @actor)
+             Erasure.erase_subject(scope, recipient, "dsr-1", @actor)
 
     scoped(scope.tenant_id, scope.environment, fn ->
       assert rows!(
@@ -74,7 +76,7 @@ defmodule Relay.Keys.SubjectErasureTest do
                )
 
       assert "recipient_profile" in destroyed and "preference" in destroyed
-      assert restricted == ["delivery_record"]
+      assert restricted == ["delivery_record", "commercial_consent", "commercial_message"]
     end)
 
     assert key_states(scope, recipient) == %{
@@ -101,19 +103,51 @@ defmodule Relay.Keys.SubjectErasureTest do
     end)
 
     before = key_states(scope, recipient)
-    assert {:ok, :held, 0} = Erasure.erase_subject(scope, recipient, "dsr-2", [], @actor)
+    assert {:ok, :held, 0} = Erasure.erase_subject(scope, recipient, "dsr-2", @actor)
     assert key_states(scope, recipient) == before
     assert Enum.all?(before, fn {_class, {state, _}} -> state == "active" end)
   end
 
   test "OP-24: erasing an erased subject is reported and changes nothing more",
        %{scope: scope, recipient: recipient} do
-    assert {:ok, :erased, 1} = Erasure.erase_subject(scope, recipient, "dsr-3", [], @actor)
+    assert {:ok, :erased, 1} = Erasure.erase_subject(scope, recipient, "dsr-3", @actor)
 
     assert {:ok, :already_erased, _} =
-             Erasure.erase_subject(scope, recipient, "dsr-3", [], @actor)
+             Erasure.erase_subject(scope, recipient, "dsr-3", @actor)
 
     assert {:ok, :not_found, 0} =
-             Erasure.erase_subject(scope, Relay.Id.generate(), "dsr-4", [], @actor)
+             Erasure.erase_subject(scope, Relay.Id.generate(), "dsr-4", @actor)
+  end
+
+  @tag :without_retention_periods
+  test "TN-67 (2): without an active retention data set the erasure is refused and changes nothing",
+       %{scope: scope, recipient: recipient} do
+    before = key_states(scope, recipient)
+
+    assert {:error, %Relay.Error{code: :no_active_version}} =
+             Erasure.erase_subject(scope, recipient, "dsr-5", @actor)
+
+    assert key_states(scope, recipient) == before
+  end
+
+  test "TN-67 (2): a sector without retention periods is refused and changes nothing",
+       %{scope: scope, recipient: recipient} do
+    scoped(scope.tenant_id, scope.environment, fn ->
+      [[version, timezone, locale]] =
+        rows!("SELECT version, default_timezone, default_locale FROM relay.tenants", [])
+
+      assert [["updated", _]] =
+               rows!(
+                 "SELECT result, version FROM relay_fn.tenant_update_defaults($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                 [timezone, locale, "insurance", version, digest() | actor()]
+               )
+    end)
+
+    before = key_states(scope, recipient)
+
+    assert {:error, %Relay.Error{code: :retention_rule_missing}} =
+             Erasure.erase_subject(scope, recipient, "dsr-6", @actor)
+
+    assert key_states(scope, recipient) == before
   end
 end

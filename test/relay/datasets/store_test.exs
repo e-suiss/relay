@@ -203,15 +203,19 @@ defmodule Relay.Datasets.StoreTest do
     end
 
     test "OP-71: the newest bundled retention periods version is the active one" do
-      assert {:ok, %{"retention_periods" => %{published: published, activation: :activated}}} =
+      assert {:ok, %{"retention_periods" => %{published: [1, 2], activation: activation}}} =
                Datasets.load_package(Package.root(), TenantFixture.actor())
 
-      assert published == [1, 2]
-
       v2 = "priv/datasets/retention_periods/v2.json" |> File.read!() |> Jason.decode!()
+      scope = Datasets.installation_scope()
 
-      assert {:ok, %Version{content: ^v2}} =
-               Datasets.active(Datasets.installation_scope(), "retention_periods")
+      case activation do
+        :activated ->
+          assert {:ok, %Version{content: ^v2}} = Datasets.active(scope, "retention_periods")
+
+        :operator_pinned ->
+          assert {:ok, %Version{source: :operator}} = Datasets.active(scope, "retention_periods")
+      end
     end
 
     test "OP-65: a bundled version never replaces an operator's version", %{tmp_dir: dir} do

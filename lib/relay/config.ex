@@ -12,6 +12,7 @@ defmodule Relay.Config do
     :random,
     :keys,
     :key_provider,
+    Relay.Keys,
     Relay.Keys.Port,
     Relay.Repo,
     RelayWeb.Endpoint,
@@ -42,6 +43,7 @@ defmodule Relay.Config do
     validate_app_keys!(app_env)
     validate_roles!(Keyword.get(app_env, :roles))
     validate_key_store!(Keyword.get(app_env, Relay.Keys.Port))
+    validate_key_labels!(Keyword.get(app_env, Relay.Keys))
     validate_audit!(Keyword.get(app_env, Relay.Audit), Keyword.get(opts, :production?, true))
     validate_os_env!(os_env)
     :ok
@@ -105,6 +107,31 @@ defmodule Relay.Config do
   defp validate_key_store!(opts),
     do:
       raise(Error, "Relay.Keys.Port configuration must be a keyword list, got: #{inspect(opts)}")
+
+  # TN-67 (1)
+  # TN-67 (4)
+  defp validate_key_labels!(nil), do: :ok
+
+  defp validate_key_labels!(opts) when is_list(opts) do
+    keys = Relay.Keys.label_config_keys()
+
+    cond do
+      not Keyword.keyword?(opts) ->
+        raise Error, "Relay.Keys configuration must be a keyword list"
+
+      (unknown = Keyword.keys(opts) -- keys) != [] ->
+        raise Error, "unknown Relay.Keys configuration keys: #{inspect(Enum.sort(unknown))}"
+
+      (invalid = Enum.reject(keys, &(is_binary(opts[&1]) and opts[&1] != ""))) != [] ->
+        raise Error, "Relay.Keys configuration is missing #{inspect(invalid)}"
+
+      true ->
+        :ok
+    end
+  end
+
+  defp validate_key_labels!(opts),
+    do: raise(Error, "Relay.Keys configuration must be a keyword list, got: #{inspect(opts)}")
 
   # OP-63
   # OP-70

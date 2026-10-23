@@ -29,6 +29,10 @@
   value: {{ required "keyStore.token is required" .Values.keyStore.token | quote }}
 - name: PKCS11_PIN_FILE
   value: /run/secrets/relay-pkcs11/pin
+- name: KEY_STORE_KEK_LABEL
+  value: {{ required "keyStore.kekLabel is required" .Values.keyStore.kekLabel | quote }}
+- name: KEY_STORE_FINGERPRINT_LABEL
+  value: {{ required "keyStore.fingerprintLabel is required" .Values.keyStore.fingerprintLabel | quote }}
 - name: AUDIT_S3_ENDPOINT
   value: {{ required "auditStore.endpoint is required" .Values.auditStore.endpoint | quote }}
 - name: AUDIT_S3_BUCKET

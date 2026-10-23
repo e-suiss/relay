@@ -40,6 +40,16 @@ defmodule Relay.Keys.ProtocolTest do
       assert bin(Protocol.encode(5, {:read_secret, "smtp"})) ==
                <<1, 0, 0, 0, 5, 6, 0, 0, 0, 4, "smtp">>
     end
+
+    test "TN-67 (1): key generation carries the key kind, the label and the object identifier" do
+      assert bin(Protocol.encode(6, {:generate_key, :hmac_sha256, "bidx", <<9, 9>>})) ==
+               <<1, 0, 0, 0, 6, 7, 2, 0, 0, 0, 4, "bidx", 0, 0, 0, 2, 9, 9>>
+
+      assert <<1, _::32, 7, 1, _::binary>> =
+               bin(Protocol.encode(1, {:generate_key, :aes_256, "k", "i"}))
+
+      assert Protocol.kind({:generate_key, :aes_256, "k", "i"}) == :generate_key
+    end
   end
 
   describe "TN-63 response decoding" do
@@ -60,6 +70,10 @@ defmodule Relay.Keys.ProtocolTest do
       assert Protocol.result({:public_key, :rs256}, 0, ["n", "e"]) == {:ok, {"n", "e"}}
       assert Protocol.result({:public_key, :es256}, 0, ["point"]) == {:ok, "point"}
       assert Protocol.result(:wrap, 0, ["w"]) == {:ok, "w"}
+      assert Protocol.result(:generate_key, 0, []) == :ok
+
+      assert {:error, %Relay.Error{code: :key_store_protocol}} =
+               Protocol.result(:generate_key, 0, ["unexpected"])
 
       assert {:error, %Relay.Error{code: :key_store_protocol}} =
                Protocol.result({:sign, :es256}, 0, [])
@@ -91,7 +105,8 @@ defmodule Relay.Keys.ProtocolTest do
         3 => :key_not_found,
         4 => :key_integrity,
         5 => :key_store_token,
-        6 => :key_store_internal
+        6 => :key_store_internal,
+        7 => :key_exists
       }
 
       for {status, code} <- codes do
@@ -99,7 +114,7 @@ defmodule Relay.Keys.ProtocolTest do
                  Protocol.result(:wrap, status, ["m"])
       end
 
-      assert {:error, %Relay.Error{code: :key_store_protocol}} = Protocol.result(:wrap, 7, ["m"])
+      assert {:error, %Relay.Error{code: :key_store_protocol}} = Protocol.result(:wrap, 8, ["m"])
     end
   end
 end

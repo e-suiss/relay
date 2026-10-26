@@ -81,6 +81,10 @@ table relay.legal_holds relay_archive SELECT
 table relay.legal_holds relay_maint SELECT
 table relay.legal_holds relay_owner INSERT,SELECT,UPDATE
 table relay.legal_holds relay_report SELECT
+table relay.load_shed_events relay_app SELECT
+table relay.load_shed_events relay_archive SELECT
+table relay.load_shed_events relay_maint INSERT,SELECT
+table relay.load_shed_events relay_report SELECT
 table relay.notifications relay_app SELECT
 table relay.notifications relay_archive SELECT
 table relay.notifications relay_maint SELECT
@@ -141,6 +145,12 @@ table relay.usage_records relay_report SELECT
 table relay.webhook_receipts relay_archive SELECT
 table relay.webhook_receipts relay_maint SELECT
 table relay.webhook_receipts relay_owner INSERT,SELECT,UPDATE
+table relay_queue.drr_tenants relay_maint SELECT,UPDATE
+table relay_queue.drr_tenants relay_owner INSERT,SELECT,UPDATE
+table relay_queue.drr_tenants relay_queue DELETE,SELECT
+table relay_queue.drr_waits relay_maint SELECT,UPDATE
+table relay_queue.drr_waits relay_owner INSERT,SELECT,UPDATE
+table relay_queue.drr_waits relay_queue DELETE,SELECT
 table relay_queue.oban_jobs relay_app INSERT,SELECT,UPDATE
 table relay_queue.oban_jobs relay_queue DELETE,SELECT
 table relay_queue.oban_peers relay_app SELECT

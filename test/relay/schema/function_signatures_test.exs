@@ -58,7 +58,13 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_ops.audit_checkpoint_record" => ~w(recorded stale duplicate not_leader),
     "relay_ops.audit_checkpoint_publication_record" => ~w(recorded),
     "relay_ops.singleton_acquire" => ~w(acquired renewed held_by_other),
-    "relay_ops.singleton_save" => ~w(saved not_leader)
+    "relay_ops.singleton_save" => ~w(saved not_leader),
+    "relay_fn.drr_enqueue" =>
+      ~w(enqueued exists queued_cap_exceeded lane_not_fair tenant_inactive),
+    "relay_fn.drr_cancel" => ~w(cancelled none),
+    "relay_ops.drr_take" => ~w(dispatched not_leader),
+    "relay_ops.drr_weights_refresh" => ~w(refreshed not_leader),
+    "relay_ops.load_shed_record" => ~w(recorded not_leader unchanged)
   }
 
   defp functions do

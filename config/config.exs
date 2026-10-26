@@ -28,7 +28,9 @@ config :relay, Relay.Platform.Leadership,
     {"retention_sweep", Relay.Tenancy.Retention, []},
     {"dataset_packages", Relay.Datasets.PackageTask, []},
     {"projection_rebuild", Relay.Delivery.ProjectionRebuild, []},
-    {"audit_readback", Relay.Audit.Checkpointer.Readback, [sensitive: true]}
+    {"audit_readback", Relay.Audit.Checkpointer.Readback, [sensitive: true]},
+    {"drr_dispatcher", Relay.Platform.Fairness.Dispatcher, []},
+    {"load_shed_controller", Relay.Platform.LoadShed.Controller, []}
   ]
 
 config :relay, Relay.Audit,
@@ -42,7 +44,6 @@ config :relay, Oban,
   notifier: Relay.Platform.Queue.Notifier,
   peer: Relay.Platform.Queue.Peer,
   stager: [interval: 1_000],
-  queues: [],
   plugins: [
     {Oban.Lifeline, rescue_after: 7_200_000},
     Relay.Platform.Queue.Pruner

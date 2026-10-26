@@ -53,8 +53,9 @@ defmodule Relay.Platform.QueueTest do
 
   describe "T-3 T-12 roles" do
     test "T-12: a worker node runs queues, plugins and database leadership" do
-      assert Queue.options(@base, [:worker]) == @base
-      assert Queue.options(@base, [:api, :worker, :socket]) == @base
+      expected = Keyword.put(@base, :queues, Relay.Platform.Lane.queues())
+      assert Queue.options(@base, [:worker]) == expected
+      assert Queue.options(@base, [:api, :worker, :socket]) == expected
     end
 
     test "T-3: a node without the worker role only inserts jobs" do

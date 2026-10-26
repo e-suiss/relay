@@ -18,6 +18,7 @@ defmodule Relay do
       Config.SecretFiles,
       Role,
       Repo,
+      BulkRepo,
       QueueRepo,
       Scope,
       ScopeError,

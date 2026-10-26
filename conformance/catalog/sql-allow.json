@@ -48,6 +48,24 @@
     "reason": "OP-12, OP-68: the queue peer expires its own leadership rows in the queue schema"
   },
   {
+    "path": "lib/relay/platform/queue/pruner_store.ex",
+    "rule": "physical_delete",
+    "match": "DELETE FROM relay_queue.drr_tenants",
+    "reason": "AN-34 / OP-12: relay_queue prunes expired ephemeral counter and wait state that carries only ids"
+  },
+  {
+    "path": "lib/relay/platform/queue/pruner_store.ex",
+    "rule": "physical_delete",
+    "match": "DELETE FROM relay_queue.drr_waits",
+    "reason": "AN-34 / OP-12: relay_queue prunes expired ephemeral counter and wait state that carries only ids"
+  },
+  {
+    "path": "priv/repo/migrations/20261027100000_create_fairness_and_load_shed_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "INV-6, INV-49: the append-only trigger rejects TRUNCATE on load_shed_events"
+  },
+  {
     "path": "priv/repo/migrations/20261023000000_soft_delete_on_retention_end.exs",
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",

@@ -1,6 +1,6 @@
 defmodule Relay.Platform.Queue.PrunerStore do
   @moduledoc """
-  Removal of finished job rows from `relay_queue.oban_jobs` and of expired rows from the ephemeral `relay_queue` tables, only through `Relay.QueueRepo` as the `relay_queue` role. Only `completed` and `cancelled` jobs go; a `discarded` row stays until its dead-letter record exists (OP-12). An ephemeral table carries only identifiers, digests and counts; its rows go once the table's two prune policies let the `relay_queue` role see them, an hour after they expire (OP-74). Each ephemeral entry is the table name and its own `DELETE` statement, which takes the row limit as `$1`.
+  Removal of finished job rows from `relay_queue.oban_jobs` and of expired rows from the ephemeral `relay_queue` tables, only through `Relay.QueueRepo` as the `relay_queue` role. Only `completed` and `cancelled` jobs go; a `discarded` row stays until its dead-letter record exists (OP-12). An ephemeral table carries only identifiers, digests and counts; its rows go once the table's two prune policies let the `relay_queue` role see them, an hour after they expire (OP-74). Each table is pruned in its own transaction whose tenant context names no tenant, so the tenant policy every ephemeral table carries evaluates to false instead of failing on a missing context, and only the prune policies decide. Each ephemeral entry is the table name and its own `DELETE` statement, which takes the row limit as `$1`.
   """
 
   alias Relay.QueueRepo
@@ -13,7 +13,14 @@ defmodule Relay.Platform.Queue.PrunerStore do
   )
   """
 
-  @ephemeral []
+  @no_tenant "SELECT set_config('relay.tenant_id', '00000000-0000-0000-0000-000000000000', true), set_config('relay.environment', 'live', true)"
+
+  @ephemeral [
+    {"drr_tenants",
+     "DELETE FROM relay_queue.drr_tenants WHERE ctid = ANY (ARRAY(SELECT ctid FROM relay_queue.drr_tenants WHERE expires_at < now() - interval '1 hour' AND NOT active LIMIT $1))"},
+    {"drr_waits",
+     "DELETE FROM relay_queue.drr_waits WHERE ctid = ANY (ARRAY(SELECT ctid FROM relay_queue.drr_waits WHERE prunable_at < now() - interval '1 hour' LIMIT $1))"}
+  ]
 
   # OP-12
   # T-15
@@ -40,8 +47,8 @@ defmodule Relay.Platform.Queue.PrunerStore do
   def prune_ephemeral(limit) when is_integer(limit) and limit > 0 do
     @ephemeral
     |> Enum.reduce_while({:ok, []}, fn {table, sql}, {:ok, acc} ->
-      case QueueRepo.query(sql, [limit]) do
-        {:ok, %{num_rows: rows}} -> {:cont, {:ok, [{table, rows} | acc]}}
+      case prune_table(sql, limit) do
+        {:ok, rows} -> {:cont, {:ok, [{table, rows} | acc]}}
         {:error, error} -> {:halt, {:error, table, error}}
       end
     end)
@@ -49,5 +56,16 @@ defmodule Relay.Platform.Queue.PrunerStore do
       {:ok, counts} -> {:ok, Enum.reverse(counts)}
       {:error, _table, _error} = error -> error
     end
+  end
+
+  defp prune_table(sql, limit) do
+    QueueRepo.transaction(fn ->
+      with {:ok, _} <- QueueRepo.query(@no_tenant, []),
+           {:ok, %{num_rows: rows}} <- QueueRepo.query(sql, [limit]) do
+        rows
+      else
+        {:error, error} -> QueueRepo.rollback(error)
+      end
+    end)
   end
 end

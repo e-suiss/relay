@@ -67,6 +67,8 @@ defmodule Relay.Repo.RoleGrantsTest do
         """).rows
 
       assert deleters == [
+               ["relay_queue", "relay_queue.drr_tenants"],
+               ["relay_queue", "relay_queue.drr_waits"],
                ["relay_queue", "relay_queue.oban_jobs"],
                ["relay_queue", "relay_queue.oban_peers"]
              ]

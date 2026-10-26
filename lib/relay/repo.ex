@@ -12,10 +12,21 @@ defmodule Relay.Repo do
   alias Relay.ScopeError
 
   @scope_key {__MODULE__, :scope}
-  @escapes [:tenant_bootstrap, :outbox_scope_discovery, :installation_lookup]
+  @escapes [
+    :tenant_bootstrap,
+    :outbox_scope_discovery,
+    :installation_lookup,
+    :fair_dispatch,
+    :load_shed
+  ]
 
   @type tenant_status :: :active | :suspended | :closed
-  @type escape :: :tenant_bootstrap | :outbox_scope_discovery | :installation_lookup
+  @type escape ::
+          :tenant_bootstrap
+          | :outbox_scope_discovery
+          | :installation_lookup
+          | :fair_dispatch
+          | :load_shed
 
   # TN-13 (4)
   @impl Ecto.Repo
@@ -122,7 +133,7 @@ defmodule Relay.Repo do
   # OP-68 (9)
   # sobelow_skip ["SQL.Query"]
   @doc """
-  Runs SQL that crosses tenants through a `relay_ops` escape hatch. The escape names why: `:tenant_bootstrap` creates a tenant before any context can exist, `:outbox_scope_discovery` lists the scopes that have pending outbox rows, without content, `:installation_lookup` reads the installation tenant's identifier, which installation-wide data sets are scoped to (S-3).
+  Runs SQL that crosses tenants through a `relay_ops` escape hatch. The escape names why: `:tenant_bootstrap` creates a tenant before any context can exist, `:outbox_scope_discovery` lists the scopes that have pending outbox rows, without content, `:installation_lookup` reads the installation tenant's identifier, which installation-wide data sets are scoped to (S-3), `:fair_dispatch` lets the DRR dispatcher move waiting jobs of every tenant of a bulk lane into the queue and refresh their weights, by identifiers only, `:load_shed` records and reads the installation-wide load shedding transitions.
   """
   @spec unscoped_query(escape(), iodata(), [term()], keyword()) ::
           {:ok, Postgrex.Result.t()} | {:error, Exception.t()}

@@ -22,6 +22,8 @@ defmodule Relay.Config do
     Relay.Platform.Signal,
     Relay.Platform.Outbox,
     Relay.QueueRepo,
+    Relay.BulkRepo,
+    Relay.Platform.LoadShed,
     Relay.Platform.MaintRepo,
     Relay.Platform.Leadership,
     Relay.Audit,
@@ -30,7 +32,7 @@ defmodule Relay.Config do
     RelayWeb.Metrics,
     Oban
   ]
-  @repos [Relay.Repo, Relay.QueueRepo, Relay.Platform.MaintRepo]
+  @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.Platform.MaintRepo]
   @os_env_keys ["RELAY_HOST", "RELAY_ROLES", "RELAY_REGION"]
   @audit_keys [:log_host, :checkpoint_key, :publishers]
   @production Mix.env() == :prod

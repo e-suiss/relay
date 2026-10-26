@@ -3,6 +3,7 @@ defmodule RelayDev.Credo.ChecksTest do
 
   alias RelayDev.Credo.{
     BareProcess,
+    LaneOutsideLane,
     NoDirectClock,
     PublicApiDocs,
     RepoOutsideStore,
@@ -36,6 +37,31 @@ defmodule RelayDev.Credo.ChecksTest do
     test "T-57: the ports themselves are allowed" do
       code = "defmodule Relay.Example do\n  def a, do: Relay.Clock.utc_now()\nend\n"
       assert issues(code, NoDirectClock) == []
+    end
+  end
+
+  describe "INV-16 T-31 lane derivation" do
+    test "INV-16: a clause mapping a message class to a lane is reported" do
+      code = """
+      defmodule Relay.Example do
+        def lane(:security), do: :l0
+        def queue(class), do: case(class, do: (:marketing -> "l3"; _ -> "l2"))
+      end
+      """
+
+      assert length(issues(code, LaneOutsideLane)) == 2
+    end
+
+    test "T-31: asking the lane module, or using a lane on its own, is allowed" do
+      code = """
+      defmodule Relay.Example do
+        def lane(class), do: Relay.Platform.lane(class)
+        def budget(:l2), do: 10
+        def secure?(:security), do: true
+      end
+      """
+
+      assert issues(code, LaneOutsideLane) == []
     end
   end
 

@@ -1,0 +1,4 @@
+l0 target_ms=500 interval_ms=5000 action=alarm rule_id=load_shed.l0_alarm
+l1 target_ms=5000 interval_ms=30000 action=defer rule_id=load_shed.l1
+l2 target_ms=60000 interval_ms=300000 action=defer rule_id=load_shed.l2
+l3 target_ms=1800000 interval_ms=1800000 action=pause rule_id=load_shed.l3

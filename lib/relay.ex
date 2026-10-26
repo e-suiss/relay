@@ -35,6 +35,7 @@ defmodule Relay do
       RetentionClass,
       Crypto,
       Canonical,
+      Jitter,
       Release,
       Worker,
       NetworkGuard,

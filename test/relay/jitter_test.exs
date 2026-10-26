@@ -1,8 +1,8 @@
-defmodule Relay.Platform.JitterTest do
+defmodule Relay.JitterTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Relay.Platform.Jitter
+  alias Relay.Jitter
 
   @vectors "test/vectors/jitter/v1.json" |> File.read!() |> Jason.decode!()
   @two_64 Integer.pow(2, 64)

@@ -1,4 +1,4 @@
-defmodule Relay.Platform.Jitter do
+defmodule Relay.Jitter do
   @moduledoc """
   Deterministic digest and jitter. Every jitter, spread, canary bucket and window offset derives from one function: the first eight bytes, read as a big-endian unsigned integer, of SHA-256 over the deterministic CBOR (`Relay.Canonical`) of `["relay.jitter.v1", purpose, part_1, …, part_n]`. `scale/2` maps that digest onto `[0, n)`. Identifiers enter as lowercase canonical UUID text, environments as text and counters as CBOR integers, so the same inputs give the same result in every language and release. The module is pure; no random source is read.
   """

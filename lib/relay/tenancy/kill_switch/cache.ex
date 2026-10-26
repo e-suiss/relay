@@ -42,12 +42,15 @@ defmodule Relay.Tenancy.KillSwitch.Cache do
   @spec current(name()) :: Snapshot.t() | :unknown
   def current(name \\ __MODULE__), do: :persistent_term.get({__MODULE__, name}, :unknown)
 
-  @doc "Publishes `snapshot` as the current state of the cache `name` when its generation is not older than the current one; returns the snapshot in force."
+  @doc "Publishes `snapshot` as the current state of the cache `name` when its generation is not older than the current one and it differs from the held one, so the `:persistent_term` write happens only on a change (T-45 (5)); returns the snapshot in force."
   @spec put(name(), Snapshot.t()) :: Snapshot.t()
   def put(name \\ __MODULE__, %Snapshot{} = snapshot) do
     case current(name) do
       %Snapshot{generation: generation} = held when generation > snapshot.generation ->
         held
+
+      ^snapshot ->
+        snapshot
 
       _ ->
         :persistent_term.put({__MODULE__, name}, snapshot)

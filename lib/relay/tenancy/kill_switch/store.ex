@@ -307,17 +307,6 @@ defmodule Relay.Tenancy.KillSwitch.Store do
     Repo.code!(row["audit_append"], [:appended])
   end
 
-  # TN-43
-  @doc "Adds `cost` to the current minute of a per-minute ring counter in the PostgreSQL fallback and returns the sums of the current and the baseline window."
-  @spec ring(String.t(), pos_integer(), pos_integer(), pos_integer()) ::
-          {non_neg_integer(), non_neg_integer()}
-  def ring(limit_key, cost, current_minutes, baseline_minutes) do
-    [row] =
-      Repo.call!("relay_fn.rl_ring", [limit_key, cost, current_minutes, baseline_minutes])
-
-    {row["current_sum"], row["baseline_sum"]}
-  end
-
   @doc "Inserts a job in the current transaction."
   @spec insert_job(Ecto.Changeset.t()) :: Oban.Job.t()
   def insert_job(changeset), do: Oban.insert!(changeset)

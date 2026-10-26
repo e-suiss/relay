@@ -534,7 +534,7 @@ defmodule Relay.Tenancy.KillSwitch do
     if to_string(message.message_class) == "security" do
       []
     else
-      counter = Keyword.get(opts, :counter, &pg_counter/3)
+      counter = Keyword.get(opts, :counter, &ring_counter/3)
       params = DeadMan.params()
 
       for {kind, ref} <- dead_man_scopes(message),
@@ -554,13 +554,15 @@ defmodule Relay.Tenancy.KillSwitch do
           do: {kind, ref}
   end
 
-  defp pg_counter(scope, key, params) do
-    {:ok, sums} =
-      Store.in_scope(scope, fn _status ->
-        Store.ring(key, 1, params.current_minutes, params.baseline_minutes)
-      end)
+  defp ring_counter(scope, key, params) do
+    case Relay.Platform.rate_ring(scope, key, 1, params.current_minutes, params.baseline_minutes) do
+      {:ok, sums} ->
+        sums
 
-    sums
+      {:error, %Relay.Error{code: code}} ->
+        Logger.warning("dead-man counter unavailable; this attempt is not counted", code: code)
+        {0, 0}
+    end
   end
 
   defp dead_man_engage(scope, kind, ref, sums, params) do

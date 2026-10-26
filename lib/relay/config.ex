@@ -106,11 +106,19 @@ defmodule Relay.Config do
   end
 
   # TN-67 (3)
+  # TN-68 (1)
   # TN-26 (4)
   defp validate_no_plain_secrets!(app_env) do
     for repo <- @repos, Keyword.has_key?(Keyword.get(app_env, repo) || [], :password) do
       raise Error, "#{inspect(repo)} must take its password from Relay.Config.SecretFiles"
     end
+
+    if Keyword.has_key?(Keyword.get(app_env, RelayWeb.Endpoint) || [], :secret_key_base),
+      do:
+        raise(
+          Error,
+          "RelayWeb.Endpoint must take secret_key_base from Relay.Config.SecretFiles"
+        )
 
     audit = Keyword.get(app_env, Relay.Audit) || []
 

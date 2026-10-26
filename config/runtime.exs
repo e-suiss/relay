@@ -40,8 +40,7 @@ if config_env() == :prod do
 
   config :relay, RelayWeb.Endpoint,
     url: [host: Relay.Config.Env.fetch!("RELAY_HOST"), port: 443, scheme: "https"],
-    http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: Relay.Config.Env.integer!("PORT")],
-    secret_key_base: Relay.Config.Env.fetch!("SECRET_KEY_BASE")
+    http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: Relay.Config.Env.integer!("PORT")]
 
   roles = Relay.Config.Env.roles!("RELAY_ROLES")
 
@@ -53,7 +52,8 @@ if config_env() == :prod do
   config :relay, Relay.Config.SecretFiles,
     repo: Relay.Config.Env.fetch!("DATABASE_PASSWORD_FILE"),
     maint_repo: Relay.Config.Env.fetch!("MAINT_DATABASE_PASSWORD_FILE"),
-    audit_s3: Relay.Config.Env.fetch!("AUDIT_S3_SECRET_ACCESS_KEY_FILE")
+    audit_s3: Relay.Config.Env.fetch!("AUDIT_S3_SECRET_ACCESS_KEY_FILE"),
+    secret_key_base: Relay.Config.Env.fetch!("SECRET_KEY_BASE_FILE")
 
   if :worker in roles do
     config :relay, Relay.QueueRepo,

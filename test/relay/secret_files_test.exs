@@ -12,7 +12,8 @@ defmodule Relay.SecretFilesTest do
     "DATABASE_PASSWORD_FILE" => "plain-db-marker",
     "MAINT_DATABASE_PASSWORD_FILE" => "plain-maint-marker",
     "QUEUE_DATABASE_PASSWORD_FILE" => "plain-queue-marker",
-    "AUDIT_S3_SECRET_ACCESS_KEY_FILE" => "plain-store-marker"
+    "AUDIT_S3_SECRET_ACCESS_KEY_FILE" => "plain-store-marker",
+    "SECRET_KEY_BASE_FILE" => "plain-key-base-marker-" <> String.duplicate("k", 64)
   }
 
   @env %{
@@ -33,7 +34,6 @@ defmodule Relay.SecretFilesTest do
     "VALKEY_URL" => "redis://valkey.internal:6379",
     "PORT" => "4000",
     "METRICS_PORT" => "9568",
-    "SECRET_KEY_BASE" => String.duplicate("k", 64),
     "RELAY_ROLES" => "api,worker,socket"
   }
 
@@ -82,7 +82,7 @@ defmodule Relay.SecretFilesTest do
     end
   end
 
-  describe "TN-67 (3) installation secrets stay out of the application environment" do
+  describe "TN-67 (3) TN-68 (1) installation secrets stay out of the application environment" do
     test "TN-67: the production environment holds the secret file paths, never a database password or the object store key",
          %{tmp_dir: dir} do
       env = production_env(dir)
@@ -96,6 +96,7 @@ defmodule Relay.SecretFilesTest do
 
       assert [{"worm_store", _, opts}] = env[Relay.Audit][:publishers]
       assert opts[:secret_access_key] == {SecretFiles, :fetch!, [:audit_s3]}
+      refute Keyword.has_key?(env[RelayWeb.Endpoint], :secret_key_base)
 
       assert Enum.sort(Keyword.keys(env[SecretFiles])) == Enum.sort(SecretFiles.names())
       assert :ok = Relay.Config.validate!(env, %{}, production?: true)
@@ -120,6 +121,41 @@ defmodule Relay.SecretFilesTest do
         |> Keyword.update!(Relay.Audit, &Keyword.put(&1, :publishers, plain))
         |> Relay.Config.validate!(%{}, production?: true)
       end
+    end
+
+    test "TN-68 (1): a production node refuses a plain secret_key_base", %{tmp_dir: dir} do
+      env = production_env(dir)
+
+      assert_raise Relay.Config.Error, ~r/RelayWeb.Endpoint must take secret_key_base/, fn ->
+        env
+        |> Keyword.update!(RelayWeb.Endpoint, &Keyword.put(&1, :secret_key_base, "plain"))
+        |> Relay.Config.validate!(%{}, production?: true)
+      end
+    end
+
+    test "TN-68 (1): the endpoint reads secret_key_base from its file when it starts", %{
+      tmp_dir: dir
+    } do
+      secret = @secrets["SECRET_KEY_BASE_FILE"]
+      path = Path.join(dir, "secret-key-base")
+      File.write!(path, secret <> "\n")
+      spec = RelayWeb.Endpoint.supervised()
+
+      assert %{id: RelayWeb.Endpoint, start: {RelayWeb.Endpoint, :start_supervised, []}} = spec
+      refute shows_secret?(spec)
+
+      with_paths(%{secret_key_base: path}, fn ->
+        assert SecretFiles.configured?(:secret_key_base)
+        assert RelayWeb.Endpoint.secret_options() == {:ok, [secret_key_base: secret]}
+
+        File.write!(path, String.duplicate("k", 63))
+        assert RelayWeb.Endpoint.secret_options() == {:error, :secret_key_base_too_short}
+      end)
+
+      with_paths(%{}, fn ->
+        refute SecretFiles.configured?(:secret_key_base)
+        assert RelayWeb.Endpoint.secret_options() == {:ok, []}
+      end)
     end
 
     test "TN-67: a database connection reads its password through the sensitive holder", %{

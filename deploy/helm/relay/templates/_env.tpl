@@ -45,14 +45,11 @@
   value: {{ required "auditStore.accessKeyId is required" .Values.auditStore.accessKeyId | quote }}
 - name: AUDIT_S3_SECRET_ACCESS_KEY_FILE
   value: /run/secrets/relay-audit-store/secret-access-key
+- name: SECRET_KEY_BASE_FILE
+  value: /run/secrets/relay-secret-key-base/secret-key-base
 {{- with .Values.keyStore.env }}
 {{ toYaml . }}
 {{- end }}
-- name: SECRET_KEY_BASE
-  valueFrom:
-    secretKeyRef:
-      name: {{ .Values.secretKeyBaseSecret }}
-      key: secret-key-base
 {{- end -}}
 
 {{- define "relay.image" -}}
@@ -81,4 +78,16 @@
     - name: audit-store-secret
       mountPath: /run/secrets/relay-audit-store
       readOnly: true
+    - name: secret-key-base
+      mountPath: /run/secrets/relay-secret-key-base
+      readOnly: true
+{{- end -}}
+
+{{- define "relay.secret-key-base-volume" -}}
+- name: secret-key-base
+  secret:
+    secretName: {{ .Values.secretKeyBaseSecret }}
+    items:
+      - key: secret-key-base
+        path: secret-key-base
 {{- end -}}

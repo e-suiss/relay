@@ -36,6 +36,9 @@ spec:
             - name: audit-store-secret
               mountPath: /run/secrets/relay-audit-store
               readOnly: true
+            - name: secret-key-base
+              mountPath: /run/secrets/relay-secret-key-base
+              readOnly: true
       containers:
         {{- include "relay.bootstrap-container" (dict "root" . "name" "ownership") | nindent 8 }}
       volumes:
@@ -67,3 +70,4 @@ spec:
             items:
               - key: secret-access-key
                 path: secret-access-key
+        {{- include "relay.secret-key-base-volume" . | nindent 8 }}

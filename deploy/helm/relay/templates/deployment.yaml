@@ -64,6 +64,9 @@ spec:
             - name: audit-store-secret
               mountPath: /run/secrets/relay-audit-store
               readOnly: true
+            - name: secret-key-base
+              mountPath: /run/secrets/relay-secret-key-base
+              readOnly: true
             - name: tmp
               mountPath: /tmp
             {{- with $.Values.keyStore.volumeMounts }}
@@ -92,6 +95,7 @@ spec:
             items:
               - key: secret-access-key
                 path: secret-access-key
+        {{- include "relay.secret-key-base-volume" $ | nindent 8 }}
         - name: tmp
           emptyDir: {}
         {{- with $.Values.keyStore.volumes }}

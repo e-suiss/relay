@@ -24,6 +24,8 @@ printf relay > "$work/db-password"
 chmod 644 "$work/db-password"
 printf relay-dev-secret > "$work/s3-secret"
 chmod 644 "$work/s3-secret"
+openssl rand -hex 48 > "$work/secret-key-base"
+chmod 644 "$work/secret-key-base"
 cat > "$work/env" <<ENV
 DATABASE_URL=ecto://relay_worker@${db_host}:5432/relay_dev
 DATABASE_PASSWORD_FILE=/run/db-password
@@ -36,7 +38,7 @@ VALKEY_URL=redis://${valkey_host}:6379
 RELAY_HOST=localhost
 PORT=${port}
 METRICS_PORT=${metrics_port}
-SECRET_KEY_BASE=$(openssl rand -hex 48)
+SECRET_KEY_BASE_FILE=/run/secret-key-base
 PKCS11_MODULE=/usr/lib/softhsm/libsofthsm2.so
 PKCS11_TOKEN=relay-smoke
 PKCS11_PIN_FILE=/run/softhsm/pin
@@ -52,7 +54,7 @@ ENV
 
 run() {
   docker run --rm --network "$network" --env-file "$work/env" -v "$work/db-password:/run/db-password:ro" -v "$work/s3-secret:/run/s3-secret:ro" \
-    -v "$work/softhsm:/run/softhsm" "$@"
+    -v "$work/secret-key-base:/run/secret-key-base:ro" -v "$work/softhsm:/run/softhsm" "$@"
 }
 
 fail() {
@@ -128,7 +130,8 @@ bootstrap || fail "bootstrap did not restore the relay_ops owner"
 
 # T-3
 docker run -d --name relay-smoke --network "$network" $publish --env-file "$work/env" \
-  -v "$work/db-password:/run/db-password:ro" -v "$work/s3-secret:/run/s3-secret:ro" -v "$work/softhsm:/run/softhsm" \
+  -v "$work/db-password:/run/db-password:ro" -v "$work/s3-secret:/run/s3-secret:ro" \
+  -v "$work/secret-key-base:/run/secret-key-base:ro" -v "$work/softhsm:/run/softhsm" \
   -e RELAY_ROLES=api,worker,socket "$image" start >/dev/null
 
 base="http://localhost:${port}"
@@ -170,6 +173,13 @@ if run -e RELAY_ROLES=api -e RELAY_UNKNOWN_SETTING=1 "$image" start >"$work/bad.
   fail "unknown configuration was accepted"
 fi
 grep -q "unknown environment variables: RELAY_UNKNOWN_SETTING" "$work/bad.log" || fail "unknown configuration was not reported"
+
+# TN-68 (1)
+if run -e RELAY_ROLES=api -e SECRET_KEY_BASE_FILE=/run/missing-secret-key-base "$image" start >"$work/no-key-base.log" 2>&1; then
+  fail "a node without its secret_key_base file started"
+fi
+grep -q "unreadable_secret_file, :secret_key_base" "$work/no-key-base.log" \
+  || { cat "$work/no-key-base.log" >&2; fail "a missing secret_key_base file was not reported"; }
 
 # OP-70
 if run -e RELAY_ROLES=api -e AUDIT_S3_ENDPOINT= "$image" start >"$work/no-target.log" 2>&1; then

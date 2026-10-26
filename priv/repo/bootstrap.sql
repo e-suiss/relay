@@ -96,15 +96,56 @@ ALTER DEFAULT PRIVILEGES FOR ROLE relay_migrator, relay_owner, relay_maint REVOK
 
 DO $$
 DECLARE
-  f regprocedure;
+  v_execute constant jsonb := '{
+    "relay_ops.audit_checkpoint_publication_record": ["relay_worker"],
+    "relay_ops.audit_checkpoint_record": ["relay_worker"],
+    "relay_ops.audit_leaves_append": ["relay_worker"],
+    "relay_ops.audit_pending": ["relay_worker"],
+    "relay_ops.orphan_check": [],
+    "relay_ops.outbox_pending_scopes": ["relay_worker"],
+    "relay_ops.partition_due_for_archive": [],
+    "relay_ops.partition_horizon": ["relay_worker"],
+    "relay_ops.partition_policy_set": ["relay_app"],
+    "relay_ops.receipt_keys_due": ["relay_worker"],
+    "relay_ops.reference_check": [],
+    "relay_ops.retention_due": ["relay_worker"],
+    "relay_ops.singleton_acquire": ["relay_worker"],
+    "relay_ops.singleton_save": ["relay_worker"],
+    "relay_ops.tenant_create": ["relay_app"]
+  }';
+  v_function regprocedure;
+  v_name text;
+  v_grantees text[];
+  v_grantee text;
 BEGIN
-  FOR f IN
-    SELECT p.oid::regprocedure
+  FOR v_function, v_name IN
+    SELECT p.oid::regprocedure, n.nspname || '.' || p.proname
     FROM pg_catalog.pg_proc p
     JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'relay_ops' AND p.proowner <> 'relay_maint'::regrole
+    WHERE n.nspname = 'relay_ops'
   LOOP
-    EXECUTE format('ALTER FUNCTION %s OWNER TO relay_maint', f);
+    IF (SELECT p.proowner FROM pg_catalog.pg_proc p WHERE p.oid = v_function) <> 'relay_maint'::regrole THEN
+      EXECUTE format('ALTER FUNCTION %s OWNER TO relay_maint', v_function);
+    END IF;
+
+    v_grantees := ARRAY(SELECT pg_catalog.jsonb_array_elements_text(coalesce(v_execute -> v_name, '[]')));
+
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', v_function);
+
+    FOR v_grantee IN
+      SELECT DISTINCT pg_catalog.pg_get_userbyid(a.grantee)::text
+      FROM pg_catalog.pg_proc p, pg_catalog.aclexplode(p.proacl) a
+      WHERE p.oid = v_function AND a.grantee <> 0 AND a.grantee <> p.proowner
+    LOOP
+      IF NOT v_grantee = ANY (v_grantees) THEN
+        EXECUTE format('REVOKE ALL ON FUNCTION %s FROM %I', v_function, v_grantee);
+      END IF;
+    END LOOP;
+
+    FOREACH v_grantee IN ARRAY v_grantees
+    LOOP
+      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO %I', v_function, v_grantee);
+    END LOOP;
   END LOOP;
 END
 $$;

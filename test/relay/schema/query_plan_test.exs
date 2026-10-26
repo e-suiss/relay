@@ -19,10 +19,7 @@ defmodule Relay.Schema.QueryPlanTest do
      WHERE n.tenant_id = $1 AND n.environment = $2 AND n.dedup_key = $3 AND n.recipient_id = $4
      RETURNING n.id
      """, ["uuid", "relay.environment", "text", "uuid"],
-     [
-       {"notifications",
-        ["notifications_dedup_key_key", "notifications_recipient_created_at_index"]}
-     ]},
+     [{"notifications", ["notifications_dedup_key_key"]}]},
     {"accept delivery notification",
      """
      SELECT * FROM relay.notifications n
@@ -225,7 +222,7 @@ defmodule Relay.Schema.QueryPlanTest do
       Enum.all?(used, fn {relation, index} -> index in Map.fetch!(allowed, relation) end)
   end
 
-  test "OP-71: the accept path, outbox claim, idempotency claim and ledger append use their pinned indexes with generic plans over seeded data" do
+  test "OP-71 (3), OP-72 (4): the accept path, outbox claim, idempotency claim and ledger append use their pinned indexes with generic plans over seeded data" do
     admin = connect(:admin)
 
     rolled_back(admin, fn ->
@@ -242,6 +239,17 @@ defmodule Relay.Schema.QueryPlanTest do
     end)
 
     GenServer.stop(admin)
+  end
+
+  test "OP-72 (4): notifications carry the tenant, environment and recipient dependency statistics" do
+    assert rows("""
+           SELECT s.stxkind::text[],
+             ARRAY(SELECT a.attname::text FROM unnest(s.stxkeys) k
+               JOIN pg_attribute a ON a.attrelid = s.stxrelid AND a.attnum = k ORDER BY a.attnum)
+           FROM pg_statistic_ext s JOIN pg_namespace n ON n.oid = s.stxnamespace
+           WHERE n.nspname = 'relay' AND s.stxname = 'notifications_recipient_dependencies'
+             AND s.stxrelid = 'relay.notifications'::regclass
+           """) == [[["f"], ["tenant_id", "environment", "recipient_id"]]]
   end
 
   test "OP-11: every pinned index exists and is valid" do

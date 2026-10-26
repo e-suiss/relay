@@ -249,7 +249,7 @@ defmodule Relay.Repo.Migrations.CreateMailboxFunctions do
               OR (r.delivery_state = 'leased' AND r.lease_until < now()))
           ORDER BY r.epoch, r.seq
           LIMIT p_max
-          FOR UPDATE SKIP LOCKED
+          FOR NO KEY UPDATE SKIP LOCKED
         LOOP
           IF v_row.delivery_count + 1 > p_max_deliveries THEN
             UPDATE relay.mailbox_records r SET delivery_state = 'dead_lettered',
@@ -308,7 +308,7 @@ defmodule Relay.Repo.Migrations.CreateMailboxFunctions do
               AND r.mailbox_id = p_mailbox_id
               AND r.created_at BETWEEN uuid_extract_timestamp(v_id) - interval '5 minutes'
                 AND uuid_extract_timestamp(v_id) + interval '5 minutes'
-            FOR UPDATE;
+            FOR NO KEY UPDATE;
           record_id := v_id;
           IF NOT FOUND THEN
             result := 'not_found';
@@ -359,7 +359,7 @@ defmodule Relay.Repo.Migrations.CreateMailboxFunctions do
         SELECT * INTO v_cursor FROM relay.mailbox_cursors c
           WHERE c.tenant_id = v_tenant AND c.environment = v_env AND c.mailbox_id = p_mailbox_id
             AND c.consumer = p_consumer
-          FOR UPDATE;
+          FOR NO KEY UPDATE;
         IF FOUND AND v_cursor.epoch = p_epoch AND v_cursor.seq >= p_seq THEN
           RETURN 'stale';
         END IF;
@@ -393,7 +393,7 @@ defmodule Relay.Repo.Migrations.CreateMailboxFunctions do
         END IF;
         SELECT m.stream_key INTO v_stream FROM relay.mailboxes m
           WHERE m.tenant_id = v_tenant AND m.environment = v_env AND m.id = p_mailbox_id
-          FOR UPDATE;
+          FOR NO KEY UPDATE;
         IF NOT FOUND THEN
           RETURN QUERY SELECT 'not_found'::text, NULL::bigint;
           RETURN;
@@ -433,7 +433,7 @@ defmodule Relay.Repo.Migrations.CreateMailboxFunctions do
         END IF;
         SELECT m.state INTO v_state FROM relay.mailboxes m
           WHERE m.tenant_id = v_tenant AND m.environment = v_env AND m.id = p_mailbox_id
-          FOR UPDATE;
+          FOR NO KEY UPDATE;
         IF NOT FOUND THEN
           RETURN 'not_found';
         END IF;

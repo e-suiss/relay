@@ -41,10 +41,10 @@
   {"file": "20261027400000_add_recipient_kind_key.exs", "sha256": "4610523cb6dd4fcea1c1a31e2db43111496bffb392424820575d7aa75b894c9f"},
   {"file": "20261027400100_create_mailbox_waitpoint_fanout_tables.exs", "sha256": "7133c0cee5a8066201fa31812633d8e5d4d46881be8abd187a157d5d330a7179"},
   {"file": "20261027400200_seed_mailbox_waitpoint_partitions.exs", "sha256": "c4b45fa24b6326e6d992fb8bcc34548d413d6a4ed1b639926d33b53b20684acd"},
-  {"file": "20261027400300_create_virtual_clock_functions.exs", "sha256": "b4e6899edff5f47129b207e9d7ae9083d47e0dee5074bd65a82cc8ec53a9993b"},
-  {"file": "20261027400400_create_mailbox_functions.exs", "sha256": "275eb2b0e70b0d08cf49be2a10c555421ee7b9b77044670bdd2be2a1b38a8d9b"},
-  {"file": "20261027400500_create_waitpoint_functions.exs", "sha256": "dc32d4a6d8da298b8d915677d0a3487d6f4a3cb61fb0f81569892086406a8760"},
+  {"file": "20261027400300_create_virtual_clock_functions.exs", "sha256": "c31bf594295b094b370e041d9f5bd6b193aea08dffbadc2dd29804dd52c02de8"},
+  {"file": "20261027400400_create_mailbox_functions.exs", "sha256": "96effca487f4e5601247f75280540ae0da0846877fba46fbb3c3bed171716d21"},
+  {"file": "20261027400500_create_waitpoint_functions.exs", "sha256": "eeffc0bc64eef0f2804e2ec6ac30d9de57706afe5995d3d75fd07d692a3c1163"},
   {"file": "20261027400600_create_fanout_functions.exs", "sha256": "592d829491ba99fbbdd43c7a4cf6ae911adb41af3409a1c5deacb3067d055658"},
-  {"file": "20261027400700_erase_subject_waitpoints_and_mailbox.exs", "sha256": "a7673333cbcbbc46f9626b3c0290d604e0f756fb3d4e14a134116a3c914b6e7d"},
+  {"file": "20261027400700_erase_subject_waitpoints_and_mailbox.exs", "sha256": "e3e8c7dd1ad029e6451cb9c2da5dab1222e6b768f796c2c74cffabd783886585"},
   {"file": "20261027400800_rebuild_reference_check_for_mailboxes_and_waitpoints.exs", "sha256": "201dd2560645f1aeeb1333aaaf8cd16222c86b7b04fa740fec845808946c2416"}
 ]

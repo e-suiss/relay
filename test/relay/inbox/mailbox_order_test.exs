@@ -24,7 +24,6 @@ defmodule Relay.Inbox.MailboxOrderTest do
       mailbox_id: mailbox,
       kind: :message,
       event_type: "inbox.message",
-      correlation_key: "w#{writer}-#{n}",
       payload_digest: :crypto.strong_rand_bytes(32)
     }
   end

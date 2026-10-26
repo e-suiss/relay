@@ -43,7 +43,7 @@ defmodule Relay.Repo.Migrations.EraseSubjectWaitpointsAndMailbox do
       END IF;
       SELECT r.state INTO v_state FROM relay.recipients r
         WHERE r.tenant_id = v_tenant AND r.environment = v_env AND r.id = p_recipient_id
-        FOR UPDATE;
+        FOR NO KEY UPDATE;
       IF NOT FOUND THEN
         RETURN QUERY SELECT 'not_found'::text, 0::bigint;
         RETURN;
@@ -74,7 +74,7 @@ defmodule Relay.Repo.Migrations.EraseSubjectWaitpointsAndMailbox do
         WHERE d.tenant_id = v_tenant AND d.environment = v_env AND d.recipient_id = p_recipient_id
           AND d.delivery_rank = 0 AND d.failure_kind IS NULL
         ORDER BY d.created_at, d.id
-        FOR UPDATE
+        FOR NO KEY UPDATE
       LOOP
         PERFORM relay_private.ledger_record(uuidv7(), v_delivery, NULL, 'relay',
           'delivery.cancelled', NULL, NULL, NULL, now(), NULL, NULL, 'cancelled', NULL,
@@ -106,7 +106,7 @@ defmodule Relay.Repo.Migrations.EraseSubjectWaitpointsAndMailbox do
               WHERE s.tenant_id = w.tenant_id AND s.environment = w.environment
                 AND s.waitpoint_id = w.id AND s.recipient_id = p_recipient_id))
         ORDER BY w.id
-        FOR UPDATE
+        FOR NO KEY UPDATE
       LOOP
         UPDATE relay.waitpoints w SET content_ct = NULL, claim_text_ct = NULL,
             default_response_ct = NULL, field_key_id = NULL,

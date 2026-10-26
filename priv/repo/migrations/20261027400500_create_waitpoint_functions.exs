@@ -216,7 +216,7 @@ defmodule Relay.Repo.Migrations.CreateWaitpointFunctions do
           p_waiter_ref) e;
       SELECT m.state INTO v_mailbox_state FROM relay.mailboxes m
         WHERE m.tenant_id = v_tenant AND m.environment = v_env AND m.id = v_mailbox
-        FOR UPDATE;
+        FOR NO KEY UPDATE;
       IF v_mailbox_result NOT IN ('created', 'exists') OR v_mailbox_state IS DISTINCT FROM 'active' THEN
         RETURN QUERY SELECT 'waiter_not_found'::text, NULL::uuid, NULL::timestamptz, NULL::uuid;
         RETURN;
@@ -245,7 +245,7 @@ defmodule Relay.Repo.Migrations.CreateWaitpointFunctions do
       ON CONFLICT (tenant_id, environment) DO NOTHING;
       SELECT c.open_count INTO v_count FROM relay.waitpoint_counters c
         WHERE c.tenant_id = v_tenant AND c.environment = v_env
-        FOR UPDATE;
+        FOR NO KEY UPDATE;
       IF v_count + 1 > p_tenant_open_cap THEN
         RETURN QUERY SELECT 'limit_exceeded'::text, NULL::uuid, NULL::timestamptz, NULL::uuid;
         RETURN;
@@ -284,7 +284,7 @@ defmodule Relay.Repo.Migrations.CreateWaitpointFunctions do
           AND r.correlation_key = p_correlation_key AND r.consumed_at IS NULL
         ORDER BY r.created_at, r.id
         LIMIT 1
-        FOR UPDATE;
+        FOR NO KEY UPDATE;
       PERFORM relay_private.waitpoint_emit(v_row, 'waitpoint.created', NULL, NULL, NULL, NULL);
       RETURN QUERY SELECT 'opened'::text, v_row.id, v_row.expires_at, v_early;
     END
@@ -325,7 +325,7 @@ defmodule Relay.Repo.Migrations.CreateWaitpointFunctions do
           AND w.state IN ('open', 'stalled')
           AND (p_waiter_kind IS NULL OR (w.waiter_kind = p_waiter_kind AND w.waiter_ref = p_waiter_ref))
         ORDER BY w.id
-        FOR UPDATE
+        FOR NO KEY UPDATE
       LOOP
         v_matched := true;
         result := 'matched';
@@ -383,7 +383,7 @@ defmodule Relay.Repo.Migrations.CreateWaitpointFunctions do
       END IF;
       SELECT * INTO v_row FROM relay.waitpoints w
         WHERE w.tenant_id = v_tenant AND w.environment = v_env AND w.id = p_waitpoint_id
-        FOR UPDATE;
+        FOR NO KEY UPDATE;
       IF NOT FOUND THEN
         RETURN 'not_found';
       END IF;
@@ -401,7 +401,7 @@ defmodule Relay.Repo.Migrations.CreateWaitpointFunctions do
         WHERE r.tenant_id = v_tenant AND r.environment = v_env AND r.id = p_record_id
           AND r.created_at BETWEEN uuid_extract_timestamp(p_record_id) - interval '5 minutes'
             AND uuid_extract_timestamp(p_record_id) + interval '5 minutes'
-        FOR UPDATE;
+        FOR NO KEY UPDATE;
       IF FOUND THEN
         IF v_early.kind <> 'early_event' OR v_early.consumed_at IS NOT NULL
           OR v_early.mailbox_id <> v_row.waiter_mailbox_id
@@ -458,7 +458,7 @@ defmodule Relay.Repo.Migrations.CreateWaitpointFunctions do
       END IF;
       SELECT * INTO v_row FROM relay.waitpoints w
         WHERE w.tenant_id = v_tenant AND w.environment = v_env AND w.id = p_waitpoint_id
-        FOR UPDATE;
+        FOR NO KEY UPDATE;
       IF NOT FOUND THEN
         RETURN QUERY SELECT 'not_found'::text, NULL::uuid;
         RETURN;
@@ -471,7 +471,7 @@ defmodule Relay.Repo.Migrations.CreateWaitpointFunctions do
           WHERE r.tenant_id = v_tenant AND r.environment = v_env AND r.id = p_source_record_id
             AND r.created_at BETWEEN uuid_extract_timestamp(p_source_record_id) - interval '5 minutes'
               AND uuid_extract_timestamp(p_source_record_id) + interval '5 minutes'
-          FOR UPDATE;
+          FOR NO KEY UPDATE;
         IF NOT FOUND OR v_early.kind <> 'early_event' OR v_early.consumed_at IS NOT NULL
           OR v_early.mailbox_id <> v_row.waiter_mailbox_id THEN
           RAISE EXCEPTION 'invalid_argument' USING HINT = 'AG-13';
@@ -561,7 +561,7 @@ defmodule Relay.Repo.Migrations.CreateWaitpointFunctions do
     BEGIN
       SELECT * INTO v_row FROM relay.waitpoints w
         WHERE w.tenant_id = v_tenant AND w.environment = v_env AND w.id = p_waitpoint_id
-        FOR UPDATE;
+        FOR NO KEY UPDATE;
       IF NOT FOUND THEN
         RETURN QUERY SELECT 'not_found'::text, NULL::timestamptz;
         RETURN;
@@ -613,7 +613,7 @@ defmodule Relay.Repo.Migrations.CreateWaitpointFunctions do
     BEGIN
       SELECT * INTO v_row FROM relay.waitpoints w
         WHERE w.tenant_id = v_tenant AND w.environment = v_env AND w.id = p_waitpoint_id
-        FOR UPDATE;
+        FOR NO KEY UPDATE;
       IF NOT FOUND THEN
         RETURN QUERY SELECT 'not_found'::text, NULL::timestamptz;
         RETURN;
@@ -672,7 +672,7 @@ defmodule Relay.Repo.Migrations.CreateWaitpointFunctions do
       END IF;
       SELECT * INTO v_row FROM relay.waitpoints w
         WHERE w.tenant_id = v_tenant AND w.environment = v_env AND w.id = p_waitpoint_id
-        FOR UPDATE;
+        FOR NO KEY UPDATE;
       IF NOT FOUND THEN
         RETURN 'not_found';
       END IF;

@@ -66,7 +66,7 @@ defmodule Relay.Repo.Migrations.CreateVirtualClockFunctions do
         END IF;
         SELECT v.offset_ms INTO v_offset FROM relay.virtual_clocks v
           WHERE v.tenant_id = v_tenant AND v.environment = 'test'
-          FOR UPDATE;
+          FOR NO KEY UPDATE;
         IF COALESCE(v_offset, 0) + p_by_ms > 315360000000 THEN
           RETURN QUERY SELECT 'invalid_step'::text, v_offset, NULL::timestamptz;
           RETURN;

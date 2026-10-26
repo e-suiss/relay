@@ -16,7 +16,8 @@ defmodule RelayDev.Credo.ChecksTest do
     RestartBudget,
     TenantProcesses,
     TodoWithIssue,
-    UnsafeConversion
+    UnsafeConversion,
+    VirtualOffset
   }
 
   setup_all do
@@ -273,6 +274,32 @@ defmodule RelayDev.Credo.ChecksTest do
       """
 
       assert length(issues(code, LimitClock)) == 3
+    end
+  end
+
+  describe "TN-8 X-27 virtual clock offset" do
+    test "TN-8: reading the virtual offset outside Relay.Clock.Virtual is reported" do
+      code = ~S'''
+      defmodule Relay.Example do
+        alias Relay.Clock.VirtualStore
+        def a(scope), do: Relay.Clock.Virtual.offset_ms(scope)
+        def b, do: Repo.call!("relay_fn.virtual_clock_get", [])
+        def c, do: "SELECT offset_ms FROM relay.virtual_clocks"
+      end
+      '''
+
+      assert [2, 3, 4, 5] = code |> issues(VirtualOffset) |> Enum.map(& &1.line_no) |> Enum.sort()
+    end
+
+    test "X-27: business time through Relay.Clock is allowed" do
+      code = """
+      defmodule Relay.Example do
+        def a(scope), do: Relay.Clock.business_now(scope)
+        def b(scope, at), do: Relay.Clock.wall_time(scope, at)
+      end
+      """
+
+      assert issues(code, VirtualOffset) == []
     end
   end
 end

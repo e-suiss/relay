@@ -81,7 +81,7 @@ defmodule Relay.Inbox.MailboxStore do
 
   # IN-22
   # OP-5
-  @doc "Reads at most `limit` records after `since_seq` of an epoch, in sequence order."
+  @doc "Reads at most `limit` records after `since_seq` of an epoch, in sequence order. `limit` is 1 to 501: the replay cap of 500 plus the one record a reader takes to tell whether more follow."
   @spec read_since(Relay.Id.t(), pos_integer(), non_neg_integer(), pos_integer()) :: [map()]
   def read_since(mailbox_id, epoch, since_seq, limit) do
     for row <- Repo.call!("relay_fn.mailbox_read_since", [mailbox_id, epoch, since_seq, limit]),

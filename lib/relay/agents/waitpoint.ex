@@ -87,19 +87,18 @@ defmodule Relay.Agents.Waitpoint do
     event = Map.put_new_lazy(event, :record_id, &Relay.Id.generate/0)
 
     WaitpointStore.in_scope(scope, fn _status ->
-      case WaitpointStore.offer(event) do
-        [{:buffered, nil, record_id}] ->
-          %{result: :buffered, record_id: record_id, resolved: [], matched: []}
-
-        [{:unmatched, nil, nil}] ->
-          %{result: :unmatched, record_id: nil, resolved: [], matched: []}
-
-        matches ->
-          ids = for {:matched, id, _} <- matches, do: id
-          resolve_matches(ids, Map.get(event, :event_id))
-      end
+      event |> WaitpointStore.offer() |> offered(Map.get(event, :event_id))
     end)
   end
+
+  defp offered([{:buffered, nil, record_id}], _event_id),
+    do: %{result: :buffered, record_id: record_id, resolved: [], matched: []}
+
+  defp offered([{:unmatched, nil, nil}], _event_id),
+    do: %{result: :unmatched, record_id: nil, resolved: [], matched: []}
+
+  defp offered(matches, event_id),
+    do: resolve_matches(for({:matched, id, _} <- matches, do: id), event_id)
 
   defp resolve_matches(ids, event_id) do
     {resolved, matched} =

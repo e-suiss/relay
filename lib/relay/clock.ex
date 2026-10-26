@@ -5,6 +5,8 @@ defmodule Relay.Clock do
   Business time (`business_now/1`) moves deadlines, heartbeats, escalations and future-dated work. In the `live` environment it is the system clock and nothing else; only a `test` scope reads its tenant's virtual clock offset, through `Relay.Clock.Virtual`. Rate limits, quotas, circuit breakers and backoff never use business time.
   """
 
+  alias Relay.Clock.Virtual
+
   @callback utc_now() :: DateTime.t()
   @callback monotonic_ms() :: integer()
 
@@ -24,7 +26,7 @@ defmodule Relay.Clock do
   @doc "Returns business time for a scope: the system clock in `live`, the clock moved by the tenant's virtual offset in `test`."
   @spec business_now(Relay.Scope.t()) :: DateTime.t()
   def business_now(%Relay.Scope{environment: :live}), do: utc_now()
-  def business_now(%Relay.Scope{environment: :test} = scope), do: Relay.Clock.Virtual.now(scope)
+  def business_now(%Relay.Scope{environment: :test} = scope), do: Virtual.now(scope)
 
   # TN-8
   # T-24
@@ -33,7 +35,7 @@ defmodule Relay.Clock do
   def wall_time(%Relay.Scope{environment: :live}, %DateTime{} = at), do: at
 
   def wall_time(%Relay.Scope{environment: :test} = scope, %DateTime{} = at),
-    do: Relay.Clock.Virtual.to_wall(scope, at)
+    do: Virtual.to_wall(scope, at)
 
   defp impl, do: Application.fetch_env!(:relay, :clock)
 end

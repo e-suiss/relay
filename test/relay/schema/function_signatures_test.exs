@@ -37,7 +37,18 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.delivery_cancel" => ~w(cancelled already_terminal not_found),
     "relay_fn.notification_cancel" => ~w(cancelled already_closed not_found),
     "relay_fn.attempt_open" =>
-      ~w(opened delivery_not_found delivery_not_sendable attempt_active tenant_inactive),
+      ~w(opened delivery_not_found delivery_not_sendable delivery_paused attempt_active tenant_inactive),
+    "relay_fn.delivery_gate" => ~w(sendable cancelled paused expired terminal deferred not_found),
+    "relay_fn.delivery_pause" => ~w(paused already_paused already_terminal not_found),
+    "relay_fn.delivery_resume" => ~w(resumed not_paused already_terminal not_found),
+    "relay_fn.delivery_hold" => ~w(held already_terminal not_found),
+    "relay_fn.delivery_expire" => ~w(expired already_terminal not_found),
+    "relay_fn.dead_letter_record" =>
+      ~w(recorded already_open delivery_not_found delivery_terminal),
+    "relay_fn.dead_letter_replay" =>
+      ~w(replay_opened not_replayable approval_required cause_fix_required depth_exceeded expired not_open not_found tenant_inactive),
+    "relay_fn.dead_letter_close" => ~w(closed not_open not_found),
+    "relay_fn.dead_letter_replay_finish" => ~w(replayed not_replaying not_found),
     "relay_fn.attempt_start" => ~w(started not_pending not_found),
     "relay_fn.attempt_finish" => ~w(applied duplicate_ignored already_terminal not_found),
     "relay_fn.ledger_append" =>

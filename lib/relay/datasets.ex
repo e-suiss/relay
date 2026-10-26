@@ -145,6 +145,7 @@ defmodule Relay.Datasets do
     with {:ok, definition} <- definition(scope, name),
          {:ok, root} <- Schema.build(definition["json_schema"]),
          :ok <- Schema.validate(root, content),
+         :ok <- consistent(name, content),
          {:ok, content_digest} <- Schema.digest(content) do
       id = Relay.Id.generate()
 
@@ -160,6 +161,31 @@ defmodule Relay.Datasets do
 
       digest = record_digest(scope, "dataset.version_published", actor, id, nil)
       scoped(scope, fn -> Store.publish(attrs, digest, actor) end)
+    end
+  end
+
+  # CH-69
+  @doc "Checks the rules of a data set's content that its JSON Schema cannot express; only `channel_parameters` has such rules."
+  @spec consistent(String.t(), Schema.json()) :: :ok | {:error, Relay.Error.t()}
+  def consistent("channel_parameters", content) when is_map(content),
+    do: Relay.ChannelParameters.validate(content)
+
+  def consistent(_name, _content), do: :ok
+
+  # CH-69
+  # OP-65 (4)
+  @doc "Returns the active `channel_parameters` version as a `Relay.ChannelParameters` snapshot; an installation without an active version is an error."
+  @spec channel_parameters() :: {:ok, Relay.ChannelParameters.t()} | {:error, Relay.Error.t()}
+  def channel_parameters do
+    case active(installation_scope(), "channel_parameters") do
+      {:ok, %Version{} = version} ->
+        {:ok, Relay.ChannelParameters.new(version.content, version.id)}
+
+      {:ok, nil} ->
+        {:error, no_active("channel_parameters")}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 

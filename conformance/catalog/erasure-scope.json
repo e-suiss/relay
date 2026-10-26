@@ -91,6 +91,12 @@
       "subject_erasure": "no personal fields"
     },
     {
+      "table": "dead_letters",
+      "personal_columns": [],
+      "tenant_close": "no personal fields; archived with its partition",
+      "subject_erasure": "no personal fields; the target blind index is kept under the delivery_record retention"
+    },
+    {
       "table": "webhook_receipts",
       "personal_columns": [
         "body_ct"

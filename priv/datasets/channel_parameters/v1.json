@@ -1,0 +1,60 @@
+{
+  "source_ref": "Relay spec §12.2.1, §12.2.6, §12.3.3; T-25 (7), T-27, T-33; CH-69",
+  "backoff": [
+    {"channel": "push", "provider": "apns", "failure_class": "transient", "condition": "server_error", "message_class": null, "mode": "exponential", "base_ms": 1800000, "cap_ms": 7200000, "default_retry_after_ms": null, "max_attempts": 5, "source": "§12.2.6 APNs 5xx"},
+    {"channel": "push", "provider": "apns", "failure_class": "transient", "condition": "timeout", "message_class": null, "mode": "exponential", "base_ms": 1800000, "cap_ms": 7200000, "default_retry_after_ms": null, "max_attempts": 5, "source": "§12.2.6 APNs 5xx; §12.2.1 timeout = 5xx"},
+    {"channel": "push", "provider": "apns", "failure_class": "transient", "condition": "rate_limited", "message_class": null, "mode": "exponential", "base_ms": 2000, "cap_ms": 60000, "default_retry_after_ms": null, "max_attempts": 8, "source": "§12.2.6 APNs 429"},
+    {"channel": "push", "provider": "fcm", "failure_class": "transient", "condition": "server_error", "message_class": null, "mode": "exponential", "base_ms": 120000, "cap_ms": 1800000, "default_retry_after_ms": null, "max_attempts": 6, "source": "§12.2.6 FCM 500/503"},
+    {"channel": "push", "provider": "fcm", "failure_class": "transient", "condition": "timeout", "message_class": null, "mode": "exponential", "base_ms": 120000, "cap_ms": 1800000, "default_retry_after_ms": null, "max_attempts": 6, "source": "§12.2.6 FCM 500/503; §12.2.1 timeout = 5xx"},
+    {"channel": "push", "provider": "fcm", "failure_class": "transient", "condition": "rate_limited", "message_class": null, "mode": "retry_after", "base_ms": null, "cap_ms": null, "default_retry_after_ms": 60000, "max_attempts": 6, "source": "§12.2.6 FCM 429"},
+    {"channel": "email", "provider": null, "failure_class": "transient", "condition": "rate_limited", "message_class": null, "mode": "exponential", "base_ms": 1200000, "cap_ms": 3600000, "default_retry_after_ms": null, "max_attempts": 5, "source": "§12.2.6 ESP throttling"},
+    {"channel": "whatsapp", "provider": null, "failure_class": "transient", "condition": "rate_limited", "message_class": null, "mode": "exponential", "base_ms": 5000, "cap_ms": 600000, "default_retry_after_ms": null, "max_attempts": 8, "source": "§12.2.6 WhatsApp 130429"},
+    {"channel": "whatsapp", "provider": null, "failure_class": "transient", "condition": "pair_rate_limited", "message_class": null, "mode": "exponential", "base_ms": 60000, "cap_ms": 1800000, "default_retry_after_ms": null, "max_attempts": 4, "source": "§12.2.6 WhatsApp 131056"},
+    {"channel": "sms", "provider": null, "failure_class": "transient", "condition": "rate_limited", "message_class": null, "mode": "exponential", "base_ms": 2000, "cap_ms": 300000, "default_retry_after_ms": null, "max_attempts": 8, "source": "§12.2.6 SMS throttling"},
+    {"channel": null, "provider": null, "failure_class": null, "condition": null, "message_class": "security", "mode": "exponential", "base_ms": 1000, "cap_ms": 15000, "default_retry_after_ms": null, "max_attempts": 3, "source": "§12.2.6 security, her kanal"}
+  ],
+  "breakers": [
+    {"channel": null, "provider": null, "window_ms": 30000, "min_throughput": 20, "failure_ratio_bp": 5000, "open_ms": 30000, "open_jitter_bp": 3000, "half_open_probes": 3, "half_open_successes": 3, "p99_latency_ms": null, "source": "§12.3.3 ortak; T-25 (7)"},
+    {"channel": "push", "provider": "apns", "window_ms": 30000, "min_throughput": 20, "failure_ratio_bp": 3000, "open_ms": 20000, "open_jitter_bp": 3000, "half_open_probes": 3, "half_open_successes": 3, "p99_latency_ms": null, "source": "§12.3.3 APNs"},
+    {"channel": "push", "provider": "fcm", "window_ms": 30000, "min_throughput": 20, "failure_ratio_bp": 5000, "open_ms": 60000, "open_jitter_bp": 3000, "half_open_probes": 3, "half_open_successes": 3, "p99_latency_ms": null, "source": "§12.3.3 FCM"},
+    {"channel": "email", "provider": null, "window_ms": 60000, "min_throughput": 20, "failure_ratio_bp": 4000, "open_ms": 600000, "open_jitter_bp": 3000, "half_open_probes": 3, "half_open_successes": 3, "p99_latency_ms": null, "source": "§12.3.3 e-posta ESP"},
+    {"channel": "whatsapp", "provider": null, "window_ms": 60000, "min_throughput": 20, "failure_ratio_bp": 5000, "open_ms": 120000, "open_jitter_bp": 3000, "half_open_probes": 3, "half_open_successes": 3, "p99_latency_ms": null, "source": "§12.3.3 WhatsApp"},
+    {"channel": "sms", "provider": null, "window_ms": 60000, "min_throughput": 20, "failure_ratio_bp": 5000, "open_ms": 120000, "open_jitter_bp": 3000, "half_open_probes": 3, "half_open_successes": 3, "p99_latency_ms": null, "source": "§12.3.3 SMS"}
+  ],
+  "failure_weights": [
+    {"failure_class": "transient", "condition": "server_error", "weight_milli": 1000, "level": "provider"},
+    {"failure_class": "transient", "condition": "timeout", "weight_milli": 1000, "level": "provider"},
+    {"failure_class": "transient", "condition": "rate_limited", "weight_milli": 500, "level": "provider"},
+    {"failure_class": "transient", "condition": "pair_rate_limited", "weight_milli": 500, "level": "provider"},
+    {"failure_class": "permanent_target", "condition": null, "weight_milli": 0, "level": "provider"},
+    {"failure_class": "permanent_content", "condition": null, "weight_milli": 0, "level": "provider"},
+    {"failure_class": "policy", "condition": null, "weight_milli": 0, "level": "provider"},
+    {"failure_class": "quota", "condition": null, "weight_milli": 500, "level": "tenant_provider"},
+    {"failure_class": "auth", "condition": null, "weight_milli": 5000, "level": "tenant_provider"},
+    {"failure_class": "sender_config", "condition": null, "weight_milli": 5000, "level": "tenant_provider"},
+    {"failure_class": "unknown", "condition": null, "weight_milli": 1000, "level": "provider"}
+  ],
+  "retry_budgets": [
+    {"channel": null, "window_ms": 60000, "max_ratio_bp": 1000, "min_retries": null, "source": "T-27"}
+  ],
+  "credit_leases": [
+    {"channel": "push", "allowed": false, "block_size": null},
+    {"channel": "web_push", "allowed": false, "block_size": null},
+    {"channel": "email", "allowed": false, "block_size": null},
+    {"channel": "sms", "allowed": false, "block_size": null},
+    {"channel": "voice", "allowed": false, "block_size": null},
+    {"channel": "whatsapp", "allowed": false, "block_size": null},
+    {"channel": "slack", "allowed": false, "block_size": null},
+    {"channel": "teams", "allowed": false, "block_size": null},
+    {"channel": "telegram", "allowed": false, "block_size": null},
+    {"channel": "discord", "allowed": false, "block_size": null},
+    {"channel": "in_app", "allowed": false, "block_size": null},
+    {"channel": "webhook", "allowed": false, "block_size": null}
+  ],
+  "lane_ceilings": [
+    {"lane": "l0", "ceiling_bp": 10000},
+    {"lane": "l1", "ceiling_bp": 9500},
+    {"lane": "l2", "ceiling_bp": 8000},
+    {"lane": "l3", "ceiling_bp": 6000}
+  ]
+}

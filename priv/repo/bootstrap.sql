@@ -101,6 +101,7 @@ DECLARE
     "relay_ops.audit_checkpoint_record": ["relay_worker"],
     "relay_ops.audit_leaves_append": ["relay_worker"],
     "relay_ops.audit_pending": ["relay_worker"],
+    "relay_ops.dead_letter_auto_replay_scopes": ["relay_worker"],
     "relay_ops.drr_take": ["relay_worker"],
     "relay_ops.drr_weights_refresh": ["relay_worker"],
     "relay_ops.load_shed_record": ["relay_worker"],

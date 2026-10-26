@@ -26,5 +26,13 @@
   {"file": "20261027000001_create_limiter_tables.exs", "sha256": "032196acaf1f454952d005288b26373e510551df049a5793979a9149dd0eca37"},
   {"file": "20261027000002_create_limiter_functions.exs", "sha256": "286cef7050aaa53ee9088931aa6b265210b5fe570df8b43fdacefc01df387342"},
   {"file": "20261027100000_create_fairness_and_load_shed_tables.exs", "sha256": "d30b2d4668fbd02f9db72c7833c5af6acc6793c49d74d3471c07703ae230f7e5"},
-  {"file": "20261027100100_create_fairness_and_load_shed_functions.exs", "sha256": "a769775d991300240a85cce36ebdf79a699e878f9b5ec2e59d4fd84861c01f42"}
+  {"file": "20261027100100_create_fairness_and_load_shed_functions.exs", "sha256": "a769775d991300240a85cce36ebdf79a699e878f9b5ec2e59d4fd84861c01f42"},
+  {"file": "20261027200000_register_channel_parameters.exs", "sha256": "3980a0dd0b5a166a13c614914dcf749633afc61536e2561699de433cd13b7ffd"},
+  {"file": "20261027200100_add_delivery_pause_and_replay_columns.exs", "sha256": "1c1b605516ca694b025b29f5455eb814b5657cdbf06fcf2c8d42f3adcf2ae427"},
+  {"file": "20261027200200_index_paused_deliveries.exs", "sha256": "718ded298af9a4c33c07837a777cf454581b6c02ab6380bd8db12c89823df17d"},
+  {"file": "20261027200300_validate_delivery_pause_and_replay_checks.exs", "sha256": "37af41b90adfdc0c9ba56af421a808504900e1d0969dc2df30b9626ce74e00cb"},
+  {"file": "20261027200400_create_dead_letters.exs", "sha256": "6d60ebdbe2ca296e65ef262489b5dfb276aab3bc1f12c81ab6072d5e732307e2"},
+  {"file": "20261027200500_extend_delivery_functions.exs", "sha256": "21ec59fbaa5649e2203c3f01c5c479f63af66b626f4be46fb4b1bb5bae52751b"},
+  {"file": "20261027200600_create_dead_letter_functions.exs", "sha256": "fc9c3d93280b29e28ddd24d404b7493dc00796b51abd30c943975c031cee0642"},
+  {"file": "20261027200700_rebuild_reference_check_for_dead_letters.exs", "sha256": "d862f71a3617de10ca237b218d541fed65d5cb27fb2e1caff32bd39a16ea21cb"}
 ]

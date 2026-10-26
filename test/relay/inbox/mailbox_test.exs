@@ -127,6 +127,21 @@ defmodule Relay.Inbox.MailboxTest do
       assert read(ctx.mailbox, 2, 0, 10) == []
     end
 
+    test "INV-35: records whose signals were never sent are still read with since", ctx do
+      ["appended", 1, 1] = append(ctx.mailbox)
+      ["appended", 1, 2] = append(ctx.mailbox)
+      ["appended", 1, 3] = append(ctx.mailbox)
+
+      assert rows(
+               "SELECT DISTINCT state FROM relay.outbox_events WHERE stream_key = $1",
+               ["mailbox:" <> Ecto.UUID.load!(ctx.mailbox)]
+             ) == [["pending"]]
+
+      assert ["ok", 1, 3, 0] = check(ctx.mailbox, 1, 1)
+      assert Enum.map(read(ctx.mailbox, 1, 1, 10), &hd/1) == [2, 3]
+      assert length(lease(ctx.mailbox, "reader")) == 3
+    end
+
     test "IN-29: one read returns at most the replay cap and the one record after it", ctx do
       append(ctx.mailbox)
       assert [_] = read(ctx.mailbox, 1, 0, 501)

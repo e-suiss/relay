@@ -34,6 +34,16 @@ jobs:
         with:
           name: fanout-bench-${{ github.run_id }}
           path: fanout-bench.txt
+      - run: mix run bench/breaker_open.exs | tee breaker-bench.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: breaker-bench-${{ github.run_id }}
+          path: breaker-bench.txt
+      - run: mix run bench/load_shed_latency.exs | tee load-shed-bench.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: load-shed-bench-${{ github.run_id }}
+          path: load-shed-bench.txt
 
   load:
     runs-on: ubuntu-24.04

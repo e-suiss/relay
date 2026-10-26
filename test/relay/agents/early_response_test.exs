@@ -123,6 +123,41 @@ defmodule Relay.Agents.EarlyResponseTest do
                )
     end
 
+    test "INV-3: an early answer outlives a waitpoint that expired without using it", ctx do
+      [["buffered", nil, record_id]] = early(ctx, "ticket-3")
+
+      ["opened", id, _, ^record_id] =
+        open(ctx.s,
+          waiter_ref: ctx.agent,
+          responder_ids: [ctx.responder],
+          correlation_key: "ticket-3"
+        )
+
+      advance!(3_600_001)
+      assert ["expired", nil] = row("SELECT * FROM relay_fn.waitpoint_timer_fire($1)", [id])
+
+      assert record(record_id, "kind") == "early_event"
+      assert record(record_id, "delivery_state") == "held"
+      assert record(record_id, "consumed_by_waitpoint_id") == nil
+
+      ["opened", later, _, ^record_id] =
+        open(ctx.s,
+          waiter_ref: ctx.agent,
+          responder_ids: [ctx.responder],
+          correlation_key: "ticket-3"
+        )
+
+      assert ["resolved", _] =
+               respond(later,
+                 responder_recipient_id: ctx.responder,
+                 subject_digest: waitpoint(later, "subject_digest"),
+                 value_key_id: ctx.value_key,
+                 source_record_id: record_id
+               )
+
+      assert record(record_id, "consumed_by_waitpoint_id") == later
+    end
+
     test "AG-13: an event without a waiter and without a match is recorded with its rule" do
       assert [["unmatched", nil, nil]] = offer("agent.answer", "nobody-waits")
 

@@ -107,4 +107,47 @@ defmodule Relay.Agents.WaitpointMatchTest do
              ) =~ "invalid_argument"
     end
   end
+
+  describe "C-73 E-45 matching stays in its tenant and environment" do
+    test "C-73: an event of another environment or another tenant never matches", ctx do
+      id = event_waitpoint(ctx, ctx.agent, "order-c73")
+
+      "active" = ctx(ctx.s.tenant, "live")
+      assert [["unmatched", nil, nil]] = offer("order.paid", "order-c73")
+
+      assert [["unmatched", nil, nil]] =
+               offer("order.paid", "order-c73", waiter_kind: "agent", waiter_ref: ctx.agent)
+
+      other = tenant!()
+      "active" = ctx(other, "test")
+      assert [["unmatched", nil, nil]] = offer("order.paid", "order-c73")
+
+      "active" = ctx(ctx.s.tenant, "test")
+      assert waitpoint(id, "state") == "open"
+      assert [["matched", ^id, nil]] = offer("order.paid", "order-c73")
+    end
+
+    test "E-45: an answer from any channel is matched and the waiter gets the resolved event",
+         ctx do
+      value_key = content_key!(ctx.s, ctx.responder)
+
+      for via <- ["email", "sms"] do
+        ["opened", id, _, nil] =
+          open(ctx.s, waiter_ref: ctx.agent, responder_ids: [ctx.responder])
+
+        assert ["resolved", _] =
+                 respond(id,
+                   via: via,
+                   responder_recipient_id: ctx.responder,
+                   subject_digest: waitpoint(id, "subject_digest"),
+                   value_key_id: value_key
+                 )
+
+        assert waitpoint(id, "state") == "resolved"
+
+        assert List.last(mailbox_events(waitpoint(id, "waiter_mailbox_id"))) ==
+                 "waitpoint.resolved"
+      end
+    end
+  end
 end

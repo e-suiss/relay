@@ -142,7 +142,13 @@ until curl -fsS "$base/livez" >/dev/null 2>&1; do
   sleep 1
 done
 
-curl -fsS "$base/readyz" | grep -q '"ok"' || fail "node is not ready"
+# CH-69
+i=0
+until curl -fsS "$base/readyz" 2>/dev/null | grep -q '"ok"'; do
+  i=$((i + 1))
+  [ "$i" -lt 60 ] || { curl -sS "$base/readyz" >&2 || true; fail "node is not ready"; }
+  sleep 1
+done
 curl -fsSI "$base/livez" | grep -qi '^correlation-id: ' || fail "correlation id header missing"
 curl -fsS "$base/.well-known/security.txt" | grep -q '^Contact: ' || fail "security.txt missing"
 

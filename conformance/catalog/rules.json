@@ -7785,6 +7785,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "TN-69",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "T-1",
     "section": "§19",
     "status": "central",
@@ -9058,6 +9066,14 @@
   {
     "acceptance": "pending",
     "id": "OP-72",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-73",
     "section": "§20",
     "status": "frozen_technical",
     "title": "",

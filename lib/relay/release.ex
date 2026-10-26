@@ -1,6 +1,6 @@
 defmodule Relay.Release do
   @moduledoc """
-  Release commands run outside the serving nodes. Schema migrations are a separate step (`bin/relay eval Relay.Release.migrate`); a node never migrates on boot. After every migration the installation administrator reruns the idempotent bootstrap (`bin/relay eval Relay.Release.bootstrap`), which hands the `relay_ops` functions the migration created to `relay_maint`; a node whose `relay_ops` functions have another owner refuses to start.
+  Release commands run outside the serving nodes. Schema migrations are a separate step (`bin/relay eval Relay.Release.migrate`); a node never migrates on boot. After every migration the installation administrator reruns the idempotent bootstrap (`bin/relay eval Relay.Release.bootstrap`), which hands every `relay_ops` function, including one a migration dropped and created again, to `relay_maint` and grants `EXECUTE` on it only to the roles the contract lists; a node whose `relay_ops` functions have another owner refuses to start.
   """
 
   require Logger
@@ -31,6 +31,8 @@ defmodule Relay.Release do
   end
 
   # OP-69 (1)
+  # OP-72 (2)
+  # OP-73
   # T-5
   @doc "Runs `priv/repo/bootstrap.sql` as the installation administrator: the login of `ADMIN_DATABASE_URL` with the password read from `ADMIN_DATABASE_PASSWORD_FILE`. Run it before the first migration and after every migration."
   @spec bootstrap() :: :ok

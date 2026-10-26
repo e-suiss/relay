@@ -51,6 +51,37 @@ defmodule Relay.ReleaseTest do
     test "OP-69: the bootstrap script hands every relay_ops function to relay_maint" do
       assert File.read!("priv/repo/bootstrap.sql") =~ "ALTER FUNCTION %s OWNER TO relay_maint"
     end
+
+    test "OP-72 (2): the bootstrap grants EXECUTE on relay_ops functions exactly as the golden contract lists" do
+      [_, listed] =
+        Regex.run(
+          ~r/v_execute constant jsonb := '(\{.*?\})';/s,
+          File.read!("priv/repo/bootstrap.sql")
+        )
+
+      golden =
+        for line <- String.split(File.read!("test/golden/db_functions.txt"), "\n"),
+            String.starts_with?(line, "relay_ops."),
+            [name | _] = String.split(line, "("),
+            [_, execute] = Regex.run(~r/\| execute ([^|]*)/, line),
+            into: %{},
+            do: {name, execute |> String.trim() |> String.split(",", trim: true)}
+
+      assert golden != %{}
+
+      assert Map.new(Jason.decode!(listed), fn {name, roles} -> {name, Enum.sort(roles)} end) ==
+               golden
+    end
+
+    test "OP-73: the bootstrap hands the relay_ops schema to relay_migrator" do
+      bootstrap = File.read!("priv/repo/bootstrap.sql")
+      assert bootstrap =~ "CREATE SCHEMA IF NOT EXISTS relay_ops AUTHORIZATION relay_migrator;"
+      assert bootstrap =~ "ALTER SCHEMA relay_ops OWNER TO relay_migrator;"
+    end
+
+    test "OP-72 (2): relay_migrator is never granted relay_maint" do
+      refute File.read!("priv/repo/bootstrap.sql") =~ ~r/GRANT\s+relay_maint\s+TO/i
+    end
   end
 
   test "T-49: the release does not bundle SSH or inets" do

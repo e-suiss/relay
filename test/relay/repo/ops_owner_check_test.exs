@@ -32,6 +32,8 @@ end
 defmodule Relay.Repo.OpsOwnerCheckIntegrationTest do
   use Relay.DataCase, async: false
 
+  import ExUnit.CaptureLog
+
   alias Relay.Platform.Store
 
   @ops_functions """
@@ -40,8 +42,36 @@ defmodule Relay.Repo.OpsOwnerCheckIntegrationTest do
   WHERE n.nspname = 'relay_ops'
   """
 
-  defp admin_query do
-    conn = start_supervised!({Postgrex, RelayDev.Database.connection(:admin)}, id: make_ref())
+  @execute_grantees """
+  SELECT ARRAY(
+    SELECT pg_catalog.pg_get_userbyid(a.grantee)::text
+    FROM pg_catalog.pg_proc p, pg_catalog.aclexplode(p.proacl) a
+    WHERE p.oid = $1::text::regprocedure AND a.privilege_type = 'EXECUTE'
+      AND a.grantee <> p.proowner
+    ORDER BY 1)
+  """
+
+  defp admin_query, do: login_query(:admin)
+
+  defp bootstrap, do: Relay.Release.bootstrap(RelayDev.Database.connection(:admin))
+
+  defp restore(signature, definition) do
+    {:ok, conn} = Postgrex.start_link(RelayDev.Database.connection(:admin))
+
+    try do
+      %{rows: [[present?]]} =
+        Postgrex.query!(conn, "SELECT pg_catalog.to_regprocedure($1) IS NOT NULL", [signature])
+
+      unless present?, do: Postgrex.query!(conn, definition, [])
+    after
+      GenServer.stop(conn)
+    end
+
+    :ok = bootstrap()
+  end
+
+  defp login_query(login) do
+    conn = start_supervised!({Postgrex, RelayDev.Database.connection(login)}, id: make_ref())
 
     fn sql, params ->
       case Postgrex.query(conn, sql, params) do
@@ -75,6 +105,57 @@ defmodule Relay.Repo.OpsOwnerCheckIntegrationTest do
 
       assert Relay.Release.bootstrap(RelayDev.Database.connection(:admin)) == :ok
       assert Store.ops_owner_check(query) == :ok
+    end
+  end
+
+  describe "OP-72 (2) relay_ops function recreated by a migration" do
+    test "OP-73: relay_migrator owns the relay_ops schema without any membership in relay_maint" do
+      admin = admin_query()
+
+      assert {:ok, [["relay_migrator"]]} =
+               admin.(
+                 "SELECT pg_catalog.pg_get_userbyid(nspowner)::text FROM pg_catalog.pg_namespace WHERE nspname = 'relay_ops'",
+                 []
+               )
+
+      assert {:ok, [[false, false]]} =
+               admin.(
+                 "SELECT pg_catalog.pg_has_role('relay_migrator', 'relay_maint', 'MEMBER'), pg_catalog.pg_has_role('relay_migrator', 'relay_maint', 'SET')",
+                 []
+               )
+    end
+
+    test "OP-72 (2), OP-73: a function relay_migrator drops and creates is owned by it until the ownership step restores the owner and the contract grants" do
+      admin = admin_query()
+      migrator = login_query("relay_migrator")
+      signature = "relay_ops.orphan_check()"
+      save = "relay_ops.singleton_save(text, bigint, jsonb)"
+
+      assert {:ok, [[definition]]} =
+               admin.("SELECT pg_catalog.pg_get_functiondef($1::text::regprocedure)", [signature])
+
+      on_exit(fn -> restore(signature, definition) end)
+
+      assert {:ok, _} = migrator.("DROP FUNCTION #{signature}", [])
+      assert {:ok, _} = migrator.(definition, [])
+      assert {:ok, _} = migrator.("GRANT EXECUTE ON FUNCTION #{signature} TO relay_worker", [])
+      assert {:ok, _} = admin.("REVOKE EXECUTE ON FUNCTION #{save} FROM relay_worker", [])
+
+      assert {:error, %Relay.Error{code: :wrong_function_owner, details: details}} =
+               Store.ops_owner_check(admin)
+
+      assert details.functions == ["#{signature} owned by relay_migrator"]
+
+      {result, _log} = with_log(&Store.start_ops_owner_check/0)
+      assert {:error, %Relay.Error{code: :wrong_function_owner}} = result
+
+      assert bootstrap() == :ok
+      assert bootstrap() == :ok
+
+      assert Store.ops_owner_check(admin) == :ok
+      assert Store.start_ops_owner_check() == :ignore
+      assert {:ok, [[[]]]} = admin.(@execute_grantees, [signature])
+      assert {:ok, [[["relay_worker"]]]} = admin.(@execute_grantees, [save])
     end
   end
 end

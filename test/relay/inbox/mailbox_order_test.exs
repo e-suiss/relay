@@ -18,7 +18,7 @@ defmodule Relay.Inbox.MailboxOrderTest do
     end)
   end
 
-  defp record(mailbox, writer, n) do
+  defp record(mailbox) do
     %{
       id: Relay.Id.generate(),
       mailbox_id: mailbox,
@@ -49,7 +49,7 @@ defmodule Relay.Inbox.MailboxOrderTest do
             for n <- 1..@per_writer do
               {:ok, {:appended, 1, seq}} =
                 Sandbox.unboxed_run(Repo, fn ->
-                  Mailbox.append(scope, record(mailbox, writer, n))
+                  Mailbox.append(scope, record(mailbox))
                 end)
 
               seq
@@ -84,7 +84,7 @@ defmodule Relay.Inbox.MailboxOrderTest do
     test "IN-29: a page says whether more follow and whether the gap is beyond the replay cap",
          ctx do
       for n <- 1..3,
-          do: {:ok, {:appended, 1, ^n}} = Mailbox.append(ctx.scope, record(ctx.mailbox, 0, n))
+          do: {:ok, {:appended, 1, ^n}} = Mailbox.append(ctx.scope, record(ctx.mailbox))
 
       assert {:ok, %{records: [%{seq: 1}, %{seq: 2}], has_more: true, truncated: false}} =
                Mailbox.read(ctx.scope, ctx.mailbox, 1, 0, 2)
@@ -100,7 +100,7 @@ defmodule Relay.Inbox.MailboxOrderTest do
 
     test "IN-29: more than the replay cap behind marks the page truncated", ctx do
       for n <- 1..(Mailbox.replay_cap() + 1),
-          do: {:ok, {:appended, _, _}} = Mailbox.append(ctx.scope, record(ctx.mailbox, 0, n))
+          do: {:ok, {:appended, _, _}} = Mailbox.append(ctx.scope, record(ctx.mailbox))
 
       assert {:ok, %{truncated: true, has_more: true, records: records}} =
                Mailbox.read(ctx.scope, ctx.mailbox, 1, 0)
@@ -110,7 +110,7 @@ defmodule Relay.Inbox.MailboxOrderTest do
     end
 
     test "AG-21: a lease and its acknowledgement through the core", ctx do
-      {:ok, {:appended, _, _}} = Mailbox.append(ctx.scope, record(ctx.mailbox, 0, 1))
+      {:ok, {:appended, _, _}} = Mailbox.append(ctx.scope, record(ctx.mailbox))
 
       assert {:ok, [%{id: id, delivery_count: 1}]} =
                Mailbox.lease(ctx.scope, ctx.mailbox, "worker-a", 10,

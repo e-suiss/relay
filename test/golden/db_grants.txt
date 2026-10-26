@@ -145,12 +145,16 @@ table relay.usage_records relay_report SELECT
 table relay.webhook_receipts relay_archive SELECT
 table relay.webhook_receipts relay_maint SELECT
 table relay.webhook_receipts relay_owner INSERT,SELECT,UPDATE
+table relay_queue.concurrency_slots relay_owner INSERT,SELECT,UPDATE
+table relay_queue.concurrency_slots relay_queue DELETE,SELECT
 table relay_queue.drr_tenants relay_maint SELECT,UPDATE
 table relay_queue.drr_tenants relay_owner INSERT,SELECT,UPDATE
 table relay_queue.drr_tenants relay_queue DELETE,SELECT
 table relay_queue.drr_waits relay_maint SELECT,UPDATE
 table relay_queue.drr_waits relay_owner INSERT,SELECT,UPDATE
 table relay_queue.drr_waits relay_queue DELETE,SELECT
+table relay_queue.limiter_states relay_owner INSERT,SELECT,UPDATE
+table relay_queue.limiter_states relay_queue DELETE,SELECT
 table relay_queue.oban_jobs relay_app INSERT,SELECT,UPDATE
 table relay_queue.oban_jobs relay_queue DELETE,SELECT
 table relay_queue.oban_peers relay_app SELECT

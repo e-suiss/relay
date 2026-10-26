@@ -1,0 +1,95 @@
+{
+  "version": "relay.rate_limit.gcra.v1",
+  "t0_us": 1700000000000000,
+  "emission": "T = ceil(P_us / L)",
+  "ceiling_bp": {"l0": 10000, "l1": 9500, "l2": 8000, "l3": 6000},
+  "notes": "Each sequential vector starts on an empty key. A step at t (microseconds after t0) repeats `repeat` times every `every` microseconds. tat is relative to t0. cap = floor(L * ceiling_bp(lane) / 10000) when ceiling is true and the lane is not l0, otherwise -1. G4, G10, G11 and G12 run against the real engines in the concurrency and backend tests.",
+  "vectors": [
+    {
+      "id": "G1",
+      "limit": {"L": 10, "P_ms": 1000, "B": 1, "ceiling": false, "offset_us": 0},
+      "steps": [
+        {"t": 0, "cost": 1, "expect": "allowed", "tat": 100000},
+        {"t": 50000, "cost": 1, "expect": "limited", "retry_after_us": 50000, "tat": 100000},
+        {"t": 100000, "cost": 1, "expect": "allowed", "tat": 200000}
+      ]
+    },
+    {
+      "id": "G2",
+      "limit": {"L": 3, "P_ms": 1000, "B": 3, "ceiling": false, "offset_us": 0},
+      "steps": [
+        {"t": 0, "cost": 1, "repeat": 3, "every": 0, "expect": "allowed"},
+        {"t": 0, "cost": 1, "expect": "limited", "retry_after_us": 333334, "tat": 1000002},
+        {"t": 333334, "cost": 1, "expect": "allowed", "tat": 1333336}
+      ]
+    },
+    {
+      "id": "G3",
+      "limit": {"L": 7, "P_ms": 1000, "B": 1, "ceiling": false, "offset_us": 0},
+      "steps": [
+        {"t": 0, "cost": 1, "repeat": 70, "every": 142858, "expect": "allowed"}
+      ]
+    },
+    {
+      "id": "G3b",
+      "limit": {"L": 7, "P_ms": 1000, "B": 1, "ceiling": false, "offset_us": 0},
+      "steps": [
+        {"t": 0, "cost": 1, "expect": "allowed", "tat": 142858},
+        {"t": 142857, "cost": 1, "expect": "limited", "retry_after_us": 1}
+      ]
+    },
+    {
+      "id": "G5",
+      "limit": {"L": 10, "P_ms": 1000, "B": 3, "ceiling": false, "offset_us": 0},
+      "steps": [
+        {"t": 0, "cost": 5, "expect": "cost_exceeds_burst", "retry_after_us": 0, "tat": 0}
+      ],
+      "empty_after": true
+    },
+    {
+      "id": "G6",
+      "limit": {"L": 10, "P_ms": 1000, "B": 1, "ceiling": false, "offset_us": 0},
+      "steps": [
+        {"t": 0, "cost": 1, "expect": "allowed", "tat": 100000},
+        {"t": -500000, "cost": 1, "expect": "limited", "retry_after_us": 600000, "tat": 100000}
+      ]
+    },
+    {
+      "id": "G7",
+      "limit": {"L": 10, "P_ms": 1000, "B": 2, "ceiling": false, "offset_us": 0},
+      "steps": [
+        {"t": 0, "cost": 1, "expect": "allowed"},
+        {"t": 0, "cost": 1, "expect": "allowed"},
+        {"t": 10000, "cost": 1, "expect": "limited", "retry_after_us": 90000}
+      ]
+    },
+    {
+      "id": "G8",
+      "limit": {"L": 10, "P_ms": 1000, "B": 10, "ceiling": true, "offset_us": 0},
+      "steps": [
+        {"t": 0, "cost": 1, "lane": "l3", "repeat": 6, "every": 0, "expect": "allowed"},
+        {"t": 0, "cost": 1, "lane": "l3", "expect": "ceiling", "retry_after_us": 100000},
+        {"t": 0, "cost": 1, "lane": "l1", "expect": "allowed"}
+      ]
+    },
+    {
+      "id": "G9",
+      "limit": {"L": 10, "P_ms": 1000, "B": 10, "ceiling": true, "offset_us": 0},
+      "steps": [
+        {"t": 0, "cost": 1, "lane": "l3", "repeat": 6, "every": 0, "expect": "allowed"},
+        {"t": 0, "cost": 1, "lane": "l3", "expect": "ceiling", "retry_after_us": 100000},
+        {"t": 0, "cost": 1, "lane": "l1", "expect": "allowed"},
+        {"t": 0, "cost": 1, "lane": "l1", "repeat": 2, "every": 0, "expect": "allowed"},
+        {"t": 0, "cost": 1, "lane": "l2", "expect": "ceiling", "retry_after_us": 200000}
+      ]
+    }
+  ],
+  "race_vectors": [
+    {"id": "G4", "limit": {"L": 1, "P_ms": 1000, "B": 1}, "callers": 50, "allowed": 1},
+    {"id": "G10", "limit": {"L": 100, "P_ms": 1000, "B": 100}, "nodes": 4, "callers_per_node": 50, "allowed": 100}
+  ],
+  "backend_vectors": [
+    {"id": "G11", "note": "G1 state in Valkey; Valkey becomes unreachable; (100000, 1) is allowed by PostgreSQL, never unlimited"},
+    {"id": "G12", "note": "Valkey returns, dual; PostgreSQL tat t0 + 300000, Valkey empty; (200000, 1) is limited because PostgreSQL limits"}
+  ]
+}

@@ -40,7 +40,46 @@
           {RelayDev.Credo.LaneOutsideLane,
            [files: %{included: ["lib/"], excluded: ["lib/relay/platform/lane.ex"]}]},
           {RelayDev.Credo.TodoWithIssue, []},
-          {RelayDev.Credo.PublicApiDocs, [files: %{included: ["lib/"]}]}
+          {RelayDev.Credo.PublicApiDocs, [files: %{included: ["lib/"]}]},
+          {RelayDev.Credo.MailboxRules, [files: %{included: ["lib/"]}]},
+          {RelayDev.Credo.OffHeapMailbox,
+           [
+             files: %{
+               included: [
+                 "lib/relay/platform/queue/notifier.ex",
+                 "lib/relay/platform/valkey/redix/forwarder.ex",
+                 "lib/relay/platform/signal/hub.ex"
+               ]
+             }
+           ]},
+          {RelayDev.Credo.BinaryCopy,
+           [files: %{included: ["lib/"], excluded: ["lib/relay/binary.ex"]}]},
+          {RelayDev.Credo.RestartBudget, [files: %{included: ["lib/"]}]},
+          {RelayDev.Credo.EtsTables, [files: %{included: ["lib/"]}]},
+          {RelayDev.Credo.PersistentTerm,
+           [
+             files: %{
+               included: ["lib/"],
+               excluded: [
+                 "lib/relay/datasets.ex",
+                 "lib/relay/platform/backend.ex",
+                 "lib/relay/platform/load_shed.ex"
+               ]
+             }
+           ]},
+          {RelayDev.Credo.TenantProcesses,
+           [files: %{included: ["lib/"], excluded: ["lib/relay/tenant_worker.ex"]}]},
+          {RelayDev.Credo.LimitClock,
+           [
+             files: %{
+               included: [
+                 "lib/relay/platform/rate_limit.ex",
+                 "lib/relay/platform/rate_limit/",
+                 "lib/relay/platform/concurrency.ex",
+                 "lib/relay/platform/concurrency/"
+               ]
+             }
+           ]}
         ]
       }
     }

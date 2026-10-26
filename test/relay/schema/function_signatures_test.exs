@@ -51,6 +51,10 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.dataset_version_publish" =>
       ~w(published exists dataset_not_found scope_not_allowed),
     "relay_fn.dataset_activate" => ~w(activated already_active version_not_found operator_pinned),
+    "relay_fn.rl_gcra" => ~w(allowed limited ceiling cost_exceeds_burst),
+    "relay_fn.rl_window" => ~w(allowed limited),
+    "relay_fn.cc_acquire" => ~w(granted renewed full),
+    "relay_fn.cc_release" => ~w(released not_held),
     "relay_private.partition_create" => ~w(created exists lock_timeout policy_missing),
     "relay_private.parent_analyze" => ~w(analyzed),
     "relay_ops.partition_policy_set" => ~w(updated unchanged not_partitioned),

@@ -66,12 +66,17 @@ defmodule Relay.Repo.RoleGrantsTest do
         ORDER BY 1, 2
         """).rows
 
-      assert deleters == [
-               ["relay_queue", "relay_queue.drr_tenants"],
-               ["relay_queue", "relay_queue.drr_waits"],
-               ["relay_queue", "relay_queue.oban_jobs"],
-               ["relay_queue", "relay_queue.oban_peers"]
-             ]
+      ephemeral =
+        for table <- Relay.Platform.Queue.PrunerStore.ephemeral_tables(),
+            do: ["relay_queue", "relay_queue." <> table]
+
+      assert deleters ==
+               Enum.sort(
+                 [
+                   ["relay_queue", "relay_queue.oban_jobs"],
+                   ["relay_queue", "relay_queue.oban_peers"]
+                 ] ++ ephemeral
+               )
     end
 
     test "OP-9: only the maintenance and archive logins bypass row level security, and no role is a superuser" do

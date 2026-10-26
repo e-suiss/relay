@@ -22,7 +22,7 @@ defmodule RelayWeb.Telemetry do
       {:telemetry_poller, measurements: [], period: 10_000}
     ]
 
-    Supervisor.init(children, strategy: :one_for_one)
+    Supervisor.init(children, strategy: :one_for_one, max_restarts: 3, max_seconds: 5)
   end
 
   # T-63

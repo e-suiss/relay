@@ -37,8 +37,10 @@ defmodule Relay.Platform.Queue.Notifier do
   def channel_name(prefix, channel) when is_binary(prefix) and is_atom(channel),
     do: Key.system_channel(["oban", prefix, Atom.to_string(channel)])
 
+  # T-45
   @impl GenServer
   def init(opts) do
+    Process.flag(:message_queue_data, :off_heap)
     conf = Keyword.fetch!(opts, :conf)
     adapter = Keyword.get_lazy(opts, :adapter, &Valkey.adapter/0)
     state = %__MODULE__{conf: conf, adapter: adapter}

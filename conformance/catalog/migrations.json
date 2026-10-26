@@ -23,6 +23,8 @@
   {"file": "20261023200100_validate_installation_jsonb_size_checks.exs", "sha256": "5cac6fb7e2735c7c29a244719ef1d4158643af5b3bf51419b4ab9dc11a3f5f4c"},
   {"file": "20261026000000_create_notifications_recipient_statistics.exs", "sha256": "35a18655bf96ba8ce5354e6ff8f21319212f382fca2b943e7e19e01429772243"},
   {"file": "20261027000000_create_platform_domains.exs", "sha256": "50cd2e9c2b56549a239e9f0aa86111b0af7f3aa9c8ca8a033db4c9bf68c608c8"},
+  {"file": "20261027000001_create_limiter_tables.exs", "sha256": "032196acaf1f454952d005288b26373e510551df049a5793979a9149dd0eca37"},
+  {"file": "20261027000002_create_limiter_functions.exs", "sha256": "286cef7050aaa53ee9088931aa6b265210b5fe570df8b43fdacefc01df387342"},
   {"file": "20261027100000_create_fairness_and_load_shed_tables.exs", "sha256": "d30b2d4668fbd02f9db72c7833c5af6acc6793c49d74d3471c07703ae230f7e5"},
   {"file": "20261027100100_create_fairness_and_load_shed_functions.exs", "sha256": "a769775d991300240a85cce36ebdf79a699e878f9b5ec2e59d4fd84861c01f42"}
 ]

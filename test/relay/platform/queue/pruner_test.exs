@@ -39,6 +39,22 @@ defmodule Relay.Platform.Queue.PrunerTest do
     found
   end
 
+  defp visible(tenant) do
+    {:ok, rows} =
+      QueueRepo.transaction(fn ->
+        QueueRepo.query!(
+          "SELECT set_config('relay.tenant_id', '00000000-0000-0000-0000-000000000000', true), set_config('relay.environment', 'live', true)"
+        )
+
+        QueueRepo.query!(
+          "SELECT limit_key FROM relay_queue.limiter_states WHERE tenant_id = $1 UNION ALL SELECT slot_no::text FROM relay_queue.concurrency_slots WHERE tenant_id = $1",
+          [tenant]
+        ).rows
+      end)
+
+    rows
+  end
+
   defp ago(days),
     do: Relay.Clock.utc_now() |> DateTime.add(-days * 86_400, :second) |> DateTime.to_naive()
 
@@ -72,6 +88,55 @@ defmodule Relay.Platform.Queue.PrunerTest do
       assert {:ok, counts} = PrunerStore.prune_ephemeral(1_000)
       assert Enum.map(counts, &elem(&1, 0)) == PrunerStore.ephemeral_tables()
       assert Enum.all?(counts, fn {_table, count} -> is_integer(count) and count >= 0 end)
+    end
+
+    test "OP-74: expired limiter and slot rows go an hour after expiry and live ones stay" do
+      admin = Relay.SqlCase.connect(:admin)
+      tenant = Relay.Id.generate()
+
+      Relay.SqlCase.on(admin, fn ->
+        Relay.SqlCase.rows(
+          """
+          INSERT INTO relay_queue.limiter_states (tenant_id, environment, limit_key, algorithm,
+            win_index, cur_count, prev_count, expires_at, updated_at)
+          VALUES ($1, 'test', 'prune.test:old', 'fixed_window', 1, 1, 0, now() - interval '2 hours', now()),
+            ($1, 'test', 'prune.test:recent', 'fixed_window', 1, 1, 0, now() - interval '10 minutes', now()),
+            ($1, 'test', 'prune.test:live', 'fixed_window', 1, 1, 0, now() + interval '1 hour', now())
+          """,
+          [tenant]
+        )
+
+        Relay.SqlCase.rows(
+          """
+          INSERT INTO relay_queue.concurrency_slots (tenant_id, environment, counter_key, slot_no,
+            expires_at, updated_at)
+          VALUES ($1, 'test', 'cc.tenant_deliveries', 1, now() - interval '2 hours', now()),
+            ($1, 'test', 'cc.tenant_deliveries', 2, now() + interval '1 day', now())
+          """,
+          [tenant]
+        )
+      end)
+
+      try do
+        assert visible(tenant) == [["prune.test:old"], ["1"]]
+        assert {:ok, counts} = PrunerStore.prune_ephemeral(100_000)
+        counts = Map.new(counts)
+        assert counts["limiter_states"] >= 1
+        assert counts["concurrency_slots"] >= 1
+        assert visible(tenant) == []
+      after
+        Relay.SqlCase.on(admin, fn ->
+          Relay.SqlCase.rows("DELETE FROM relay_queue.limiter_states WHERE tenant_id = $1", [
+            tenant
+          ])
+
+          Relay.SqlCase.rows("DELETE FROM relay_queue.concurrency_slots WHERE tenant_id = $1", [
+            tenant
+          ])
+        end)
+
+        GenServer.stop(admin)
+      end
     end
 
     test "OP-12: the queue role cannot reach the application schema" do

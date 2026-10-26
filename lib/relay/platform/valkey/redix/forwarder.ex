@@ -26,8 +26,11 @@ defmodule Relay.Platform.Valkey.Redix.Forwarder do
   @spec release(GenServer.server(), String.t()) :: :ok
   def release(server, channel), do: GenServer.call(server, {:release, channel})
 
+  # T-45
   @impl GenServer
   def init(opts) do
+    Process.flag(:message_queue_data, :off_heap)
+
     state = %__MODULE__{
       pubsub: Keyword.fetch!(opts, :pubsub),
       registry: Keyword.fetch!(opts, :registry)

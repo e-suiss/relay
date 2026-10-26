@@ -37,7 +37,8 @@ defmodule Relay.Application do
         [
           Relay.Repo,
           {Phoenix.PubSub, name: Relay.PubSub},
-          {Task.Supervisor, name: Relay.TaskSupervisor}
+          {Task.Supervisor, name: Relay.TaskSupervisor},
+          Relay.TenantWorker
         ] ++
         Relay.Keys.children() ++
         Relay.Platform.children() ++
@@ -46,7 +47,13 @@ defmodule Relay.Application do
         Relay.Datasets.children() ++
         Relay.Platform.Leadership.children(roles) ++ [RelayWeb.Endpoint.supervised()]
 
-    Supervisor.start_link(children, strategy: :one_for_one, name: Relay.Supervisor)
+    # T-45
+    Supervisor.start_link(children,
+      strategy: :one_for_one,
+      max_restarts: 3,
+      max_seconds: 5,
+      name: Relay.Supervisor
+    )
   end
 
   @impl true

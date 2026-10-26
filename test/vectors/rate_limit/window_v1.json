@@ -1,0 +1,87 @@
+{
+  "version": "relay.rate_limit.window.v1",
+  "t0_us": 1700000000000000,
+  "notes": "t is microseconds after t0; windows, offsets and retry_after are milliseconds. A seeded state's w_rel is relative to the window of the first step's time (w = floor((t0 + t + offset) / W) + w_rel). Each vector starts on an empty key unless it is seeded.",
+  "offset_vectors": [
+    {"limit_key": "quota.hourly:acct_1", "window_ms": 3600000, "cbor": "836f72656c61792e6a69747465722e76316d77696e646f775f6f66667365747371756f74612e686f75726c793a616363745f31", "h": "2869223349394800089", "offset_ms": 559947}
+  ],
+  "vectors": [
+    {
+      "id": "S1",
+      "algorithm": "sliding_counter",
+      "limit": 100,
+      "window_ms": 60000,
+      "offset_ms": 0,
+      "seed": {"w_rel": 0, "c": 30, "p": 70},
+      "steps": [{"t": -5000000, "cost": 7, "expect": "allowed", "count_after": 90, "retry_after_ms": 0}]
+    },
+    {
+      "id": "S1b",
+      "algorithm": "sliding_counter",
+      "limit": 100,
+      "window_ms": 60000,
+      "offset_ms": 0,
+      "seed": {"w_rel": 0, "c": 30, "p": 70},
+      "steps": [{"t": -5000000, "cost": 8, "expect": "limited", "count_after": 83, "retry_after_ms": 429}]
+    },
+    {
+      "id": "S2",
+      "algorithm": "sliding_counter",
+      "limit": 100,
+      "window_ms": 60000,
+      "offset_ms": 0,
+      "seed": {"w_rel": 0, "c": 85, "p": 70},
+      "steps": [{"t": -5000000, "cost": 6, "expect": "limited", "count_after": 138, "retry_after_ms": 45000}]
+    },
+    {
+      "id": "F1",
+      "algorithm": "fixed_window",
+      "limit": 1000,
+      "window_ms": 3600000,
+      "offset_ms": 559947,
+      "steps": [
+        {"t": 0, "cost": 999, "expect": "allowed", "count_after": 999, "retry_after_ms": 0},
+        {"t": 0, "cost": 1, "expect": "allowed", "count_after": 1000, "retry_after_ms": 0},
+        {"t": 0, "cost": 1, "expect": "limited", "count_after": 1000, "retry_after_ms": 2240053}
+      ]
+    },
+    {
+      "id": "K1",
+      "algorithm": "sliding_log",
+      "limit": 3,
+      "window_ms": 3600000,
+      "offset_ms": 0,
+      "steps": [
+        {"t": 0, "cost": 1, "expect": "allowed", "count_after": 1, "retry_after_ms": 0},
+        {"t": 600000000, "cost": 1, "expect": "allowed", "count_after": 2, "retry_after_ms": 0},
+        {"t": 1200000000, "cost": 1, "expect": "allowed", "count_after": 3, "retry_after_ms": 0},
+        {"t": 1800000000, "cost": 1, "expect": "limited", "count_after": 3, "retry_after_ms": 1800000}
+      ]
+    }
+  ],
+  "counter_vectors": [
+    {
+      "id": "C1",
+      "window_ms": 60000,
+      "steps": [
+        {"t": 0, "op": "incr", "by": 100, "estimate": 100},
+        {"t": 0, "op": "read", "by": 0, "estimate": 100},
+        {"t": 60000000, "op": "read", "by": 0, "estimate": 67},
+        {"t": 60000000, "op": "incr", "by": 10, "estimate": 77}
+      ]
+    }
+  ],
+  "ring_vectors": [
+    {
+      "id": "R1",
+      "current_minutes": 5,
+      "baseline_minutes": 60,
+      "steps": [
+        {"t": 0, "cost": 1, "current_sum": 1, "baseline_sum": 0},
+        {"t": 60000000, "cost": 2, "current_sum": 3, "baseline_sum": 0},
+        {"t": 600000000, "cost": 1, "current_sum": 1, "baseline_sum": 3},
+        {"t": 7800000000, "cost": 1, "current_sum": 1, "baseline_sum": 0}
+      ]
+    }
+  ]
+}

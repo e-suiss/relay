@@ -97,7 +97,7 @@ defmodule Relay.Platform.Queue.NotifierTest do
     test "T-55: unlisten drops the Valkey subscription once no listener is left", %{conf: conf} do
       :ok = Oban.Notifier.listen(conf, [:gossip])
       :ok = Oban.Notifier.unlisten(conf, [:gossip])
-      assert_received {:valkey_unsubscribe, "relay:s:oban:relay_queue:gossip"}
+      assert_receive {:valkey_unsubscribe, "relay:s:oban:relay_queue:gossip"}, 1_000
     end
 
     test "T-55: a restarted notifier listens again on every registered channel", %{
@@ -105,7 +105,7 @@ defmodule Relay.Platform.Queue.NotifierTest do
       pid: pid
     } do
       :ok = Oban.Notifier.listen(conf, [:gossip])
-      assert_received {:valkey_subscribe, "relay:s:oban:relay_queue:gossip"}
+      assert_receive {:valkey_subscribe, "relay:s:oban:relay_queue:gossip"}, 1_000
 
       ref = Process.monitor(pid)
       Process.exit(pid, :kill)

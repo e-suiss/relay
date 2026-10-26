@@ -85,7 +85,35 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.kill_switch_release" =>
       ~w(released already_released not_found approval_required reason_required),
     "relay_fn.kill_switch_replace" =>
-      ~w(replaced not_found already_released approval_required reason_required ttl_required)
+      ~w(replaced not_found already_released approval_required reason_required ttl_required),
+    "relay_fn.virtual_clock_advance" => ~w(advanced not_test_environment invalid_step),
+    "relay_fn.virtual_clock_get" => ~w(ok not_test_environment),
+    "relay_fn.mailbox_ensure" => ~w(created exists owner_not_found tenant_inactive),
+    "relay_fn.mailbox_append" => ~w(appended mailbox_not_found mailbox_inactive),
+    "relay_fn.mailbox_cursor_check" => ~w(ok resync_required not_found),
+    "relay_fn.mailbox_ack" => ~w(acked already_acked lease_lost not_found),
+    "relay_fn.mailbox_cursor_advance" => ~w(advanced stale epoch_mismatch not_found),
+    "relay_fn.mailbox_epoch_bump" => ~w(bumped not_found),
+    "relay_fn.mailbox_set_state" => ~w(changed unchanged not_found),
+    "relay_fn.waitpoint_open" =>
+      ~w(opened exists active_exists expires_invalid condition_unsupported limit_exceeded waiter_not_found responder_not_found responder_is_waiter tenant_inactive),
+    "relay_fn.waitpoint_event_offer" => ~w(matched buffered unmatched),
+    "relay_fn.waitpoint_resolve_by_event" => ~w(resolved expired already_terminal not_found),
+    "relay_fn.waitpoint_respond" =>
+      ~w(resolved rejected_expired rejected_closed rejected_not_responder rejected_is_waiter rejected_digest_mismatch rejected_session_mismatch not_found),
+    "relay_fn.waitpoint_heartbeat" =>
+      ~w(renewed reopened no_heartbeat already_terminal not_waiter not_found),
+    "relay_fn.waitpoint_timer_fire" =>
+      ~w(expired stalled escalation_due not_due already_terminal not_found),
+    "relay_fn.waitpoint_cancel" => ~w(cancelled already_terminal not_found),
+    "relay_fn.fanout_create" => ~w(created exists invalid_bounds tenant_inactive),
+    "relay_fn.fanout_slice_begin" =>
+      ~w(begun resumed cancelled paused already_terminal not_found),
+    "relay_fn.fanout_slice_checkpoint" => ~w(continue cancelled paused not_running),
+    "relay_fn.fanout_slice_finish" => ~w(finished already_terminal not_found),
+    "relay_fn.fanout_pause" => ~w(paused already_paused not_running),
+    "relay_fn.fanout_resume" => ~w(resumed not_paused),
+    "relay_fn.fanout_cancel" => ~w(cancelled already_closed not_found)
   }
 
   defp functions do

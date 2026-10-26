@@ -155,6 +155,86 @@
       "personal_columns": [],
       "tenant_close": "no personal fields; rows kept as audit evidence",
       "subject_erasure": "no personal fields"
+    },
+    {
+      "table": "mailboxes",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "the subject's mailbox becomes deleted with reason erasure; row kept"
+    },
+    {
+      "table": "mailbox_records",
+      "personal_columns": [
+        "payload_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; an api client payload becomes unreadable",
+      "subject_erasure": "payload unreadable once the owner's notification_content data key is destroyed; a single tenant-key payload is set to null with payload_erased_at"
+    },
+    {
+      "table": "mailbox_cursors",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "no personal fields"
+    },
+    {
+      "table": "waitpoints",
+      "personal_columns": [
+        "content_ct",
+        "claim_text_ct",
+        "default_response_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; row kept",
+      "subject_erasure": "content, claim text and default response set to null with fields_erased_at when the subject is the waiter or a responder; open and stalled waitpoints are cancelled with reason subject_erasure"
+    },
+    {
+      "table": "waitpoint_responders",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "no personal fields; the recipient row is soft deleted"
+    },
+    {
+      "table": "waitpoint_responses",
+      "personal_columns": [
+        "value_ct"
+      ],
+      "tenant_close": "row kept",
+      "subject_erasure": "response value unreadable once the responder's notification_content data key is destroyed"
+    },
+    {
+      "table": "waitpoint_response_rejections",
+      "personal_columns": [],
+      "tenant_close": "no personal fields; archived with its partition",
+      "subject_erasure": "no personal fields"
+    },
+    {
+      "table": "waitpoint_unmatched_events",
+      "personal_columns": [],
+      "tenant_close": "no personal fields; archived with its partition",
+      "subject_erasure": "no personal fields"
+    },
+    {
+      "table": "waitpoint_counters",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "fanouts",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "fanout_slices",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "keyset bounds are recipient identifiers only; no personal fields"
+    },
+    {
+      "table": "virtual_clocks",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
     }
   ],
   "locations": [

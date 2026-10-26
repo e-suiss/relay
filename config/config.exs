@@ -47,8 +47,11 @@ config :relay, Oban,
   stager: [interval: 1_000],
   plugins: [
     {Oban.Lifeline, rescue_after: 7_200_000},
-    Relay.Platform.Queue.Pruner
+    Relay.Platform.Queue.Pruner,
+    {Oban.Plugins.Cron, crontab: [{"*/5 * * * *", Relay.Agents.WaitpointSweep}]}
   ]
+
+config :relay, Relay.Platform.VirtualClock, due: [{Relay.Agents, :run_due, []}]
 
 config :relay, Relay.Platform.Outbox, dispatcher: true
 

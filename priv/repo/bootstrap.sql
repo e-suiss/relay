@@ -118,7 +118,8 @@ DECLARE
     "relay_ops.retention_due": ["relay_worker"],
     "relay_ops.singleton_acquire": ["relay_worker"],
     "relay_ops.singleton_save": ["relay_worker"],
-    "relay_ops.tenant_create": ["relay_app"]
+    "relay_ops.tenant_create": ["relay_app"],
+    "relay_ops.waitpoint_due_scopes": ["relay_worker"]
   }';
   v_function regprocedure;
   v_name text;

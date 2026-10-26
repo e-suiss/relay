@@ -21,6 +21,8 @@ defmodule Relay.Config do
     Relay.Platform.Valkey,
     Relay.Platform.Signal,
     Relay.Platform.Outbox,
+    Relay.Platform.VirtualClock,
+    Relay.Platform.Fanout,
     Relay.QueueRepo,
     Relay.BulkRepo,
     Relay.Platform.LoadShed,

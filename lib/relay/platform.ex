@@ -287,4 +287,45 @@ defmodule Relay.Platform do
   @doc "The default concurrency limit of a counter family."
   @spec concurrency_default(:tenant_channel | :tenant_deliveries) :: pos_integer()
   def concurrency_default(family), do: Concurrency.default_limit(family)
+
+  # T-23
+  @doc "Creates a fan-out and queues its slice jobs; see `Relay.Platform.Fanout.create/2`."
+  @spec create_fanout(Relay.Scope.t(), map()) :: {:ok, term()} | {:error, term()}
+  def create_fanout(scope, attrs), do: Relay.Platform.Fanout.create(scope, attrs)
+
+  # T-34
+  @doc "Pauses a fan-out under a rule; see `Relay.Platform.Fanout.pause/3`."
+  @spec pause_fanout(Relay.Scope.t(), Relay.Id.t(), String.t()) ::
+          {:ok, atom()} | {:error, term()}
+  def pause_fanout(scope, fanout_id, rule_id),
+    do: Relay.Platform.Fanout.pause(scope, fanout_id, rule_id)
+
+  @doc "Resumes a paused fan-out; see `Relay.Platform.Fanout.resume/2`."
+  @spec resume_fanout(Relay.Scope.t(), Relay.Id.t()) :: {:ok, atom()} | {:error, term()}
+  def resume_fanout(scope, fanout_id), do: Relay.Platform.Fanout.resume(scope, fanout_id)
+
+  # T-23 (4)
+  @doc "Cancels a fan-out; see `Relay.Platform.Fanout.cancel/5`."
+  @spec cancel_fanout(Relay.Scope.t(), Relay.Id.t(), String.t(), <<_::256>>, Relay.Actor.t()) ::
+          {:ok, tuple()} | {:error, term()}
+  def cancel_fanout(scope, fanout_id, rule_id, record_digest, actor),
+    do: Relay.Platform.Fanout.cancel(scope, fanout_id, rule_id, record_digest, actor)
+
+  # T-23 (6)
+  @doc "Reads a fan-out's progress."
+  @spec get_fanout(Relay.Scope.t(), Relay.Id.t()) :: {:ok, map() | nil} | {:error, term()}
+  def get_fanout(scope, fanout_id), do: Relay.Platform.Fanout.get(scope, fanout_id)
+
+  # TN-8
+  # X-27
+  @doc "Advances the virtual clock of a `test` scope; see `Relay.Platform.VirtualClock.advance/4`."
+  @spec advance_virtual_clock(Relay.Scope.t(), integer(), <<_::256>>, Relay.Actor.t()) ::
+          {:ok, term()} | {:error, Relay.Error.t()}
+  def advance_virtual_clock(scope, by_ms, record_digest, actor),
+    do: Relay.Platform.VirtualClock.advance(scope, by_ms, record_digest, actor)
+
+  # X-27
+  @doc "Reads the virtual clock of a scope; `live` answers `:not_test_environment`."
+  @spec virtual_clock(Relay.Scope.t()) :: {:ok, term()} | {:error, term()}
+  def virtual_clock(scope), do: Relay.Platform.VirtualClock.get(scope)
 end

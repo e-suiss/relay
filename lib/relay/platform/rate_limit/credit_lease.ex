@@ -4,7 +4,7 @@ defmodule Relay.Platform.RateLimit.CreditLease do
 
   The default of T-91 (1) leases on `push`, `web_push` and `email` with `k = max(1, floor(B / 10))`; the channel parameters can only narrow it.
 
-  The blocks live in one named ETS table for the whole node, owned by this server, never in a table per tenant (T-45 (5)); expired blocks are swept every minute. Validity is measured with the node's monotonic clock, as a duration.
+  The blocks live in one named ETS table for the whole node, owned by this server, never in a table per tenant (T-45 (5)). The table is protected: callers read it and spend through the block's `:atomics` counter, and only the owner stores a new block; expired blocks are swept every minute. Validity is measured with the node's monotonic clock, as a duration.
   """
 
   use GenServer
@@ -37,7 +37,7 @@ defmodule Relay.Platform.RateLimit.CreditLease do
 
   # T-20 (5)
   @doc """
-  Spends `cost` from the node's block for `key`. Without a usable block it calls `lease_fun.()`, which returns `{:allow, valid_ms}` when the central limiter granted a block of `block_size` or `:deny`; a granted block is stored with `block_size - cost` left. Returns `:allowed` when the cost was covered by a block and `:central` when the caller must decide this request centrally.
+  Spends `cost` from the node's block for `key`. Without a usable block it calls `lease_fun.()`, which returns `{:allow, valid_ms}` when the central limiter granted a block of `block_size` or `:deny`; a granted block is stored with `block_size - cost` left. Returns `:allowed` when the cost was covered by a block and `:central` when the caller must decide this request centrally. Options: `:clock`; `:table`, a table the caller owns and writes itself, in place of the server's.
   """
   @spec spend(
           key(),
@@ -73,13 +73,16 @@ defmodule Relay.Platform.RateLimit.CreditLease do
       {:allow, valid_ms} ->
         ref = :atomics.new(1, signed: true)
         :atomics.put(ref, 1, block_size - cost)
-        :ets.insert(table, {key, ref, now + valid_ms})
+        store(table, {key, ref, now + valid_ms})
         :allowed
 
       :deny ->
         :central
     end
   end
+
+  defp store(@table, entry), do: GenServer.call(__MODULE__, {:store, entry})
+  defp store(table, entry), do: :ets.insert(table, entry)
 
   @doc "Starts the owner of the node's block table. Options: `:clock`."
   @spec start_link(keyword()) :: GenServer.on_start()
@@ -90,14 +93,19 @@ defmodule Relay.Platform.RateLimit.CreditLease do
     table =
       :ets.new(@table, [
         :set,
-        :public,
+        :protected,
         :named_table,
-        read_concurrency: true,
-        write_concurrency: true
+        read_concurrency: true
       ])
 
     schedule()
     {:ok, %{table: table, clock: Keyword.get(opts, :clock, Relay.Clock)}}
+  end
+
+  @impl GenServer
+  def handle_call({:store, entry}, _from, state) do
+    :ets.insert(state.table, entry)
+    {:reply, true, state}
   end
 
   @impl GenServer

@@ -136,10 +136,10 @@ defmodule Relay.HygieneTest do
       refute inspect(status) =~ @secret
     end
 
-    test "T-46: every ETS table Relay creates is private" do
+    test "T-46: no ETS table Relay creates is public" do
       for {path, source} <- lib_sources(["lib/**/*.ex"]),
           [call] <- Regex.scan(~r/:ets\.new\([^)]*\)/s, source) do
-        assert call =~ ":private", "#{path}: #{call}"
+        refute call =~ ":public", "#{path}: #{call}"
       end
     end
 

@@ -3,12 +3,12 @@ defmodule Relay.BinaryTest do
 
   describe "T-45 refc binary playbook" do
     test "T-45: a part of a large binary is detached from its parent" do
-      body = :binary.copy(<<"x">>, 100_000) <> "id=42"
-      <<_::binary-size(100_000), part::binary>> = body
+      body = :binary.copy(<<"x">>, 100_000) <> :binary.copy(<<"z">>, 200)
+      part = :binary.part(body, 100_000, 200)
 
       assert :binary.referenced_byte_size(part) > byte_size(part)
       kept = Relay.Binary.keep(part)
-      assert kept == "id=42"
+      assert kept == :binary.copy(<<"z">>, 200)
       assert :binary.referenced_byte_size(kept) == byte_size(kept)
     end
 

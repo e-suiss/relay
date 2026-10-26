@@ -20,7 +20,7 @@ defmodule Relay.Release.KillSwitch do
   # TN-41
   # TN-42
   @doc """
-  Engages a kill switch. Options: `operator:`, `reason:`, `ttl:` (or `no_ttl_approval:`), `scope:` (#{Enum.map_join(@scopes, ", ", &inspect/1)}), `tenant:` (`ten_…`) and `environment:` (`:live` or `:test`) for every scope but `:platform`, `scope_ref:`, `channel:`, `target:` (`{:provider_account, id}` or `{:template, id}`), `message_class:`, `security_approval:`, `state:` (`:off`, the default, `{:canary, 1..99}` or `{:paused_until, DateTime}`) and `ticket:`.
+  Engages a kill switch. Options: `operator:`, `reason:`, `ttl:` (or `no_ttl_approval:`), `scope:` (#{Enum.map_join(@scopes, ", ", &inspect/1)}), `tenant:` (`ten_…`) and `environment:` (`:live` or `:test`) for every scope but `:platform`, `scope_ref:`, `channel:`, `target:` (a `:provider_account` or `:template` tuple with its identifier), `message_class:`, `security_approval:`, `state:` (`:off`, the default, a `:canary` tuple with a percent from 1 to 99 or a `:paused_until` tuple with a `DateTime`) and `ticket:`.
   """
   @spec engage(keyword()) :: {:ok, map()} | {:error, atom()}
   def engage(opts) when is_list(opts) do

@@ -14,6 +14,8 @@ schema relay_private relay_maint USAGE
 schema relay_private relay_owner USAGE
 schema relay_private relay_report USAGE
 schema relay_queue relay_app USAGE
+schema relay_queue relay_maint USAGE
+schema relay_queue relay_owner USAGE
 schema relay_queue relay_queue USAGE
 sequence relay_queue.oban_jobs_id_seq relay_app USAGE
 table relay.audit_checkpoint_publications relay_app SELECT

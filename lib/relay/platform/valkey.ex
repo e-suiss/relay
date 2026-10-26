@@ -6,6 +6,7 @@ defmodule Relay.Platform.Valkey do
   """
 
   alias Relay.Platform.Valkey.Key
+  alias Relay.Platform.Valkey.Script
 
   @type adapter :: module()
   @type channel :: String.t()
@@ -92,6 +93,53 @@ defmodule Relay.Platform.Valkey do
   def unsubscribe(channel, adapter \\ adapter()) when is_binary(channel),
     do: adapter.unsubscribe(channel)
 
+  # T-9
+  @doc "Runs a script on its one key with `EVALSHA`; on `NOSCRIPT` it sends the source once with `EVAL`. The reply is an array of integers."
+  @spec eval(Script.t(), Key.t(), [String.t() | integer()], adapter()) ::
+          {:ok, [integer()]} | {:error, Relay.Error.t()}
+  def eval(%Script{} = script, %Key{name: name}, args, adapter \\ adapter()) when is_list(args) do
+    :ok = guard()
+    args = Enum.map(args, &arg/1)
+
+    case adapter.command(["EVALSHA", script.sha, "1", name | args]) do
+      {:error, %{message: "NOSCRIPT" <> _}} ->
+        adapter.command(["EVAL", script.source, "1", name | args]) |> integers()
+
+      reply ->
+        integers(reply)
+    end
+  end
+
+  @doc "Loads scripts into the server's script cache with `SCRIPT LOAD`."
+  @spec load([Script.t()], adapter()) :: :ok | {:error, Relay.Error.t()}
+  def load(scripts, adapter \\ adapter())
+
+  def load([], _adapter), do: :ok
+
+  def load(scripts, adapter) when is_list(scripts) do
+    :ok = guard()
+
+    case adapter.pipeline(Enum.map(scripts, &["SCRIPT", "LOAD", &1.source])) do
+      {:ok, shas} when is_list(shas) ->
+        if shas == Enum.map(scripts, & &1.sha), do: :ok, else: failure({:ok, shas})
+
+      other ->
+        failure(other)
+    end
+  end
+
+  # T-9
+  @doc "Sends `PING`; any reply other than `PONG` is an error."
+  @spec ping(adapter()) :: :ok | {:error, Relay.Error.t()}
+  def ping(adapter \\ adapter()) do
+    :ok = guard()
+
+    case adapter.command(["PING"]) do
+      {:ok, "PONG"} -> :ok
+      other -> failure(other)
+    end
+  end
+
   # T-9 (6)
   @doc "Reads the server's eviction policy."
   @spec eviction_policy(adapter()) :: {:ok, String.t()} | {:error, Relay.Error.t()}
@@ -109,6 +157,15 @@ defmodule Relay.Platform.Valkey do
 
   # INV-55
   defp guard, do: Relay.NetworkGuard.check!(:valkey)
+
+  defp arg(value) when is_binary(value), do: value
+  defp arg(value) when is_integer(value), do: Integer.to_string(value)
+
+  defp integers({:ok, values} = reply) when is_list(values) do
+    if Enum.all?(values, &is_integer/1), do: reply, else: failure(reply)
+  end
+
+  defp integers(other), do: failure(other)
 
   defp failure({:error, reason}),
     do:

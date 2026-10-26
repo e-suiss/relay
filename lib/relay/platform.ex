@@ -5,6 +5,7 @@ defmodule Relay.Platform do
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
+  alias Relay.Platform.Backend
   alias Relay.Platform.Outbox
   alias Relay.Platform.OutboxDispatcher
   alias Relay.Platform.OutboxStore
@@ -35,9 +36,10 @@ defmodule Relay.Platform do
   # TN-14
   # OP-12
   # T-86
+  # T-9 (5)
   # OP-11
   # OP-69 (1)
-  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the signal hub and the job queue; a worker node also runs the queue maintenance connection and the outbox dispatcher. A failed role or ownership check stops the node."
+  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the signal hub and the job queue; a worker node also runs the queue maintenance connection and the outbox dispatcher. A failed role or ownership check stops the node."
   @spec children() :: [Supervisor.child_spec() | {module(), term()} | module()]
   def children do
     valkey = Application.fetch_env!(:relay, Valkey)
@@ -49,6 +51,7 @@ defmodule Relay.Platform do
       Store.query_stats_check_child(),
       {Keyword.fetch!(valkey, :adapter), Keyword.delete(valkey, :adapter)},
       Valkey.Guard,
+      Backend,
       Signal.Hub
     ] ++
       if(worker?, do: [Relay.QueueRepo], else: []) ++

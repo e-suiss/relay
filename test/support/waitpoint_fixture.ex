@@ -159,6 +159,62 @@ defmodule RelayTest.WaitpointFixture do
     )
   end
 
+  @doc "Runs `fun` with the context `build` returns, on an admin connection as `relay_owner` inside a transaction that is rolled back, so a test can change rows the functions never change."
+  @spec as_owner((-> map()), (map() -> term())) :: term()
+  def as_owner(build, fun) do
+    admin = connect(:admin)
+
+    try do
+      rolled_back(admin, fn ->
+        ctx = build.()
+        rows("SET LOCAL ROLE relay_owner")
+        fun.(ctx)
+      end)
+    after
+      GenServer.stop(admin)
+    end
+  end
+
+  @doc "Calls `relay_fn.mailbox_append` with defaults; returns `[result, epoch, seq]`."
+  @spec append(binary(), keyword()) :: list()
+  def append(mailbox_id, opts \\ []) do
+    row(
+      "SELECT * FROM relay_fn.mailbox_append($1, $2, $3, $4, $5, NULL, NULL, $6, NULL, $7, $8, NULL)",
+      [
+        Keyword.get_lazy(opts, :id, &id/0),
+        mailbox_id,
+        Keyword.get(opts, :kind, "message"),
+        Keyword.get(opts, :event_type, "inbox.message"),
+        Keyword.get(opts, :correlation_key),
+        Keyword.get(opts, :payload_ct),
+        Keyword.get(opts, :payload_key_id),
+        digest()
+      ]
+    )
+  end
+
+  @doc "Opens the mailbox of an owner; returns its ID."
+  @spec mailbox!(String.t(), binary()) :: binary()
+  def mailbox!(owner_kind, owner_ref) do
+    [result, mailbox_id, _stream] =
+      row("SELECT * FROM relay_fn.mailbox_ensure($1, $2, $3)", [id(), owner_kind, owner_ref])
+
+    true = result in ["created", "exists"]
+    mailbox_id
+  end
+
+  @doc "Advances the virtual clock of the current `test` context by `ms`; returns the new offset."
+  @spec advance!(pos_integer()) :: integer()
+  def advance!(ms) do
+    ["advanced", offset, _] =
+      row("SELECT * FROM relay_fn.virtual_clock_advance($1, $2, $3, $4, $5, $6)", [
+        ms,
+        digest() | actor()
+      ])
+
+    offset
+  end
+
   @doc "Reads a waitpoint column."
   @spec waitpoint(binary(), String.t()) :: term()
   def waitpoint(waitpoint_id, column),

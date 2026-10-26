@@ -109,13 +109,13 @@ defmodule Relay.Repo.Migrations.CreateWaitpointFunctions do
       SET search_path = pg_catalog, pg_temp
       AS $fn$
       BEGIN
-        UPDATE relay.waitpoint_counters c SET open_count = GREATEST(c.open_count - 1, 0),
-            updated_at = now()
-          WHERE c.tenant_id = p_waitpoint.tenant_id AND c.environment = p_waitpoint.environment;
         UPDATE relay.mailboxes m SET open_waitpoints = GREATEST(m.open_waitpoints - 1, 0),
             updated_at = now()
           WHERE m.tenant_id = p_waitpoint.tenant_id AND m.environment = p_waitpoint.environment
             AND m.id = p_waitpoint.waiter_mailbox_id;
+        UPDATE relay.waitpoint_counters c SET open_count = GREATEST(c.open_count - 1, 0),
+            updated_at = now()
+          WHERE c.tenant_id = p_waitpoint.tenant_id AND c.environment = p_waitpoint.environment;
       END
       $fn$
       """,

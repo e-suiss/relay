@@ -2,14 +2,16 @@ defmodule Relay.Audit.Checkpointer.Publisher.S3 do
   @moduledoc """
   Publication target on an S3-compatible object store with object lock (WORM). Each checkpoint is written once, as `<prefix><origin>/<tree size>/<checkpoint id>` with its signed note as the body, `If-None-Match: *` and a SHA-256 checksum; requests are signed with AWS Signature Version 4 and use path-style addressing, so the same adapter serves AWS S3, MinIO and other compatible stores.
 
-  Retention comes from the bucket's default object lock rule and from the object itself: every write reads the bucket's rule and sets the same mode and retention period on the object (`x-amz-object-lock-mode`, `x-amz-object-lock-retain-until-date`), so an object stays locked even if the bucket default is later removed. `check/1` refuses a bucket without object lock or without a default retention rule, and `probe/1`, run when a production node starts, writes a probe object under `<prefix>_probe/` and reads it back.
+  Every object carries its own lock (`x-amz-object-lock-mode`, `x-amz-object-lock-retain-until-date`), so it stays locked even if the bucket default is later removed. Each write reads the bucket's default rule and uses its mode. One checkpoint covers the audit records of every tenant of the installation, so a checkpoint object is retained until the later of the bucket's default period and the longest `audit` period of the active `retention_periods` data set version, both counted from the write; without an active version nothing is written. `check/1` refuses a bucket without object lock or without a default retention rule, and `probe/1`, run when a production node starts, writes a probe object under `<prefix>_probe/`, locked for the bucket's default period, and reads it back.
 
-  Options, all required: `:endpoint` (`https://…`, or `http://…` for a local store), `:bucket`, `:region`, `:access_key_id`, `:secret_access_key` and `:prefix` (may be empty, otherwise ends with `/`). The secret is a runtime callback `{module, function, args}` returning a `Relay.Redacted` value (`Relay.Config.SecretFiles` in production), a zero-arity function, or, outside production, a string or a `Relay.Redacted` value; the process making a request is marked sensitive.
+  Required options: `:endpoint` (`https://…`, or `http://…` for a local store), `:bucket`, `:region`, `:access_key_id`, `:secret_access_key` and `:prefix` (may be empty, otherwise ends with `/`). The secret is a runtime callback `{module, function, args}` returning a `Relay.Redacted` value (`Relay.Config.SecretFiles` in production), a zero-arity function, or, outside production, a string or a `Relay.Redacted` value; the process making a request is marked sensitive. The optional `:audit_retention_days` is a zero-arity function returning `{:ok, days}` or `{:error, Relay.Error.t()}` that replaces the data set lookup (`audit_retention_days/0`).
   """
 
   @behaviour Relay.Audit.Checkpointer.Publisher
 
   @keys [:endpoint, :bucket, :region, :access_key_id, :secret_access_key, :prefix]
+  @optional [:audit_retention_days]
+  @dataset "retention_periods"
   @timeout_ms 10_000
   @max_body 65_536
 
@@ -33,7 +35,7 @@ defmodule Relay.Audit.Checkpointer.Publisher.S3 do
       not Keyword.keyword?(opts) ->
         {:error, "options must be a keyword list"}
 
-      (unknown = Keyword.keys(opts) -- @keys) != [] ->
+      (unknown = Keyword.keys(opts) -- (@keys ++ @optional)) != [] ->
         {:error, "unknown options #{inspect(Enum.sort(unknown))}"}
 
       (missing = Enum.reject(@keys, &Keyword.has_key?(opts, &1))) != [] ->
@@ -55,7 +57,9 @@ defmodule Relay.Audit.Checkpointer.Publisher.S3 do
        "region and access_key_id must be non-empty strings"},
       {secret?(opts[:secret_access_key]),
        "secret_access_key must be a callback or a non-empty string"},
-      {prefix?(opts[:prefix]), "prefix must be empty or end with /"}
+      {prefix?(opts[:prefix]), "prefix must be empty or end with /"},
+      {retention?(Keyword.get(opts, :audit_retention_days, &audit_retention_days/0)),
+       "audit_retention_days must be a zero-arity function"}
     ]
   end
 
@@ -63,15 +67,45 @@ defmodule Relay.Audit.Checkpointer.Publisher.S3 do
     do: is_binary(bucket) and Regex.match?(~r/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/, bucket)
 
   # OP-70
+  # OP-72 (3)
   @impl Relay.Audit.Checkpointer.Publisher
-  @doc "Writes the signed note of a checkpoint once; an existing object with the same content counts as published."
+  @doc "Writes the signed note of a checkpoint once, locked for the audit retention period; an existing object with the same content counts as published."
   @spec publish(Relay.Audit.Checkpointer.Publisher.checkpoint(), keyword()) ::
           :ok | {:error, Relay.Error.t()}
   def publish(checkpoint, opts) do
-    case put_once(opts, key(checkpoint, opts), checkpoint.signed_note) do
-      :exists -> same_object(opts, key(checkpoint, opts), checkpoint.signed_note)
-      result -> result
+    lookup = Keyword.get(opts, :audit_retention_days, &audit_retention_days/0)
+
+    with {:ok, days} <- lookup.() do
+      case put_once(opts, key(checkpoint, opts), checkpoint.signed_note, days) do
+        :exists -> same_object(opts, key(checkpoint, opts), checkpoint.signed_note)
+        result -> result
+      end
     end
+  end
+
+  # OP-72 (3)
+  # TN-49
+  @doc "The longest `audit` retention period, in days, of the active installation-wide `retention_periods` version; an error when there is no active version."
+  @spec audit_retention_days() :: {:ok, non_neg_integer()} | {:error, Relay.Error.t()}
+  def audit_retention_days do
+    case Relay.Datasets.decide(
+           Relay.Datasets.installation_scope(),
+           @dataset,
+           &audit_retention_days/1
+         ) do
+      {:ok, {days, _ref}} -> {:ok, days}
+      {:error, _} = error -> error
+    end
+  end
+
+  # OP-72 (3)
+  @doc "The longest `audit` retention period, in days, over every region and sector of a `retention_periods` version's content; 0 when the version has no `audit` row."
+  @spec audit_retention_days(map()) :: non_neg_integer()
+  def audit_retention_days(%{"periods" => periods}) when is_list(periods) do
+    periods
+    |> Enum.filter(&(&1["retention_class"] == "audit"))
+    |> Enum.map(& &1["days"])
+    |> Enum.max(fn -> 0 end)
   end
 
   # OP-71 (6)
@@ -83,14 +117,14 @@ defmodule Relay.Audit.Checkpointer.Publisher.S3 do
     key = Keyword.fetch!(opts, :prefix) <> "_probe/" <> id
     body = "relay audit target probe " <> id <> "\n"
 
-    case put_once(opts, key, body) do
+    case put_once(opts, key, body, 0) do
       :ok -> same_object(opts, key, body)
       :exists -> {:error, Relay.Error.new(:publication_conflict, "probe object exists")}
       {:error, _} = error -> error
     end
   end
 
-  defp put_once(opts, key, body) do
+  defp put_once(opts, key, body, days) do
     with {:ok, lock} <- lock_rule(opts) do
       headers =
         [
@@ -98,7 +132,7 @@ defmodule Relay.Audit.Checkpointer.Publisher.S3 do
           {"if-none-match", "*"},
           {"x-amz-checksum-sha256", Base.encode64(:crypto.hash(:sha256, body))},
           {"x-amz-sdk-checksum-algorithm", "SHA256"}
-        ] ++ lock_headers(lock, Relay.Clock.utc_now())
+        ] ++ lock_headers(lock, Relay.Clock.utc_now(), days)
 
       case request(opts, :put, key, headers, body) do
         {:ok, %{status: status}} when status in 200..299 ->
@@ -131,14 +165,24 @@ defmodule Relay.Audit.Checkpointer.Publisher.S3 do
   end
 
   # OP-71 (6)
-  @doc "Object lock headers of a write at `now`: the mode and the retain-until date of the bucket's default rule `{mode, {unit, count}}`."
-  @spec lock_headers({String.t(), {:days | :years, pos_integer()}}, DateTime.t()) :: [
-          {String.t(), String.t()}
-        ]
-  def lock_headers({mode, period}, %DateTime{} = now) when mode in ["GOVERNANCE", "COMPLIANCE"] do
-    until = %{now | microsecond: {0, 0}} |> DateTime.shift(shift(period)) |> DateTime.to_iso8601()
+  # OP-72 (3)
+  @doc "Object lock headers of a write at `now`: the mode of the bucket's default rule `{mode, {unit, count}}` and a retain-until date at the later of the rule's period and `days` days after `now`."
+  @spec lock_headers(
+          {String.t(), {:days | :years, pos_integer()}},
+          DateTime.t(),
+          non_neg_integer()
+        ) :: [{String.t(), String.t()}]
+  def lock_headers({mode, period}, %DateTime{} = now, days \\ 0)
+      when mode in ["GOVERNANCE", "COMPLIANCE"] and is_integer(days) and days >= 0 do
+    now = %{now | microsecond: {0, 0}}
 
-    [{"x-amz-object-lock-mode", mode}, {"x-amz-object-lock-retain-until-date", until}]
+    until =
+      Enum.max([DateTime.shift(now, shift(period)), DateTime.shift(now, day: days)], DateTime)
+
+    [
+      {"x-amz-object-lock-mode", mode},
+      {"x-amz-object-lock-retain-until-date", DateTime.to_iso8601(until)}
+    ]
   end
 
   defp shift({:days, count}), do: [day: count]
@@ -308,6 +352,8 @@ defmodule Relay.Audit.Checkpointer.Publisher.S3 do
   defp secret({module, function, args}), do: secret(apply(module, function, args))
   defp secret(fun) when is_function(fun, 0), do: secret(fun.())
   defp secret(value), do: value |> Relay.Redacted.wrap() |> Relay.Redacted.expose()
+
+  defp retention?(fun), do: is_function(fun, 0)
 
   defp prefix?(""), do: true
   defp prefix?(prefix) when is_binary(prefix), do: String.ends_with?(prefix, "/")

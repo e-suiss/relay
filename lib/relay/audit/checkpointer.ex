@@ -9,7 +9,13 @@ defmodule Relay.Audit.Checkpointer do
 
   use Boundary,
     top_level?: true,
-    deps: [Relay, Relay.Audit, Relay.Platform.Maintenance, Relay.Platform.Leadership],
+    deps: [
+      Relay,
+      Relay.Audit,
+      Relay.Datasets,
+      Relay.Platform.Maintenance,
+      Relay.Platform.Leadership
+    ],
     exports: []
 
   @behaviour Relay.Platform.Leadership

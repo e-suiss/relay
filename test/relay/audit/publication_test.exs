@@ -17,7 +17,7 @@ defmodule Relay.Audit.PublicationTest do
     {:ok, _} = Application.ensure_all_started(:req)
     store = ObjectStore.local(bucket: "relay-audit-test")
     :ok = ObjectStore.setup(store)
-    %{store: store}
+    %{store: Keyword.put(store, :audit_retention_days, fn -> {:ok, 2} end)}
   end
 
   setup %{store: store} do
@@ -201,15 +201,9 @@ defmodule Relay.Audit.PublicationTest do
   describe "OP-71 (6) object lock per object and the startup probe" do
     test "OP-71: every checkpoint object carries its own lock mode and retain-until date",
          %{store: store, host: host} do
-      clock = Application.fetch_env!(:relay, :clock)
-      Application.put_env(:relay, :clock, Relay.ClockMock)
-      on_exit(fn -> Application.put_env(:relay, :clock, clock) end)
-      now = DateTime.add(DateTime.utc_now(), 600, :second)
-      stub(Relay.ClockMock, :utc_now, fn -> now end)
-      stub(Relay.ClockMock, :monotonic_ms, fn -> System.monotonic_time(:millisecond) end)
-
+      now = mock_clock()
       cp = checkpoint(host <> "/relay/audit/2026")
-      :ok = S3.publish(cp, store)
+      :ok = S3.publish(cp, Keyword.put(store, :audit_retention_days, fn -> {:ok, 0} end))
 
       expected = DateTime.shift(%{now | microsecond: {0, 0}}, day: 1)
       assert {:ok, {"GOVERNANCE", until}} = ObjectStore.retention(store, S3.key(cp, store))
@@ -312,6 +306,60 @@ defmodule Relay.Audit.PublicationTest do
                )
              ) ==
                :ok
+    end
+  end
+
+  defp mock_clock do
+    clock = Application.fetch_env!(:relay, :clock)
+    Application.put_env(:relay, :clock, Relay.ClockMock)
+    on_exit(fn -> Application.put_env(:relay, :clock, clock) end)
+    now = DateTime.add(DateTime.utc_now(), 600, :second)
+    stub(Relay.ClockMock, :utc_now, fn -> now end)
+    stub(Relay.ClockMock, :monotonic_ms, fn -> System.monotonic_time(:millisecond) end)
+    now
+  end
+
+  describe "OP-72 (3) checkpoint objects outlive the longest audit retention" do
+    test "OP-72: a checkpoint object is locked for the audit retention period when it exceeds the bucket default",
+         %{store: store, host: host} do
+      now = mock_clock()
+      cp = checkpoint(host <> "/relay/audit/2026")
+      :ok = S3.publish(cp, store)
+
+      expected = DateTime.shift(%{now | microsecond: {0, 0}}, day: 2)
+      assert {:ok, {"GOVERNANCE", until}} = ObjectStore.retention(store, S3.key(cp, store))
+      assert DateTime.compare(until, expected) == :eq
+    end
+
+    test "OP-72: the startup probe object keeps the bucket's default period", %{store: store} do
+      now = mock_clock()
+
+      probe =
+        Keyword.put(
+          store,
+          :prefix,
+          "probe-" <> Base.encode16(:crypto.strong_rand_bytes(4), case: :lower) <> "/"
+        )
+
+      assert :ok = S3.probe(probe)
+      assert {:ok, [key]} = ObjectStore.keys(probe, probe[:prefix] <> "_probe/")
+      assert {:ok, {"GOVERNANCE", until}} = ObjectStore.retention(probe, key)
+      assert DateTime.compare(until, DateTime.shift(%{now | microsecond: {0, 0}}, day: 1)) == :eq
+    end
+
+    test "OP-72: without an active retention periods version no checkpoint is written", %{
+      store: store,
+      host: host
+    } do
+      missing =
+        Keyword.put(store, :audit_retention_days, fn ->
+          {:error, Relay.Error.new(:no_active_version, "the data set has no active version")}
+        end)
+
+      cp = checkpoint(host <> "/relay/audit/2026")
+
+      assert {:error, %Relay.Error{code: :no_active_version}} = S3.publish(cp, missing)
+      assert {:error, %Relay.Error{code: :publication_missing}} = S3.read(cp, store)
     end
   end
 

@@ -73,6 +73,12 @@ defmodule Relay.ReleaseTest do
                golden
     end
 
+    test "OP-73: the bootstrap hands the relay_ops schema to relay_migrator" do
+      bootstrap = File.read!("priv/repo/bootstrap.sql")
+      assert bootstrap =~ "CREATE SCHEMA IF NOT EXISTS relay_ops AUTHORIZATION relay_migrator;"
+      assert bootstrap =~ "ALTER SCHEMA relay_ops OWNER TO relay_migrator;"
+    end
+
     test "OP-72 (2): relay_migrator is never granted relay_maint" do
       refute File.read!("priv/repo/bootstrap.sql") =~ ~r/GRANT\s+relay_maint\s+TO/i
     end

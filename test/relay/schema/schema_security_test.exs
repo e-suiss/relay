@@ -313,44 +313,87 @@ defmodule Relay.Schema.SchemaSecurityTest do
   describe "TN-13 queries without context" do
     @context_tables ["notifications", "tenants", "dataset_versions", "delivery_events"]
 
-    defp in_transaction(conn, fun) do
-      Postgrex.transaction(conn, fn tx -> Postgrex.rollback(tx, fun.(tx)) end)
+    @context_rows [
+      """
+      INSERT INTO relay.tenants (id, kind, access_tenant_id, region, default_timezone,
+        default_locale, status, status_changed_at, created_at, updated_at)
+      VALUES (uuidv7(), 'tenant', 'context-test:' || uuidv7(), 'tr', 'Europe/Istanbul', 'tr',
+        'active', now(), now(), now())
+      """,
+      """
+      INSERT INTO relay.dataset_versions (tenant_id, environment, id, dataset_name, version_no,
+        content, content_digest, source, source_ref, valid_from, published_by_ref, created_at)
+      VALUES (uuidv7(), 'live', uuidv7(), 'context_test', 1, '{}', pg_catalog.sha256('\\x00'::bytea), 'operator',
+        'context-test', now(), 'context-test', now())
+      """,
+      """
+      INSERT INTO relay.notifications (tenant_id, environment, id, recipient_id, dedup_key,
+        message_class, sender_type, is_test, state, duplicate_count, created_at, updated_at)
+      VALUES (uuidv7(), 'live', uuidv7(), uuidv7(), 'context-test', 'transactional', 'system',
+        false, 'active', 0, now(), now())
+      """,
+      """
+      INSERT INTO relay.delivery_events (tenant_id, environment, id, received_at, delivery_id,
+        actor, event_type, occurred_at, projection_result, detail)
+      SELECT uuidv7(), 'live', uuidv7(), b.at, uuidv7(), 'relay', 'delivery.queued', b.at,
+        'applied', '{}'
+      FROM (SELECT (regexp_match(pg_get_expr(c.relpartbound, c.oid), '''([^'']+)'''))[1]::timestamptz
+                + interval '1 hour' AS at
+            FROM pg_inherits i JOIN pg_class c ON c.oid = i.inhrelid
+            WHERE i.inhparent = 'relay.delivery_events'::regclass
+              AND pg_get_expr(c.relpartbound, c.oid) <> 'DEFAULT'
+            ORDER BY c.relname DESC LIMIT 1) b
+      """
+    ]
+
+    defp seeded_as_worker(conn, fun) do
+      Postgrex.transaction(conn, fn tx ->
+        Postgrex.query!(tx, "SET LOCAL session_replication_role = replica", [])
+        for sql <- @context_rows, do: Postgrex.query!(tx, sql, [])
+        Postgrex.query!(tx, "SET LOCAL session_replication_role = origin", [])
+
+        for table <- @context_tables do
+          assert %{rows: [[true]]} =
+                   Postgrex.query!(tx, "SELECT EXISTS (SELECT FROM relay.#{table})", []),
+                 table
+        end
+
+        Postgrex.query!(tx, "SET LOCAL ROLE relay_worker", [])
+        Postgrex.rollback(tx, fun.(tx))
+      end)
     end
 
-    test "TN-13: a query without tenant or environment context fails even on an empty table" do
-      {:ok, conn} = Postgrex.start_link(RelayDev.Database.connection("relay_worker"))
+    defp select(tx, table),
+      do: Postgrex.query(tx, "SELECT * FROM relay.#{table}", [], mode: :savepoint)
 
-      for table <- @context_tables do
-        assert {:error, %Postgrex.Error{postgres: %{code: :undefined_object}}} =
-                 Postgrex.query(conn, "SELECT * FROM relay.#{table}", []),
-               table
+    # TN-69
+    test "TN-13, TN-69: a query without tenant or environment context fails as soon as it reads a row" do
+      {:ok, conn} = Postgrex.start_link(RelayDev.Database.connection(:admin))
+
+      assert {:error, {missing, missing_environment, results}} =
+               seeded_as_worker(conn, fn tx ->
+                 missing = Enum.map(@context_tables, &select(tx, &1))
+
+                 Postgrex.query!(tx, "SELECT set_config('relay.tenant_id', $1, true)", [
+                   Ecto.UUID.generate()
+                 ])
+
+                 missing_environment = select(tx, "notifications")
+                 Postgrex.query!(tx, "SELECT set_config('relay.environment', 'test', true)", [])
+                 results = for table <- @context_tables, do: select(tx, table)
+                 {missing, missing_environment, results}
+               end)
+
+      for {table, result} <- Enum.zip(@context_tables, missing) do
+        assert {:error, %Postgrex.Error{postgres: %{code: :undefined_object}}} = result, table
       end
 
-      assert {:error, {:error, %Postgrex.Error{postgres: %{code: :undefined_object}}}} =
-               in_transaction(conn, fn tx ->
-                 Postgrex.query!(tx, "SELECT set_config('relay.tenant_id', $1, true)", [
-                   Ecto.UUID.generate()
-                 ])
+      assert {:error, %Postgrex.Error{postgres: %{code: :undefined_object}}} = missing_environment
+      assert Enum.map(results, fn {:ok, result} -> result.rows end) == [[], [], [], []]
 
-                 Postgrex.query(tx, "SELECT * FROM relay.notifications", [])
-               end)
+      assert {:error, {:error, %Postgrex.Error{postgres: %{code: :invalid_text_representation}}}} =
+               seeded_as_worker(conn, &select(&1, "notifications"))
 
-      assert {:error, %Postgrex.Error{postgres: %{code: :invalid_text_representation}}} =
-               Postgrex.query(conn, "SELECT * FROM relay.notifications", [])
-
-      assert {:error, results} =
-               in_transaction(conn, fn tx ->
-                 Postgrex.query!(tx, "SELECT set_config('relay.tenant_id', $1, true)", [
-                   Ecto.UUID.generate()
-                 ])
-
-                 Postgrex.query!(tx, "SELECT set_config('relay.environment', 'test', true)", [])
-
-                 for table <- @context_tables,
-                     do: Postgrex.query!(tx, "SELECT * FROM relay.#{table}", []).rows
-               end)
-
-      assert results == [[], [], [], []]
       GenServer.stop(conn)
     end
   end

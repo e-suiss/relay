@@ -109,7 +109,23 @@ defmodule Relay.Repo.OpsOwnerCheckIntegrationTest do
   end
 
   describe "OP-72 (2) relay_ops function recreated by a migration" do
-    test "OP-72 (2): a recreated function is owned by relay_migrator until the ownership step restores the owner and the contract grants" do
+    test "OP-73: relay_migrator owns the relay_ops schema without any membership in relay_maint" do
+      admin = admin_query()
+
+      assert {:ok, [["relay_migrator"]]} =
+               admin.(
+                 "SELECT pg_catalog.pg_get_userbyid(nspowner)::text FROM pg_catalog.pg_namespace WHERE nspname = 'relay_ops'",
+                 []
+               )
+
+      assert {:ok, [[false, false]]} =
+               admin.(
+                 "SELECT pg_catalog.pg_has_role('relay_migrator', 'relay_maint', 'MEMBER'), pg_catalog.pg_has_role('relay_migrator', 'relay_maint', 'SET')",
+                 []
+               )
+    end
+
+    test "OP-72 (2), OP-73: a function relay_migrator drops and creates is owned by it until the ownership step restores the owner and the contract grants" do
       admin = admin_query()
       migrator = login_query("relay_migrator")
       signature = "relay_ops.orphan_check()"
@@ -120,7 +136,7 @@ defmodule Relay.Repo.OpsOwnerCheckIntegrationTest do
 
       on_exit(fn -> restore(signature, definition) end)
 
-      assert {:ok, _} = admin.("DROP FUNCTION #{signature}", [])
+      assert {:ok, _} = migrator.("DROP FUNCTION #{signature}", [])
       assert {:ok, _} = migrator.(definition, [])
       assert {:ok, _} = migrator.("GRANT EXECUTE ON FUNCTION #{signature} TO relay_worker", [])
       assert {:ok, _} = admin.("REVOKE EXECUTE ON FUNCTION #{save} FROM relay_worker", [])
@@ -140,12 +156,6 @@ defmodule Relay.Repo.OpsOwnerCheckIntegrationTest do
       assert Store.start_ops_owner_check() == :ignore
       assert {:ok, [[[]]]} = admin.(@execute_grantees, [signature])
       assert {:ok, [[["relay_worker"]]]} = admin.(@execute_grantees, [save])
-
-      assert {:ok, [[false]]} =
-               admin.(
-                 "SELECT pg_catalog.pg_has_role('relay_migrator', 'relay_maint', 'MEMBER')",
-                 []
-               )
     end
   end
 end

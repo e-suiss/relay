@@ -81,7 +81,8 @@ $$;
 CREATE SCHEMA IF NOT EXISTS relay AUTHORIZATION relay_migrator;
 CREATE SCHEMA IF NOT EXISTS relay_private AUTHORIZATION relay_migrator;
 CREATE SCHEMA IF NOT EXISTS relay_fn AUTHORIZATION relay_owner;
-CREATE SCHEMA IF NOT EXISTS relay_ops AUTHORIZATION relay_maint;
+CREATE SCHEMA IF NOT EXISTS relay_ops AUTHORIZATION relay_migrator;
+ALTER SCHEMA relay_ops OWNER TO relay_migrator;
 
 REVOKE ALL ON SCHEMA relay, relay_private, relay_fn, relay_ops FROM PUBLIC;
 
@@ -89,8 +90,7 @@ GRANT USAGE ON SCHEMA relay TO relay_owner, relay_app, relay_maint, relay_archiv
 GRANT USAGE ON SCHEMA relay_private TO relay_owner, relay_app, relay_maint, relay_archive, relay_report;
 GRANT USAGE ON SCHEMA relay_fn TO relay_app, relay_report;
 GRANT USAGE, CREATE ON SCHEMA relay_fn TO relay_migrator;
-GRANT USAGE ON SCHEMA relay_ops TO relay_app;
-GRANT USAGE, CREATE ON SCHEMA relay_ops TO relay_migrator;
+GRANT USAGE ON SCHEMA relay_ops TO relay_app, relay_maint;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE relay_migrator, relay_owner, relay_maint REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 

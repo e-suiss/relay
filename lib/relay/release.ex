@@ -32,6 +32,7 @@ defmodule Relay.Release do
 
   # OP-69 (1)
   # OP-72 (2)
+  # OP-73
   # T-5
   @doc "Runs `priv/repo/bootstrap.sql` as the installation administrator: the login of `ADMIN_DATABASE_URL` with the password read from `ADMIN_DATABASE_PASSWORD_FILE`. Run it before the first migration and after every migration."
   @spec bootstrap() :: :ok

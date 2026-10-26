@@ -45,8 +45,8 @@ defmodule Relay.Inbox.MailboxOrderTest do
       appended =
         1..@writers
         |> Task.async_stream(
-          fn writer ->
-            for n <- 1..@per_writer do
+          fn _writer ->
+            for _ <- 1..@per_writer do
               {:ok, {:appended, 1, seq}} =
                 Sandbox.unboxed_run(Repo, fn ->
                   Mailbox.append(scope, record(mailbox))
@@ -99,7 +99,7 @@ defmodule Relay.Inbox.MailboxOrderTest do
     end
 
     test "IN-29: more than the replay cap behind marks the page truncated", ctx do
-      for n <- 1..(Mailbox.replay_cap() + 1),
+      for _ <- 1..(Mailbox.replay_cap() + 1),
           do: {:ok, {:appended, _, _}} = Mailbox.append(ctx.scope, record(ctx.mailbox))
 
       assert {:ok, %{truncated: true, has_more: true, records: records}} =

@@ -1,4 +1,5 @@
 #!/usr/bin/env escript
+%%! -noinput
 main(Args) ->
     Mode = mode(Args),
     Port = open_port({fd, 0, 1}, [{packet, 4}, binary, eof]),

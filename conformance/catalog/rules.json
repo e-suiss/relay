@@ -1580,7 +1580,7 @@
     "id": "C-65",
     "section": "§5",
     "status": "frozen_product",
-    "title": "",
+    "title": "Kill switch pauses, never cancels",
     "verify_stage": null
   },
   {
@@ -1796,7 +1796,7 @@
     "id": "INV-3",
     "section": "§6",
     "status": "canonical_invariant",
-    "title": "",
+    "title": "A paused or dead-lettered delivery is never lost or deleted",
     "verify_stage": 2
   },
   {
@@ -2116,7 +2116,7 @@
     "id": "INV-43",
     "section": "§6",
     "status": "canonical_invariant",
-    "title": "",
+    "title": "A node without kill switch state sends nothing",
     "verify_stage": 2
   },
   {
@@ -7540,7 +7540,7 @@
     "id": "TN-36",
     "section": "§18",
     "status": "central",
-    "title": "",
+    "title": "Kill switch is one model with five dimensions",
     "verify_stage": 2
   },
   {
@@ -7548,7 +7548,7 @@
     "id": "TN-37",
     "section": "§18",
     "status": "canonical_invariant",
-    "title": "",
+    "title": "The most restrictive kill switch record wins",
     "verify_stage": 2
   },
   {
@@ -7556,7 +7556,7 @@
     "id": "TN-38",
     "section": "§18",
     "status": "canonical_invariant",
-    "title": "",
+    "title": "Kill switch is fail-safe: last known state, never opened by an outage",
     "verify_stage": 2
   },
   {
@@ -7564,7 +7564,7 @@
     "id": "TN-39",
     "section": "§18",
     "status": "frozen_technical",
-    "title": "",
+    "title": "Kill switch truth in PostgreSQL, propagated by a Valkey reload signal",
     "verify_stage": 2
   },
   {
@@ -7572,7 +7572,7 @@
     "id": "TN-40",
     "section": "§18",
     "status": "canonical_invariant",
-    "title": "",
+    "title": "Blocked work is paused, not retried; resume and cancel are explicit",
     "verify_stage": 2
   },
   {
@@ -7580,7 +7580,7 @@
     "id": "TN-41",
     "section": "§18",
     "status": "frozen_technical",
-    "title": "",
+    "title": "Every kill switch record needs a reason and a TTL",
     "verify_stage": 2
   },
   {
@@ -7588,7 +7588,7 @@
     "id": "TN-42",
     "section": "§18",
     "status": "canonical_invariant",
-    "title": "",
+    "title": "The security class is not stopped by default",
     "verify_stage": 2
   },
   {
@@ -7596,7 +7596,7 @@
     "id": "TN-43",
     "section": "§18",
     "status": "frozen_technical",
-    "title": "",
+    "title": "Dead-man switch pauses abnormal volume automatically",
     "verify_stage": 2
   },
   {
@@ -7628,7 +7628,7 @@
     "id": "TN-47",
     "section": "§18",
     "status": "frozen_technical",
-    "title": "",
+    "title": "Audit log covers human and administrative actions",
     "verify_stage": 3
   },
   {
@@ -7809,6 +7809,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "TN-70",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "Stage 2 kill switch authority and resume",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "T-1",
     "section": "§19",
     "status": "central",
@@ -7924,7 +7932,7 @@
     "id": "T-15",
     "section": "§19",
     "status": "canonical_invariant",
-    "title": "",
+    "title": "Job rules: ids only, in-transaction insert, first-step kill switch check",
     "verify_stage": 1
   },
   {

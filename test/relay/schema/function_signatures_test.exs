@@ -79,7 +79,13 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.drr_cancel" => ~w(cancelled none),
     "relay_ops.drr_take" => ~w(dispatched not_leader),
     "relay_ops.drr_weights_refresh" => ~w(refreshed not_leader),
-    "relay_ops.load_shed_record" => ~w(recorded not_leader unchanged)
+    "relay_ops.load_shed_record" => ~w(recorded not_leader unchanged),
+    "relay_fn.kill_switch_engage" =>
+      ~w(engaged exists reason_required ttl_required security_approval_required invalid_scope scope_not_found dead_man_active),
+    "relay_fn.kill_switch_release" =>
+      ~w(released already_released not_found approval_required reason_required),
+    "relay_fn.kill_switch_replace" =>
+      ~w(replaced not_found already_released approval_required reason_required ttl_required)
   }
 
   defp functions do

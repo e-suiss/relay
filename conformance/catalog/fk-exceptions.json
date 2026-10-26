@@ -81,5 +81,27 @@
     "reason": "the version is a row of the installation tenant, so a composite key with the tenant prefix cannot reach it",
     "instead": "nightly reference check: the version exists and belongs to channel_parameters",
     "nightly_check": "channel_parameters_version_missing"
+  },
+  {
+    "table": "deliveries",
+    "columns": [
+      "pause_kill_switch_id"
+    ],
+    "target": "kill_switches",
+    "basis": "structural",
+    "reason": "a platform kill switch lives in the installation tenant, so a composite key with the delivery's tenant cannot reach it",
+    "instead": "nightly reference check: every paused delivery names a kill switch of its own scope or a platform record",
+    "nightly_check": "kill_switch_missing"
+  },
+  {
+    "table": "kill_switches",
+    "columns": [
+      "scope_ref",
+      "target_ref"
+    ],
+    "target": null,
+    "basis": "structural",
+    "reason": "the scope and target references are polymorphic and most of their targets arrive in later stages",
+    "instead": "relay_fn.kill_switch_engage checks that a sub-tenant scope exists; the other references are checked by the stage that adds their table"
   }
 ]

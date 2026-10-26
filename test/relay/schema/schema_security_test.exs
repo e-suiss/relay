@@ -5,11 +5,11 @@ defmodule Relay.Schema.SchemaSecurityTest do
 
   @schemas ["relay", "relay_fn", "relay_ops", "relay_private"]
   @installation_tables ~w(audit_checkpoint_publications audit_checkpoints audit_leaves datasets
-                          installation load_shed_events partition_policies schema_migrations
-                          singleton_tasks)
+                          installation kill_switch_generation load_shed_events partition_policies
+                          schema_migrations singleton_tasks)
   @append_only ~w(audit_checkpoint_publications audit_checkpoints audit_leaves audit_log
                   dataset_versions delivery_events erasure_log load_shed_events usage_records)
-  @shared_read ~w(dataset_active dataset_versions)
+  @shared_read ~w(dataset_active dataset_versions kill_switches)
   @partitioned %{
     "audit_log" => "created_at",
     "dead_letters" => "created_at",
@@ -23,11 +23,11 @@ defmodule Relay.Schema.SchemaSecurityTest do
     {"dead_letters", "replay_depth"},
     {"deliveries", "delivery_rank"},
     {"deliveries", "replay_depth"},
-    {"idempotency_keys", "response_status"}
+    {"idempotency_keys", "response_status"},
+    {"kill_switches", "canary_percent"}
   ]
   @later_stage_references [
     {"dead_letters", "provider_account_id"},
-    {"deliveries", "pause_kill_switch_id"},
     {"deliveries", "provider_account_id"},
     {"deliveries", "target_id"},
     {"delivery_attempts", "provider_account_id"},

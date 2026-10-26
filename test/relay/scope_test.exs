@@ -47,7 +47,9 @@ defmodule Relay.ScopeTest do
                :installation_lookup,
                :fair_dispatch,
                :load_shed,
-               :dead_letter_scope_discovery
+               :dead_letter_scope_discovery,
+               :kill_switch_snapshot,
+               :kill_switch_scopes
              ]
     end
 

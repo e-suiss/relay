@@ -30,6 +30,8 @@ defmodule Relay.Config do
     Relay.Audit,
     Relay.NetworkGuard,
     Relay.Config.SecretFiles,
+    Relay.Tenancy.KillSwitch.Cache,
+    Relay.Policy.Lattice,
     RelayWeb.Metrics,
     Oban
   ]

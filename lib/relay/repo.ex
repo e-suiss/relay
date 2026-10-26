@@ -18,7 +18,9 @@ defmodule Relay.Repo do
     :installation_lookup,
     :fair_dispatch,
     :load_shed,
-    :dead_letter_scope_discovery
+    :dead_letter_scope_discovery,
+    :kill_switch_snapshot,
+    :kill_switch_scopes
   ]
 
   @type tenant_status :: :active | :suspended | :closed
@@ -29,6 +31,8 @@ defmodule Relay.Repo do
           | :fair_dispatch
           | :load_shed
           | :dead_letter_scope_discovery
+          | :kill_switch_snapshot
+          | :kill_switch_scopes
 
   # TN-13 (4)
   @impl Ecto.Repo
@@ -135,7 +139,7 @@ defmodule Relay.Repo do
   # OP-68 (9)
   # sobelow_skip ["SQL.Query"]
   @doc """
-  Runs SQL that crosses tenants through a `relay_ops` escape hatch. The escape names why: `:tenant_bootstrap` creates a tenant before any context can exist, `:outbox_scope_discovery` lists the scopes that have pending outbox rows, without content, `:installation_lookup` reads the installation tenant's identifier, which installation-wide data sets are scoped to (S-3), `:fair_dispatch` lets the DRR dispatcher move waiting jobs of every tenant of a bulk lane into the queue and refresh their weights, by identifiers only, `:load_shed` records and reads the installation-wide load shedding transitions.
+  Runs SQL that crosses tenants through a `relay_ops` escape hatch. The escape names why: `:tenant_bootstrap` creates a tenant before any context can exist, `:outbox_scope_discovery` lists the scopes that have pending outbox rows, without content, `:installation_lookup` reads the installation tenant's identifier, which installation-wide data sets are scoped to (S-3), `:fair_dispatch` lets the DRR dispatcher move waiting jobs of every tenant of a bulk lane into the queue and refresh their weights, by identifiers only, `:load_shed` records and reads the installation-wide load shedding transitions. `:kill_switch_snapshot` reads the full set of kill switch records in force (TN-39) and `:kill_switch_scopes` lists the scopes a platform kill switch's sweep, bulk cancel or the paused expiry visits, by identifier only.
   """
   @spec unscoped_query(escape(), iodata(), [term()], keyword()) ::
           {:ok, Postgrex.Result.t()} | {:error, Exception.t()}

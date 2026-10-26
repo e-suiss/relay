@@ -149,6 +149,12 @@
       "personal_columns": [],
       "tenant_close": "no personal fields",
       "subject_erasure": "no personal fields"
+    },
+    {
+      "table": "kill_switches",
+      "personal_columns": [],
+      "tenant_close": "no personal fields; rows kept as audit evidence",
+      "subject_erasure": "no personal fields"
     }
   ],
   "locations": [

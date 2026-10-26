@@ -35,6 +35,8 @@ config :relay, Relay.Platform.Leadership, enabled: false
 
 config :relay, Relay.Platform.LoadShed, watcher: false
 
+config :relay, Relay.Tenancy.KillSwitch.Cache, enabled: false
+
 config :logger, level: :warning
 
 config :relay, Relay.NetworkGuard, enabled: true

@@ -14,8 +14,7 @@ defmodule Relay.Platform.FanoutSliceTest do
     def page(_scope, fanout, position, range_to, limit) do
       {__MODULE__, fanout.source_id}
       |> :persistent_term.get()
-      |> Enum.filter(&from?(&1, position))
-      |> Enum.filter(&(range_to == nil or &1 < range_to))
+      |> Enum.filter(&(from?(&1, position) and (range_to == nil or &1 < range_to)))
       |> Enum.take(limit)
     end
 

@@ -1,6 +1,6 @@
 defmodule Relay.Platform.FanoutStore do
   @moduledoc """
-  Data access for fan-out tracking through the `relay_fn.fanout_*` functions, and the enqueue of slice jobs in front of the bulk lanes through `relay_fn.drr_enqueue`, inside `Relay.Repo.in_scope/3`.
+  Data access for fan-out tracking through the `relay_fn.fanout_*` functions, inside `Relay.Repo.in_scope/3`.
   """
 
   alias Relay.Actor
@@ -38,36 +38,6 @@ defmodule Relay.Platform.FanoutStore do
       code when code in [:created, :exists] -> {code, row["fanout_id"], row["total_slices"]}
       other -> other
     end
-  end
-
-  # T-21
-  # T-23
-  @doc "Puts a slice job in the tenant's wait table in front of a bulk lane."
-  @spec drr_enqueue(map()) ::
-          :enqueued | :exists | :queued_cap_exceeded | :lane_not_fair | :tenant_inactive
-  def drr_enqueue(job) do
-    [row] =
-      Repo.call!("relay_fn.drr_enqueue", [
-        job.id,
-        Atom.to_string(job.lane),
-        Atom.to_string(job.lane),
-        job.worker,
-        job.args,
-        job.priority,
-        job.cost,
-        job.scheduled_at,
-        "fanout_slice",
-        job.ref_id,
-        job.queued_cap
-      ])
-
-    Repo.code!(row["drr_enqueue"], [
-      :enqueued,
-      :exists,
-      :queued_cap_exceeded,
-      :lane_not_fair,
-      :tenant_inactive
-    ])
   end
 
   # T-23

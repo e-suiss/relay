@@ -4,17 +4,18 @@ defmodule Relay.Platform.Fanout do
 
   Progress lives in `relay.fanouts`, one update per finished slice; the fan-out closes when every slice is terminal: `completed`, or `partial` with a `fanout.partial` event to the tenant when some slices failed or were cancelled; a cancelled fan-out ends `cancelled` (T-23 item 3).
 
-  Slice jobs of the `l1` lane go to its queue directly; those of the bulk lanes `l2` and `l3` wait in the tenant's DRR table (`relay_fn.drr_enqueue`) at priority 5 for the first slice and 6 for the others, in the transaction that creates the fan-out, written in parts of 500 (T-32 item 5, T-36).
+  Slice jobs of the `l1` lane go to its queue directly; those of the bulk lanes `l2` and `l3` wait in the tenant's DRR table (`Relay.Platform.Fairness.Queueing.enqueue/2`) at priority 5 for the first slice and 6 for the others, in the transaction that creates the fan-out, written in parts of 500 (T-32 item 5, T-36).
   """
 
+  alias Relay.Platform.Fairness.Drr
+  alias Relay.Platform.Fairness.Job
+  alias Relay.Platform.Fairness.Queueing
   alias Relay.Platform.FanoutSlice
   alias Relay.Platform.FanoutStore
 
   @slice_size 5_000
   @sub_batch_size 200
   @chunk 500
-  @quantum 5_000
-  @queued_cap 1_000_000
 
   @type mode :: :normal | :bulk | :campaign
 
@@ -81,23 +82,22 @@ defmodule Relay.Platform.Fanout do
   end
 
   defp enqueue_chunk(scope, %{lane: lane} = fanout, id, slices) when lane in [:l2, :l3] do
-    now = Relay.Clock.utc_now()
-
     Enum.each(slices, fn {slice_no, range_from} ->
-      result =
-        FanoutStore.drr_enqueue(%{
-          id: Relay.Id.generate(),
-          lane: lane,
-          worker: worker_name(),
-          args: args(scope, id, slice_no, range_from),
-          priority: priority(slice_no),
-          cost: min(fanout.slice_size, @quantum),
-          scheduled_at: now,
-          ref_id: id,
-          queued_cap: @queued_cap
-        })
+      job = %Job{
+        id: Relay.Id.generate(),
+        lane: lane,
+        worker: FanoutSlice,
+        args: args(scope, id, slice_no, range_from),
+        ref_kind: "fanout_slice",
+        ref_id: id,
+        priority: priority(slice_no),
+        cost: min(fanout.slice_size, Drr.quantum())
+      }
 
-      if result not in [:enqueued, :exists], do: FanoutStore.rollback({:not_queued, result})
+      case Queueing.enqueue(job) do
+        {:ok, result} when result in [:waiting, :exists] -> :ok
+        other -> FanoutStore.rollback({:not_queued, other})
+      end
     end)
   end
 
@@ -113,8 +113,6 @@ defmodule Relay.Platform.Fanout do
 
   defp priority(0), do: 5
   defp priority(_slice_no), do: 6
-
-  defp worker_name, do: FanoutSlice |> Module.split() |> Enum.join(".")
 
   # T-34
   # TN-40

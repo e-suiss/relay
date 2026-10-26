@@ -98,6 +98,7 @@ defmodule Relay.Tenancy.RetentionPeriodsTest do
         row = period(region, sector, "delivery_record", "v2.json")
         assert row["days"] == 730
         assert row["legal_basis"] == "pending legal approval (OP-71.7)"
+        assert RelayDev.Release.pending_legal_approval?(row["legal_basis"])
         assert row["source"] =~ "OP-71 (7)"
         assert row["source"] =~ "the tenant may extend"
         assert row["source"] =~ "Access Appendix C"

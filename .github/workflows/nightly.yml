@@ -29,17 +29,20 @@ jobs:
         working-directory: native/pkcs11_port
       - run: native/build.sh
       - run: mix test --include integration --include nightly
-      - run: mix run bench/fanout_100k.exs | tee fanout-bench.txt
+      - shell: bash
+        run: mix run bench/fanout_100k.exs | tee fanout-bench.txt
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: fanout-bench-${{ github.run_id }}
           path: fanout-bench.txt
-      - run: mix run bench/breaker_open.exs | tee breaker-bench.txt
+      - shell: bash
+        run: mix run bench/breaker_open.exs | tee breaker-bench.txt
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: breaker-bench-${{ github.run_id }}
           path: breaker-bench.txt
-      - run: mix run bench/load_shed_latency.exs | tee load-shed-bench.txt
+      - shell: bash
+        run: mix run bench/load_shed_latency.exs | tee load-shed-bench.txt
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: load-shed-bench-${{ github.run_id }}

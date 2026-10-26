@@ -7261,7 +7261,7 @@
     "section": "§17",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 2
   },
   {
     "acceptance": "pending",
@@ -7821,7 +7821,7 @@
     "section": "§18",
     "status": "frozen_technical",
     "title": "Stage 2 kill switch authority and resume",
-    "verify_stage": null
+    "verify_stage": 2
   },
   {
     "acceptance": "pending",
@@ -8533,7 +8533,7 @@
     "section": "§19",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 2
   },
   {
     "acceptance": "pending",
@@ -8541,7 +8541,7 @@
     "section": "§19",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 2
   },
   {
     "acceptance": "pending",
@@ -8549,7 +8549,7 @@
     "section": "§19",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 2
   },
   {
     "acceptance": "pending",
@@ -8557,7 +8557,7 @@
     "section": "§19",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 2
   },
   {
     "acceptance": "pending",
@@ -9149,7 +9149,7 @@
     "section": "§20",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 2
   },
   {
     "acceptance": "pending",

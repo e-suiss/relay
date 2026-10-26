@@ -78,7 +78,9 @@ defmodule Relay.Agents.WaitpointStore do
   # AG-14
   # AG-13
   @doc "Offers an event to the waitpoints that wait for its type and correlation key."
-  @spec offer(map()) :: [{:matched | :buffered | :unmatched, Relay.Id.t() | nil, Relay.Id.t() | nil}]
+  @spec offer(map()) :: [
+          {:matched | :buffered | :unmatched, Relay.Id.t() | nil, Relay.Id.t() | nil}
+        ]
   def offer(event) do
     for row <-
           Repo.call!("relay_fn.waitpoint_event_offer", [

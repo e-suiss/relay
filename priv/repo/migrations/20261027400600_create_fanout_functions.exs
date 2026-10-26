@@ -5,8 +5,8 @@ defmodule Relay.Repo.Migrations.CreateFanoutFunctions do
 
   @functions [
     {"relay_private.fanout_emit(relay.fanouts)", "relay_migrator", ~w(relay_owner)},
-    {"relay_fn.fanout_create(uuid, text, uuid, text, text, bigint, bigint, uuid[])", "relay_owner",
-     ~w(relay_app)},
+    {"relay_fn.fanout_create(uuid, text, uuid, text, text, bigint, bigint, uuid[])",
+     "relay_owner", ~w(relay_app)},
     {"relay_fn.fanout_slice_begin(uuid, bigint)", "relay_owner", ~w(relay_app)},
     {"relay_fn.fanout_slice_checkpoint(uuid, bigint, uuid, bigint, bigint)", "relay_owner",
      ~w(relay_app)},

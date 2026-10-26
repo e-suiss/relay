@@ -36,7 +36,10 @@ defmodule Relay.Platform.Fanout do
   Creates a fan-out and queues one job per slice in one transaction. `attrs` carries `:id`, `:source_kind`, `:source_id`, `:lane` (`:l1`, `:l2` or `:l3`), `:bounds` (the `n + 1` keyset bounds of `n` slices, `nil` allowed only as the first or last element), and `:mode` or `:recipient_count`; `:slice_size` and `:sub_batch_size` default to 5,000 and 200. A repeated source returns `:exists` and queues nothing.
   """
   @spec create(Relay.Scope.t(), map()) ::
-          {:ok, {:created | :exists, Relay.Id.t(), non_neg_integer()} | :invalid_bounds | :tenant_inactive}
+          {:ok,
+           {:created | :exists, Relay.Id.t(), non_neg_integer()}
+           | :invalid_bounds
+           | :tenant_inactive}
           | {:error, term()}
   def create(%Relay.Scope{} = scope, attrs) do
     fanout =
@@ -140,10 +143,12 @@ defmodule Relay.Platform.Fanout do
   # T-23 (6)
   @doc "Reads a fan-out's progress."
   @spec get(Relay.Scope.t(), Relay.Id.t()) :: {:ok, map() | nil} | {:error, term()}
-  def get(scope, fanout_id), do: FanoutStore.in_scope(scope, fn _ -> FanoutStore.get(fanout_id) end)
+  def get(scope, fanout_id),
+    do: FanoutStore.in_scope(scope, fn _ -> FanoutStore.get(fanout_id) end)
 
   @doc "The source module configured for a source kind."
   @spec source(String.t()) :: module() | nil
   def source(kind) when is_binary(kind),
-    do: :relay |> Application.get_env(__MODULE__, []) |> Keyword.get(:sources, %{}) |> Map.get(kind)
+    do:
+      :relay |> Application.get_env(__MODULE__, []) |> Keyword.get(:sources, %{}) |> Map.get(kind)
 end

@@ -39,7 +39,13 @@ defmodule Relay.Inbox do
 
   # IN-22
   @doc "Moves a reader cursor forward; see `Relay.Inbox.Mailbox.advance_cursor/5`."
-  @spec advance_cursor(Relay.Scope.t(), Relay.Id.t(), String.t(), pos_integer(), non_neg_integer()) ::
+  @spec advance_cursor(
+          Relay.Scope.t(),
+          Relay.Id.t(),
+          String.t(),
+          pos_integer(),
+          non_neg_integer()
+        ) ::
           {:ok, atom()} | {:error, term()}
   defdelegate advance_cursor(scope, mailbox_id, consumer, epoch, seq), to: Mailbox
 
@@ -51,7 +57,12 @@ defmodule Relay.Inbox do
 
   # AG-5
   @doc "Changes a mailbox state; see `Relay.Inbox.Mailbox.set_state/4`."
-  @spec set_mailbox_state(Relay.Scope.t(), Relay.Id.t(), :active | :suspended | :deleted, String.t() | nil) ::
+  @spec set_mailbox_state(
+          Relay.Scope.t(),
+          Relay.Id.t(),
+          :active | :suspended | :deleted,
+          String.t() | nil
+        ) ::
           {:ok, atom()} | {:error, term()}
   defdelegate set_mailbox_state(scope, mailbox_id, state, reason), to: Mailbox, as: :set_state
 end

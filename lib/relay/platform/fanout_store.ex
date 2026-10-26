@@ -18,7 +18,9 @@ defmodule Relay.Platform.FanoutStore do
   # T-23
   @doc "Creates the fan-out and its pending slices from the slice bounds."
   @spec create(map()) ::
-          {:created | :exists, Relay.Id.t(), non_neg_integer()} | :invalid_bounds | :tenant_inactive
+          {:created | :exists, Relay.Id.t(), non_neg_integer()}
+          | :invalid_bounds
+          | :tenant_inactive
   def create(fanout) do
     [row] =
       Repo.call!("relay_fn.fanout_create", [
@@ -88,7 +90,13 @@ defmodule Relay.Platform.FanoutStore do
   # T-23 (1)
   # T-23 (4)
   @doc "Checks the fan-out before a sub-batch (`after` nil) or writes the checkpoint after it."
-  @spec checkpoint(Relay.Id.t(), non_neg_integer(), Relay.Id.t() | nil, non_neg_integer(), non_neg_integer()) ::
+  @spec checkpoint(
+          Relay.Id.t(),
+          non_neg_integer(),
+          Relay.Id.t() | nil,
+          non_neg_integer(),
+          non_neg_integer()
+        ) ::
           :continue | :cancelled | :paused | :not_running
   def checkpoint(fanout_id, slice_no, after_id, processed, failed) do
     [row] =
@@ -108,7 +116,9 @@ defmodule Relay.Platform.FanoutStore do
   @spec slice_finish(Relay.Id.t(), non_neg_integer(), :completed | :failed | :cancelled) ::
           {:finished | :already_terminal | :not_found, String.t() | nil}
   def slice_finish(fanout_id, slice_no, state) do
-    [row] = Repo.call!("relay_fn.fanout_slice_finish", [fanout_id, slice_no, Atom.to_string(state)])
+    [row] =
+      Repo.call!("relay_fn.fanout_slice_finish", [fanout_id, slice_no, Atom.to_string(state)])
+
     {Repo.code!(row["result"], [:finished, :already_terminal, :not_found]), row["fanout_state"]}
   end
 
@@ -135,7 +145,8 @@ defmodule Relay.Platform.FanoutStore do
     [row] =
       Repo.call!("relay_fn.fanout_cancel", [fanout_id, rule_id, digest | Actor.params(actor)])
 
-    {Repo.code!(row["result"], [:cancelled, :already_closed, :not_found]), row["cancelled_slices"]}
+    {Repo.code!(row["result"], [:cancelled, :already_closed, :not_found]),
+     row["cancelled_slices"]}
   end
 
   # T-23 (6)

@@ -31,9 +31,14 @@ defmodule Relay.Platform.VirtualClock do
       end
     end)
     |> case do
-      {:ok, result} -> {:ok, result}
-      {:error, %Relay.Error{} = error} -> {:error, error}
-      {:error, _reason} -> {:error, Relay.Error.new(:database_error, "virtual clock not advanced")}
+      {:ok, result} ->
+        {:ok, result}
+
+      {:error, %Relay.Error{} = error} ->
+        {:error, error}
+
+      {:error, _reason} ->
+        {:error, Relay.Error.new(:database_error, "virtual clock not advanced")}
     end
   end
 

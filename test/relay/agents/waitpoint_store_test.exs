@@ -124,7 +124,10 @@ defmodule Relay.Agents.WaitpointStoreTest do
       ["opened", other, _, nil] = question(ctx)
 
       assert ["no_heartbeat", nil] =
-               row("SELECT * FROM relay_fn.waitpoint_heartbeat($1, 'agent', $2)", [other, ctx.agent])
+               row("SELECT * FROM relay_fn.waitpoint_heartbeat($1, 'agent', $2)", [
+                 other,
+                 ctx.agent
+               ])
     end
 
     test "C-72: a waitpoint is listed while open and cancelled once", ctx do
@@ -153,7 +156,11 @@ defmodule Relay.Agents.WaitpointStoreTest do
          ctx do
       ["opened", id, _, nil] = question(ctx)
       mailbox = waitpoint(id, "waiter_mailbox_id")
-      one("SELECT relay_fn.waitpoint_cancel($1, 'done', $2, $3, $4, $5, $6)", [id, digest() | actor()])
+
+      one("SELECT relay_fn.waitpoint_cancel($1, 'done', $2, $3, $4, $5, $6)", [
+        id,
+        digest() | actor()
+      ])
 
       assert mailbox_events(mailbox) == ["waitpoint.created", "waitpoint.cancelled"]
 
@@ -243,7 +250,12 @@ defmodule Relay.Agents.WaitpointStoreTest do
     test "TN-54: closing a waitpoint frees its place", ctx do
       ["opened", id, _, nil] = question(ctx, waiter_open_cap: 1)
       assert ["limit_exceeded", nil, nil, nil] = question(ctx, waiter_open_cap: 1)
-      one("SELECT relay_fn.waitpoint_cancel($1, 'done', $2, $3, $4, $5, $6)", [id, digest() | actor()])
+
+      one("SELECT relay_fn.waitpoint_cancel($1, 'done', $2, $3, $4, $5, $6)", [
+        id,
+        digest() | actor()
+      ])
+
       assert ["opened", _, _, nil] = question(ctx, waiter_open_cap: 1)
     end
   end

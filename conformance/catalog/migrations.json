@@ -46,5 +46,5 @@
   {"file": "20261027400500_create_waitpoint_functions.exs", "sha256": "eeffc0bc64eef0f2804e2ec6ac30d9de57706afe5995d3d75fd07d692a3c1163"},
   {"file": "20261027400600_create_fanout_functions.exs", "sha256": "592d829491ba99fbbdd43c7a4cf6ae911adb41af3409a1c5deacb3067d055658"},
   {"file": "20261027400700_erase_subject_waitpoints_and_mailbox.exs", "sha256": "e3e8c7dd1ad029e6451cb9c2da5dab1222e6b768f796c2c74cffabd783886585"},
-  {"file": "20261027400800_rebuild_reference_check_for_mailboxes_and_waitpoints.exs", "sha256": "201dd2560645f1aeeb1333aaaf8cd16222c86b7b04fa740fec845808946c2416"}
+  {"file": "20261027400800_rebuild_reference_check_for_mailboxes_and_waitpoints.exs", "sha256": "0c259730c266cc8edeed89193ca2901f344739554778e0d0bda2f101c3553aba"}
 ]

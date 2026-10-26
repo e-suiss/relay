@@ -111,4 +111,31 @@ defmodule RelayDev.Lint.SqlTest do
       assert rules(Sql.run(dir)) == ["at_time_zone"]
     end
   end
+
+  describe "AG-14 exact waitpoint matching" do
+    test "AG-14: pattern matches on waitpoints and mailbox records are rejected", %{tmp_dir: dir} do
+      write!(dir, %{
+        "priv/repo/migrations/1_a.exs" => """
+        SELECT id FROM relay.waitpoints WHERE correlation_key LIKE 'order-%'
+        SELECT id FROM relay.mailbox_records WHERE event_type ~ '^order'
+        WHERE correlation_key ILIKE $1 AND w.id IN (SELECT id FROM relay.waitpoints)
+        SELECT id FROM relay.waitpoints WHERE match_event_type SIMILAR TO 'a%'
+        """
+      })
+
+      assert rules(Sql.run(dir)) == List.duplicate("correlation_match", 4)
+    end
+
+    test "AG-14: exact matches and patterns on other tables are allowed", %{tmp_dir: dir} do
+      write!(dir, %{
+        "priv/repo/migrations/1_a.exs" => """
+        SELECT id FROM relay.waitpoints WHERE correlation_key = $1 AND match_event_type = $2
+        SELECT id FROM relay.mailbox_records WHERE kind = 'early_event'
+        CHECK (tag ~ '^[a-z0-9_.:-]{1,64}$')
+        """
+      })
+
+      assert Sql.run(dir) == []
+    end
+  end
 end

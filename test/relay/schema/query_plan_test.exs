@@ -11,7 +11,8 @@ defmodule Relay.Schema.QueryPlanTest do
      """
      SELECT 1 FROM relay.recipients r
      WHERE r.tenant_id = $1 AND r.environment = $2 AND r.id = $3 AND r.state = 'active'
-     """, ["uuid", "relay.environment", "uuid"], [{"recipients", ["recipients_pkey"]}]},
+     """, ["uuid", "relay.environment", "uuid"],
+     [{"recipients", ["recipients_pkey", "recipients_id_kind_key"]}]},
     {"accept duplicate",
      """
      UPDATE relay.notifications n SET duplicate_count = n.duplicate_count + 1,

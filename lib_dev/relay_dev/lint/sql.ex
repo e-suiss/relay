@@ -1,12 +1,13 @@
 defmodule RelayDev.Lint.Sql do
   @moduledoc """
-  SQL lint. Rejects physical deletes (`DELETE`, `TRUNCATE`, data `DROP`, Ecto deletes and column removal), `AT TIME ZONE`, session or missing-ok tenant context, role switching, LISTEN/NOTIFY and the `oban` queue prefix in migrations and application code. Exceptions live in `conformance/catalog/sql-allow.json` with a reason.
+  SQL lint. Rejects physical deletes (`DELETE`, `TRUNCATE`, data `DROP`, Ecto deletes and column removal), `AT TIME ZONE`, session or missing-ok tenant context, role switching, LISTEN/NOTIFY, the `oban` queue prefix and pattern matching (`LIKE`, `ILIKE`, `SIMILAR TO`, `~`) on a line that names `waitpoints` or `mailbox_records` in migrations and application code. Exceptions live in `conformance/catalog/sql-allow.json` with a reason.
   """
 
   alias RelayDev.Lint
 
   @allowlist "conformance/catalog/sql-allow.json"
   @globs ["priv/repo/migrations/**/*.{exs,sql}", "lib/**/*.{ex,sql}"]
+  @correlation_match ~r/\b(waitpoints|mailbox_records)\b.*(\b(I?LIKE|SIMILAR\s+TO)\b|\s!?~\*?\s)|(\b(I?LIKE|SIMILAR\s+TO)\b|\s!?~\*?\s).*\b(waitpoints|mailbox_records)\b/i
 
   @patterns [
     {"physical_delete", ~r/\bDELETE\s+FROM\b/i, "physical DELETE is forbidden (INV-47, OP-9)"},
@@ -31,7 +32,9 @@ defmodule RelayDev.Lint.Sql do
     {"set_role", ~r/\bSET\s+(LOCAL\s+)?ROLE\b/i,
      "role switching belongs to the maintenance escape hatch (TN-13, OP-68)"},
     {"notify", ~r/\bpg_notify\b|\b(LISTEN|NOTIFY)\s/, "LISTEN/NOTIFY is not used (T-10)"},
-    {"oban_prefix", ~r/prefix:\s*"oban"/, "the job queue lives in relay_queue (T-17)"}
+    {"oban_prefix", ~r/prefix:\s*"oban"/, "the job queue lives in relay_queue (T-17)"},
+    {"correlation_match", @correlation_match,
+     "waitpoints and mailbox records match exactly, never by pattern (AG-14)"}
   ]
 
   # T-69

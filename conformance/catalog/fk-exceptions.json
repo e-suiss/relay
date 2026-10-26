@@ -103,5 +103,27 @@
     "basis": "structural",
     "reason": "the scope and target references are polymorphic and most of their targets arrive in later stages",
     "instead": "relay_fn.kill_switch_engage checks that a sub-tenant scope exists; the other references are checked by the stage that adds their table"
+  },
+  {
+    "table": "waitpoints",
+    "columns": [
+      "resolved_by_record_id"
+    ],
+    "target": "mailbox_records",
+    "basis": "structural",
+    "reason": "the target is partitioned and a foreign key would have to carry its partition key",
+    "instead": "relay_fn.waitpoint_resolve_by_event reads the record in the waiter's mailbox; nightly reference check",
+    "nightly_check": "waitpoint_record_missing"
+  },
+  {
+    "table": "waitpoint_responses",
+    "columns": [
+      "source_record_id"
+    ],
+    "target": "mailbox_records",
+    "basis": "structural",
+    "reason": "the target is partitioned and a foreign key would have to carry its partition key",
+    "instead": "relay_fn.waitpoint_respond reads the early record in the waiter's mailbox; nightly reference check",
+    "nightly_check": "response_record_missing"
   }
 ]

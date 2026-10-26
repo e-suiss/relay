@@ -68,7 +68,10 @@ defmodule Relay.Platform.PartitionMaintenanceDatabaseTest do
     "audit_log" => {"month", 2, 13},
     "dead_letters" => {"month", 2, 13},
     "outbox_events" => {"month", 2, 13},
-    "usage_records" => {"month", 2, 13}
+    "usage_records" => {"month", 2, 13},
+    "mailbox_records" => {"month", 2, 13},
+    "waitpoint_response_rejections" => {"month", 2, 13},
+    "waitpoint_unmatched_events" => {"month", 2, 13}
   }
 
   test "OP-13: the policy seed has daily and monthly tables with a three-day alarm and 90-day or 13-month hot storage" do

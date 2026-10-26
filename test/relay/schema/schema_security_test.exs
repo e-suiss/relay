@@ -8,7 +8,9 @@ defmodule Relay.Schema.SchemaSecurityTest do
                           installation kill_switch_generation load_shed_events partition_policies
                           schema_migrations singleton_tasks)
   @append_only ~w(audit_checkpoint_publications audit_checkpoints audit_leaves audit_log
-                  dataset_versions delivery_events erasure_log load_shed_events usage_records)
+                  dataset_versions delivery_events erasure_log load_shed_events usage_records
+                  waitpoint_responders waitpoint_responses waitpoint_response_rejections
+                  waitpoint_unmatched_events)
   @shared_read ~w(dataset_active dataset_versions kill_switches)
   @partitioned %{
     "audit_log" => "created_at",
@@ -16,8 +18,11 @@ defmodule Relay.Schema.SchemaSecurityTest do
     "delivery_attempts" => "created_at",
     "delivery_events" => "received_at",
     "idempotency_keys" => "created_at",
+    "mailbox_records" => "created_at",
     "outbox_events" => "created_at",
-    "usage_records" => "usage_day"
+    "usage_records" => "usage_day",
+    "waitpoint_response_rejections" => "created_at",
+    "waitpoint_unmatched_events" => "created_at"
   }
   @small_integers [
     {"dead_letters", "replay_depth"},
@@ -32,6 +37,12 @@ defmodule Relay.Schema.SchemaSecurityTest do
     {"deliveries", "target_id"},
     {"delivery_attempts", "provider_account_id"},
     {"delivery_events", "evidence_version_id"},
+    {"fanouts", "source_id"},
+    {"mailbox_records", "source_event_id"},
+    {"mailboxes", "owner_api_client_id"},
+    {"waitpoint_unmatched_events", "source_event_id"},
+    {"waitpoints", "resolved_by_event_id"},
+    {"waitpoints", "waiter_api_client_id"},
     {"webhook_receipts", "provider_account_id"}
   ]
   @roles ~w(relay_owner relay_app relay_api relay_worker relay_queue relay_maint relay_archive
@@ -654,8 +665,11 @@ defmodule Relay.Schema.SchemaSecurityTest do
                ["delivery_attempts" | daily],
                ["delivery_events" | daily],
                ["idempotency_keys" | daily],
+               ["mailbox_records" | monthly],
                ["outbox_events" | monthly],
-               ["usage_records" | monthly]
+               ["usage_records" | monthly],
+               ["waitpoint_response_rejections" | monthly],
+               ["waitpoint_unmatched_events" | monthly]
              ]
     end
 

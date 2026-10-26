@@ -39,6 +39,17 @@
            ]},
           {RelayDev.Credo.LaneOutsideLane,
            [files: %{included: ["lib/"], excluded: ["lib/relay/platform/lane.ex"]}]},
+          {RelayDev.Credo.VirtualOffset,
+           [
+             files: %{
+               included: ["lib/"],
+               excluded: [
+                 "lib/relay/clock/virtual.ex",
+                 "lib/relay/clock/virtual_store.ex",
+                 "lib/relay/platform/virtual_clock_store.ex"
+               ]
+             }
+           ]},
           {RelayDev.Credo.TodoWithIssue, []},
           {RelayDev.Credo.PublicApiDocs, [files: %{included: ["lib/"]}]},
           {RelayDev.Credo.MailboxRules, [files: %{included: ["lib/"]}]},

@@ -46,12 +46,14 @@ defmodule Relay.Inbox.MailboxOrderTest do
         1..@writers
         |> Task.async_stream(
           fn writer ->
-            Sandbox.unboxed_run(Repo, fn ->
-              for n <- 1..@per_writer do
-                {:ok, {:appended, 1, seq}} = Mailbox.append(scope, record(mailbox, writer, n))
-                seq
-              end
-            end)
+            for n <- 1..@per_writer do
+              {:ok, {:appended, 1, seq}} =
+                Sandbox.unboxed_run(Repo, fn ->
+                  Mailbox.append(scope, record(mailbox, writer, n))
+                end)
+
+              seq
+            end
           end,
           max_concurrency: @writers,
           timeout: :infinity

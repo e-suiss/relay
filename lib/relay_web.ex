@@ -4,7 +4,7 @@ defmodule RelayWeb do
   """
 
   use Boundary,
-    deps: [Relay, Relay.Platform, Relay.Tenancy.KillSwitch],
+    deps: [Relay, Relay.Platform, Relay.Tenancy.KillSwitch, Relay.Datasets],
     exports: [Endpoint, Metrics, Telemetry]
 
   @doc false

@@ -35,6 +35,15 @@ defmodule Relay.Tenancy.KillSwitch do
 
   @batch 500
   @pausing [:off, :canary, :paused_until]
+  @classes [
+    :security,
+    :transactional,
+    :action_required,
+    :operational,
+    :system,
+    :social,
+    :marketing
+  ]
 
   @type operator :: Authz.actor()
   @type result :: {:ok, map()} | {:error, atom()}
@@ -181,7 +190,7 @@ defmodule Relay.Tenancy.KillSwitch do
 
     case result do
       {:ok, {code, id, generation}} when code in [:engaged, :exists, :dead_man_active] ->
-        if code == :engaged, do: announce(generation)
+        if code == :engaged, do: announce(generation, attrs)
         {:ok, %{result: code, id: id && Record.external_id(id), generation: generation}}
 
       {:ok, {code, _id, _generation}} ->
@@ -245,7 +254,7 @@ defmodule Relay.Tenancy.KillSwitch do
 
     case result do
       {:ok, {:replaced, kill_switch_id, generation}} ->
-        announce(generation)
+        announce(generation, old)
 
         {:ok,
          %{
@@ -283,7 +292,7 @@ defmodule Relay.Tenancy.KillSwitch do
 
       case result do
         {:ok, {:released, generation}} ->
-          announce(generation)
+          announce(generation, record)
           {:ok, %{result: :released, id: Record.external_id(record.id), generation: generation}}
 
         {:ok, {code, _generation}} ->
@@ -585,6 +594,65 @@ defmodule Relay.Tenancy.KillSwitch do
     )
 
     write_engage(scope, attrs, actor)
+  end
+
+  defp announce(generation, changed) do
+    :ok = announce(generation)
+    sync_queues(changed)
+  end
+
+  # TN-40 (2)
+  defp sync_queues(%{scope_kind: :platform} = changed) do
+    affected = lanes(changed.message_class)
+
+    required =
+      case Store.snapshot() do
+        {:ok, _generation, records} ->
+          now = Relay.Clock.utc_now()
+
+          records
+          |> Enum.filter(&(&1.scope_kind == :platform and queue_pausing?(&1, now)))
+          |> Enum.flat_map(&lanes(&1.message_class))
+
+        {:error, _error} ->
+          affected
+      end
+
+    for lane <- affected, do: queue(if(lane in required, do: :pause, else: :resume), lane)
+    :ok
+  end
+
+  defp sync_queues(_changed), do: :ok
+
+  defp queue_pausing?(%Record{state: :off} = record, now), do: Record.in_force?(record, now)
+
+  defp queue_pausing?(%Record{state: :paused_until, paused_until: until} = record, now),
+    do: Record.in_force?(record, now) and (until == nil or DateTime.compare(until, now) == :gt)
+
+  defp queue_pausing?(%Record{}, _now), do: false
+
+  defp lanes(nil),
+    do: @classes |> List.delete(:security) |> Enum.map(&Relay.Platform.lane/1) |> Enum.uniq()
+
+  defp lanes(class) do
+    case Enum.find(@classes, &(Atom.to_string(&1) == to_string(class))) do
+      nil -> []
+      atom -> [Relay.Platform.lane(atom)]
+    end
+  end
+
+  defp queue(action, lane) do
+    opts = [queue: lane, local_only: false]
+    _ = if action == :pause, do: Oban.pause_queue(opts), else: Oban.resume_queue(opts)
+    :ok
+  rescue
+    exception ->
+      Logger.warning("kill switch queue #{action} not sent",
+        lane: lane,
+        error: Exception.message(exception)
+      )
+
+      :ok
   end
 
   defp announce(generation) do

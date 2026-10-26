@@ -10,6 +10,8 @@ defmodule Relay.Application do
       Relay.Tenancy,
       Relay.Keys.Eviction,
       Relay.Datasets,
+      Relay.Channels,
+      Relay.Delivery,
       RelayWeb
     ]
 
@@ -28,6 +30,7 @@ defmodule Relay.Application do
     observe_heap_size()
     log_vm_topology()
     Relay.Platform.attach_telemetry()
+    attach_auto_replay()
 
     children =
       [Relay.Config.SecretFiles] ++
@@ -42,6 +45,7 @@ defmodule Relay.Application do
         ] ++
         Relay.Keys.children() ++
         Relay.Platform.children() ++
+        Relay.Channels.children() ++
         Relay.Tenancy.children() ++
         [Relay.Keys.Eviction] ++
         Relay.Datasets.children() ++
@@ -60,6 +64,12 @@ defmodule Relay.Application do
   def config_change(changed, _new, removed) do
     RelayWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  # T-29 (6)
+  defp attach_auto_replay do
+    if Keyword.get(Application.get_env(:relay, Relay.Delivery, []), :auto_replay, true),
+      do: Relay.Delivery.attach_auto_replay()
   end
 
   # T-83

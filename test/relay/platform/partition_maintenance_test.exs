@@ -66,6 +66,7 @@ defmodule Relay.Platform.PartitionMaintenanceDatabaseTest do
     "delivery_attempts" => {"day", 14, 90},
     "idempotency_keys" => {"day", 14, 90},
     "audit_log" => {"month", 2, 13},
+    "dead_letters" => {"month", 2, 13},
     "outbox_events" => {"month", 2, 13},
     "usage_records" => {"month", 2, 13}
   }

@@ -17,7 +17,8 @@ defmodule Relay.Repo do
     :outbox_scope_discovery,
     :installation_lookup,
     :fair_dispatch,
-    :load_shed
+    :load_shed,
+    :dead_letter_scope_discovery
   ]
 
   @type tenant_status :: :active | :suspended | :closed
@@ -27,6 +28,7 @@ defmodule Relay.Repo do
           | :installation_lookup
           | :fair_dispatch
           | :load_shed
+          | :dead_letter_scope_discovery
 
   # TN-13 (4)
   @impl Ecto.Repo

@@ -45,6 +45,11 @@ table relay.dataset_versions relay_archive SELECT
 table relay.dataset_versions relay_maint SELECT
 table relay.dataset_versions relay_owner INSERT,SELECT
 table relay.dataset_versions relay_report SELECT
+table relay.dead_letters relay_app SELECT
+table relay.dead_letters relay_archive SELECT
+table relay.dead_letters relay_maint SELECT
+table relay.dead_letters relay_owner INSERT,SELECT,UPDATE
+table relay.dead_letters relay_report SELECT
 table relay.datasets relay_app SELECT
 table relay.datasets relay_archive SELECT
 table relay.datasets relay_maint SELECT

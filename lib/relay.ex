@@ -37,6 +37,7 @@ defmodule Relay do
       Crypto,
       Canonical,
       Jitter,
+      ChannelParameters,
       Release,
       Worker,
       NetworkGuard,

@@ -46,5 +46,40 @@
     "reason": "an installation table pointing at a partitioned tenant table",
     "instead": "nightly orphan check; tree roots are recomputed from the audit records",
     "nightly_check": "audit_leaf_without_record"
+  },
+  {
+    "table": "dead_letters",
+    "columns": [
+      "replay_of_id",
+      "replay_of_created_at"
+    ],
+    "target": "dead_letters",
+    "basis": "structural",
+    "reason": "the target is partitioned and a foreign key would have to carry its partition key",
+    "instead": "relay_fn.dead_letter_record copies the reference from the delivery; nightly reference check",
+    "nightly_check": "dead_letter_replay_of_missing"
+  },
+  {
+    "table": "deliveries",
+    "columns": [
+      "replay_dead_letter_id",
+      "replay_dead_letter_created_at"
+    ],
+    "target": "dead_letters",
+    "basis": "structural",
+    "reason": "the target is partitioned and a foreign key would have to carry its partition key",
+    "instead": "relay_fn.dead_letter_replay writes the reference; nightly reference check",
+    "nightly_check": "replay_dead_letter_missing"
+  },
+  {
+    "table": "dead_letters",
+    "columns": [
+      "channel_parameters_version_id"
+    ],
+    "target": "dataset_versions",
+    "basis": "structural",
+    "reason": "the version is a row of the installation tenant, so a composite key with the tenant prefix cannot reach it",
+    "instead": "nightly reference check: the version exists and belongs to channel_parameters",
+    "nightly_check": "channel_parameters_version_missing"
   }
 ]

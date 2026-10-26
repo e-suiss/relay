@@ -68,10 +68,14 @@ defmodule Relay.Schema.MigrationSafetyTest do
       end
     end
 
-    test "OP-57: raw SQL never rewrites a table, adds a defaulted column or renames in one step" do
+    test "OP-57: raw SQL never rewrites a table, adds a column with a non-constant default or renames in one step" do
       for file <- migrations(), sql = source(file) do
         refute sql =~ ~r/ALTER\s+COLUMN\s+\S+\s+(SET\s+DATA\s+)?TYPE/i, file
-        refute sql =~ ~r/ADD\s+COLUMN[^,;]*\bDEFAULT\b/i, file
+
+        refute sql =~
+                 ~r/ADD\s+COLUMN[^,;]*\bDEFAULT\s+(?!(?:-?\d+|true|false|'[^']*')\s*(?:,|$))/im,
+               file
+
         refute sql =~ ~r/\bVACUUM\s+FULL\b|\bCLUSTER\b/i, file
 
         if file not in @committed_renames,

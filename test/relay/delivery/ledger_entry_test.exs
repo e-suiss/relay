@@ -26,9 +26,11 @@ defmodule Relay.Delivery.LedgerEntryTest do
       assert Enum.at(params, 10) == 1
     end
 
-    test "C-32: the event names are the closed set of this stage" do
+    test "C-32, TN-40, T-29: the event names are the closed set of this stage" do
       assert Ledger.event_types() ==
                ~w(delivery.queued delivery.skipped delivery.deferred delivery.cancelled
+                  delivery.paused delivery.resumed delivery.held delivery.expired
+                  delivery.dead_lettered delivery.replay_opened
                   attempt.started attempt.succeeded attempt.failed attempt.unknown)
     end
 

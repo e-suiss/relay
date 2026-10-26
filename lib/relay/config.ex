@@ -26,6 +26,7 @@ defmodule Relay.Config do
     Relay.Platform.LoadShed,
     Relay.Platform.MaintRepo,
     Relay.Platform.Leadership,
+    Relay.Delivery,
     Relay.Audit,
     Relay.NetworkGuard,
     Relay.Config.SecretFiles,

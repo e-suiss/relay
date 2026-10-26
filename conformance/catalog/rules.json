@@ -5129,6 +5129,22 @@
   },
   {
     "acceptance": "pending",
+    "id": "CH-69",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-70",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
     "id": "PC-1",
     "section": "§13",
     "status": "canonical_invariant",

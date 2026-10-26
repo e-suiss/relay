@@ -46,7 +46,8 @@ defmodule Relay.ScopeTest do
                :outbox_scope_discovery,
                :installation_lookup,
                :fair_dispatch,
-               :load_shed
+               :load_shed,
+               :dead_letter_scope_discovery
              ]
     end
 

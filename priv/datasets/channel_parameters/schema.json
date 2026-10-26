@@ -1,0 +1,477 @@
+{
+  "$defs": {
+    "channel": {
+      "enum": [
+        "push",
+        "web_push",
+        "email",
+        "sms",
+        "voice",
+        "whatsapp",
+        "slack",
+        "teams",
+        "telegram",
+        "discord",
+        "in_app",
+        "webhook"
+      ]
+    },
+    "condition": {
+      "enum": [
+        "server_error",
+        "timeout",
+        "rate_limited",
+        "pair_rate_limited"
+      ]
+    },
+    "failure_class": {
+      "enum": [
+        "transient",
+        "permanent_target",
+        "permanent_content",
+        "policy",
+        "quota",
+        "auth",
+        "sender_config",
+        "unknown"
+      ]
+    },
+    "lane": {
+      "enum": [
+        "l0",
+        "l1",
+        "l2",
+        "l3"
+      ]
+    },
+    "provider": {
+      "pattern": "^[a-z][a-z0-9_]{1,31}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Retry backoff, circuit breaker, failure weight, retry budget, credit lease and lane ceiling parameters of the channels. Ratios are basis points (10000 = 100 %), durations are milliseconds; a null key field matches every value.",
+  "properties": {
+    "backoff": {
+      "items": {
+        "additionalProperties": false,
+        "else": {
+          "properties": {
+            "default_retry_after_ms": {
+              "type": "integer"
+            }
+          }
+        },
+        "if": {
+          "properties": {
+            "mode": {
+              "const": "exponential"
+            }
+          }
+        },
+        "properties": {
+          "base_ms": {
+            "anyOf": [
+              {
+                "maximum": 86400000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cap_ms": {
+            "anyOf": [
+              {
+                "maximum": 86400000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "channel": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/channel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "condition": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/condition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "default_retry_after_ms": {
+            "anyOf": [
+              {
+                "maximum": 86400000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failure_class": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/failure_class"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_attempts": {
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "message_class": {
+            "enum": [
+              "security",
+              null
+            ]
+          },
+          "mode": {
+            "enum": [
+              "exponential",
+              "retry_after"
+            ]
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/provider"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "channel",
+          "provider",
+          "failure_class",
+          "condition",
+          "message_class",
+          "mode",
+          "base_ms",
+          "cap_ms",
+          "default_retry_after_ms",
+          "max_attempts",
+          "source"
+        ],
+        "then": {
+          "properties": {
+            "base_ms": {
+              "type": "integer"
+            },
+            "cap_ms": {
+              "type": "integer"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "breakers": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/channel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failure_ratio_bp": {
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "half_open_probes": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "half_open_successes": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "min_throughput": {
+            "maximum": 100000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "open_jitter_bp": {
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "open_ms": {
+            "maximum": 86400000,
+            "minimum": 1000,
+            "type": "integer"
+          },
+          "p99_latency_ms": {
+            "anyOf": [
+              {
+                "maximum": 600000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/provider"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "window_ms": {
+            "maximum": 3600000,
+            "minimum": 1000,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel",
+          "provider",
+          "window_ms",
+          "min_throughput",
+          "failure_ratio_bp",
+          "open_ms",
+          "open_jitter_bp",
+          "half_open_probes",
+          "half_open_successes",
+          "p99_latency_ms",
+          "source"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "credit_leases": {
+      "items": {
+        "additionalProperties": false,
+        "if": {
+          "properties": {
+            "allowed": {
+              "const": true
+            }
+          }
+        },
+        "properties": {
+          "allowed": {
+            "type": "boolean"
+          },
+          "block_size": {
+            "anyOf": [
+              {
+                "maximum": 10000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "channel": {
+            "$ref": "#/$defs/channel"
+          }
+        },
+        "required": [
+          "channel",
+          "allowed",
+          "block_size"
+        ],
+        "then": {
+          "properties": {
+            "block_size": {
+              "type": "integer"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "failure_weights": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "condition": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/condition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failure_class": {
+            "$ref": "#/$defs/failure_class"
+          },
+          "level": {
+            "enum": [
+              "tenant_provider",
+              "provider"
+            ]
+          },
+          "weight_milli": {
+            "maximum": 100000,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "failure_class",
+          "condition",
+          "weight_milli",
+          "level"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "lane_ceilings": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "ceiling_bp": {
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "lane": {
+            "$ref": "#/$defs/lane"
+          }
+        },
+        "required": [
+          "lane",
+          "ceiling_bp"
+        ],
+        "type": "object"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "type": "array"
+    },
+    "retry_budgets": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "channel": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/channel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "max_ratio_bp": {
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "min_retries": {
+            "anyOf": [
+              {
+                "maximum": 100000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "window_ms": {
+            "maximum": 3600000,
+            "minimum": 1000,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel",
+          "window_ms",
+          "max_ratio_bp",
+          "min_retries",
+          "source"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "source_ref": {
+      "maxLength": 512,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "source_ref",
+    "backoff",
+    "breakers",
+    "failure_weights",
+    "retry_budgets",
+    "credit_leases",
+    "lane_ceilings"
+  ],
+  "title": "channel_parameters",
+  "type": "object"
+}

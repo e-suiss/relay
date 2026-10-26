@@ -75,6 +75,7 @@ defmodule Relay.Datasets.Package do
     Enum.reduce_while(numbers, {:ok, []}, fn no, {:ok, acc} ->
       with {:ok, content} <- json(dir, name, "v#{no}.json"),
            :ok <- with_name(Schema.validate(root, content), name),
+           :ok <- with_name(Relay.Datasets.consistent(name, content), name),
            {:ok, digest} <- with_name(Schema.digest(content), name) do
         {:cont, {:ok, [%{no: no, content: content, digest: digest} | acc]}}
       else

@@ -12,14 +12,22 @@ defmodule Relay.Schema.SchemaSecurityTest do
   @shared_read ~w(dataset_active dataset_versions)
   @partitioned %{
     "audit_log" => "created_at",
+    "dead_letters" => "created_at",
     "delivery_attempts" => "created_at",
     "delivery_events" => "received_at",
     "idempotency_keys" => "created_at",
     "outbox_events" => "created_at",
     "usage_records" => "usage_day"
   }
-  @small_integers [{"deliveries", "delivery_rank"}, {"idempotency_keys", "response_status"}]
+  @small_integers [
+    {"dead_letters", "replay_depth"},
+    {"deliveries", "delivery_rank"},
+    {"deliveries", "replay_depth"},
+    {"idempotency_keys", "response_status"}
+  ]
   @later_stage_references [
+    {"dead_letters", "provider_account_id"},
+    {"deliveries", "pause_kill_switch_id"},
     {"deliveries", "provider_account_id"},
     {"deliveries", "target_id"},
     {"delivery_attempts", "provider_account_id"},
@@ -642,6 +650,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
 
       assert seeded == [
                ["audit_log" | monthly],
+               ["dead_letters" | monthly],
                ["delivery_attempts" | daily],
                ["delivery_events" | daily],
                ["idempotency_keys" | daily],

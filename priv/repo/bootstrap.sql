@@ -104,6 +104,8 @@ DECLARE
     "relay_ops.dead_letter_auto_replay_scopes": ["relay_worker"],
     "relay_ops.drr_take": ["relay_worker"],
     "relay_ops.drr_weights_refresh": ["relay_worker"],
+    "relay_ops.kill_switch_scopes": ["relay_worker"],
+    "relay_ops.kill_switch_snapshot": ["relay_api", "relay_worker"],
     "relay_ops.load_shed_record": ["relay_worker"],
     "relay_ops.load_shed_state": ["relay_app"],
     "relay_ops.orphan_check": [],

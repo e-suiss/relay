@@ -36,6 +36,12 @@
     "reason": "INV-6, INV-49: the append-only trigger rejects TRUNCATE on append-only partitions"
   },
   {
+    "path": "priv/repo/migrations/20261027300000_create_kill_switches.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "TN-41, INV-49: the kill switch guard rejects TRUNCATE on kill switch records"
+  },
+  {
     "path": "lib/relay/platform/queue/pruner_store.ex",
     "rule": "physical_delete",
     "match": "DELETE FROM relay_queue.oban_jobs",

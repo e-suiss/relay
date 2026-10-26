@@ -30,7 +30,8 @@ config :relay, Relay.Platform.Leadership,
     {"projection_rebuild", Relay.Delivery.ProjectionRebuild, []},
     {"audit_readback", Relay.Audit.Checkpointer.Readback, [sensitive: true]},
     {"drr_dispatcher", Relay.Platform.Fairness.Dispatcher, []},
-    {"load_shed_controller", Relay.Platform.LoadShed.Controller, []}
+    {"load_shed_controller", Relay.Platform.LoadShed.Controller, []},
+    {"kill_switch_paused_expiry", Relay.Tenancy.KillSwitch.Expiry, []}
   ]
 
 config :relay, Relay.Audit,

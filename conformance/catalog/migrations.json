@@ -34,5 +34,8 @@
   {"file": "20261027200400_create_dead_letters.exs", "sha256": "6d60ebdbe2ca296e65ef262489b5dfb276aab3bc1f12c81ab6072d5e732307e2"},
   {"file": "20261027200500_extend_delivery_functions.exs", "sha256": "21ec59fbaa5649e2203c3f01c5c479f63af66b626f4be46fb4b1bb5bae52751b"},
   {"file": "20261027200600_create_dead_letter_functions.exs", "sha256": "fc9c3d93280b29e28ddd24d404b7493dc00796b51abd30c943975c031cee0642"},
-  {"file": "20261027200700_rebuild_reference_check_for_dead_letters.exs", "sha256": "d862f71a3617de10ca237b218d541fed65d5cb27fb2e1caff32bd39a16ea21cb"}
+  {"file": "20261027200700_rebuild_reference_check_for_dead_letters.exs", "sha256": "d862f71a3617de10ca237b218d541fed65d5cb27fb2e1caff32bd39a16ea21cb"},
+  {"file": "20261027300000_create_kill_switches.exs", "sha256": "f9beaa418552924667b9db4e0cee04ad3012f27e147a9687c2df8b0baa92ce7d"},
+  {"file": "20261027300100_create_kill_switch_functions.exs", "sha256": "2118e3ccb47327da96792431965ec15406fd9c350f67a8dceb093628d10d0283"},
+  {"file": "20261027300200_recreate_reference_check_for_kill_switches.exs", "sha256": "e9254d3c29dd6fcdd4e9f07a551bfb6c2a061d7c94530cc4591df7a90447e1b0"}
 ]

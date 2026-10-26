@@ -81,6 +81,15 @@ table relay.installation relay_app SELECT
 table relay.installation relay_archive SELECT
 table relay.installation relay_maint SELECT
 table relay.installation relay_owner SELECT
+table relay.kill_switch_generation relay_app SELECT
+table relay.kill_switch_generation relay_archive SELECT
+table relay.kill_switch_generation relay_maint SELECT
+table relay.kill_switch_generation relay_owner SELECT,UPDATE
+table relay.kill_switches relay_app SELECT
+table relay.kill_switches relay_archive SELECT
+table relay.kill_switches relay_maint SELECT
+table relay.kill_switches relay_owner INSERT,SELECT,UPDATE
+table relay.kill_switches relay_report SELECT
 table relay.legal_holds relay_app SELECT
 table relay.legal_holds relay_archive SELECT
 table relay.legal_holds relay_maint SELECT

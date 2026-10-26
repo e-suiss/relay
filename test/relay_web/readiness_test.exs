@@ -4,6 +4,8 @@ defmodule RelayWeb.ReadinessTest do
   import Mox
 
   alias Ecto.Adapters.SQL.Sandbox
+  alias Relay.Tenancy.KillSwitch.Cache
+  alias Relay.Tenancy.KillSwitch.Snapshot
 
   @moduletag :integration
 
@@ -21,8 +23,18 @@ defmodule RelayWeb.ReadinessTest do
   end
 
   test "T-63: readiness checks PostgreSQL and the key store", %{conn: conn} do
+    Cache.put(Snapshot.new(0, []))
+    on_exit(fn -> Cache.forget() end)
     expect(Relay.KeysMock, :ping, fn -> :ok end)
     assert %{"status" => "ok"} = conn |> get("/readyz") |> json_response(200)
+  end
+
+  test "TN-38: a node that has not read the kill switch state is not ready", %{conn: conn} do
+    Cache.forget()
+    expect(Relay.KeysMock, :ping, fn -> :ok end)
+
+    assert %{"status" => "kill_switch_unknown"} =
+             conn |> get("/readyz") |> json_response(503)
   end
 
   test "TN-66: a key store that does not answer makes the node unready", %{conn: conn} do

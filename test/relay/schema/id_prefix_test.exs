@@ -33,6 +33,19 @@ defmodule Relay.Schema.IdPrefixTest do
       for table <- @stage_one_tables, do: assert(table in tables, table)
     end
 
+    test "API-9: the stage two record tables have their prefixes" do
+      for {prefix, table} <- [
+            {"dlq", "dead_letters"},
+            {"ksw", "kill_switches"},
+            {"fan", "fanouts"},
+            {"mbx", "mailboxes"},
+            {"mbr", "mailbox_records"},
+            {"wp", "waitpoints"},
+            {"wpr", "waitpoint_responses"}
+          ],
+          do: assert(ExternalId.table(prefix) == {:ok, table})
+    end
+
     test "API-72: an identifier is the prefix and 26 lowercase Crockford base32 characters" do
       text = ExternalId.encode("ntf", id())
       assert text =~ ~r/^ntf_[0-9abcdefghjkmnpqrstvwxyz]{26}$/

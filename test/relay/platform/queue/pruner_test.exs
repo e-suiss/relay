@@ -68,6 +68,12 @@ defmodule Relay.Platform.Queue.PrunerTest do
       assert {:ok, 2} = PrunerStore.prune(completed, cancelled, 2)
     end
 
+    test "OP-74: each run prunes every ephemeral queue table in order and counts its rows" do
+      assert {:ok, counts} = PrunerStore.prune_ephemeral(1_000)
+      assert Enum.map(counts, &elem(&1, 0)) == PrunerStore.ephemeral_tables()
+      assert Enum.all?(counts, fn {_table, count} -> is_integer(count) and count >= 0 end)
+    end
+
     test "OP-12: the queue role cannot reach the application schema" do
       assert {:error, %Postgrex.Error{}} =
                QueueRepo.transaction(fn ->

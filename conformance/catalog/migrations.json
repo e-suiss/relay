@@ -21,5 +21,6 @@
   {"file": "20261023100000_register_retention_periods.exs", "sha256": "c5ad51cc91b5a72702815c331ce80706bafcea8c3ca29cc75713965e9a8d03f4"},
   {"file": "20261023200000_add_installation_jsonb_size_checks.exs", "sha256": "8c4e14006ec91a2449fe2975e39a89bd78179317d67be4572e09dc154655e24c"},
   {"file": "20261023200100_validate_installation_jsonb_size_checks.exs", "sha256": "5cac6fb7e2735c7c29a244719ef1d4158643af5b3bf51419b4ab9dc11a3f5f4c"},
-  {"file": "20261026000000_create_notifications_recipient_statistics.exs", "sha256": "35a18655bf96ba8ce5354e6ff8f21319212f382fca2b943e7e19e01429772243"}
+  {"file": "20261026000000_create_notifications_recipient_statistics.exs", "sha256": "35a18655bf96ba8ce5354e6ff8f21319212f382fca2b943e7e19e01429772243"},
+  {"file": "20261027000000_create_platform_domains.exs", "sha256": "50cd2e9c2b56549a239e9f0aa86111b0af7f3aa9c8ca8a033db4c9bf68c608c8"}
 ]

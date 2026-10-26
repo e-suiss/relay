@@ -1,6 +1,6 @@
 defmodule Relay.Platform.Queue.Pruner do
   @moduledoc """
-  Relay's queue cleaner, used instead of `Oban.Plugins.Pruner`. On the leader only, it periodically removes `completed` jobs a day after completion and `cancelled` jobs seven days after cancellation, through the `relay_queue` role; `discarded` jobs are never removed here (OP-12).
+  Relay's queue cleaner, used instead of `Oban.Plugins.Pruner`. On the leader only, it periodically removes `completed` jobs a day after completion and `cancelled` jobs seven days after cancellation, through the `relay_queue` role; `discarded` jobs are never removed here (OP-12). Each run then removes expired rows of the ephemeral `relay_queue` tables (OP-74).
 
   Options: `:interval` (ms, default 60 000), `:limit` (rows per run, default 10 000), `:completed_after` and `:cancelled_after` (ms).
   """
@@ -76,10 +76,24 @@ defmodule Relay.Platform.Queue.Pruner do
 
     case PrunerStore.prune(completed, cancelled, state[:limit]) do
       {:ok, count} ->
-        :telemetry.execute([:relay, :queue, :pruned], %{count: count}, %{})
+        :telemetry.execute([:relay, :queue, :pruned], %{count: count}, %{table: "oban_jobs"})
 
       {:error, error} ->
         Logger.warning("queue cleaner failed", error: inspect(error.__struct__))
+    end
+
+    prune_ephemeral(state)
+  end
+
+  # OP-74
+  defp prune_ephemeral(state) do
+    case PrunerStore.prune_ephemeral(state[:limit]) do
+      {:ok, counts} ->
+        for {table, count} <- counts,
+            do: :telemetry.execute([:relay, :queue, :pruned], %{count: count}, %{table: table})
+
+      {:error, table, error} ->
+        Logger.warning("queue cleaner failed", table: table, error: inspect(error.__struct__))
     end
   end
 

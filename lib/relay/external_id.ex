@@ -29,7 +29,13 @@ defmodule Relay.ExternalId do
     {"evt", "events"},
     {"wfl", "workflows"},
     {"tpl", "templates"},
-    {"wp", "waitpoints"}
+    {"wp", "waitpoints"},
+    {"wpr", "waitpoint_responses"},
+    {"dlq", "dead_letters"},
+    {"ksw", "kill_switches"},
+    {"fan", "fanouts"},
+    {"mbx", "mailboxes"},
+    {"mbr", "mailbox_records"}
   ]
   @by_prefix Map.new(@tables)
 

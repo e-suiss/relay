@@ -42,6 +42,18 @@
     "reason": "OP-12: relay_queue prunes completed or cancelled jobs whose result is in a permanent record"
   },
   {
+    "path": "lib/relay/platform/queue/pruner_store.ex",
+    "rule": "physical_delete",
+    "match": "DELETE FROM relay_queue.limiter_states",
+    "reason": "OP-74 / OP-12: relay_queue prunes expired ephemeral counter and wait state that carries only ids"
+  },
+  {
+    "path": "lib/relay/platform/queue/pruner_store.ex",
+    "rule": "physical_delete",
+    "match": "DELETE FROM relay_queue.concurrency_slots",
+    "reason": "OP-74 / OP-12: relay_queue prunes expired ephemeral counter and wait state that carries only ids"
+  },
+  {
     "path": "lib/relay/platform/queue/peer_store.ex",
     "rule": "physical_delete",
     "match": "DELETE FROM relay_queue.oban_peers",

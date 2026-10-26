@@ -7,6 +7,7 @@ defmodule Relay.Platform do
 
   alias Relay.Platform.Admission
   alias Relay.Platform.Backend
+  alias Relay.Platform.Concurrency
   alias Relay.Platform.Fairness.Job
   alias Relay.Platform.Fairness.Queueing
   alias Relay.Platform.Lane
@@ -15,6 +16,7 @@ defmodule Relay.Platform do
   alias Relay.Platform.OutboxDispatcher
   alias Relay.Platform.OutboxStore
   alias Relay.Platform.Queue
+  alias Relay.Platform.RateLimit
   alias Relay.Platform.Signal
   alias Relay.Platform.Store
   alias Relay.Platform.Valkey
@@ -46,7 +48,7 @@ defmodule Relay.Platform do
   # OP-69 (1)
   # T-32 (3)
   # T-34
-  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the signal hub, the load shedding watcher and the job queue; a worker node also runs the queue maintenance connection, the bulk write pool with its own role check and the outbox dispatcher. A failed role or ownership check stops the node."
+  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the node's credit block table, the concurrency slot keeper, the signal hub, the load shedding watcher and the job queue; a worker node also runs the queue maintenance connection, the bulk write pool with its own role check and the outbox dispatcher. A failed role or ownership check stops the node."
   @spec children() :: [Supervisor.child_spec() | {module(), term()} | module()]
   def children do
     valkey = Application.fetch_env!(:relay, Valkey)
@@ -59,6 +61,8 @@ defmodule Relay.Platform do
       {Keyword.fetch!(valkey, :adapter), Keyword.delete(valkey, :adapter)},
       Valkey.Guard,
       Backend,
+      RateLimit.CreditLease,
+      Concurrency.Keeper,
       Signal.Hub
     ] ++
       if(load_shed_watcher?(), do: [LoadShed.Watcher], else: []) ++
@@ -203,4 +207,84 @@ defmodule Relay.Platform do
       :bulk -> Relay.BulkRepo.run(fun)
     end
   end
+
+  # T-19
+  # T-20 (6)
+  # CH-17
+  @doc "Builds a rate limit definition; see `Relay.Platform.RateLimit.Limit.new/1`."
+  @spec rate_limit(map() | keyword()) :: {:ok, RateLimit.Limit.t()} | {:error, Relay.Error.t()}
+  def rate_limit(attrs), do: RateLimit.Limit.new(attrs)
+
+  # T-19
+  # T-20
+  # INV-44
+  @doc "Decides one rate-limited request; see `Relay.Platform.RateLimit.check/6`."
+  @spec rate_limit_check(
+          Relay.Scope.t(),
+          RateLimit.Limit.t(),
+          [String.t()],
+          pos_integer(),
+          RateLimit.lane(),
+          [RateLimit.option()]
+        ) :: RateLimit.decision()
+  def rate_limit_check(scope, limit, key_parts, cost, lane, opts \\ []),
+    do: RateLimit.check(scope, limit, key_parts, cost, lane, opts)
+
+  # T-27
+  @doc "Adds to or reads a sliding counter; see `Relay.Platform.RateLimit.counter/6`."
+  @spec rate_counter(Relay.Scope.t(), String.t(), pos_integer(), :incr | :read, non_neg_integer()) ::
+          {:ok, non_neg_integer()} | {:error, Relay.Error.t()}
+  def rate_counter(scope, limit_key, window_ms, op, by),
+    do: RateLimit.counter(scope, limit_key, window_ms, op, by)
+
+  # TN-43
+  @doc "Adds to a minute bucket ring; see `Relay.Platform.RateLimit.ring/6`."
+  @spec rate_ring(
+          Relay.Scope.t(),
+          String.t(),
+          non_neg_integer(),
+          pos_integer(),
+          non_neg_integer()
+        ) ::
+          {:ok, {non_neg_integer(), non_neg_integer()}} | {:error, Relay.Error.t()}
+  def rate_ring(scope, limit_key, cost, current, baseline),
+    do: RateLimit.ring(scope, limit_key, cost, current, baseline)
+
+  # T-20 (5)
+  # T-91 (1)
+  @doc "The default credit lease of a channel; see `Relay.Platform.RateLimit.CreditLease.default/2`."
+  @spec credit_lease_default(String.t(), pos_integer()) :: RateLimit.CreditLease.lease()
+  def credit_lease_default(channel, burst), do: RateLimit.CreditLease.default(channel, burst)
+
+  # T-22
+  @doc "Takes a cluster-wide concurrency slot; see `Relay.Platform.Concurrency.acquire/5`."
+  @spec concurrency_acquire(Relay.Scope.t(), String.t(), pos_integer(), String.t()) ::
+          Concurrency.result()
+  def concurrency_acquire(scope, counter_key, limit, holder),
+    do: Concurrency.acquire(scope, counter_key, limit, holder)
+
+  @doc "Releases a cluster-wide concurrency slot; see `Relay.Platform.Concurrency.release/4`."
+  @spec concurrency_release(Relay.Scope.t(), String.t(), String.t()) :: :ok
+  def concurrency_release(scope, counter_key, holder),
+    do: Concurrency.release(scope, counter_key, holder)
+
+  # T-22
+  @doc "Runs work while holding a concurrency slot; see `Relay.Platform.Concurrency.with_slot/6`."
+  @spec with_concurrency_slot(Relay.Scope.t(), String.t(), pos_integer(), String.t(), (-> term())) ::
+          {:ok, term()} | {:full, non_neg_integer()}
+  def with_concurrency_slot(scope, counter_key, limit, holder, fun),
+    do: Concurrency.with_slot(scope, counter_key, limit, holder, fun)
+
+  # T-22
+  # T-30
+  @doc "The snooze in seconds of a job that found its limit full; see `Relay.Platform.Concurrency.snooze_seconds/4`."
+  @spec concurrency_snooze(Relay.Scope.t(), String.t(), non_neg_integer(), non_neg_integer()) ::
+          pos_integer()
+  def concurrency_snooze(scope, job_ref, k, wait_ms),
+    do: Concurrency.snooze_seconds(scope, job_ref, k, wait_ms)
+
+  # T-91 (1)
+  @doc "The default concurrency limit of a counter family."
+  @spec concurrency_default(:tenant_channel | :tenant_deliveries) :: pos_integer()
+  def concurrency_default(family), do: Concurrency.default_limit(family)
 end

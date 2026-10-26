@@ -40,6 +40,8 @@ defmodule Relay do
       Release,
       Worker,
       NetworkGuard,
-      NetworkGuard.Error
+      NetworkGuard.Error,
+      Binary,
+      TenantWorker
     ]
 end

@@ -16,10 +16,24 @@ defmodule Relay.Platform.Queue.PrunerStore do
   @no_tenant "SELECT set_config('relay.tenant_id', '00000000-0000-0000-0000-000000000000', true), set_config('relay.environment', 'live', true)"
 
   @ephemeral [
+    {"concurrency_slots",
+     """
+     DELETE FROM relay_queue.concurrency_slots WHERE (tenant_id, environment, counter_key, slot_no) IN (
+       SELECT tenant_id, environment, counter_key, slot_no FROM relay_queue.concurrency_slots
+       WHERE expires_at < now() - interval '1 hour' LIMIT $1
+     )
+     """},
     {"drr_tenants",
      "DELETE FROM relay_queue.drr_tenants WHERE ctid = ANY (ARRAY(SELECT ctid FROM relay_queue.drr_tenants WHERE expires_at < now() - interval '1 hour' AND NOT active LIMIT $1))"},
     {"drr_waits",
-     "DELETE FROM relay_queue.drr_waits WHERE ctid = ANY (ARRAY(SELECT ctid FROM relay_queue.drr_waits WHERE prunable_at < now() - interval '1 hour' LIMIT $1))"}
+     "DELETE FROM relay_queue.drr_waits WHERE ctid = ANY (ARRAY(SELECT ctid FROM relay_queue.drr_waits WHERE prunable_at < now() - interval '1 hour' LIMIT $1))"},
+    {"limiter_states",
+     """
+     DELETE FROM relay_queue.limiter_states WHERE (tenant_id, environment, limit_key) IN (
+       SELECT tenant_id, environment, limit_key FROM relay_queue.limiter_states
+       WHERE expires_at < now() - interval '1 hour' LIMIT $1
+     )
+     """}
   ]
 
   # OP-12
@@ -58,6 +72,8 @@ defmodule Relay.Platform.Queue.PrunerStore do
     end
   end
 
+  # OP-74
+  # TN-13
   defp prune_table(sql, limit) do
     QueueRepo.transaction(fn ->
       with {:ok, _} <- QueueRepo.query(@no_tenant, []),

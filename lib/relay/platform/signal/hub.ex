@@ -29,8 +29,11 @@ defmodule Relay.Platform.Signal.Hub do
   @spec topics(GenServer.server()) :: %{Signal.topic() => :pending | :up}
   def topics(hub), do: GenServer.call(hub, :topics)
 
+  # T-45
   @impl GenServer
   def init(opts) do
+    Process.flag(:message_queue_data, :off_heap)
+
     state = %__MODULE__{
       adapter: Keyword.get_lazy(opts, :adapter, &Valkey.adapter/0),
       poll_interval_ms: Keyword.get_lazy(opts, :poll_interval_ms, &configured_interval/0)

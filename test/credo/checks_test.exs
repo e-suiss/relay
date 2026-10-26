@@ -3,10 +3,18 @@ defmodule RelayDev.Credo.ChecksTest do
 
   alias RelayDev.Credo.{
     BareProcess,
+    BinaryCopy,
+    EtsTables,
     LaneOutsideLane,
+    LimitClock,
+    MailboxRules,
     NoDirectClock,
+    OffHeapMailbox,
+    PersistentTerm,
     PublicApiDocs,
     RepoOutsideStore,
+    RestartBudget,
+    TenantProcesses,
     TodoWithIssue,
     UnsafeConversion
   }
@@ -148,6 +156,123 @@ defmodule RelayDev.Credo.ChecksTest do
 
       assert [%{message: message}] = issues(code, PublicApiDocs)
       assert message =~ "b/0 is missing @doc and @spec"
+    end
+  end
+
+  describe "T-45 process and memory rules" do
+    test "T-45: global mailbox placement and killing a process are reported" do
+      code = """
+      defmodule Relay.Example do
+        def a, do: :erlang.system_flag(:message_queue_data, :off_heap)
+        def b(pid), do: Process.exit(pid, :kill)
+        def c, do: Process.flag(:max_heap_size, %{size: 1, kill: true})
+        def d, do: :erlang.system_flag(:max_heap_size, %{size: 1, kill: true})
+      end
+      """
+
+      assert length(issues(code, MailboxRules)) == 4
+    end
+
+    test "T-45: per-process placement and a non-killing heap limit are allowed" do
+      code = """
+      defmodule Relay.Example do
+        def a, do: Process.flag(:message_queue_data, :off_heap)
+        def b, do: :erlang.system_flag(:max_heap_size, %{size: 1, kill: false})
+        def c(pid), do: Process.exit(pid, :normal)
+      end
+      """
+
+      assert issues(code, MailboxRules) == []
+    end
+
+    test "T-45: a listed bursty-mailbox process must set its mailbox off heap" do
+      without = "defmodule Relay.Example do\n  def init(s), do: {:ok, s}\nend\n"
+
+      with_flag = """
+      defmodule Relay.Example do
+        def init(s) do
+          Process.flag(:message_queue_data, :off_heap)
+          {:ok, s}
+        end
+      end
+      """
+
+      assert [_] = issues(without, OffHeapMailbox)
+      assert issues(with_flag, OffHeapMailbox) == []
+    end
+
+    test "T-45: copying a binary outside Relay.Binary is reported" do
+      code = "defmodule Relay.Example do\n  def a(b), do: :binary.copy(b)\nend\n"
+      assert [_] = issues(code, BinaryCopy)
+
+      keep = "defmodule Relay.Example do\n  def a(b), do: Relay.Binary.keep(b)\nend\n"
+      assert issues(keep, BinaryCopy) == []
+    end
+
+    test "T-45: a supervisor without a stated restart budget is reported" do
+      code = """
+      defmodule Relay.Example do
+        def a(c), do: Supervisor.init(c, strategy: :one_for_one)
+        def b(c), do: Supervisor.start_link(c, strategy: :one_for_one, name: X)
+        def c, do: DynamicSupervisor.init(strategy: :one_for_one)
+        def d(c), do: Supervisor.init(c, strategy: :one_for_one, max_restarts: 3, max_seconds: 5)
+        def e, do: DynamicSupervisor.init(strategy: :one_for_one, max_restarts: 3, max_seconds: 5)
+      end
+      """
+
+      assert length(issues(code, RestartBudget)) == 3
+    end
+
+    test "T-45: an ETS table named at run time is reported" do
+      code = """
+      defmodule Relay.Example do
+        @table :examples
+        def a(tenant), do: :ets.new(tenant, [:set])
+        def b, do: :ets.new(:examples, [:set])
+        def c, do: :ets.new(__MODULE__, [:set])
+        def d, do: :ets.new(@table, [:set])
+      end
+      """
+
+      assert [%{line_no: 3}] = issues(code, EtsTables)
+    end
+
+    test "T-45: persistent_term writes are reported outside the reviewed publishers" do
+      code = """
+      defmodule Relay.Example do
+        def a, do: :persistent_term.put(:k, 1)
+        def b, do: :persistent_term.erase(:k)
+        def c, do: :persistent_term.get(:k)
+      end
+      """
+
+      assert length(issues(code, PersistentTerm)) == 2
+    end
+
+    test "T-45: dynamic children start only through Relay.TenantWorker" do
+      code = """
+      defmodule Relay.Example do
+        def a(spec), do: DynamicSupervisor.start_child(S, spec)
+        def b(t), do: Relay.TenantWorker.ensure(t, :apns, {W, idle_ms: 1})
+      end
+      """
+
+      assert [%{line_no: 2}] = issues(code, TenantProcesses)
+    end
+  end
+
+  describe "T-11 limiter clock" do
+    test "T-11: limiter code never reads the node's wall clock" do
+      code = """
+      defmodule Relay.Example do
+        def a, do: Relay.Clock.utc_now()
+        def b, do: DateTime.utc_now()
+        def c, do: NaiveDateTime.utc_now()
+        def d, do: Relay.Clock.monotonic_ms()
+      end
+      """
+
+      assert length(issues(code, LimitClock)) == 3
     end
   end
 end

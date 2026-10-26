@@ -35,7 +35,7 @@ defmodule Relay.Platform.Valkey.Redix do
       {Forwarder, name: @forwarder, pubsub: @pubsub, registry: @registry}
     ]
 
-    Supervisor.init(children, strategy: :rest_for_one)
+    Supervisor.init(children, strategy: :rest_for_one, max_restarts: 3, max_seconds: 5)
   end
 
   @impl Relay.Platform.Valkey

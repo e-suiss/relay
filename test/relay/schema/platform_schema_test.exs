@@ -97,7 +97,9 @@ defmodule Relay.Schema.PlatformSchemaTest do
 
         assert rls and force, table
 
-        assert [_, _, ["#{table}_scope", "*", ["PUBLIC"], ^template, ^template]] =
+        scope = "#{table}_scope"
+
+        assert [_, _, [^scope, "*", ["PUBLIC"], ^template, ^template]] =
                  policies("relay_queue", table)
       end
     end

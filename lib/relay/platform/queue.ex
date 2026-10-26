@@ -1,6 +1,6 @@
 defmodule Relay.Platform.Queue do
   @moduledoc """
-  Job queue setup on open-source Oban. Every role starts an Oban instance so that jobs can be inserted inside the writing transaction; only the `worker` role runs queues, plugins and leadership. The queue's cross-node notifications travel through `Relay.Platform.Queue.Notifier`, and a switch to polling raises an alarm.
+  Job queue setup on open-source Oban. Every role starts an Oban instance so that jobs can be inserted inside the writing transaction; only the `worker` role runs queues, plugins and leadership. The queues and their per-node concurrency come from `Relay.Platform.Lane.queues/0`, never from configuration. The queue's cross-node notifications travel through `Relay.Platform.Queue.Notifier`, and a switch to polling raises an alarm.
   """
 
   require Logger
@@ -11,11 +11,13 @@ defmodule Relay.Platform.Queue do
   # T-14
   # T-17
   # T-12
-  @doc "Builds the Oban options for the roles this node runs."
+  # T-90
+  # T-32 (1)
+  @doc "Builds the Oban options for the roles this node runs; a worker node runs the queues of `Relay.Platform.Lane.queues/0`."
   @spec options(keyword(), [Relay.Role.t()]) :: keyword()
   def options(base, roles) when is_list(base) and is_list(roles) do
     if :worker in roles,
-      do: base,
+      do: Keyword.put(base, :queues, Relay.Platform.Lane.queues()),
       else: Keyword.merge(base, queues: [], plugins: [], peer: false)
   end
 

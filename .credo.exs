@@ -31,7 +31,14 @@
           {RelayDev.Credo.BareProcess,
            [files: %{included: ["lib/"], excluded: ["lib/relay/process.ex"]}]},
           {RelayDev.Credo.RepoOutsideStore,
-           [files: %{included: ["lib/"], excluded: ["lib/relay/repo.ex", "lib/relay/release.ex"]}]},
+           [
+             files: %{
+               included: ["lib/"],
+               excluded: ["lib/relay/repo.ex", "lib/relay/bulk_repo.ex", "lib/relay/release.ex"]
+             }
+           ]},
+          {RelayDev.Credo.LaneOutsideLane,
+           [files: %{included: ["lib/"], excluded: ["lib/relay/platform/lane.ex"]}]},
           {RelayDev.Credo.TodoWithIssue, []},
           {RelayDev.Credo.PublicApiDocs, [files: %{included: ["lib/"]}]}
         ]

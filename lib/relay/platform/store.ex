@@ -97,6 +97,22 @@ defmodule Relay.Platform.Store do
     end
   end
 
+  # T-32 (3)
+  # TN-14
+  @doc "Child specification that runs the role check against the bulk pool `Relay.BulkRepo` while the supervision tree starts; a failed check stops the node."
+  @spec bulk_role_check_child() :: Supervisor.child_spec()
+  def bulk_role_check_child do
+    %{
+      id: :relay_bulk_role_check,
+      start: {__MODULE__, :start_bulk_role_check, []},
+      restart: :temporary
+    }
+  end
+
+  @doc "Supervisor start function of `bulk_role_check_child/0`: `:ignore` when the check passes."
+  @spec start_bulk_role_check() :: :ignore | {:error, Relay.Error.t()}
+  def start_bulk_role_check, do: Relay.BulkRepo.run(&start_role_check/0)
+
   # OP-69 (1)
   @doc "Checks that every function in the `relay_ops` schema is owned by `relay_maint`; the post-migration bootstrap (`Relay.Release.bootstrap/0`) hands them over."
   @spec ops_owner_check(query_fun()) :: :ok | {:error, Relay.Error.t()}

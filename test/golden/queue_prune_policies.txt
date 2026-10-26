@@ -1,0 +1,4 @@
+drr_tenants drr_tenants_prune d relay_queue ((expires_at < (now() - '01:00:00'::interval)) AND (NOT active))
+drr_tenants drr_tenants_prune_read r relay_queue ((expires_at < (now() - '01:00:00'::interval)) AND (NOT active))
+drr_waits drr_waits_prune d relay_queue (prunable_at < (now() - '01:00:00'::interval))
+drr_waits drr_waits_prune_read r relay_queue (prunable_at < (now() - '01:00:00'::interval))

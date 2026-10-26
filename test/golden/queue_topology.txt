@@ -1,0 +1,6 @@
+l0 20
+l1 20
+l2 10
+l3 5
+dlq_replay 2
+maintenance 2

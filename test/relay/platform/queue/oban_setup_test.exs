@@ -64,9 +64,10 @@ defmodule Relay.Platform.Queue.ObanSetupTest do
 
     test "OP-12: only the queue stores may delete, and only queue rows" do
       allow = Jason.decode!(File.read!("conformance/catalog/sql-allow.json"))
+      ephemeral = Enum.join(Relay.Platform.Queue.PrunerStore.ephemeral_tables(), "|")
 
       for entry <- allow, String.starts_with?(entry["path"], "lib/relay/platform/queue/") do
-        assert entry["match"] =~ ~r/\ADELETE FROM relay_queue\.oban_(jobs|peers)\z/
+        assert entry["match"] =~ ~r/\ADELETE FROM relay_queue\.(oban_(jobs|peers)|#{ephemeral})\z/
       end
 
       source = File.read!("lib/relay/platform/queue/pruner_store.ex")

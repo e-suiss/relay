@@ -31,6 +31,8 @@ config :relay, Relay.Platform.Outbox, dispatcher: false
 
 config :relay, Relay.Platform.Leadership, enabled: false
 
+config :relay, Relay.Platform.LoadShed, watcher: false
+
 config :logger, level: :warning
 
 config :relay, Relay.NetworkGuard, enabled: true

@@ -5,7 +5,12 @@ defmodule Relay.Platform do
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
+  alias Relay.Platform.Admission
   alias Relay.Platform.Backend
+  alias Relay.Platform.Fairness.Job
+  alias Relay.Platform.Fairness.Queueing
+  alias Relay.Platform.Lane
+  alias Relay.Platform.LoadShed
   alias Relay.Platform.Outbox
   alias Relay.Platform.OutboxDispatcher
   alias Relay.Platform.OutboxStore
@@ -39,7 +44,9 @@ defmodule Relay.Platform do
   # T-9 (5)
   # OP-11
   # OP-69 (1)
-  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the signal hub and the job queue; a worker node also runs the queue maintenance connection and the outbox dispatcher. A failed role or ownership check stops the node."
+  # T-32 (3)
+  # T-34
+  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the signal hub, the load shedding watcher and the job queue; a worker node also runs the queue maintenance connection, the bulk write pool with its own role check and the outbox dispatcher. A failed role or ownership check stops the node."
   @spec children() :: [Supervisor.child_spec() | {module(), term()} | module()]
   def children do
     valkey = Application.fetch_env!(:relay, Valkey)
@@ -54,7 +61,11 @@ defmodule Relay.Platform do
       Backend,
       Signal.Hub
     ] ++
-      if(worker?, do: [Relay.QueueRepo], else: []) ++
+      if(load_shed_watcher?(), do: [LoadShed.Watcher], else: []) ++
+      if(worker?,
+        do: [Relay.QueueRepo, Relay.BulkRepo, Store.bulk_role_check_child()],
+        else: []
+      ) ++
       [{Oban, Queue.configured_options()}] ++
       if(worker? and outbox_dispatcher?(), do: [OutboxDispatcher], else: [])
   end
@@ -78,6 +89,9 @@ defmodule Relay.Platform do
           {:ok, {non_neg_integer(), non_neg_integer()}} | {:error, term()}
   def next_stream_seq(scope, stream_key),
     do: OutboxStore.in_scope(scope, fn _status -> OutboxStore.stream_next_seq(stream_key) end)
+
+  defp load_shed_watcher?,
+    do: :relay |> Application.get_env(LoadShed, []) |> Keyword.get(:watcher, true)
 
   defp outbox_dispatcher?,
     do: :relay |> Application.get_env(Outbox, []) |> Keyword.get(:dispatcher, true)
@@ -117,4 +131,76 @@ defmodule Relay.Platform do
   @doc "Unsubscribes the calling process from a signal topic."
   @spec unsubscribe_signal(Signal.topic()) :: :ok
   def unsubscribe_signal(topic), do: Signal.unsubscribe(topic)
+
+  # T-31
+  # INV-16
+  @doc "The lane of a message class; nothing but the class decides it."
+  @spec lane(Lane.message_class()) :: Lane.t()
+  def lane(message_class), do: Lane.of(message_class)
+
+  # T-36
+  @doc "The priority of a job inside its lane's queue; see `Relay.Platform.Lane.priority/3`."
+  @spec job_priority(Lane.job_kind(), pos_integer(), Lane.requested_priority()) :: 0..8
+  def job_priority(kind, attempt_no, requested), do: Lane.priority(kind, attempt_no, requested)
+
+  # T-21 (2)
+  # T-21 (4)
+  # TN-54
+  @doc """
+  Puts a job into its lane inside the caller's scoped transaction: `l0` and `l1` jobs go to their queue at once, `l2` and `l3` jobs to the tenant wait table in front of it. `attrs` holds `:id` (a fresh UUIDv7), `:lane`, `:worker`, `:args` (identifiers only), `:ref_kind`, `:ref_id`, and optionally `:priority`, `:cost` and `:scheduled_at`; `:queued_cap` in `opts` limits the tenant's waiting jobs in the lane.
+  """
+  @spec enqueue_job(keyword() | map(), keyword()) ::
+          {:ok, :queued | :waiting | :exists} | {:error, Relay.Error.t()}
+  def enqueue_job(attrs, opts \\ []), do: Queueing.enqueue(struct!(Job, attrs), opts)
+
+  # T-21 (3)
+  @doc "Marks the waiting jobs behind a record `cancelled` inside the caller's scoped transaction, with the rule that cancelled them."
+  @spec cancel_waiting_jobs(String.t(), Relay.Id.t(), String.t()) :: {:ok, non_neg_integer()}
+  def cancel_waiting_jobs(ref_kind, ref_id, rule_id),
+    do: Queueing.cancel(ref_kind, ref_id, rule_id)
+
+  # T-21 (2)
+  # T-12
+  @doc "One step of the DRR dispatcher under its fencing token; see `Relay.Platform.Fairness.Queueing.step/3`."
+  @spec fair_dispatch_step(pos_integer(), integer() | nil, integer()) ::
+          {:ok, Queueing.step_result()} | :not_leader | {:error, Relay.Error.t()}
+  def fair_dispatch_step(fencing_token, weights_at, now_ms),
+    do: Queueing.step(fencing_token, weights_at, now_ms)
+
+  # T-34
+  # T-12
+  @doc "One step of the load shedding controller under its fencing token; returns the task state to save."
+  @spec load_shed_step(pos_integer(), map() | nil) ::
+          {:ok, map()} | :not_leader | {:error, Relay.Error.t()}
+  def load_shed_step(fencing_token, saved), do: LoadShed.Control.step(fencing_token, saved)
+
+  # T-34 (2)
+  @doc "True while load shedding is engaged for the lane on this node's last known state."
+  @spec load_shed_engaged?(Lane.t()) :: boolean()
+  def load_shed_engaged?(lane), do: LoadShed.engaged?(lane)
+
+  # T-34 (2)
+  # T-34 (4)
+  # INV-24
+  @doc "Decides whether a starting delivery job runs or is postponed by load shedding; see `Relay.Platform.LoadShed.hold/5`."
+  @spec load_shed_hold(Relay.Scope.t(), Lane.t(), Relay.Id.t(), non_neg_integer()) ::
+          LoadShed.hold_result()
+  def load_shed_hold(scope, lane, delivery_id, k), do: LoadShed.hold(scope, lane, delivery_id, k)
+
+  # API-51
+  # T-35
+  # T-92
+  @doc "Admission control for an incoming request; see `Relay.Platform.Admission.decide/1`."
+  @spec admit(Admission.input()) :: :admit | {:reject, Admission.rejection()}
+  def admit(input), do: Admission.decide(input)
+
+  # T-32 (3)
+  @doc "Runs `fun` on the database pool of a lane: the OLTP pool for `l0` and `l1`, the bulk pool for `l2` and `l3`."
+  @spec with_lane_pool(Lane.t(), (-> result)) :: result when result: term()
+  def with_lane_pool(lane, fun) when is_function(fun, 0) do
+    case Lane.pool(lane) do
+      :oltp -> fun.()
+      :bulk -> Relay.BulkRepo.run(fun)
+    end
+  end
 end

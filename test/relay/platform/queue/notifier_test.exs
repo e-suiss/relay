@@ -53,8 +53,8 @@ defmodule Relay.Platform.Queue.NotifierTest do
 
     test "T-55: listening subscribes each Oban channel to its own system channel", %{conf: conf} do
       :ok = Oban.Notifier.listen(conf, [:gossip, :signal])
-      assert_received {:valkey_subscribe, "relay:s:oban:relay_queue:gossip"}
-      assert_received {:valkey_subscribe, "relay:s:oban:relay_queue:signal"}
+      assert_receive {:valkey_subscribe, "relay:s:oban:relay_queue:gossip"}, 1_000
+      assert_receive {:valkey_subscribe, "relay:s:oban:relay_queue:signal"}, 1_000
 
       :ok = Oban.Notifier.listen(conf, [:gossip])
       refute_received {:valkey_subscribe, _}

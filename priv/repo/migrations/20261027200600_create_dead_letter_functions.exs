@@ -6,8 +6,8 @@ defmodule Relay.Repo.Migrations.CreateDeadLetterFunctions do
   @functions [
     {"relay_fn.dead_letter_record(uuid, uuid, text, text, text, boolean, text, uuid)",
      "relay_owner", ~w(relay_app)},
-    {"relay_fn.dead_letter_replay(uuid, uuid, text, text, text, bytea, #{@actor})",
-     "relay_owner", ~w(relay_app)},
+    {"relay_fn.dead_letter_replay(uuid, uuid, text, text, text, bytea, #{@actor})", "relay_owner",
+     ~w(relay_app)},
     {"relay_fn.dead_letter_close(uuid, text, bytea, #{@actor})", "relay_owner", ~w(relay_app)},
     {"relay_fn.dead_letter_replay_finish(uuid, boolean)", "relay_owner", ~w(relay_app)},
     {"relay_fn.dead_letter_list(text[], text[], text, uuid, integer)", "relay_owner",

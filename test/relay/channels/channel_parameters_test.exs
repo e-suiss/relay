@@ -272,7 +272,9 @@ defmodule Relay.Channels.ChannelParametersTest do
                  Datasets.installation_scope(),
                  "channel_parameters",
                  broken,
-                 TenantFixture.actor(), source_ref: "test")
+                 TenantFixture.actor(),
+                 source_ref: "test"
+               )
     end
   end
 

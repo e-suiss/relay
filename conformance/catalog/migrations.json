@@ -33,6 +33,6 @@
   {"file": "20261027200300_validate_delivery_pause_and_replay_checks.exs", "sha256": "37af41b90adfdc0c9ba56af421a808504900e1d0969dc2df30b9626ce74e00cb"},
   {"file": "20261027200400_create_dead_letters.exs", "sha256": "6d60ebdbe2ca296e65ef262489b5dfb276aab3bc1f12c81ab6072d5e732307e2"},
   {"file": "20261027200500_extend_delivery_functions.exs", "sha256": "21ec59fbaa5649e2203c3f01c5c479f63af66b626f4be46fb4b1bb5bae52751b"},
-  {"file": "20261027200600_create_dead_letter_functions.exs", "sha256": "b7c61e9f0fdead69b24b880748d741eec0348cddd7cc15189a6feff547611998"},
+  {"file": "20261027200600_create_dead_letter_functions.exs", "sha256": "fc9c3d93280b29e28ddd24d404b7493dc00796b51abd30c943975c031cee0642"},
   {"file": "20261027200700_rebuild_reference_check_for_dead_letters.exs", "sha256": "d862f71a3617de10ca237b218d541fed65d5cb27fb2e1caff32bd39a16ea21cb"}
 ]

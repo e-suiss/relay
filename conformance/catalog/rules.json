@@ -7257,6 +7257,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "AG-64",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "TN-1",
     "section": "§18",
     "status": "central",

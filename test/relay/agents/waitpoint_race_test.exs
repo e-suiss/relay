@@ -43,7 +43,9 @@ defmodule Relay.Agents.WaitpointRaceTest do
   end
 
   defp scalar(scope, sql, params) do
-    {:ok, [[value]]} = Repo.in_scope(scope, fn _ -> Repo.scoped_query!(sql, params).rows end)
+    {:ok, [[value]]} =
+      unboxed(fn -> Repo.in_scope(scope, fn _ -> Repo.scoped_query!(sql, params).rows end) end)
+
     value
   end
 

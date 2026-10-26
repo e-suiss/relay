@@ -1,8 +1,8 @@
 defmodule Relay.Config.SecretFiles do
   @moduledoc """
-  The sensitive process that reads the node's installation secrets from files: the database passwords and the audit object store key. The application environment holds only the file paths (`config :relay, Relay.Config.SecretFiles, repo: path, ...`); a secret is read when a consumer asks for it, so a rotated file is picked up on the next connection, and it is never stored in this process's state, in the application environment or in shared memory.
+  The sensitive process that reads the node's installation secrets from files: the database passwords, the audit object store key and the endpoint's `secret_key_base`. The application environment holds only the file paths (`config :relay, Relay.Config.SecretFiles, repo: path, ...`); a secret is read when a consumer asks for it, so a rotated file is picked up on the next connection, and it is never stored in this process's state, in the application environment or in shared memory.
 
-  Database connections take their password through `configure/2`, the Postgrex `:configure` callback that runs in the connection process before every connect attempt and marks that process sensitive. Other consumers get a zero-arity callback, `{Relay.Config.SecretFiles, :fetch!, [name]}`, which they call at the moment they use the secret.
+  Database connections take their password through `configure/2`, the Postgrex `:configure` callback that runs in the connection process before every connect attempt and marks that process sensitive. Other consumers get a zero-arity callback, `{Relay.Config.SecretFiles, :fetch!, [name]}`, which they call at the moment they use the secret. The endpoint reads `secret_key_base` when it starts (`RelayWeb.Endpoint.supervised/0`).
   """
 
   use GenServer
@@ -10,10 +10,10 @@ defmodule Relay.Config.SecretFiles do
   alias Relay.Hygiene
   alias Relay.Redacted
 
-  @names [:repo, :queue_repo, :maint_repo, :audit_s3]
+  @names [:repo, :queue_repo, :maint_repo, :audit_s3, :secret_key_base]
   @timeout_ms 5_000
 
-  @type name :: :repo | :queue_repo | :maint_repo | :audit_s3
+  @type name :: :repo | :queue_repo | :maint_repo | :audit_s3 | :secret_key_base
 
   @doc "Secret names a node can be configured with."
   @spec names() :: [name(), ...]
@@ -50,6 +50,12 @@ defmodule Relay.Config.SecretFiles do
     end
   end
 
+  # TN-68 (1)
+  @doc "Returns true if the secret `name` has a file configured."
+  @spec configured?(name()) :: boolean()
+  def configured?(name) when name in @names,
+    do: GenServer.call(__MODULE__, {:configured?, name}, @timeout_ms)
+
   # TN-67 (3)
   @doc "Postgrex `:configure` callback: marks the connection process sensitive and adds the password of `name` to the connect options."
   @spec configure(keyword(), name()) :: keyword()
@@ -76,6 +82,9 @@ defmodule Relay.Config.SecretFiles do
   end
 
   @impl GenServer
+  def handle_call({:configured?, name}, _from, paths),
+    do: {:reply, Map.has_key?(paths, name), paths}
+
   def handle_call({:fetch, name}, _from, paths) do
     reply =
       with {:ok, path} <- path(paths, name),

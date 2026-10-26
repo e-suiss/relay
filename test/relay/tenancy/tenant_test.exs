@@ -9,7 +9,7 @@ defmodule Relay.Tenancy.TenantTest do
     %{tenant: TenantFixture.tenant!()}
   end
 
-  defp create(attrs), do: Relay.Tenancy.create_tenant(attrs, TenantFixture.actor())
+  defp create(attrs), do: Relay.Tenancy.Provisioning.create_tenant(attrs, TenantFixture.actor())
 
   defp tenant(scope) do
     {:ok, row} = Relay.Tenancy.tenant(scope)
@@ -33,6 +33,31 @@ defmodule Relay.Tenancy.TenantTest do
   end
 
   describe "TN-1 TN-2 tenant creation" do
+    test "TN-68 (2): a tenant is created only with its keys, through provisioning", %{tenant: t} do
+      assert Code.ensure_loaded?(Relay.Tenancy)
+      refute function_exported?(Relay.Tenancy, :create_tenant, 2)
+
+      for scope <- [t.live, t.test] do
+        assert {:ok, purposes} = Relay.Tenancy.active_key_purposes(scope)
+        assert Enum.sort(purposes) == [:blind_index, :data, :dek_wrap]
+      end
+
+      attrs = %{
+        t.attrs
+        | id: Relay.Id.generate(),
+          access_tenant_id: "acc_" <> TenantFixture.random(),
+          record_digest: TenantFixture.digest()
+      }
+
+      for plan <- [%{}, %{kek_label: "kek", keys: %{}}] do
+        assert {:error, %Relay.Error{code: :invalid_argument}} =
+                 Relay.Tenancy.create_tenant(attrs, fn _id -> plan end, TenantFixture.actor())
+      end
+
+      assert {:created, id} = create(attrs)
+      assert id == attrs.id
+    end
+
     test "TN-2: a repeated mapping event is idempotent; a different one conflicts", %{tenant: t} do
       assert {:exists, _} = create(%{t.attrs | record_digest: TenantFixture.digest()})
 

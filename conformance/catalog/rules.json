@@ -7777,6 +7777,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "TN-68",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "T-1",
     "section": "§19",
     "status": "central",

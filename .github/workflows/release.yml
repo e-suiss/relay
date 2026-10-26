@@ -28,6 +28,7 @@ jobs:
           version-type: strict
       - run: mix deps.get --check-locked
       - run: mix relay.lint.tests --release
+      - run: mix relay.release.gate
       - run: mix deps.get --only prod --check-locked
         env:
           MIX_ENV: prod

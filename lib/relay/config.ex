@@ -26,6 +26,7 @@ defmodule Relay.Config do
     Relay.QueueRepo,
     Relay.BulkRepo,
     Relay.Platform.LoadShed,
+    Relay.Platform.Capacity,
     Relay.Platform.MaintRepo,
     Relay.Platform.Leadership,
     Relay.Delivery,

@@ -117,7 +117,7 @@ defmodule Relay.Api.Schema do
       {:error, error} ->
         errors =
           error
-          |> JSV.normalize_error(keys: :atoms, min_error_level: JSV.ErrorFormatter.level_cause())
+          |> JSV.normalize_error(min_error_level: JSV.ErrorFormatter.level_cause())
           |> Map.fetch!(:details)
           |> Enum.flat_map(&unit/1)
           |> Enum.uniq_by(&{&1.pointer, &1.code})

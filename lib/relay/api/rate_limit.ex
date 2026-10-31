@@ -88,14 +88,18 @@ defmodule Relay.Api.RateLimit do
         {:ok, %{tiers: tiers, current: restrictive(results)}}
 
       _ ->
-        {tier, retry_s, _rule} = Enum.max_by(denied, &elem(&1, 1))
-        current = %{name: tier.name, quota: tier.quota, remaining: 0, reset_s: retry_s}
-        report = %{tiers: tiers, current: current}
-
-        if Enum.any?(denied, fn {_tier, _retry, rule} -> rule == @unavailable end),
-          do: {:error, unavailable(retry_s), report},
-          else: {:error, limited(tier, retry_s, cost), report}
+        deny(tiers, denied, cost)
     end
+  end
+
+  defp deny(tiers, denied, cost) do
+    {tier, retry_s, _rule} = Enum.max_by(denied, &elem(&1, 1))
+    current = %{name: tier.name, quota: tier.quota, remaining: 0, reset_s: retry_s}
+    report = %{tiers: tiers, current: current}
+
+    if Enum.any?(denied, fn {_tier, _retry, rule} -> rule == @unavailable end),
+      do: {:error, unavailable(retry_s), report},
+      else: {:error, limited(tier, retry_s, cost), report}
   end
 
   # API-47

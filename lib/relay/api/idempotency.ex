@@ -60,21 +60,23 @@ defmodule Relay.Api.Idempotency do
     fingerprint = Relay.Ingest.idempotency_fingerprint(raw_body)
 
     with {:ok, field, data_key} <- seal_key(scope) do
+      request = %{endpoint: endpoint, key: key, fingerprint: fingerprint, work: work}
+
       scope
-      |> Relay.Ingest.in_scope(fn status ->
-        claim(endpoint, key, fingerprint, fn -> work.(status) end, field, data_key)
-      end)
+      |> Relay.Ingest.in_scope(&claim(request, &1, field, data_key))
       |> finish(scope)
     end
   end
 
-  defp claim(endpoint, key, fingerprint, work, field, data_key) do
+  defp claim(request, tenant_status, field, data_key) do
+    %{endpoint: endpoint, key: key, fingerprint: fingerprint} = request
+
     case Relay.Ingest.idempotency_begin(endpoint, key, fingerprint) do
       {:created, nil} ->
-        case work.() do
-          {:ok, {status, headers, body} = response} when is_binary(body) ->
+        case request.work.(tenant_status) do
+          {:ok, {_status, _headers, body} = response} when is_binary(body) ->
             store(endpoint, key, fingerprint, response, field, data_key)
-            {:fresh, {status, headers, body}}
+            {:fresh, response}
 
           {:error, %Relay.Error{} = error} ->
             Store.rollback(error)

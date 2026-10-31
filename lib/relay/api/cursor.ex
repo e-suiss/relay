@@ -100,11 +100,13 @@ defmodule Relay.Api.Cursor do
   defp split(_raw), do: invalid_cursor()
 
   defp read(payload, endpoint, param) do
-    with {:ok, [@version, ^endpoint, sort_ts_us, {:bytes, <<_::128>> = id}, direction], ""}
-         when is_integer(sort_ts_us) and direction in @directions <- items(payload) do
-      {:ok, %{sort_ts_us: sort_ts_us, id: id, direction: direction(direction)}}
-    else
-      _ -> invalid(param)
+    case items(payload) do
+      {:ok, [@version, ^endpoint, sort_ts_us, {:bytes, <<_::128>> = id}, direction], ""}
+      when is_integer(sort_ts_us) and direction in @directions ->
+        {:ok, %{sort_ts_us: sort_ts_us, id: id, direction: direction(direction)}}
+
+      _ ->
+        invalid(param)
     end
   end
 

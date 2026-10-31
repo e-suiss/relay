@@ -69,6 +69,7 @@ defmodule Relay.Schema.SchemaIntegrityTest do
     test "INV-36: the tenant context lives only in its transaction and a query without it fails",
          %{admin: admin} do
       worker = connect("relay_worker")
+
       tenant =
         committed(admin, fn ->
           tenant = tenant!()

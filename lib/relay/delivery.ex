@@ -20,6 +20,7 @@ defmodule Relay.Delivery do
   @system %Actor{kind: :system, ref: "relay:dead_letter_auto_replay", on_behalf_of_ref: "relay"}
 
   @type result(value) :: {:ok, value} | {:error, term()}
+  @type tombstone :: :cancelled | :already_sent | :none | :terminal | :not_found
 
   # T-15
   @doc "The job worker that sends a delivery; its arguments are the scope, `notification_id` and `delivery_id`."
@@ -56,6 +57,15 @@ defmodule Relay.Delivery do
       Store.notification_cancel(notification_id, rule_id, digest, actor)
     end)
   end
+
+  # API-58
+  # INV-6
+  # INV-60
+  @doc "Applies the cancellation tombstone that covers a delivery's run, in its own scoped transaction; see `Relay.Delivery.Store.delivery_tombstone_apply/1`."
+  @spec apply_tombstone(Scope.t(), Relay.Id.t()) ::
+          result({tombstone(), Relay.Id.t() | nil})
+  def apply_tombstone(scope, delivery_id),
+    do: Store.in_scope(scope, fn _status -> Store.delivery_tombstone_apply(delivery_id) end)
 
   # C-31
   @doc "Opens the next attempt of a delivery."

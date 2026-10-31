@@ -3127,6 +3127,15 @@ components:
                     sector:
                       type: string
                       maxLength: 32
+                    platform_product:
+                      type: string
+                      description: "Set when the Access tenant is a Suiss product's own tenant; Relay creates it as that product's isolated platform tenant."
+                      enum:
+                        - access
+                        - work
+                        - executor
+                        - one
+                        - pay
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3

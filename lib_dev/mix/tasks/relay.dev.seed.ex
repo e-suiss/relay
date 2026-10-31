@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Relay.Dev.Seed do
-  @shortdoc "Seeds the local database with a sample tenant, its environments and a recipient"
+  @shortdoc "Seeds the local database with a sample tenant, recipient, API client and workflow"
   @moduledoc "Runs `RelayDev.Seed.run/0` against the database of `deploy/compose.yaml`."
 
   use Mix.Task

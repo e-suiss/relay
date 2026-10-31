@@ -27,7 +27,8 @@ defmodule Relay.Repo do
     :api_client_resolve,
     :operator_access,
     :cross_tenant_overview,
-    :suspension_due_discovery
+    :suspension_due_discovery,
+    :lane_capacity
   ]
 
   @type tenant_status :: :active | :suspended | :closed
@@ -47,6 +48,7 @@ defmodule Relay.Repo do
           | :operator_access
           | :cross_tenant_overview
           | :suspension_due_discovery
+          | :lane_capacity
 
   # TN-13 (4)
   @impl Ecto.Repo
@@ -153,7 +155,7 @@ defmodule Relay.Repo do
   # OP-68 (9)
   # sobelow_skip ["SQL.Query"]
   @doc """
-  Runs SQL that crosses tenants through a `relay_ops` escape hatch. The escape names why: `:tenant_bootstrap` creates a tenant before any context can exist, `:outbox_scope_discovery` lists the scopes that have pending outbox rows, without content, `:installation_lookup` reads the installation tenant's identifier, which installation-wide data sets are scoped to (S-3), `:fair_dispatch` lets the DRR dispatcher move waiting jobs of every tenant of a bulk lane into the queue and refresh their weights, by identifiers only, `:load_shed` records and reads the installation-wide load shedding transitions. `:kill_switch_snapshot` reads the full set of kill switch records in force (TN-39) and `:kill_switch_scopes` lists the scopes a platform kill switch's sweep, bulk cancel or the paused expiry visits, by identifier only. `:waitpoint_due_discovery` lists the scopes that have a waitpoint timer due, without content (S-61). `:access_link` reads and writes the installation's Access link cache (E-78), `:access_event_intake` records and applies Access event receipts and maps an Access tenant to its Relay tenant (S-69), and `:api_client_resolve` resolves an Access client of a token to its tenant, environment and API client trace before any tenant context exists (S-72). `:operator_access` signs operators in, resolves, steps up and revokes their sessions, reflects their Access lifecycle and lists their role grants and support delegations across tenants before any tenant context exists (S-76, S-77). `:cross_tenant_overview` reads installation-level facts and counters of every tenant, never record content (X-4). `:suspension_due_discovery` lists the scheduled suspensions that are due, by identifier only (TN-71).
+  Runs SQL that crosses tenants through a `relay_ops` escape hatch. The escape names why: `:tenant_bootstrap` creates a tenant before any context can exist, `:outbox_scope_discovery` lists the scopes that have pending outbox rows, without content, `:installation_lookup` reads the installation tenant's identifier, which installation-wide data sets are scoped to (S-3), `:fair_dispatch` lets the DRR dispatcher move waiting jobs of every tenant of a bulk lane into the queue and refresh their weights, by identifiers only, `:load_shed` records and reads the installation-wide load shedding transitions. `:kill_switch_snapshot` reads the full set of kill switch records in force (TN-39) and `:kill_switch_scopes` lists the scopes a platform kill switch's sweep, bulk cancel or the paused expiry visits, by identifier only. `:waitpoint_due_discovery` lists the scopes that have a waitpoint timer due, without content (S-61). `:access_link` reads and writes the installation's Access link cache (E-78), `:access_event_intake` records and applies Access event receipts and maps an Access tenant to its Relay tenant (S-69), and `:api_client_resolve` resolves an Access client of a token to its tenant, environment and API client trace before any tenant context exists (S-72). `:operator_access` signs operators in, resolves, steps up and revokes their sessions, reflects their Access lifecycle and lists their role grants and support delegations across tenants before any tenant context exists (S-76, S-77). `:cross_tenant_overview` reads installation-level facts and counters of every tenant, never record content (X-4). `:suspension_due_discovery` lists the scheduled suspensions that are due, by identifier only (TN-71). `:lane_capacity` counts the backlog and the recently completed jobs of every bulk lane, by count only (T-35 (2)).
   """
   @spec unscoped_query(escape(), iodata(), [term()], keyword()) ::
           {:ok, Postgrex.Result.t()} | {:error, Exception.t()}

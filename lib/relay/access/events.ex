@@ -4,7 +4,7 @@ defmodule Relay.Access.Events do
 
   `process/1` (the `Relay.Access.EventConsumer` job) applies a receipt by its type:
 
-  * `tenant.created` creates the mapped tenant with its keys; the default time zone and locale are mandatory (TN-2, X-35) and another region is refused (INV-41).
+  * `tenant.created` creates the mapped tenant with its keys; the default time zone and locale are mandatory (TN-2, X-35) and another region is refused (INV-41). An Access tenant that Access marks with a `platform_product` (a Suiss product such as `access` itself) becomes that product's platform tenant (C-18, E-9, TN-9): an ordinary, isolated tenant with no data privilege; an unknown product is refused.
   * `organization.created` and `organization.updated` create, rename or archive the mapped sub-tenant in both environments under one identifier (TN-6, C-12).
   * `api_client.created`, `api_client.updated`, `api_client.suspended`, `api_client.reactivated` and `api_client.revoked` write the API client trace and announce the new generation to every node (API-44, TN-24).
   * `user.suspended`, `user.reactivated` and `user.deleted` go to the configured user event handlers (`config :relay, Relay.Access, user_handlers: [module]`, `Relay.Access.UserHandler`); without one the receipt waits as `deferred` with reason `no_handler`.
@@ -23,7 +23,8 @@ defmodule Relay.Access.Events do
   alias Relay.Scope
 
   @mapping %{
-    "tenant.created" => ~w(access_tenant_id region default_timezone default_locale sector),
+    "tenant.created" =>
+      ~w(access_tenant_id region default_timezone default_locale sector platform_product),
     "organization.created" => ~w(access_tenant_id access_organization_id name),
     "organization.updated" => ~w(access_tenant_id access_organization_id name state),
     "api_client.created" =>
@@ -193,31 +194,35 @@ defmodule Relay.Access.Events do
         record_digest: digest(receipt, "tenant")
       }
 
-      provision(attrs, receipt)
+      provision(attrs, payload["platform_product"], receipt)
     else
       {:error, %Relay.Error{code: :invalid_region}} -> {:rejected, "region_mismatch"}
       _missing -> {:rejected, "defaults_missing"}
     end
   end
 
-  defp provision(attrs, receipt) do
-    case Relay.Tenancy.Provisioning.create_tenant(attrs, actor(receipt)) do
-      {result, _id} when result in [:created, :exists] ->
-        :processed
+  # C-18
+  # E-9
+  # TN-9
+  defp provision(attrs, nil, receipt),
+    do: provisioned(Relay.Tenancy.Provisioning.create_tenant(attrs, actor(receipt)))
 
-      {:region_mismatch, _id} ->
-        {:rejected, "region_mismatch"}
-
-      {:conflict, _id} ->
-        {:rejected, "conflict"}
-
-      {:error, %Relay.Error{code: code}} when code in [:invalid_time_zone, :invalid_locale] ->
-        {:rejected, "invalid_defaults"}
-
-      {:error, error} ->
-        {:error, error}
+  defp provision(attrs, product, receipt) do
+    case Relay.Access.create_platform_tenant(Map.put(attrs, :product, product), actor(receipt)) do
+      {:error, %Relay.Error{code: :invalid_argument}} -> {:rejected, "invalid_product"}
+      result -> provisioned(result)
     end
   end
+
+  defp provisioned({result, _id}) when result in [:created, :exists], do: :processed
+  defp provisioned({:region_mismatch, _id}), do: {:rejected, "region_mismatch"}
+  defp provisioned({:conflict, _id}), do: {:rejected, "conflict"}
+
+  defp provisioned({:error, %Relay.Error{code: code}})
+       when code in [:invalid_time_zone, :invalid_locale],
+       do: {:rejected, "invalid_defaults"}
+
+  defp provisioned({:error, error}), do: {:error, error}
 
   defp with_tenant(payload, fun) do
     case ClientStore.tenant(to_string(payload["access_tenant_id"])) do

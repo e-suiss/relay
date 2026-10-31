@@ -54,6 +54,14 @@ defmodule RelayWeb.Api.Response do
     |> halt()
   end
 
+  # API-14
+  @doc "Encodes the problem of an error as `{status, headers, body}` without sending it, for idempotent work that stores a failure after a partial execution."
+  @spec encode_problem(Plug.Conn.t(), Relay.Error.t()) :: Idempotency.response()
+  def encode_problem(conn, %Relay.Error{} = error) do
+    {status, retry, body} = Problem.build(oauth(conn, ErrorMap.to_api(error)), context(conn))
+    {status, [{"content-type", @problem} | retry], Jason.encode!(body)}
+  end
+
   # API-45
   # API-79 (2)
   defp oauth(%{assigns: %{operation: %{id: @token_exchange}}}, %Relay.Error{} = error) do

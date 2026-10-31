@@ -124,6 +124,7 @@ defmodule RelayWeb.Operator.PlatformController do
     end
   end
 
+  # API-14
   defp released(id) do
     case KillSwitch.list(Operators.installation_scope(), include_released: true, limit: 1_000) do
       {:ok, records} ->
@@ -131,7 +132,7 @@ defmodule RelayWeb.Operator.PlatformController do
         {:ok, {200, Json.kill_switch(Map.from_struct(record))}}
 
       {:error, error} ->
-        {:error, error}
+        {:partial, error}
     end
   end
 
@@ -150,10 +151,11 @@ defmodule RelayWeb.Operator.PlatformController do
     %{kind: :installation_operator, ref: session.subject, access_record_ref: step_up_ref(conn)}
   end
 
+  # API-14
   defp answer({:ok, %{id: id}}, status) do
     case KillSwitch.show(id) do
       {:ok, record} -> {:ok, {status, Json.kill_switch(Map.from_struct(record))}}
-      {:error, code} -> {:error, kill_switch_error(code)}
+      {:error, code} -> {:partial, kill_switch_error(code)}
     end
   end
 

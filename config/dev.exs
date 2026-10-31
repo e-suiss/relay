@@ -28,6 +28,10 @@ config :relay, RelayWeb.Metrics, server: true, ip: {127, 0, 0, 1}, port: 9568
 
 config :relay, Relay.NetworkGuard, enabled: true
 
+config :relay, Relay.Access,
+  issuer: "https://access.localhost",
+  http: [plug: {RelayDev.Access, []}]
+
 config :relay, Relay.Audit,
   publishers: [
     {"worm_store", Relay.Audit.Checkpointer.Publisher.S3,

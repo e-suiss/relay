@@ -2,11 +2,14 @@ defmodule Relay.Operators.Suspension do
   @moduledoc """
   Suspension of a tenant or of one of its subtenants by the installation operator (TN-10, TN-71, INV-42). The record lives in the tenant's `live` environment and applies to both environments. A suspension on abuse, security or legal grounds takes effect at once with a reasoned notice due within the policy's hours; on other grounds it takes effect no earlier than the policy's notice days. The appeal window follows the effective time. The values come from the active `suspension_policy` data set, whose legal basis awaits legal approval and blocks a release until approved; without an active version no suspension is recorded.
 
-  An effective suspension sets the tenant (or subtenant) `suspended`; every entry point rejects new work from then on (`auth_tenant_suspended`). Lifting sets it `active` again; paused work is not resumed by itself. Both are audited (`tenant.suspended`, `tenant.resumed`).
+  An effective suspension sets the tenant (or subtenant) `suspended`; every entry point rejects new work from then on (`auth_tenant_suspended`), and its pending deliveries are marked `PAUSED` (`Relay.Operators.SuspensionWork`, TN-40). Lifting sets it `active` again and is the explicit resume of that work: each paused delivery passes the policy lattice again, and while the lattice is not ready the deliveries stay `PAUSED`. Both are audited (`tenant.suspended`, `tenant.resumed`).
   """
+
+  require Logger
 
   alias Relay.Actor
   alias Relay.Operators.Store
+  alias Relay.Operators.SuspensionWork
   alias Relay.Scope
 
   @grounds ~w(abuse security legal other)
@@ -69,7 +72,40 @@ defmodule Relay.Operators.Suspension do
       scope
       |> Store.in_scope(fn _status -> record(record, digest, actor) end)
       |> outcome()
+      |> paused(tenant_id)
     end
+  end
+
+  # TN-10
+  # TN-40
+  defp paused({:ok, %{"state" => "effective"} = row} = result, tenant_id) do
+    with {:error, reason} <- SuspensionWork.pause(tenant_id, row["subtenant_id"]),
+         do: warn("pause", tenant_id, reason)
+
+    result
+  end
+
+  defp paused(result, _tenant_id), do: result
+
+  # TN-10
+  # TN-40
+  defp resumed({:ok, %{"state" => "lifted"} = row} = result, tenant_id, actor) do
+    case SuspensionWork.resume(tenant_id, row["subtenant_id"], actor: actor) do
+      {:ok, _totals} -> :ok
+      {:error, reason} -> warn("resume", tenant_id, reason)
+    end
+
+    result
+  end
+
+  defp resumed(result, _tenant_id, _actor), do: result
+
+  defp warn(step, tenant_id, reason) do
+    Logger.warning("the suspension's pending work did not complete",
+      step: step,
+      tenant_id: Relay.Id.to_string(tenant_id),
+      reason: inspect(reason)
+    )
   end
 
   defp record(record, digest, actor) do
@@ -110,6 +146,7 @@ defmodule Relay.Operators.Suspension do
       end
     end)
     |> outcome()
+    |> resumed(tenant_id, actor)
   end
 
   defp lift(scope, id, reason, actor, step_up_ref) do
@@ -136,13 +173,18 @@ defmodule Relay.Operators.Suspension do
   @spec activate_due(pos_integer()) :: non_neg_integer()
   def activate_due(limit \\ 100) do
     for %{"tenant_id" => tenant_id, "suspension_id" => id} <- Store.suspensions_due(limit),
-        {:ok, :effective} <-
-          [
-            Store.in_scope(Scope.new!(tenant_id, :live), fn _ -> Store.suspension_activate(id) end)
-          ],
+        {:ok, {:effective, row}} <- [activate(tenant_id, id)],
         reduce: 0 do
-      total -> total + 1
+      total ->
+        paused({:ok, row}, tenant_id)
+        total + 1
     end
+  end
+
+  defp activate(tenant_id, id) do
+    Store.in_scope(Scope.new!(tenant_id, :live), fn _status ->
+      {Store.suspension_activate(id), Store.suspension_get(id)}
+    end)
   end
 
   @doc "Lists the recent suspensions of a tenant."

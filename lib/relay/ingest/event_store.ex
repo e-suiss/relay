@@ -1,6 +1,6 @@
 defmodule Relay.Ingest.EventStore do
   @moduledoc """
-  Data access of events: acceptance, notifications of an event, cancellation and tombstones, quotas, CloudEvents type mappings, the send mode settings and the query reads of events, notifications and deliveries. Every function except `in_scope/2` runs inside `Relay.Repo.in_scope/3`.
+  Data access of events: acceptance, notifications of an event, cancellation and tombstones, quotas, CloudEvents type mappings, the send mode settings and the query reads of events, notifications and deliveries. Every function except `in_scope/2` and `installation_send_mode/0`, which opens its own, runs inside `Relay.Repo.in_scope/3`.
   """
 
   alias Relay.Actor
@@ -367,6 +367,37 @@ defmodule Relay.Ingest.EventStore do
         row["value"] != nil,
         into: %{},
         do: {row["key"], row["value"]}
+  end
+
+  # TN-9
+  @doc "Reads the platform product of the established scope's tenant, `nil` for an ordinary tenant."
+  @spec platform_product() :: String.t() | nil
+  def platform_product do
+    case one("SELECT id AS tenant_id, platform_product FROM relay.tenants", []) do
+      %{"platform_product" => product} -> product
+      nil -> nil
+    end
+  end
+
+  # OP-51
+  @doc "Reads the installation default send mode, the `send_mode` setting of the installation tenant's `live` scope; `nil` when it is unset. Runs in its own scoped transaction."
+  @spec installation_send_mode() :: {:ok, String.t() | nil} | {:error, term()}
+  def installation_send_mode do
+    scope = Relay.Scope.new!(installation_tenant_id(), :live)
+
+    with {:ok, settings} <- Repo.in_scope(scope, fn _status -> settings(["send_mode"]) end),
+         do: {:ok, Map.get(settings, "send_mode")}
+  end
+
+  defp installation_tenant_id do
+    {:ok, %Postgrex.Result{rows: [[id]]}} =
+      Repo.unscoped_query(
+        :installation_lookup,
+        "SELECT installation_tenant_id FROM relay.installation WHERE singleton",
+        []
+      )
+
+    id
   end
 
   @doc "Reads an event with its workflow reference and the notifications it accepted, or `nil`."

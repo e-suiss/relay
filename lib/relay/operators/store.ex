@@ -12,6 +12,10 @@ defmodule Relay.Operators.Store do
   @spec in_scope(Relay.Scope.t(), (atom() -> term())) :: {:ok, term()} | {:error, term()}
   def in_scope(scope, fun), do: Repo.in_scope(scope, fun)
 
+  @doc "Rolls back the current scoped transaction, which then returns `{:error, value}`."
+  @spec rollback(term()) :: no_return()
+  def rollback(value), do: Repo.rollback(value)
+
   @doc "Returns the installation tenant's identifier."
   @spec installation_tenant_id() :: Relay.Id.t()
   def installation_tenant_id do
@@ -398,6 +402,97 @@ defmodule Relay.Operators.Store do
     |> List.first()
   end
 
+  # TN-10
+  # TN-40
+  @doc "Reads up to `limit` pending deliveries of the established scope that are neither terminal nor paused; with a subtenant, only those of its notifications."
+  @spec pending_deliveries(Relay.Id.t() | nil, pos_integer()) :: [Relay.Id.t()]
+  def pending_deliveries(subtenant_id, limit) do
+    """
+    SELECT d.tenant_id, d.environment, d.id
+    FROM relay.deliveries d
+    JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
+      AND n.id = d.notification_id
+    WHERE d.delivery_rank = 0 AND d.failure_kind IS NULL AND d.paused_at IS NULL
+      AND ($1::uuid IS NULL OR n.subtenant_id = $1::uuid)
+    ORDER BY d.created_at, d.id
+    LIMIT $2
+    """
+    |> rows([subtenant_id, limit])
+    |> Enum.map(& &1["id"])
+  end
+
+  # TN-10
+  # TN-40
+  @doc "Reads up to `limit` deliveries of the established scope paused with `rule_id`, with their notification and message class; with a subtenant, only those of its notifications."
+  @spec paused_deliveries(String.t(), Relay.Id.t() | nil, pos_integer()) :: [map()]
+  def paused_deliveries(rule_id, subtenant_id, limit) do
+    rows(
+      """
+      SELECT d.tenant_id, d.environment, d.id, d.notification_id,
+        n.message_class::text AS message_class
+      FROM relay.deliveries d
+      JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
+        AND n.id = d.notification_id
+      WHERE d.delivery_rank = 0 AND d.failure_kind IS NULL AND d.paused_at IS NOT NULL
+        AND d.pause_kill_switch_id IS NULL AND d.pause_rule_id::text = $1
+        AND ($2::uuid IS NULL OR n.subtenant_id = $2::uuid)
+      ORDER BY d.created_at, d.id
+      LIMIT $3
+      """,
+      [rule_id, subtenant_id, limit]
+    )
+  end
+
+  # TN-10
+  # TN-40
+  @doc "Marks a delivery `PAUSED` with `rule_id` and no kill switch."
+  @spec delivery_pause(Relay.Id.t(), String.t()) ::
+          :paused | :already_paused | :already_terminal | :not_found
+  def delivery_pause(delivery_id, rule_id) do
+    [row] = Repo.call!("relay_fn.delivery_pause", [delivery_id, rule_id, nil])
+    Repo.code!(row["delivery_pause"], [:paused, :already_paused, :already_terminal, :not_found])
+  end
+
+  # TN-40
+  @doc "Lifts the pause of a delivery the policy lattice decided to send."
+  @spec delivery_resume(Relay.Id.t(), String.t(), String.t()) ::
+          :resumed | :not_paused | :already_terminal | :not_found
+  def delivery_resume(delivery_id, decision_ref, rule_id) do
+    [row] = Repo.call!("relay_fn.delivery_resume", [delivery_id, decision_ref, rule_id])
+    Repo.code!(row["delivery_resume"], [:resumed, :not_paused, :already_terminal, :not_found])
+  end
+
+  # TN-40
+  @doc "Cancels a paused delivery the policy lattice decided to skip."
+  @spec delivery_cancel(Relay.Id.t(), String.t(), digest(), Actor.t()) ::
+          :cancelled | :already_terminal | :not_found
+  def delivery_cancel(delivery_id, rule_id, digest, %Actor{} = actor) do
+    [row] =
+      Repo.call!(
+        "relay_fn.delivery_cancel",
+        [delivery_id, rule_id, digest] ++ Actor.params(actor)
+      )
+
+    Repo.code!(row["delivery_cancel"], [:cancelled, :already_terminal, :not_found])
+  end
+
+  # T-15
+  @doc "True when a delivery job of `delivery_id` still waits or runs in the queue."
+  @spec delivery_job?(Relay.Id.t()) :: boolean()
+  def delivery_job?(delivery_id) do
+    [%{"queued" => queued}] =
+      rows(
+        """
+        SELECT EXISTS (SELECT 1 FROM relay_queue.oban_jobs j
+          WHERE j.state IN ('available', 'scheduled', 'executing', 'retryable')
+            AND j.args->>'delivery_id' = $1) AS queued
+        """,
+        [Relay.Id.to_string(delivery_id)]
+      )
+
+    queued
+  end
+
   # OP-51
   @doc "Sets or clears one send mode level of the established scope."
   @spec send_mode_set(map(), digest(), Actor.t()) ::
@@ -503,6 +598,61 @@ defmodule Relay.Operators.Store do
       :unchanged,
       :unsupported
     ])
+  end
+
+  # API-51
+  # TN-52
+  @doc "Reads the quota policies of the established scope, removed ones included, by period."
+  @spec quota_policies() :: [map()]
+  def quota_policies do
+    rows(
+      """
+      SELECT tenant_id, environment, period, limit_total, class_caps, security_reserve_bp, state,
+        version, updated_at
+      FROM relay.quota_policies
+      ORDER BY period
+      """,
+      []
+    )
+  end
+
+  # API-51
+  @doc "Reads the quota usage of the current period of the established scope."
+  @spec quota_usage(String.t()) :: map()
+  def quota_usage(period) do
+    [row] = Repo.call!("relay_fn.quota_usage", [period])
+    row
+  end
+
+  # API-51
+  # TN-52
+  # TN-22
+  @doc "Sets, changes or removes (`limit_total: nil`) the quota policy of a period; audited as `quota_policy.changed`."
+  @spec quota_policy_set(map(), digest(), Actor.t()) ::
+          {:created | :updated | :removed | :unchanged | :version_conflict | :invalid_caps,
+           pos_integer() | nil}
+  def quota_policy_set(attrs, digest, %Actor{} = actor) do
+    [row] =
+      Repo.call!(
+        "relay_fn.quota_policy_set",
+        [
+          attrs.period,
+          attrs.limit_total,
+          attrs.class_caps,
+          attrs.security_reserve_bp,
+          nil,
+          digest
+        ] ++ Actor.params(actor)
+      )
+
+    {Repo.code!(row["result"], [
+       :created,
+       :updated,
+       :removed,
+       :unchanged,
+       :version_conflict,
+       :invalid_caps
+     ]), row["version"]}
   end
 
   defp rows(sql, params) do

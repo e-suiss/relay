@@ -11,7 +11,16 @@ defmodule Relay.Operators do
 
   use Boundary,
     top_level?: true,
-    deps: [Relay, Relay.Access, Relay.Audit, Relay.Datasets, Relay.Platform.Leadership],
+    deps: [
+      Relay,
+      Relay.Access,
+      Relay.Audit,
+      Relay.Datasets,
+      Relay.Delivery,
+      Relay.Platform,
+      Relay.Platform.Leadership,
+      Relay.Policy.Lattice
+    ],
     exports: [Access, Authz, Session, Admin, Suspension, SuspensionActivator, AccessUserHandler]
 
   require Logger

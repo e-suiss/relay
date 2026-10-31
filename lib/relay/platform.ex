@@ -7,6 +7,7 @@ defmodule Relay.Platform do
 
   alias Relay.Platform.Admission
   alias Relay.Platform.Backend
+  alias Relay.Platform.Capacity
   alias Relay.Platform.Concurrency
   alias Relay.Platform.Fairness.Job
   alias Relay.Platform.Fairness.Queueing
@@ -54,7 +55,7 @@ defmodule Relay.Platform do
   # OP-69 (1)
   # T-32 (3)
   # T-34
-  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the node's credit block table, the node-local API filter table, the concurrency slot keeper, the signal hub, the load shedding watcher and the job queue; a worker node also runs the queue maintenance connection, the bulk write pool with its own role check and the outbox dispatcher. A failed role or ownership check stops the node."
+  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the node's credit block table, the node-local API filter table, the concurrency slot keeper, the signal hub, the load shedding watcher, the lane capacity sampler and the job queue; a worker node also runs the queue maintenance connection, the bulk write pool with its own role check and the outbox dispatcher. A failed role or ownership check stops the node."
   @spec children() :: [Supervisor.child_spec() | {module(), term()} | module()]
   def children do
     valkey = Application.fetch_env!(:relay, Valkey)
@@ -73,6 +74,7 @@ defmodule Relay.Platform do
       Signal.Hub
     ] ++
       if(load_shed_watcher?(), do: [LoadShed.Watcher], else: []) ++
+      if(capacity_sampler?(), do: [Capacity.Sampler], else: []) ++
       if(worker?,
         do: [Relay.QueueRepo, Relay.BulkRepo, Store.bulk_role_check_child()],
         else: []
@@ -103,6 +105,9 @@ defmodule Relay.Platform do
 
   defp load_shed_watcher?,
     do: :relay |> Application.get_env(LoadShed, []) |> Keyword.get(:watcher, true)
+
+  defp capacity_sampler?,
+    do: :relay |> Application.get_env(Capacity, []) |> Keyword.get(:sampler, true)
 
   defp outbox_dispatcher?,
     do: :relay |> Application.get_env(Outbox, []) |> Keyword.get(:dispatcher, true)
@@ -204,6 +209,11 @@ defmodule Relay.Platform do
   @doc "Admission control for an incoming request; see `Relay.Platform.Admission.decide/1`."
   @spec admit(Admission.input()) :: :admit | {:reject, Admission.rejection()}
   def admit(input), do: Admission.decide(input)
+
+  # T-35 (2)
+  @doc "This node's last sampled bulk lane capacities for `admit/1`'s `lane_capacity`; see `Relay.Platform.Capacity`."
+  @spec lane_capacity() :: Capacity.t() | nil
+  def lane_capacity, do: Capacity.current()
 
   # T-32 (3)
   @doc "Runs `fun` on the database pool of a lane: the OLTP pool for `l0` and `l1`, the bulk pool for `l2` and `l3`."

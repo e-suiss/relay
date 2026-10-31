@@ -4,9 +4,11 @@ defmodule RelayWeb.Operator.OperatorApiTest do
   import Plug.Conn
 
   alias Relay.Api.Tenant
+  alias Relay.Api.Versions
   alias Relay.Operators
   alias Relay.Operators.Admin
   alias RelayTest.Api
+  alias RelayTest.IngestFixture
   alias RelayTest.Operators.Access, as: FakeAccess
   alias RelayTest.TenantFixture
 
@@ -24,7 +26,7 @@ defmodule RelayWeb.Operator.OperatorApiTest do
 
     cookie = if cookies == %{}, do: [], else: [{"cookie", cookie_header(cookies)}]
     csrf = if opts[:as] && method != :get, do: [{"relay-csrf-token", opts[:as].csrf}], else: []
-    key = if method != :get, do: [{"idempotency-key", "key-" <> TenantFixture.random()}], else: []
+    key = if method != :get, do: [{"idempotency-key", opts[:key] || "key-" <> random()}], else: []
     tenant = tenant_headers(opts[:tenant])
 
     method
@@ -35,6 +37,8 @@ defmodule RelayWeb.Operator.OperatorApiTest do
     )
     |> Api.call(RelayWeb.Router)
   end
+
+  defp random, do: TenantFixture.random()
 
   defp cookie_header(cookies), do: Enum.map_join(cookies, "; ", fn {k, v} -> k <> "=" <> v end)
 
@@ -601,6 +605,125 @@ defmodule RelayWeb.Operator.OperatorApiTest do
     end
   end
 
+  describe "API-13 API-14 operator write replay" do
+    test "API-13: a repeated send mode write replays the first response and runs once" do
+      tenant = TenantFixture.tenant!()
+
+      admin =
+        sign_in("admin-" <> TenantFixture.random())
+        |> then(&grant!(tenant.live, &1, :tenant_admin))
+
+      key = "replay-" <> TenantFixture.random()
+      off = %{"channel" => "sms", "mode" => "off", "reason" => "incident"}
+
+      put = fn body ->
+        request(:put, "/v1/operator/send_modes",
+          body: body,
+          as: admin,
+          tenant: tenant.live,
+          key: key
+        )
+      end
+
+      first = put.(off)
+      assert json(first, 200)["mode"] == "off"
+      assert get_resp_header(first, "idempotency-replayed") == []
+
+      again = put.(off)
+      assert json(again, 200)["mode"] == "off"
+      assert get_resp_header(again, "idempotency-replayed") == ["true"]
+      assert get_resp_header(again, "idempotency-key") == [key]
+      assert again.resp_body == first.resp_body
+      assert length(audit(tenant.live, "send_mode.changed")) == 1
+
+      reused = put.(%{off | "reason" => "another incident"})
+      assert json(reused, 422)["code"] == "idempotency_key_reuse"
+      assert length(audit(tenant.live, "send_mode.changed")) == 1
+    end
+
+    test "API-13: a repeated API version pin replays the first response" do
+      tenant = TenantFixture.tenant!()
+
+      admin =
+        sign_in("admin-" <> TenantFixture.random())
+        |> then(&grant!(tenant.live, &1, :tenant_admin))
+
+      key = "replay-" <> TenantFixture.random()
+      body = %{"version" => Versions.latest(), "reason" => "pin"}
+
+      put = fn ->
+        request(:put, "/v1/operator/api_version",
+          body: body,
+          as: admin,
+          tenant: tenant.live,
+          key: key
+        )
+      end
+
+      first = put.()
+      assert json(first, 200)["pinned"] == body["version"]
+
+      again = put.()
+      json(again, 200)
+      assert get_resp_header(again, "idempotency-replayed") == ["true"]
+      assert again.resp_body == first.resp_body
+    end
+
+    test "API-14: a write that fails without side effects leaves the key free for a retry" do
+      tenant = TenantFixture.tenant!()
+
+      admin =
+        sign_in("admin-" <> TenantFixture.random())
+        |> then(&grant!(tenant.live, &1, :tenant_admin))
+
+      key = "retry-" <> TenantFixture.random()
+      bad = %{"version" => "1999-01-01", "reason" => "pin"}
+      good = %{bad | "version" => Versions.latest()}
+
+      put = fn body ->
+        request(:put, "/v1/operator/api_version",
+          body: body,
+          as: admin,
+          tenant: tenant.live,
+          key: key
+        )
+      end
+
+      failed = put.(bad)
+      assert failed.status in 400..499
+      assert get_resp_header(failed, "idempotency-replayed") == []
+
+      retried = put.(good)
+      assert json(retried, 200)["pinned"] == good["version"]
+      assert get_resp_header(retried, "idempotency-replayed") == []
+    end
+
+    test "API-14: a personal data reveal is never replayed" do
+      tenant = TenantFixture.tenant!()
+      keys = TenantFixture.keys!(tenant.live)
+      subscriber = TenantFixture.recipient!(tenant.live, keys)
+
+      admin =
+        sign_in("admin-" <> TenantFixture.random())
+        |> then(&grant!(tenant.live, &1, :tenant_admin))
+        |> step_up()
+
+      path =
+        "/v1/operator/subscribers/" <> Relay.ExternalId.encode("sub", subscriber) <> "/reveal"
+
+      key = "reveal-" <> TenantFixture.random()
+      body = %{"fields" => ["email"], "reason" => "support case"}
+
+      for _round <- 1..2 do
+        revealed = request(:post, path, body: body, as: admin, tenant: tenant.live, key: key)
+        json(revealed, 200)
+        assert get_resp_header(revealed, "idempotency-replayed") == []
+      end
+
+      assert length(audit(tenant.live, "pii.revealed")) == 2
+    end
+  end
+
   describe "API-52 API version pin" do
     test "API-52: a tenant administrator reads and moves the pin" do
       tenant = TenantFixture.tenant!()
@@ -613,7 +736,7 @@ defmodule RelayWeb.Operator.OperatorApiTest do
                "pinned"
              ] == nil
 
-      version = Relay.Api.Versions.latest()
+      version = Versions.latest()
 
       moved =
         json(
@@ -626,6 +749,101 @@ defmodule RelayWeb.Operator.OperatorApiTest do
         )
 
       assert moved["pinned"] == version
+    end
+  end
+
+  defp quota(session, scope, body),
+    do: request(:put, "/v1/operator/quotas", body: body, as: session, tenant: scope)
+
+  describe "API-51 TN-52 TN-22 quota policies" do
+    test "API-51, TN-22: the installation operator sets the limit; a tenant administrator only tightens at once" do
+      tenant = TenantFixture.tenant!()
+
+      operator =
+        installation_operator("platform-" <> TenantFixture.random())
+        |> then(&grant!(tenant.live, &1, :tenant_admin))
+
+      admin =
+        sign_in("admin-" <> TenantFixture.random())
+        |> then(&grant!(tenant.live, &1, :tenant_admin))
+
+      create = %{
+        "period" => "day",
+        "limit" => 1_000,
+        "class_caps" => %{"marketing" => 5_000},
+        "reason" => "plan"
+      }
+
+      created = json(quota(operator, tenant.live, create), 200)
+      assert %{"object" => "quota_policy", "limit" => 1_000, "version" => 1} = created
+      assert created["class_caps"] == %{"marketing" => 5_000}
+
+      raise_limit = %{"period" => "day", "limit" => 2_000, "reason" => "upsell"}
+      denied = json(quota(admin, tenant.live, raise_limit), 403)
+      assert denied["code"] == "auth_insufficient_role"
+
+      lower = %{"period" => "day", "class_caps" => %{"marketing" => 3_000}, "reason" => "x"}
+      lowered = json(quota(admin, tenant.live, lower), 200)
+      assert lowered["class_caps"] == %{"marketing" => 3_000}
+      assert lowered["limit"] == 1_000
+
+      relax = %{"period" => "day", "class_caps" => %{"marketing" => 6_000}, "reason" => "x"}
+      assert json(quota(admin, tenant.live, relax), 401)["code"] == "auth_step_up_required"
+
+      step_up(admin)
+      assert json(quota(admin, tenant.live, relax), 200)["class_caps"] == %{"marketing" => 6_000}
+
+      listed = json(request(:get, "/v1/operator/quotas", as: admin, tenant: tenant.live), 200)
+      assert [%{"period" => "day", "used" => 0, "limit" => 1_000}] = listed["data"]
+      assert length(audit(tenant.live, "quota_policy.changed")) == 3
+    end
+
+    test "TN-22: removing or raising a policy needs step-up; a new policy needs a limit" do
+      tenant = TenantFixture.tenant!()
+
+      operator =
+        installation_operator("platform-" <> TenantFixture.random())
+        |> then(&grant!(tenant.live, &1, :tenant_admin))
+
+      missing = json(quota(operator, tenant.live, %{"period" => "month", "reason" => "x"}), 422)
+      assert missing["code"] == "validation_failed"
+
+      body = %{"period" => "month", "limit" => 500, "reason" => "plan"}
+      json(quota(operator, tenant.live, body), 200)
+
+      removal = %{"period" => "month", "limit" => nil, "reason" => "drop"}
+      assert json(quota(operator, tenant.live, removal), 401)["code"] == "auth_step_up_required"
+
+      step_up(operator)
+      json(quota(operator, tenant.live, removal), 200)
+
+      listed = json(request(:get, "/v1/operator/quotas", as: operator, tenant: tenant.live), 200)
+      assert listed["data"] == []
+    end
+
+    test "API-51: a lowered class cap applies to the next acceptance" do
+      tenant = TenantFixture.tenant!()
+
+      operator =
+        installation_operator("platform-" <> TenantFixture.random())
+        |> then(&grant!(tenant.live, &1, :tenant_admin))
+
+      body = %{"period" => "day", "limit" => 1, "reason" => "tiny"}
+      json(quota(operator, tenant.live, body), 200)
+
+      token = IngestFixture.token(tenant.live)
+      IngestFixture.workflow!(tenant.live, token, "order-shipped")
+
+      event = fn ->
+        IngestFixture.request(:post, "/v1/events", token, %{
+          "workflow" => "order-shipped",
+          "to" => [%{"id" => "user-" <> random(), "email" => "ayse@example.com"}],
+          "data" => %{"order" => "A-1"}
+        })
+      end
+
+      assert event.().status == 202
+      assert json(event.(), 429)["code"] == "quota_exhausted"
     end
   end
 end

@@ -58,6 +58,23 @@ defmodule Relay.Ingest do
           :stored | :not_cacheable | :not_claimed
   defdelegate idempotency_complete(endpoint, key, fingerprint, response), to: Store
 
+  # API-13
+  # API-15
+  @doc "Runs work that spans several transactions on one held connection; see `Relay.Ingest.Store.idempotency_session/1`."
+  @spec idempotency_session((-> result)) :: result when result: term()
+  defdelegate idempotency_session(fun), to: Store
+
+  # API-13
+  # API-15
+  @doc "Holds a claimed key past its transaction; see `Relay.Ingest.Store.idempotency_hold/2`."
+  @spec idempotency_hold(String.t(), String.t()) :: {:held, integer()} | :busy
+  defdelegate idempotency_hold(endpoint, key), to: Store
+
+  # API-13
+  @doc "Releases a held key; see `Relay.Ingest.Store.idempotency_release/1`."
+  @spec idempotency_release(integer()) :: boolean()
+  defdelegate idempotency_release(lock), to: Store
+
   @doc "Runs work in a transaction scoped to `scope` for event reads and writes; see `Relay.Repo.in_scope/3`."
   @spec in_event_scope(Relay.Scope.t(), (atom() -> term())) :: {:ok, term()} | {:error, term()}
   defdelegate in_event_scope(scope, fun), to: EventStore, as: :in_scope
@@ -206,11 +223,22 @@ defmodule Relay.Ingest do
   @spec check_request(map(), map()) :: {:ok, map()} | {:error, Relay.Error.t()}
   defdelegate check_request(body, context), to: Request, as: :check
 
+  # TN-9
+  @doc "Reads the platform product of the scope's tenant; see `Relay.Ingest.EventStore.platform_product/0`."
+  @spec platform_product() :: String.t() | nil
+  defdelegate platform_product(), to: EventStore
+
   # OP-51
-  @doc "Resolves a send mode; see `Relay.Ingest.SendMode.resolve/5`."
-  @spec send_mode(String.t() | nil, map(), String.t(), String.t()) :: SendMode.mode()
-  def send_mode(requested, settings, category, channel),
-    do: SendMode.resolve(requested, settings, category, channel)
+  @doc "Reads the installation default send mode; see `Relay.Ingest.EventStore.installation_send_mode/0`."
+  @spec installation_send_mode() :: {:ok, String.t() | nil} | {:error, term()}
+  defdelegate installation_send_mode(), to: EventStore
+
+  # OP-51
+  @doc "Resolves a send mode with the installation default (`live` when unset); see `Relay.Ingest.SendMode.resolve/5`."
+  @spec send_mode(String.t() | nil, map(), String.t(), String.t(), String.t() | nil) ::
+          SendMode.mode()
+  def send_mode(requested, settings, category, channel, installation \\ nil),
+    do: SendMode.resolve(requested, settings, category, channel, installation || "live")
 
   # OP-51
   @doc "The settings keys of a send mode; see `Relay.Ingest.SendMode.keys/2`."

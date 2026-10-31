@@ -90,6 +90,16 @@ just test    # the test suite against the real database
 just check   # every check CI runs on a pull request
 ```
 
+`just dev` seeds a sample tenant with a recipient, a published `welcome` workflow and a test API client, linked to a local stand-in for Access. Send a first event:
+
+```sh
+curl -X POST http://localhost:4000/v1/events \
+  -H "Authorization: Bearer $(mix relay.dev.token)" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -H "Content-Type: application/json" \
+  -d '{"workflow": "welcome", "to": ["dev-sample-recipient"], "data": {"first_name": "Ayşe"}}'
+```
+
 Local services: Mailpit on <http://localhost:8025>, Jaeger on <http://localhost:16686>, Prometheus on <http://localhost:9090> and Grafana on <http://localhost:3000>.
 
 SDKs are planned for TypeScript/Node, Python, Go, Java, .NET, Elixir, PHP and Ruby, plus iOS, Android, React Native and Flutter, with ready-made inbox, toast and preference components (React and web components).

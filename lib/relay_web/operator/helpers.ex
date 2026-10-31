@@ -4,6 +4,7 @@ defmodule RelayWeb.Operator.Helpers do
   """
 
   alias Relay.Api.Cursor
+  alias Relay.Api.Idempotency
   alias Relay.Api.Pagination
   alias Relay.Operators
   alias RelayWeb.Api.Response
@@ -17,15 +18,34 @@ defmodule RelayWeb.Operator.Helpers do
   def problem(conn, %Relay.Error{} = error), do: Response.problem(conn, error)
 
   # API-10
-  @doc "Runs a write that carries its validated `Idempotency-Key` and answers its result; `work` returns `{:ok, {status, body}}` or `{:error, error}`. An operator write spans its own transactions, so its response is not stored for replay."
-  @spec idempotent(Plug.Conn.t(), (-> {:ok, {pos_integer(), map()}} | {:error, Relay.Error.t()})) ::
-          Plug.Conn.t()
+  # API-13
+  # API-14
+  # sobelow_skip ["XSS.SendResp"]
+  @doc """
+  Runs a write that carries its validated `Idempotency-Key` and answers its result; see `Relay.Api.Idempotency.run_spanning/5`. `work` returns `{:ok, {status, body}}`, `{:partial, error}` for a failure after part of the write took effect, or `{:error, error}` for a failure without side effects. The response is stored in the request's idempotency scope once the write completed, and the same key and body later replay it with `Idempotency-Replayed: true`.
+  """
+  @spec idempotent(
+          Plug.Conn.t(),
+          (-> {:ok, {pos_integer(), map()}} | {:partial | :error, Relay.Error.t()})
+        ) :: Plug.Conn.t()
   def idempotent(conn, work) do
-    case work.() do
-      {:ok, {status, body}} ->
+    %{scope: scope, operation: operation, idempotency_key: key, raw_body: raw} = conn.assigns
+
+    run = fn ->
+      case work.() do
+        {:ok, {status, body}} -> {:ok, Response.encode(conn, status, body)}
+        {:partial, %Relay.Error{} = error} -> {:partial, Response.encode_problem(conn, error)}
+        {:error, %Relay.Error{} = error} -> {:error, error}
+      end
+    end
+
+    case Idempotency.run_spanning(scope, operation.endpoint, key, raw || "", run) do
+      {:ok, {kind, {status, headers, body}}} ->
+        replayed = if kind == :replayed, do: [{"idempotency-replayed", "true"}], else: []
+
         conn
-        |> Plug.Conn.put_resp_header("idempotency-key", conn.assigns.idempotency_key)
-        |> Response.json(status, body)
+        |> Plug.Conn.merge_resp_headers([{"idempotency-key", key} | headers] ++ replayed)
+        |> Plug.Conn.send_resp(status, body)
 
       {:error, %Relay.Error{} = error} ->
         Response.problem(conn, error)

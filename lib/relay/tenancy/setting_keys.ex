@@ -38,11 +38,8 @@ defmodule Relay.Tenancy.SettingKeys do
       {:ok, :api_rate} ->
         api_rate(value)
 
-      {:ok, :boolean} when is_boolean(value) ->
-        {:ok, value}
-
       {:ok, :boolean} ->
-        {:error, Relay.Error.new(:invalid_setting, "the setting is true or false")}
+        boolean(value)
 
       {:ok, field} ->
         Defaults.cast(field, value)
@@ -51,6 +48,12 @@ defmodule Relay.Tenancy.SettingKeys do
         {:error, Relay.Error.new(:unknown_setting, "not a setting key", %{key: inspect(key)})}
     end
   end
+
+  # API-41
+  defp boolean(value) when is_boolean(value), do: {:ok, value}
+
+  defp boolean(_value),
+    do: {:error, Relay.Error.new(:invalid_setting, "the setting is true or false")}
 
   # API-50
   # API-77 (4)

@@ -19,8 +19,8 @@ defmodule Relay.Access do
     ],
     exports: [UserHandler]
 
-  alias Relay.Access.ClientStore
   alias Relay.Access.Clients
+  alias Relay.Access.ClientStore
   alias Relay.Access.Events
   alias Relay.Access.Link
   alias Relay.Access.PlatformTenant

@@ -14,8 +14,8 @@ defmodule Relay.Access.Events do
 
   require Logger
 
-  alias Relay.Access.ClientStore
   alias Relay.Access.Clients
+  alias Relay.Access.ClientStore
   alias Relay.Access.EventConsumer
   alias Relay.Access.EventStore
   alias Relay.Access.Link

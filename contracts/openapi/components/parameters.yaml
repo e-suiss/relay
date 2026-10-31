@@ -1,0 +1,271 @@
+IdempotencyKey:
+  name: Idempotency-Key
+  in: header
+  description: "Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it."
+  required: true
+  schema:
+    type: string
+    minLength: 8
+    maxLength: 257
+  example: "01j9zq3k-order-4821-shipped"
+IdempotencyKeyCloudEvents:
+  name: Idempotency-Key
+  in: header
+  description: "Required for native JSON. For a CloudEvents request without this header the key is derived from (tenant, source, id); a header, when present, wins."
+  required: false
+  schema:
+    type: string
+    minLength: 8
+    maxLength: 257
+RelayVersion:
+  name: Relay-Version
+  in: header
+  description: "Dated API version. Without it the tenant's pinned version applies; the latest version is never the default."
+  required: false
+  schema:
+    type: string
+    format: date
+  example: "2026-11-01"
+RelayBeta:
+  name: Relay-Beta
+  in: header
+  description: "Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true."
+  required: false
+  schema:
+    type: string
+Traceparent:
+  name: traceparent
+  in: header
+  description: W3C trace context, carried end to end.
+  required: false
+  schema:
+    type: string
+    pattern: "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
+IfMatch:
+  name: If-Match
+  in: header
+  description: "ETag of the version being updated. Missing gives 428 precondition_required; stale gives 412 precondition_failed."
+  required: true
+  schema:
+    type: string
+IfMatchOptional:
+  name: If-Match
+  in: header
+  description: "ETag of the version being replaced; when present and stale the request fails with 412."
+  required: false
+  schema:
+    type: string
+Limit:
+  name: limit
+  in: query
+  description: Page size, 1 to 100.
+  required: false
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 50
+StartingAfter:
+  name: starting_after
+  in: query
+  description: Cursor from next_cursor.
+  required: false
+  schema:
+    "$ref": "./schemas.yaml#/Cursor"
+EndingBefore:
+  name: ending_before
+  in: query
+  description: Cursor from previous_cursor.
+  required: false
+  schema:
+    "$ref": "./schemas.yaml#/Cursor"
+RelayTenant:
+  name: Relay-Tenant
+  in: header
+  description: Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential.
+  required: false
+  schema:
+    type: string
+    pattern: "^ten_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  x-relay-choice: true
+  x-relay-choice-note: "The panel always works in one tenant context; the header that carries it is chosen by the contract."
+RelayEnvironment:
+  name: Relay-Environment
+  in: header
+  description: Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens.
+  required: false
+  schema:
+    type: string
+    enum:
+      - live
+      - test
+  x-relay-choice: true
+CsrfToken:
+  name: Relay-Csrf-Token
+  in: header
+  description: "CSRF token of the operator session; required on mutating requests authenticated by the session cookie."
+  required: false
+  schema:
+    type: string
+    minLength: 32
+    maxLength: 128
+  x-relay-choice: true
+EventId:
+  name: event_id
+  in: path
+  description: Event identifier.
+  required: true
+  schema:
+    type: string
+    pattern: "^evt_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+NotificationId:
+  name: notification_id
+  in: path
+  description: Notification identifier.
+  required: true
+  schema:
+    type: string
+    pattern: "^ntf_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+DeliveryId:
+  name: delivery_id
+  in: path
+  description: Delivery identifier.
+  required: true
+  schema:
+    type: string
+    pattern: "^dlv_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+MappingId:
+  name: mapping_id
+  in: path
+  description: CloudEvents type mapping identifier.
+  required: true
+  schema:
+    type: string
+    pattern: "^cem_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+KillSwitchId:
+  name: kill_switch_id
+  in: path
+  description: Kill switch identifier.
+  required: true
+  schema:
+    type: string
+    pattern: "^ksw_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+TenantId:
+  name: tenant_id
+  in: path
+  description: Tenant identifier.
+  required: true
+  schema:
+    type: string
+    pattern: "^ten_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+RoleAssignmentId:
+  name: role_assignment_id
+  in: path
+  description: Role assignment identifier.
+  required: true
+  schema:
+    type: string
+    pattern: "^rla_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+DelegationId:
+  name: delegation_id
+  in: path
+  description: Support delegation identifier.
+  required: true
+  schema:
+    type: string
+    pattern: "^dlg_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+ApiClientId:
+  name: api_client_id
+  in: path
+  description: API client identifier.
+  required: true
+  schema:
+    type: string
+    pattern: "^cli_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+SubscriberId:
+  name: subscriber_id
+  in: path
+  description: "The tenant's external id of the subscriber (URL-encoded)."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/ExternalId"
+WorkflowKey:
+  name: workflow_key
+  in: path
+  description: Workflow slug.
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/WorkflowKey"
+WorkflowVersion:
+  name: version
+  in: path
+  description: Published version number.
+  required: true
+  schema:
+    type: integer
+    minimum: 1
+ErrorCode:
+  name: code
+  in: path
+  description: Error code.
+  required: true
+  schema:
+    type: string
+    pattern: "^[a-z][a-z0-9_]*$"
+    maxLength: 64
+CeSpecversion:
+  name: ce-specversion
+  in: header
+  description: "CloudEvents binary mode: spec version; its presence selects binary mode."
+  required: false
+  schema:
+    type: string
+    const: "1.0"
+CeId:
+  name: ce-id
+  in: header
+  description: "CloudEvents binary mode: event id."
+  required: false
+  schema:
+    type: string
+    maxLength: 512
+CeSource:
+  name: ce-source
+  in: header
+  description: "CloudEvents binary mode: source."
+  required: false
+  schema:
+    type: string
+    maxLength: 1024
+CeType:
+  name: ce-type
+  in: header
+  description: "CloudEvents binary mode: type, mapped to a workflow."
+  required: false
+  schema:
+    type: string
+    maxLength: 256
+CeSubject:
+  name: ce-subject
+  in: header
+  description: "CloudEvents binary mode: subject."
+  required: false
+  schema:
+    type: string
+    maxLength: 512
+CeTime:
+  name: ce-time
+  in: header
+  description: "CloudEvents binary mode: time."
+  required: false
+  schema:
+    type: string
+    format: date-time
+CeDataschema:
+  name: ce-dataschema
+  in: header
+  description: "CloudEvents binary mode: data schema."
+  required: false
+  schema:
+    type: string
+    format: uri

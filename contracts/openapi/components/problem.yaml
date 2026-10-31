@@ -1,0 +1,176 @@
+Problem:
+  type: object
+  description: RFC 9457 problem details. type, title, status, code and retryable are always present.
+  required:
+    - type
+    - title
+    - status
+    - code
+    - retryable
+  properties:
+    type:
+      type: string
+      description: "Resolvable URL of the error code page: <region base URL>/v1/errors/<code>. Never about:blank."
+      format: uri
+    title:
+      type: string
+      description: Fixed title of the code.
+    status:
+      type: integer
+      minimum: 400
+      maximum: 599
+    code:
+      type: string
+      description: snake_case copy of the code at the end of type.
+      pattern: "^[a-z][a-z0-9_]*$"
+    detail:
+      type: string
+      description: Variable explanation for this occurrence.
+    instance:
+      type: string
+      description: Request path.
+    retryable:
+      type: boolean
+    request_id:
+      type: string
+    retry_after:
+      type: integer
+      minimum: 0
+      description: "Seconds; equals the Retry-After header."
+    errors:
+      type: array
+      description: "Field errors; present only for field validation and never empty."
+      items:
+        "$ref": "#/FieldError"
+      minItems: 1
+    limit:
+      type: integer
+      minimum: 0
+    actual:
+      type: integer
+      minimum: 0
+    limit_name:
+      type: string
+      description: Name of the limit that was exceeded, from the limits page.
+      x-relay-choice: true
+      x-relay-choice-note: "The spec requires the body to say which limit was exceeded; this member carries its name."
+    required_scope:
+      "$ref": "./schemas.yaml#/ScopeName"
+    granted_scopes:
+      type: array
+      items:
+        "$ref": "./schemas.yaml#/ScopeName"
+    policy:
+      type: string
+      description: Policy field that cannot be overridden.
+    quota:
+      type: object
+      required:
+        - bucket
+        - period
+      properties:
+        bucket:
+          type: string
+          enum:
+            - general
+            - security
+        period:
+          type: string
+          enum:
+            - day
+            - month
+        message_class:
+          "$ref": "./schemas.yaml#/MessageClass"
+        reserve:
+          type: boolean
+          description: True when the security reserve was the exhausted part.
+      additionalProperties: false
+      x-relay-choice: true
+      x-relay-choice-note: "The spec requires the quota and class to be named; the member shape is chosen by the contract."
+    supported_versions:
+      type: array
+      items:
+        "$ref": "./schemas.yaml#/ApiVersion"
+      x-relay-choice: true
+      x-relay-choice-note: Carries the supported version list required with unsupported_api_version.
+    required_role:
+      type: string
+      enum:
+        - installation_operator
+        - tenant_admin
+        - tenant_operator
+      x-relay-choice: true
+    granted_roles:
+      type: array
+      items:
+        type: string
+        enum:
+          - installation_operator
+          - tenant_admin
+          - tenant_operator
+      x-relay-choice: true
+    step_up:
+      type: object
+      required:
+        - acr_values
+        - max_age
+        - start
+      properties:
+        acr_values:
+          type: string
+          description: Space-separated ACR values Access must satisfy.
+        max_age:
+          type: integer
+          minimum: 0
+          description: Maximum authentication age in seconds.
+        start:
+          type: string
+          description: Operator API path that starts the step-up.
+          examples:
+            - "/v1/operator/session/step_up"
+      additionalProperties: false
+      x-relay-choice: true
+      x-relay-choice-note: RFC 9470 step-up challenge details mirrored in the body.
+    error:
+      type: string
+      enum:
+        - invalid_request
+        - invalid_grant
+        - invalid_scope
+        - unsupported_grant_type
+        - invalid_target
+      description: OAuth 2.0 error code, present only on the token exchange endpoint for OAuth library compatibility.
+      x-relay-choice: true
+  additionalProperties: false
+FieldError:
+  type: object
+  description: "One field error. Validation reports every error; it does not stop at the first."
+  required:
+    - pointer
+    - code
+  properties:
+    pointer:
+      type: string
+      description: RFC 6901 JSON Pointer to the field.
+      examples:
+        - "/to/0/phone"
+    code:
+      type: string
+      enum:
+        - required
+        - invalid_format
+        - too_long
+        - too_short
+        - not_found
+        - not_allowed
+        - conflict
+        - unsupported_value
+    detail:
+      type: string
+    limit:
+      type: integer
+      minimum: 0
+    actual:
+      type: integer
+      minimum: 0
+  additionalProperties: false

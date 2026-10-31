@@ -1,0 +1,2796 @@
+asyncapi: "3.1.0"
+info:
+  title: Relay Event Catalog
+  version: "2026-11-01"
+  description: "Single catalog of every event name (noun.verb_past). A concept is never published under two names, and cancelled is the only spelling of that state. The catalog feeds the portal, SDKs and webhook verifiers. Outgoing events use the CloudEvents 1.0 envelope; each event type has a versioned data schema and a schema change opens a new version. Default payloads are thin: type, id and related identifiers, no personal data."
+  license:
+    name: Apache-2.0
+defaultContentType: application/cloudevents+json
+channels:
+  tenantWebhooks:
+    address: null
+    title: tenantWebhooks
+    description: "Tenant webhook endpoints and event destinations (use A). Endpoints subscribe to chosen types; an empty selection receives nothing. Delivery follows the shared Suiss webhook profile and is at least once."
+    messages:
+      webhook.notification.suppressed:
+        "$ref": "#/components/messages/webhook.notification.suppressed"
+      webhook.notification.render_failed:
+        "$ref": "#/components/messages/webhook.notification.render_failed"
+      webhook.device.reassigned:
+        "$ref": "#/components/messages/webhook.device.reassigned"
+      webhook.device.unregistered:
+        "$ref": "#/components/messages/webhook.device.unregistered"
+      webhook.address.disabled:
+        "$ref": "#/components/messages/webhook.address.disabled"
+      webhook.webhook.attempt_exhausted:
+        "$ref": "#/components/messages/webhook.webhook.attempt_exhausted"
+      webhook.webhook_endpoint.disabled:
+        "$ref": "#/components/messages/webhook.webhook_endpoint.disabled"
+      webhook.webhook_endpoint.recovered:
+        "$ref": "#/components/messages/webhook.webhook_endpoint.recovered"
+      webhook.waitpoint.created:
+        "$ref": "#/components/messages/webhook.waitpoint.created"
+      webhook.waitpoint.resolved:
+        "$ref": "#/components/messages/webhook.waitpoint.resolved"
+      webhook.waitpoint.expired:
+        "$ref": "#/components/messages/webhook.waitpoint.expired"
+      webhook.waitpoint.cancelled:
+        "$ref": "#/components/messages/webhook.waitpoint.cancelled"
+      webhook.waitpoint.escalated:
+        "$ref": "#/components/messages/webhook.waitpoint.escalated"
+      webhook.waitpoint.stalled:
+        "$ref": "#/components/messages/webhook.waitpoint.stalled"
+      webhook.waitpoint.response_rejected:
+        "$ref": "#/components/messages/webhook.waitpoint.response_rejected"
+      webhook.agent.ceiling_exceeded:
+        "$ref": "#/components/messages/webhook.agent.ceiling_exceeded"
+      webhook.mailbox.record_appended:
+        "$ref": "#/components/messages/webhook.mailbox.record_appended"
+      webhook.mailbox.record_dead_lettered:
+        "$ref": "#/components/messages/webhook.mailbox.record_dead_lettered"
+      webhook.killswitch.engaged:
+        "$ref": "#/components/messages/webhook.killswitch.engaged"
+      webhook.killswitch.released:
+        "$ref": "#/components/messages/webhook.killswitch.released"
+      webhook.killswitch.auto_paused:
+        "$ref": "#/components/messages/webhook.killswitch.auto_paused"
+      webhook.quota.threshold_reached:
+        "$ref": "#/components/messages/webhook.quota.threshold_reached"
+      webhook.quota.reserve_opened:
+        "$ref": "#/components/messages/webhook.quota.reserve_opened"
+  operations:
+    address: null
+    title: operations
+    description: Operations channel of the installation operator and tenant notices (kill switch changes, alarms).
+    messages:
+      webhook.webhook.attempt_exhausted:
+        "$ref": "#/components/messages/webhook.webhook.attempt_exhausted"
+      webhook.webhook_endpoint.disabled:
+        "$ref": "#/components/messages/webhook.webhook_endpoint.disabled"
+      webhook.webhook_endpoint.recovered:
+        "$ref": "#/components/messages/webhook.webhook_endpoint.recovered"
+      operations.mailbox.abuse_reported:
+        "$ref": "#/components/messages/operations.mailbox.abuse_reported"
+      webhook.killswitch.engaged:
+        "$ref": "#/components/messages/webhook.killswitch.engaged"
+      webhook.killswitch.released:
+        "$ref": "#/components/messages/webhook.killswitch.released"
+      webhook.killswitch.auto_paused:
+        "$ref": "#/components/messages/webhook.killswitch.auto_paused"
+      operations.provider.unknown_code:
+        "$ref": "#/components/messages/operations.provider.unknown_code"
+      webhook.quota.threshold_reached:
+        "$ref": "#/components/messages/webhook.quota.threshold_reached"
+      webhook.quota.reserve_opened:
+        "$ref": "#/components/messages/webhook.quota.reserve_opened"
+  inboxRealtime:
+    address: "/v1/realtime"
+    title: inboxRealtime
+    description: Subscriber inbox stream (later stage). Topic names, event names and the envelope are one set.
+    messages:
+      realtime.inbox.item_created:
+        "$ref": "#/components/messages/realtime.inbox.item_created"
+      realtime.inbox.item_updated:
+        "$ref": "#/components/messages/realtime.inbox.item_updated"
+      realtime.inbox.items_bulk_updated:
+        "$ref": "#/components/messages/realtime.inbox.items_bulk_updated"
+      realtime.inbox.counters_changed:
+        "$ref": "#/components/messages/realtime.inbox.counters_changed"
+      realtime.stream.resync_required:
+        "$ref": "#/components/messages/realtime.stream.resync_required"
+  auditLog:
+    address: null
+    title: auditLog
+    description: "Audit log actions. Not a transport: actions are written to the tamper-evident audit log and exported to SIEM. Listed here so the catalog holds every event name."
+    messages:
+      audit.killswitch.bulk_cancelled:
+        "$ref": "#/components/messages/audit.killswitch.bulk_cancelled"
+      audit.tenant.created:
+        "$ref": "#/components/messages/audit.tenant.created"
+      audit.virtual_clock.advanced:
+        "$ref": "#/components/messages/audit.virtual_clock.advanced"
+      audit.audit_log.read:
+        "$ref": "#/components/messages/audit.audit_log.read"
+      audit.pii.revealed:
+        "$ref": "#/components/messages/audit.pii.revealed"
+      audit.tenant.suspended:
+        "$ref": "#/components/messages/audit.tenant.suspended"
+      audit.tenant.resumed:
+        "$ref": "#/components/messages/audit.tenant.resumed"
+      audit.role_assignment.created:
+        "$ref": "#/components/messages/audit.role_assignment.created"
+      audit.role_assignment.revoked:
+        "$ref": "#/components/messages/audit.role_assignment.revoked"
+      audit.support_delegation.granted:
+        "$ref": "#/components/messages/audit.support_delegation.granted"
+      audit.support_delegation.revoked:
+        "$ref": "#/components/messages/audit.support_delegation.revoked"
+      audit.workflow.published:
+        "$ref": "#/components/messages/audit.workflow.published"
+      audit.event_type_mapping.changed:
+        "$ref": "#/components/messages/audit.event_type_mapping.changed"
+      audit.send_mode.changed:
+        "$ref": "#/components/messages/audit.send_mode.changed"
+      audit.quota_policy.changed:
+        "$ref": "#/components/messages/audit.quota_policy.changed"
+      audit.api_version.pinned:
+        "$ref": "#/components/messages/audit.api_version.pinned"
+      audit.subscriber.deletion_requested:
+        "$ref": "#/components/messages/audit.subscriber.deletion_requested"
+      audit.cross_tenant.queried:
+        "$ref": "#/components/messages/audit.cross_tenant.queried"
+      audit.operator_session.revoked:
+        "$ref": "#/components/messages/audit.operator_session.revoked"
+      webhook.killswitch.engaged:
+        "$ref": "#/components/messages/webhook.killswitch.engaged"
+      webhook.killswitch.released:
+        "$ref": "#/components/messages/webhook.killswitch.released"
+      webhook.killswitch.auto_paused:
+        "$ref": "#/components/messages/webhook.killswitch.auto_paused"
+  accessInbound:
+    address: "/v1/access/events"
+    title: accessInbound
+    description: Events Access delivers to Relay with the shared webhook profile.
+    messages:
+      access.tenant.created:
+        "$ref": "#/components/messages/access.tenant.created"
+      access.organization.created:
+        "$ref": "#/components/messages/access.organization.created"
+      access.organization.updated:
+        "$ref": "#/components/messages/access.organization.updated"
+      access.api_client.created:
+        "$ref": "#/components/messages/access.api_client.created"
+      access.api_client.updated:
+        "$ref": "#/components/messages/access.api_client.updated"
+      access.api_client.suspended:
+        "$ref": "#/components/messages/access.api_client.suspended"
+      access.api_client.reactivated:
+        "$ref": "#/components/messages/access.api_client.reactivated"
+      access.api_client.revoked:
+        "$ref": "#/components/messages/access.api_client.revoked"
+      access.user.suspended:
+        "$ref": "#/components/messages/access.user.suspended"
+      access.user.reactivated:
+        "$ref": "#/components/messages/access.user.reactivated"
+      access.user.deleted:
+        "$ref": "#/components/messages/access.user.deleted"
+operations:
+  sendTenantWebhooks:
+    action: send
+    channel:
+      "$ref": "#/channels/tenantWebhooks"
+    messages:
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.notification.suppressed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.notification.render_failed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.device.reassigned"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.device.unregistered"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.address.disabled"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook.attempt_exhausted"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.disabled"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.recovered"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.waitpoint.created"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.waitpoint.resolved"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.waitpoint.expired"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.waitpoint.cancelled"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.waitpoint.escalated"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.waitpoint.stalled"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.waitpoint.response_rejected"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.agent.ceiling_exceeded"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.mailbox.record_appended"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.mailbox.record_dead_lettered"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.killswitch.engaged"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.killswitch.released"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.killswitch.auto_paused"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.quota.threshold_reached"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.quota.reserve_opened"
+  sendOperations:
+    action: send
+    channel:
+      "$ref": "#/channels/operations"
+    messages:
+      - "$ref": "#/channels/operations/messages/webhook.webhook.attempt_exhausted"
+      - "$ref": "#/channels/operations/messages/webhook.webhook_endpoint.disabled"
+      - "$ref": "#/channels/operations/messages/webhook.webhook_endpoint.recovered"
+      - "$ref": "#/channels/operations/messages/operations.mailbox.abuse_reported"
+      - "$ref": "#/channels/operations/messages/webhook.killswitch.engaged"
+      - "$ref": "#/channels/operations/messages/webhook.killswitch.released"
+      - "$ref": "#/channels/operations/messages/webhook.killswitch.auto_paused"
+      - "$ref": "#/channels/operations/messages/operations.provider.unknown_code"
+      - "$ref": "#/channels/operations/messages/webhook.quota.threshold_reached"
+      - "$ref": "#/channels/operations/messages/webhook.quota.reserve_opened"
+  sendInboxRealtime:
+    action: send
+    channel:
+      "$ref": "#/channels/inboxRealtime"
+    messages:
+      - "$ref": "#/channels/inboxRealtime/messages/realtime.inbox.item_created"
+      - "$ref": "#/channels/inboxRealtime/messages/realtime.inbox.item_updated"
+      - "$ref": "#/channels/inboxRealtime/messages/realtime.inbox.items_bulk_updated"
+      - "$ref": "#/channels/inboxRealtime/messages/realtime.inbox.counters_changed"
+      - "$ref": "#/channels/inboxRealtime/messages/realtime.stream.resync_required"
+  sendAuditLog:
+    action: send
+    channel:
+      "$ref": "#/channels/auditLog"
+    messages:
+      - "$ref": "#/channels/auditLog/messages/audit.killswitch.bulk_cancelled"
+      - "$ref": "#/channels/auditLog/messages/audit.tenant.created"
+      - "$ref": "#/channels/auditLog/messages/audit.virtual_clock.advanced"
+      - "$ref": "#/channels/auditLog/messages/audit.audit_log.read"
+      - "$ref": "#/channels/auditLog/messages/audit.pii.revealed"
+      - "$ref": "#/channels/auditLog/messages/audit.tenant.suspended"
+      - "$ref": "#/channels/auditLog/messages/audit.tenant.resumed"
+      - "$ref": "#/channels/auditLog/messages/audit.role_assignment.created"
+      - "$ref": "#/channels/auditLog/messages/audit.role_assignment.revoked"
+      - "$ref": "#/channels/auditLog/messages/audit.support_delegation.granted"
+      - "$ref": "#/channels/auditLog/messages/audit.support_delegation.revoked"
+      - "$ref": "#/channels/auditLog/messages/audit.workflow.published"
+      - "$ref": "#/channels/auditLog/messages/audit.event_type_mapping.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.send_mode.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.quota_policy.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.api_version.pinned"
+      - "$ref": "#/channels/auditLog/messages/audit.subscriber.deletion_requested"
+      - "$ref": "#/channels/auditLog/messages/audit.cross_tenant.queried"
+      - "$ref": "#/channels/auditLog/messages/audit.operator_session.revoked"
+      - "$ref": "#/channels/auditLog/messages/webhook.killswitch.engaged"
+      - "$ref": "#/channels/auditLog/messages/webhook.killswitch.released"
+      - "$ref": "#/channels/auditLog/messages/webhook.killswitch.auto_paused"
+  receiveAccessInbound:
+    action: receive
+    channel:
+      "$ref": "#/channels/accessInbound"
+    messages:
+      - "$ref": "#/channels/accessInbound/messages/access.tenant.created"
+      - "$ref": "#/channels/accessInbound/messages/access.organization.created"
+      - "$ref": "#/channels/accessInbound/messages/access.organization.updated"
+      - "$ref": "#/channels/accessInbound/messages/access.api_client.created"
+      - "$ref": "#/channels/accessInbound/messages/access.api_client.updated"
+      - "$ref": "#/channels/accessInbound/messages/access.api_client.suspended"
+      - "$ref": "#/channels/accessInbound/messages/access.api_client.reactivated"
+      - "$ref": "#/channels/accessInbound/messages/access.api_client.revoked"
+      - "$ref": "#/channels/accessInbound/messages/access.user.suspended"
+      - "$ref": "#/channels/accessInbound/messages/access.user.reactivated"
+      - "$ref": "#/channels/accessInbound/messages/access.user.deleted"
+components:
+  schemas:
+    CloudEventEnvelope:
+      type: object
+      description: CloudEvents 1.0 structured envelope shared by Relay and Access (common Suiss webhook profile).
+      required:
+        - specversion
+        - id
+        - source
+        - type
+        - time
+        - datacontenttype
+        - data
+      properties:
+        specversion:
+          type: string
+          const: "1.0"
+        id:
+          type: string
+          description: "Event id; equals webhook-id on webhook delivery."
+          maxLength: 512
+        source:
+          type: string
+          description: "Producer source. For tenant-defined event types it is the tenant's value; Relay's internal tenant id is never included."
+          maxLength: 1024
+        type:
+          "$ref": "../openapi/components/schemas.yaml#/EventName"
+        time:
+          "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+        subject:
+          type: string
+          maxLength: 512
+        datacontenttype:
+          type: string
+          const: application/json
+        dataschema:
+          type: string
+          description: Versioned data schema URI of the event type.
+          format: uri
+        seq:
+          type: integer
+          minimum: 1
+          description: Monotonic sequence per subject (CloudEvents extension).
+        traceparent:
+          type: string
+          pattern: "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
+        environment:
+          "$ref": "../openapi/components/schemas.yaml#/Environment"
+        data:
+          type: object
+      additionalProperties: false
+    RealtimeEnvelope:
+      type: object
+      description: "Realtime envelope {t, v, ts, d}; every message carries counters."
+      required:
+        - t
+        - v
+        - ts
+        - d
+        - counters
+      properties:
+        t:
+          "$ref": "../openapi/components/schemas.yaml#/EventName"
+        v:
+          type: integer
+          minimum: 1
+          description: Schema version of the message type.
+        ts:
+          "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+        d:
+          type: object
+        counters:
+          type: object
+          required:
+            - unseen
+            - unread
+            - total
+            - version
+          properties:
+            unseen:
+              type: integer
+              minimum: 0
+            unread:
+              type: integer
+              minimum: 0
+            total:
+              type: integer
+              minimum: 0
+            version:
+              type: integer
+              minimum: 0
+          additionalProperties: false
+      additionalProperties: false
+  messages:
+    webhook.notification.suppressed:
+      name: notification.suppressed
+      title: notification.suppressed
+      summary: "A notification or delivery was not sent; the reason and rule_id say why."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: notification.suppressed
+                data:
+                  type: object
+                  required:
+                    - notification_id
+                    - recipient_id
+                    - workflow
+                    - reason
+                    - rule_id
+                  properties:
+                    notification_id:
+                      type: string
+                      pattern: "^ntf_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    delivery_id:
+                      oneOf:
+                        - type: string
+                          pattern: "^dlv_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                        - type: "null"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    external_id:
+                      "$ref": "../openapi/components/schemas.yaml#/ExternalId"
+                    workflow:
+                      type: object
+                      required:
+                        - key
+                        - version
+                      properties:
+                        key:
+                          "$ref": "../openapi/components/schemas.yaml#/WorkflowKey"
+                        version:
+                          type: integer
+                          minimum: 1
+                      additionalProperties: false
+                    tenant:
+                      oneOf:
+                        - type: string
+                          pattern: "^stn_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                        - type: "null"
+                    channel:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Channel"
+                        - type: "null"
+                    reason:
+                      type: string
+                      maxLength: 64
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                    metadata:
+                      "$ref": "../openapi/components/schemas.yaml#/Metadata"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 4
+    webhook.notification.render_failed:
+      name: notification.render_failed
+      title: notification.render_failed
+      summary: "Rendering failed; this is not a skip."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: notification.render_failed
+                data:
+                  type: object
+                  required:
+                    - notification_id
+                    - delivery_id
+                    - channel
+                    - failure_reason
+                  properties:
+                    notification_id:
+                      type: string
+                      pattern: "^ntf_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    delivery_id:
+                      type: string
+                      pattern: "^dlv_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    failure_reason:
+                      type: string
+                      enum:
+                        - missing_variable
+                        - render_timeout
+                        - output_too_large
+                        - schema_violation
+                    metadata:
+                      "$ref": "../openapi/components/schemas.yaml#/Metadata"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 5
+    webhook.device.reassigned:
+      name: device.reassigned
+      title: device.reassigned
+      summary: A push token registered by another subscriber was moved to a new subscriber.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: device.reassigned
+                data:
+                  type: object
+                  required:
+                    - device_fingerprint
+                    - from_recipient_id
+                    - to_recipient_id
+                  properties:
+                    device_fingerprint:
+                      type: string
+                      maxLength: 128
+                    from_recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    to_recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+    webhook.device.unregistered:
+      name: device.unregistered
+      title: device.unregistered
+      summary: A device token was disabled after a permanent target failure.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: device.unregistered
+                data:
+                  type: object
+                  required:
+                    - device_fingerprint
+                    - recipient_id
+                  properties:
+                    device_fingerprint:
+                      type: string
+                      maxLength: 128
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+    webhook.address.disabled:
+      name: address.disabled
+      title: address.disabled
+      summary: An address was disabled after a permanent target failure.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: address.disabled
+                data:
+                  type: object
+                  required:
+                    - address_id
+                    - recipient_id
+                    - channel
+                  properties:
+                    address_id:
+                      type: string
+                      pattern: "^adr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+    webhook.webhook.attempt_exhausted:
+      name: webhook.attempt_exhausted
+      title: webhook.attempt_exhausted
+      summary: A webhook delivery used up its retry schedule and moved to the dead letter queue.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: webhook.attempt_exhausted
+                data:
+                  type: object
+                  required:
+                    - endpoint_id
+                    - event_id
+                    - attempts
+                  properties:
+                    endpoint_id:
+                      type: string
+                      maxLength: 64
+                    event_id:
+                      type: string
+                      maxLength: 512
+                    attempts:
+                      type: integer
+                      minimum: 1
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 10
+      x-relay-also:
+        - operations
+    webhook.webhook_endpoint.disabled:
+      name: webhook_endpoint.disabled
+      title: webhook_endpoint.disabled
+      summary: "An endpoint was disabled automatically; it does not receive its own disable event."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: webhook_endpoint.disabled
+                data:
+                  type: object
+                  required:
+                    - endpoint_id
+                    - reason
+                  properties:
+                    endpoint_id:
+                      type: string
+                      maxLength: 64
+                    reason:
+                      type: string
+                      maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 10
+      x-relay-also:
+        - operations
+    webhook.webhook_endpoint.recovered:
+      name: webhook_endpoint.recovered
+      title: webhook_endpoint.recovered
+      summary: A disabled endpoint was enabled again.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: webhook_endpoint.recovered
+                data:
+                  type: object
+                  required:
+                    - endpoint_id
+                  properties:
+                    endpoint_id:
+                      type: string
+                      maxLength: 64
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 10
+      x-relay-also:
+        - operations
+    webhook.waitpoint.created:
+      name: waitpoint.created
+      title: waitpoint.created
+      summary: Waitpoint created.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: waitpoint.created
+                data:
+                  type: object
+                  required:
+                    - waitpoint_id
+                    - kind
+                  properties:
+                    waitpoint_id:
+                      type: string
+                      pattern: "^wp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    kind:
+                      type: string
+                      enum:
+                        - question
+                        - review
+                        - event
+                    expires_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 12
+    webhook.waitpoint.resolved:
+      name: waitpoint.resolved
+      title: waitpoint.resolved
+      summary: Waitpoint resolved.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: waitpoint.resolved
+                data:
+                  type: object
+                  required:
+                    - waitpoint_id
+                    - kind
+                  properties:
+                    waitpoint_id:
+                      type: string
+                      pattern: "^wp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    kind:
+                      type: string
+                      enum:
+                        - question
+                        - review
+                        - event
+                    response_id:
+                      type: string
+                      pattern: "^wpr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 12
+    webhook.waitpoint.expired:
+      name: waitpoint.expired
+      title: waitpoint.expired
+      summary: Waitpoint expired.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: waitpoint.expired
+                data:
+                  type: object
+                  required:
+                    - waitpoint_id
+                    - kind
+                  properties:
+                    waitpoint_id:
+                      type: string
+                      pattern: "^wp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    kind:
+                      type: string
+                      enum:
+                        - question
+                        - review
+                        - event
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 12
+    webhook.waitpoint.cancelled:
+      name: waitpoint.cancelled
+      title: waitpoint.cancelled
+      summary: Waitpoint cancelled.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: waitpoint.cancelled
+                data:
+                  type: object
+                  required:
+                    - waitpoint_id
+                    - kind
+                  properties:
+                    waitpoint_id:
+                      type: string
+                      pattern: "^wp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    kind:
+                      type: string
+                      enum:
+                        - question
+                        - review
+                        - event
+                    reason:
+                      type: string
+                      maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 12
+    webhook.waitpoint.escalated:
+      name: waitpoint.escalated
+      title: waitpoint.escalated
+      summary: Waitpoint escalated.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: waitpoint.escalated
+                data:
+                  type: object
+                  required:
+                    - waitpoint_id
+                    - kind
+                  properties:
+                    waitpoint_id:
+                      type: string
+                      pattern: "^wp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    kind:
+                      type: string
+                      enum:
+                        - question
+                        - review
+                        - event
+                    level:
+                      type: integer
+                      minimum: 1
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 12
+    webhook.waitpoint.stalled:
+      name: waitpoint.stalled
+      title: waitpoint.stalled
+      summary: Waitpoint stalled.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: waitpoint.stalled
+                data:
+                  type: object
+                  required:
+                    - waitpoint_id
+                    - kind
+                  properties:
+                    waitpoint_id:
+                      type: string
+                      pattern: "^wp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    kind:
+                      type: string
+                      enum:
+                        - question
+                        - review
+                        - event
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 12
+    webhook.waitpoint.response_rejected:
+      name: waitpoint.response_rejected
+      title: waitpoint.response_rejected
+      summary: Waitpoint response rejected.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: waitpoint.response_rejected
+                data:
+                  type: object
+                  required:
+                    - waitpoint_id
+                    - kind
+                  properties:
+                    waitpoint_id:
+                      type: string
+                      pattern: "^wp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    kind:
+                      type: string
+                      enum:
+                        - question
+                        - review
+                        - event
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 12
+    webhook.agent.ceiling_exceeded:
+      name: agent.ceiling_exceeded
+      title: agent.ceiling_exceeded
+      summary: "Agent-originated notifications over the agent ceiling are held for the owner's decision."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: agent.ceiling_exceeded
+                data:
+                  type: object
+                  required:
+                    - agent_id
+                    - held_count
+                  properties:
+                    agent_id:
+                      type: string
+                      pattern: "^agt_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    held_count:
+                      type: integer
+                      minimum: 1
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 12
+    operations.mailbox.abuse_reported:
+      name: mailbox.abuse_reported
+      title: mailbox.abuse_reported
+      summary: A recipient reported a mailbox message as abuse (metadata only).
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: mailbox.abuse_reported
+                data:
+                  type: object
+                  required:
+                    - mailbox_id
+                    - record_id
+                    - sender_ref
+                    - reported_at
+                  properties:
+                    mailbox_id:
+                      type: string
+                      pattern: "^mbx_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    record_id:
+                      type: string
+                      pattern: "^mbr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    sender_ref:
+                      type: string
+                      maxLength: 256
+                    reported_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: operations
+      x-relay-stage: 12
+    webhook.mailbox.record_appended:
+      name: mailbox.record_appended
+      title: mailbox.record_appended
+      summary: A durable record was appended to a mailbox.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: mailbox.record_appended
+                data:
+                  type: object
+                  required:
+                    - mailbox_id
+                    - epoch
+                    - seq
+                    - kind
+                  properties:
+                    mailbox_id:
+                      type: string
+                      pattern: "^mbx_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    epoch:
+                      type: integer
+                    seq:
+                      type: integer
+                    kind:
+                      type: string
+                      maxLength: 32
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 2
+    webhook.mailbox.record_dead_lettered:
+      name: mailbox.record_dead_lettered
+      title: mailbox.record_dead_lettered
+      summary: A mailbox record exceeded its delivery count and was dead-lettered.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: mailbox.record_dead_lettered
+                data:
+                  type: object
+                  required:
+                    - mailbox_id
+                    - record_id
+                  properties:
+                    mailbox_id:
+                      type: string
+                      pattern: "^mbx_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    record_id:
+                      type: string
+                      pattern: "^mbr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 2
+    webhook.killswitch.engaged:
+      name: killswitch.engaged
+      title: killswitch.engaged
+      summary: A kill switch was engaged (also an audit action and an operations notice).
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: killswitch.engaged
+                data:
+                  type: object
+                  required:
+                    - kill_switch_id
+                    - scope_kind
+                    - state
+                    - reason
+                  properties:
+                    kill_switch_id:
+                      type: string
+                      pattern: "^ksw_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    scope_kind:
+                      type: string
+                      enum:
+                        - platform
+                        - tenant
+                        - subtenant
+                        - campaign
+                        - workflow
+                        - api_client
+                        - sender
+                    scope_ref:
+                      oneOf:
+                        - type: string
+                          maxLength: 128
+                        - type: "null"
+                    channel:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Channel"
+                        - type: "null"
+                    message_class:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/MessageClass"
+                        - type: "null"
+                    state:
+                      type: string
+                      enum:
+                        - "on"
+                        - "off"
+                        - canary
+                        - paused_until
+                    expires_at:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                        - type: "null"
+                    reason:
+                      type: string
+                      maxLength: 2000
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 2
+      x-relay-also:
+        - operations
+        - audit
+    webhook.killswitch.released:
+      name: killswitch.released
+      title: killswitch.released
+      summary: A kill switch was released (also an audit action and an operations notice).
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: killswitch.released
+                data:
+                  type: object
+                  required:
+                    - kill_switch_id
+                    - scope_kind
+                    - state
+                    - reason
+                  properties:
+                    kill_switch_id:
+                      type: string
+                      pattern: "^ksw_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    scope_kind:
+                      type: string
+                      enum:
+                        - platform
+                        - tenant
+                        - subtenant
+                        - campaign
+                        - workflow
+                        - api_client
+                        - sender
+                    scope_ref:
+                      oneOf:
+                        - type: string
+                          maxLength: 128
+                        - type: "null"
+                    channel:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Channel"
+                        - type: "null"
+                    message_class:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/MessageClass"
+                        - type: "null"
+                    state:
+                      type: string
+                      enum:
+                        - "on"
+                        - "off"
+                        - canary
+                        - paused_until
+                    expires_at:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                        - type: "null"
+                    reason:
+                      type: string
+                      maxLength: 2000
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 2
+      x-relay-also:
+        - operations
+        - audit
+    webhook.killswitch.auto_paused:
+      name: killswitch.auto_paused
+      title: killswitch.auto_paused
+      summary: "The dead man's switch paused a scope automatically."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: killswitch.auto_paused
+                data:
+                  type: object
+                  required:
+                    - kill_switch_id
+                    - scope_kind
+                    - state
+                    - reason
+                  properties:
+                    kill_switch_id:
+                      type: string
+                      pattern: "^ksw_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    scope_kind:
+                      type: string
+                      enum:
+                        - platform
+                        - tenant
+                        - subtenant
+                        - campaign
+                        - workflow
+                        - api_client
+                        - sender
+                    scope_ref:
+                      oneOf:
+                        - type: string
+                          maxLength: 128
+                        - type: "null"
+                    channel:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Channel"
+                        - type: "null"
+                    message_class:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/MessageClass"
+                        - type: "null"
+                    state:
+                      type: string
+                      enum:
+                        - "on"
+                        - "off"
+                        - canary
+                        - paused_until
+                    expires_at:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                        - type: "null"
+                    reason:
+                      type: string
+                      maxLength: 2000
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 2
+      x-relay-also:
+        - operations
+        - audit
+    operations.provider.unknown_code:
+      name: provider.unknown_code
+      title: provider.unknown_code
+      summary: "A provider returned a code with no mapping; it was classified unknown and an alarm was raised."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: provider.unknown_code
+                data:
+                  type: object
+                  required:
+                    - provider
+                    - channel
+                    - raw_code
+                  properties:
+                    provider:
+                      type: string
+                      maxLength: 64
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    raw_code:
+                      type: string
+                      maxLength: 128
+                  additionalProperties: false
+      x-relay-surface: operations
+      x-relay-stage: 6
+    webhook.quota.threshold_reached:
+      name: quota.threshold_reached
+      title: quota.threshold_reached
+      summary: Quota usage crossed a threshold (80 or 100 percent).
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: quota.threshold_reached
+                data:
+                  type: object
+                  required:
+                    - bucket
+                    - period
+                    - period_start
+                    - threshold_percent
+                    - limit
+                    - used
+                  properties:
+                    bucket:
+                      type: string
+                      enum:
+                        - general
+                        - security
+                    period:
+                      type: string
+                      enum:
+                        - day
+                        - month
+                    period_start:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    threshold_percent:
+                      type: integer
+                      enum:
+                        - 80
+                        - 100
+                    limit:
+                      type: integer
+                    used:
+                      type: integer
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 3
+      x-relay-also:
+        - operations
+      x-relay-choice: true
+      x-relay-choice-note: The spec sends an event at quota thresholds but names neither the event nor the thresholds.
+    webhook.quota.reserve_opened:
+      name: quota.reserve_opened
+      title: quota.reserve_opened
+      summary: "The quota is exhausted and the limited security reserve opened; the tenant and the installation operator are warned."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: quota.reserve_opened
+                data:
+                  type: object
+                  required:
+                    - period
+                    - period_start
+                    - reserve_limit
+                  properties:
+                    period:
+                      type: string
+                      enum:
+                        - day
+                        - month
+                    period_start:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    reserve_limit:
+                      type: integer
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 3
+      x-relay-also:
+        - operations
+      x-relay-choice: true
+      x-relay-choice-note: Name chosen by the contract.
+    realtime.inbox.item_created:
+      name: inbox.item_created
+      title: inbox.item_created
+      summary: Full item plus state_version.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/RealtimeEnvelope"
+            - type: object
+              properties:
+                t:
+                  const: inbox.item_created
+                d:
+                  type: object
+                  required:
+                    - item
+                    - state_version
+                  properties:
+                    item:
+                      type: object
+                    state_version:
+                      type: integer
+                  additionalProperties: false
+      x-relay-surface: realtime
+      x-relay-stage: 9
+    realtime.inbox.item_updated:
+      name: inbox.item_updated
+      title: inbox.item_updated
+      summary: Item id, state_version and changed state fields.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/RealtimeEnvelope"
+            - type: object
+              properties:
+                t:
+                  const: inbox.item_updated
+                d:
+                  type: object
+                  required:
+                    - item_id
+                    - state_version
+                    - changes
+                  properties:
+                    item_id:
+                      type: string
+                      maxLength: 64
+                    state_version:
+                      type: integer
+                    changes:
+                      type: object
+                  additionalProperties: false
+      x-relay-surface: realtime
+      x-relay-stage: 9
+    realtime.inbox.items_bulk_updated:
+      name: inbox.items_bulk_updated
+      title: inbox.items_bulk_updated
+      summary: "Scope (whole inbox or category) and bulk action; no item list."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/RealtimeEnvelope"
+            - type: object
+              properties:
+                t:
+                  const: inbox.items_bulk_updated
+                d:
+                  type: object
+                  required:
+                    - scope
+                    - action
+                  properties:
+                    scope:
+                      type: string
+                      maxLength: 64
+                    action:
+                      type: string
+                      maxLength: 32
+                  additionalProperties: false
+      x-relay-surface: realtime
+      x-relay-stage: 9
+    realtime.inbox.counters_changed:
+      name: inbox.counters_changed
+      title: inbox.counters_changed
+      summary: unseen, unread, total and version.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/RealtimeEnvelope"
+            - type: object
+              properties:
+                t:
+                  const: inbox.counters_changed
+                d:
+                  type: object
+                  required:
+                    - unseen
+                    - unread
+                    - total
+                    - version
+                  properties:
+                    unseen:
+                      type: integer
+                    unread:
+                      type: integer
+                    total:
+                      type: integer
+                    version:
+                      type: integer
+                  additionalProperties: false
+      x-relay-surface: realtime
+      x-relay-stage: 9
+    realtime.stream.resync_required:
+      name: stream.resync_required
+      title: stream.resync_required
+      summary: The client must resynchronise.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/RealtimeEnvelope"
+            - type: object
+              properties:
+                t:
+                  const: stream.resync_required
+                d:
+                  type: object
+                  required:
+                    - reason
+                  properties:
+                    reason:
+                      type: string
+                      maxLength: 64
+                  additionalProperties: false
+      x-relay-surface: realtime
+      x-relay-stage: 9
+    audit.killswitch.bulk_cancelled:
+      name: killswitch.bulk_cancelled
+      title: killswitch.bulk_cancelled
+      summary: PAUSED deliveries of a kill switch were cancelled in bulk (one record per command).
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            kill_switch_id:
+              type: string
+              pattern: "^ksw_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            cancelled:
+              type: integer
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 2
+    audit.tenant.created:
+      name: tenant.created
+      title: tenant.created
+      summary: A Relay tenant was created from the Access mapping.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            tenant_id:
+              type: string
+              pattern: "^ten_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            access_tenant_id:
+              type: string
+              maxLength: 128
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 1
+    audit.virtual_clock.advanced:
+      name: virtual_clock.advanced
+      title: virtual_clock.advanced
+      summary: The test virtual clock was advanced.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            offset_ms:
+              type: integer
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 2
+    audit.audit_log.read:
+      name: audit_log.read
+      title: audit_log.read
+      summary: The audit log was read (one record per query).
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            from:
+              "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+            to:
+              "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+            action:
+              oneOf:
+                - "$ref": "../openapi/components/schemas.yaml#/EventName"
+                - type: "null"
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 1
+    audit.pii.revealed:
+      name: pii.revealed
+      title: pii.revealed
+      summary: A masked personal field was revealed (one record per field).
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            recipient_id:
+              "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+            field:
+              type: string
+              enum:
+                - email
+                - phone
+                - name
+                - attributes
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+    audit.tenant.suspended:
+      name: tenant.suspended
+      title: tenant.suspended
+      summary: A tenant or subtenant suspension was recorded (scheduled or effective).
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            tenant_id:
+              type: string
+              pattern: "^ten_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            subtenant_id:
+              oneOf:
+                - type: string
+                  pattern: "^stn_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                - type: "null"
+            suspension_id:
+              type: string
+              pattern: "^tsp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            ground:
+              type: string
+            effective_at:
+              "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.tenant.resumed:
+      name: tenant.resumed
+      title: tenant.resumed
+      summary: A suspension was lifted.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            tenant_id:
+              type: string
+              pattern: "^ten_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            subtenant_id:
+              oneOf:
+                - type: string
+                  pattern: "^stn_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                - type: "null"
+            suspension_id:
+              type: string
+              pattern: "^tsp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.role_assignment.created:
+      name: role_assignment.created
+      title: role_assignment.created
+      summary: A role was assigned.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            role_assignment_id:
+              type: string
+              pattern: "^rla_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            operator_id:
+              type: string
+              pattern: "^opr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            role:
+              type: string
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.role_assignment.revoked:
+      name: role_assignment.revoked
+      title: role_assignment.revoked
+      summary: A role was revoked.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            role_assignment_id:
+              type: string
+              pattern: "^rla_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            operator_id:
+              type: string
+              pattern: "^opr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            role:
+              type: string
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.support_delegation.granted:
+      name: support_delegation.granted
+      title: support_delegation.granted
+      summary: Support access was delegated.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            delegation_id:
+              type: string
+              pattern: "^dlg_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            operator_id:
+              type: string
+              pattern: "^opr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            expires_at:
+              "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.support_delegation.revoked:
+      name: support_delegation.revoked
+      title: support_delegation.revoked
+      summary: Support access was revoked.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            delegation_id:
+              type: string
+              pattern: "^dlg_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            operator_id:
+              type: string
+              pattern: "^opr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.workflow.published:
+      name: workflow.published
+      title: workflow.published
+      summary: A workflow version was published (promoted_from is set for a rollback).
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            workflow_id:
+              type: string
+              pattern: "^wfl_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            version:
+              type: integer
+            promoted_from:
+              oneOf:
+                - type: integer
+                - type: "null"
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.event_type_mapping.changed:
+      name: event_type_mapping.changed
+      title: event_type_mapping.changed
+      summary: A CloudEvents type mapping was created, replaced or archived.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            mapping_id:
+              type: string
+              pattern: "^cem_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            change:
+              type: string
+              enum:
+                - created
+                - replaced
+                - archived
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.send_mode.changed:
+      name: send_mode.changed
+      title: send_mode.changed
+      summary: A send mode level was set or cleared.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            level:
+              type: string
+            category:
+              oneOf:
+                - type: string
+                - type: "null"
+            channel:
+              oneOf:
+                - "$ref": "../openapi/components/schemas.yaml#/Channel"
+                - type: "null"
+            from:
+              oneOf:
+                - "$ref": "../openapi/components/schemas.yaml#/SendMode"
+                - type: "null"
+            to:
+              oneOf:
+                - "$ref": "../openapi/components/schemas.yaml#/SendMode"
+                - type: "null"
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.quota_policy.changed:
+      name: quota_policy.changed
+      title: quota_policy.changed
+      summary: A quota policy was set or removed.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            period:
+              type: string
+            from_limit:
+              oneOf:
+                - type: integer
+                - type: "null"
+            to_limit:
+              oneOf:
+                - type: integer
+                - type: "null"
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.api_version.pinned:
+      name: api_version.pinned
+      title: api_version.pinned
+      summary: The tenant API version pin was set automatically or changed.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            from:
+              oneOf:
+                - "$ref": "../openapi/components/schemas.yaml#/ApiVersion"
+                - type: "null"
+            to:
+              "$ref": "../openapi/components/schemas.yaml#/ApiVersion"
+            automatic:
+              type: boolean
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.subscriber.deletion_requested:
+      name: subscriber.deletion_requested
+      title: subscriber.deletion_requested
+      summary: Deletion of a subscriber was requested.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            deletion_id:
+              type: string
+              pattern: "^sdr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            recipient_id:
+              "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.cross_tenant.queried:
+      name: cross_tenant.queried
+      title: cross_tenant.queried
+      summary: An installation operator ran a cross-tenant query.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            filter:
+              type: object
+            result_count:
+              type: integer
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.operator_session.revoked:
+      name: operator_session.revoked
+      title: operator_session.revoked
+      summary: Operator sessions were revoked, for example after suspension in Access.
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            operator_id:
+              type: string
+              pattern: "^opr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            sessions:
+              type: integer
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    access.tenant.created:
+      name: tenant.created
+      title: tenant.created
+      summary: "An Access tenant was created; Relay creates the mapped tenant (region must match the installation)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: tenant.created
+                data:
+                  type: object
+                  required:
+                    - access_tenant_id
+                    - region
+                    - default_timezone
+                    - default_locale
+                  properties:
+                    access_tenant_id:
+                      type: string
+                      maxLength: 128
+                    region:
+                      type: string
+                      enum:
+                        - tr
+                        - eu
+                        - us
+                    default_timezone:
+                      "$ref": "../openapi/components/schemas.yaml#/TimeZone"
+                    default_locale:
+                      "$ref": "../openapi/components/schemas.yaml#/Locale"
+                    sector:
+                      type: string
+                      maxLength: 32
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.organization.created:
+      name: organization.created
+      title: organization.created
+      summary: "An Access B2B organization was created; Relay creates the subtenant in both environments."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: organization.created
+                data:
+                  type: object
+                  required:
+                    - access_tenant_id
+                    - access_organization_id
+                    - name
+                  properties:
+                    access_tenant_id:
+                      type: string
+                      maxLength: 128
+                    access_organization_id:
+                      type: string
+                      maxLength: 128
+                    name:
+                      type: string
+                      maxLength: 200
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.organization.updated:
+      name: organization.updated
+      title: organization.updated
+      summary: An Access organization changed (name or state).
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: organization.updated
+                data:
+                  type: object
+                  required:
+                    - access_tenant_id
+                    - access_organization_id
+                  properties:
+                    access_tenant_id:
+                      type: string
+                      maxLength: 128
+                    access_organization_id:
+                      type: string
+                      maxLength: 128
+                    name:
+                      type: string
+                      maxLength: 200
+                    state:
+                      type: string
+                      enum:
+                        - active
+                        - archived
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.api_client.created:
+      name: api_client.created
+      title: api_client.created
+      summary: An API client was created in Access.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: api_client.created
+                data:
+                  type: object
+                  required:
+                    - access_tenant_id
+                    - access_client_id
+                    - environment
+                    - scopes
+                  properties:
+                    access_tenant_id:
+                      type: string
+                      maxLength: 128
+                    access_client_id:
+                      type: string
+                      maxLength: 256
+                    environment:
+                      "$ref": "../openapi/components/schemas.yaml#/Environment"
+                    access_organization_id:
+                      oneOf:
+                        - type: string
+                          maxLength: 128
+                        - type: "null"
+                    scopes:
+                      type: array
+                      items:
+                        "$ref": "../openapi/components/schemas.yaml#/ScopeName"
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.api_client.updated:
+      name: api_client.updated
+      title: api_client.updated
+      summary: "An API client's scopes changed in Access."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: api_client.updated
+                data:
+                  type: object
+                  required:
+                    - access_tenant_id
+                    - access_client_id
+                    - scopes
+                  properties:
+                    access_tenant_id:
+                      type: string
+                      maxLength: 128
+                    access_client_id:
+                      type: string
+                      maxLength: 256
+                    scopes:
+                      type: array
+                      items:
+                        "$ref": "../openapi/components/schemas.yaml#/ScopeName"
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.api_client.suspended:
+      name: api_client.suspended
+      title: api_client.suspended
+      summary: "An API client was suspended in Access; Relay rejects its tokens at once on every node."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: api_client.suspended
+                data:
+                  type: object
+                  required:
+                    - access_tenant_id
+                    - access_client_id
+                  properties:
+                    access_tenant_id:
+                      type: string
+                      maxLength: 128
+                    access_client_id:
+                      type: string
+                      maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.api_client.reactivated:
+      name: api_client.reactivated
+      title: api_client.reactivated
+      summary: A suspended API client was reactivated in Access.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: api_client.reactivated
+                data:
+                  type: object
+                  required:
+                    - access_tenant_id
+                    - access_client_id
+                  properties:
+                    access_tenant_id:
+                      type: string
+                      maxLength: 128
+                    access_client_id:
+                      type: string
+                      maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.api_client.revoked:
+      name: api_client.revoked
+      title: api_client.revoked
+      summary: An API client was revoked in Access (terminal).
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: api_client.revoked
+                data:
+                  type: object
+                  required:
+                    - access_tenant_id
+                    - access_client_id
+                  properties:
+                    access_tenant_id:
+                      type: string
+                      maxLength: 128
+                    access_client_id:
+                      type: string
+                      maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.user.suspended:
+      name: user.suspended
+      title: user.suspended
+      summary: "An Access user was suspended; the operator's Relay sessions are revoked."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: user.suspended
+                data:
+                  type: object
+                  required:
+                    - subject
+                  properties:
+                    subject:
+                      type: string
+                      description: Access subject for the Relay client.
+                      maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.user.reactivated:
+      name: user.reactivated
+      title: user.reactivated
+      summary: "An Access user was reactivated; roles in Relay are unchanged."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: user.reactivated
+                data:
+                  type: object
+                  required:
+                    - subject
+                  properties:
+                    subject:
+                      type: string
+                      maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.user.deleted:
+      name: user.deleted
+      title: user.deleted
+      summary: "An Access user was deleted; the operator record becomes deleted and its roles are revoked."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: user.deleted
+                data:
+                  type: object
+                  required:
+                    - subject
+                  properties:
+                    subject:
+                      type: string
+                      maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+x-relay-event-names:
+  - address.disabled
+  - agent.ceiling_exceeded
+  - api_client.created
+  - api_client.reactivated
+  - api_client.revoked
+  - api_client.suspended
+  - api_client.updated
+  - api_version.pinned
+  - audit_log.read
+  - cross_tenant.queried
+  - device.reassigned
+  - device.unregistered
+  - event_type_mapping.changed
+  - inbox.counters_changed
+  - inbox.item_created
+  - inbox.item_updated
+  - inbox.items_bulk_updated
+  - killswitch.auto_paused
+  - killswitch.bulk_cancelled
+  - killswitch.engaged
+  - killswitch.released
+  - mailbox.abuse_reported
+  - mailbox.record_appended
+  - mailbox.record_dead_lettered
+  - notification.render_failed
+  - notification.suppressed
+  - operator_session.revoked
+  - organization.created
+  - organization.updated
+  - pii.revealed
+  - provider.unknown_code
+  - quota.reserve_opened
+  - quota.threshold_reached
+  - quota_policy.changed
+  - role_assignment.created
+  - role_assignment.revoked
+  - send_mode.changed
+  - stream.resync_required
+  - subscriber.deletion_requested
+  - support_delegation.granted
+  - support_delegation.revoked
+  - tenant.created
+  - tenant.resumed
+  - tenant.suspended
+  - user.deleted
+  - user.reactivated
+  - user.suspended
+  - virtual_clock.advanced
+  - waitpoint.cancelled
+  - waitpoint.created
+  - waitpoint.escalated
+  - waitpoint.expired
+  - waitpoint.resolved
+  - waitpoint.response_rejected
+  - waitpoint.stalled
+  - webhook.attempt_exhausted
+  - webhook_endpoint.disabled
+  - webhook_endpoint.recovered
+  - workflow.published

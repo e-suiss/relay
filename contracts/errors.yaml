@@ -1,0 +1,809 @@
+version: 1
+type_url_template: "{base_url}/v1/errors/{code}"
+field_error_codes:
+  - required
+  - invalid_format
+  - too_long
+  - too_short
+  - not_found
+  - not_allowed
+  - conflict
+  - unsupported_value
+retryable_defaults:
+  - status: 400
+    retryable: false
+  - status: 401
+    retryable: false
+  - status: 403
+    retryable: false
+  - status: 404
+    retryable: false
+  - status: 413
+    retryable: false
+  - status: 422
+    retryable: false
+  - status: 409
+    code: resource_conflict
+    retryable: false
+  - status: 409
+    code: idempotency_key_in_progress
+    retryable: true
+    retry_after_seconds: 1
+  - status: 429
+    code: rate_limited
+    retryable: true
+    retry_after: window
+  - status: 429
+    code: quota_exhausted
+    retryable: false
+  - status: 500
+    retryable: true
+    retry_after_seconds: 2
+  - status: 503
+    retryable: true
+    retry_after_seconds: "5-30"
+  - status: 504
+    retryable: true
+    retry_after_seconds: 5
+codes:
+  - code: auth_missing_credentials
+    family: auth
+    status: 401
+    title: Credentials are missing
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: The request carries no Authorization header. Send an Access access token as a Bearer token.
+    type: "{base_url}/v1/errors/auth_missing_credentials"
+  - code: auth_malformed_credentials
+    family: auth
+    status: 401
+    title: Credentials are malformed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: The Authorization header is not a well-formed Bearer token.
+    type: "{base_url}/v1/errors/auth_malformed_credentials"
+  - code: auth_invalid_token
+    family: auth
+    status: 401
+    title: Token is not valid
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: The token failed signature, issuer, audience, not-before or algorithm checks, or was issued for another API family.
+    type: "{base_url}/v1/errors/auth_invalid_token"
+  - code: auth_revoked_client
+    family: auth
+    status: 401
+    title: API client is revoked or suspended
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: "The API client behind this token is revoked or suspended in Access; its tokens are rejected on every node."
+    type: "{base_url}/v1/errors/auth_revoked_client"
+  - code: auth_expired_token
+    family: auth
+    status: 401
+    title: Token has expired
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: The token is past its exp claim. Obtain a new token and retry the request.
+    type: "{base_url}/v1/errors/auth_expired_token"
+  - code: auth_insufficient_scope
+    family: auth
+    status: 403
+    title: Scope is insufficient
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - required_scope
+      - granted_scopes
+    choice: false
+    description: The API client lacks the scope this operation needs. The body names the required scope and the granted scopes.
+    type: "{base_url}/v1/errors/auth_insufficient_scope"
+  - code: auth_environment_mismatch
+    family: auth
+    status: 403
+    title: Environment does not match
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: A credential or signed object in the request belongs to the other environment, such as a cursor or subscriber token from test used in live, or a live client calling a test-only operation.
+    type: "{base_url}/v1/errors/auth_environment_mismatch"
+  - code: auth_tenant_suspended
+    family: auth
+    status: 403
+    title: Tenant is suspended
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: "The tenant or subtenant is suspended; every entry point rejects new work until the suspension is lifted."
+    type: "{base_url}/v1/errors/auth_tenant_suspended"
+  - code: auth_insufficient_role
+    family: auth
+    status: 403
+    title: Operator role is insufficient
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - required_role
+      - granted_roles
+    choice: true
+    description: The operator has no role that permits this operation in the selected tenant and environment.
+    type: "{base_url}/v1/errors/auth_insufficient_role"
+    choice_note: "Operator analogue of auth_insufficient_scope; the spec names roles but no error code for a missing role."
+  - code: auth_step_up_required
+    family: auth
+    status: 401
+    title: Step-up authentication is required
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - step_up
+    choice: true
+    description: This sensitive operation needs a fresh Access step-up. Complete the step-up named in the step_up member and retry with the same Idempotency-Key.
+    type: "{base_url}/v1/errors/auth_step_up_required"
+    choice_note: "Code and RFC 9470 challenge chosen by the contract; the spec requires step-up but names no error code."
+  - code: auth_step_up_unavailable
+    family: auth
+    status: 503
+    title: Step-up cannot be completed
+    retryable: true
+    retry_after:
+      kind: range
+      seconds: 5
+      max_seconds: 30
+    extensions: []
+    choice: true
+    description: Access could not be reached for step-up or for the authorization decision. The operation was not performed (fail closed).
+    type: "{base_url}/v1/errors/auth_step_up_unavailable"
+    choice_note: "Fail-closed outcome of step-up or AuthZEN when Access is unreachable; code chosen by the contract."
+  - code: auth_invalid_session
+    family: auth
+    status: 401
+    title: Operator session is not valid
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: The operator session is missing, expired or revoked, for example after the operator was suspended in Access.
+    type: "{base_url}/v1/errors/auth_invalid_session"
+    choice_note: Operator session counterpart of auth_invalid_token.
+  - code: auth_operator_session_required
+    family: auth
+    status: 403
+    title: An operator session is required
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "This operation relaxes a control and needs an operator session with step-up; API client tokens cannot perform it."
+    type: "{base_url}/v1/errors/auth_operator_session_required"
+    choice_note: Kill switch release and relaxation need step-up, which an API client cannot perform.
+  - code: auth_delegation_required
+    family: auth
+    status: 403
+    title: Support delegation is required
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: The installation operator has no active support delegation from this tenant for the requested access.
+    type: "{base_url}/v1/errors/auth_delegation_required"
+    choice_note: "Support access needs a time-limited delegation; the spec names no error code."
+  - code: auth_csrf_failed
+    family: auth
+    status: 403
+    title: CSRF check failed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "A cookie-authenticated mutating request did not carry the session's CSRF token in the Relay-Csrf-Token header."
+    type: "{base_url}/v1/errors/auth_csrf_failed"
+    choice_note: CSRF protection for the cookie-based operator session.
+  - code: malformed_request
+    family: request
+    status: 400
+    title: Request is malformed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: The body is not valid JSON or form data, or the envelope cannot be parsed.
+    type: "{base_url}/v1/errors/malformed_request"
+  - code: payload_too_large
+    family: request
+    status: 413
+    title: Payload is too large
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - limit
+      - actual
+      - limit_name
+    choice: false
+    description: The body or one of its fields exceeds a size limit. The body names the limit and the actual size.
+    type: "{base_url}/v1/errors/payload_too_large"
+  - code: unsupported_media_type
+    family: request
+    status: 415
+    title: Media type is not supported
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: The Content-Type is not one this operation accepts.
+    type: "{base_url}/v1/errors/unsupported_media_type"
+  - code: validation_failed
+    family: request
+    status: 422
+    title: Validation failed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - errors
+    choice: false
+    description: One or more fields are invalid. Every problem is listed in errors with a JSON Pointer and a subcode.
+    type: "{base_url}/v1/errors/validation_failed"
+  - code: unknown_field
+    family: request
+    status: 422
+    title: Unknown field
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - errors
+    choice: false
+    description: The body contains a field this operation does not define, at any depth including overrides. Unknown fields are never ignored.
+    type: "{base_url}/v1/errors/unknown_field"
+  - code: unsupported_api_version
+    family: request
+    status: 400
+    title: API version is not supported
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - supported_versions
+    choice: false
+    description: The Relay-Version header is not a supported dated version. The body lists the supported versions.
+    type: "{base_url}/v1/errors/unsupported_api_version"
+  - code: unsupported_beta_feature
+    family: request
+    status: 400
+    title: Beta feature is not available
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: The Relay-Beta header names a feature that does not exist or is not enabled for this tenant.
+    type: "{base_url}/v1/errors/unsupported_beta_feature"
+    choice_note: The spec defines the Relay-Beta header but no error for an unknown feature.
+  - code: precondition_failed
+    family: request
+    status: 412
+    title: Precondition failed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: The If-Match header does not match the current ETag of the resource. Read the resource again and retry.
+    type: "{base_url}/v1/errors/precondition_failed"
+    choice_note: "ETag/If-Match is required by the spec; the error code is chosen by the contract."
+  - code: precondition_required
+    family: request
+    status: 428
+    title: Precondition required
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: This update needs an If-Match header carrying the ETag of the version you read.
+    type: "{base_url}/v1/errors/precondition_required"
+    choice_note: "Status 428 is not in the CLI exit code table; the CLI maps it to exit code 5."
+  - code: idempotency_key_missing
+    family: idempotency
+    status: 400
+    title: Idempotency-Key is missing
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: Every POST, PUT, PATCH and DELETE needs an Idempotency-Key header. The only exception is a CloudEvents request, whose key is derived from source and id.
+    type: "{base_url}/v1/errors/idempotency_key_missing"
+  - code: idempotency_key_invalid
+    family: idempotency
+    status: 400
+    title: Idempotency-Key is invalid
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: "The key must be 8 to 255 characters; quotes are stripped."
+    type: "{base_url}/v1/errors/idempotency_key_invalid"
+  - code: idempotency_key_reuse
+    family: idempotency
+    status: 422
+    title: Idempotency-Key was used with a different body
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: The key was used in the last 24 hours with a different request body. The earlier response is never returned for a different body.
+    type: "{base_url}/v1/errors/idempotency_key_reuse"
+  - code: idempotency_key_in_progress
+    family: idempotency
+    status: 409
+    title: A request with this Idempotency-Key is in progress
+    retryable: true
+    retry_after:
+      kind: fixed
+      seconds: 1
+      max_seconds: 1
+    extensions: []
+    choice: false
+    description: The first request with this key has not finished. Retry after one second with the same key and body.
+    type: "{base_url}/v1/errors/idempotency_key_in_progress"
+  - code: workflow_not_found
+    family: workflow
+    status: 404
+    title: Workflow not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: No workflow with this key exists in this tenant and environment.
+    type: "{base_url}/v1/errors/workflow_not_found"
+  - code: workflow_not_published
+    family: workflow
+    status: 422
+    title: Workflow is not published
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: The workflow has no published version in this environment.
+    type: "{base_url}/v1/errors/workflow_not_published"
+  - code: event_type_not_mapped
+    family: workflow
+    status: 422
+    title: CloudEvents type is not mapped
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: The CloudEvents type has no mapping to a workflow. This is a contract error, not a policy decision.
+    type: "{base_url}/v1/errors/event_type_not_mapped"
+  - code: workflow_version_not_found
+    family: workflow
+    status: 404
+    title: Workflow version not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: The workflow has no version with this number.
+    type: "{base_url}/v1/errors/workflow_version_not_found"
+    choice_note: Needed by the versions and promote endpoints.
+  - code: recipient_not_found
+    family: recipient
+    status: 422
+    title: Recipient not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: "A recipient given by identity only does not exist. Relay creates no ghost recipients; send contact details to create one."
+    type: "{base_url}/v1/errors/recipient_not_found"
+  - code: recipient_invalid
+    family: recipient
+    status: 422
+    title: Recipient is invalid
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: A recipient object cannot be used as given, for example an agent where a subscriber is required or a recipient being deleted.
+    type: "{base_url}/v1/errors/recipient_invalid"
+  - code: channel_not_configured
+    family: channel
+    status: 403
+    title: Channel is not configured
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: The requested channel option is not configured for this tenant, such as overrides.email.from outside verified domains.
+    type: "{base_url}/v1/errors/channel_not_configured"
+  - code: policy_field_not_overridable
+    family: channel
+    status: 422
+    title: Policy field cannot be overridden
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - policy
+      - errors
+    choice: false
+    description: An override tries to set a policy field such as push interruption level or priority. The body names the policy.
+    type: "{base_url}/v1/errors/policy_field_not_overridable"
+  - code: rate_limited
+    family: quota
+    status: 429
+    title: Rate limit exceeded
+    retryable: true
+    retry_after:
+      kind: window
+      seconds: null
+      max_seconds: null
+    extensions:
+      - limit
+      - actual
+      - limit_name
+    choice: false
+    description: The request rate limit was exceeded. Retry after the number of seconds in Retry-After.
+    type: "{base_url}/v1/errors/rate_limited"
+  - code: quota_exhausted
+    family: quota
+    status: 429
+    title: Quota exhausted
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - limit
+      - actual
+      - limit_name
+      - quota
+    choice: false
+    description: A sending quota is exhausted. Retrying does not help until the period resets or the quota is raised. The body names the quota and class.
+    type: "{base_url}/v1/errors/quota_exhausted"
+  - code: batch_too_large
+    family: quota
+    status: 413
+    title: Batch is too large
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - limit
+      - actual
+      - limit_name
+    choice: false
+    description: The batch exceeds the row, recipients-per-event or body size limit. The body names the limit and the actual value.
+    type: "{base_url}/v1/errors/batch_too_large"
+  - code: internal_error
+    family: platform
+    status: 500
+    title: Internal error
+    retryable: true
+    retry_after:
+      kind: fixed
+      seconds: 2
+      max_seconds: 2
+    extensions: []
+    choice: false
+    description: An unexpected error occurred without side effects. Retry with the same Idempotency-Key.
+    type: "{base_url}/v1/errors/internal_error"
+  - code: service_unavailable
+    family: platform
+    status: 503
+    title: Service unavailable
+    retryable: true
+    retry_after:
+      kind: range
+      seconds: 5
+      max_seconds: 30
+    extensions: []
+    choice: false
+    description: Relay is overloaded, a dependency is unavailable, the accept record could not be written durably, or a platform-wide stop is in force.
+    type: "{base_url}/v1/errors/service_unavailable"
+  - code: upstream_timeout
+    family: platform
+    status: 504
+    title: Upstream timeout
+    retryable: true
+    retry_after:
+      kind: fixed
+      seconds: 5
+      max_seconds: 5
+    extensions: []
+    choice: false
+    description: A required upstream, such as Access, did not answer in time.
+    type: "{base_url}/v1/errors/upstream_timeout"
+  - code: event_not_found
+    family: resource
+    status: 404
+    title: Event not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No event with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/event_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: notification_not_found
+    family: resource
+    status: 404
+    title: Notification not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No notification with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/notification_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: delivery_not_found
+    family: resource
+    status: 404
+    title: Delivery not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No delivery with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/delivery_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: subscriber_not_found
+    family: resource
+    status: 404
+    title: Subscriber not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No subscriber with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/subscriber_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: event_type_mapping_not_found
+    family: resource
+    status: 404
+    title: CloudEvents type mapping not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No CloudEvents type mapping with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/event_type_mapping_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: kill_switch_not_found
+    family: resource
+    status: 404
+    title: Kill switch not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No kill switch with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/kill_switch_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: api_client_not_found
+    family: resource
+    status: 404
+    title: API client not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No API client with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/api_client_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: operator_not_found
+    family: resource
+    status: 404
+    title: Operator not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No operator with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/operator_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: role_assignment_not_found
+    family: resource
+    status: 404
+    title: Role assignment not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No role assignment with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/role_assignment_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: support_delegation_not_found
+    family: resource
+    status: 404
+    title: Support delegation not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No support delegation with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/support_delegation_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: tenant_not_found
+    family: resource
+    status: 404
+    title: Tenant not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No tenant with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/tenant_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: error_code_not_found
+    family: resource
+    status: 404
+    title: Error code not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No error code with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/error_code_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: resource_conflict
+    family: resource
+    status: 409
+    title: Resource conflict
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: The request conflicts with the current state of the resource, such as creating a subscriber that exists or an invalid state transition.
+    type: "{base_url}/v1/errors/resource_conflict"

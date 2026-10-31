@@ -1,0 +1,196 @@
+openapi: "3.1.0"
+jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema"
+info:
+  title: Relay Subscriber API
+  version: "2026-11-01"
+  description: "Client family used by browsers, mobile apps and UI components with a Relay subscriber token. This file holds the token exchange; inbox, preferences and device registration are added in later stages. Clients never hold secret credentials and can never send events. JSON in UTF-8, snake_case fields, RFC 3339 UTC times, ISO 8601 durations, amounts and large integers as strings. Unknown fields are rejected with 422 unknown_field at every depth, including overrides; null clears a field and an absent field is left untouched. HTTPS only (TLS 1.2 or later, HSTS). Every response carries Request-Id and Relay-Version. Errors are RFC 9457 problem details whose type resolves to /v1/errors/{code} on the same region. The token exchange is an OAuth endpoint and takes no Idempotency-Key; later write endpoints require one (24 hours, fixed). Relay delivers at least once and, with durable idempotency, processes effectively once. Identifiers are opaque, prefixed and time ordered (x-relay-id-prefixes). Resources of other tenants and environments return 404. Health endpoints are not part of this API."
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: "https://{host}"
+    description: "Base address of a data region. A region's address never reaches another region's data and never routes between regions."
+    variables:
+      host:
+        default: relay.example.com
+tags:
+  - name: token
+    description: Subscriber token issuance.
+paths:
+  "/v1/subscriber/token":
+    post:
+      operationId: exchangeSubscriberToken
+      tags:
+        - token
+      summary: Exchange an Access token for a subscriber token
+      description: "The only way to obtain a subscriber token. The client sends its Access access token (RFC 8693); the tenant backend needs no code. The subscriber is matched by the Access pairwise sub for this tenant, which is the subscriber's external_id; an unknown sub creates an inbox-only subscriber. Tenant and environment come from the Access client registration the token was issued to, never from the request. When Access cannot be reached no new token is issued and the error is visible; an Access token is never accepted directly for inbox, preferences or realtime. Errors are problem details that also carry the OAuth error member. This OAuth endpoint takes no Idempotency-Key and its response is never stored: issuing a token has no side effect beyond the external_id keyed subscriber upsert."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      requestBody:
+        required: true
+        content:
+          "application/x-www-form-urlencoded":
+            schema:
+              "$ref": "#/components/schemas/TokenExchangeRequest"
+      security: []
+      responses:
+        "200":
+          description: Subscriber token issued.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Cache-Control:
+              description: no-store
+              schema:
+                type: string
+                const: no-store
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/TokenExchangeResponse"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+        "504":
+          "$ref": "./components/responses.yaml#/GatewayTimeout"
+      x-relay-errors:
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_environment_mismatch
+        - upstream_timeout
+      x-relay-weight: 1
+      x-relay-idempotency: none
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: "The spec names RFC 8693 token exchange but no path; /v1/subscriber/token is chosen. Creation of an unknown subscriber, the default scope set and the OAuth error member are contract choices."
+      x-relay-subscriber-scopes:
+        - "inbox:read"
+        - "inbox:write"
+        - preferences
+        - "devices:write"
+        - "presence:write"
+components:
+  securitySchemes:
+    subscriber_bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Relay subscriber token from the token exchange. Scopes: inbox:read, inbox:write, preferences, devices:write, presence:write. Access tokens are never accepted here."
+  schemas:
+    TokenExchangeRequest:
+      type: object
+      description: RFC 8693 token exchange request.
+      required:
+        - grant_type
+        - subject_token
+        - subject_token_type
+      properties:
+        grant_type:
+          type: string
+          const: "urn:ietf:params:oauth:grant-type:token-exchange"
+        subject_token:
+          type: string
+          description: "The end user's Access access token."
+          minLength: 1
+          maxLength: 8192
+        subject_token_type:
+          type: string
+          const: "urn:ietf:params:oauth:token-type:access_token"
+        requested_token_type:
+          type: string
+          const: "urn:suiss:relay:token-type:subscriber"
+          x-relay-choice: true
+          x-relay-choice-note: Token type URI chosen by the contract.
+        scope:
+          type: string
+          description: "Space-separated subset of inbox:read inbox:write preferences devices:write presence:write. Default: inbox:read inbox:write preferences."
+          pattern: "^(inbox:read|inbox:write|preferences|devices:write|presence:write)( (inbox:read|inbox:write|preferences|devices:write|presence:write))*$"
+      additionalProperties: false
+    TokenExchangeResponse:
+      type: object
+      description: RFC 8693 token exchange response. The tenant identifier is never written into a field the client can see.
+      required:
+        - access_token
+        - issued_token_type
+        - token_type
+        - expires_in
+        - scope
+        - subscriber_id
+        - environment
+      properties:
+        access_token:
+          type: string
+          description: "Relay subscriber token: asymmetrically signed, audience is the Relay inbox and realtime surface, carries the environment and the allowed realtime streams."
+        issued_token_type:
+          type: string
+          const: "urn:suiss:relay:token-type:subscriber"
+        token_type:
+          type: string
+          const: Bearer
+        expires_in:
+          type: integer
+          minimum: 1
+          maximum: 900
+          description: "Lifetime in seconds; 15 minutes by default. SDKs renew before expiry."
+        scope:
+          type: string
+        subscriber_id:
+          "$ref": "./components/schemas.yaml#/Id_sub"
+          x-relay-choice: true
+        environment:
+          "$ref": "./components/schemas.yaml#/Environment"
+      additionalProperties: false
+x-relay-family:
+  - client
+x-relay-subscriber-scopes:
+  - "inbox:read"
+  - "inbox:write"
+  - preferences
+  - "devices:write"
+  - "presence:write"
+x-relay-error-catalog: "../errors.yaml"

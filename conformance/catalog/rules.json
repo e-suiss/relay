@@ -2873,6 +2873,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "E-78",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
     "id": "X-1",
     "section": "§8",
     "status": "canonical_invariant",
@@ -3198,6 +3206,14 @@
     "status": "out_of_scope",
     "title": "",
     "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-42",
+    "section": "§8",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
   },
   {
     "acceptance": "pending",
@@ -3774,6 +3790,62 @@
     "status": "frozen_technical",
     "title": "",
     "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-73",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-74",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-75",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-76",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-77",
+    "section": "§9",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-78",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-79",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
   },
   {
     "acceptance": "pending",
@@ -7822,6 +7894,14 @@
     "status": "frozen_technical",
     "title": "Stage 2 kill switch authority and resume",
     "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-71",
+    "section": "§18",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 3
   },
   {
     "acceptance": "pending",

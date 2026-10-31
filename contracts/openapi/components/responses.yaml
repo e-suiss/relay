@@ -1,0 +1,176 @@
+BadRequest:
+  description: Malformed request, missing or invalid Idempotency-Key, or unsupported version.
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"
+Unauthorized:
+  description: Missing, malformed, invalid, expired or revoked credentials, or step-up required.
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+    WWW-Authenticate:
+      "$ref": "./headers.yaml#/WWW-Authenticate"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"
+Forbidden:
+  description: Insufficient scope or role, environment mismatch, suspended tenant or unconfigured channel.
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"
+NotFound:
+  description: Resource not found in this tenant and environment (resources of others also return 404).
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"
+Conflict:
+  description: Idempotency key in progress (retryable) or resource conflict.
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+    Retry-After:
+      "$ref": "./headers.yaml#/Retry-After"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"
+PreconditionFailed:
+  description: If-Match does not match the current ETag.
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"
+PayloadTooLarge:
+  description: Body, field or batch limit exceeded.
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"
+UnsupportedMediaType:
+  description: Content-Type not accepted.
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"
+UnprocessableContent:
+  description: Validation failed, unknown field, idempotency key reuse or a contract error such as an unmapped CloudEvents type.
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"
+PreconditionRequired:
+  description: If-Match is required for this update.
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"
+TooManyRequests:
+  description: Rate limited (retryable, with Retry-After) or quota exhausted (not retryable).
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+    Retry-After:
+      "$ref": "./headers.yaml#/Retry-After"
+    RateLimit:
+      "$ref": "./headers.yaml#/RateLimit"
+    RateLimit-Policy:
+      "$ref": "./headers.yaml#/RateLimit-Policy"
+    X-RateLimit-Limit:
+      "$ref": "./headers.yaml#/X-RateLimit-Limit"
+    X-RateLimit-Remaining:
+      "$ref": "./headers.yaml#/X-RateLimit-Remaining"
+    X-RateLimit-Reset:
+      "$ref": "./headers.yaml#/X-RateLimit-Reset"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"
+InternalError:
+  description: "Unexpected error without side effects; retryable."
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+    Retry-After:
+      "$ref": "./headers.yaml#/Retry-After"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"
+ServiceUnavailable:
+  description: "Overload, unavailable dependency, durable write failure or platform-wide stop; retryable."
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+    Retry-After:
+      "$ref": "./headers.yaml#/Retry-After"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"
+GatewayTimeout:
+  description: "An upstream did not answer in time; retryable."
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+    Retry-After:
+      "$ref": "./headers.yaml#/Retry-After"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"

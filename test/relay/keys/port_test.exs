@@ -93,7 +93,7 @@ defmodule Relay.Keys.PortTest do
   end
 
   test "TN-63: a hung request times out and the program is restarted", %{exe: exe} do
-    keys = start(exe, "hang", timeout: 300)
+    keys = start(exe, "hang", timeout: 2_000)
 
     capture_log(fn ->
       assert {:error, %Relay.Error{code: :key_store_timeout}} =

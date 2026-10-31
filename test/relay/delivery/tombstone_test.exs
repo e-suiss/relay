@@ -148,5 +148,4 @@ defmodule Relay.Delivery.TombstoneTest do
       assert state(ctx.scope, delivery_id) == {nil, nil}
     end
   end
-
 end

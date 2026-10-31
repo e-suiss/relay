@@ -118,10 +118,14 @@ defmodule RelayWeb.Operator.TenantController do
       :ok
     else
       {:error,
-       Relay.Error.new(:auth_insufficient_role, "only the installation operator sets the limit", %{
-         required_role: "installation_operator",
-         granted_roles: granted_roles(conn)
-       })}
+       Relay.Error.new(
+         :auth_insufficient_role,
+         "only the installation operator sets the limit",
+         %{
+           required_role: "installation_operator",
+           granted_roles: granted_roles(conn)
+         }
+       )}
     end
   end
 

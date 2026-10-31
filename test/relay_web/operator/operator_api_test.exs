@@ -613,6 +613,7 @@ defmodule RelayWeb.Operator.OperatorApiTest do
 
       key = "replay-" <> TenantFixture.random()
       off = %{"channel" => "sms", "mode" => "off", "reason" => "incident"}
+
       put = fn body ->
         request(:put, "/v1/operator/send_modes",
           body: body,
@@ -647,6 +648,7 @@ defmodule RelayWeb.Operator.OperatorApiTest do
 
       key = "replay-" <> TenantFixture.random()
       body = %{"version" => Relay.Api.Versions.latest(), "reason" => "pin"}
+
       put = fn ->
         request(:put, "/v1/operator/api_version",
           body: body,

@@ -62,8 +62,10 @@ defmodule Relay.Platform.CapacityTest do
       ]
 
       assert Capacity.build(rows, %{}, 60) == %{l2: nil, l3: {2.0, 1_800_000, 5}}
+
       assert Capacity.build(rows, %{l2: 4}, 60) ==
                %{l2: {4, 60_000, 10}, l3: {2.0, 1_800_000, 5}}
+
       assert Capacity.build([], %{}, 60) == %{l2: nil, l3: nil}
     end
   end

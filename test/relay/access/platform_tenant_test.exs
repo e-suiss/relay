@@ -76,6 +76,7 @@ defmodule Relay.Access.PlatformTenantTest do
       id = deliver!("tenant.created", data)
 
       assert receipt_of(id)["state"] == "processed"
+
       assert %{id: tenant_id, status: "active", platform: "access"} =
                ClientStore.tenant(access_tenant)
 

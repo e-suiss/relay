@@ -94,6 +94,7 @@ defmodule RelayDev.Seed do
     {:ok, actor} = Relay.Actor.new(:access, "access", "access")
     digest = :crypto.hash(:sha256, "dev-seed:" <> @client)
     params = [Relay.Id.generate(), @client, nil, @scopes, "dev-seed", digest]
+
     upsert = fn _status ->
       Relay.Repo.call!("relay_fn.api_client_upsert", params ++ Relay.Actor.params(actor))
     end

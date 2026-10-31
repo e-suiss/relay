@@ -8561,6 +8561,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "T-93",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
     "id": "OP-1",
     "section": "§20",
     "status": "frozen_technical",

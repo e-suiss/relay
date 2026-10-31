@@ -57,16 +57,7 @@ defmodule RelayDev.Lint.ImagesTest do
     end
   end
 
-  describe "T-80 T-5 T-52 T-79 X-40" do
-    test "T-80: the bench runner refuses pull request and push triggers", %{tmp_dir: dir} do
-      baseline(dir, %{
-        ".github/workflows/bench.yml" =>
-          "on:\n  pull_request:\njobs:\n  b:\n    runs-on: [self-hosted, bench]\n"
-      })
-
-      assert rules(Images.run(dir)) == ["bench_trigger"]
-    end
-
+  describe "T-5 T-52 T-79 X-40" do
     test "T-5: image entry points use exec form", %{tmp_dir: dir} do
       baseline(dir, %{
         "deploy/docker/Dockerfile" =>

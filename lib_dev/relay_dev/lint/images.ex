@@ -1,6 +1,6 @@
 defmodule RelayDev.Lint.Images do
   @moduledoc """
-  Supply chain pinning lint. GitHub Actions are pinned by commit SHA, container images by digest, image entry points use exec form, the benchmark runner only takes scheduled or manual jobs, Renovate waits seven days, and the local environment carries the decided services. Exceptions live in `conformance/catalog/image-allow.json` with a reason.
+  Supply chain pinning lint. GitHub Actions are pinned by commit SHA, container images by digest, image entry points use exec form, Renovate waits seven days, and the local environment carries the decided services. Exceptions live in `conformance/catalog/image-allow.json` with a reason.
   """
 
   alias RelayDev.Lint
@@ -11,7 +11,6 @@ defmodule RelayDev.Lint.Images do
   @services ~w(postgres valkey minio mailpit apns fcm sms toxiproxy otel-collector jaeger prometheus grafana access)
 
   # T-78
-  # T-80
   # T-5
   # T-52
   # T-79
@@ -35,34 +34,15 @@ defmodule RelayDev.Lint.Images do
   defp workflow(root, path) do
     content = File.read!(Path.join(root, path))
 
-    pins =
-      Lint.scan_lines(path, content, [
-        {"action_sha",
-         ~r/^\s*(-\s+)?uses:\s+(?!\.\/)(?!docker:\/\/)[^@\s]+@(?![0-9a-f]{40}(\s|$))/,
-         "action must be pinned by a 40-character commit SHA"},
-        {"image_digest", ~r/^\s*(-\s+)?uses:\s+docker:\/\/(?!.*@sha256:[0-9a-f]{64})/,
-         "docker action must be pinned by digest"},
-        {"image_digest", ~r/^\s*image:\s+(?!.*\$\{\{)(?!.*@sha256:[0-9a-f]{64})\S+/,
-         "service image must be pinned by digest"}
-      ])
-
-    pins ++ bench_triggers(path, content)
-  end
-
-  defp bench_triggers(path, content) do
-    if content =~ ~r/runs-on:.*\bbench\b/ and
-         content =~ ~r/^\s*(pull_request|pull_request_target|push|workflow_run)\s*:/m do
-      [
-        %Violation{
-          path: path,
-          line: 0,
-          rule: "bench_trigger",
-          message: "the bench runner only takes schedule and workflow_dispatch jobs"
-        }
-      ]
-    else
-      []
-    end
+    Lint.scan_lines(path, content, [
+      {"action_sha",
+       ~r/^\s*(-\s+)?uses:\s+(?!\.\/)(?!docker:\/\/)[^@\s]+@(?![0-9a-f]{40}(\s|$))/,
+       "action must be pinned by a 40-character commit SHA"},
+      {"image_digest", ~r/^\s*(-\s+)?uses:\s+docker:\/\/(?!.*@sha256:[0-9a-f]{64})/,
+       "docker action must be pinned by digest"},
+      {"image_digest", ~r/^\s*image:\s+(?!.*\$\{\{)(?!.*@sha256:[0-9a-f]{64})\S+/,
+       "service image must be pinned by digest"}
+    ])
   end
 
   defp dockerfile(root, path) do

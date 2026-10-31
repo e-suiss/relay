@@ -22,7 +22,10 @@ defmodule RelayWeb.Router do
     plug Plug.Session, @panel_session
     plug :fetch_session
     plug :protect_from_forgery
-    plug :put_secure_browser_headers
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" =>
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+    }
     plug RelayWeb.Operator.Panel
   end
 

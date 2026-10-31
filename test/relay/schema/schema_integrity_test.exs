@@ -69,11 +69,17 @@ defmodule Relay.Schema.SchemaIntegrityTest do
     test "INV-36: the tenant context lives only in its transaction and a query without it fails",
          %{admin: admin} do
       worker = connect("relay_worker")
-      tenant = committed(admin, fn -> tenant!() end)
+      tenant =
+        committed(admin, fn ->
+          tenant = tenant!()
+          "active" = ctx(tenant, "live")
+          recipient!(blind_index_key!(), tenant_key!("dek_wrap"))
+          tenant
+        end)
 
       committed(worker, fn ->
         assert ctx(tenant, "live") == "active"
-        assert rows("SELECT count(*) FROM relay.recipients") == [[0]]
+        assert rows("SELECT count(*) FROM relay.recipients") == [[1]]
       end)
 
       assert {:error, %Postgrex.Error{postgres: %{code: code}}} =

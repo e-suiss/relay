@@ -6,7 +6,7 @@ defmodule Relay.Platform.Capacity do
   * `queued` is the lane's backlog: the available jobs of its queues and the DRR wait rows that are due.
   * `μ` is the lane's service rate in jobs per second: the configured rate (`config :relay, Relay.Platform.Capacity, service_rate: %{l2: 50, l3: 10}`) when there is one, else the jobs of the lane's queues completed in the last 60 s divided by 60. A lane with no configured rate and no completed job has no known rate and is not checked; an unmeasured lane is never a reason to refuse.
 
-  Each node samples `relay_ops.lane_capacity` every 5 s (`Relay.Platform.Capacity.Sampler`, unless `sampler: false`) and keeps the result in a public ETS table; a node that never sampled knows no capacity and admits. `l0` and `l1` are never checked against `L_max`.
+  Each node samples `relay_ops.lane_capacity` every 5 s (`Relay.Platform.Capacity.Sampler`, unless `sampler: false`) and keeps the result in an ETS table it owns; a node that never sampled knows no capacity and admits. `l0` and `l1` are never checked against `L_max`.
   """
 
   alias Relay.Platform.Admission
@@ -83,7 +83,7 @@ defmodule Relay.Platform.Capacity do
   @spec table() :: :ok
   def table do
     if :ets.whereis(@table) == :undefined,
-      do: :ets.new(@table, [:named_table, :public, :set, read_concurrency: true])
+      do: :ets.new(@table, [:named_table, :protected, :set, read_concurrency: true])
 
     :ok
   rescue

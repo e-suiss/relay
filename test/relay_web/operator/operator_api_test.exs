@@ -636,7 +636,7 @@ defmodule RelayWeb.Operator.OperatorApiTest do
       assert again.resp_body == first.resp_body
       assert length(audit(tenant.live, "send_mode.changed")) == 1
 
-      reused = put.(%{off | "mode" => "dry_run"})
+      reused = put.(%{off | "reason" => "another incident"})
       assert json(reused, 422)["code"] == "idempotency_key_reuse"
       assert length(audit(tenant.live, "send_mode.changed")) == 1
     end

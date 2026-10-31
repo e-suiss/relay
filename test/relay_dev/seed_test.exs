@@ -19,7 +19,7 @@ defmodule RelayDev.SeedTest do
 
     {:ok, report} = RelayDev.Seed.run()
     {:ok, tenant_id} = Relay.ExternalId.decode(report.tenant, ["ten"])
-    %{report: report, test: Relay.Scope.new!(tenant_id, :test)}
+    %{report: report, plane: Relay.Scope.new!(tenant_id, :test)}
   end
 
   describe "T-65 local sample data" do
@@ -32,7 +32,7 @@ defmodule RelayDev.SeedTest do
 
     test "T-65: the sample workflow is published in the test plane", ctx do
       assert {:ok, {:ok, %{"version_no" => 1}}} =
-               Relay.Workflow.resolve_published(ctx.test, "welcome")
+               Relay.Workflow.resolve_published(ctx.plane, "welcome")
     end
 
     test "T-65: the sample API client token is verified through the link to the local Access",
@@ -44,14 +44,14 @@ defmodule RelayDev.SeedTest do
                  audience: Access.audience(:server)
                )
 
-      assert principal.scope.tenant_id == ctx.test.tenant_id
+      assert principal.scope.tenant_id == ctx.plane.tenant_id
       assert principal.scope.environment == :test
       assert principal.api_client_id == ctx.report.api_client
       assert Enum.sort(principal.scopes) == @scopes
     end
 
     test "T-65: the sample request is accepted by POST /v1/events in the test plane", ctx do
-      conn = F.request(:post, "/v1/events", F.token(ctx.test), RelayDev.Seed.sample_event())
+      conn = F.request(:post, "/v1/events", F.token(ctx.plane), RelayDev.Seed.sample_event())
       body = F.body(conn, 202)
 
       assert body["status"] == "accepted"

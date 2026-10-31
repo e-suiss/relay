@@ -2,7 +2,7 @@ defmodule Relay.Repo.Migrations.CreateLaneCapacityFunction do
   use Ecto.Migration
 
   @functions [
-    {"relay_ops.lane_capacity(integer)", "relay_maint", ~w(relay_app)}
+    {"relay_ops.lane_capacity(integer)", "relay_maint", ~w(relay_api relay_worker)}
   ]
 
   # T-35 (2)

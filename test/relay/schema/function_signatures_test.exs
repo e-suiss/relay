@@ -121,7 +121,23 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.api_client_upsert" =>
       ~w(created updated unchanged revoked_terminal subtenant_not_found subtenant_changed),
     "relay_fn.api_client_set_status" => ~w(changed unchanged invalid_transition not_found),
-    "relay_fn.api_client_touch" => ~w(touched throttled not_found)
+    "relay_fn.api_client_touch" => ~w(touched throttled not_found),
+    "relay_ops.operator_sign_in" => ~w(signed_in created operator_suspended operator_deleted),
+    "relay_ops.operator_ensure" => ~w(created exists),
+    "relay_ops.operator_session_step_up" => ~w(recorded session_inactive),
+    "relay_ops.operator_session_revoke" => ~w(revoked already_ended not_found),
+    "relay_ops.operator_set_status" => ~w(changed unchanged not_found),
+    "relay_fn.role_assign" =>
+      ~w(assigned exists operator_not_found operator_inactive role_not_allowed),
+    "relay_fn.role_revoke" => ~w(revoked already_revoked not_found last_admin),
+    "relay_fn.support_delegation_grant" =>
+      ~w(granted operator_not_found not_installation_operator duration_invalid),
+    "relay_fn.support_delegation_revoke" => ~w(revoked already_ended not_found),
+    "relay_fn.tenant_suspension_record" =>
+      ~w(scheduled effective already_suspended subtenant_not_found notice_too_short effective_not_allowed),
+    "relay_fn.tenant_suspension_activate" => ~w(effective not_due not_scheduled),
+    "relay_fn.tenant_suspension_lift" => ~w(lifted cancelled not_found already_ended),
+    "relay_fn.send_mode_set" => ~w(set cleared unchanged invalid_level)
   }
 
   defp functions do

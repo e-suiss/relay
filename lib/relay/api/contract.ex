@@ -1,12 +1,13 @@
 defmodule Relay.Api.Contract do
   @moduledoc """
-  The API contract, read at compile time from `contracts/openapi/server.yaml`, `contracts/openapi/subscriber.yaml` and their components. It answers which operations exist, which family each belongs to (`:server` or `:subscriber`), how it is authenticated (`:bearer`, `:public` or `:webhook`), what it requires (scopes, weight, idempotency, environment) and which schemas its requests and responses follow. A subscriber operation's local schema references are inlined. The contract files are the single source; nothing here repeats their values.
+  The API contract, read at compile time from `contracts/openapi/server.yaml`, `contracts/openapi/subscriber.yaml`, `contracts/openapi/operator.yaml` and their components. It answers which operations exist, which family each belongs to (`:server`, `:subscriber` or `:operator`), how it is authenticated (`:bearer`, `:public` or `:webhook`), what it requires (scopes, weight, idempotency, environment; for an operator operation the lowest role and the step-up rule) and which schemas its requests and responses follow. A subscriber or operator operation's local schema references are inlined. The contract files are the single source; nothing here repeats their values.
   """
 
   @root Path.expand("../../../contracts/openapi", __DIR__)
   @files %{
     "server" => "server.yaml",
     "subscriber" => "subscriber.yaml",
+    "operator" => "operator.yaml",
     "schemas" => "components/schemas.yaml",
     "problem" => "components/problem.yaml",
     "parameters" => "components/parameters.yaml",
@@ -27,7 +28,10 @@ defmodule Relay.Api.Contract do
 
   @type operation :: %{
           id: String.t(),
-          family: :server | :subscriber,
+          family: :server | :subscriber | :operator,
+          role: :installation_operator | :tenant_admin | :tenant_operator | nil,
+          step_up: :always | :conditional | :never,
+          stored_replay: boolean(),
           security: :bearer | :public | :webhook,
           no_store: boolean(),
           method: String.t(),
@@ -71,7 +75,17 @@ defmodule Relay.Api.Contract do
     end
   end
 
-  families = [server: @documents["server"], subscriber: @documents["subscriber"]]
+  roles = %{
+    "installation_operator" => :installation_operator,
+    "tenant_admin" => :tenant_admin,
+    "tenant_operator" => :tenant_operator
+  }
+
+  families = [
+    server: @documents["server"],
+    subscriber: @documents["subscriber"],
+    operator: @documents["operator"]
+  ]
 
   operations =
     for {family, document} <- families,
@@ -126,6 +140,14 @@ defmodule Relay.Api.Contract do
         weight: weight,
         idempotency: idempotency,
         environment: if(op["x-relay-environment"] == "test", do: :test),
+        role: Map.get(roles, op["x-relay-role"]),
+        step_up:
+          case op["x-relay-step-up"] do
+            "always" -> :always
+            "conditional" -> :conditional
+            _ -> :never
+          end,
+        stored_replay: op["x-relay-idempotency-replay"] != "not_stored",
         errors: op["x-relay-errors"] || [],
         request: request,
         responses: responses
@@ -138,9 +160,14 @@ defmodule Relay.Api.Contract do
 
   # API-1
   # API-2
-  @doc "Every operation of the server and subscriber contracts."
+  @doc "Every operation of the server, subscriber and operator contracts."
   @spec operations() :: [operation()]
   def operations, do: Map.values(@operations)
+
+  # API-78
+  @doc "Every operation of one contract family."
+  @spec operations(:server | :subscriber | :operator) :: [operation()]
+  def operations(family), do: Enum.filter(operations(), &(&1.family == family))
 
   @doc "The operation with this `operationId`."
   @spec operation(String.t()) :: {:ok, operation()} | :error

@@ -32,7 +32,8 @@ config :relay, Relay.Platform.Leadership,
     {"drr_dispatcher", Relay.Platform.Fairness.Dispatcher, []},
     {"load_shed_controller", Relay.Platform.LoadShed.Controller, []},
     {"kill_switch_paused_expiry", Relay.Tenancy.KillSwitch.Expiry, []},
-    {"access_link_refresh", Relay.Access.Refresh, []}
+    {"access_link_refresh", Relay.Access.Refresh, []},
+    {"tenant_suspension_activator", Relay.Operators.SuspensionActivator, []}
   ]
 
 config :relay, Relay.Audit,
@@ -56,7 +57,10 @@ config :relay, Relay.Platform.VirtualClock, due: [{Relay.Agents, :run_due, []}]
 
 config :relay, Relay.Platform.Outbox, dispatcher: true
 
-config :relay, Relay.Access, subscriber_token_key: "subscriber-token", autoload: true
+config :relay, Relay.Access,
+  subscriber_token_key: "subscriber-token",
+  autoload: true,
+  user_handlers: [Relay.Operators.AccessUserHandler]
 
 config :relay, RelayWeb.Auth, verifier: RelayWeb.Auth.Access
 
@@ -64,7 +68,8 @@ config :relay, RelayWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [formats: [json: RelayWeb.ErrorJSON], layout: false],
-  pubsub_server: Relay.PubSub
+  pubsub_server: Relay.PubSub,
+  live_view: [signing_salt: "relay operator panel"]
 
 config :logger, :default_handler,
   formatter:
@@ -75,6 +80,11 @@ config :logger, :default_handler,
        {LoggerJSON.Redactors.RedactKeys,
         ["password", "secret", "token", "authorization", "cookie", "api_key", "private_key"]}
      ]}
+
+config :oban_met,
+  reporter: [auto_migrate: false, estimate_limit: :infinity, check_interval: 15_000]
+
+config :relay, Relay.Operators.Access, adapter: Relay.Operators.Access.Unconfigured
 
 config :phoenix, :json_library, Jason
 config :phoenix, :filter_parameters, {:keep, []}

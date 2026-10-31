@@ -10,6 +10,7 @@ dev: up hsm-keys port
     mix deps.get
     mix ecto.setup
     mix relay.audit.store
+    mix relay.dev.seed
     iex -S mix phx.server
 
 up:

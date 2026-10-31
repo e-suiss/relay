@@ -36,7 +36,12 @@ defmodule Relay.ExternalId do
     {"ksw", "kill_switches"},
     {"fan", "fanouts"},
     {"mbx", "mailboxes"},
-    {"mbr", "mailbox_records"}
+    {"mbr", "mailbox_records"},
+    {"opr", "operators"},
+    {"oss", "operator_sessions"},
+    {"rla", "role_assignments"},
+    {"dlg", "support_delegations"},
+    {"tsp", "tenant_suspensions"}
   ]
   @by_prefix Map.new(@tables)
 

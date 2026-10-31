@@ -42,6 +42,12 @@
     "reason": "TN-41, INV-49: the kill switch guard rejects TRUNCATE on kill switch records"
   },
   {
+    "path": "priv/repo/migrations/20261104000000_create_operator_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "TN-23, OP-9: the no-delete triggers reject TRUNCATE on role assignments, support delegations and suspensions"
+  },
+  {
     "path": "lib/relay/platform/queue/pruner_store.ex",
     "rule": "physical_delete",
     "match": "DELETE FROM relay_queue.oban_jobs",

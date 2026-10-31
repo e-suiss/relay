@@ -38,6 +38,8 @@ defmodule Relay.Config do
     RelayWeb.Api,
     RelayWeb.Auth,
     Relay.Access,
+    Relay.Operators,
+    Relay.Operators.Access,
     Oban
   ]
   @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.Platform.MaintRepo]

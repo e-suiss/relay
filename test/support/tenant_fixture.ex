@@ -80,6 +80,29 @@ defmodule RelayTest.TenantFixture do
     :ok
   end
 
+  @doc "Activates the packaged `suspension_policy` version 1 in the sandbox."
+  @spec suspension_policy!() :: :ok
+  def suspension_policy! do
+    scope = Relay.Datasets.installation_scope()
+
+    content =
+      [:code.priv_dir(:relay), "datasets", "suspension_policy", "v1.json"]
+      |> Path.join()
+      |> File.read!()
+      |> Jason.decode!()
+
+    {:ok, {result, id, _no}} =
+      Relay.Datasets.publish(scope, "suspension_policy", content, actor(), source_ref: "test")
+
+    true = result in [:published, :exists]
+
+    {:ok, activation} =
+      Relay.Datasets.activate(scope, "suspension_policy", id, :operator, actor())
+
+    true = activation in [:activated, :already_active]
+    :ok
+  end
+
   @doc "Returns the identifiers of the keys provisioned for a scope when its tenant was created."
   @spec keys!(Scope.t()) :: %{
           data: Relay.Id.t(),

@@ -1,6 +1,6 @@
 defmodule RelayWeb do
   @moduledoc """
-  The web edge: the HTTP API, realtime transports, the MCP endpoint and static serving of the console.
+  The web edge: the HTTP API, the operator API and its job queue panel, realtime transports, the MCP endpoint and static serving of the console.
   """
 
   use Boundary,
@@ -10,7 +10,8 @@ defmodule RelayWeb do
       Relay.Tenancy.KillSwitch,
       Relay.Datasets,
       Relay.Api,
-      Relay.Access
+      Relay.Access,
+      Relay.Operators
     ],
     exports: [
       Endpoint,

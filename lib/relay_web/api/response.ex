@@ -133,6 +133,11 @@ defmodule RelayWeb.Api.Response do
   defp challenge(%{"code" => code}) when code in ["auth_invalid_token", "auth_expired_token"],
     do: ~s(Bearer realm="relay", error="invalid_token")
 
+  # TN-21
+  defp challenge(%{"code" => "auth_step_up_required", "step_up" => step_up}) do
+    ~s(Bearer realm="relay", error="insufficient_user_authentication", acr_values="#{step_up.acr_values}", max_age=#{step_up.max_age})
+  end
+
   defp challenge(_body), do: ~s(Bearer realm="relay")
 
   defp operation_id(%{assigns: %{operation: %{id: id}}}), do: id

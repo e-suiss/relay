@@ -6,7 +6,11 @@ defmodule Relay.Tenancy.KillSwitch.Authz do
   """
 
   @type actor_kind :: :installation_operator | :tenant_admin | :tenant_operator
-  @type actor :: %{kind: actor_kind(), ref: String.t()}
+  @type actor :: %{
+          required(:kind) => actor_kind(),
+          required(:ref) => String.t(),
+          optional(:access_record_ref) => String.t() | nil
+        }
   @type action :: :engage | :replace | :release | :resume | :bulk_cancel
   @type spec :: %{
           optional(:scope_kind) => atom(),

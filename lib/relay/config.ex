@@ -40,6 +40,7 @@ defmodule Relay.Config do
     Relay.Access,
     Relay.Operators,
     Relay.Operators.Access,
+    Relay.Connectors,
     Oban
   ]
   @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.Platform.MaintRepo]

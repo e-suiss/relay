@@ -2,7 +2,7 @@ defmodule Relay.Config.SecretFiles do
   @moduledoc """
   The sensitive process that reads the node's installation secrets from files: the database passwords, the audit object store key and the endpoint's `secret_key_base`. The application environment holds only the file paths (`config :relay, Relay.Config.SecretFiles, repo: path, ...`); a secret is read when a consumer asks for it, so a rotated file is picked up on the next connection, and it is never stored in this process's state, in the application environment or in shared memory.
 
-  Database connections take their password through `configure/2`, the Postgrex `:configure` callback that runs in the connection process before every connect attempt and marks that process sensitive. Other consumers get a zero-arity callback, `{Relay.Config.SecretFiles, :fetch!, [name]}`, which they call at the moment they use the secret. The endpoint reads `secret_key_base` when it starts (`RelayWeb.Endpoint.supervised/0`).
+  Database connections take their password through `configure/2`, the Postgrex `:configure` callback that runs in the connection process before every connect attempt and marks that process sensitive. A connection whose password file is part of its own configuration takes it through `configure_path/2`. Other consumers get a zero-arity callback, `{Relay.Config.SecretFiles, :fetch!, [name]}`, which they call at the moment they use the secret. The endpoint reads `secret_key_base` when it starts (`RelayWeb.Endpoint.supervised/0`).
   """
 
   use GenServer
@@ -62,6 +62,19 @@ defmodule Relay.Config.SecretFiles do
   def configure(opts, name) when is_list(opts) do
     :ok = Hygiene.sensitive!()
     Keyword.put(opts, :password, Redacted.expose(fetch!(name)))
+  end
+
+  # TN-67 (3)
+  # T-41
+  @doc "Postgrex `:configure` callback for a connection whose password file path is part of its own configuration, such as the source database of an ingest connector: marks the connection process sensitive and adds the password read from `path`."
+  @spec configure_path(keyword(), Path.t()) :: keyword()
+  def configure_path(opts, path) when is_list(opts) and is_binary(path) and path != "" do
+    :ok = Hygiene.sensitive!()
+
+    case read(path) do
+      {:ok, secret} -> Keyword.put(opts, :password, Redacted.expose(secret))
+      {:error, reason} -> raise Relay.Config.Error, "secret file unavailable: #{inspect(reason)}"
+    end
   end
 
   @impl GenServer

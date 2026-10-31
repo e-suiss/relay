@@ -50,6 +50,7 @@ defmodule Relay.MixProject do
       {:oban_met, "1.3.3"},
       {:oban_web, "2.13.1"},
       {:redix, "~> 1.9.2"},
+      {:broadway, "~> 1.3.0"},
       {:bandit, "~> 1.12"},
       {:jason, "~> 1.4"},
       {:telemetry_metrics, "~> 1.2"},

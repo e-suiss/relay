@@ -46,6 +46,23 @@ defmodule Relay.Connectors.Outbox do
   @doc "Checks the options of an outbox source; raises `Relay.Config.Error` when they are invalid."
   @spec options!(atom(), term()) :: keyword()
   def options!(name, options) do
+    keys!(name, options)
+
+    [
+      hostname: options[:hostname],
+      port: integer!(name, :port, Keyword.get(options, :port, 5432), 1, 65_535),
+      database: options[:database],
+      username: options[:username],
+      password_file: options[:password_file],
+      ssl: ssl!(name, Keyword.get(options, :ssl, false)),
+      table: table!(name, options[:table]),
+      poll_ms: integer!(name, :poll_ms, Keyword.get(options, :poll_ms, 1000), 10, 60_000),
+      batch_size: integer!(name, :batch_size, Keyword.get(options, :batch_size, 100), 1, 500),
+      lease_s: integer!(name, :lease_s, Keyword.get(options, :lease_s, 60), 5, 3600)
+    ]
+  end
+
+  defp keys!(name, options) do
     unless Keyword.keyword?(options),
       do: raise(Error, "connector #{name}: options are a keyword list")
 
@@ -58,31 +75,29 @@ defmodule Relay.Connectors.Outbox do
         not (is_binary(options[key]) and options[key] != ""),
         do: raise(Error, "connector #{name}: #{key} is required")
 
-    table = options[:table]
+    :ok
+  end
 
-    unless is_binary(table) and Regex.match?(@identifier, table),
-      do: raise(Error, "connector #{name}: table is a lowercase name or schema.name")
+  defp table!(name, table) do
+    if is_binary(table) and Regex.match?(@identifier, table),
+      do: table,
+      else: raise(Error, "connector #{name}: table is a lowercase name or schema.name")
+  end
 
-    ssl = Keyword.get(options, :ssl, false)
+  defp ssl!(name, ssl) do
+    cond do
+      is_boolean(ssl) ->
+        ssl
 
-    if is_list(ssl) and Keyword.get(ssl, :verify) == :verify_none,
-      do: raise(Error, "connector #{name}: TLS peer verification cannot be turned off")
+      not Keyword.keyword?(ssl) ->
+        raise Error, "connector #{name}: ssl is a boolean or :ssl options"
 
-    unless is_boolean(ssl) or Keyword.keyword?(ssl),
-      do: raise(Error, "connector #{name}: ssl is a boolean or :ssl options")
+      Keyword.get(ssl, :verify) == :verify_none ->
+        raise Error, "connector #{name}: TLS peer verification cannot be turned off"
 
-    [
-      hostname: options[:hostname],
-      port: integer!(name, :port, Keyword.get(options, :port, 5432), 1, 65_535),
-      database: options[:database],
-      username: options[:username],
-      password_file: options[:password_file],
-      ssl: ssl,
-      table: table,
-      poll_ms: integer!(name, :poll_ms, Keyword.get(options, :poll_ms, 1000), 10, 60_000),
-      batch_size: integer!(name, :batch_size, Keyword.get(options, :batch_size, 100), 1, 500),
-      lease_s: integer!(name, :lease_s, Keyword.get(options, :lease_s, 60), 5, 3600)
-    ]
+      true ->
+        ssl
+    end
   end
 
   defp integer!(_name, _key, value, min, max)

@@ -102,8 +102,10 @@ defmodule Relay.Connectors.Connector do
 
   @doc "The registered name of a connector's pipeline."
   @spec process_name(t()) :: module()
-  def process_name(%__MODULE__{name: name}),
-    do: Module.concat(Relay.Connectors.Pipeline, Atom.to_string(name))
+  def process_name(%__MODULE__{name: name}) do
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
+    Module.concat(Relay.Connectors.Pipeline, Atom.to_string(name))
+  end
 
   defp name!(name) when is_atom(name) and not is_nil(name) do
     if Regex.match?(@name, Atom.to_string(name)),

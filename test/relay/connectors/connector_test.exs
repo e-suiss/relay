@@ -43,8 +43,7 @@ defmodule Relay.Connectors.ConnectorTest do
       assert options[:batch_size] == 100
       assert options[:lease_s] == 60
 
-      assert Connector.process_name(connector) ==
-               Module.concat(Relay.Connectors.Pipeline, "orders")
+      assert Connector.process_name(connector) == :"Elixir.Relay.Connectors.Pipeline.orders"
     end
 
     test "T-7: a Kafka or SQS source needs its package in the release" do

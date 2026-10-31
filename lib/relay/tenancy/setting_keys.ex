@@ -35,11 +35,8 @@ defmodule Relay.Tenancy.SettingKeys do
         {:error,
          Relay.Error.new(:invalid_setting, "a fairness weight is an integer from 1 to 100")}
 
-      {:ok, :api_rate} ->
-        api_rate(value)
-
-      {:ok, :boolean} ->
-        boolean(value)
+      {:ok, kind} when kind in [:api_rate, :boolean] ->
+        check(kind, value)
 
       {:ok, field} ->
         Defaults.cast(field, value)
@@ -49,10 +46,12 @@ defmodule Relay.Tenancy.SettingKeys do
     end
   end
 
-  # API-41
-  defp boolean(value) when is_boolean(value), do: {:ok, value}
+  defp check(:api_rate, value), do: api_rate(value)
 
-  defp boolean(_value),
+  # API-41
+  defp check(:boolean, value) when is_boolean(value), do: {:ok, value}
+
+  defp check(:boolean, _value),
     do: {:error, Relay.Error.new(:invalid_setting, "the setting is true or false")}
 
   # API-50

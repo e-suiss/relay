@@ -24,7 +24,7 @@ defmodule RelayWeb.Api.Admission do
   # T-35
   # T-92
   # API-51
-  @doc "Turns an admission decision for `input` (`Relay.Platform.Admission.input/0`) into the API answer."
+  @doc "Turns an admission decision for `input` (`t:Relay.Platform.Admission.input/0`) into the API answer."
   @spec decide(map()) :: :ok | {:error, Relay.Error.t()}
   def decide(input) do
     case Relay.Platform.admit(input) do

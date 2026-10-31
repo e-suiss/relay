@@ -4,7 +4,7 @@ defmodule Relay.Platform.RateLimit.NodeFilter do
 
   The filter only counts what the cluster limiter allowed (`note/5`), with the same limit and key. A node's allowed consumption is part of the cluster's, so the node-local theoretical arrival time is never later than the cluster one: when `check/5` refuses, the cluster limiter would refuse as well, and the request is answered without asking it. Everything else is decided by the cluster limiter. Only GCRA limits are filtered.
 
-  The table is public and written with compare-and-swap, so concurrent callers never lose a note; an entry whose arrival time has passed is the same as no entry and is swept every minute. It is one table keyed by tenant, environment and limit key, never a table per tenant (T-45 (5)).
+  The table is protected: callers read it, and a note on the node's table is written by its owner, in order; a table the caller owns (`:table`) is written in place with compare-and-swap. An entry whose arrival time has passed is the same as no entry and is swept every minute. It is one table keyed by tenant, environment and limit key, never a table per tenant (T-45 (5)).
   """
 
   use GenServer
@@ -60,13 +60,19 @@ defmodule Relay.Platform.RateLimit.NodeFilter do
 
     with {:ok, key} <- key(scope, limit, key_parts),
          true <- present?(table) do
-      advance(table, key, Gcra.emission_us(limit.limit, limit.period_ms) * cost, now_us(opts))
+      step_us = Gcra.emission_us(limit.limit, limit.period_ms) * cost
+      write(table, key, step_us, now_us(opts))
     end
 
     :ok
   end
 
   def note(%Relay.Scope{}, %Limit{}, _key_parts, _cost, _opts), do: :ok
+
+  defp write(@table, key, step_us, now),
+    do: GenServer.cast(__MODULE__, {:note, key, step_us, now})
+
+  defp write(table, key, step_us, now), do: advance(table, key, step_us, now)
 
   defp advance(table, key, step_us, now) do
     case :ets.lookup(table, key) do
@@ -111,14 +117,19 @@ defmodule Relay.Platform.RateLimit.NodeFilter do
     table =
       :ets.new(@table, [
         :set,
-        :public,
+        :protected,
         :named_table,
-        read_concurrency: true,
-        write_concurrency: true
+        read_concurrency: true
       ])
 
     schedule()
     {:ok, %{table: table, clock: Keyword.get(opts, :clock, Relay.Clock)}}
+  end
+
+  @impl GenServer
+  def handle_cast({:note, key, step_us, now}, state) do
+    advance(state.table, key, step_us, now)
+    {:noreply, state}
   end
 
   @impl GenServer

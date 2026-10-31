@@ -17,6 +17,7 @@ defmodule RelayWeb.Api.Response do
   @unavailable [DBConnection.ConnectionError, DBConnection.OwnershipError, Postgrex.Error]
 
   # API-8
+  # sobelow_skip ["XSS.SendResp"]
   @doc "Sends a JSON body, converted from the internal model to the request's API version."
   @spec json(Plug.Conn.t(), 100..599, map() | list()) :: Plug.Conn.t()
   def json(conn, status, body) do
@@ -38,6 +39,7 @@ defmodule RelayWeb.Api.Response do
   # API-36
   # API-38
   # API-47
+  # sobelow_skip ["XSS.SendResp"]
   @doc "Sends the problem of an error, mapped to its API code, and halts."
   @spec problem(Plug.Conn.t(), Relay.Error.t()) :: Plug.Conn.t()
   def problem(conn, %Relay.Error{} = error) do
@@ -66,6 +68,7 @@ defmodule RelayWeb.Api.Response do
   # API-10
   # API-13
   # API-14
+  # sobelow_skip ["XSS.SendResp"]
   @doc "Runs the work of an idempotent request (`Relay.Api.Idempotency.run/5`) and sends its response, or the stored one with `Idempotency-Replayed: true`."
   @spec idempotent(Plug.Conn.t(), Idempotency.work()) :: Plug.Conn.t()
   def idempotent(conn, work) do

@@ -4,13 +4,16 @@ defmodule Relay.Ingest.Idempotency do
   """
 
   @not_cacheable [400, 401, 403, 429]
+  @key_min Relay.Limits.fetch!(["idempotency_key_length", "min"])
+  @key_max Relay.Limits.fetch!(["idempotency_key_length", "max"])
+  @key_message "the key must be #{@key_min} to #{@key_max} characters"
 
   @type key :: String.t()
   @type claim :: :created | :replayed | :in_progress | :conflict
 
   # API-10
   # API-11
-  @doc "Reads an idempotency key from its header value, quoted or not; it must be 8 to 255 characters."
+  @doc "Reads an idempotency key from its header value, quoted or not; its length is the contract's `idempotency_key_length`."
   @spec parse_key(term()) :: {:ok, key()} | {:error, Relay.Error.t()}
   def parse_key(value) when is_binary(value) do
     key =
@@ -19,7 +22,7 @@ defmodule Relay.Ingest.Idempotency do
         _ -> value
       end
 
-    if String.valid?(key) and String.length(key) in 8..255,
+    if String.valid?(key) and String.length(key) in @key_min..@key_max,
       do: {:ok, key},
       else: invalid_key()
   end
@@ -55,7 +58,7 @@ defmodule Relay.Ingest.Idempotency do
   defp invalid_key,
     do:
       {:error,
-       Relay.Error.new(:invalid_idempotency_key, "the key must be 8 to 255 characters", %{
+       Relay.Error.new(:invalid_idempotency_key, @key_message, %{
          status: 400
        })}
 end

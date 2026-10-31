@@ -89,6 +89,9 @@ jobs:
               docker run --rm -v "$base:/base:ro" -v "$PWD:/head:ro" tufin/oasdiff:v1.34.1@sha256:67a23cfea7d251e2ae34ee703ac8733c5d96bc2e7b90fd0f4d475ec99367b85f breaking "/base/contracts/openapi/$family.yaml" "/head/contracts/openapi/$family.yaml" --fail-on ERR
             fi
           done
+          if [ -f "$base/contracts/asyncapi/events.yaml" ]; then
+            npx --yes @asyncapi/cli@6.2.1 diff "$base/contracts/asyncapi/events.yaml" contracts/asyncapi/events.yaml --format json --type breaking
+          fi
 
   native:
     runs-on: ubuntu-24.04

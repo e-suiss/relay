@@ -23,7 +23,7 @@ defmodule Relay.Operators do
   alias Relay.Operators.Store
   alias Relay.Scope
 
-  @step_up_window_s 300
+  @step_up_window_s Relay.Limits.fetch!(["operator_step_up_window_seconds"])
   @step_up_start "/v1/operator/session/step_up"
 
   @doc "The validity of a step-up, in seconds."

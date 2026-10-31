@@ -2,7 +2,7 @@ defmodule Relay.Ingest.Request do
   @moduledoc """
   The checks of a send request that the body schema cannot express (API-20 … API-26, API-62), as a pure function of the request, the workflow version it resolves to, the environment and the time. Field errors are all reported at once (API-37); the request's own fields never change the lane, and a policy outcome is never an error here.
 
-  * `data` is at most 256 kB; `send_at` lies in the future and at most 90 days ahead; `expires_at` lies in the future and not before `send_at`.
+  * `data` is at most the contract's `event.max_data_bytes`; `send_at` lies in the future and at most `event.max_send_at_ahead` ahead (`Relay.Limits`); `expires_at` lies in the future and not before `send_at`.
   * `security_subtype` and `on_expire` belong to the `security` class; a subtype needs `expires_at` (API-24). `retention: none` is refused for `security` and together with an inbox step (API-26).
   * `priority` is clamped to the class ceiling with a `priority_clamped` warning (API-22); `channels` only narrows the workflow's steps.
   * Raw provider blocks cannot set policy fields (`422 policy_field_not_overridable`, API-23); `overrides.email.from` needs a verified domain, and until sender identities exist none is verified (`403 channel_not_configured`).
@@ -10,8 +10,9 @@ defmodule Relay.Ingest.Request do
   * A recipient is a plain identifier (it must exist), an object with only `id` (an inbox-only subscriber) or an object with contact details (an explicit upsert, API-21); a topic is refused until topics exist.
   """
 
-  @data_bytes 262_144
-  @horizon_s 90 * 86_400
+  @data_bytes Relay.Limits.fetch!(["event", "max_data_bytes"])
+  @horizon Relay.Limits.fetch!(["event", "max_send_at_ahead"])
+  @horizon_s Relay.Limits.seconds!(["event", "max_send_at_ahead"])
   @ceilings %{"marketing" => "normal"}
   @rank %{"low" => 0, "normal" => 1, "high" => 2}
   @raw_channels ~w(push web_push whatsapp)
@@ -147,7 +148,7 @@ defmodule Relay.Ingest.Request do
         [field(pointer, "too_short", "the time must be in the future")]
 
       bounded and DateTime.diff(at, now) > @horizon_s ->
-        [field(pointer, "too_long", "the time is at most 90 days ahead")]
+        [field(pointer, "too_long", "the time is at most #{@horizon} ahead")]
 
       true ->
         []
@@ -179,7 +180,7 @@ defmodule Relay.Ingest.Request do
 
   defp data_errors(body) do
     if byte_size(Jason.encode!(Map.get(body, "data", %{}))) > @data_bytes,
-      do: [field("/data", "too_long", "data is at most 256 kB")],
+      do: [field("/data", "too_long", "data is at most #{@data_bytes} bytes")],
       else: []
   end
 

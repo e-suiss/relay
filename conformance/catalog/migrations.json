@@ -76,5 +76,6 @@
   {"file": "20261104000200_create_operator_functions.exs", "sha256": "c144e91e63b2151e52b9b4d77adba9c7d820a872ea1841fa6a5279452f38852a"},
   {"file": "20261104000300_register_suspension_policy.exs", "sha256": "44994cc1894bff63699ad929ffce7991eefba9ff3760b87cc826d54b48bb03c2"},
   {"file": "20261104000400_rebuild_reference_check_for_operators.exs", "sha256": "feb3ccf84a8d801b679cc49e28242d749b00f6c85a16806a4d4680bf2b258515"},
-  {"file": "20261104900000_rebuild_reference_check_for_ingress.exs", "sha256": "25f714ba9cf266077fa3c91a02ccc81a2ffcb68b65f87faa1ecd87c691979120"}
+  {"file": "20261104900000_rebuild_reference_check_for_ingress.exs", "sha256": "25f714ba9cf266077fa3c91a02ccc81a2ffcb68b65f87faa1ecd87c691979120"},
+  {"file": "20261105100000_announce_paused_access_security_deliveries.exs", "sha256": "0a1925ca1917e2006b22970636b37c499485d41adf3860ade062a16248d8a353"}
 ]

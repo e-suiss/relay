@@ -4571,5 +4571,11 @@ x-relay-limits:
   api_clients_per_environment: 50
   unused_api_client_warning_days: 90
   subscriber_token_lifetime_seconds: 900
-  x-relay-choice-note: "Values are POLICY DEFAULT and tenant-adjustable; other_write weight 1 is a contract choice."
+  connector_message_max_bytes: 1048576
+  operator_step_up_window_seconds: 300
+  support_delegation:
+    default: PT4H
+    min: PT15M
+    max: P3D
+  x-relay-choice-note: "Values are POLICY DEFAULT and tenant-adjustable; other_write weight 1 and connector_message_max_bytes are contract choices."
 x-relay-error-catalog: "../errors.yaml"

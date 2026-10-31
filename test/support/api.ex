@@ -53,31 +53,26 @@ defmodule RelayTest.Api do
   @spec token(Relay.Scope.t(), [String.t()], keyword()) :: String.t()
   defdelegate token(scope, scopes, opts \\ []), to: RelayTest.Api.Verifier, as: :issue
 
-  @doc "The `/v1` routes of a router as `{method, OpenAPI path, operation id}`."
-  @spec routes(module()) :: [{String.t(), String.t(), String.t() | nil}]
+  @doc "The `/v1` routes of a router as `{method, OpenAPI path}`."
+  @spec routes(module()) :: [{String.t(), String.t()}]
   def routes(router) do
-    for %{verb: verb, path: "/v1" <> _ = path} = route <- router.__routes__() do
+    for %{verb: verb, path: "/v1" <> _ = path} <- router.__routes__() do
       template = Regex.replace(~r/:([a-z_]+)/, path, "{\\1}")
-      {verb |> Atom.to_string() |> String.upcase(), template, route.private[:relay_operation]}
+      {verb |> Atom.to_string() |> String.upcase(), template}
     end
   end
 
-  @doc "How a router covers the server contract: operations it serves, operations it lacks, and routes that are not contract operations or name another operation's path."
+  @doc "How a router covers the server contract: the operations it serves, the operations it lacks, and its routes that are no contract operation."
   @spec coverage(module()) :: %{served: [String.t()], missing: [String.t()], foreign: [tuple()]}
   def coverage(router) do
-    operations = Map.new(Contract.operations(), &{&1.id, &1})
+    operations = Map.new(Contract.operations(), &{{&1.method, &1.path}, &1.id})
     routes = routes(router)
-
-    foreign =
-      Enum.reject(routes, fn {method, path, id} ->
-        match?(%{method: ^method, path: ^path}, operations[id])
-      end)
-
-    served = routes |> Enum.map(&elem(&1, 2)) |> Enum.filter(&Map.has_key?(operations, &1))
+    foreign = Enum.reject(routes, &Map.has_key?(operations, &1))
+    served = routes |> Enum.map(&operations[&1]) |> Enum.reject(&is_nil/1)
 
     %{
       served: Enum.sort(served),
-      missing: operations |> Map.keys() |> Kernel.--(served) |> Enum.sort(),
+      missing: operations |> Map.values() |> Kernel.--(served) |> Enum.sort(),
       foreign: foreign
     }
   end

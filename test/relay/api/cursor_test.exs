@@ -12,7 +12,7 @@ defmodule Relay.Api.CursorTest do
 
     %{
       live: Relay.Scope.new!(tenant, :live),
-      test: Relay.Scope.new!(tenant, :test),
+      test_scope: Relay.Scope.new!(tenant, :test),
       other: Relay.Scope.new!(Relay.Id.generate(), :live),
       position: position
     }
@@ -35,7 +35,7 @@ defmodule Relay.Api.CursorTest do
     end
 
     test "API-76: the other environment's cursor is auth_environment_mismatch", ctx do
-      cursor = cursor(ctx.test, ctx.position)
+      cursor = cursor(ctx.test_scope, ctx.position)
 
       assert {:error, %Relay.Error{code: :auth_environment_mismatch}} =
                Cursor.decode(ctx.live, nil, @endpoint, cursor, "starting_after")

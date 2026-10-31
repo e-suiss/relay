@@ -82,7 +82,8 @@ defmodule RelayWeb.Api.PipelineTest do
       body = problem(advance(ctx.token, %{"by" => "PT1H", "speed" => 2}, [key()]), 422)
 
       assert body["code"] == "unknown_field"
-      assert %{"pointer" => "/speed", "code" => "not_allowed"} in body["errors"]
+      errors = Enum.map(body["errors"], &Map.take(&1, ["pointer", "code"]))
+      assert %{"pointer" => "/speed", "code" => "not_allowed"} in errors
       assert Controller.runs() == 0
     end
   end
@@ -152,7 +153,7 @@ defmodule RelayWeb.Api.PipelineTest do
         Relay.Tenancy.set_tenant_status(
           ctx.tenant.live,
           %{
-            status: :suspended,
+            status: "suspended",
             reason: "test",
             expected_version: row["version"],
             record_digest: TenantFixture.digest()

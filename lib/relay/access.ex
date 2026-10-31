@@ -31,8 +31,8 @@ defmodule Relay.Access do
   alias Relay.Scope
 
   @scopes ~w(publish read subscribers config kill_switch)
-  @client_cap 50
-  @unused_days 90
+  @client_cap Relay.Limits.fetch!(["api_clients_per_environment"])
+  @unused_days Relay.Limits.fetch!(["unused_api_client_warning_days"])
 
   @type principal :: %{
           scope: Scope.t(),
@@ -221,7 +221,7 @@ defmodule Relay.Access do
   # API-44
   # API-77 (1)
   # API-77 (2)
-  @doc "The API client traces of a scope with the warnings the operator sees: `over_cap` when the environment holds more than 50 clients and, per client, `unused` when it was not used for 90 days."
+  @doc "The API client traces of a scope with the warnings the operator sees: `over_cap` when the environment holds more than the contract's `api_clients_per_environment` clients and, per client, `unused` when it was not used for `unused_api_client_warning_days` days."
   @spec api_clients(Scope.t()) :: {:ok, map()} | {:error, term()}
   def api_clients(%Scope{} = scope) do
     now = Relay.Clock.utc_now()

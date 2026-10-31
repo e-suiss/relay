@@ -38,6 +38,7 @@ defmodule Relay do
       Crypto,
       Canonical,
       Jitter,
+      Limits,
       ChannelParameters,
       Release,
       Worker,

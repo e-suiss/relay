@@ -20,7 +20,7 @@ defmodule Relay.Connectors.Intake do
 
   @operation "createEvent"
   @media "application/cloudevents+json"
-  @body_bytes 1_048_576
+  @body_bytes Relay.Limits.fetch!(["connector_message_max_bytes"])
   @lanes [:l1, :l2, :l3]
   @hold [
     :auth_invalid_token,

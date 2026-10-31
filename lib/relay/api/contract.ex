@@ -157,7 +157,6 @@ defmodule Relay.Api.Contract do
     end
 
   @operations Map.new(operations, &{&1.id, &1})
-  @limits @documents["server"]["x-relay-limits"]
   @api_versions @documents["server"]["x-relay-api-versions"]
 
   # API-1
@@ -181,9 +180,9 @@ defmodule Relay.Api.Contract do
 
   # API-4
   # API-77
-  @doc "The contract's limits (`x-relay-limits`): the values of the limits page."
+  @doc "The contract's limits (`x-relay-limits`): the values of the limits page; see `Relay.Limits`."
   @spec limits() :: map()
-  def limits, do: @limits
+  defdelegate limits(), to: Relay.Limits, as: :all
 
   # API-52
   @doc "The contract's dated API versions (`x-relay-api-versions`)."

@@ -2,7 +2,7 @@ defmodule Relay.Access.SubscriberToken do
   @moduledoc """
   The subscriber token (C-17, E-23, E-24, API-45, TN-25, IN-41, IN-42). `exchange/2` is the only way to obtain one: the client presents its end user's Access access token (RFC 8693); Relay verifies it under the cached Access keys, takes tenant and environment from the Access client registration the token was issued to (never from the request; API-79 (4)), matches the subscriber by the Access pairwise `sub` as its `external_id` and creates an inbox-only subscriber when there is none. When the Access link is not fully established (`:stale` included) no token is issued (E-75).
 
-  The token is a JWS (ES256) signed in the key store under the key named by `config :relay, Relay.Access, subscriber_token_key: label` (TN-63), valid for 15 minutes, with the scopes `inbox:read`, `inbox:write`, `preferences`, `devices:write` and `presence:write` (API-79 (9)). It names the subscriber and the environment; the tenant travels sealed under the region KEK, so the client never sees it (TN-25). `verify/2` accepts only such a token: an Access token is never a subscriber credential (E-25).
+  The token is a JWS (ES256) signed in the key store under the key named by `config :relay, Relay.Access, subscriber_token_key: label` (TN-63), valid for the contract's `subscriber_token_lifetime_seconds`, with the scopes `inbox:read`, `inbox:write`, `preferences`, `devices:write` and `presence:write` (API-79 (9)). It names the subscriber and the environment; the tenant travels sealed under the region KEK, so the client never sees it (TN-25). `verify/2` accepts only such a token: an Access token is never a subscriber credential (E-25).
   """
 
   alias Relay.Access.Clients
@@ -14,7 +14,7 @@ defmodule Relay.Access.SubscriberToken do
   @token_type "urn:suiss:relay:token-type:subscriber"
   @scopes ~w(inbox:read inbox:write preferences devices:write presence:write)
   @default ~w(inbox:read inbox:write preferences)
-  @lifetime_s 900
+  @lifetime_s Relay.Limits.fetch!(["subscriber_token_lifetime_seconds"])
   @aad "relay.subscriber_token.v1:"
 
   @type audiences :: %{issuer: String.t(), audience: String.t(), subject_audience: String.t()}

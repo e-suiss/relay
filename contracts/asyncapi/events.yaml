@@ -147,6 +147,70 @@ channels:
         "$ref": "#/components/messages/webhook.killswitch.released"
       webhook.killswitch.auto_paused:
         "$ref": "#/components/messages/webhook.killswitch.auto_paused"
+      audit.api_client.created:
+        "$ref": "#/components/messages/audit.api_client.created"
+      audit.api_client.updated:
+        "$ref": "#/components/messages/audit.api_client.updated"
+      audit.api_client.suspended:
+        "$ref": "#/components/messages/audit.api_client.suspended"
+      audit.api_client.reactivated:
+        "$ref": "#/components/messages/audit.api_client.reactivated"
+      audit.api_client.revoked:
+        "$ref": "#/components/messages/audit.api_client.revoked"
+      audit.blind_index_key.registered:
+        "$ref": "#/components/messages/audit.blind_index_key.registered"
+      audit.blind_index_key.rotation_started:
+        "$ref": "#/components/messages/audit.blind_index_key.rotation_started"
+      audit.dataset.activated:
+        "$ref": "#/components/messages/audit.dataset.activated"
+      audit.dataset.version_published:
+        "$ref": "#/components/messages/audit.dataset.version_published"
+      audit.dead_letter.closed:
+        "$ref": "#/components/messages/audit.dead_letter.closed"
+      audit.dead_letter.replayed:
+        "$ref": "#/components/messages/audit.dead_letter.replayed"
+      audit.delivery.cancelled:
+        "$ref": "#/components/messages/audit.delivery.cancelled"
+      audit.fanout.cancelled:
+        "$ref": "#/components/messages/audit.fanout.cancelled"
+      audit.legal_hold.placed:
+        "$ref": "#/components/messages/audit.legal_hold.placed"
+      audit.legal_hold.released:
+        "$ref": "#/components/messages/audit.legal_hold.released"
+      audit.mailbox.epoch_bumped:
+        "$ref": "#/components/messages/audit.mailbox.epoch_bumped"
+      audit.notification.cancelled:
+        "$ref": "#/components/messages/audit.notification.cancelled"
+      audit.partition_policy.updated:
+        "$ref": "#/components/messages/audit.partition_policy.updated"
+      audit.secret_ref.registered:
+        "$ref": "#/components/messages/audit.secret_ref.registered"
+      audit.secret_ref.retired:
+        "$ref": "#/components/messages/audit.secret_ref.retired"
+      audit.setting.changed:
+        "$ref": "#/components/messages/audit.setting.changed"
+      audit.subject.erased:
+        "$ref": "#/components/messages/audit.subject.erased"
+      audit.subject_key.retired:
+        "$ref": "#/components/messages/audit.subject_key.retired"
+      audit.subtenant.archived:
+        "$ref": "#/components/messages/audit.subtenant.archived"
+      audit.subtenant.created:
+        "$ref": "#/components/messages/audit.subtenant.created"
+      audit.subtenant.updated:
+        "$ref": "#/components/messages/audit.subtenant.updated"
+      audit.tenant.closed:
+        "$ref": "#/components/messages/audit.tenant.closed"
+      audit.tenant.defaults_updated:
+        "$ref": "#/components/messages/audit.tenant.defaults_updated"
+      audit.tenant.reactivated:
+        "$ref": "#/components/messages/audit.tenant.reactivated"
+      audit.tenant_key.destroyed:
+        "$ref": "#/components/messages/audit.tenant_key.destroyed"
+      audit.tenant_key.registered:
+        "$ref": "#/components/messages/audit.tenant_key.registered"
+      audit.waitpoint.cancelled:
+        "$ref": "#/components/messages/audit.waitpoint.cancelled"
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
@@ -174,6 +238,13 @@ channels:
         "$ref": "#/components/messages/access.user.reactivated"
       access.user.deleted:
         "$ref": "#/components/messages/access.user.deleted"
+  accessOutbound:
+    address: null
+    title: accessOutbound
+    description: "Events Relay delivers to Access with the shared webhook profile. They carry delivery status and audit references as information only; Access changes no state because of them."
+    messages:
+      access.delivery.paused:
+        "$ref": "#/components/messages/access.delivery.paused"
 operations:
   sendTenantWebhooks:
     action: send
@@ -255,6 +326,38 @@ operations:
       - "$ref": "#/channels/auditLog/messages/webhook.killswitch.engaged"
       - "$ref": "#/channels/auditLog/messages/webhook.killswitch.released"
       - "$ref": "#/channels/auditLog/messages/webhook.killswitch.auto_paused"
+      - "$ref": "#/channels/auditLog/messages/audit.api_client.created"
+      - "$ref": "#/channels/auditLog/messages/audit.api_client.updated"
+      - "$ref": "#/channels/auditLog/messages/audit.api_client.suspended"
+      - "$ref": "#/channels/auditLog/messages/audit.api_client.reactivated"
+      - "$ref": "#/channels/auditLog/messages/audit.api_client.revoked"
+      - "$ref": "#/channels/auditLog/messages/audit.blind_index_key.registered"
+      - "$ref": "#/channels/auditLog/messages/audit.blind_index_key.rotation_started"
+      - "$ref": "#/channels/auditLog/messages/audit.dataset.activated"
+      - "$ref": "#/channels/auditLog/messages/audit.dataset.version_published"
+      - "$ref": "#/channels/auditLog/messages/audit.dead_letter.closed"
+      - "$ref": "#/channels/auditLog/messages/audit.dead_letter.replayed"
+      - "$ref": "#/channels/auditLog/messages/audit.delivery.cancelled"
+      - "$ref": "#/channels/auditLog/messages/audit.fanout.cancelled"
+      - "$ref": "#/channels/auditLog/messages/audit.legal_hold.placed"
+      - "$ref": "#/channels/auditLog/messages/audit.legal_hold.released"
+      - "$ref": "#/channels/auditLog/messages/audit.mailbox.epoch_bumped"
+      - "$ref": "#/channels/auditLog/messages/audit.notification.cancelled"
+      - "$ref": "#/channels/auditLog/messages/audit.partition_policy.updated"
+      - "$ref": "#/channels/auditLog/messages/audit.secret_ref.registered"
+      - "$ref": "#/channels/auditLog/messages/audit.secret_ref.retired"
+      - "$ref": "#/channels/auditLog/messages/audit.setting.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.subject.erased"
+      - "$ref": "#/channels/auditLog/messages/audit.subject_key.retired"
+      - "$ref": "#/channels/auditLog/messages/audit.subtenant.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.subtenant.created"
+      - "$ref": "#/channels/auditLog/messages/audit.subtenant.updated"
+      - "$ref": "#/channels/auditLog/messages/audit.tenant.closed"
+      - "$ref": "#/channels/auditLog/messages/audit.tenant.defaults_updated"
+      - "$ref": "#/channels/auditLog/messages/audit.tenant.reactivated"
+      - "$ref": "#/channels/auditLog/messages/audit.tenant_key.destroyed"
+      - "$ref": "#/channels/auditLog/messages/audit.tenant_key.registered"
+      - "$ref": "#/channels/auditLog/messages/audit.waitpoint.cancelled"
   receiveAccessInbound:
     action: receive
     channel:
@@ -271,6 +374,12 @@ operations:
       - "$ref": "#/channels/accessInbound/messages/access.user.suspended"
       - "$ref": "#/channels/accessInbound/messages/access.user.reactivated"
       - "$ref": "#/channels/accessInbound/messages/access.user.deleted"
+  sendAccessOutbound:
+    action: send
+    channel:
+      "$ref": "#/channels/accessOutbound"
+    messages:
+      - "$ref": "#/channels/accessOutbound/messages/access.delivery.paused"
 components:
   schemas:
     CloudEventEnvelope:
@@ -363,6 +472,48 @@ components:
               type: integer
               minimum: 0
           additionalProperties: false
+      additionalProperties: false
+    AuditRecord:
+      type: object
+      description: "The fields of one audit log record as the audit export carries them: who acted, on whose behalf and under which Access record, on what and why. Encrypted details are not exported."
+      required:
+        - actor_kind
+        - actor_ref
+        - on_behalf_of
+        - target_type
+      properties:
+        actor_kind:
+          type: string
+          enum:
+            - operator
+            - installation_operator
+            - api_client
+            - access
+            - system
+        actor_ref:
+          type: string
+          maxLength: 256
+        on_behalf_of:
+          type: string
+          maxLength: 256
+        access_record_ref:
+          oneOf:
+            - type: string
+              maxLength: 256
+            - type: "null"
+        target_type:
+          type: string
+          maxLength: 64
+        target_id:
+          oneOf:
+            - type: string
+              maxLength: 256
+            - type: "null"
+        reason:
+          oneOf:
+            - type: string
+              maxLength: 2000
+            - type: "null"
       additionalProperties: false
   messages:
     webhook.notification.suppressed:
@@ -2362,6 +2513,582 @@ components:
       x-relay-stage: 3
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.api_client.created:
+      name: api_client.created
+      title: api_client.created
+      summary: "An API client trace was created from an Access event."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: api_client
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.api_client.updated:
+      name: api_client.updated
+      title: api_client.updated
+      summary: "An API client trace took new scopes from an Access event."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: api_client
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.api_client.suspended:
+      name: api_client.suspended
+      title: api_client.suspended
+      summary: "An API client trace was suspended from an Access event."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: api_client
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.api_client.reactivated:
+      name: api_client.reactivated
+      title: api_client.reactivated
+      summary: "An API client trace was reactivated from an Access event."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: api_client
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.api_client.revoked:
+      name: api_client.revoked
+      title: api_client.revoked
+      summary: "An API client trace was revoked from an Access event."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: api_client
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.blind_index_key.registered:
+      name: blind_index_key.registered
+      title: blind_index_key.registered
+      summary: "A blind index key was registered."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: blind_index_key
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.blind_index_key.rotation_started:
+      name: blind_index_key.rotation_started
+      title: blind_index_key.rotation_started
+      summary: "A blind index key rotation started."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: blind_index_key
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.dataset.activated:
+      name: dataset.activated
+      title: dataset.activated
+      summary: "A dataset version was activated; the reason carries the source."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: dataset_version
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.dataset.version_published:
+      name: dataset.version_published
+      title: dataset.version_published
+      summary: "A dataset version was published."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: dataset_version
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.dead_letter.closed:
+      name: dead_letter.closed
+      title: dead_letter.closed
+      summary: "A dead letter was closed without replay."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: dead_letter
+      x-relay-surface: audit
+      x-relay-stage: 2
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.dead_letter.replayed:
+      name: dead_letter.replayed
+      title: dead_letter.replayed
+      summary: "A dead letter replay was opened."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: dead_letter
+      x-relay-surface: audit
+      x-relay-stage: 2
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.delivery.cancelled:
+      name: delivery.cancelled
+      title: delivery.cancelled
+      summary: "A delivery was cancelled; the reason carries its rule_id."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: delivery
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.fanout.cancelled:
+      name: fanout.cancelled
+      title: fanout.cancelled
+      summary: "A fan-out was cancelled; the reason carries its rule_id."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: fanout
+      x-relay-surface: audit
+      x-relay-stage: 2
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.legal_hold.placed:
+      name: legal_hold.placed
+      title: legal_hold.placed
+      summary: "A legal hold was placed."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: legal_hold
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.legal_hold.released:
+      name: legal_hold.released
+      title: legal_hold.released
+      summary: "A legal hold was released."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: legal_hold
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.mailbox.epoch_bumped:
+      name: mailbox.epoch_bumped
+      title: mailbox.epoch_bumped
+      summary: "A mailbox epoch was bumped; readers resynchronise."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: mailbox
+      x-relay-surface: audit
+      x-relay-stage: 2
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.notification.cancelled:
+      name: notification.cancelled
+      title: notification.cancelled
+      summary: "A notification was cancelled; the reason carries its rule_id."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: notification
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.partition_policy.updated:
+      name: partition_policy.updated
+      title: partition_policy.updated
+      summary: "A partition policy was updated."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: partition_policy
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.secret_ref.registered:
+      name: secret_ref.registered
+      title: secret_ref.registered
+      summary: "A secret reference was registered."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: secret_ref
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.secret_ref.retired:
+      name: secret_ref.retired
+      title: secret_ref.retired
+      summary: "A secret reference was retired."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: secret_ref
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.setting.changed:
+      name: setting.changed
+      title: setting.changed
+      summary: "A tenant or sub-tenant setting was set or cleared."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: setting
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.subject.erased:
+      name: subject.erased
+      title: subject.erased
+      summary: "A subject was erased; its subject keys were destroyed or restricted."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: recipient
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.subject_key.retired:
+      name: subject_key.retired
+      title: subject_key.retired
+      summary: "A subject key was retired at the end of its retention; the reason carries the retention class."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: subject_key
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.subtenant.archived:
+      name: subtenant.archived
+      title: subtenant.archived
+      summary: "A sub-tenant was archived."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: subtenant
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.subtenant.created:
+      name: subtenant.created
+      title: subtenant.created
+      summary: "A sub-tenant was created."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: subtenant
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.subtenant.updated:
+      name: subtenant.updated
+      title: subtenant.updated
+      summary: "A sub-tenant was updated."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: subtenant
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.tenant.closed:
+      name: tenant.closed
+      title: tenant.closed
+      summary: "A tenant was closed following its Access status."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: tenant
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.tenant.defaults_updated:
+      name: tenant.defaults_updated
+      title: tenant.defaults_updated
+      summary: "A tenant's default time zone, locale or sector changed."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: tenant
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.tenant.reactivated:
+      name: tenant.reactivated
+      title: tenant.reactivated
+      summary: "A tenant became active again following its Access status; tenant.resumed is the end of a Relay suspension."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: tenant
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.tenant_key.destroyed:
+      name: tenant_key.destroyed
+      title: tenant_key.destroyed
+      summary: "A tenant key was destroyed."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: tenant_key
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.tenant_key.registered:
+      name: tenant_key.registered
+      title: tenant_key.registered
+      summary: "A tenant key was registered."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: tenant_key
+      x-relay-surface: audit
+      x-relay-stage: 1
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.waitpoint.cancelled:
+      name: waitpoint.cancelled
+      title: waitpoint.cancelled
+      summary: "A waitpoint was cancelled by an operator or its waiter."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: waitpoint
+      x-relay-surface: audit
+      x-relay-stage: 2
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     access.tenant.created:
       name: tenant.created
       title: tenant.created
@@ -2734,6 +3461,58 @@ components:
       x-relay-stage: 3
       x-relay-choice: true
       x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.delivery.paused:
+      name: delivery.paused
+      title: delivery.paused
+      summary: "A delivery of an Access security message was paused by an explicit security stop."
+      description: "Sent once for each blocked delivery, in the transaction that records the pause with its rule_id. It carries only the delivery status and the audit references (the kill switch and its rule). It is information: Access changes no state because of it."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: delivery.paused
+                data:
+                  type: object
+                  required:
+                    - delivery_id
+                    - notification_id
+                    - channel
+                    - status
+                    - reason
+                    - rule_id
+                    - kill_switch_id
+                    - paused_at
+                  properties:
+                    delivery_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_dlv"
+                    notification_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_ntf"
+                    event_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_evt"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    status:
+                      type: string
+                      const: queued
+                    reason:
+                      type: string
+                      const: paused
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                    kill_switch_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_ksw"
+                    paused_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "The product decisions require the status of a blocked Access security delivery to return to Access as information but name no event; the name delivery.paused and this payload (delivery status and audit references only) are chosen by the contract."
 x-relay-event-names:
   - address.disabled
   - agent.ceiling_exceeded
@@ -2744,10 +3523,19 @@ x-relay-event-names:
   - api_client.updated
   - api_version.pinned
   - audit_log.read
+  - blind_index_key.registered
+  - blind_index_key.rotation_started
   - cross_tenant.queried
+  - dataset.activated
+  - dataset.version_published
+  - dead_letter.closed
+  - dead_letter.replayed
+  - delivery.cancelled
+  - delivery.paused
   - device.reassigned
   - device.unregistered
   - event_type_mapping.changed
+  - fanout.cancelled
   - inbox.counters_changed
   - inbox.item_created
   - inbox.item_updated
@@ -2756,14 +3544,19 @@ x-relay-event-names:
   - killswitch.bulk_cancelled
   - killswitch.engaged
   - killswitch.released
+  - legal_hold.placed
+  - legal_hold.released
   - mailbox.abuse_reported
+  - mailbox.epoch_bumped
   - mailbox.record_appended
   - mailbox.record_dead_lettered
+  - notification.cancelled
   - notification.render_failed
   - notification.suppressed
   - operator_session.revoked
   - organization.created
   - organization.updated
+  - partition_policy.updated
   - pii.revealed
   - provider.unknown_code
   - quota.reserve_opened
@@ -2771,14 +3564,27 @@ x-relay-event-names:
   - quota_policy.changed
   - role_assignment.created
   - role_assignment.revoked
+  - secret_ref.registered
+  - secret_ref.retired
   - send_mode.changed
+  - setting.changed
   - stream.resync_required
+  - subject.erased
+  - subject_key.retired
   - subscriber.deletion_requested
+  - subtenant.archived
+  - subtenant.created
+  - subtenant.updated
   - support_delegation.granted
   - support_delegation.revoked
+  - tenant.closed
   - tenant.created
+  - tenant.defaults_updated
+  - tenant.reactivated
   - tenant.resumed
   - tenant.suspended
+  - tenant_key.destroyed
+  - tenant_key.registered
   - user.deleted
   - user.reactivated
   - user.suspended

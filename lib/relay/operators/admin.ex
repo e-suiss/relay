@@ -9,9 +9,12 @@ defmodule Relay.Operators.Admin do
   alias Relay.Operators.Store
   alias Relay.Scope
 
-  @delegation_default_s 4 * 3_600
-  @delegation_min_s 15 * 60
-  @delegation_max_s 3 * 86_400
+  @delegation_default_s Relay.Limits.seconds!(["support_delegation", "default"])
+  @delegation_min_s Relay.Limits.seconds!(["support_delegation", "min"])
+  @delegation_max_s Relay.Limits.seconds!(["support_delegation", "max"])
+  @delegation_min Relay.Limits.fetch!(["support_delegation", "min"])
+  @delegation_max Relay.Limits.fetch!(["support_delegation", "max"])
+  @delegation_range "the duration is #{@delegation_min} to #{@delegation_max}"
 
   # TN-21
   # TN-23
@@ -73,7 +76,7 @@ defmodule Relay.Operators.Admin do
 
   # TN-23
   @doc """
-  Grants an installation operator time-limited, read-only access to `scope` on the tenant's behalf. `duration_s` defaults to four hours and lies between fifteen minutes and three days.
+  Grants an installation operator time-limited, read-only access to `scope` on the tenant's behalf. `duration_s` defaults to the contract's `support_delegation.default` and lies between its `min` and `max`.
   """
   @spec grant_delegation(Scope.t(), map(), Actor.t(), String.t()) ::
           {:ok, map()} | {:error, Relay.Error.t()}
@@ -82,7 +85,7 @@ defmodule Relay.Operators.Admin do
 
     cond do
       duration < @delegation_min_s or duration > @delegation_max_s ->
-        {:error, field("/duration", "unsupported_value", "the duration is PT15M to P3D")}
+        {:error, field("/duration", "unsupported_value", @delegation_range)}
 
       not installation_operator?(attrs.operator_id) ->
         {:error, field("/operator_id", "not_allowed", "not an installation operator")}

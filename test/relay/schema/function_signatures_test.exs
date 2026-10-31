@@ -113,7 +113,8 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.fanout_slice_finish" => ~w(finished already_terminal not_found),
     "relay_fn.fanout_pause" => ~w(paused already_paused not_running),
     "relay_fn.fanout_resume" => ~w(resumed not_paused),
-    "relay_fn.fanout_cancel" => ~w(cancelled already_closed not_found)
+    "relay_fn.fanout_cancel" => ~w(cancelled already_closed not_found),
+    "relay_fn.tenant_api_version_pin" => ~w(pinned already_pinned changed unchanged unsupported)
   }
 
   defp functions do

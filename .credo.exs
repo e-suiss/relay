@@ -72,6 +72,7 @@
              files: %{
                included: ["lib/"],
                excluded: [
+                 "lib/relay/api/schema.ex",
                  "lib/relay/datasets.ex",
                  "lib/relay/platform/backend.ex",
                  "lib/relay/platform/load_shed.ex",

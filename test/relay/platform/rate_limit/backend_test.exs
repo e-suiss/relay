@@ -136,7 +136,7 @@ defmodule Relay.Platform.RateLimit.BackendTest do
         offset_us: 0
       }
 
-      assert {:ok, {:allowed, 0}} = Store.gcra(scope, key, p)
+      assert {:ok, {:allowed, 0, _tat, _now}} = Store.gcra(scope, key, p)
 
       Backend.report_failure(server)
       eventually(fn -> Backend.state(server).phase == :pg end)
@@ -176,7 +176,7 @@ defmodule Relay.Platform.RateLimit.BackendTest do
         offset_us: 0
       }
 
-      assert {:ok, {:limited, _}} = Store.gcra(scope, key, p)
+      assert {:ok, {:limited, _, _tat, _now}} = Store.gcra(scope, key, p)
     end
   end
 end

@@ -26,6 +26,7 @@ defmodule Relay.SecretFilesTest do
     "PKCS11_PIN_FILE" => "/run/softhsm/pin",
     "KEY_STORE_KEK_LABEL" => "kek",
     "KEY_STORE_FINGERPRINT_LABEL" => "fingerprint",
+    "KEY_STORE_CURSOR_LABEL" => "cursor",
     "RELAY_HOST" => "relay.example.com",
     "AUDIT_S3_ENDPOINT" => "https://s3.example.com",
     "AUDIT_S3_BUCKET" => "relay-audit",

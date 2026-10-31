@@ -75,6 +75,7 @@ defmodule Relay.HsmKeysTest do
       {"PKCS11_PIN_FILE", pin_file},
       {"KEY_STORE_KEK_LABEL", "kek-test"},
       {"KEY_STORE_FINGERPRINT_LABEL", "fingerprint-test"},
+      {"KEY_STORE_CURSOR_LABEL", "cursor-test"},
       {"KEY_STORE_BLIND_INDEX_LABEL", "bidx-test"}
     ]
 

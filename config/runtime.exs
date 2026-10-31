@@ -18,7 +18,8 @@ if config_env() == :prod do
 
   config :relay, Relay.Keys,
     kek_label: Relay.Config.Env.fetch!("KEY_STORE_KEK_LABEL"),
-    fingerprint_label: Relay.Config.Env.fetch!("KEY_STORE_FINGERPRINT_LABEL")
+    fingerprint_label: Relay.Config.Env.fetch!("KEY_STORE_FINGERPRINT_LABEL"),
+    cursor_label: Relay.Config.Env.fetch!("KEY_STORE_CURSOR_LABEL")
 
   config :relay, Relay.Audit,
     log_host: Relay.Config.Env.fetch!("RELAY_HOST"),

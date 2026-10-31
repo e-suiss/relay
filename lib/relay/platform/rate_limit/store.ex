@@ -9,9 +9,11 @@ defmodule Relay.Platform.RateLimit.Store do
 
   # T-20 (1)
   # T-11
-  @doc "Runs the GCRA decision of `relay_fn.rl_gcra`; returns `{code, retry_after_us}`."
+  @doc "Runs the GCRA decision of `relay_fn.rl_gcra`; returns `{code, retry_after_us, tat_us, now_us}`."
   @spec gcra(Relay.Scope.t(), String.t(), map()) ::
-          {:ok, {:allowed | :limited | :ceiling | :cost_exceeds_burst, non_neg_integer()}}
+          {:ok,
+           {:allowed | :limited | :ceiling | :cost_exceeds_burst, non_neg_integer(), integer(),
+            integer()}}
           | failure()
   def gcra(scope, limit_key, p) do
     call(scope, "relay_fn.rl_gcra", [
@@ -26,7 +28,7 @@ defmodule Relay.Platform.RateLimit.Store do
     ])
     |> one(fn row ->
       {Repo.code!(row["result"], [:allowed, :limited, :ceiling, :cost_exceeds_burst]),
-       row["retry_after_us"]}
+       row["retry_after_us"], row["tat_us"], row["now_us"]}
     end)
   end
 

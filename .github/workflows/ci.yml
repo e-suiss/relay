@@ -62,6 +62,34 @@ jobs:
       - run: native/build.sh
       - run: mix test --include integration --warnings-as-errors
 
+  contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      REDOCLY_TELEMETRY: "off"
+      ASYNCAPI_METRICS: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+      - run: npx --yes @redocly/cli@2.69.0 lint --extends=minimal contracts/openapi/server.yaml contracts/openapi/subscriber.yaml contracts/openapi/operator.yaml
+      - run: npx --yes @asyncapi/cli@6.2.1 validate contracts/asyncapi/events.yaml
+      - if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          base="$RUNNER_TEMP/base"
+          mkdir -p "$base"
+          git archive "origin/$BASE_REF" contracts | tar -x -C "$base"
+          for family in server subscriber operator; do
+            if [ -f "$base/contracts/openapi/$family.yaml" ]; then
+              docker run --rm -v "$base:/base:ro" -v "$PWD:/head:ro" tufin/oasdiff:v1.34.1@sha256:67a23cfea7d251e2ae34ee703ac8733c5d96bc2e7b90fd0f4d475ec99367b85f breaking "/base/contracts/openapi/$family.yaml" "/head/contracts/openapi/$family.yaml" --fail-on ERR
+            fi
+          done
+
   native:
     runs-on: ubuntu-24.04
     timeout-minutes: 10

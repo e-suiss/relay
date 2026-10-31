@@ -44,6 +44,7 @@ PKCS11_TOKEN=relay-smoke
 PKCS11_PIN_FILE=/run/softhsm/pin
 KEY_STORE_KEK_LABEL=kek-smoke
 KEY_STORE_FINGERPRINT_LABEL=fingerprint-smoke
+KEY_STORE_CURSOR_LABEL=cursor-smoke
 SOFTHSM2_CONF=/run/softhsm/softhsm2.conf
 AUDIT_S3_ENDPOINT=${s3_url}
 AUDIT_S3_BUCKET=${bucket}

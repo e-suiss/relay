@@ -2,7 +2,7 @@ defmodule Relay.Keys do
   @moduledoc """
   Key store port. Provider signing keys, the regional KEK that wraps tenant data keys, the blind index HMAC keys, the secret fingerprint key, secret data objects and the audit checkpoint key live in a PKCS#11 token; code reaches them only through this module, and the configured implementation talks to the token through a separate OS process. Blind index keys are generated inside the token and never leave it: the HMAC is computed inside it.
 
-  The installation's key labels are configured under `config :relay, Relay.Keys`: `:kek_label` names the region KEK and `:fingerprint_label` the secret fingerprint key.
+  The installation's key labels are configured under `config :relay, Relay.Keys`: `:kek_label` names the region KEK, `:fingerprint_label` the secret fingerprint key and `:cursor_label` the key that signs pagination cursors.
   """
 
   alias Relay.Error
@@ -31,7 +31,7 @@ defmodule Relay.Keys do
 
   @algs [:es256, :rs256, :ed25519]
   @port_keys [:module, :token, :pin_file]
-  @label_keys [:kek_label, :fingerprint_label]
+  @label_keys [:kek_label, :fingerprint_label, :cursor_label]
   @key_kinds [:aes_256, :hmac_sha256]
 
   # TN-63
@@ -61,6 +61,11 @@ defmodule Relay.Keys do
   @doc "The label of the installation's secret fingerprint key, from the installation configuration."
   @spec fingerprint_label() :: {:ok, label()} | {:error, Error.t()}
   def fingerprint_label, do: configured(:fingerprint_label)
+
+  # API-56
+  @doc "The label of the installation's pagination cursor key, from the installation configuration."
+  @spec cursor_label() :: {:ok, label()} | {:error, Error.t()}
+  def cursor_label, do: configured(:cursor_label)
 
   defp configured(key) do
     case :relay |> Application.get_env(__MODULE__, []) |> Keyword.get(key) do

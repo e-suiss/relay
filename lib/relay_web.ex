@@ -4,8 +4,17 @@ defmodule RelayWeb do
   """
 
   use Boundary,
-    deps: [Relay, Relay.Platform, Relay.Tenancy.KillSwitch, Relay.Datasets],
-    exports: [Endpoint, Metrics, Telemetry]
+    deps: [Relay, Relay.Platform, Relay.Tenancy.KillSwitch, Relay.Datasets, Relay.Api],
+    exports: [
+      Endpoint,
+      Metrics,
+      Telemetry,
+      Router,
+      Auth,
+      Auth.Principal,
+      Api.Pipeline,
+      Api.Response
+    ]
 
   @doc false
   def static_paths, do: ~w(.well-known robots.txt)
@@ -26,6 +35,24 @@ defmodule RelayWeb do
       use Phoenix.Controller, formats: [:json]
 
       import Plug.Conn
+    end
+  end
+
+  @doc false
+  def api_controller do
+    quote do
+      use Phoenix.Controller, formats: [:json]
+
+      import Plug.Conn
+
+      # INV-2
+      # API-39
+      @doc false
+      def action(conn, opts) do
+        super(conn, opts)
+      rescue
+        exception -> RelayWeb.Api.Response.exception(conn, exception, __STACKTRACE__)
+      end
     end
   end
 

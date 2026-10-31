@@ -43,6 +43,11 @@ config :relay, Relay.NetworkGuard, enabled: true
 
 config :relay, keys: RelayTest.Keys
 
-config :relay, Relay.Keys, kek_label: "kek-test", fingerprint_label: "fingerprint-test"
+config :relay, Relay.Keys,
+  kek_label: "kek-test",
+  fingerprint_label: "fingerprint-test",
+  cursor_label: "cursor-test"
+
+config :relay, RelayWeb.Auth, verifier: RelayTest.Api.Verifier
 
 config :phoenix, :plug_init_mode, :runtime

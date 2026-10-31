@@ -45,7 +45,12 @@ defmodule Relay.ConfigTest do
     end
 
     test "TN-67 (1): the region KEK and the fingerprint key labels are installation configuration" do
-      labels = [kek_label: "kek-tr-1", fingerprint_label: "fingerprint-tr-1"]
+      labels = [
+        kek_label: "kek-tr-1",
+        fingerprint_label: "fingerprint-tr-1",
+        cursor_label: "cursor-tr-1"
+      ]
+
       assert Relay.Keys in Config.known_app_keys()
       assert :ok = Config.validate!(Keyword.put(@valid, Relay.Keys, labels), %{})
 

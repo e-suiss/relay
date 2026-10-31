@@ -46,11 +46,6 @@ defmodule RelayWeb.Endpoint do
   plug RelayWeb.Plugs.Correlation
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
-  plug Plug.Parsers,
-    parsers: [:json],
-    pass: ["application/json"],
-    json_decoder: Phoenix.json_library()
-
   plug Plug.Head
   plug RelayWeb.Router
 end

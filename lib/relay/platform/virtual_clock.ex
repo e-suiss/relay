@@ -42,6 +42,22 @@ defmodule Relay.Platform.VirtualClock do
     end
   end
 
+  # TN-8
+  # X-27
+  @doc "Advances the virtual clock inside the caller's scoped transaction of `scope`, the transaction of an idempotent request, and queues the tick in it."
+  @spec advance_here(Relay.Scope.t(), integer(), <<_::256>>, Relay.Actor.t()) :: result()
+  def advance_here(%Relay.Scope{} = scope, by_ms, <<_::256>> = record_digest, actor)
+      when is_integer(by_ms) do
+    case VirtualClockStore.advance(by_ms, record_digest, actor) do
+      {:advanced, _offset, _now} = advanced ->
+        {:ok, _job} = Oban.insert(Tick.new(Relay.Scope.to_job_args(scope)))
+        advanced
+
+      other ->
+        other
+    end
+  end
+
   # X-27
   @doc "Returns the scope's virtual offset and business time, or `:not_test_environment` in `live`."
   @spec get(Relay.Scope.t()) ::

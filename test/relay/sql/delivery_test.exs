@@ -3,7 +3,7 @@ defmodule Relay.Sql.DeliveryTest do
 
   alias Relay.Repo
 
-  @accept "SELECT * FROM relay_fn.notification_accept($1, $2, $3, $4, 'transactional', NULL, 'system', NULL, NULL, NULL, false, NULL)"
+  @accept "SELECT result, notification_id FROM relay_fn.notification_accept($1, $2, $3, $4, 'transactional', NULL, 'system', NULL, NULL, NULL, false, NULL)"
   @open "SELECT * FROM relay_fn.delivery_open($1, $2, $3, 'address', NULL, $4, 'acme', NULL, $5, $6, $7, $8, $9, NULL)"
 
   defp open(notification, channel, target_key, opts \\ []) do

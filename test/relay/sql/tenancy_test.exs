@@ -70,7 +70,7 @@ defmodule Relay.Sql.TenancyTest do
     assert ctx(tenant, "test") == "suspended"
 
     assert row(
-             "SELECT * FROM relay_fn.notification_accept($1, $2, NULL, 'd2', 'transactional', NULL, 'system', NULL, NULL, NULL, false, NULL)",
+             "SELECT result, notification_id FROM relay_fn.notification_accept($1, $2, NULL, 'd2', 'transactional', NULL, 'system', NULL, NULL, NULL, false, NULL)",
              [id(), recipient]
            ) == ["tenant_inactive", nil]
 

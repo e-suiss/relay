@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "policy": {
+    "period": "month",
+    "limit_total": 1000,
+    "class_caps": {"marketing": 8000},
+    "security_reserve_bp": 1000
+  },
+  "vectors": [
+    {"name": "Q1", "before": [["marketing", 700]], "class": "marketing", "count": 1, "result": "allowed", "marks": []},
+    {"name": "Q2", "before": [["marketing", 800]], "class": "marketing", "count": 1, "result": "class_cap", "marks": []},
+    {"name": "Q3", "before": [["transactional", 799]], "class": "transactional", "count": 2, "result": "allowed", "marks": ["p80"]},
+    {"name": "Q4", "before": [["transactional", 1000]], "class": "transactional", "count": 1, "result": "exhausted", "marks": []},
+    {"name": "Q4b", "before": [["transactional", 999]], "class": "transactional", "count": 1, "result": "allowed", "marks": ["p100"]},
+    {"name": "Q5", "before": [["transactional", 1000]], "class": "security", "count": 1, "result": "reserve", "marks": ["reserve"]},
+    {"name": "Q6", "before": [["transactional", 1000], ["security", 100]], "class": "security", "count": 1, "result": "exhausted", "marks": []},
+    {"name": "Q7", "policy": null, "before": [], "class": "marketing", "count": 10, "result": "no_policy", "marks": []}
+  ]
+}

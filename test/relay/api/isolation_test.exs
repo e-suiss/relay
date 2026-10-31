@@ -26,7 +26,13 @@ defmodule Relay.Api.IsolationTest do
     %{a: a, b: b, tokens: tokens}
   end
 
-  defp assert_not_found(conn, operation, why) do
+  defp assert_not_found(conn, %{id: id} = operation, why) do
+    if id in Isolation.upserts(),
+      do: assert(conn.status == 201, "#{id} #{why}: #{conn.status} #{conn.resp_body}"),
+      else: assert_missing(conn, operation, why)
+  end
+
+  defp assert_missing(conn, operation, why) do
     assert conn.status == 404, "#{operation.id} #{why}: #{conn.status} #{conn.resp_body}"
     Api.assert_contract(conn)
     body = Jason.decode!(conn.resp_body)

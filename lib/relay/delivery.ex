@@ -21,6 +21,11 @@ defmodule Relay.Delivery do
 
   @type result(value) :: {:ok, value} | {:error, term()}
 
+  # T-15
+  @doc "The job worker that sends a delivery; its arguments are the scope, `notification_id` and `delivery_id`."
+  @spec send_worker() :: module()
+  def send_worker, do: Relay.Delivery.Send
+
   # C-32
   @doc "Builds a ledger entry; see `Relay.Delivery.Ledger.new/1`."
   @spec ledger_entry(map() | keyword()) :: {:ok, Ledger.t()} | {:error, Relay.Error.t()}

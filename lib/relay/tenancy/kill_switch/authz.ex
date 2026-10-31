@@ -2,10 +2,11 @@ defmodule Relay.Tenancy.KillSwitch.Authz do
   @moduledoc """
   Who may change a kill switch, a pure function that runs before the database (TN-41, TN-70 (1)); the database `CHECK` constraints are the second defence. The scope sets the lowest role: campaign and workflow need a tenant operator, the tenant and its sub-tenant, API client and sender scopes a tenant administrator (S-51), the platform scope the installation operator; the roles rank `installation_operator > tenant_admin > tenant_operator` (TN-23).
 
-  Relaxing a kill switch, that is releasing it, replacing it by a weaker one or resuming its paused deliveries, needs an explicit approval reference; in stage 3 step-up replaces that flag (TN-22). Stopping `security` messages needs its own approval (TN-42) and a record without an expiry its own approval too. Until stage 3 brings RBAC the installation operator is the only actor (TN-70 (1)).
+  Relaxing a kill switch, that is releasing it, replacing it by a weaker one or resuming its paused deliveries, needs an explicit approval reference; in stage 3 step-up replaces that flag (TN-22). Stopping `security` messages needs its own approval (TN-42) and a record without an expiry its own approval too. Until stage 3 brings RBAC the installation operator is the only operator actor (TN-70 (1)). An API client with the `kill_switch` scope may only engage or tighten a campaign or workflow kill switch: it cannot step up, so a `security` stop, a record without an expiry and every relaxation stay with operator sessions (TN-22, API-79 (6)).
   """
 
-  @type actor_kind :: :installation_operator | :tenant_admin | :tenant_operator
+  @type role :: :installation_operator | :tenant_admin | :tenant_operator
+  @type actor_kind :: role() | :api_client
   @type actor :: %{
           required(:kind) => actor_kind(),
           required(:ref) => String.t(),
@@ -41,6 +42,7 @@ defmodule Relay.Tenancy.KillSwitch.Authz do
     platform: :installation_operator
   }
   @stage_actors [:installation_operator]
+  @api_client_scopes [:campaign, :workflow]
 
   # TN-41
   # TN-42
@@ -49,6 +51,20 @@ defmodule Relay.Tenancy.KillSwitch.Authz do
   # TN-23
   @doc "Authorizes `action` on the kill switch described by `spec` for `actor`."
   @spec authorize(actor(), action(), spec()) :: :ok | {:error, reason()}
+  def authorize(%{kind: :api_client, ref: ref}, action, spec)
+      when is_binary(ref) and action in [:engage, :replace, :release, :resume, :bulk_cancel] and
+             is_map(spec) do
+    [
+      {:forbidden,
+       action not in [:engage, :replace] or Map.get(spec, :scope_kind) not in @api_client_scopes},
+      {:reason_required, blank?(Map.get(spec, :reason))},
+      {:relax_approval_required, relaxing?(action, spec)},
+      {:security_approval_required, security?(action, spec)},
+      {:no_ttl_approval_required, no_ttl?(action, spec)}
+    ]
+    |> Enum.find_value(:ok, fn {reason, failed?} -> if failed?, do: {:error, reason} end)
+  end
+
   def authorize(%{kind: kind, ref: ref}, action, spec)
       when is_map_key(@rank, kind) and is_binary(ref) and
              action in [:engage, :replace, :release, :resume, :bulk_cancel] and is_map(spec) do
@@ -67,7 +83,7 @@ defmodule Relay.Tenancy.KillSwitch.Authz do
   def authorize(_actor, _action, _spec), do: {:error, :actor_not_supported}
 
   @doc "Lowest role that may change a kill switch of `scope_kind`."
-  @spec minimum_role(atom()) :: actor_kind()
+  @spec minimum_role(atom()) :: role()
   def minimum_role(scope_kind), do: Map.fetch!(@minimum, scope_kind)
 
   # TN-41

@@ -112,5 +112,29 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "OP-24, C-86: a committed relay_fn function is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261103000300_create_workflows.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "INV-48: the workflow version guard rejects TRUNCATE; a published version never changes"
+  },
+  {
+    "path": "priv/repo/migrations/20261103000400_create_events.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "INV-6, API-58: the append-only triggers of the cancellation tombstones reject TRUNCATE"
+  },
+  {
+    "path": "priv/repo/migrations/20261103001100_create_event_functions.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "C-28, OP-7: a committed relay_fn function is dropped for its new signature as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261103001400_extend_delivery_gate_and_erasure.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "TN-40, OP-24: committed relay_fn functions are dropped and replaced as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   }
 ]

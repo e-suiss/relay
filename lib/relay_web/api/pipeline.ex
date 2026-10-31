@@ -23,7 +23,10 @@ defmodule RelayWeb.Api.Pipeline do
 
   @limits Contract.limits()
   @batch_body_bytes @limits["batch"]["max_body_bytes"]
+  @batch_events @limits["batch"]["max_events"]
+  @batch_recipients @limits["batch"]["max_recipients_per_event"]
   @body_bytes 1_048_576
+  @batches ["application/cloudevents-batch+json"]
 
   @impl Plug
   def init(opts), do: opts
@@ -55,6 +58,7 @@ defmodule RelayWeb.Api.Pipeline do
          {:ok, conn} <- beta(conn),
          {:ok, conn} <- RelayWeb.Auth.authenticate(conn, conn.assigns.operation),
          {:ok, conn} <- body(conn),
+         {:ok, conn} <- batch(conn),
          {:ok, conn} <- tenant(conn),
          {:ok, conn} <- rate_limit(conn),
          {:ok, conn} <- idempotency_key(conn) do
@@ -107,10 +111,9 @@ defmodule RelayWeb.Api.Pipeline do
 
   defp body(conn) do
     operation = conn.assigns.operation
-    limit = if operation.weight == :rows, do: @batch_body_bytes, else: @body_bytes
 
     with {:ok, media} <- media_type(conn, operation),
-         {:ok, raw, conn} <- read(conn, limit),
+         {:ok, raw, conn} <- read(conn, body_limit(operation, media)),
          {:ok, decoded} <- decode(media, raw) do
       {:ok,
        conn
@@ -122,6 +125,10 @@ defmodule RelayWeb.Api.Pipeline do
       {:error, error} -> {:error, conn, error}
     end
   end
+
+  defp body_limit(%{weight: :rows}, _media), do: @batch_body_bytes
+  defp body_limit(_operation, media) when media in @batches, do: @batch_body_bytes
+  defp body_limit(_operation, _media), do: @body_bytes
 
   defp media_type(conn, operation) do
     with [value] <- get_req_header(conn, "content-type"),
@@ -282,6 +289,7 @@ defmodule RelayWeb.Api.Pipeline do
     |> max(1)
   end
 
+  defp cost(_weight, body) when is_list(body), do: max(length(body), 1)
   defp cost(:rows, _body), do: 1
   defp cost(weight, _body), do: weight
 
@@ -320,9 +328,62 @@ defmodule RelayWeb.Api.Pipeline do
   defp validate(conn) do
     %{operation: operation, media_type: media, body: body, api_version: version} = conn.assigns
 
-    case Schema.validate_request(operation.id, media, body) do
-      :ok -> {:ok, assign(conn, :body, Versions.request(version, operation.id, body))}
-      {:error, error} -> {:error, conn, error}
+    if binary_cloudevent?(conn, operation, media) do
+      {:ok, assign(conn, :cloudevent, :binary)}
+    else
+      case Schema.validate_request(operation.id, media, body) do
+        :ok -> {:ok, assign(conn, :body, Versions.request(version, operation.id, body))}
+        {:error, error} -> {:error, conn, error}
+      end
     end
+  end
+
+  # API-28
+  defp binary_cloudevent?(conn, %{id: "createEvent"}, "application/json"),
+    do: get_req_header(conn, "ce-specversion") != []
+
+  defp binary_cloudevent?(_conn, _operation, _media), do: false
+
+  # API-33
+  defp batch(%{assigns: %{operation: %{request: request}}} = conn) when request == %{},
+    do: {:ok, conn}
+
+  defp batch(conn) do
+    %{operation: operation, media_type: media, body: body} = conn.assigns
+
+    case binary_cloudevent?(conn, operation, media) or batch_limits(body) do
+      %Relay.Error{} = error -> {:error, conn, error}
+      _within -> {:ok, conn}
+    end
+  end
+
+  defp batch_limits(%{"events" => rows}) when is_list(rows), do: rows_limits(rows)
+  defp batch_limits(%{"subscribers" => rows}) when is_list(rows), do: rows_limits(rows)
+  defp batch_limits(rows) when is_list(rows), do: rows_limits(rows)
+  defp batch_limits(_body), do: nil
+
+  defp rows_limits(rows) when length(rows) > @batch_events,
+    do: batch_too_large("max_events", @batch_events, length(rows))
+
+  defp rows_limits(rows) do
+    widest =
+      rows
+      |> Enum.map(fn
+        %{"to" => to} when is_list(to) -> length(to)
+        _row -> 0
+      end)
+      |> Enum.max(fn -> 0 end)
+
+    if widest > @batch_recipients,
+      do: batch_too_large("max_recipients_per_event", @batch_recipients, widest),
+      else: nil
+  end
+
+  defp batch_too_large(name, limit, actual) do
+    Relay.Error.new(:batch_too_large, "the batch exceeds #{name} (#{limit})", %{
+      limit: limit,
+      actual: actual,
+      limit_name: name
+    })
   end
 end

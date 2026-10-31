@@ -165,7 +165,7 @@ defmodule Relay.Tenancy.KillSwitchPauseTest do
 
       ["created", ^expiring] =
         row(
-          "SELECT * FROM relay_fn.notification_accept($1, $2, NULL, $3, 'transactional', NULL, 'system', NULL, NULL, now() - interval '1 second', false, NULL)",
+          "SELECT result, notification_id FROM relay_fn.notification_accept($1, $2, NULL, $3, 'transactional', NULL, 'system', NULL, NULL, now() - interval '1 second', false, NULL)",
           [expiring, s.recipient, "dedup-expiring"]
         )
 

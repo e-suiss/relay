@@ -59,10 +59,24 @@ defmodule Relay.Tenancy.KillSwitch.AuthzTest do
                  {:error, :actor_not_supported}
       end
 
-      assert Authz.authorize(%{kind: :api_client, ref: "x"}, :engage, spec()) ==
-               {:error, :actor_not_supported}
-
       assert Authz.authorize(@operator, :engage, spec()) == :ok
+    end
+
+    test "API-79 (6): an API client engages or tightens only a campaign or workflow kill switch" do
+      client = %{kind: :api_client, ref: "x"}
+
+      assert Authz.authorize(client, :engage, spec()) == {:error, :forbidden}
+      assert Authz.authorize(client, :engage, spec(scope_kind: :tenant)) == {:error, :forbidden}
+      assert Authz.authorize(client, :engage, spec(scope_kind: :campaign)) == :ok
+      assert Authz.authorize(client, :replace, spec(scope_kind: :workflow)) == :ok
+
+      for action <- [:release, :resume, :bulk_cancel] do
+        assert Authz.authorize(client, action, spec(scope_kind: :campaign)) ==
+                 {:error, :forbidden}
+      end
+
+      assert Authz.authorize(client, :replace, spec(scope_kind: :campaign, relaxes?: true)) ==
+               {:error, :relax_approval_required}
     end
 
     test "TN-70: release, resume and a relaxing replace need the relax approval" do

@@ -120,6 +120,14 @@ defmodule Relay.Tenancy.KillSwitch do
     end
   end
 
+  defp full_stop?(%Record{} = record, now) do
+    record.state == :off and record.channel == nil and record.target_kind == :all and
+      Record.in_force?(record, now)
+  end
+
+  defp class?(nil, class), do: class != "security"
+  defp class?(record_class, class), do: record_class == class
+
   defp gate_step(scope, delivery_id, snapshot, now) do
     gate = Store.gate(delivery_id)
 
@@ -157,8 +165,28 @@ defmodule Relay.Tenancy.KillSwitch do
       message_class: gate["message_class"],
       notification_id: gate["notification_id"],
       subtenant_id: gate["subtenant_id"],
-      provider_account_id: gate["provider_account_id"]
+      provider_account_id: gate["provider_account_id"],
+      workflow_id: gate["workflow_id"],
+      api_client_id: gate["api_client_id"]
     }
+  end
+
+  # TN-40 (1)
+  @doc "True when a platform kill switch in force stops every channel and target for `message_class` with state `off`: the API then refuses new work with `503` (TN-40 (1)). Without a snapshot nothing is reported stopped; the job's first step holds instead."
+  @spec platform_stopped?(String.t() | atom(), keyword()) :: boolean()
+  def platform_stopped?(message_class, opts \\ []) do
+    case Keyword.get_lazy(opts, :snapshot, &snapshot/0) do
+      :unknown ->
+        false
+
+      %Snapshot{} = snapshot ->
+        now = Relay.Clock.utc_now()
+        class = to_string(message_class)
+
+        snapshot.index
+        |> Map.get(:platform, [])
+        |> Enum.any?(&(full_stop?(&1, now) and class?(&1.message_class, class)))
+    end
   end
 
   # TN-36
@@ -176,6 +204,73 @@ defmodule Relay.Tenancy.KillSwitch do
          {:ok, attrs} <- engage_attrs(spec, :operator) do
       write_engage(scope, attrs, actor(operator))
     end
+  end
+
+  # TN-41
+  # TN-45
+  # API-79 (6)
+  @doc """
+  Engages a kill switch inside the caller's scoped transaction of `spec.scope`, the transaction of an idempotent request; the same authorization, record, audit and sweep job as `engage/2`. Call `signal/1` with the returned generation once the transaction commits.
+  """
+  @spec engage_here(map(), operator()) :: result()
+  def engage_here(%{scope: %Scope{} = scope} = spec, %{kind: _, ref: _} = operator) do
+    with :ok <- Authz.authorize(operator, :engage, authz_spec(spec)),
+         {:ok, attrs} <- engage_attrs(spec, :operator) do
+      actor = actor(operator)
+      digest = digest(scope, "killswitch.engaged", actor, attrs.id, attrs.reason)
+      {code, id, generation} = Store.engage(attrs, digest, actor)
+      if code == :engaged and attrs.state in @pausing, do: sweep_job(scope, id, attrs)
+
+      if code in [:engaged, :exists, :dead_man_active],
+        do: {:ok, %{result: code, id: id && Record.external_id(id), generation: generation}},
+        else: {:error, code}
+    end
+  end
+
+  # TN-22
+  # TN-41
+  @doc "Replaces an active kill switch, read before with `record/1`, inside the caller's scoped transaction of the record's scope; see `replace/3`. Call `signal/1` with the returned generation once the transaction commits."
+  @spec replace_here(map(), map(), operator()) :: result()
+  def replace_here(%{id: <<_::128>>} = old, change, %{kind: _, ref: _} = operator) do
+    with {:ok, state} <- state_attrs(Map.get(change, :state, :off)),
+         new = Map.merge(state, %{expires_at: Map.get(change, :expires_at)}),
+         spec =
+           Map.merge(change, %{scope_kind: old.scope_kind, relaxes?: Authz.relaxes?(old, new)}),
+         :ok <- Authz.authorize(operator, :replace, spec) do
+      scope = Scope.new!(old.tenant_id, old.environment)
+      actor = actor(operator)
+      new_id = Relay.Id.generate()
+      digest = digest(scope, "killswitch.engaged", actor, new_id, change.reason)
+
+      attrs =
+        Map.merge(new, %{
+          id: new_id,
+          reason: change.reason,
+          no_ttl_approval_ref: Map.get(change, :no_ttl_approval),
+          release_approval_ref: Map.get(change, :relax_approval)
+        })
+
+      replaced(scope, old, attrs, Store.replace(old.id, attrs, digest, actor))
+    end
+  end
+
+  defp replaced(scope, old, attrs, {:replaced, kill_switch_id, generation}) do
+    if attrs.state in @pausing, do: sweep_job(scope, kill_switch_id, old)
+    {:ok, %{result: :replaced, id: Record.external_id(kill_switch_id), generation: generation}}
+  end
+
+  defp replaced(_scope, _old, _attrs, {code, _id, _generation}), do: {:error, code}
+
+  # TN-39
+  @doc "Signals the nodes that the kill switch state changed to `generation`; call it after the writing transaction commits."
+  @spec signal(non_neg_integer()) :: :ok
+  def signal(generation) when is_integer(generation), do: announce(generation)
+
+  # TN-41
+  @doc "Reads a kill switch record in force with its scope's tenant and environment, so a caller can check that it belongs to a scope; call it outside any transaction."
+  @spec record(String.t() | Relay.Id.t()) :: {:ok, map()} | {:error, atom()}
+  def record(id) do
+    with {:ok, record} <- active_record(id), do: {:ok, Map.from_struct(record)}
   end
 
   defp write_engage(scope, attrs, actor) do
@@ -786,6 +881,9 @@ defmodule Relay.Tenancy.KillSwitch do
       access_record_ref: Map.get(operator, :access_record_ref)
     }
   end
+
+  defp actor(%{kind: :api_client, ref: ref}),
+    do: %Actor{kind: :api_client, ref: ref, on_behalf_of_ref: ref}
 
   defp digest(scope, action, actor, id, reason) do
     Relay.Audit.record_digest(%{

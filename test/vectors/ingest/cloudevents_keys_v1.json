@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "vectors": [
+    {
+      "name": "CE1",
+      "purpose": "relay.ce_idempotency.v1",
+      "source": "https://shop.example.com/orders",
+      "id": "order-4821-shipped",
+      "cbor": "837772656c61792e63655f6964656d706f74656e63792e7631781f68747470733a2f2f73686f702e6578616d706c652e636f6d2f6f7264657273726f726465722d343832312d73686970706564",
+      "sha256": "3a4b9fd2a284731fc711e8861c4c1f94aefe953cf71baa04b3f9a573107d0e41"
+    },
+    {
+      "name": "CE2",
+      "purpose": "relay.ce_idempotency.v1",
+      "source": "/access/events",
+      "id": "01j9zq3k4m5n6p7q8r9s0t1v2w",
+      "cbor": "837772656c61792e63655f6964656d706f74656e63792e76316e2f6163636573732f6576656e7473781a30316a397a71336b346d356e3670377138723973307431763277",
+      "sha256": "083e83d3f8d8edbc44d85b34d57a4f3b2dd928bb41cce937d6f045e38aeeab30"
+    },
+    {
+      "name": "CE3",
+      "purpose": "relay.ce_dedup.v1",
+      "source": "https://shop.example.com/orders",
+      "id": "order-4821-shipped",
+      "cbor": "837172656c61792e63655f64656475702e7631781f68747470733a2f2f73686f702e6578616d706c652e636f6d2f6f7264657273726f726465722d343832312d73686970706564",
+      "sha256": "d61a62b7641e793ac596ea376bcfd72442a10595f328ffab26a66764b81577c7"
+    },
+    {
+      "name": "CE4",
+      "purpose": "relay.ce_dedup.v1",
+      "source": "/access/events",
+      "id": "01j9zq3k4m5n6p7q8r9s0t1v2w",
+      "cbor": "837172656c61792e63655f64656475702e76316e2f6163636573732f6576656e7473781a30316a397a71336b346d356e3670377138723973307431763277",
+      "sha256": "0c2eef367dc540300dc867eca53a11115061dd9f5ab04ea6b96d6d68eb0ff5be"
+    }
+  ]
+}

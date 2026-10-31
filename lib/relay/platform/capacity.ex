@@ -10,8 +10,8 @@ defmodule Relay.Platform.Capacity do
   """
 
   alias Relay.Platform.Admission
-  alias Relay.Platform.Lane
   alias Relay.Platform.Capacity.Store
+  alias Relay.Platform.Lane
   alias Relay.Platform.LoadShed
 
   @lanes [:l2, :l3]

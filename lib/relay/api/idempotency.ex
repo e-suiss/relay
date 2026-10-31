@@ -121,12 +121,14 @@ defmodule Relay.Api.Idempotency do
     fingerprint = Relay.Ingest.idempotency_fingerprint(raw_body)
     request = %{endpoint: endpoint, key: key, fingerprint: fingerprint}
 
-    Relay.Ingest.idempotency_session(fn ->
-      case Relay.Ingest.in_scope(scope, fn _status -> hold(request) end) do
-        {:ok, {:held, lock}} -> held(scope, request, work, lock)
-        replayed_or_error -> finish(replayed_or_error, scope)
-      end
-    end)
+    Relay.Ingest.idempotency_session(fn -> session(scope, request, work) end)
+  end
+
+  defp session(scope, request, work) do
+    case Relay.Ingest.in_scope(scope, fn _status -> hold(request) end) do
+      {:ok, {:held, lock}} -> held(scope, request, work, lock)
+      replayed_or_error -> finish(replayed_or_error, scope)
+    end
   end
 
   defp held(scope, request, work, lock) do

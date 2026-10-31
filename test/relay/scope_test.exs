@@ -53,7 +53,10 @@ defmodule Relay.ScopeTest do
                :waitpoint_due_discovery,
                :access_link,
                :access_event_intake,
-               :api_client_resolve
+               :api_client_resolve,
+               :operator_access,
+               :cross_tenant_overview,
+               :suspension_due_discovery
              ]
     end
 

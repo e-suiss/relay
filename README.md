@@ -94,6 +94,28 @@ Local services: Mailpit on <http://localhost:8025>, Jaeger on <http://localhost:
 
 SDKs are planned for TypeScript/Node, Python, Go, Java, .NET, Elixir, PHP and Ruby, plus iOS, Android, React Native and Flutter, with ready-made inbox, toast and preference components (React and web components).
 
+## Command line
+
+The `relay` command line tool talks to the Relay API with an Access API client. Build it with `mix escript.build`; the executable is written to `_build/escript/relay` and needs only Erlang/OTP to run.
+
+```sh
+export RELAY_API_URL=https://relay.example.com
+export RELAY_ACCESS_ISSUER=https://access.example.com
+export RELAY_ENVIRONMENT=test            # test or live: the environment of the API client
+export RELAY_CLIENT_ID=cli_...
+export RELAY_CLIENT_SECRET_FILE=~/.config/relay/test.secret
+
+relay trigger welcome --to user-4821 --data '{"first_name": "Ayşe"}'
+relay preview welcome --to user-4821 --data-file data.json   # dry run, test only
+relay logs --follow                                          # watch new notifications
+relay listen --forward-to http://localhost:3000/relay        # forward them to your app
+relay pull && relay push --publish                           # workflows as files
+relay promote welcome --yes                                  # test version to live
+relay kill-switch engage --scope workflow --ref welcome --reason "bad copy" --ttl PT1H
+```
+
+Every command accepts `--json` and then prints one JSON object with an `exit_code` field. Exit codes are stable: `0` success, `1` unexpected error, `2` usage error, `3` authentication or authorization, `4` not found, `5` validation or conflict, `6` rate limit or quota, `7` server or connection, `8` live change not confirmed. A command that changes the live environment asks for confirmation, or takes `--yes`. Run `relay help` for every option, including profiles in `~/.config/relay/config.json`.
+
 ## Tech stack
 
 Elixir/OTP, Phoenix, PostgreSQL, Valkey, Oban (open source), React for the console and UI components.

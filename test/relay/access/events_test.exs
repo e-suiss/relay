@@ -238,10 +238,11 @@ defmodule Relay.Access.EventsTest do
 
   describe "TN-20 user events" do
     test "TN-20: a user event waits for a handler and reaches it once one is configured" do
+      previous = Application.get_env(:relay, Relay.Access)
+      Application.put_env(:relay, Relay.Access, Keyword.put(previous, :user_handlers, []))
       id = deliver!("user.suspended", %{"subject" => "pairwise-op"})
       assert %{"state" => "deferred", "reason" => "no_handler"} = receipt_of(id)
 
-      previous = Application.get_env(:relay, Relay.Access)
       Application.put_env(:relay, Relay.Access, Keyword.put(previous, :user_handlers, [Handler]))
       Application.put_env(:relay, :access_events_test, self())
 

@@ -1,11 +1,12 @@
 defmodule RelayDev.Release do
   @moduledoc """
-  Release gates: checks the release workflow runs on a version tag and normal CI does not, because what they refuse may stay open on `main` until a release. The active `retention_periods` version of a release is its newest bundled version, which the release activates (OP-65); a row of it whose legal basis still awaits legal approval stops the release.
+  Release gates: checks the release workflow runs on a version tag and normal CI does not, because what they refuse may stay open on `main` until a release. The active `retention_periods` version of a release is its newest bundled version, which the release activates (OP-65); a row of it whose legal basis still awaits legal approval stops the release. The newest bundled `suspension_policy` version, when the data set exists, stops the release while its legal basis awaits legal approval (TN-71).
   """
 
   alias RelayDev.Lint.Violation
 
   @retention_periods "priv/datasets/retention_periods"
+  @suspension_policy "priv/datasets/suspension_policy"
   @version ~r/\Av([1-9][0-9]{0,8})\.json\z/
   @pending_legal_approval "pending legal approval"
 
@@ -30,9 +31,39 @@ defmodule RelayDev.Release do
   @doc "Returns the open release gates under `root`: each row of the newest bundled `retention_periods` version whose legal basis awaits legal approval, or the absence of a readable version."
   @spec gate(Path.t()) :: [Violation.t()]
   def gate(root) do
-    case newest_version(Path.join(root, @retention_periods)) do
-      {:ok, file} -> pending_rows(root, Path.join(@retention_periods, file))
-      :error -> [violation(@retention_periods, "no retention_periods version is bundled")]
+    retention =
+      case newest_version(Path.join(root, @retention_periods)) do
+        {:ok, file} -> pending_rows(root, Path.join(@retention_periods, file))
+        :error -> [violation(@retention_periods, "no retention_periods version is bundled")]
+      end
+
+    retention ++ suspension_policy(root)
+  end
+
+  # TN-71
+  defp suspension_policy(root) do
+    if File.dir?(Path.join(root, @suspension_policy)) do
+      case newest_version(Path.join(root, @suspension_policy)) do
+        {:ok, file} -> pending_policy(root, Path.join(@suspension_policy, file))
+        :error -> [violation(@suspension_policy, "no suspension_policy version is bundled")]
+      end
+    else
+      []
+    end
+  end
+
+  defp pending_policy(root, path) do
+    with {:ok, text} <- File.read(Path.join(root, path)),
+         {:ok, %{"legal_basis" => basis}} <- Jason.decode(text) do
+      case open_basis(basis) do
+        nil ->
+          []
+
+        message ->
+          [violation(path, "suspension policy: legal basis #{inspect(basis)} #{message}")]
+      end
+    else
+      _other -> [violation(path, "not a readable suspension_policy version")]
     end
   end
 

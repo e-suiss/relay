@@ -6,8 +6,8 @@ defmodule Relay.Schema.SchemaSecurityTest do
   @schemas ["relay", "relay_fn", "relay_ops", "relay_private"]
   @installation_tables ~w(access_event_receipts access_link api_client_generation
                           audit_checkpoint_publications audit_checkpoints audit_leaves datasets
-                          installation kill_switch_generation load_shed_events partition_policies
-                          schema_migrations singleton_tasks)
+                          installation kill_switch_generation load_shed_events operator_sessions
+                          operators partition_policies schema_migrations singleton_tasks)
   @append_only ~w(audit_checkpoint_publications audit_checkpoints audit_leaves audit_log
                   dataset_versions delivery_events erasure_log load_shed_events usage_records
                   waitpoint_responders waitpoint_responses waitpoint_response_rejections

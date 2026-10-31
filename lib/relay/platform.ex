@@ -25,13 +25,17 @@ defmodule Relay.Platform do
 
   # T-63 (6)
   # TN-66 (4)
-  @doc "Checks the dependencies a node needs to serve traffic: PostgreSQL and the key store."
+  @doc "Checks the dependencies a node needs to serve traffic: PostgreSQL, the key store and Valkey."
   @spec readiness() :: :ok | {:error, Relay.Error.t()}
   def readiness do
     with {:database, :ok} <- {:database, Store.ping()},
-         {:key_store, :ok} <- {:key_store, Relay.Keys.ping()} do
+         {:key_store, :ok} <- {:key_store, Relay.Keys.ping()},
+         {:valkey, :ok} <- {:valkey, Valkey.ping()} do
       :ok
     else
+      {:valkey, {:error, %Relay.Error{code: code}}} ->
+        {:error, Relay.Error.new(:not_ready, "Valkey unavailable", %{reason: code})}
+
       {:database, {:error, reason}} ->
         {:error, Relay.Error.new(:not_ready, "database unavailable", %{reason: reason})}
 

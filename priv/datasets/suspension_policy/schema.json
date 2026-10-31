@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "suspension_policy",
+  "description": "Legal periods of a tenant or subtenant suspension: the notice before a suspension on other grounds takes effect, the deadline of the reasoned notice after an immediate suspension (abuse, security, legal) and the appeal window after the suspension takes effect.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_ref",
+    "legal_basis",
+    "notice_days",
+    "immediate_notice_hours",
+    "appeal_days"
+  ],
+  "properties": {
+    "source_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "legal_basis": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "notice_days": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 365
+    },
+    "immediate_notice_hours": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 720
+    },
+    "appeal_days": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 365
+    }
+  }
+}

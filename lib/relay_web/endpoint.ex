@@ -36,6 +36,11 @@ defmodule RelayWeb.Endpoint do
     end
   end
 
+  # X-7
+  socket "/live", Phoenix.LiveView.Socket,
+    websocket: [connect_info: [session: {RelayWeb.Operator.Panel, :session_options, []}]],
+    longpoll: false
+
   plug Plug.Static, at: "/", from: :relay, gzip: false, only: RelayWeb.static_paths()
 
   if code_reloading? do

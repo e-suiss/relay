@@ -241,6 +241,33 @@
       "personal_columns": [],
       "tenant_close": "row kept",
       "subject_erasure": "not subject data"
+    },
+    {
+      "table": "operators",
+      "personal_columns": [
+        "display_name_ct",
+        "email_ct"
+      ],
+      "tenant_close": "not tenant data; installation record kept",
+      "subject_erasure": "Access user.deleted clears display_name_ct and email_ct; the row stays"
+    },
+    {
+      "table": "role_assignments",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "support_delegations",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "tenant_suspensions",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
     }
   ],
   "locations": [

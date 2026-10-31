@@ -55,5 +55,10 @@
   {"file": "20261102000200_validate_tenant_access_checks.exs", "sha256": "70a110c7a78c9e2ca6d513bdad5c0ef52eddb1194df52d7e5eb99e8e474fab3d"},
   {"file": "20261102000300_create_access_functions.exs", "sha256": "83e84853eeba488c2b201db931a83a4856c8cf3566fd1883d176fe6ebeb4e3cb"},
   {"file": "20261102000400_recreate_tenant_create_for_platform_tenants.exs", "sha256": "fbf37ac3ed8c8dc134fbde1718dc8602c3c5848df9cf6e012202679544a57eb4"},
-  {"file": "20261102000500_rebuild_reference_check_for_api_clients.exs", "sha256": "f36949a7b307ee87337d2927d28eda0340cce0489a651b991cbae9a42e21ab70"}
+  {"file": "20261102000500_rebuild_reference_check_for_api_clients.exs", "sha256": "f36949a7b307ee87337d2927d28eda0340cce0489a651b991cbae9a42e21ab70"},
+  {"file": "20261104000000_create_operator_tables.exs", "sha256": "54aaf5ef4084cecad116895caca259f5e8f9192252754b5667db1809b44fe668"},
+  {"file": "20261104000100_validate_subtenant_suspended_state.exs", "sha256": "5b6c48a4c219017152fcba63319dc3d357b82ebc48b2084dc02d184c48e341db"},
+  {"file": "20261104000200_create_operator_functions.exs", "sha256": "c144e91e63b2151e52b9b4d77adba9c7d820a872ea1841fa6a5279452f38852a"},
+  {"file": "20261104000300_register_suspension_policy.exs", "sha256": "44994cc1894bff63699ad929ffce7991eefba9ff3760b87cc826d54b48bb03c2"},
+  {"file": "20261104000400_rebuild_reference_check_for_operators.exs", "sha256": "feb3ccf84a8d801b679cc49e28242d749b00f6c85a16806a4d4680bf2b258515"}
 ]

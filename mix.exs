@@ -20,6 +20,7 @@ defmodule Relay.MixProject do
       docs: docs(),
       dialyzer: dialyzer(),
       releases: releases(),
+      escript: escript(),
       test_coverage: [summary: false]
     ]
   end
@@ -46,6 +47,8 @@ defmodule Relay.MixProject do
       {:ecto_sql, "~> 3.14"},
       {:postgrex, "~> 0.22.4"},
       {:oban, "2.24.1"},
+      {:oban_met, "1.3.3"},
+      {:oban_web, "2.13.1"},
       {:redix, "~> 1.9.2"},
       {:bandit, "~> 1.12"},
       {:jason, "~> 1.4"},
@@ -123,5 +126,10 @@ defmodule Relay.MixProject do
         strip_beams: [keep: ["Docs"]]
       ]
     ]
+  end
+
+  # X-33
+  defp escript do
+    [main_module: Relay.CLI, name: "relay", path: "_build/escript/relay", app: nil]
   end
 end

@@ -95,4 +95,33 @@ defmodule RelayDev.ReleaseTest do
       end
     end
   end
+
+  describe "TN-71 suspension periods await legal approval" do
+    test "TN-71: a suspension policy awaiting legal approval stops the release", %{tmp_dir: dir} do
+      policy = "priv/datasets/suspension_policy"
+      basis = fn text -> Jason.encode!(%{"legal_basis" => text, "notice_days" => 7}) end
+
+      write!(dir, %{
+        "#{@dir}/schema.json" => "{}",
+        "#{@dir}/v1.json" => version([period("audit", "6698 m.12")]),
+        "#{policy}/schema.json" => "{}",
+        "#{policy}/v1.json" => basis.("pending legal approval (TN-71)")
+      })
+
+      assert [violation] = Release.gate(dir)
+      assert violation.path == policy <> "/v1.json"
+      assert violation.rule == "legal_approval"
+
+      write!(dir, %{"#{policy}/v2.json" => basis.("approved 2026-12-01")})
+      assert Release.gate(dir) == []
+    end
+
+    test "TN-71: the bundled suspension policy carries the approved values and awaits legal approval" do
+      content =
+        "priv/datasets/suspension_policy/v1.json" |> File.read!() |> Jason.decode!()
+
+      assert %{"notice_days" => 7, "immediate_notice_hours" => 24, "appeal_days" => 14} = content
+      assert Release.pending_legal_approval?(content["legal_basis"])
+    end
+  end
 end

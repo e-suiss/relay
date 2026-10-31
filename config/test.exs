@@ -56,3 +56,7 @@ config :relay, Relay.Access,
   http: [plug: {RelayTest.FakeAccess, []}]
 
 config :phoenix, :plug_init_mode, :runtime
+
+config :relay, Relay.Operators.Access, adapter: RelayTest.Operators.Access, step_up_acr: "step_up"
+
+config :relay, Relay.Operators, bootstrap_subject: "bootstrap-operator", authzen: :when_offered

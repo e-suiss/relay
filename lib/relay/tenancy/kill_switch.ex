@@ -777,8 +777,15 @@ defmodule Relay.Tenancy.KillSwitch do
     }
   end
 
-  defp actor(%{kind: :installation_operator, ref: ref}),
-    do: %Actor{kind: :installation_operator, ref: ref, on_behalf_of_ref: ref}
+  # TN-48
+  defp actor(%{kind: :installation_operator, ref: ref} = operator) do
+    %Actor{
+      kind: :installation_operator,
+      ref: ref,
+      on_behalf_of_ref: ref,
+      access_record_ref: Map.get(operator, :access_record_ref)
+    }
+  end
 
   defp digest(scope, action, actor, id, reason) do
     Relay.Audit.record_digest(%{

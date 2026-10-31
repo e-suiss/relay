@@ -125,5 +125,27 @@
     "reason": "the target is partitioned and a foreign key would have to carry its partition key",
     "instead": "relay_fn.waitpoint_respond reads the early record in the waiter's mailbox; nightly reference check",
     "nightly_check": "response_record_missing"
+  },
+  {
+    "table": "operators",
+    "columns": [
+      "field_key_id"
+    ],
+    "target": "tenant_keys",
+    "basis": "structural",
+    "reason": "the installation table has no tenant columns, so a foreign key cannot carry the installation tenant of the key",
+    "instead": "the sign-in function writes keys of the installation tenant only; nightly reference check",
+    "nightly_check": "operator_field_key_missing"
+  },
+  {
+    "table": "tenant_suspensions",
+    "columns": [
+      "subtenant_id"
+    ],
+    "target": "subtenants",
+    "basis": "structural",
+    "reason": "the suspension is recorded in the live environment and applies to the subtenant in both environments",
+    "instead": "relay_fn.tenant_suspension_record checks the live subtenant; nightly reference check",
+    "nightly_check": "suspension_subtenant_missing"
   }
 ]

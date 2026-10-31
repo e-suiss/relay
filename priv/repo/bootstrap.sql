@@ -115,6 +115,14 @@ DECLARE
     "relay_ops.kill_switch_snapshot": ["relay_api", "relay_worker"],
     "relay_ops.load_shed_record": ["relay_worker"],
     "relay_ops.load_shed_state": ["relay_app"],
+    "relay_ops.operator_ensure": ["relay_app"],
+    "relay_ops.operator_get": ["relay_app"],
+    "relay_ops.operator_roles": ["relay_app"],
+    "relay_ops.operator_session_resolve": ["relay_app"],
+    "relay_ops.operator_session_revoke": ["relay_app"],
+    "relay_ops.operator_session_step_up": ["relay_app"],
+    "relay_ops.operator_set_status": ["relay_app"],
+    "relay_ops.operator_sign_in": ["relay_app"],
     "relay_ops.orphan_check": [],
     "relay_ops.outbox_pending_scopes": ["relay_worker"],
     "relay_ops.partition_due_for_archive": [],
@@ -125,8 +133,11 @@ DECLARE
     "relay_ops.retention_due": ["relay_worker"],
     "relay_ops.singleton_acquire": ["relay_worker"],
     "relay_ops.singleton_save": ["relay_worker"],
+    "relay_ops.support_delegation_active": ["relay_app"],
     "relay_ops.tenant_create": ["relay_app"],
     "relay_ops.tenant_lookup": ["relay_app"],
+    "relay_ops.tenant_overview": ["relay_app"],
+    "relay_ops.tenant_suspensions_due": ["relay_app"],
     "relay_ops.waitpoint_due_scopes": ["relay_worker"]
   }';
   v_function regprocedure;

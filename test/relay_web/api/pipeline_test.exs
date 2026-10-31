@@ -135,6 +135,7 @@ defmodule RelayWeb.Api.PipelineTest do
     test "API-76 (2): a live client calling a test-only operation is auth_environment_mismatch",
          ctx do
       token = Api.token(ctx.tenant.live, ["config"])
+
       assert problem(advance(token, %{"by" => "PT1H"}, [key()]), 403)["code"] ==
                "auth_environment_mismatch"
     end
@@ -168,6 +169,7 @@ defmodule RelayWeb.Api.PipelineTest do
     test "API-10: a mutating request without a key is 400; a bad key is idempotency_key_invalid",
          ctx do
       assert problem(advance(ctx.token), 400)["code"] == "idempotency_key_missing"
+
       assert problem(advance(ctx.token, %{"by" => "PT1H"}, [key("short")]), 400)["code"] ==
                "idempotency_key_invalid"
 
@@ -198,6 +200,7 @@ defmodule RelayWeb.Api.PipelineTest do
     test "API-13: the same key with another body is idempotency_key_reuse", ctx do
       header = key()
       assert advance(ctx.token, %{"by" => "PT1H"}, [header]).status == 200
+
       assert problem(advance(ctx.token, %{"by" => "PT2H"}, [header]), 422)["code"] ==
                "idempotency_key_reuse"
     end
@@ -384,6 +387,7 @@ defmodule RelayWeb.Api.PipelineTest do
       next = Jason.decode!(first.resp_body)["next_cursor"]
 
       assert list.(token, "?starting_after=" <> next).status == 200
+
       assert problem(list.(live, "?starting_after=" <> next), 403)["code"] ==
                "auth_environment_mismatch"
 

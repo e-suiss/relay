@@ -75,6 +75,7 @@ defmodule Relay.Api.SchemaTest do
   end
 
   defp valid_or_failed(:ok), do: :ok
+
   defp valid_or_failed({:error, %Relay.Error{code: code}})
        when code in [:validation_failed, :unknown_field],
        do: :ok

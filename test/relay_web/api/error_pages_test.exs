@@ -68,6 +68,7 @@ defmodule RelayWeb.Api.ErrorPagesTest do
 
       assert coverage.foreign == []
       assert "getErrorCode" in coverage.served
+
       assert Enum.sort(coverage.served ++ coverage.missing) ==
                Enum.sort(Enum.map(Relay.Api.Contract.operations(), & &1.id))
     end

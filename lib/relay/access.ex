@@ -3,6 +3,7 @@ defmodule Relay.Access do
   The link to Access, Suiss's identity and authority product (MD-1, E-1 … E-5, E-40, E-78). Relay always runs with Access and is never an authority source. The link is configured with one value, the Access `issuer` (`config :relay, Relay.Access, issuer: "https://…"`); endpoints, keys and capabilities come from discovery (`Relay.Access.Link`). Other contexts use only the functions of this module.
 
   * Server API credentials are Access client credentials tokens (API-41, API-48, API-71): `verify_server_token/2` checks them on every request and maps the API client trace to its tenant, environment, sub-tenant and API-75 scopes.
+  * An ingest connector acts as an API client trace of its configuration (`connector_principal/2`, T-41), checked like a server token.
   * API client traces, tenant and sub-tenant mappings follow Access lifecycle events (`accept_event/1`, `process_event/1`).
   * Subscriber tokens come only from the RFC 8693 exchange (`exchange_subscriber_token/2`) and are checked with `verify_subscriber_token/2`; an Access token is never a subscriber credential (E-25).
   * Platform tenants (`message_class/2`, `dedup_key/2`) and sub-tenant selection (`select_subtenant/3`).
@@ -104,6 +105,32 @@ defmodule Relay.Access do
          subtenant_id: resolved.subtenant_id,
          api_client_id: Relay.ExternalId.encode("cli", resolved.api_client_id),
          certificate_bound: bound
+       }}
+    end
+  end
+
+  # T-41
+  # API-71
+  # API-44
+  # INV-42
+  @doc """
+  The principal an ingest connector acts as: the API client trace of an Access tenant and client, resolved and checked like a verified server token but without a token, since the connector is configured by the installation and not presented by a caller. The trace must be active and its tenant and sub-tenant active; the granted scopes are all of the trace's API-75 scopes. A connector never holds a client certificate.
+  """
+  @spec connector_principal(String.t(), String.t()) ::
+          {:ok, principal()} | {:error, Relay.Error.t()}
+  def connector_principal(access_tenant_id, access_client_id)
+      when is_binary(access_tenant_id) and is_binary(access_client_id) do
+    with {:ok, resolved} <-
+           client(%{"tenant_id" => access_tenant_id, "client_id" => access_client_id}),
+         :ok <- active(resolved),
+         {:ok, scope} <- Scope.new(resolved.tenant_id, resolved.environment) do
+      {:ok,
+       %{
+         scope: scope,
+         scopes: granted(resolved.scopes, %{}),
+         subtenant_id: resolved.subtenant_id,
+         api_client_id: Relay.ExternalId.encode("cli", resolved.api_client_id),
+         certificate_bound: false
        }}
     end
   end

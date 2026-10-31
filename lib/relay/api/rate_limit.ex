@@ -1,6 +1,6 @@
 defmodule Relay.Api.RateLimit do
   @moduledoc """
-  The API rate limit (API-49, API-50, API-77): two GCRA tiers per tenant and environment, `burst` and `sustained`, each `weight` per `window_seconds`, decided by the cluster limiter (`Relay.Platform.rate_limit_check/6`, Valkey with the PostgreSQL fallback). An API client can carry a lower sub-limit of its own. The values are the tenant's `api.rate.burst` and `api.rate.sustained` settings; an unset tier takes the contract default (`x-relay-limits.rate_limit`). The most restrictive tier is reported.
+  The API rate limit (API-49, API-50, API-77): two GCRA tiers per tenant and environment, `burst` and `sustained`, each `weight` per `window_seconds`, decided by the cluster limiter (`Relay.Platform.rate_limit_check/6`, Valkey with the PostgreSQL fallback). The node-local filter (`Relay.Platform.rate_limit_filter/4`, T-94) runs first and refuses only what this node alone has already been allowed past the limit; what the cluster limiter allows is noted in it. An API client can carry a lower sub-limit of its own. The values are the tenant's `api.rate.burst` and `api.rate.sustained` settings; an unset tier takes the contract default (`x-relay-limits.rate_limit`). The most restrictive tier is reported.
 
   Invalid token attempts and unauthenticated error page reads are limited per client IP in the installation scope, keyed by the SHA-256 of the address so no address is stored (API-47, API-77 (3)).
   """
@@ -9,6 +9,7 @@ defmodule Relay.Api.RateLimit do
   @tiers ["burst", "sustained"]
   @per_ip @limits["invalid_token_per_ip"]
   @unavailable "rate_limit.backend_unavailable"
+  @node_filter "rate_limit.node_filter"
   @ip_limits %{
     invalid_token: "auth.invalid_token",
     error_pages: "api.error_pages",
@@ -83,9 +84,29 @@ defmodule Relay.Api.RateLimit do
   def check(_scope, tiers, 0), do: {:ok, %{tiers: tiers, current: nil}}
 
   def check(%Relay.Scope{} = scope, tiers, cost) when is_integer(cost) and cost > 0 do
+    case filtered(scope, tiers, cost) do
+      [] -> cluster(scope, tiers, cost)
+      denied -> deny(tiers, denied, cost)
+    end
+  end
+
+  # T-94
+  defp filtered(scope, tiers, cost) do
+    Enum.flat_map(tiers, fn tier ->
+      case Relay.Platform.rate_limit_filter(scope, tier.limit, tier.parts, cost) do
+        :pass -> []
+        {:deny, retry_ms} -> [{tier, seconds(retry_ms), @node_filter}]
+      end
+    end)
+  end
+
+  defp cluster(scope, tiers, cost) do
     results =
       for tier <- tiers,
           do: {tier, Relay.Platform.rate_limit_check(scope, tier.limit, tier.parts, cost, :l1)}
+
+    for {tier, {:allow, _info}} <- results,
+        do: Relay.Platform.rate_limit_note(scope, tier.limit, tier.parts, cost)
 
     denied = for {tier, {:deny, retry_ms, rule}} <- results, do: {tier, seconds(retry_ms), rule}
 
@@ -127,14 +148,19 @@ defmodule Relay.Api.RateLimit do
     address = ip |> :inet.ntoa() |> to_string()
     part = :crypto.hash(:sha256, address) |> Base.encode16(case: :lower)
 
-    case Relay.Platform.rate_limit_check(installation, limit, [part], 1, :l1) do
-      {:allow, _info} ->
-        :ok
-
-      {:deny, retry_ms, _rule} ->
-        tier = %{name: "per_ip", quota: @per_ip["per_minute"]}
-        {:error, limited(tier, seconds(retry_ms), 1)}
+    with :pass <- Relay.Platform.rate_limit_filter(installation, limit, [part], 1),
+         {:allow, _info} <-
+           Relay.Platform.rate_limit_check(installation, limit, [part], 1, :l1) do
+      Relay.Platform.rate_limit_note(installation, limit, [part], 1)
+    else
+      {:deny, retry_ms} -> {:error, per_ip_limited(retry_ms)}
+      {:deny, retry_ms, _rule} -> {:error, per_ip_limited(retry_ms)}
     end
+  end
+
+  defp per_ip_limited(retry_ms) do
+    tier = %{name: "per_ip", quota: @per_ip["per_minute"]}
+    limited(tier, seconds(retry_ms), 1)
   end
 
   defp restrictive(results) do

@@ -15,6 +15,7 @@ defmodule Relay do
       Decision,
       Process,
       Config,
+      Config.Error,
       Config.SecretFiles,
       Role,
       Repo,

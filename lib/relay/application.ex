@@ -14,6 +14,7 @@ defmodule Relay.Application do
       Relay.Datasets,
       Relay.Channels,
       Relay.Delivery,
+      Relay.Connectors,
       RelayWeb
     ]
 
@@ -53,6 +54,7 @@ defmodule Relay.Application do
         Relay.Access.children() ++
         [Relay.Keys.Eviction] ++
         Relay.Datasets.children() ++
+        Relay.Connectors.children() ++
         Relay.Platform.Leadership.children(roles) ++ [RelayWeb.Endpoint.supervised()]
 
     # T-45

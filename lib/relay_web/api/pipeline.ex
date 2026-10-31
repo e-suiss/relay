@@ -1,6 +1,6 @@
 defmodule RelayWeb.Api.Pipeline do
   @moduledoc """
-  The common request rules of every `/v1` operation, in order: the operation's contract (`Relay.Api.Contract`, named by the route's `:relay_operation`), HTTPS (API-8), `Relay-Version` (API-52) and `Relay-Beta` (API-55), authentication and scope (`RelayWeb.Auth`), the body (JSON in UTF-8 only, size limits, strict decoding; API-8), the tenant's status and pinned version, the API rate limit (API-49, API-50), the idempotency key (API-10, API-11) and request schema validation (API-8, API-37). Each step either passes or answers with a problem; nothing after a failed step runs.
+  The common request rules of every `/v1` operation, in order: the operation's contract (`Relay.Api.Contract`, named by the route's `:relay_operation`), HTTPS (API-8), `Relay-Version` (API-52) and `Relay-Beta` (API-55), authentication and scope (`RelayWeb.Auth`), the body (JSON in UTF-8 only, size limits, strict decoding; absent or empty only where the contract makes it optional; API-8), the tenant's status and pinned version, the API rate limit (API-49, API-50), the idempotency key (API-10, API-11) and request schema validation (API-8, API-37). Each step either passes or answers with a problem; nothing after a failed step runs.
 
   The response always carries `Request-Id`, `Relay-Version` and HSTS. A tenant without a pinned version is pinned, in a short transaction of its own, after its first successful response.
   """
@@ -109,11 +109,31 @@ defmodule RelayWeb.Api.Pipeline do
   defp body(%{assigns: %{operation: %{request: request}}} = conn) when request == %{},
     do: {:ok, conn |> assign(:raw_body, "") |> assign(:body, nil)}
 
-  defp body(conn) do
+  defp body(%{assigns: %{operation: %{request_required: false}}} = conn) do
+    if get_req_header(conn, "content-type") == [],
+      do: absent(conn),
+      else: present(conn)
+  end
+
+  defp body(conn), do: present(conn)
+
+  defp absent(conn) do
+    case read(conn, @body_bytes) do
+      {:ok, "", conn} -> {:ok, no_body(conn)}
+      {:ok, _raw, conn} -> {:error, conn, unsupported_media()}
+      {:error, conn, error} -> {:error, conn, error}
+    end
+  end
+
+  defp no_body(conn),
+    do: conn |> assign(:media_type, nil) |> assign(:raw_body, "") |> assign(:body, nil)
+
+  defp present(conn) do
     operation = conn.assigns.operation
 
     with {:ok, media} <- media_type(conn, operation),
          {:ok, raw, conn} <- read(conn, body_limit(operation, media)),
+         :present <- presence(raw, conn, operation),
          {:ok, decoded} <- decode(media, raw) do
       {:ok,
        conn
@@ -121,10 +141,14 @@ defmodule RelayWeb.Api.Pipeline do
        |> assign(:raw_body, raw)
        |> assign(:body, decoded)}
     else
+      {:absent, conn} -> {:ok, no_body(conn)}
       {:error, %Plug.Conn{} = conn, error} -> {:error, conn, error}
       {:error, error} -> {:error, conn, error}
     end
   end
+
+  defp presence("", conn, %{request_required: false}), do: {:absent, conn}
+  defp presence(_raw, _conn, _operation), do: :present
 
   defp body_limit(%{weight: :rows}, _media), do: @batch_body_bytes
   defp body_limit(_operation, media) when media in @batches, do: @batch_body_bytes
@@ -138,11 +162,12 @@ defmodule RelayWeb.Api.Pipeline do
          true <- String.downcase(Map.get(params, "charset", "utf-8")) == "utf-8" do
       {:ok, media}
     else
-      _ ->
-        {:error,
-         Relay.Error.new(:unsupported_media_type, "send JSON in UTF-8 with a supported type")}
+      _ -> {:error, unsupported_media()}
     end
   end
+
+  defp unsupported_media,
+    do: Relay.Error.new(:unsupported_media_type, "send JSON in UTF-8 with a supported type")
 
   defp read(conn, limit) do
     declared =
@@ -323,6 +348,9 @@ defmodule RelayWeb.Api.Pipeline do
   # API-37
   # API-54
   defp validate(%{assigns: %{operation: %{request: request}}} = conn) when request == %{},
+    do: {:ok, conn}
+
+  defp validate(%{assigns: %{raw_body: "", operation: %{request_required: false}}} = conn),
     do: {:ok, conn}
 
   defp validate(conn) do

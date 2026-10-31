@@ -439,6 +439,19 @@ defmodule RelayWeb.Api.EventsTest do
       assert cancelled["already_sent"] == 1
     end
 
+    test "API-8: a cancel body is optional; absent or empty it is no body", ctx do
+      first = accepted(ctx.token)
+      conn = F.request(:post, "/v1/events/#{first["id"]}/cancel", ctx.token)
+      assert F.body(conn, 200)["cancelled"] == 1
+
+      second = accepted(ctx.token)
+      conn = F.request(:post, "/v1/events/#{second["id"]}/cancel", ctx.token, "")
+      assert F.body(conn, 200)["cancelled"] == 1
+
+      assert F.request(:post, "/v1/events", ctx.token).status == 415
+      assert F.request(:post, "/v1/events", ctx.token, "").status == 400
+    end
+
     test "API-57: an unknown event is 404", ctx do
       id = Relay.ExternalId.encode("evt", Relay.Id.generate())
       conn = F.request(:post, "/v1/events/#{id}/cancel", ctx.token, %{})

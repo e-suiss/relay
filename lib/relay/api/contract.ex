@@ -44,6 +44,7 @@ defmodule Relay.Api.Contract do
           environment: :test | nil,
           errors: [String.t()],
           request: %{optional(String.t()) => map()},
+          request_required: boolean(),
           responses: %{optional(String.t()) => %{optional(String.t()) => map() | nil}}
         }
 
@@ -150,6 +151,7 @@ defmodule Relay.Api.Contract do
         stored_replay: op["x-relay-idempotency-replay"] != "not_stored",
         errors: op["x-relay-errors"] || [],
         request: request,
+        request_required: get_in(op, ["requestBody", "required"]) == true,
         responses: responses
       }
     end

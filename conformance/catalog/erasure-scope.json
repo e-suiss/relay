@@ -13,6 +13,12 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "api_clients",
+      "personal_columns": [],
+      "tenant_close": "row kept; last_used_ip set to null at the end of the traffic retention period",
+      "subject_erasure": "not subject data"
+    },
+    {
       "table": "settings",
       "personal_columns": [],
       "tenant_close": "row kept",

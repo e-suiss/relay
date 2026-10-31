@@ -1,16 +1,20 @@
 defmodule Relay.Api.Tenant do
   @moduledoc """
-  What the API edge reads about a tenant before a request's work, in one scoped read: its status, its pinned API version and its API rate limit settings; and the automatic API version pin written after a tenant's first successful request, in a short transaction of its own.
+  What the API edge reads about a tenant before a request's work, in one scoped read: its status, its pinned API version, its API rate limit settings and whether it requires certificate-bound tokens (`api.mtls_required`, RFC 8705); and the automatic API version pin written after a tenant's first successful request, in a short transaction of its own.
   """
 
   alias Relay.Api.Store
 
+  @mtls "api.mtls_required"
+
   @type edge :: %{
           status: :active | :suspended | :closed,
           api_version: String.t() | nil,
-          rate_settings: %{optional(String.t()) => map()}
+          rate_settings: %{optional(String.t()) => map()},
+          mtls_required: boolean()
         }
 
+  # API-41
   # API-47
   # API-50
   # API-52
@@ -29,8 +33,16 @@ defmodule Relay.Api.Tenant do
     end
   end
 
-  defp read(status),
-    do: %{status: status, api_version: Store.api_version(), rate_settings: Store.rate_settings()}
+  defp read(status) do
+    settings = Store.edge_settings()
+
+    %{
+      status: status,
+      api_version: Store.api_version(),
+      rate_settings: Map.filter(settings, fn {key, value} -> key != @mtls and is_map(value) end),
+      mtls_required: Map.get(settings, @mtls) == true
+    }
+  end
 
   # API-52
   @doc "Pins the tenant to `version` unless a version is pinned already; audited as `api_version.pinned`."

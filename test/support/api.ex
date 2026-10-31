@@ -53,10 +53,11 @@ defmodule RelayTest.Api do
   @spec token(Relay.Scope.t(), [String.t()], keyword()) :: String.t()
   defdelegate token(scope, scopes, opts \\ []), to: RelayTest.Api.Verifier, as: :issue
 
-  @doc "The `/v1` routes of a router as `{method, OpenAPI path}`."
+  @doc "The `/v1` routes of a router as `{method, OpenAPI path}`; the catch-all route is no operation."
   @spec routes(module()) :: [{String.t(), String.t()}]
   def routes(router) do
-    for %{verb: verb, path: "/v1" <> _ = path} <- router.__routes__() do
+    for %{verb: verb, path: "/v1" <> _ = path} <- router.__routes__(),
+        not String.contains?(path, "*") do
       template = Regex.replace(~r/:([a-z_]+)/, path, "{\\1}")
       {verb |> Atom.to_string() |> String.upcase(), template}
     end

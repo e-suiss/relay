@@ -5,6 +5,7 @@ defmodule RelayWeb.Api.ErrorPagesTest do
 
   alias Relay.Api.ErrorCatalog
   alias RelayTest.Api
+  alias RelayWeb.Api.Response
 
   defp page(code, ip \\ Api.ip()) do
     :get
@@ -26,7 +27,7 @@ defmodule RelayWeb.Api.ErrorPagesTest do
         {:ok, entry} = ErrorCatalog.fetch(code)
         assert body["code"] == code
         assert body["status"] == entry.status
-        assert body["type"] == RelayWeb.Api.Response.base_url() <> "/v1/errors/" <> code
+        assert body["type"] == Response.base_url() <> "/v1/errors/" <> code
       end
     end
 
@@ -52,6 +53,22 @@ defmodule RelayWeb.Api.ErrorPagesTest do
 
       assert Enum.take(statuses, 20) == List.duplicate(200, 20)
       assert List.last(statuses) == 429
+      Api.assert_contract(page("rate_limited", ip))
+    end
+
+    test "API-36: an unmatched /v1 route is a catalog problem, never about:blank" do
+      routes = [{:get, "/v1/nowhere"}, {:post, "/v1/errors/x"}, {:delete, "/v1/kill_switches"}]
+
+      for {method, path} <- routes do
+        conn = method |> Api.conn(path) |> Api.call(RelayWeb.Router)
+        body = Jason.decode!(conn.resp_body)
+
+        assert conn.status == 404
+        assert ["application/problem+json" <> _] = get_resp_header(conn, "content-type")
+        assert body["code"] == "route_not_found"
+        assert body["type"] == Response.base_url() <> "/v1/errors/route_not_found"
+        assert page("route_not_found").status == 200
+      end
     end
 
     test "API-8: error pages carry Request-Id, Relay-Version and HSTS" do

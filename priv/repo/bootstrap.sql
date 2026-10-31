@@ -97,6 +97,13 @@ ALTER DEFAULT PRIVILEGES FOR ROLE relay_migrator, relay_owner, relay_maint REVOK
 DO $$
 DECLARE
   v_execute constant jsonb := '{
+    "relay_ops.access_event_receipt_mark": ["relay_worker"],
+    "relay_ops.access_event_receipt_read": ["relay_worker"],
+    "relay_ops.access_event_receipt_record": ["relay_api", "relay_worker"],
+    "relay_ops.access_event_receipts_deferred": ["relay_worker"],
+    "relay_ops.access_link_store": ["relay_api", "relay_worker"],
+    "relay_ops.api_client_generation": ["relay_api", "relay_worker"],
+    "relay_ops.api_client_resolve": ["relay_api", "relay_worker"],
     "relay_ops.audit_checkpoint_publication_record": ["relay_worker"],
     "relay_ops.audit_checkpoint_record": ["relay_worker"],
     "relay_ops.audit_leaves_append": ["relay_worker"],
@@ -119,6 +126,7 @@ DECLARE
     "relay_ops.singleton_acquire": ["relay_worker"],
     "relay_ops.singleton_save": ["relay_worker"],
     "relay_ops.tenant_create": ["relay_app"],
+    "relay_ops.tenant_lookup": ["relay_app"],
     "relay_ops.waitpoint_due_scopes": ["relay_worker"]
   }';
   v_function regprocedure;

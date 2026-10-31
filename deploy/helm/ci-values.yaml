@@ -8,6 +8,8 @@ database:
   adminUrl: ecto://relay@postgres:5432/relay
 valkey:
   url: redis://valkey:6379
+access:
+  issuer: https://access.example.com
 keyStore:
   module: /usr/lib/softhsm/libsofthsm2.so
   token: relay

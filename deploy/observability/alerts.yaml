@@ -87,3 +87,10 @@ groups:
           decision: T-9
         annotations:
           summary: "Valkey runs with an eviction policy other than noeviction"
+      - alert: RelayAccessLinkDown
+        expr: relay_access_link_down == 1
+        labels:
+          severity: page
+          decision: E-75
+        annotations:
+          summary: "The Access link is not established or its keys are stale"

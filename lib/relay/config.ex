@@ -37,10 +37,11 @@ defmodule Relay.Config do
     RelayWeb.Metrics,
     RelayWeb.Api,
     RelayWeb.Auth,
+    Relay.Access,
     Oban
   ]
   @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.Platform.MaintRepo]
-  @os_env_keys ["RELAY_HOST", "RELAY_ROLES", "RELAY_REGION"]
+  @os_env_keys ["RELAY_HOST", "RELAY_ROLES", "RELAY_REGION", "RELAY_ACCESS_ISSUER"]
   @audit_keys [:log_host, :checkpoint_key, :publishers]
   @production Mix.env() == :prod
 

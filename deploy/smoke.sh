@@ -36,6 +36,7 @@ MAINT_DATABASE_PASSWORD_FILE=/run/db-password
 POOL_SIZE=5
 VALKEY_URL=redis://${valkey_host}:6379
 RELAY_HOST=localhost
+RELAY_ACCESS_ISSUER=https://access.invalid
 PORT=${port}
 METRICS_PORT=${metrics_port}
 SECRET_KEY_BASE_FILE=/run/secret-key-base

@@ -27,6 +27,7 @@ defmodule Relay.ExternalId do
     {"hld", "legal_holds"},
     {"ers", "erasure_log"},
     {"evt", "events"},
+    {"cli", "api_clients"},
     {"wfl", "workflows"},
     {"tpl", "templates"},
     {"wp", "waitpoints"},

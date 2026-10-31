@@ -21,6 +21,8 @@
   value: {{ required "valkey.url is required" .Values.valkey.url | quote }}
 - name: RELAY_HOST
   value: {{ .Values.host | quote }}
+- name: RELAY_ACCESS_ISSUER
+  value: {{ required "access.issuer is required" .Values.access.issuer | quote }}
 - name: PORT
   value: "4000"
 - name: METRICS_PORT

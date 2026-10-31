@@ -1,7 +1,7 @@
 defmodule Relay.Sql.TenancyTest do
   use Relay.SqlCase, async: false
 
-  @create "SELECT * FROM relay_ops.tenant_create($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
+  @create "SELECT * FROM relay_ops.tenant_create($1, $2, $3, $4, $5, $6, NULL, NULL, $7, $8, $9, $10, $11)"
 
   defp create(id, access_id, region, timezone \\ "Europe/Istanbul") do
     row(@create, [id, access_id, region, "general", timezone, "tr", digest() | actor()])

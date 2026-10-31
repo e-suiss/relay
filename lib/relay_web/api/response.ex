@@ -1,6 +1,6 @@
 defmodule RelayWeb.Api.Response do
   @moduledoc """
-  Writing API responses: JSON bodies in UTF-8 converted to the request's API version, RFC 9457 problems for errors, the headers every API response carries (`Request-Id`, `Relay-Version`, HSTS, the rate limit headers) and idempotent execution with byte-for-byte replays.
+  Writing API responses: JSON bodies in UTF-8 converted to the request's API version, RFC 9457 problems for errors (with the OAuth `error` member on the subscriber token exchange), the headers every API response carries (`Request-Id`, `Relay-Version`, HSTS, the rate limit headers) and idempotent execution with byte-for-byte replays.
   """
 
   import Plug.Conn
@@ -15,6 +15,8 @@ defmodule RelayWeb.Api.Response do
   @json "application/json; charset=utf-8"
   @problem "application/problem+json; charset=utf-8"
   @unavailable [DBConnection.ConnectionError, DBConnection.OwnershipError, Postgrex.Error]
+  @token_exchange "exchangeSubscriberToken"
+  @no_oauth_error [:rate_limited, :internal_error, :service_unavailable, :upstream_timeout]
 
   # API-8
   # sobelow_skip ["XSS.SendResp"]
@@ -43,7 +45,7 @@ defmodule RelayWeb.Api.Response do
   @doc "Sends the problem of an error, mapped to its API code, and halts."
   @spec problem(Plug.Conn.t(), Relay.Error.t()) :: Plug.Conn.t()
   def problem(conn, %Relay.Error{} = error) do
-    {status, retry, body} = Problem.build(ErrorMap.to_api(error), context(conn))
+    {status, retry, body} = Problem.build(oauth(conn, ErrorMap.to_api(error)), context(conn))
     headers = if status == 401, do: [{"www-authenticate", challenge(body)}], else: []
 
     conn
@@ -51,6 +53,34 @@ defmodule RelayWeb.Api.Response do
     |> send_resp(status, Jason.encode_to_iodata!(body))
     |> halt()
   end
+
+  # API-45
+  # API-79 (2)
+  defp oauth(%{assigns: %{operation: %{id: @token_exchange}}}, %Relay.Error{} = error) do
+    case oauth_error(error) do
+      nil -> error
+      code -> %{error | details: Map.put(error.details, :error, code)}
+    end
+  end
+
+  defp oauth(_conn, error), do: error
+
+  defp oauth_error(%Relay.Error{code: code}) when code in @no_oauth_error, do: nil
+
+  defp oauth_error(%Relay.Error{code: code, details: details})
+       when code in [:validation_failed, :unknown_field] do
+    pointers = Enum.map(Map.get(details, :errors, []), &pointer/1)
+
+    cond do
+      "/grant_type" in pointers -> "unsupported_grant_type"
+      "/scope" in pointers -> "invalid_scope"
+      true -> "invalid_request"
+    end
+  end
+
+  defp oauth_error(_error), do: "invalid_request"
+
+  defp pointer(field_error), do: field_error[:pointer] || field_error["pointer"]
 
   # INV-2
   # API-51

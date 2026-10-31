@@ -1,5 +1,5 @@
 defmodule RelayTest.Keys do
-  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. It holds no signing keys and no secret data objects; key generation succeeds for any label."
+  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well; there are no other signing keys and no secret data objects; key generation succeeds for any label."
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
@@ -15,10 +15,23 @@ defmodule RelayTest.Keys do
   def ping, do: :ok
 
   @impl Relay.Keys
+  def sign(:es256, label, message) do
+    der = :crypto.sign(:ecdsa, :sha256, message, [es256(label), :secp256r1])
+    {:"ECDSA-Sig-Value", r, s} = :public_key.der_decode(:"ECDSA-Sig-Value", der)
+    {:ok, <<r::256, s::256>>}
+  end
+
   def sign(_alg, _label, _message), do: not_found()
 
   @impl Relay.Keys
+  def public_key(:es256, label) do
+    {public, _private} = :crypto.generate_key(:ecdh, :secp256r1, es256(label))
+    {:ok, public}
+  end
+
   def public_key(_alg, _label), do: not_found()
+
+  defp es256(label), do: :crypto.hash(:sha256, "relay-test-es256:" <> label)
 
   @impl Relay.Keys
   def wrap(label, aad, key) do

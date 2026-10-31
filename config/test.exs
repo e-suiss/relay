@@ -50,4 +50,9 @@ config :relay, Relay.Keys,
 
 config :relay, RelayWeb.Auth, verifier: RelayTest.Api.Verifier
 
+config :relay, Relay.Access,
+  issuer: "https://access.test",
+  autoload: false,
+  http: [plug: {RelayTest.FakeAccess, []}]
+
 config :phoenix, :plug_init_mode, :runtime

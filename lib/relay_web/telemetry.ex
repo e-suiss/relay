@@ -123,6 +123,11 @@ defmodule RelayWeb.Telemetry do
         event_name: [:relay, :valkey, :guard],
         measurement: :mismatch,
         description: "1 while Valkey runs with an eviction policy other than noeviction"
+      ),
+      last_value("relay.access.link.down",
+        event_name: [:relay, :access, :link],
+        measurement: :down,
+        description: "1 while the Access link is not established or its keys are stale"
       )
     ]
   end

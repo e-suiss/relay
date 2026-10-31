@@ -1,11 +1,12 @@
 defmodule Relay.Api.Contract do
   @moduledoc """
-  The server API contract, read at compile time from `contracts/openapi/server.yaml` and its components. It answers which operations exist, what each one requires (scopes, weight, idempotency, environment) and which schemas its requests and responses follow. The contract files are the single source; nothing here repeats their values.
+  The API contract, read at compile time from `contracts/openapi/server.yaml`, `contracts/openapi/subscriber.yaml` and their components. It answers which operations exist, which family each belongs to (`:server` or `:subscriber`), how it is authenticated (`:bearer`, `:public` or `:webhook`), what it requires (scopes, weight, idempotency, environment) and which schemas its requests and responses follow. A subscriber operation's local schema references are inlined. The contract files are the single source; nothing here repeats their values.
   """
 
   @root Path.expand("../../../contracts/openapi", __DIR__)
   @files %{
     "server" => "server.yaml",
+    "subscriber" => "subscriber.yaml",
     "schemas" => "components/schemas.yaml",
     "problem" => "components/problem.yaml",
     "parameters" => "components/parameters.yaml",
@@ -26,6 +27,9 @@ defmodule Relay.Api.Contract do
 
   @type operation :: %{
           id: String.t(),
+          family: :server | :subscriber,
+          security: :bearer | :public | :webhook,
+          no_store: boolean(),
           method: String.t(),
           path: String.t(),
           endpoint: String.t(),
@@ -51,10 +55,31 @@ defmodule Relay.Api.Contract do
       response
   end
 
+  inline = fn inline, value, local ->
+    case value do
+      %{"$ref" => "#/components/schemas/" <> name} ->
+        inline.(inline, Map.fetch!(local, name), local)
+
+      map when is_map(map) ->
+        Map.new(map, fn {k, v} -> {k, inline.(inline, v, local)} end)
+
+      list when is_list(list) ->
+        Enum.map(list, &inline.(inline, &1, local))
+
+      other ->
+        other
+    end
+  end
+
+  families = [server: @documents["server"], subscriber: @documents["subscriber"]]
+
   operations =
-    for {path, item} <- @documents["server"]["paths"],
-        {method, op} <- item,
+    for {family, document} <- families,
+        {path, item} <- document["paths"],
+        {method, raw} <- item,
         method in @methods do
+      op = inline.(inline, raw, get_in(document, ["components", "schemas"]) || %{})
+
       responses =
         Map.new(op["responses"], fn {status, response} ->
           content = resolve_response.(response)["content"] || %{}
@@ -78,15 +103,26 @@ defmodule Relay.Api.Contract do
           "required" -> :required
           "derived" -> :derived
           "not_applicable" -> :not_applicable
+          "none" -> :not_applicable
+        end
+
+      security =
+        case op["security"] do
+          [] -> :public
+          [%{"suiss_webhook_signature" => _} | _] -> :webhook
+          _bearer -> :bearer
         end
 
       %{
         id: op["operationId"],
+        family: family,
+        security: security,
+        no_store: get_in(op, ["responses", "200", "headers", "Cache-Control"]) != nil,
         method: String.upcase(method),
         path: path,
         endpoint: String.upcase(method) <> " " <> path,
         scopes: op["x-relay-scopes"] || [],
-        public: op["security"] == [],
+        public: security == :public,
         weight: weight,
         idempotency: idempotency,
         environment: if(op["x-relay-environment"] == "test", do: :test),
@@ -102,7 +138,7 @@ defmodule Relay.Api.Contract do
 
   # API-1
   # API-2
-  @doc "Every operation of the server contract."
+  @doc "Every operation of the server and subscriber contracts."
   @spec operations() :: [operation()]
   def operations, do: Map.values(@operations)
 

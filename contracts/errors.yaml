@@ -794,6 +794,20 @@ codes:
     description: No error code with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
     type: "{base_url}/v1/errors/error_code_not_found"
     choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: route_not_found
+    family: resource
+    status: 404
+    title: Route not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No API operation exists at this method and path. Check the path against the API reference.
+    type: "{base_url}/v1/errors/route_not_found"
+    choice_note: "The spec gives every error a catalog code; an unmatched /v1 path is named by the contract."
   - code: resource_conflict
     family: resource
     status: 409

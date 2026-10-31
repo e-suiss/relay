@@ -21,5 +21,16 @@ defmodule RelayWeb.Router do
     pipe_through :v1
 
     get "/errors/:code", ErrorCodeController, :show, private: %{relay_operation: "getErrorCode"}
+
+    post "/access/events", AccessEventController, :create,
+      private: %{relay_operation: "receiveAccessEvent"}
+
+    post "/subscriber/token", SubscriberTokenController, :create,
+      private: %{relay_operation: "exchangeSubscriberToken"}
+  end
+
+  # API-36
+  scope "/v1", RelayWeb.Api do
+    match :*, "/*path", FallbackController, :not_found
   end
 end

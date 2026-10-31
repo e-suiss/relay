@@ -150,7 +150,7 @@ defmodule Relay.SqlCase do
 
     ["created", ^tenant_id] =
       row(
-        "SELECT * FROM relay_ops.tenant_create($1, $2, $3, 'general', 'Europe/Istanbul', 'tr', $4, $5, $6, $7, $8)",
+        "SELECT * FROM relay_ops.tenant_create($1, $2, $3, 'general', 'Europe/Istanbul', 'tr', NULL, NULL, $4, $5, $6, $7, $8)",
         [tenant_id, "acc_" <> Base.encode16(tenant_id), region(), digest() | actor()]
       )
 

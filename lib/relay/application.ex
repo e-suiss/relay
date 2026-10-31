@@ -9,6 +9,7 @@ defmodule Relay.Application do
       Relay.Platform.Leadership,
       Relay.Tenancy,
       Relay.Tenancy.KillSwitch,
+      Relay.Access,
       Relay.Keys.Eviction,
       Relay.Datasets,
       Relay.Channels,
@@ -49,6 +50,7 @@ defmodule Relay.Application do
         Relay.Channels.children() ++
         Relay.Tenancy.children() ++
         Relay.Tenancy.KillSwitch.children() ++
+        Relay.Access.children() ++
         [Relay.Keys.Eviction] ++
         Relay.Datasets.children() ++
         Relay.Platform.Leadership.children(roles) ++ [RelayWeb.Endpoint.supervised()]

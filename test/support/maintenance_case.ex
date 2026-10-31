@@ -70,7 +70,7 @@ defmodule Relay.MaintenanceCase do
 
     [["created", ^id]] =
       rows!(
-        "SELECT result, tenant_id FROM relay_ops.tenant_create($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+        "SELECT result, tenant_id FROM relay_ops.tenant_create($1, $2, $3, $4, $5, $6, NULL, NULL, $7, $8, $9, $10, $11)",
         [id, access, region, "general", "Europe/Istanbul", "tr", digest() | actor()]
       )
 

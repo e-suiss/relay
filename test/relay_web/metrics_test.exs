@@ -23,7 +23,9 @@ defmodule RelayWeb.MetricsTest do
      "relay_projection_difference_timestamp_seconds "},
     {[:relay, :postgres, :query_stats], %{count: 1}, %{status: :missing},
      "relay_postgres_query_stats_missing 1"},
-    {[:relay, :valkey, :guard], %{mismatch: 1}, %{}, "relay_valkey_eviction_policy_mismatch 1"}
+    {[:relay, :valkey, :guard], %{mismatch: 1}, %{}, "relay_valkey_eviction_policy_mismatch 1"},
+    {[:relay, :access, :link], %{down: 1}, %{state: :stale, result: :unchanged},
+     "relay_access_link_down 1"}
   ]
 
   defp with_metrics(config, fun) do

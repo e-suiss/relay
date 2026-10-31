@@ -7,7 +7,7 @@ defmodule RelayWeb.Auth do
   * A missing scope is `403 auth_insufficient_scope` with `required_scope` and `granted_scopes`; the other environment's operation is `403 auth_environment_mismatch`.
   * `Relay-Tenant` and `Relay-Environment` belong to operator sessions; with an API client credential they are `422 validation_failed`.
 
-  The verifier behaviour is the seam where the Access JWKS verification plugs in.
+  The verifier (`RelayWeb.Auth.Access` in production) receives the operation, the client address and the connection's client certificate. An operation authenticated with the shared Suiss webhook profile (`:webhook`) needs its `webhook-id`, `webhook-timestamp` and `webhook-signature` headers here; its controller verifies the signature over the raw body.
   """
 
   @behaviour Plug
@@ -22,8 +22,9 @@ defmodule RelayWeb.Auth do
   @bearer ~r/\A[Bb]earer +([A-Za-z0-9\-._~+\/]+=*)\z/
   @counted [:auth_invalid_token, :auth_malformed_credentials]
   @operator_headers ["relay-tenant", "relay-environment"]
+  @webhook_headers ["webhook-id", "webhook-timestamp", "webhook-signature"]
 
-  @doc "Verifies a bearer token for the operation in `context` (`%{operation: operation}`)."
+  @doc "Verifies a bearer token for the operation in `context` (`%{operation: operation, ip: address, certificate: der | nil}`)."
   @callback verify(token :: String.t(), context :: map()) ::
               {:ok, Principal.t()} | {:error, Relay.Error.t()}
 
@@ -48,6 +49,12 @@ defmodule RelayWeb.Auth do
   @spec authenticate(Plug.Conn.t(), Relay.Api.Contract.operation()) ::
           {:ok, Plug.Conn.t()} | {:error, Plug.Conn.t(), Relay.Error.t()}
   def authenticate(conn, %{public: true}), do: {:ok, assign(conn, :principal, nil)}
+
+  def authenticate(conn, %{security: :webhook}) do
+    if Enum.all?(@webhook_headers, &(get_req_header(conn, &1) != [])),
+      do: {:ok, assign(conn, :principal, nil)},
+      else: {:error, conn, Relay.Error.new(:auth_missing_credentials, "the webhook is unsigned")}
+  end
 
   def authenticate(conn, operation) do
     with {:ok, token} <- credential(conn),
@@ -83,10 +90,20 @@ defmodule RelayWeb.Auth do
   end
 
   defp verify(conn, token, operation) do
-    case verifier().verify(token, %{operation: operation}) do
+    ip = Transport.client_ip(conn)
+    context = %{operation: operation, ip: ip, certificate: certificate(conn)}
+
+    case verifier().verify(token, context) do
       {:ok, %Principal{} = principal} -> {:ok, principal}
       {:error, %Relay.Error{code: code} = error} when code in @counted -> throttled(conn, error)
       {:error, %Relay.Error{} = error} -> {:error, error}
+    end
+  end
+
+  defp certificate(conn) do
+    case get_peer_data(conn) do
+      %{ssl_cert: der} when is_binary(der) -> der
+      _plain -> nil
     end
   end
 

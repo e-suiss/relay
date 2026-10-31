@@ -31,6 +31,8 @@ defmodule Relay.Tenancy.Store do
           Map.get(attrs, :sector, "general"),
           attrs.default_timezone,
           attrs.default_locale,
+          Map.get(attrs, :access_organization_id),
+          Map.get(attrs, :platform_product),
           attrs.record_digest
         ] ++ Actor.params(actor)
       )

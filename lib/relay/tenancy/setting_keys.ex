@@ -1,6 +1,6 @@
 defmodule Relay.Tenancy.SettingKeys do
   @moduledoc """
-  The catalog of setting keys (`relay.settings.key`). A setting write names a key from the catalog and a value that passes the key's check; `nil` clears the setting at that level. Stage 1 holds the keys the setting resolver falls back to the tenant defaults for: `default_timezone` and `default_locale`, checked and canonicalised like the tenant defaults (`Relay.Tenancy.Defaults`). `fairness.weight.l2` and `fairness.weight.l3` hold the tenant's DRR weight in a bulk lane, an integer from 1 to 100 (1 when unset); only the tenant-level value counts. `api.rate.burst` and `api.rate.sustained` hold the tenant's API rate limit tiers (API-50, API-77), an object with a positive integer `weight` and a positive integer `window_seconds` of at most 3600; an unset tier takes the contract default.
+  The catalog of setting keys (`relay.settings.key`). A setting write names a key from the catalog and a value that passes the key's check; `nil` clears the setting at that level. Stage 1 holds the keys the setting resolver falls back to the tenant defaults for: `default_timezone` and `default_locale`, checked and canonicalised like the tenant defaults (`Relay.Tenancy.Defaults`). `fairness.weight.l2` and `fairness.weight.l3` hold the tenant's DRR weight in a bulk lane, an integer from 1 to 100 (1 when unset); only the tenant-level value counts. `api.rate.burst` and `api.rate.sustained` hold the tenant's API rate limit tiers (API-50, API-77), an object with a positive integer `weight` and a positive integer `window_seconds` of at most 3600; an unset tier takes the contract default. `api.mtls_required` (`true` or `false`) makes the tenant's server API accept only certificate-bound tokens (RFC 8705; API-41, API-48).
   """
 
   alias Relay.Tenancy.Defaults
@@ -11,7 +11,8 @@ defmodule Relay.Tenancy.SettingKeys do
     "fairness.weight.l2" => :fairness_weight,
     "fairness.weight.l3" => :fairness_weight,
     "api.rate.burst" => :api_rate,
-    "api.rate.sustained" => :api_rate
+    "api.rate.sustained" => :api_rate,
+    "api.mtls_required" => :boolean
   }
 
   @doc "Returns the catalog's keys."
@@ -34,8 +35,8 @@ defmodule Relay.Tenancy.SettingKeys do
         {:error,
          Relay.Error.new(:invalid_setting, "a fairness weight is an integer from 1 to 100")}
 
-      {:ok, :api_rate} ->
-        api_rate(value)
+      {:ok, kind} when kind in [:api_rate, :boolean] ->
+        check(kind, value)
 
       {:ok, field} ->
         Defaults.cast(field, value)
@@ -44,6 +45,14 @@ defmodule Relay.Tenancy.SettingKeys do
         {:error, Relay.Error.new(:unknown_setting, "not a setting key", %{key: inspect(key)})}
     end
   end
+
+  defp check(:api_rate, value), do: api_rate(value)
+
+  # API-41
+  defp check(:boolean, value) when is_boolean(value), do: {:ok, value}
+
+  defp check(:boolean, _value),
+    do: {:error, Relay.Error.new(:invalid_setting, "the setting is true or false")}
 
   # API-50
   # API-77 (4)

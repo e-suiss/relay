@@ -35,6 +35,8 @@ if config_env() == :prod do
        ]}
     ]
 
+  config :relay, Relay.Access, issuer: Relay.Config.Env.fetch!("RELAY_ACCESS_ISSUER")
+
   config :relay, Relay.Platform.Valkey,
     adapter: Relay.Platform.Valkey.Redix,
     url: Relay.Config.Env.valkey_url!("VALKEY_URL")

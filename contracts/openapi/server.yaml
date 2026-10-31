@@ -4081,8 +4081,11 @@ paths:
                 "$ref": "./components/schemas.yaml#/ErrorDescription"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
       x-relay-errors:
         - error_code_not_found
+        - rate_limited
       x-relay-weight: 0
       x-relay-weight-note: "Not counted against tenant rate limits (no tenant context); limited per IP like invalid token attempts (contract choice)."
       x-relay-idempotency: not_applicable

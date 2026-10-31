@@ -31,7 +31,8 @@ config :relay, Relay.Platform.Leadership,
     {"audit_readback", Relay.Audit.Checkpointer.Readback, [sensitive: true]},
     {"drr_dispatcher", Relay.Platform.Fairness.Dispatcher, []},
     {"load_shed_controller", Relay.Platform.LoadShed.Controller, []},
-    {"kill_switch_paused_expiry", Relay.Tenancy.KillSwitch.Expiry, []}
+    {"kill_switch_paused_expiry", Relay.Tenancy.KillSwitch.Expiry, []},
+    {"access_link_refresh", Relay.Access.Refresh, []}
   ]
 
 config :relay, Relay.Audit,
@@ -54,6 +55,10 @@ config :relay, Oban,
 config :relay, Relay.Platform.VirtualClock, due: [{Relay.Agents, :run_due, []}]
 
 config :relay, Relay.Platform.Outbox, dispatcher: true
+
+config :relay, Relay.Access, subscriber_token_key: "subscriber-token", autoload: true
+
+config :relay, RelayWeb.Auth, verifier: RelayWeb.Auth.Access
 
 config :relay, RelayWeb.Endpoint,
   url: [host: "localhost"],

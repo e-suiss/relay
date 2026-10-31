@@ -10,6 +10,7 @@ defmodule RelayTest.Api.Controller do
   alias RelayWeb.Api.Response
 
   @runs :relay_test_api_runs
+  @kill_switch "SELECT tenant_id, environment, id FROM relay.kill_switches WHERE id = $1"
 
   @doc "How many times idempotent work ran in this process."
   @spec runs() :: non_neg_integer()
@@ -63,6 +64,23 @@ defmodule RelayTest.Api.Controller do
       {:error, error} ->
         Response.problem(conn, error)
     end
+  end
+
+  @doc "Finds a kill switch by identifier under the request's scope, as a resource endpoint does; any other tenant's or environment's record is not found."
+  @spec kill_switch(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def kill_switch(conn, %{"kill_switch_id" => text}) do
+    with {:ok, id} <- Relay.ExternalId.decode(text, ["ksw"]),
+         {:ok, [_row]} <- kill_switch_rows(conn.assigns.scope, id) do
+      Response.json(conn, 200, %{"object" => "kill_switch", "id" => text})
+    else
+      _ -> Response.problem(conn, Relay.Error.new(:kill_switch_not_found, "no such kill switch"))
+    end
+  end
+
+  defp kill_switch_rows(scope, id) do
+    Relay.Repo.in_scope(scope, fn _status ->
+      Relay.Repo.scoped_query!(@kill_switch, [id], shared: :installation).rows
+    end)
   end
 
   defp clock(runs) do

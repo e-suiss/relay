@@ -50,7 +50,10 @@ defmodule Relay.ScopeTest do
                :dead_letter_scope_discovery,
                :kill_switch_snapshot,
                :kill_switch_scopes,
-               :waitpoint_due_discovery
+               :waitpoint_due_discovery,
+               :access_link,
+               :access_event_intake,
+               :api_client_resolve
              ]
     end
 

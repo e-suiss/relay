@@ -1,5 +1,5 @@
 defmodule RelayTest.Api.Verifier do
-  @moduledoc "Token verifier for HTTP edge tests: a token is `test.` and the URL-safe Base64 of a JSON principal it was issued for, or of `{\"error\": code}` to make verification fail with that code."
+  @moduledoc "Token verifier for HTTP edge tests: a token is `test.` and the URL-safe Base64 of a JSON principal it was issued for, or of `{\"error\": code}` to make verification fail with that code. Any other token goes to the production verifier, `RelayWeb.Auth.Access`, so tests with tokens of the fake Access (`RelayTest.FakeAccess`) run the real verification."
 
   use Boundary, top_level?: true, deps: [Relay, RelayWeb], exports: []
 
@@ -35,7 +35,12 @@ defmodule RelayTest.Api.Verifier do
     end
   end
 
-  def verify(_token, _context), do: invalid()
+  def verify(token, context) do
+    case String.split(token, ".") do
+      [_header, _claims, _signature] -> RelayWeb.Auth.Access.verify(token, context)
+      _other -> invalid()
+    end
+  end
 
   defp principal(%{"error" => code}),
     do: {:error, Relay.Error.new(String.to_existing_atom(code), "verification failed")}

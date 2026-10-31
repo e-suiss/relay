@@ -9,6 +9,11 @@ defmodule Relay.Api.RateLimit do
   @tiers ["burst", "sustained"]
   @per_ip @limits["invalid_token_per_ip"]
   @unavailable "rate_limit.backend_unavailable"
+  @ip_limits %{
+    invalid_token: "auth.invalid_token",
+    error_pages: "api.error_pages",
+    token_exchange: "api.token_exchange"
+  }
 
   @type tier :: %{
           name: String.t(),
@@ -24,6 +29,7 @@ defmodule Relay.Api.RateLimit do
           reset_s: non_neg_integer()
         }
   @type report :: %{tiers: [tier()], current: state() | nil}
+  @type ip_kind :: :invalid_token | :error_pages | :token_exchange
 
   # API-50
   # API-77 (4)
@@ -104,13 +110,13 @@ defmodule Relay.Api.RateLimit do
 
   # API-47
   # API-77 (3)
-  @doc "Spends one attempt of the per-IP limiter `kind` (`:invalid_token` or `:error_pages`) in the installation scope."
-  @spec check_ip(Relay.Scope.t(), :invalid_token | :error_pages, :inet.ip_address()) ::
+  @doc "Spends one attempt of the per-IP limiter `kind` (`:invalid_token`, `:error_pages` or `:token_exchange`) in the installation scope."
+  @spec check_ip(Relay.Scope.t(), ip_kind(), :inet.ip_address()) ::
           :ok | {:error, Relay.Error.t()}
   def check_ip(%Relay.Scope{} = installation, kind, ip) do
     limit =
       limit!(
-        id: if(kind == :invalid_token, do: "auth.invalid_token", else: "api.error_pages"),
+        id: Map.fetch!(@ip_limits, kind),
         algorithm: :gcra,
         unit: :request,
         limit: @per_ip["per_minute"],

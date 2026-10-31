@@ -4,14 +4,23 @@ defmodule RelayWeb do
   """
 
   use Boundary,
-    deps: [Relay, Relay.Platform, Relay.Tenancy.KillSwitch, Relay.Datasets, Relay.Api],
+    deps: [
+      Relay,
+      Relay.Platform,
+      Relay.Tenancy.KillSwitch,
+      Relay.Datasets,
+      Relay.Api,
+      Relay.Access
+    ],
     exports: [
       Endpoint,
       Metrics,
       Telemetry,
       Router,
       Auth,
+      Auth.Access,
       Auth.Principal,
+      Auth.Subscriber,
       Api.Pipeline,
       Api.Response
     ]

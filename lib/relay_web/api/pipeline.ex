@@ -71,8 +71,12 @@ defmodule RelayWeb.Api.Pipeline do
   end
 
   defp operation(conn) do
-    id = Map.fetch!(conn.private, :relay_operation)
-    {:ok, assign(conn, :operation, Contract.operation!(id))}
+    operation = Contract.operation!(Map.fetch!(conn.private, :relay_operation))
+    conn = assign(conn, :operation, operation)
+
+    if operation.no_store,
+      do: {:ok, put_resp_header(conn, "cache-control", "no-store")},
+      else: {:ok, conn}
   end
 
   # API-52
@@ -107,7 +111,7 @@ defmodule RelayWeb.Api.Pipeline do
 
     with {:ok, media} <- media_type(conn, operation),
          {:ok, raw, conn} <- read(conn, limit),
-         {:ok, decoded} <- decode(raw) do
+         {:ok, decoded} <- decode(media, raw) do
       {:ok,
        conn
        |> assign(:media_type, media)
@@ -162,9 +166,15 @@ defmodule RelayWeb.Api.Pipeline do
     })
   end
 
-  defp decode(""), do: {:error, malformed("the body is empty")}
+  defp decode(_media, ""), do: {:error, malformed("the body is empty")}
 
-  defp decode(raw) do
+  defp decode("application/x-www-form-urlencoded", raw) do
+    {:ok, Plug.Conn.Query.decode(raw)}
+  rescue
+    Plug.Conn.InvalidQueryError -> {:error, malformed("the form body is not valid")}
+  end
+
+  defp decode(_media, raw) do
     case Jason.decode(raw) do
       {:ok, decoded} -> {:ok, decoded}
       {:error, _error} -> {:error, malformed("the body is not valid JSON")}
@@ -184,15 +194,25 @@ defmodule RelayWeb.Api.Pipeline do
   defp tenant(conn) do
     case Tenant.edge(conn.assigns.scope) do
       {:ok, %{status: :active} = edge} ->
-        {version, source} = Versions.resolve(conn.assigns.requested_version, edge.api_version)
-        conn = conn |> assign(:tenant, edge) |> served(version)
-        {:ok, if(source == :pin, do: pin_after_success(conn, version), else: conn)}
+        active(conn, edge)
 
       {:ok, _inactive} ->
         {:error, conn, Relay.Error.new(:auth_tenant_suspended, "the tenant is suspended")}
 
       {:error, error} ->
         {:error, conn, error}
+    end
+  end
+
+  # API-41
+  # API-48
+  defp active(conn, edge) do
+    if edge.mtls_required and not conn.assigns.principal.certificate_bound do
+      {:error, conn, Relay.Error.new(:auth_invalid_token, "a certificate-bound token is needed")}
+    else
+      {version, source} = Versions.resolve(conn.assigns.requested_version, edge.api_version)
+      conn = conn |> assign(:tenant, edge) |> served(version)
+      {:ok, if(source == :pin, do: pin_after_success(conn, version), else: conn)}
     end
   end
 
@@ -227,10 +247,14 @@ defmodule RelayWeb.Api.Pipeline do
   # API-49
   # API-50
   # API-77
-  defp rate_limit(%{assigns: %{principal: nil, operation: %{public: true}}} = conn) do
-    ip = Transport.client_ip(conn)
+  defp rate_limit(%{assigns: %{principal: nil, operation: %{security: :webhook}}} = conn),
+    do: {:ok, conn}
 
-    case RateLimit.check_ip(Relay.Datasets.installation_scope(), :error_pages, ip) do
+  defp rate_limit(%{assigns: %{principal: nil, operation: %{public: true} = operation}} = conn) do
+    ip = Transport.client_ip(conn)
+    kind = if operation.family == :subscriber, do: :token_exchange, else: :error_pages
+
+    case RateLimit.check_ip(Relay.Datasets.installation_scope(), kind, ip) do
       :ok -> {:ok, conn}
       {:error, error} -> {:error, conn, error}
     end

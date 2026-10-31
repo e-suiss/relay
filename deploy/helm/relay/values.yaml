@@ -32,6 +32,9 @@ auditStore:
   accessKeyId: ""
   secretAccessKeySecret: relay-audit-store
 
+access:
+  issuer: ""
+
 keyStore:
   module: ""
   token: ""

@@ -19,5 +19,8 @@ defmodule RelayTest.Api.Router do
 
     post "/events/batch", Controller, :batch, private: %{relay_operation: "createEventBatch"}
     get "/notifications", Controller, :list, private: %{relay_operation: "listNotifications"}
+
+    get "/kill_switches/:kill_switch_id", Controller, :kill_switch,
+      private: %{relay_operation: "getKillSwitch"}
   end
 end

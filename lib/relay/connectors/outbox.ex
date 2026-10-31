@@ -73,22 +73,24 @@ defmodule Relay.Connectors.Outbox do
 
     [
       hostname: options[:hostname],
-      port: integer!(name, :port, Keyword.get(options, :port, 5432), 1..65_535),
+      port: integer!(name, :port, Keyword.get(options, :port, 5432), 1, 65_535),
       database: options[:database],
       username: options[:username],
       password_file: options[:password_file],
       ssl: ssl,
       table: table,
-      poll_ms: integer!(name, :poll_ms, Keyword.get(options, :poll_ms, 1000), 10..60_000),
-      batch_size: integer!(name, :batch_size, Keyword.get(options, :batch_size, 100), 1..500),
-      lease_s: integer!(name, :lease_s, Keyword.get(options, :lease_s, 60), 5..3600)
+      poll_ms: integer!(name, :poll_ms, Keyword.get(options, :poll_ms, 1000), 10, 60_000),
+      batch_size: integer!(name, :batch_size, Keyword.get(options, :batch_size, 100), 1, 500),
+      lease_s: integer!(name, :lease_s, Keyword.get(options, :lease_s, 60), 5, 3600)
     ]
   end
 
-  defp integer!(_name, _key, value, range) when is_integer(value) and value in range, do: value
+  defp integer!(_name, _key, value, min, max)
+       when is_integer(value) and value >= min and value <= max,
+       do: value
 
-  defp integer!(name, key, _value, first..last//_),
-    do: raise(Error, "connector #{name}: #{key} is an integer from #{first} to #{last}")
+  defp integer!(name, key, _value, min, max),
+    do: raise(Error, "connector #{name}: #{key} is an integer from #{min} to #{max}")
 
   @impl GenStage
   def init(opts) do

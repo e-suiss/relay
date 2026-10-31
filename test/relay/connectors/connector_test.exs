@@ -42,6 +42,7 @@ defmodule Relay.Connectors.ConnectorTest do
       assert options[:poll_ms] == 1000
       assert options[:batch_size] == 100
       assert options[:lease_s] == 60
+
       assert Connector.process_name(connector) ==
                Module.concat(Relay.Connectors.Pipeline, "orders")
     end

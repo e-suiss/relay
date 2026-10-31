@@ -74,7 +74,7 @@ defmodule Relay.Ingest.Store do
 
   # API-13
   # API-15
-  @doc "Runs `fun` on one database connection held for its whole run, so that a claim held by `idempotency_hold/2` stays with every transaction of `fun`; see `Ecto.Repo.checkout/2`."
+  @doc "Runs `fun` on one database connection held for its whole run, so that a claim held by `idempotency_hold/2` stays with every transaction of `fun`, a checked-out connection of the repo."
   @spec idempotency_session((-> result)) :: result when result: term()
   def idempotency_session(fun) when is_function(fun, 0), do: Repo.checkout(fun)
 

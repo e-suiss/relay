@@ -25,6 +25,7 @@ COPY deps deps
 COPY config config
 COPY lib lib
 COPY priv priv
+COPY contracts contracts
 COPY rel rel
 COPY --from=native /build/target/release/pkcs11_port priv/native/pkcs11_port
 

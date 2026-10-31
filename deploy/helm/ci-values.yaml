@@ -13,6 +13,7 @@ keyStore:
   token: relay
   kekLabel: kek
   fingerprintLabel: fingerprint
+  cursorLabel: cursor
 auditStore:
   endpoint: https://s3.example.com
   bucket: relay-audit

@@ -35,6 +35,8 @@ defmodule Relay.Config do
     Relay.Tenancy.KillSwitch.Cache,
     Relay.Policy.Lattice,
     RelayWeb.Metrics,
+    RelayWeb.Api,
+    RelayWeb.Auth,
     Oban
   ]
   @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.Platform.MaintRepo]

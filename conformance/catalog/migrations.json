@@ -46,5 +46,8 @@
   {"file": "20261027400500_create_waitpoint_functions.exs", "sha256": "eeffc0bc64eef0f2804e2ec6ac30d9de57706afe5995d3d75fd07d692a3c1163"},
   {"file": "20261027400600_create_fanout_functions.exs", "sha256": "592d829491ba99fbbdd43c7a4cf6ae911adb41af3409a1c5deacb3067d055658"},
   {"file": "20261027400700_erase_subject_waitpoints_and_mailbox.exs", "sha256": "e3e8c7dd1ad029e6451cb9c2da5dab1222e6b768f796c2c74cffabd783886585"},
-  {"file": "20261027400800_rebuild_reference_check_for_mailboxes_and_waitpoints.exs", "sha256": "0c259730c266cc8edeed89193ca2901f344739554778e0d0bda2f101c3553aba"}
+  {"file": "20261027400800_rebuild_reference_check_for_mailboxes_and_waitpoints.exs", "sha256": "0c259730c266cc8edeed89193ca2901f344739554778e0d0bda2f101c3553aba"},
+  {"file": "20261101100000_add_tenant_api_version.exs", "sha256": "c5d579b713b1617c59bc7d9db7bf0df7519e6f02564ba592b5149503a5e04bc4"},
+  {"file": "20261101100100_validate_tenant_api_version_check.exs", "sha256": "93ffc0519ac5dd6c4c80f2c98f90e6c20866721c7556bd8df3f2e89c8890f738"},
+  {"file": "20261101100200_create_api_version_functions.exs", "sha256": "26d1e668cbb4a83bb50270ec8fd3f0f2194cd473560db9473be94fe9e8848a95"}
 ]

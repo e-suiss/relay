@@ -35,6 +35,8 @@
   value: {{ required "keyStore.kekLabel is required" .Values.keyStore.kekLabel | quote }}
 - name: KEY_STORE_FINGERPRINT_LABEL
   value: {{ required "keyStore.fingerprintLabel is required" .Values.keyStore.fingerprintLabel | quote }}
+- name: KEY_STORE_CURSOR_LABEL
+  value: {{ required "keyStore.cursorLabel is required" .Values.keyStore.cursorLabel | quote }}
 - name: AUDIT_S3_ENDPOINT
   value: {{ required "auditStore.endpoint is required" .Values.auditStore.endpoint | quote }}
 - name: AUDIT_S3_BUCKET

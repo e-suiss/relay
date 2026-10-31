@@ -37,6 +37,7 @@ keyStore:
   token: ""
   kekLabel: ""
   fingerprintLabel: ""
+  cursorLabel: ""
   pinSecret: relay-key-store-pin
   env: []
   volumes: []

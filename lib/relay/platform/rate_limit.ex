@@ -37,7 +37,7 @@ defmodule Relay.Platform.RateLimit do
   # INV-44
   # CH-17
   @doc """
-  Decides one request of `cost` units on `limit` for the key built from `key_parts` in `scope`, on `lane`.
+  Decides one request of `cost` units on `limit` for the key built from `key_parts` in `scope`, on `lane`. An allowed GCRA decision also carries `:remaining`, the cost the key can still take at once, and `:reset_ms`, the time until it is full again.
 
   Options: `:ceiling_bp`, the lane's ceiling in basis points, required for a limit with `ceiling: true` (T-33; `l0` is held only by the GCRA itself); `:lease`, the channel's credit lease `{allowed, block_size}` (T-20 (5), default no lease); `:backend` and `:adapter` select the backend server and the Valkey adapter. A key without parts raises: there is no keyless limiter.
   """
@@ -119,14 +119,27 @@ defmodule Relay.Platform.RateLimit do
     )
   end
 
-  defp gcra_decision({:allowed, _retry}, _limit, _lane), do: :allow
-  defp gcra_decision({:limited, retry_us}, limit, _lane), do: {:deny, ms(retry_us), rule(limit)}
+  defp gcra_decision({:allowed, _retry, tat_us, now_us}, limit, _lane),
+    do: {:allow, gcra_info(limit, tat_us - now_us)}
 
-  defp gcra_decision({:ceiling, retry_us}, _limit, lane),
+  defp gcra_decision({:limited, retry_us, _tat, _now}, limit, _lane),
+    do: {:deny, ms(retry_us), rule(limit)}
+
+  defp gcra_decision({:ceiling, retry_us, _tat, _now}, _limit, lane),
     do: {:deny, ms(retry_us), "rate_limit.lane_ceiling.#{lane}"}
 
-  defp gcra_decision({:cost_exceeds_burst, _retry}, limit, _lane),
+  defp gcra_decision({:cost_exceeds_burst, _retry, _tat, _now}, limit, _lane),
     do: {:deny, limit.period_ms, "rate_limit.cost_exceeds_burst"}
+
+  defp gcra_info(limit, ahead_us) do
+    emission = Gcra.emission_us(limit.limit, limit.period_ms)
+    ahead_us = max(ahead_us, 0)
+
+    %{
+      remaining: max(div(limit.burst * emission - ahead_us, emission), 0),
+      reset_ms: Gcra.ceil_div(ahead_us, 1000)
+    }
+  end
 
   defp window(scope, limit, limit_key, algorithm, cost, opts) do
     adapter = adapter(opts)
@@ -188,13 +201,14 @@ defmodule Relay.Platform.RateLimit do
 
   defp run_mode(:dual, server, valkey, pg, to_decision) do
     case {Backend.call_valkey(valkey, server), pg.()} do
-      {{:ok, a}, {:ok, b}} -> {:dual, stricter(to_decision.(a), to_decision.(b))}
+      {{:ok, a}, {:ok, b}} -> {:dual, combine(to_decision.(a), to_decision.(b))}
       {{:error, _}, {:ok, b}} -> {:pg, to_decision.(b)}
       _ -> :unavailable
     end
   end
 
   defp to_result({backend, :allow}), do: {:allow, %{backend: backend}}
+  defp to_result({backend, {:allow, info}}), do: {:allow, Map.put(info, :backend, backend)}
   defp to_result({_backend, {:deny, _retry, _rule} = deny}), do: deny
 
   defp to_result(:unavailable) do
@@ -208,6 +222,16 @@ defmodule Relay.Platform.RateLimit do
       {:error, _} -> :unavailable
     end
   end
+
+  defp combine({:allow, a}, {:allow, b}) do
+    remaining = min(a.remaining, b.remaining)
+    {:allow, %{remaining: remaining, reset_ms: max(a.reset_ms, b.reset_ms)}}
+  end
+
+  defp combine(a, b), do: stricter(plain(a), plain(b))
+
+  defp plain({:allow, _info}), do: :allow
+  defp plain(verdict), do: verdict
 
   # T-9 (5)
   @doc "Combines two backends' decisions: allowed only if both allow; otherwise the denial with the longer wait."

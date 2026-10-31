@@ -6,7 +6,7 @@ Database server requirements:
 
 Key store:
   PKCS#11 module {{ .Values.keyStore.module }}, token {{ .Values.keyStore.token }}, PIN from secret {{ .Values.keyStore.pinSecret }} (key "pin").
-  Region KEK {{ .Values.keyStore.kekLabel }}, secret fingerprint key {{ .Values.keyStore.fingerprintLabel }}.
+  Region KEK {{ .Values.keyStore.kekLabel }}, secret fingerprint key {{ .Values.keyStore.fingerprintLabel }}, cursor key {{ .Values.keyStore.cursorLabel }}.
   The provider library is not part of the image; mount it with keyStore.volumes and keyStore.volumeMounts.
 
 Database ownership:
@@ -20,6 +20,7 @@ Key store keys:
   Create the stage-1 keys in the token once, from a host that can reach it, with OpenSC's pkcs11-tool:
     PKCS11_MODULE=<library> PKCS11_TOKEN={{ .Values.keyStore.token }} PKCS11_PIN_FILE=<pin file> \
       KEY_STORE_KEK_LABEL={{ .Values.keyStore.kekLabel }} KEY_STORE_FINGERPRINT_LABEL={{ .Values.keyStore.fingerprintLabel }} \
+      KEY_STORE_CURSOR_LABEL={{ .Values.keyStore.cursorLabel }} \
       deploy/hsm-keys.sh
   The script is idempotent; existing keys are left untouched. Blind index keys are per tenant and are generated in
   the token when the tenant is created.

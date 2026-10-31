@@ -61,6 +61,21 @@ defmodule Relay.Tenancy do
   def decrypt_field(scope, stored, opts \\ []),
     do: FieldCipher.decrypt(provider(opts), scope, stored)
 
+  # TN-27
+  # TN-66 (2)
+  @doc "Returns the data key of a field scope from the key provider, so a later transaction can encrypt under it through the `:data_key` option. The key store is called outside any transaction, so this function must not run inside one."
+  @spec data_key(KeyProvider.data_key_scope(), [option()]) ::
+          {:ok, Relay.Redacted.t()} | {:error, Relay.Error.t()}
+  def data_key(scope, opts \\ []) do
+    provider =
+      case Keyword.fetch(opts, :key_provider) do
+        {:ok, provider} -> provider
+        :error -> Application.fetch_env!(:relay, :key_provider)
+      end
+
+    provider.data_key(scope)
+  end
+
   # TN-13 (2)
   # TN-13 (5)
   @doc "Runs work in a transaction scoped to a tenant environment; see `Relay.Tenancy.Context.within/3`."

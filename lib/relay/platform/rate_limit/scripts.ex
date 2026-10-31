@@ -24,16 +24,16 @@ defmodule Relay.Platform.RateLimit.Scripts do
 
   # T-20 (1)
   # T-11
-  @doc "Runs `gcra.lua`; returns `{code, retry_after_us}`."
+  @doc "Runs `gcra.lua`; returns `{code, retry_after_us, tat_us, now_us}`."
   @spec gcra(Relay.Scope.t(), String.t(), map(), module()) ::
-          {:ok, {atom(), non_neg_integer()}} | {:error, Relay.Error.t()}
+          {:ok, {atom(), non_neg_integer(), integer(), integer()}} | {:error, Relay.Error.t()}
   def gcra(scope, limit_key, p, adapter) do
     args = [p.emission_us, p.burst, p.cost, p.cap, p.limit, p.period_us, p.offset_us]
 
     with {:ok, key} <- key(scope, ["rl", "g"], limit_key),
-         {:ok, [code, retry | _]} <- Valkey.eval(@gcra, key, args, adapter),
+         {:ok, [code, retry, tat, now | _]} <- Valkey.eval(@gcra, key, args, adapter),
          {:ok, code} <- Map.fetch(@gcra_codes, code) do
-      {:ok, {code, retry}}
+      {:ok, {code, retry, tat, now}}
     else
       {:error, %Relay.Error{}} = error -> error
       _ -> reply_error()

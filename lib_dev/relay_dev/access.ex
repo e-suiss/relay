@@ -12,7 +12,12 @@ defmodule RelayDev.Access do
 
   @doc "The issuer the stand-in answers for: the configured Access issuer."
   @spec issuer() :: String.t()
-  def issuer, do: Relay.Access.issuer() || "https://access.localhost"
+  def issuer do
+    case Relay.Access.issuer() do
+      issuer when is_binary(issuer) -> issuer
+      _unset -> "https://access.localhost"
+    end
+  end
 
   @doc "The discovery document of the stand-in for a region."
   @spec discovery(String.t()) :: map()

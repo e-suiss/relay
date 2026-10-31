@@ -8,6 +8,7 @@ defmodule Relay.Api.EdgeUnitTest do
   alias Relay.Tenancy.SettingKeys
   alias RelayWeb.Api.Admission
   alias RelayWeb.Api.Beta
+  alias RelayWeb.Api.Response
   alias RelayWeb.Api.Transport
 
   defp no_derive, do: :none
@@ -96,7 +97,7 @@ defmodule Relay.Api.EdgeUnitTest do
       log =
         ExUnit.CaptureLog.capture_log(fn ->
           unavailable =
-            RelayWeb.Api.Response.exception(
+            Response.exception(
               conn,
               %DBConnection.ConnectionError{message: "pool timeout"},
               []
@@ -106,7 +107,7 @@ defmodule Relay.Api.EdgeUnitTest do
           assert Plug.Conn.get_resp_header(unavailable, "retry-after") == ["5"]
           assert Jason.decode!(unavailable.resp_body)["code"] == "service_unavailable"
 
-          crashed = RelayWeb.Api.Response.exception(conn, %RuntimeError{message: "boom"}, [])
+          crashed = Response.exception(conn, %RuntimeError{message: "boom"}, [])
           assert crashed.status == 500
           refute crashed.resp_body =~ "boom"
         end)

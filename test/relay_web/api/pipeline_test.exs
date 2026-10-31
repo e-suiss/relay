@@ -3,6 +3,9 @@ defmodule RelayWeb.Api.PipelineTest do
 
   import Plug.Conn
 
+  alias Relay.Api.Store
+  alias Relay.Api.Tenant
+  alias Relay.Api.Versions
   alias RelayTest.Api
   alias RelayTest.Api.Controller
   alias RelayTest.Api.Verifier
@@ -35,7 +38,7 @@ defmodule RelayWeb.Api.PipelineTest do
 
       assert conn.status == 200
       assert [_] = get_resp_header(conn, "request-id")
-      assert get_resp_header(conn, "relay-version") == [Relay.Api.Versions.latest()]
+      assert get_resp_header(conn, "relay-version") == [Versions.latest()]
       assert ["max-age=" <> _] = get_resp_header(conn, "strict-transport-security")
       assert ["application/json; charset=utf-8"] = get_resp_header(conn, "content-type")
       Api.assert_contract(conn)
@@ -267,19 +270,19 @@ defmodule RelayWeb.Api.PipelineTest do
       body = problem(conn, 400)
 
       assert body["code"] == "unsupported_api_version"
-      assert body["supported_versions"] == Relay.Api.Versions.supported()
+      assert body["supported_versions"] == Versions.supported()
     end
 
     test "API-52: the first successful request pins the latest version; later ones are served it",
          ctx do
-      assert {:ok, %{api_version: nil}} = Relay.Api.Tenant.edge(ctx.tenant.test)
+      assert {:ok, %{api_version: nil}} = Tenant.edge(ctx.tenant.test)
       assert problem(advance(ctx.token, %{"by" => "PT1H", "x" => 1}, [key()]), 422)
-      assert {:ok, %{api_version: nil}} = Relay.Api.Tenant.edge(ctx.tenant.test)
+      assert {:ok, %{api_version: nil}} = Tenant.edge(ctx.tenant.test)
 
       assert advance(ctx.token, %{"by" => "PT1H"}, [key()]).status == 200
-      latest = Relay.Api.Versions.latest()
-      assert {:ok, %{api_version: ^latest}} = Relay.Api.Tenant.edge(ctx.tenant.test)
-      assert {:ok, %{api_version: ^latest}} = Relay.Api.Tenant.edge(ctx.tenant.live)
+      latest = Versions.latest()
+      assert {:ok, %{api_version: ^latest}} = Tenant.edge(ctx.tenant.test)
+      assert {:ok, %{api_version: ^latest}} = Tenant.edge(ctx.tenant.live)
 
       conn = advance(ctx.token, %{"by" => "PT1H"}, [key()])
       assert get_resp_header(conn, "relay-version") == [latest]
@@ -287,21 +290,21 @@ defmodule RelayWeb.Api.PipelineTest do
 
     test "API-52: the automatic pin is written once; a manual change is its own mode", ctx do
       {:ok, actor} = Relay.Actor.new(:api_client, "cli_test", "cli_test")
-      latest = Relay.Api.Versions.latest()
+      latest = Versions.latest()
 
-      assert {:ok, :pinned} = Relay.Api.Tenant.pin(ctx.tenant.test, latest, actor)
-      assert {:ok, :already_pinned} = Relay.Api.Tenant.pin(ctx.tenant.live, latest, actor)
-      assert {:ok, :unsupported} = Relay.Api.Tenant.pin(ctx.tenant.live, "2020-01-01", actor)
+      assert {:ok, :pinned} = Tenant.pin(ctx.tenant.test, latest, actor)
+      assert {:ok, :already_pinned} = Tenant.pin(ctx.tenant.live, latest, actor)
+      assert {:ok, :unsupported} = Tenant.pin(ctx.tenant.live, "2020-01-01", actor)
 
       manual = fn version ->
-        Relay.Api.Store.in_scope(ctx.tenant.live, fn _status ->
-          Relay.Api.Store.api_version_pin(version, false, TenantFixture.digest(), actor)
+        Store.in_scope(ctx.tenant.live, fn _status ->
+          Store.api_version_pin(version, false, TenantFixture.digest(), actor)
         end)
       end
 
       assert {:ok, :unchanged} = manual.(latest)
       assert {:ok, :changed} = manual.("2027-01-01")
-      assert {:ok, %{api_version: "2027-01-01"}} = Relay.Api.Tenant.edge(ctx.tenant.test)
+      assert {:ok, %{api_version: "2027-01-01"}} = Tenant.edge(ctx.tenant.test)
     end
 
     test "API-55: an unknown Relay-Beta feature is 400", ctx do

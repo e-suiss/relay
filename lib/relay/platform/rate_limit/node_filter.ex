@@ -1,6 +1,6 @@
 defmodule Relay.Platform.RateLimit.NodeFilter do
   @moduledoc """
-  The node-local first pass of the API rate limit (T-42, T-94): a cheap filter in front of the cluster limiter, never a replacement for it. It runs Relay's own GCRA arithmetic (`Relay.Platform.RateLimit.Gcra`, T-19) on the node's monotonic clock (`Relay.Clock.monotonic_ms/0`) over one ETS table for the whole node; the node's wall clock never enters it (INV-50, T-11) and there is no Hammer.
+  The node-local first pass of the API rate limit (T-42, T-94): a cheap filter in front of the cluster limiter, never a replacement for it. It runs Relay's own GCRA arithmetic (the emission interval and theoretical arrival time of `Relay.Platform.RateLimit.Gcra`, T-19) on the node's monotonic clock (`Relay.Clock.monotonic_ms/0`) over one ETS table for the whole node; the node's wall clock never enters it (INV-50, T-11) and there is no Hammer.
 
   The filter only counts what the cluster limiter allowed (`note/5`), with the same limit and key. A node's allowed consumption is part of the cluster's, so the node-local theoretical arrival time is never later than the cluster one: when `check/5` refuses, the cluster limiter would refuse as well, and the request is answered without asking it. Everything else is decided by the cluster limiter. Only GCRA limits are filtered.
 
@@ -40,12 +40,13 @@ defmodule Relay.Platform.RateLimit.NodeFilter do
   def check(%Relay.Scope{}, %Limit{}, _key_parts, _cost, _opts), do: :pass
 
   defp decide(limit, tat, cost, now) do
-    params = params(limit, cost)
+    emission = Gcra.emission_us(limit.limit, limit.period_ms)
+    allowance = limit.burst * emission
+    ahead = max(tat, now) + cost * emission - now
 
-    case Gcra.step(%{tat: tat, w: 0, c: 0, p: 0}, params, now) do
-      {:limited, %{retry_after_us: retry}, _state} -> {:deny, max(Gcra.ceil_div(retry, 1000), 1)}
-      _allowed_or_beyond_burst -> :pass
-    end
+    if cost <= limit.burst and ahead > allowance,
+      do: {:deny, max(Gcra.ceil_div(ahead - allowance, 1000), 1)},
+      else: :pass
   end
 
   # T-94
@@ -81,18 +82,6 @@ defmodule Relay.Platform.RateLimit.NodeFilter do
           do: :ok,
           else: advance(table, key, step_us, now)
     end
-  end
-
-  defp params(limit, cost) do
-    %{
-      emission_us: Gcra.emission_us(limit.limit, limit.period_ms),
-      burst: limit.burst,
-      cost: cost,
-      cap: -1,
-      limit: limit.limit,
-      period_us: limit.period_ms * 1000,
-      offset_us: 0
-    }
   end
 
   defp key(scope, limit, key_parts) do

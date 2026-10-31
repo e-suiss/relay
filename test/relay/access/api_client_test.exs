@@ -15,7 +15,7 @@ defmodule Relay.Access.ApiClientTest do
 
   setup do
     :ok = FakeAccess.install!()
-    :ets.insert(Clients, {:generation, 0})
+    :ok = Clients.reset()
     tenant = TenantFixture.tenant!()
     client = FakeAccess.client!(tenant.test, ["read", "config"])
     %{tenant: tenant, access_tenant: tenant.attrs.access_tenant_id, client: client}
@@ -123,6 +123,7 @@ defmodule Relay.Access.ApiClientTest do
     test "API-44, TN-24 (5), TN-36: a revocation reaches a node through the generation signal",
          ctx do
       assert {:ok, _} = verify(token(ctx))
+      _ = :sys.get_state(Clients)
       {"changed", generation} = set_status(ctx.tenant.test, ctx.client, "revoked")
 
       assert {:ok, _} = verify(token(ctx))
@@ -153,7 +154,7 @@ defmodule Relay.Access.ApiClientTest do
       Api.assert_contract(conn)
       assert Jason.decode!(conn.resp_body)["code"] == "auth_tenant_suspended"
 
-      :ets.delete_all_objects(Clients)
+      :ok = Clients.reset()
       assert {:error, %Relay.Error{code: :auth_tenant_suspended}} = verify(token(ctx))
     end
 

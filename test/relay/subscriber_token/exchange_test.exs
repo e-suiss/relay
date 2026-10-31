@@ -161,7 +161,7 @@ defmodule Relay.SubscriberToken.ExchangeTest do
       {:ok, {:changed, _}} =
         Relay.Tenancy.set_tenant_status(ctx.tenant.live, change, TenantFixture.actor())
 
-      :ets.delete_all_objects(Relay.Access.Clients)
+      :ok = Relay.Access.Clients.reset()
       conn = exchange(form(user_token(ctx)))
 
       assert conn.status == 403

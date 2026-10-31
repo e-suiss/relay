@@ -5,6 +5,8 @@ defmodule Relay.Api.Idempotency do
   The request's work runs inside the transaction that claims the key (`Relay.Ingest.idempotency_begin/3`), so a key is claimed only once its business logic starts and the stored response commits with the work or not at all. The work returns `{:ok, {status, headers, body}}` to commit and answer, or `{:error, error}` to roll back and store nothing (a failure without side effects). A response is stored, sealed under the tenant's data key, unless its status is 400, 401, 403 or 429 (API-14); the same key and body later replays it byte for byte, a different body is `idempotency_key_reuse` and a claim still in progress is `idempotency_key_in_progress`.
   """
 
+  require Logger
+
   alias Relay.Api.Store
 
   @stored_headers [
@@ -20,6 +22,7 @@ defmodule Relay.Api.Idempotency do
   @type mode :: :required | :derived | :not_applicable
   @type derive :: (-> {:ok, String.t()} | :none)
   @type work :: (atom() -> {:ok, response()} | {:error, Relay.Error.t()})
+  @type spanning_work :: (-> {:ok | :partial, response()} | {:error, Relay.Error.t()})
 
   # API-10
   # API-11
@@ -101,6 +104,101 @@ defmodule Relay.Api.Idempotency do
           Relay.Error.new(:idempotency_key_reuse, "this key was used with a different body")
         )
     end
+  end
+
+  # API-12
+  # API-13
+  # API-14
+  # API-15
+  @doc """
+  Runs `work` once for the key when the work spans its own transactions, as an operator write does. The key is claimed in a first short transaction and the claim is held, as a lock on the one connection the whole run uses, until the response is stored: a request with the same key meanwhile is `idempotency_key_in_progress`. After the work its response is stored in a second short transaction under the same claim, sealed as `run/5` stores it; the same key and body later replay it byte for byte, a different body is `idempotency_key_reuse`.
+
+  `work` returns `{:ok, response}` for a completed operation, `{:partial, response}` for a failure after part of the operation took effect, whose response is stored like a success (the only case a `5xx` is stored), or `{:error, error}` for a failure without side effects, which stores nothing and releases the key for a retry. A scope without an active data key, the installation scope, cannot seal a response: its writes are claimed while they run but not stored.
+  """
+  @spec run_spanning(Relay.Scope.t(), String.t(), String.t(), binary(), spanning_work()) ::
+          {:ok, outcome()} | {:error, Relay.Error.t()}
+  def run_spanning(%Relay.Scope{} = scope, endpoint, key, raw_body, work) when is_binary(key) do
+    fingerprint = Relay.Ingest.idempotency_fingerprint(raw_body)
+    request = %{endpoint: endpoint, key: key, fingerprint: fingerprint}
+
+    Relay.Ingest.idempotency_session(fn ->
+      case Relay.Ingest.in_scope(scope, fn _status -> hold(request) end) do
+        {:ok, {:held, lock}} ->
+          try do
+            execute(scope, request, work)
+          after
+            release(scope, lock)
+          end
+
+        replayed_or_error ->
+          finish(replayed_or_error, scope)
+      end
+    end)
+  end
+
+  defp hold(%{endpoint: endpoint, key: key, fingerprint: fingerprint}) do
+    case Relay.Ingest.idempotency_begin(endpoint, key, fingerprint) do
+      {:created, nil} ->
+        case Relay.Ingest.idempotency_hold(endpoint, key) do
+          {:held, lock} -> {:held, lock}
+          :busy -> Store.rollback(claim_error(:in_progress))
+        end
+
+      {:replayed, stored} ->
+        {:replayed, stored}
+
+      {claim, nil} ->
+        Store.rollback(claim_error(claim))
+    end
+  end
+
+  defp claim_error(:in_progress),
+    do: Relay.Error.new(:idempotency_key_in_progress, "a request with this key is in progress")
+
+  defp claim_error(:conflict),
+    do: Relay.Error.new(:idempotency_key_reuse, "this key was used with a different body")
+
+  defp execute(scope, request, work) do
+    case work.() do
+      {kind, {_status, _headers, body} = response}
+      when kind in [:ok, :partial] and is_binary(body) ->
+        :ok = complete(scope, request, response)
+        {:ok, {:fresh, response}}
+
+      {:error, %Relay.Error{} = error} ->
+        {:error, error}
+    end
+  end
+
+  defp complete(scope, %{endpoint: endpoint, key: key, fingerprint: fingerprint}, response) do
+    with true <- Relay.Ingest.idempotency_cacheable?(elem(response, 0)),
+         {:ok, field, data_key} <- seal_key(scope),
+         {:ok, :stored} <-
+           Relay.Ingest.in_scope(scope, fn _status ->
+             {:created, nil} = Relay.Ingest.idempotency_begin(endpoint, key, fingerprint)
+             store(endpoint, key, fingerprint, response, field, data_key)
+             :stored
+           end) do
+      :ok
+    else
+      false -> :ok
+      {:error, %Relay.Error{code: :data_key_not_found}} -> :ok
+      other -> not_stored(other)
+    end
+  rescue
+    error in [DBConnection.ConnectionError, Postgrex.Error, MatchError] -> not_stored(error)
+  end
+
+  defp not_stored(reason) do
+    Logger.warning("a response was not stored for replay: #{inspect(reason)}")
+    :ok
+  end
+
+  defp release(scope, lock) do
+    _ = Relay.Ingest.in_scope(scope, fn _status -> Relay.Ingest.idempotency_release(lock) end)
+    :ok
+  rescue
+    _error in [DBConnection.ConnectionError, Postgrex.Error] -> :ok
   end
 
   defp store(endpoint, key, fingerprint, {status, headers, body}, field, data_key) do

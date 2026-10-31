@@ -35,6 +35,18 @@ defmodule Relay.Delivery.Store do
     Repo.code!(row["delivery_cancel"], [:cancelled, :already_terminal, :not_found])
   end
 
+  # API-58
+  # INV-6
+  @doc "Applies the cancellation tombstone that covers a delivery's run, if any: a delivery not yet handed to a provider is cancelled with `cancelled:<cancellation id>` and its notification closed when nothing else is open."
+  @spec delivery_tombstone_apply(Relay.Id.t()) ::
+          {:cancelled | :already_sent | :none | :terminal | :not_found, Relay.Id.t() | nil}
+  def delivery_tombstone_apply(delivery_id) do
+    [row] = Repo.call!("relay_fn.delivery_tombstone_apply", [delivery_id])
+
+    {Repo.code!(row["result"], [:cancelled, :already_sent, :none, :terminal, :not_found]),
+     row["cancellation_id"]}
+  end
+
   @doc "Cancels a notification and its pending deliveries."
   @spec notification_cancel(Relay.Id.t(), String.t(), <<_::256>>, Actor.t()) ::
           {:cancelled | :already_closed | :not_found, non_neg_integer() | nil}

@@ -255,6 +255,24 @@ defmodule RelayWeb.Operator.Json do
     }
   end
 
+  # API-51
+  # TN-52
+  @doc "A quota policy with the usage of its current period."
+  @spec quota_policy(map()) :: map()
+  def quota_policy(row) do
+    %{
+      "object" => "quota_policy",
+      "period" => row["period"],
+      "limit" => row["limit_total"],
+      "class_caps" => row["class_caps"],
+      "security_reserve_bp" => row["security_reserve_bp"],
+      "used" => row["used"],
+      "period_start" => time(row["period_start"]),
+      "version" => row["version"],
+      "updated_at" => time(row["updated_at"])
+    }
+  end
+
   # TN-41
   @doc "A kill switch record."
   @spec kill_switch(map()) :: map()

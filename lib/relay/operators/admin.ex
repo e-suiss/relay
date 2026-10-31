@@ -1,6 +1,6 @@
 defmodule Relay.Operators.Admin do
   @moduledoc """
-  The management actions of operators, each written with its audit record in one transaction (TN-47, TN-48): role assignments (TN-21, TN-23), support delegations (TN-23), the cross-tenant overview (X-4), the audit log (TN-50), the audited reveal of personal data (X-5), send modes (OP-51) and the API version pin (API-52). The caller has authorized the action and, for a sensitive one, passed its step-up reference.
+  The management actions of operators, each written with its audit record in one transaction (TN-47, TN-48): role assignments (TN-21, TN-23), support delegations (TN-23), the cross-tenant overview (X-4), the audit log (TN-50), the audited reveal of personal data (X-5), send modes (OP-51), quota policies (API-51, TN-52) and the API version pin (API-52). The caller has authorized the action and, for a sensitive one, passed its step-up reference.
   """
 
   alias Relay.Actor
@@ -293,6 +293,109 @@ defmodule Relay.Operators.Admin do
       end
     end)
     |> unwrap()
+  end
+
+  # API-51
+  # TN-52
+  @doc "Lists the active quota policies of `scope` with the usage of their current period."
+  @spec quota_policies(Scope.t()) :: {:ok, [map()]} | {:error, term()}
+  def quota_policies(%Scope{} = scope) do
+    Store.in_scope(scope, fn _status ->
+      for %{"state" => "active"} = policy <- Store.quota_policies() do
+        usage = Store.quota_usage(policy["period"])
+
+        Map.merge(policy, %{
+          "used" => usage["used"] + usage["reserve_used"],
+          "period_start" => usage["period_start"]
+        })
+      end
+    end)
+  end
+
+  # API-51
+  # TN-22
+  # TN-52
+  @doc """
+  Plans a quota policy change of `scope` from a `QuotaPolicyWrite` body without writing it. A field the body leaves out keeps its current value; `limit: null` removes the policy. Returns the attributes to write with `limit_changed?` (the limit field changes, which only the installation operator may do) and `relaxes?` (the change relaxes the policy and needs step-up, `Relay.Operators.Authz.quota_relaxes?/2`).
+  """
+  @spec quota_change(Scope.t(), map()) :: {:ok, map()} | {:error, term()}
+  def quota_change(%Scope{} = scope, body) do
+    period = body["period"]
+
+    with {:ok, policies} <- Store.in_scope(scope, fn _status -> Store.quota_policies() end) do
+      current = current_quota(Enum.find(policies, &(&1["period"] == period)))
+
+      new = %{
+        period: period,
+        limit_total: Map.get(body, "limit", current.limit_total),
+        class_caps: Map.get(body, "class_caps", current.class_caps),
+        security_reserve_bp: Map.get(body, "security_reserve_bp", current.security_reserve_bp)
+      }
+
+      cond do
+        not is_nil(current.limit_total) or not is_nil(new.limit_total) ->
+          {:ok,
+           Map.merge(new, %{
+             limit_changed?: new.limit_total != current.limit_total,
+             relaxes?: Authz.quota_relaxes?(current, new)
+           })}
+
+        Map.has_key?(body, "limit") ->
+          {:error, field("/limit", "not_found", "there is no policy to remove")}
+
+        true ->
+          {:error, field("/limit", "required", "a new policy needs a limit")}
+      end
+    end
+  end
+
+  defp current_quota(%{"state" => "active"} = policy) do
+    %{
+      limit_total: policy["limit_total"],
+      class_caps: policy["class_caps"],
+      security_reserve_bp: policy["security_reserve_bp"]
+    }
+  end
+
+  defp current_quota(_none), do: %{limit_total: nil, class_caps: %{}, security_reserve_bp: 1000}
+
+  # API-51
+  # TN-22
+  # TN-52
+  @doc "Writes a planned quota policy change of `scope` (`quota_change/2`); audited as `quota_policy.changed`. Returns the policy with the usage of its current period; a removed policy keeps its last values."
+  @spec set_quota_policy(Scope.t(), map(), String.t(), Actor.t()) ::
+          {:ok, map()} | {:error, term()}
+  def set_quota_policy(%Scope{} = scope, plan, reason, %Actor{} = actor) do
+    action = "quota_policy.changed"
+    digest = Operators.record_digest(scope, action, actor, "quota_policy", plan.period, reason)
+
+    written =
+      Store.in_scope(scope, fn _status ->
+        case Store.quota_policy_set(plan, digest, actor) do
+          {:invalid_caps, _version} ->
+            {:error, field("/class_caps", "unsupported_value", "a cap is 1 to 10000 bp")}
+
+          {:version_conflict, _version} ->
+            {:error, conflict("the quota policy changed concurrently")}
+
+          {_result, _version} ->
+            {:ok, nil}
+        end
+      end)
+
+    with {:ok, nil} <- unwrap(written), do: quota_policy(scope, plan.period)
+  end
+
+  defp quota_policy(scope, period) do
+    Store.in_scope(scope, fn _status ->
+      policy = Enum.find(Store.quota_policies(), &(&1["period"] == period))
+      usage = Store.quota_usage(period)
+
+      Map.merge(policy, %{
+        "used" => usage["used"] + usage["reserve_used"],
+        "period_start" => usage["period_start"]
+      })
+    end)
   end
 
   # API-52

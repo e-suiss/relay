@@ -48,6 +48,7 @@ defmodule RelayWeb.Operator.RoleController do
     end)
   end
 
+  # API-14
   defp assign_each(conn, scope, environments, attrs) do
     actor = actor(conn)
 
@@ -62,7 +63,7 @@ defmodule RelayWeb.Operator.RoleController do
       [{:ok, row} | rest] ->
         case Enum.find(rest, &match?({:error, _}, &1)) do
           nil -> {:ok, {201, Json.role_assignment(row)}}
-          {:error, error} -> {:error, error}
+          {:error, error} -> {:partial, error}
         end
 
       [{:error, error} | _rest] ->

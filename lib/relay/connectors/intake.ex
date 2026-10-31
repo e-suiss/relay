@@ -149,7 +149,7 @@ defmodule Relay.Connectors.Intake do
       channels: channels,
       shed: Map.new(@lanes, &{&1, Relay.Platform.load_shed_engaged?(&1)}),
       breaker_open: MapSet.new(),
-      lane_capacity: nil
+      lane_capacity: Relay.Platform.lane_capacity()
     }
 
     case Relay.Platform.admit(input) do

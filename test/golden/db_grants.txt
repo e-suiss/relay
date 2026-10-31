@@ -312,6 +312,7 @@ table relay_queue.drr_waits relay_queue DELETE,SELECT
 table relay_queue.limiter_states relay_owner INSERT,SELECT,UPDATE
 table relay_queue.limiter_states relay_queue DELETE,SELECT
 table relay_queue.oban_jobs relay_app INSERT,SELECT,UPDATE
+table relay_queue.oban_jobs relay_maint SELECT
 table relay_queue.oban_jobs relay_queue DELETE,SELECT
 table relay_queue.oban_peers relay_app SELECT
 table relay_queue.oban_peers relay_queue DELETE,INSERT,SELECT,UPDATE

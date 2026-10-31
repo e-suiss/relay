@@ -14,6 +14,10 @@ defmodule Relay.Ingest.SendModeTest do
       assert Relay.Ingest.send_mode(nil, all, "billing", "email") == :off
       assert Relay.Ingest.send_mode(nil, all, "billing", "sms") == :dry_run
       assert Relay.Ingest.send_mode(nil, %{}, "billing", "sms") == :live
+      assert Relay.Ingest.send_mode(nil, %{}, "billing", "sms", "shadow") == :shadow
+      assert Relay.Ingest.send_mode(nil, all, "billing", "sms", "off") == :dry_run
+      assert Relay.Ingest.send_mode("live", %{}, "billing", "sms", "off") == :live
+      assert Relay.Ingest.send_mode(nil, %{}, "billing", "sms", nil) == :live
     end
   end
 end

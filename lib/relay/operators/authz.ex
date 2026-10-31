@@ -106,6 +106,23 @@ defmodule Relay.Operators.Authz do
   @spec send_mode_relaxes?(String.t() | nil, String.t() | nil) :: boolean()
   def send_mode_relaxes?(previous, new), do: mode_rank(new) > mode_rank(previous)
 
+  # TN-22
+  # API-51
+  @doc """
+  Returns true if a quota policy change relaxes: removing an active policy, raising its limit or its `security` reserve, or raising or dropping a class cap. Creating a policy where none is active only tightens. `current` and `new` carry `:limit_total` (`nil` for no active policy), `:class_caps` and `:security_reserve_bp`.
+  """
+  @spec quota_relaxes?(map(), map()) :: boolean()
+  def quota_relaxes?(%{limit_total: nil}, _new), do: false
+  def quota_relaxes?(_current, %{limit_total: nil}), do: true
+
+  def quota_relaxes?(current, new) do
+    new.limit_total > current.limit_total or
+      new.security_reserve_bp > current.security_reserve_bp or
+      Enum.any?(current.class_caps, fn {class, cap} ->
+        not Map.has_key?(new.class_caps, class) or Map.fetch!(new.class_caps, class) > cap
+      end)
+  end
+
   defp mode_rank("off"), do: 0
   defp mode_rank("dry_run"), do: 1
   defp mode_rank("shadow"), do: 2

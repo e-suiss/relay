@@ -1,6 +1,6 @@
 defmodule Relay.Tenancy.KillSwitch.Sweep do
   @moduledoc """
-  The queue stop point of a kill switch (TN-40 (2), S-49): the job the engaging transaction inserts pauses, batch by batch, the pending deliveries the new record matches in channel, message class, sub-tenant and provider account; a platform record's job visits every scope with pending deliveries. The other dimensions are caught by the first step of each delivery job. A job that runs out of its batch budget snoozes and continues.
+  The queue stop point of a kill switch (TN-40 (2), S-49): the job the engaging transaction inserts pauses, batch by batch, the pending deliveries the new record matches in channel, message class, sub-tenant, workflow, API client and provider account; a platform record's job visits every scope with pending deliveries. The other dimensions are caught by the first step of each delivery job. A job that runs out of its batch budget snoozes and continues.
 
   Telemetry: `[:relay, :kill_switch, :sweep]` (`paused`) for the time-to-stop SLO (TN-44).
   """

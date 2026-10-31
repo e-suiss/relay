@@ -35,6 +35,7 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.delivery_open" =>
       ~w(opened exists notification_not_found notification_closed fallback_invalid tenant_inactive),
     "relay_fn.delivery_cancel" => ~w(cancelled already_terminal not_found),
+    "relay_fn.delivery_tombstone_apply" => ~w(cancelled already_sent none terminal not_found),
     "relay_fn.notification_cancel" => ~w(cancelled already_closed not_found),
     "relay_fn.attempt_open" =>
       ~w(opened delivery_not_found delivery_not_sendable delivery_paused attempt_active tenant_inactive),

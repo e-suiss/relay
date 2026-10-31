@@ -66,6 +66,37 @@ defmodule Relay.Ingest.Store do
     Repo.code!(row["idempotency_complete"], [:stored, :not_cacheable, :not_claimed])
   end
 
+  @lock_key """
+  SELECT pg_try_advisory_lock(k.lock), k.lock
+  FROM (SELECT hashtextextended(current_setting('relay.tenant_id')::uuid::text || '|'
+    || current_setting('relay.environment') || '|' || $1 || '|' || $2, 0) AS lock) AS k
+  """
+
+  # API-13
+  # API-15
+  @doc "Runs `fun` on one database connection held for its whole run, so that a claim held by `idempotency_hold/2` stays with every transaction of `fun`; see `Ecto.Repo.checkout/2`."
+  @spec idempotency_session((-> result)) :: result when result: term()
+  def idempotency_session(fun) when is_function(fun, 0), do: Repo.checkout(fun)
+
+  # API-13
+  # API-15
+  @doc "Holds the claim of a key that `idempotency_begin/3` just claimed in the same transaction past the transaction's end, as a session lock on the connection of `idempotency_session/1` under the key's claim lock; returns the lock to release, or `:busy`."
+  @spec idempotency_hold(String.t(), String.t()) :: {:held, integer()} | :busy
+  def idempotency_hold(endpoint, key) do
+    case Repo.scoped_query!(@lock_key, [endpoint, key]).rows do
+      [[true, lock]] -> {:held, lock}
+      [[false, _lock]] -> :busy
+    end
+  end
+
+  # API-13
+  @doc "Releases a claim held by `idempotency_hold/2`."
+  @spec idempotency_release(integer()) :: boolean()
+  def idempotency_release(lock) when is_integer(lock) do
+    [[released]] = Repo.scoped_query!("SELECT pg_advisory_unlock($1)", [lock]).rows
+    released
+  end
+
   # API-16
   # C-29
   # OP-68 (3)

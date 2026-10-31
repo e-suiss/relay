@@ -232,6 +232,10 @@ defmodule RelayWeb.Router do
     put "/api_version", TenantController, :set_api_version,
       private: %{relay_operation: "setApiVersion"}
 
+    get "/quotas", TenantController, :quotas, private: %{relay_operation: "listQuotaPolicies"}
+
+    put "/quotas", TenantController, :set_quota, private: %{relay_operation: "setQuotaPolicy"}
+
     get "/support_delegations", SupportController, :delegations,
       private: %{relay_operation: "listSupportDelegations"}
 

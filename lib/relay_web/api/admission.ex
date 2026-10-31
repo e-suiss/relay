@@ -1,13 +1,14 @@
 defmodule RelayWeb.Api.Admission do
   @moduledoc """
-  Admission control at the API entrance (T-35, T-92, API-51), called by the operations that accept work before any of it is recorded. It asks `Relay.Platform.admit/1` with the node's load shedding state; overload is `503 service_unavailable` with `Retry-After`, never `429`, and a `security` message is never refused.
+  Admission control at the API entrance (T-35, T-92, API-51), called by the operations that accept work before any of it is recorded. It asks `Relay.Platform.admit/1` with the node's load shedding state and its sampled bulk lane capacities (`L_max = μ · W_max`, `Relay.Platform.lane_capacity/0`); overload is `503 service_unavailable` with `Retry-After`, never `429`, and a `security` message is never refused.
   """
 
   @lanes [:l1, :l2, :l3]
 
   # T-35
+  # T-35 (2)
   # API-51
-  @doc "Admits a request of a message class for the channels it asks for, from this node's load shedding state."
+  @doc "Admits a request of a message class for the channels it asks for, from this node's load shedding state and lane capacities."
   @spec check(atom(), [atom()]) :: :ok | {:error, Relay.Error.t()}
   def check(message_class, channels) do
     shed = Map.new(@lanes, &{&1, Relay.Platform.load_shed_engaged?(&1)})
@@ -17,7 +18,7 @@ defmodule RelayWeb.Api.Admission do
       channels: channels,
       shed: shed,
       breaker_open: MapSet.new(),
-      lane_capacity: nil
+      lane_capacity: Relay.Platform.lane_capacity()
     })
   end
 

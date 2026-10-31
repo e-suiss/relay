@@ -5,7 +5,9 @@ defmodule RelayWeb.Operator.TenantController do
 
   import RelayWeb.Operator.Helpers
 
+  alias Relay.Operators
   alias Relay.Operators.Admin
+  alias Relay.Operators.Authz
   alias RelayWeb.Operator.Json
 
   # OP-51
@@ -65,6 +67,69 @@ defmodule RelayWeb.Operator.TenantController do
     do: {:error, field("/channel", "required", "category needs channel")}
 
   defp level(_attrs), do: :ok
+
+  # API-51
+  # TN-52
+  @spec quotas(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def quotas(conn, _params) do
+    case Admin.quota_policies(conn.assigns.operator_scope) do
+      {:ok, policies} ->
+        reply(conn, 200, %{
+          "object" => "list",
+          "data" => Enum.map(policies, &Json.quota_policy/1),
+          "has_more" => false,
+          "next_cursor" => nil
+        })
+
+      {:error, error} ->
+        problem(conn, error)
+    end
+  end
+
+  # API-51
+  # TN-22
+  # TN-52
+  @spec set_quota(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def set_quota(conn, _params) do
+    body = conn.assigns.body
+    scope = conn.assigns.operator_scope
+
+    with {:ok, plan} <- Admin.quota_change(scope, body),
+         :ok <- quota_role(conn, plan),
+         {:ok, conn} <- if(plan.relaxes?, do: step_up(conn), else: {:ok, conn}) do
+      idempotent(conn, fn -> write_quota(conn, scope, plan, body["reason"]) end)
+    else
+      {:error, %Relay.Error{} = error} -> problem(conn, error)
+    end
+  end
+
+  defp write_quota(conn, scope, plan, reason) do
+    with {:ok, policy} <- Admin.set_quota_policy(scope, plan, reason, actor(conn)),
+         do: {:ok, {200, Json.quota_policy(policy)}}
+  end
+
+  # TN-23
+  defp quota_role(_conn, %{limit_changed?: false}), do: :ok
+
+  defp quota_role(conn, _plan) do
+    grants = conn.assigns.operator_session.grants
+
+    if Authz.installation_operator?(grants, Operators.installation_tenant_id()) do
+      :ok
+    else
+      {:error,
+       Relay.Error.new(:auth_insufficient_role, "only the installation operator sets the limit", %{
+         required_role: "installation_operator",
+         granted_roles: granted_roles(conn)
+       })}
+    end
+  end
+
+  defp granted_roles(conn) do
+    conn.assigns.operator_session.grants
+    |> Authz.granted(conn.assigns.operator_scope, Operators.installation_tenant_id())
+    |> Enum.map(&Atom.to_string/1)
+  end
 
   # API-52
   @spec api_version(Plug.Conn.t(), map()) :: Plug.Conn.t()

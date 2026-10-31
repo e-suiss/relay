@@ -41,7 +41,12 @@ defmodule Relay.ExternalId do
     {"oss", "operator_sessions"},
     {"rla", "role_assignments"},
     {"dlg", "support_delegations"},
-    {"tsp", "tenant_suspensions"}
+    {"tsp", "tenant_suspensions"},
+    {"wfv", "workflow_versions"},
+    {"cem", "event_type_mappings"},
+    {"cnl", "cancellations"},
+    {"adr", "recipient_addresses"},
+    {"sdr", "recipient_deletion_requests"}
   ]
   @by_prefix Map.new(@tables)
 

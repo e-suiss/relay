@@ -214,7 +214,7 @@ defmodule Relay.SqlCase do
 
     ["created", ^notification_id] =
       row(
-        "SELECT * FROM relay_fn.notification_accept($1, $2, NULL, $3, 'transactional', NULL, 'system', NULL, NULL, NULL, false, NULL)",
+        "SELECT result, notification_id FROM relay_fn.notification_accept($1, $2, NULL, $3, 'transactional', NULL, 'system', NULL, NULL, NULL, false, NULL)",
         [notification_id, recipient_id, dedup_key]
       )
 

@@ -82,6 +82,14 @@ defmodule RelayWeb.Api.Response do
 
   defp pointer(field_error), do: field_error[:pointer] || field_error["pointer"]
 
+  # API-32
+  @doc "The problem body of an error, as a batch row carries it: the same handler as a whole response."
+  @spec problem_body(Plug.Conn.t(), Relay.Error.t()) :: map()
+  def problem_body(conn, %Relay.Error{} = error) do
+    {_status, _retry, body} = Problem.build(ErrorMap.to_api(error), context(conn))
+    body
+  end
+
   # INV-2
   # API-51
   @doc "Answers an exception raised while serving an API request: a database that cannot serve is `service_unavailable`, anything else `internal_error`."

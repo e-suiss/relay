@@ -137,7 +137,31 @@ defmodule Relay.Schema.FunctionSignaturesTest do
       ~w(scheduled effective already_suspended subtenant_not_found notice_too_short effective_not_allowed),
     "relay_fn.tenant_suspension_activate" => ~w(effective not_due not_scheduled),
     "relay_fn.tenant_suspension_lift" => ~w(lifted cancelled not_found already_ended),
-    "relay_fn.send_mode_set" => ~w(set cleared unchanged invalid_level)
+    "relay_fn.send_mode_set" => ~w(set cleared unchanged invalid_level),
+    "relay_fn.recipient_upsert" =>
+      ~w(created updated unchanged exists recipient_not_found deletion_pending is_agent version_conflict tenant_inactive),
+    "relay_fn.recipient_deletion_request" => ~w(requested already_requested not_found held),
+    "relay_fn.recipient_deletion_complete" => ~w(completed held not_pending),
+    "relay_fn.workflow_create" => ~w(created key_conflict tenant_inactive),
+    "relay_fn.workflow_draft_put" => ~w(replaced unchanged version_conflict not_found),
+    "relay_fn.workflow_publish_request" =>
+      ~w(pending no_draft already_pending version_conflict not_found),
+    "relay_fn.workflow_promote" => ~w(pending version_not_found already_pending not_found),
+    "relay_fn.workflow_publish_complete" => ~w(published rejected not_pending),
+    "relay_fn.event_accept" =>
+      ~w(accepted tenant_inactive workflow_not_published version_not_current send_mode_not_allowed send_at_invalid subtenant_suspended),
+    "relay_fn.event_payload_erase" => ~w(erased already_erased not_terminal),
+    "relay_fn.event_type_mapping_create" => ~w(created conflict workflow_not_found),
+    "relay_fn.event_type_mapping_replace" =>
+      ~w(replaced unchanged conflict version_conflict not_found archived workflow_not_found),
+    "relay_fn.event_type_mapping_archive" =>
+      ~w(archived already_archived version_conflict not_found),
+    "relay_fn.cancel_event" => ~w(cancelled not_found),
+    "relay_fn.cancel_notification" => ~w(cancelled not_found),
+    "relay_fn.cancel_by_key" => ~w(cancelled),
+    "relay_fn.quota_consume" => ~w(allowed reserve exhausted class_cap no_policy),
+    "relay_fn.quota_policy_set" =>
+      ~w(created updated removed unchanged version_conflict invalid_caps)
   }
 
   defp functions do

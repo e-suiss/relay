@@ -330,6 +330,14 @@ defmodule Relay.Platform do
   def advance_virtual_clock(scope, by_ms, record_digest, actor),
     do: VirtualClock.advance(scope, by_ms, record_digest, actor)
 
+  # TN-8
+  # X-27
+  @doc "Advances the virtual clock inside the caller's scoped transaction; see `Relay.Platform.VirtualClock.advance_here/4`."
+  @spec advance_virtual_clock_here(Relay.Scope.t(), integer(), <<_::256>>, Relay.Actor.t()) ::
+          term()
+  def advance_virtual_clock_here(scope, by_ms, record_digest, actor),
+    do: VirtualClock.advance_here(scope, by_ms, record_digest, actor)
+
   # X-27
   @doc "Reads the virtual clock of a scope; `live` answers `:not_test_environment`."
   @spec virtual_clock(Relay.Scope.t()) :: {:ok, term()} | {:error, term()}

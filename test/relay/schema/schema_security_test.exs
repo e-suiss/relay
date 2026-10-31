@@ -9,7 +9,8 @@ defmodule Relay.Schema.SchemaSecurityTest do
                           installation kill_switch_generation load_shed_events operator_sessions
                           operators partition_policies schema_migrations singleton_tasks)
   @append_only ~w(audit_checkpoint_publications audit_checkpoints audit_leaves audit_log
-                  dataset_versions delivery_events erasure_log load_shed_events usage_records
+                  cancellations dataset_versions delivery_events erasure_log load_shed_events
+                  usage_records
                   waitpoint_responders waitpoint_responses waitpoint_response_rejections
                   waitpoint_unmatched_events)
   @shared_read ~w(dataset_active dataset_versions kill_switches)
@@ -18,6 +19,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
     "dead_letters" => "created_at",
     "delivery_attempts" => "created_at",
     "delivery_events" => "received_at",
+    "event_payloads" => "created_at",
     "idempotency_keys" => "created_at",
     "mailbox_records" => "created_at",
     "outbox_events" => "created_at",
@@ -30,7 +32,9 @@ defmodule Relay.Schema.SchemaSecurityTest do
     {"deliveries", "delivery_rank"},
     {"deliveries", "replay_depth"},
     {"idempotency_keys", "response_status"},
-    {"kill_switches", "canary_percent"}
+    {"kill_switches", "canary_percent"},
+    {"quota_counters", "shard"},
+    {"quota_policies", "security_reserve_bp"}
   ]
   @later_stage_references [
     {"dead_letters", "provider_account_id"},
@@ -166,7 +170,8 @@ defmodule Relay.Schema.SchemaSecurityTest do
       pks = key_columns("p") |> Map.new(fn [table, _, cols, _, _] -> {table, cols} end)
 
       for {table, key} <- @partitioned do
-        assert Map.fetch!(pks, table) == ["tenant_id", "environment", "id", key]
+        id = if table == "event_payloads", do: "event_id", else: "id"
+        assert Map.fetch!(pks, table) == ["tenant_id", "environment", id, key]
       end
     end
 
@@ -665,6 +670,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
                ["dead_letters" | monthly],
                ["delivery_attempts" | daily],
                ["delivery_events" | daily],
+               ["event_payloads" | monthly],
                ["idempotency_keys" | daily],
                ["mailbox_records" | monthly],
                ["outbox_events" | monthly],

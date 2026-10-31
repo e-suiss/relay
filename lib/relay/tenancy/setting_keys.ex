@@ -1,6 +1,6 @@
 defmodule Relay.Tenancy.SettingKeys do
   @moduledoc """
-  The catalog of setting keys (`relay.settings.key`). A setting write names a key from the catalog and a value that passes the key's check; `nil` clears the setting at that level. Stage 1 holds the keys the setting resolver falls back to the tenant defaults for: `default_timezone` and `default_locale`, checked and canonicalised like the tenant defaults (`Relay.Tenancy.Defaults`). `fairness.weight.l2` and `fairness.weight.l3` hold the tenant's DRR weight in a bulk lane, an integer from 1 to 100 (1 when unset); only the tenant-level value counts. `api.rate.burst` and `api.rate.sustained` hold the tenant's API rate limit tiers (API-50, API-77), an object with a positive integer `weight` and a positive integer `window_seconds` of at most 3600; an unset tier takes the contract default. `api.mtls_required` (`true` or `false`) makes the tenant's server API accept only certificate-bound tokens (RFC 8705; API-41, API-48).
+  The catalog of setting keys (`relay.settings.key`). A setting write names a key from the catalog and a value that passes the key's check; `nil` clears the setting at that level. Stage 1 holds the keys the setting resolver falls back to the tenant defaults for: `default_timezone` and `default_locale`, checked and canonicalised like the tenant defaults (`Relay.Tenancy.Defaults`). `fairness.weight.l2` and `fairness.weight.l3` hold the tenant's DRR weight in a bulk lane, an integer from 1 to 100 (1 when unset); only the tenant-level value counts. `api.rate.burst` and `api.rate.sustained` hold the tenant's API rate limit tiers (API-50, API-77), an object with a positive integer `weight` and a positive integer `window_seconds` of at most 3600; an unset tier takes the contract default. `api.mtls_required` (`true` or `false`) makes the tenant's server API accept only certificate-bound tokens (RFC 8705; API-41, API-48). `send_mode`, `send_mode.channel.<channel>` and `send_mode.category.<category>.channel.<channel>` hold the tenant's send modes (OP-51): `live`, `shadow`, `dry_run` or `off`.
   """
 
   alias Relay.Tenancy.Defaults
@@ -15,6 +15,9 @@ defmodule Relay.Tenancy.SettingKeys do
     "api.mtls_required" => :boolean
   }
 
+  @send_modes ~w(live shadow dry_run off)
+  @send_mode ~r/\Asend_mode(\.channel\.[a-z_]+|\.category\.[a-z][a-z0-9_]{0,63}\.channel\.[a-z_]+)?\z/
+
   @doc "Returns the catalog's keys."
   @spec keys() :: [String.t()]
   def keys, do: @catalog |> Map.keys() |> Enum.sort()
@@ -25,6 +28,27 @@ defmodule Relay.Tenancy.SettingKeys do
   @spec cast(term(), term()) :: {:ok, term()} | {:error, Relay.Error.t()}
   def cast(key, value) do
     case Map.fetch(@catalog, key) do
+      :error when is_binary(key) -> send_mode(key, value)
+      found -> catalog(found, key, value)
+    end
+  end
+
+  # OP-51
+  defp send_mode(key, value) do
+    cond do
+      not Regex.match?(@send_mode, key) ->
+        {:error, Relay.Error.new(:unknown_setting, "not a setting key", %{key: inspect(key)})}
+
+      value == nil or value in @send_modes ->
+        {:ok, value}
+
+      true ->
+        {:error, Relay.Error.new(:invalid_setting, "a send mode is live, shadow, dry_run or off")}
+    end
+  end
+
+  defp catalog(found, key, value) do
+    case found do
       {:ok, _field} when is_nil(value) ->
         {:ok, nil}
 

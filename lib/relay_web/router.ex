@@ -44,6 +44,117 @@ defmodule RelayWeb.Router do
 
     get "/errors/:code", ErrorCodeController, :show, private: %{relay_operation: "getErrorCode"}
 
+    post "/events", EventController, :create, private: %{relay_operation: "createEvent"}
+
+    post "/events/batch", EventController, :batch, private: %{relay_operation: "createEventBatch"}
+
+    post "/events/cancel_by_key", EventController, :cancel_by_key,
+      private: %{relay_operation: "cancelEventsByKey"}
+
+    get "/events/:event_id", EventController, :show, private: %{relay_operation: "getEvent"}
+
+    post "/events/:event_id/cancel", EventController, :cancel,
+      private: %{relay_operation: "cancelEvent"}
+
+    get "/notifications", NotificationController, :index,
+      private: %{relay_operation: "listNotifications"}
+
+    get "/notifications/:notification_id", NotificationController, :show,
+      private: %{relay_operation: "getNotification"}
+
+    post "/notifications/:notification_id/cancel", NotificationController, :cancel,
+      private: %{relay_operation: "cancelNotification"}
+
+    get "/notifications/:notification_id/deliveries", NotificationController, :deliveries,
+      private: %{relay_operation: "listNotificationDeliveries"}
+
+    get "/deliveries/:delivery_id/history", DeliveryController, :history,
+      private: %{relay_operation: "getDeliveryHistory"}
+
+    post "/subscribers/bulk", SubscriberController, :bulk,
+      private: %{relay_operation: "bulkUpsertSubscribers"}
+
+    post "/subscribers", SubscriberController, :create,
+      private: %{relay_operation: "createSubscriber"}
+
+    get "/subscribers", SubscriberController, :index,
+      private: %{relay_operation: "listSubscribers"}
+
+    get "/subscribers/:subscriber_id", SubscriberController, :show,
+      private: %{relay_operation: "getSubscriber"}
+
+    put "/subscribers/:subscriber_id", SubscriberController, :replace,
+      private: %{relay_operation: "replaceSubscriber"}
+
+    patch "/subscribers/:subscriber_id", SubscriberController, :update,
+      private: %{relay_operation: "updateSubscriber"}
+
+    delete "/subscribers/:subscriber_id", SubscriberController, :delete,
+      private: %{relay_operation: "deleteSubscriber"}
+
+    get "/workflows", WorkflowController, :index, private: %{relay_operation: "listWorkflows"}
+    post "/workflows", WorkflowController, :create, private: %{relay_operation: "createWorkflow"}
+
+    get "/workflows/:workflow_key", WorkflowController, :show,
+      private: %{relay_operation: "getWorkflow"}
+
+    put "/workflows/:workflow_key", WorkflowController, :replace,
+      private: %{relay_operation: "replaceWorkflowDraft"}
+
+    post "/workflows/:workflow_key/publish", WorkflowController, :publish,
+      private: %{relay_operation: "publishWorkflow"}
+
+    get "/workflows/:workflow_key/versions", WorkflowController, :versions,
+      private: %{relay_operation: "listWorkflowVersions"}
+
+    get "/workflows/:workflow_key/versions/:version", WorkflowController, :version,
+      private: %{relay_operation: "getWorkflowVersion"}
+
+    post "/workflows/:workflow_key/versions/:version/promote", WorkflowController, :promote,
+      private: %{relay_operation: "promoteWorkflowVersion"}
+
+    get "/event_type_mappings", MappingController, :index,
+      private: %{relay_operation: "listEventTypeMappings"}
+
+    post "/event_type_mappings", MappingController, :create,
+      private: %{relay_operation: "createEventTypeMapping"}
+
+    get "/event_type_mappings/:mapping_id", MappingController, :show,
+      private: %{relay_operation: "getEventTypeMapping"}
+
+    put "/event_type_mappings/:mapping_id", MappingController, :replace,
+      private: %{relay_operation: "replaceEventTypeMapping"}
+
+    post "/event_type_mappings/:mapping_id/archive", MappingController, :archive,
+      private: %{relay_operation: "archiveEventTypeMapping"}
+
+    get "/kill_switches", KillSwitchController, :index,
+      private: %{relay_operation: "listKillSwitches"}
+
+    post "/kill_switches", KillSwitchController, :create,
+      private: %{relay_operation: "engageKillSwitch"}
+
+    get "/kill_switches/:kill_switch_id", KillSwitchController, :show,
+      private: %{relay_operation: "getKillSwitch"}
+
+    post "/kill_switches/:kill_switch_id/replace", KillSwitchController, :replace,
+      private: %{relay_operation: "replaceKillSwitch"}
+
+    post "/kill_switches/:kill_switch_id/release", KillSwitchController, :release,
+      private: %{relay_operation: "releaseKillSwitch"}
+
+    post "/kill_switches/:kill_switch_id/resume", KillSwitchController, :resume,
+      private: %{relay_operation: "resumeKillSwitchDeliveries"}
+
+    post "/kill_switches/:kill_switch_id/cancel_paused", KillSwitchController, :cancel_paused,
+      private: %{relay_operation: "cancelKillSwitchPausedDeliveries"}
+
+    get "/virtual_clock", VirtualClockController, :show,
+      private: %{relay_operation: "getVirtualClock"}
+
+    post "/virtual_clock/advance", VirtualClockController, :advance,
+      private: %{relay_operation: "advanceVirtualClock"}
+
     post "/access/events", AccessEventController, :create,
       private: %{relay_operation: "receiveAccessEvent"}
 

@@ -25,16 +25,6 @@
       "subject_erasure": "not subject data"
     },
     {
-      "table": "recipients",
-      "personal_columns": [
-        "external_id_ct",
-        "external_id_bidx",
-        "external_id_bidx_next"
-      ],
-      "tenant_close": "tenant keys destroyed; row kept",
-      "subject_erasure": "recipient_profile data key destroyed, row soft deleted, blind index columns set to null"
-    },
-    {
       "table": "tenant_keys",
       "personal_columns": [],
       "tenant_close": "data and wrapping keys destroyed",
@@ -268,6 +258,93 @@
       "personal_columns": [],
       "tenant_close": "row kept",
       "subject_erasure": "not subject data"
+    },
+    {
+      "personal_columns": [
+        "external_id_ct",
+        "external_id_bidx",
+        "external_id_bidx_next",
+        "name_ct",
+        "attributes_ct"
+      ],
+      "subject_erasure": "recipient_profile data key destroyed (external id, name and attributes become unreadable), row soft deleted, blind index columns set to null",
+      "table": "recipients",
+      "tenant_close": "tenant keys destroyed; row kept"
+    },
+    {
+      "personal_columns": [
+        "address_ct",
+        "address_bidx",
+        "address_bidx_next"
+      ],
+      "subject_erasure": "recipient_profile data key destroyed, blind index columns set to null, state deleted; row kept",
+      "table": "recipient_addresses",
+      "tenant_close": "tenant keys destroyed; row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "row kept as the evidence of the request",
+      "table": "recipient_deletion_requests",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "workflows",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "workflow_versions",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "row kept; keys carry no personal data",
+      "table": "events",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [
+        "data_ct",
+        "metadata_ct",
+        "actor_ct",
+        "ce_attributes_ct"
+      ],
+      "subject_erasure": "data, metadata and actor of every event with a notification to the subject set to null",
+      "table": "event_payloads",
+      "tenant_close": "tenant data key destroyed; row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "event_type_mappings",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "row kept; keys carry no personal data",
+      "table": "cancellations",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "quota_policies",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "quota_counters",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "quota_threshold_marks",
+      "tenant_close": "row kept"
     }
   ],
   "locations": [

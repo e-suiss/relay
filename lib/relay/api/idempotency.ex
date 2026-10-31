@@ -7,7 +7,13 @@ defmodule Relay.Api.Idempotency do
 
   alias Relay.Api.Store
 
-  @stored_headers ["content-type", "location", "etag"]
+  @stored_headers [
+    "content-type",
+    "location",
+    "etag",
+    "relay-batch-max-events",
+    "relay-batch-max-recipients-per-event"
+  ]
 
   @type response :: {100..599, [{String.t(), String.t()}], binary()}
   @type outcome :: {:fresh | :replayed, response()}

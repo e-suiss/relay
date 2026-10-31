@@ -80,5 +80,6 @@
   {"file": "20261105100000_announce_paused_access_security_deliveries.exs", "sha256": "0a1925ca1917e2006b22970636b37c499485d41adf3860ade062a16248d8a353"},
   {"file": "20261106000000_create_delivery_tombstone_function.exs", "sha256": "2c286d349275b13bd9326e8c16200d91c0f08b56b12285e44eb3f9c7029ef1fa"},
   {"file": "20261106000100_extend_deliveries_pause_matching.exs", "sha256": "a0899a813d1aacbe0fca8d78f7d22b4d179008a31f59382751540fa597600adc"},
+  {"file": "20261106000200_order_key_tombstones_by_lock.exs", "sha256": "ecf4d03824654cb0cb65573c6f8464594ebc961719a4dc2632345f1a53839d83"},
   {"file": "20261106100000_create_lane_capacity_function.exs", "sha256": "0dc691d94bfe4853380b21367160653e2902cd8a5f6a02e4bb27f3f3c5be1b41"}
 ]

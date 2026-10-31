@@ -137,5 +137,15 @@ defmodule Relay.Delivery.TombstoneTest do
       assert run!(delivery) == {:snooze, 300}
       assert state(ctx.scope, delivery_id) == {nil, nil}
     end
+
+    test "API-58: a key tombstone does not cover an event accepted after it", ctx do
+      {_cancellation_id, _row} = cancel_by_key!(ctx.scope, "cart-11", 10)
+      body = accept!(ctx.token, %{"cancellation_key" => "cart-11"})
+      [%{"notification_id" => notification}] = body["notifications"]
+      [{delivery, delivery_id}] = delivery_ids(ctx.token, notification)
+
+      assert run!(delivery) == {:snooze, 300}
+      assert state(ctx.scope, delivery_id) == {nil, nil}
+    end
   end
 end

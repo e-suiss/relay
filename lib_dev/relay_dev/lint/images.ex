@@ -35,8 +35,7 @@ defmodule RelayDev.Lint.Images do
     content = File.read!(Path.join(root, path))
 
     Lint.scan_lines(path, content, [
-      {"action_sha",
-       ~r/^\s*(-\s+)?uses:\s+(?!\.\/)(?!docker:\/\/)[^@\s]+@(?![0-9a-f]{40}(\s|$))/,
+      {"action_sha", ~r/^\s*(-\s+)?uses:\s+(?!\.\/)(?!docker:\/\/)[^@\s]+@(?![0-9a-f]{40}(\s|$))/,
        "action must be pinned by a 40-character commit SHA"},
       {"image_digest", ~r/^\s*(-\s+)?uses:\s+docker:\/\/(?!.*@sha256:[0-9a-f]{64})/,
        "docker action must be pinned by digest"},

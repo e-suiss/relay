@@ -68,7 +68,7 @@ defmodule Relay.Access do
   # E-78
   # INV-41
   @doc "Fetches and records the Access discovery documents and keys now; see `Relay.Access.Link.refresh/1`."
-  @spec refresh(keyword()) :: {:ok, Link.state()} | {:error, Relay.Error.t()}
+  @spec refresh(keyword()) :: {:ok, :ok} | {:error, Relay.Error.t()}
   def refresh(opts \\ []), do: Link.refresh(opts)
 
   # API-41

@@ -8,6 +8,7 @@ defmodule RelayTest.Isolation do
   alias Relay.Api.Contract
 
   @parameter ~r/\{([a-z_]+)\}/
+  @bodies []
 
   @doc "The server operations with path parameters that `router` mounts, authenticated with a bearer token."
   @spec operations(module()) :: [Contract.operation()]
@@ -32,7 +33,7 @@ defmodule RelayTest.Isolation do
 
   @doc "Request bodies by operation for operations that take one."
   @spec bodies() :: %{String.t() => map()}
-  def bodies, do: %{}
+  def bodies, do: Map.new(@bodies)
 
   @doc "The path parameters of an operation without a fixture, and whether its body is missing."
   @spec gaps(Contract.operation()) :: [String.t()]

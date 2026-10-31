@@ -79,7 +79,7 @@ defmodule Relay.Access.Link do
   # INV-41
   # INV-55
   @doc "Fetches the discovery documents and the key set of the configured issuer, records the result, signals the other nodes and reloads this one. Options: `:http`, extra `Req` options."
-  @spec refresh(keyword()) :: {:ok, state()} | {:error, Relay.Error.t()}
+  @spec refresh(keyword()) :: {:ok, :ok} | {:error, Relay.Error.t()}
   def refresh(opts \\ []) do
     case Relay.Access.issuer() do
       nil ->
@@ -97,7 +97,7 @@ defmodule Relay.Access.Link do
 
   # E-75
   @doc "Refreshes the link early because a token names an unknown key; at most once every 30 seconds per node."
-  @spec refresh_keys(keyword()) :: {:ok, state()} | {:error, Relay.Error.t()} | :throttled
+  @spec refresh_keys(keyword()) :: {:ok, :ok} | {:error, Relay.Error.t()} | :throttled
   def refresh_keys(opts \\ []) do
     if GenServer.call(__MODULE__, :claim_refresh), do: refresh(opts), else: :throttled
   end

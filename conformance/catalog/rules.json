@@ -8649,6 +8649,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "T-94",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "Node-local API filter is our own clock-port GCRA on ETS, not Hammer",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
     "id": "OP-1",
     "section": "§20",
     "status": "frozen_technical",

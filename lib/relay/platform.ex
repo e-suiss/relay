@@ -54,7 +54,7 @@ defmodule Relay.Platform do
   # OP-69 (1)
   # T-32 (3)
   # T-34
-  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the node's credit block table, the concurrency slot keeper, the signal hub, the load shedding watcher and the job queue; a worker node also runs the queue maintenance connection, the bulk write pool with its own role check and the outbox dispatcher. A failed role or ownership check stops the node."
+  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the node's credit block table, the node-local API filter table, the concurrency slot keeper, the signal hub, the load shedding watcher and the job queue; a worker node also runs the queue maintenance connection, the bulk write pool with its own role check and the outbox dispatcher. A failed role or ownership check stops the node."
   @spec children() :: [Supervisor.child_spec() | {module(), term()} | module()]
   def children do
     valkey = Application.fetch_env!(:relay, Valkey)
@@ -68,6 +68,7 @@ defmodule Relay.Platform do
       Valkey.Guard,
       Backend,
       RateLimit.CreditLease,
+      RateLimit.NodeFilter,
       Concurrency.Keeper,
       Signal.Hub
     ] ++
@@ -235,6 +236,20 @@ defmodule Relay.Platform do
         ) :: RateLimit.decision()
   def rate_limit_check(scope, limit, key_parts, cost, lane, opts \\ []),
     do: RateLimit.check(scope, limit, key_parts, cost, lane, opts)
+
+  # T-94
+  # T-42
+  @doc "Checks a request against this node's own allowed consumption before the cluster limiter; see `Relay.Platform.RateLimit.NodeFilter.check/5`."
+  @spec rate_limit_filter(Relay.Scope.t(), RateLimit.Limit.t(), [String.t()], pos_integer()) ::
+          :pass | {:deny, pos_integer()}
+  def rate_limit_filter(scope, limit, key_parts, cost),
+    do: RateLimit.NodeFilter.check(scope, limit, key_parts, cost)
+
+  # T-94
+  @doc "Notes a cost the cluster limiter allowed in this node's filter; see `Relay.Platform.RateLimit.NodeFilter.note/5`."
+  @spec rate_limit_note(Relay.Scope.t(), RateLimit.Limit.t(), [String.t()], pos_integer()) :: :ok
+  def rate_limit_note(scope, limit, key_parts, cost),
+    do: RateLimit.NodeFilter.note(scope, limit, key_parts, cost)
 
   # T-27
   @doc "Adds to or reads a sliding counter; see `Relay.Platform.RateLimit.counter/6`."

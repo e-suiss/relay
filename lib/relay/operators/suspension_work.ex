@@ -104,20 +104,18 @@ defmodule Relay.Operators.SuspensionWork do
         {:halt, {:ok, %{acc | waiting: true}}}
 
       {:send, decision_ref} ->
-        case Store.in_scope(scope, fn _status -> send(scope, row, decision_ref, run.rule) end) do
-          {:ok, :resumed} -> {:cont, {:ok, %{acc | resumed: acc.resumed + 1}}}
-          {:ok, _other} -> {:cont, {:ok, acc}}
-          {:error, error} -> {:halt, {:error, error}}
-        end
+        scope
+        |> Store.in_scope(fn _status -> send(scope, row, decision_ref, run.rule) end)
+        |> count(acc, :resumed)
 
       {:skip, _reason, rule_id} ->
-        case cancel(scope, row["id"], rule_id, run.actor) do
-          {:ok, :cancelled} -> {:cont, {:ok, %{acc | cancelled: acc.cancelled + 1}}}
-          {:ok, _other} -> {:cont, {:ok, acc}}
-          {:error, error} -> {:halt, {:error, error}}
-        end
+        scope |> cancel(row["id"], rule_id, run.actor) |> count(acc, :cancelled)
     end
   end
+
+  defp count({:ok, result}, acc, result), do: {:cont, {:ok, Map.update!(acc, result, &(&1 + 1))}}
+  defp count({:ok, _other}, acc, _result), do: {:cont, {:ok, acc}}
+  defp count({:error, error}, _acc, _result), do: {:halt, {:error, error}}
 
   defp send(scope, row, decision_ref, rule) do
     with :resumed <- Store.delivery_resume(row["id"], decision_ref, rule <> ".resume"),

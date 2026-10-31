@@ -390,21 +390,14 @@ defmodule Relay.Ingest.EventStore do
   end
 
   defp installation_tenant_id do
-    case :persistent_term.get({__MODULE__, :installation_tenant_id}, nil) do
-      nil ->
-        {:ok, %Postgrex.Result{rows: [[id]]}} =
-          Repo.unscoped_query(
-            :installation_lookup,
-            "SELECT installation_tenant_id FROM relay.installation WHERE singleton",
-            []
-          )
+    {:ok, %Postgrex.Result{rows: [[id]]}} =
+      Repo.unscoped_query(
+        :installation_lookup,
+        "SELECT installation_tenant_id FROM relay.installation WHERE singleton",
+        []
+      )
 
-        :persistent_term.put({__MODULE__, :installation_tenant_id}, id)
-        id
-
-      id ->
-        id
-    end
+    id
   end
 
   @doc "Reads an event with its workflow reference and the notifications it accepted, or `nil`."

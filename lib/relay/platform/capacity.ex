@@ -6,17 +6,17 @@ defmodule Relay.Platform.Capacity do
   * `queued` is the lane's backlog: the available jobs of its queues and the DRR wait rows that are due.
   * `μ` is the lane's service rate in jobs per second: the configured rate (`config :relay, Relay.Platform.Capacity, service_rate: %{l2: 50, l3: 10}`) when there is one, else the jobs of the lane's queues completed in the last 60 s divided by 60. A lane with no configured rate and no completed job has no known rate and is not checked; an unmeasured lane is never a reason to refuse.
 
-  Each node samples `relay_ops.lane_capacity` every 5 s (`Relay.Platform.Capacity.Sampler`, unless `sampler: false`) and keeps the result in `:persistent_term`; a node that never sampled knows no capacity and admits. `l0` and `l1` are never checked against `L_max`.
+  Each node samples `relay_ops.lane_capacity` every 5 s (`Relay.Platform.Capacity.Sampler`, unless `sampler: false`) and keeps the result in a public ETS table; a node that never sampled knows no capacity and admits. `l0` and `l1` are never checked against `L_max`.
   """
 
   alias Relay.Platform.Admission
   alias Relay.Platform.Lane
+  alias Relay.Platform.Capacity.Store
   alias Relay.Platform.LoadShed
-  alias Relay.Repo
 
   @lanes [:l2, :l3]
   @window_s 60
-  @state_key {__MODULE__, :capacity}
+  @table __MODULE__
 
   @type t :: %{optional(Lane.t()) => Admission.capacity() | nil}
 
@@ -55,30 +55,49 @@ defmodule Relay.Platform.Capacity do
 
   @doc "This node's last sampled lane capacities, `nil` when it never sampled."
   @spec current() :: t() | nil
-  def current, do: :persistent_term.get(@state_key, nil)
+  def current do
+    case :ets.whereis(@table) do
+      :undefined -> nil
+      _table -> lookup()
+    end
+  end
+
+  defp lookup do
+    case :ets.lookup(@table, :capacity) do
+      [{:capacity, capacity}] -> capacity
+      [] -> nil
+    end
+  rescue
+    ArgumentError -> nil
+  end
 
   @doc "Puts the lane capacities of this node."
   @spec put(t() | nil) :: :ok
   def put(capacity) do
-    if :persistent_term.get(@state_key, nil) != capacity,
-      do: :persistent_term.put(@state_key, capacity)
+    :ok = table()
+    true = :ets.insert(@table, {:capacity, capacity})
+    :ok
+  end
+
+  @doc "Creates this node's capacity table when it does not exist; the sampler owns it."
+  @spec table() :: :ok
+  def table do
+    if :ets.whereis(@table) == :undefined,
+      do: :ets.new(@table, [:named_table, :public, :set, read_concurrency: true])
 
     :ok
+  rescue
+    ArgumentError -> :ok
   end
 
   # T-35 (2)
   @doc "Samples the lane backlogs and completions now and puts the capacities of this node."
   @spec sample() :: {:ok, t()} | {:error, Relay.Error.t()}
   def sample do
-    rows = Repo.call_unscoped!(:lane_capacity, "relay_ops.lane_capacity", [@window_s])
-    capacity = build(rows, service_rates(), @window_s)
-    :ok = put(capacity)
-    {:ok, capacity}
-  rescue
-    error in [Postgrex.Error, DBConnection.ConnectionError] ->
-      {:error,
-       Relay.Error.new(:database_error, "lane capacity query failed", %{
-         reason: error.__struct__
-       })}
+    with {:ok, rows} <- Store.lane_capacity(@window_s) do
+      capacity = build(rows, service_rates(), @window_s)
+      :ok = put(capacity)
+      {:ok, capacity}
+    end
   end
 end

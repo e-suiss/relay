@@ -1,6 +1,6 @@
 defmodule Relay.Platform.Capacity.Sampler do
   @moduledoc """
-  Keeps this node's view of the bulk lane capacities current: it samples `relay_ops.lane_capacity` at start and every 5 s and puts the result into `:persistent_term` (`Relay.Platform.Capacity`). A failed sample keeps the last known capacities. Runs on every node unless `config :relay, Relay.Platform.Capacity, sampler: false`.
+  Keeps this node's view of the bulk lane capacities current: it samples `relay_ops.lane_capacity` at start and every 5 s and puts the result into the node's capacity table, which it owns (`Relay.Platform.Capacity`). A failed sample keeps the last known capacities. Runs on every node unless `config :relay, Relay.Platform.Capacity, sampler: false`.
   """
 
   use GenServer
@@ -18,6 +18,7 @@ defmodule Relay.Platform.Capacity.Sampler do
 
   @impl GenServer
   def init(opts) do
+    :ok = Capacity.table()
     send(self(), :poll)
     {:ok, %{poll_ms: Keyword.get(opts, :poll_ms, @poll_ms)}}
   end

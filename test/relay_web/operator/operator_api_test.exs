@@ -4,9 +4,11 @@ defmodule RelayWeb.Operator.OperatorApiTest do
   import Plug.Conn
 
   alias Relay.Api.Tenant
+  alias Relay.Api.Versions
   alias Relay.Operators
   alias Relay.Operators.Admin
   alias RelayTest.Api
+  alias RelayTest.IngestFixture
   alias RelayTest.Operators.Access, as: FakeAccess
   alias RelayTest.TenantFixture
 
@@ -647,7 +649,7 @@ defmodule RelayWeb.Operator.OperatorApiTest do
         |> then(&grant!(tenant.live, &1, :tenant_admin))
 
       key = "replay-" <> TenantFixture.random()
-      body = %{"version" => Relay.Api.Versions.latest(), "reason" => "pin"}
+      body = %{"version" => Versions.latest(), "reason" => "pin"}
 
       put = fn ->
         request(:put, "/v1/operator/api_version",
@@ -676,7 +678,7 @@ defmodule RelayWeb.Operator.OperatorApiTest do
 
       key = "retry-" <> TenantFixture.random()
       bad = %{"version" => "1999-01-01", "reason" => "pin"}
-      good = %{bad | "version" => Relay.Api.Versions.latest()}
+      good = %{bad | "version" => Versions.latest()}
 
       put = fn body ->
         request(:put, "/v1/operator/api_version",
@@ -734,7 +736,7 @@ defmodule RelayWeb.Operator.OperatorApiTest do
                "pinned"
              ] == nil
 
-      version = Relay.Api.Versions.latest()
+      version = Versions.latest()
 
       moved =
         json(
@@ -829,11 +831,11 @@ defmodule RelayWeb.Operator.OperatorApiTest do
       body = %{"period" => "day", "limit" => 1, "reason" => "tiny"}
       json(quota(operator, tenant.live, body), 200)
 
-      token = RelayTest.IngestFixture.token(tenant.live)
-      RelayTest.IngestFixture.workflow!(tenant.live, token, "order-shipped")
+      token = IngestFixture.token(tenant.live)
+      IngestFixture.workflow!(tenant.live, token, "order-shipped")
 
       event = fn ->
-        RelayTest.IngestFixture.request(:post, "/v1/events", token, %{
+        IngestFixture.request(:post, "/v1/events", token, %{
           "workflow" => "order-shipped",
           "to" => [%{"id" => "user-" <> random(), "email" => "ayse@example.com"}],
           "data" => %{"order" => "A-1"}

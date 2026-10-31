@@ -1,0 +1,93 @@
+Request-Id:
+  description: "Identifier of this request; present on every response."
+  required: true
+  schema:
+    type: string
+  example: req_01j9zq3k4m5n6p7q8r9s0t1v2w
+Relay-Version:
+  description: Dated API version that served the request.
+  required: true
+  schema:
+    type: string
+    format: date
+  example: "2026-11-01"
+Idempotency-Key:
+  description: Echo of the Idempotency-Key (or the key derived for a CloudEvents request).
+  schema:
+    type: string
+Idempotency-Replayed:
+  description: true when this response is a byte-for-byte replay of the first response for the same key and body.
+  schema:
+    type: string
+    enum:
+      - "true"
+RateLimit:
+  description: Remaining quota of the most restrictive API rate limit policy (IETF draft format).
+  schema:
+    type: string
+  example: "\"burst\";r=184;t=1"
+RateLimit-Policy:
+  description: API rate limit policies of this tenant and environment.
+  schema:
+    type: string
+  example: "\"burst\";q=200;w=1, \"sustained\";q=6000;w=60"
+X-RateLimit-Limit:
+  description: Limit of the most restrictive policy.
+  schema:
+    type: integer
+X-RateLimit-Remaining:
+  description: Remaining weight in the most restrictive policy.
+  schema:
+    type: integer
+X-RateLimit-Reset:
+  description: Seconds until the most restrictive policy resets (delta seconds).
+  schema:
+    type: integer
+Retry-After:
+  description: "Delta seconds to wait before retrying; sent only when retryable is true."
+  schema:
+    type: integer
+    minimum: 0
+Location:
+  description: URL of the created or accepted resource.
+  schema:
+    type: string
+    format: uri-reference
+ETag:
+  description: "Strong entity tag of the resource version; send it back in If-Match."
+  schema:
+    type: string
+  example: "\"7\""
+WWW-Authenticate:
+  description: "Bearer challenge on 401. Step-up challenges use error=\"insufficient_user_authentication\" with acr_values and max_age (RFC 9470)."
+  schema:
+    type: string
+  example: "Bearer error=\"invalid_token\""
+Relay-Batch-Max-Events:
+  description: Maximum events per batch.
+  schema:
+    type: integer
+  example: 500
+Relay-Batch-Max-Recipients-Per-Event:
+  description: Maximum recipients per batch row.
+  schema:
+    type: integer
+  example: 100
+Deprecation:
+  description: RFC 9745 deprecation date of the API version or field in use.
+  schema:
+    type: string
+  example: "@1798761600"
+Sunset:
+  description: RFC 8594 sunset date of the API version in use.
+  schema:
+    type: string
+  example: "Sun, 01 Nov 2028 00:00:00 GMT"
+Link:
+  description: "Link with rel=\"deprecation\" to the deprecation notice."
+  schema:
+    type: string
+Set-Cookie:
+  description: "Operator session cookie: relay_operator_session; HttpOnly; Secure; SameSite=Strict; Path=/v1."
+  schema:
+    type: string

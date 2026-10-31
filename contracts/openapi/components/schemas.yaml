@@ -1,0 +1,2690 @@
+Id_ten:
+  type: string
+  description: "Tenant identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^ten_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - ten_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_stn:
+  type: string
+  description: "Subtenant identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^stn_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - stn_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_sub:
+  type: string
+  description: "Subscriber (recipient of kind subscriber) identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^sub_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - sub_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_agt:
+  type: string
+  description: "Agent recipient (recipient of kind agent) identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^agt_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - agt_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_rcp:
+  type: string
+  description: "Recipient of either kind (resolves to the same table as sub_ and agt_) identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^rcp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - rcp_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_ntf:
+  type: string
+  description: "Notification identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^ntf_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - ntf_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_dlv:
+  type: string
+  description: "Delivery identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^dlv_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - dlv_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_att:
+  type: string
+  description: "Delivery attempt identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^att_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - att_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_dle:
+  type: string
+  description: "Delivery ledger event identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^dle_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - dle_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_whr:
+  type: string
+  description: "Inbound provider webhook receipt identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^whr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - whr_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_oev:
+  type: string
+  description: "Outgoing event identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^oev_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - oev_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_aud:
+  type: string
+  description: "Audit record identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^aud_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - aud_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_ckp:
+  type: string
+  description: "Audit checkpoint identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^ckp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - ckp_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_dsv:
+  type: string
+  description: "Dataset version identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^dsv_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - dsv_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_usg:
+  type: string
+  description: "Usage record identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^usg_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - usg_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_sec:
+  type: string
+  description: "Secret reference identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^sec_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - sec_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_hld:
+  type: string
+  description: "Legal hold identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^hld_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - hld_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_ers:
+  type: string
+  description: "Erasure record identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^ers_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - ers_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_dlq:
+  type: string
+  description: "Dead letter identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^dlq_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - dlq_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_ksw:
+  type: string
+  description: "Kill switch identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^ksw_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - ksw_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_fan:
+  type: string
+  description: "Fan-out or batch identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^fan_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - fan_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_mbx:
+  type: string
+  description: "Mailbox identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^mbx_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - mbx_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_mbr:
+  type: string
+  description: "Mailbox record identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^mbr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - mbr_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_wp:
+  type: string
+  description: "Waitpoint identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^wp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - wp_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_wpr:
+  type: string
+  description: "Waitpoint response identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^wpr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - wpr_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_evt:
+  type: string
+  description: "Event identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^evt_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - evt_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_wfl:
+  type: string
+  description: "Workflow identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^wfl_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - wfl_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_wfv:
+  type: string
+  description: "Workflow version identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^wfv_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - wfv_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_cli:
+  type: string
+  description: "API client (Relay-side trace of an Access client) identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^cli_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - cli_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_opr:
+  type: string
+  description: "Operator identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^opr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - opr_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_rla:
+  type: string
+  description: "Role assignment identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^rla_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - rla_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_cem:
+  type: string
+  description: "CloudEvents type mapping identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^cem_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - cem_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_dlg:
+  type: string
+  description: "Support access delegation identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^dlg_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - dlg_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_cnl:
+  type: string
+  description: "Cancellation (tombstone) identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^cnl_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - cnl_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_adr:
+  type: string
+  description: "Subscriber address identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^adr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - adr_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_oss:
+  type: string
+  description: "Operator session identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^oss_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - oss_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_tsp:
+  type: string
+  description: "Tenant or subtenant suspension identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^tsp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - tsp_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_sdr:
+  type: string
+  description: "Subscriber deletion request identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^sdr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - sdr_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_tpl:
+  type: string
+  description: "Template identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^tpl_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - tpl_01j9zq3k4m5n6p7q8r9s0t1v2w
+RecipientId:
+  description: "Relay identifier of a recipient: sub_ for a subscriber, agt_ for an agent."
+  oneOf:
+    - "$ref": "#/Id_sub"
+    - "$ref": "#/Id_agt"
+Timestamp:
+  type: string
+  description: RFC 3339 timestamp in UTC.
+  format: date-time
+  examples:
+    - "2026-11-01T09:30:00Z"
+Duration:
+  type: string
+  description: ISO 8601 duration.
+  pattern: "^P(?!$)([0-9]+Y)?([0-9]+M)?([0-9]+W)?([0-9]+D)?(T(?=[0-9])([0-9]+H)?([0-9]+M)?([0-9]+S)?)?$"
+  examples:
+    - PT30M
+    - P1D
+ApiVersion:
+  type: string
+  description: Dated API version.
+  format: date
+  pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+  examples:
+    - "2026-11-01"
+Locale:
+  type: string
+  description: BCP 47 language tag.
+  pattern: "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+  maxLength: 35
+  examples:
+    - tr-TR
+TimeZone:
+  type: string
+  description: Canonical IANA time zone identifier. Etc/GMT offsets and UTC or GMT offsets are rejected.
+  pattern: "^[A-Za-z]+(/[A-Za-z0-9_+-]+)*$"
+  maxLength: 64
+  examples:
+    - Europe/Istanbul
+E164:
+  type: string
+  description: Phone number in E.164 format.
+  pattern: "^\\+[1-9][0-9]{6,14}$"
+  examples:
+    - "+905321234567"
+Email:
+  type: string
+  description: "Email address; normalised to lowercase before storage."
+  format: email
+  maxLength: 254
+ExternalId:
+  type: string
+  description: "The tenant's own identifier for a subscriber: printable ASCII without spaces, 1 to 256 characters. Must not be personal data such as an email address."
+  pattern: "^[\\x21-\\x7E]{1,256}$"
+  examples:
+    - user-4821
+  x-relay-choice: true
+  x-relay-choice-note: "Character set and length are chosen by the contract; the spec does not bound external ids."
+WorkflowKey:
+  type: string
+  description: Readable workflow slug.
+  pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+  minLength: 1
+  maxLength: 100
+  examples:
+    - siparis-kargolandi
+  x-relay-choice: true
+  x-relay-choice-note: Slug alphabet and maximum length are chosen by the contract.
+Environment:
+  type: string
+  enum:
+    - live
+    - test
+  description: Data plane. It always comes from the credential, never from a request body.
+MessageClass:
+  type: string
+  enum:
+    - security
+    - transactional
+    - operational
+    - social
+    - marketing
+    - system
+    - action_required
+  description: Fixed message class. It is assigned at accept time and never changes.
+Channel:
+  type: string
+  enum:
+    - push
+    - web_push
+    - email
+    - sms
+    - voice
+    - whatsapp
+    - slack
+    - teams
+    - telegram
+    - discord
+    - in_app
+    - webhook
+Priority:
+  type: string
+  enum:
+    - low
+    - normal
+    - high
+  description: "Fine tuning within the class lane; clamped to the class ceiling."
+SecuritySubtype:
+  type: string
+  enum:
+    - otp_oob
+    - email_verification
+OnExpire:
+  type: string
+  enum:
+    - drop
+    - inbox_only
+SendMode:
+  type: string
+  enum:
+    - live
+    - shadow
+    - dry_run
+    - "off"
+RuleId:
+  type: string
+  description: Identifier from the single rule dictionary.
+  pattern: "^[a-z][a-z0-9_]*([.:][A-Za-z0-9_-]+)*$"
+  maxLength: 128
+EventName:
+  type: string
+  description: Event name in noun.verb_past form.
+  pattern: "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$"
+  maxLength: 128
+ScopeName:
+  type: string
+  enum:
+    - publish
+    - read
+    - subscribers
+    - config
+    - kill_switch
+Metadata:
+  type: object
+  description: "Opaque key-value pairs returned in events and webhooks. At most 16 keys; values are strings of at most 512 characters. Do not put personal data here."
+  maxProperties: 16
+  propertyNames:
+    pattern: "^[a-z][a-z0-9_]{0,63}$"
+  additionalProperties:
+    type: string
+    maxLength: 512
+Money:
+  type: object
+  description: Amount of money. Amounts are strings, never JSON numbers.
+  required:
+    - amount
+    - currency
+  properties:
+    amount:
+      type: string
+      description: Decimal amount as a string.
+      pattern: "^-?[0-9]{1,18}(\\.[0-9]{1,6})?$"
+      examples:
+        - "1234.50"
+    currency:
+      type: string
+      description: ISO 4217 currency code.
+      pattern: "^[A-Z]{3}$"
+      examples:
+        - TRY
+  additionalProperties: false
+Cursor:
+  type: string
+  description: Opaque, signed pagination cursor bound to the tenant and environment.
+  minLength: 1
+  maxLength: 512
+ListEnvelope:
+  type: object
+  description: "Cursor-paginated list. limit is 1 to 100 (default 50); related objects are never expanded in lists."
+  required:
+    - object
+    - data
+    - has_more
+    - next_cursor
+  properties:
+    object:
+      type: string
+      const: list
+    data:
+      type: array
+      description: "Items of the list; the concrete list schema narrows this."
+      items: {}
+    has_more:
+      type: boolean
+    next_cursor:
+      oneOf:
+        - "$ref": "#/Cursor"
+        - type: "null"
+    previous_cursor:
+      oneOf:
+        - "$ref": "#/Cursor"
+        - type: "null"
+      x-relay-choice: true
+      x-relay-choice-note: "The spec defines ending_before but returns only next_cursor; previous_cursor makes ending_before usable."
+  additionalProperties: false
+Warning:
+  type: object
+  description: Non-fatal notice about how the request was applied.
+  required:
+    - code
+  properties:
+    code:
+      type: string
+      enum:
+        - priority_clamped
+      description: Warning code.
+    pointer:
+      type: string
+      description: JSON Pointer of the field the warning is about.
+    detail:
+      type: string
+  additionalProperties: false
+LegalType:
+  type: string
+  enum:
+    - individual
+    - merchant
+RecipientObject:
+  type: object
+  description: Recipient object. With contact details it creates or updates the subscriber (explicit upsert). With only id it creates an inbox-only subscriber.
+  required:
+    - id
+  properties:
+    id:
+      "$ref": "#/ExternalId"
+    email:
+      "$ref": "#/Email"
+    phone:
+      "$ref": "#/E164"
+    name:
+      type: string
+      description: Display name used in templates.
+      maxLength: 200
+      x-relay-choice: true
+      x-relay-choice-note: "Profile field chosen by the contract; the spec lists recipient fields as id, email, phone, locale, timezone and more."
+    locale:
+      "$ref": "#/Locale"
+    timezone:
+      "$ref": "#/TimeZone"
+    legal_type:
+      "$ref": "#/LegalType"
+    attributes:
+      type: object
+      description: Recipient attributes available to templates and conditions. Values are strings, numbers or booleans.
+      maxProperties: 64
+      propertyNames:
+        pattern: "^[a-z][a-z0-9_]{0,63}$"
+      additionalProperties:
+        type:
+          - string
+          - number
+          - boolean
+      x-relay-choice: true
+      x-relay-choice-note: "The spec mentions declared recipient attributes; shape and bounds are chosen by the contract."
+  additionalProperties: false
+TopicTarget:
+  type: object
+  description: "Topic target. Topics are introduced in a later stage; until then a topic target is rejected with validation_failed (unsupported_value)."
+  required:
+    - topic
+  properties:
+    topic:
+      type: string
+      description: Topic key.
+      pattern: "^[a-z0-9][a-z0-9_.:-]{0,127}$"
+  additionalProperties: false
+RecipientTarget:
+  description: "A plain string is an identity-only reference: the subscriber must exist or the request fails with recipient_not_found. An object upserts. A topic object targets a topic."
+  oneOf:
+    - "$ref": "#/ExternalId"
+    - "$ref": "#/RecipientObject"
+    - "$ref": "#/TopicTarget"
+Actor:
+  type: object
+  description: Who caused the event.
+  required:
+    - type
+  properties:
+    type:
+      type: string
+      enum:
+        - human
+        - system
+        - agent
+      description: Sender type, independent of the message class.
+    id:
+      "$ref": "#/ExternalId"
+    name:
+      type: string
+      maxLength: 200
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "The spec defines actor as human, system or agent; the object shape is chosen by the contract."
+ChannelOverride:
+  type: object
+  description: Override for one channel.
+  properties:
+    provider:
+      type: string
+      description: Narrow to one verified provider of this channel.
+      maxLength: 64
+  additionalProperties: false
+EmailOverride:
+  type: object
+  description: "Email override; from must be on a verified domain or the request fails with channel_not_configured."
+  properties:
+    provider:
+      type: string
+      maxLength: 64
+    from:
+      "$ref": "#/Email"
+  additionalProperties: false
+RawOverride:
+  type: object
+  description: Override for channels with a provider-specific raw block (push and WhatsApp).
+  properties:
+    provider:
+      type: string
+      maxLength: 64
+    raw:
+      type: object
+      description: Provider-specific block. Policy fields cannot be set here (policy_field_not_overridable).
+  additionalProperties: false
+Overrides:
+  type: object
+  description: "Channel-keyed overrides; precedence is request, step, workflow, tenant default. Later stages add fields; unknown fields are rejected."
+  properties:
+    email:
+      "$ref": "#/EmailOverride"
+    sms:
+      "$ref": "#/ChannelOverride"
+    voice:
+      "$ref": "#/ChannelOverride"
+    push:
+      "$ref": "#/RawOverride"
+    web_push:
+      "$ref": "#/RawOverride"
+    whatsapp:
+      "$ref": "#/RawOverride"
+    in_app:
+      "$ref": "#/ChannelOverride"
+    webhook:
+      "$ref": "#/ChannelOverride"
+  additionalProperties: false
+EventRequest:
+  type: object
+  description: Native event request.
+  required:
+    - workflow
+    - to
+  properties:
+    workflow:
+      "$ref": "#/WorkflowKey"
+    to:
+      type: array
+      description: Recipients, 1 to 100.
+      items:
+        "$ref": "#/RecipientTarget"
+      minItems: 1
+      maxItems: 100
+    actor:
+      "$ref": "#/Actor"
+    tenant:
+      description: "Subtenant within the API client's tenant."
+      "$ref": "#/Id_stn"
+    data:
+      type: object
+      description: Event data, at most 256 kB, validated against the event schema of the published workflow version. Do not send preformatted values.
+    dedup_key:
+      type: string
+      description: "Business key; the same key opens no new notification for the same recipient."
+      minLength: 1
+      maxLength: 512
+    channels:
+      type: array
+      description: "Narrows the workflow's steps to these channels; never adds steps."
+      items:
+        "$ref": "#/Channel"
+      minItems: 1
+      uniqueItems: true
+    overrides:
+      "$ref": "#/Overrides"
+    send_at:
+      description: Future send time, at most 90 days ahead.
+      "$ref": "#/Timestamp"
+    expires_at:
+      description: "After this instant nothing is sent; the notification ends expired. Required for security subtypes."
+      "$ref": "#/Timestamp"
+    priority:
+      "$ref": "#/Priority"
+    security_subtype:
+      "$ref": "#/SecuritySubtype"
+    on_expire:
+      "$ref": "#/OnExpire"
+    cancellation_key:
+      type: string
+      description: "Optional cancellation key; need not be unique."
+      minLength: 1
+      maxLength: 256
+      pattern: "^[\\x21-\\x7E]+$"
+    retention:
+      type: string
+      enum:
+        - none
+      description: "Do not store rendered content (not for the security class; rejected together with in_app)."
+    metadata:
+      "$ref": "#/Metadata"
+    send_mode:
+      "$ref": "#/SendMode"
+      description: "Explicit send mode for this request. Accepted only in the test environment; a live client gets auth_environment_mismatch."
+      x-relay-choice: true
+      x-relay-choice-note: "The spec allows a per-request mode only in test but names no field; a body field is chosen."
+  additionalProperties: false
+BatchEventRequest:
+  type: object
+  description: One row of a batch.
+  required:
+    - workflow
+    - to
+  properties:
+    ref:
+      type: string
+      description: "Client reference used to match the result; not an idempotency unit."
+      minLength: 1
+      maxLength: 128
+    workflow:
+      "$ref": "#/WorkflowKey"
+    to:
+      type: array
+      description: Recipients, 1 to 100.
+      items:
+        "$ref": "#/RecipientTarget"
+      minItems: 1
+      maxItems: 100
+    actor:
+      "$ref": "#/Actor"
+    tenant:
+      description: "Subtenant within the API client's tenant."
+      "$ref": "#/Id_stn"
+    data:
+      type: object
+      description: Event data, at most 256 kB, validated against the event schema of the published workflow version. Do not send preformatted values.
+    dedup_key:
+      type: string
+      description: "Business key; the same key opens no new notification for the same recipient."
+      minLength: 1
+      maxLength: 512
+    channels:
+      type: array
+      description: "Narrows the workflow's steps to these channels; never adds steps."
+      items:
+        "$ref": "#/Channel"
+      minItems: 1
+      uniqueItems: true
+    overrides:
+      "$ref": "#/Overrides"
+    send_at:
+      description: Future send time, at most 90 days ahead.
+      "$ref": "#/Timestamp"
+    expires_at:
+      description: "After this instant nothing is sent; the notification ends expired. Required for security subtypes."
+      "$ref": "#/Timestamp"
+    priority:
+      "$ref": "#/Priority"
+    security_subtype:
+      "$ref": "#/SecuritySubtype"
+    on_expire:
+      "$ref": "#/OnExpire"
+    cancellation_key:
+      type: string
+      description: "Optional cancellation key; need not be unique."
+      minLength: 1
+      maxLength: 256
+      pattern: "^[\\x21-\\x7E]+$"
+    retention:
+      type: string
+      enum:
+        - none
+      description: "Do not store rendered content (not for the security class; rejected together with in_app)."
+    metadata:
+      "$ref": "#/Metadata"
+    send_mode:
+      "$ref": "#/SendMode"
+      description: "Explicit send mode for this request. Accepted only in the test environment; a live client gets auth_environment_mismatch."
+      x-relay-choice: true
+      x-relay-choice-note: "The spec allows a per-request mode only in test but names no field; a body field is chosen."
+  additionalProperties: false
+BatchRequest:
+  type: object
+  required:
+    - events
+  properties:
+    events:
+      type: array
+      description: "At most 500 events; at most 100 recipients per event; body at most 5 MB."
+      items:
+        "$ref": "#/BatchEventRequest"
+      minItems: 1
+      maxItems: 500
+  additionalProperties: false
+AcceptedNotification:
+  type: object
+  required:
+    - recipient_id
+    - notification_id
+  properties:
+    recipient_id:
+      "$ref": "#/RecipientId"
+    external_id:
+      "$ref": "#/ExternalId"
+      x-relay-choice: true
+      x-relay-choice-note: Added so clients can match notifications to their own ids.
+    notification_id:
+      "$ref": "#/Id_ntf"
+    duplicate_of:
+      "$ref": "#/Id_evt"
+      description: "Present when the dedup_key matched an existing notification for this recipient: the event that created it. notification_id is then the existing notification."
+      x-relay-choice: true
+      x-relay-choice-note: "The spec says a duplicate returns the existing notification id and duplicate_of; the contract makes duplicate_of the original event id."
+  additionalProperties: false
+WorkflowRef:
+  type: object
+  required:
+    - key
+    - version
+  properties:
+    key:
+      "$ref": "#/WorkflowKey"
+    version:
+      type: integer
+      minimum: 1
+  additionalProperties: false
+EventAccepted:
+  type: object
+  description: "Accept response. Acceptance is not delivery; policy outcomes are reported later as decisions."
+  required:
+    - object
+    - id
+    - workflow
+    - status
+    - recipient_count
+    - notifications
+    - created_at
+  properties:
+    object:
+      type: string
+      const: event
+    id:
+      "$ref": "#/Id_evt"
+    workflow:
+      "$ref": "#/WorkflowRef"
+    status:
+      type: string
+      const: accepted
+    recipient_count:
+      type: integer
+      minimum: 0
+    notifications:
+      type: array
+      items:
+        "$ref": "#/AcceptedNotification"
+    warnings:
+      type: array
+      items:
+        "$ref": "#/Warning"
+    created_at:
+      "$ref": "#/Timestamp"
+    beta:
+      type: boolean
+      const: true
+      description: Present only when a Relay-Beta feature shaped this response.
+  additionalProperties: false
+Event:
+  type: object
+  required:
+    - object
+    - id
+    - workflow
+    - status
+    - source
+    - recipient_count
+    - notifications
+    - created_at
+  properties:
+    object:
+      type: string
+      const: event
+    id:
+      "$ref": "#/Id_evt"
+    workflow:
+      "$ref": "#/WorkflowRef"
+    status:
+      type: string
+      enum:
+        - accepted
+        - cancelled
+    source:
+      type: string
+      enum:
+        - api
+        - cloudevents
+    cloudevent:
+      oneOf:
+        - type: object
+          required:
+            - source
+            - id
+            - type
+          properties:
+            source:
+              type: string
+              maxLength: 1024
+            id:
+              type: string
+              maxLength: 512
+            type:
+              type: string
+              maxLength: 256
+          additionalProperties: false
+        - type: "null"
+    tenant:
+      oneOf:
+        - "$ref": "#/Id_stn"
+        - type: "null"
+    actor:
+      oneOf:
+        - "$ref": "#/Actor"
+        - type: "null"
+    dedup_key:
+      oneOf:
+        - type: string
+          maxLength: 512
+        - type: "null"
+    cancellation_key:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+    send_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    priority:
+      "$ref": "#/Priority"
+    recipient_count:
+      type: integer
+      minimum: 0
+    notifications:
+      type: array
+      items:
+        "$ref": "#/AcceptedNotification"
+    data:
+      type: object
+    metadata:
+      "$ref": "#/Metadata"
+    is_test:
+      type: boolean
+    created_at:
+      "$ref": "#/Timestamp"
+    cancelled_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+BatchSummary:
+  type: object
+  required:
+    - total
+    - accepted
+    - rejected
+  properties:
+    total:
+      type: integer
+    accepted:
+      type: integer
+    rejected:
+      type: integer
+  additionalProperties: false
+BatchRowResult:
+  type: object
+  required:
+    - index
+    - status
+  properties:
+    index:
+      type: integer
+      minimum: 0
+    ref:
+      type: string
+      maxLength: 128
+    status:
+      type: string
+      enum:
+        - accepted
+        - rejected
+    event:
+      "$ref": "#/EventAccepted"
+    error:
+      "$ref": "./problem.yaml#/Problem"
+  additionalProperties: false
+BatchResult:
+  type: object
+  required:
+    - object
+    - summary
+    - results
+  properties:
+    object:
+      type: string
+      const: batch_result
+    summary:
+      "$ref": "#/BatchSummary"
+    results:
+      type: array
+      description: "Results in input order; processing order is not guaranteed."
+      items:
+        "$ref": "#/BatchRowResult"
+  additionalProperties: false
+CloudEvent:
+  type: object
+  description: CloudEvents 1.0 structured event. (tenant, source, id) is the dedup key.
+  required:
+    - specversion
+    - id
+    - source
+    - type
+    - data
+  properties:
+    specversion:
+      type: string
+      const: "1.0"
+    id:
+      type: string
+      minLength: 1
+      maxLength: 512
+    source:
+      type: string
+      format: uri-reference
+      minLength: 1
+      maxLength: 1024
+    type:
+      type: string
+      minLength: 1
+      maxLength: 256
+    subject:
+      type: string
+      maxLength: 512
+    time:
+      "$ref": "#/Timestamp"
+    datacontenttype:
+      type: string
+      enum:
+        - application/json
+    dataschema:
+      type: string
+      format: uri
+    data:
+      type: object
+    traceparent:
+      type: string
+      pattern: "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
+    tracestate:
+      type: string
+      maxLength: 512
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "Only the listed attributes are accepted; any other extension attribute is rejected with unknown_field, and data must be a JSON object."
+CloudEventBatch:
+  type: array
+  description: "CloudEvents batch; batch limits apply."
+  items:
+    "$ref": "#/CloudEvent"
+  minItems: 1
+  maxItems: 500
+DeliveryStatus:
+  type: string
+  enum:
+    - queued
+    - sent
+    - delivered
+    - unknown_pending
+    - unknown
+    - failed
+    - skipped
+    - expired
+    - cancelled
+  description: "External delivery projection; new values are added only through API versioning."
+Failure:
+  type: object
+  required:
+    - kind
+    - class
+    - retryable
+  properties:
+    kind:
+      type: string
+      enum:
+        - failed
+        - bounced
+    class:
+      type: string
+      enum:
+        - transient
+        - permanent_target
+        - permanent_content
+        - policy
+        - quota
+        - auth
+        - sender_config
+        - unknown
+    code:
+      type: string
+      maxLength: 128
+    retryable:
+      type: boolean
+  additionalProperties: false
+Engagement:
+  type: object
+  description: "Engagement timestamps; filled from a later stage."
+  properties:
+    seen_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    read_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    clicked_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    clicked_by:
+      oneOf:
+        - type: string
+          enum:
+            - human
+            - bot
+        - type: "null"
+    archived_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+Delivery:
+  type: object
+  required:
+    - object
+    - id
+    - notification_id
+    - channel
+    - status
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: delivery
+    id:
+      "$ref": "#/Id_dlv"
+    notification_id:
+      "$ref": "#/Id_ntf"
+    channel:
+      "$ref": "#/Channel"
+    status:
+      "$ref": "#/DeliveryStatus"
+    reason:
+      oneOf:
+        - type: string
+          description: "Reason code; required for skipped, failed, expired and cancelled."
+          maxLength: 64
+        - type: "null"
+    rule_id:
+      oneOf:
+        - "$ref": "#/RuleId"
+        - type: "null"
+    deferred_until:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    failure:
+      oneOf:
+        - "$ref": "#/Failure"
+        - type: "null"
+    engagement:
+      "$ref": "#/Engagement"
+    fallback_of:
+      oneOf:
+        - "$ref": "#/Id_dlv"
+        - type: "null"
+    accepted_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    delivered_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+DeliveryList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Delivery"
+DeliveryCounts:
+  type: object
+  description: Number of deliveries per projection status. A notification has no delivery status of its own.
+  properties:
+    queued:
+      type: integer
+      minimum: 0
+    sent:
+      type: integer
+      minimum: 0
+    delivered:
+      type: integer
+      minimum: 0
+    unknown_pending:
+      type: integer
+      minimum: 0
+    unknown:
+      type: integer
+      minimum: 0
+    failed:
+      type: integer
+      minimum: 0
+    skipped:
+      type: integer
+      minimum: 0
+    expired:
+      type: integer
+      minimum: 0
+    cancelled:
+      type: integer
+      minimum: 0
+  additionalProperties: false
+Notification:
+  type: object
+  required:
+    - object
+    - id
+    - event_id
+    - workflow
+    - recipient_id
+    - message_class
+    - sender_type
+    - dedup_key
+    - state
+    - delivery_counts
+    - is_test
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: notification
+    id:
+      "$ref": "#/Id_ntf"
+    event_id:
+      "$ref": "#/Id_evt"
+    workflow:
+      "$ref": "#/WorkflowRef"
+    recipient_id:
+      "$ref": "#/RecipientId"
+    external_id:
+      "$ref": "#/ExternalId"
+    tenant:
+      oneOf:
+        - "$ref": "#/Id_stn"
+        - type: "null"
+    message_class:
+      "$ref": "#/MessageClass"
+    security_subtype:
+      oneOf:
+        - "$ref": "#/SecuritySubtype"
+        - type: "null"
+    sender_type:
+      type: string
+      enum:
+        - human
+        - system
+        - agent
+    dedup_key:
+      type: string
+      maxLength: 512
+    state:
+      type: string
+      enum:
+        - active
+        - cancelled
+        - expired
+      description: Run state of the notification, separate from delivery status.
+    close_rule_id:
+      oneOf:
+        - "$ref": "#/RuleId"
+        - type: "null"
+    expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    duplicate_count:
+      type: integer
+      minimum: 0
+    delivery_counts:
+      "$ref": "#/DeliveryCounts"
+    deliveries:
+      type: array
+      items:
+        "$ref": "#/Delivery"
+      description: "Present only with expand=deliveries."
+    is_test:
+      type: boolean
+    metadata:
+      "$ref": "#/Metadata"
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+NotificationList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Notification"
+Attempt:
+  type: object
+  required:
+    - object
+    - id
+    - attempt_no
+    - state
+  properties:
+    object:
+      type: string
+      const: attempt
+    id:
+      "$ref": "#/Id_att"
+    attempt_no:
+      type: integer
+      minimum: 1
+    state:
+      type: string
+      enum:
+        - pending
+        - in_flight
+        - succeeded
+        - failed
+        - unknown
+    provider:
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    failure_class:
+      oneOf:
+        - type: string
+        - type: "null"
+    raw_code:
+      oneOf:
+        - type: string
+          maxLength: 128
+        - type: "null"
+    started_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    finished_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+LedgerEvent:
+  type: object
+  required:
+    - object
+    - id
+    - actor
+    - type
+    - occurred_at
+    - received_at
+  properties:
+    object:
+      type: string
+      const: delivery_event
+    id:
+      "$ref": "#/Id_dle"
+    actor:
+      type: string
+      enum:
+        - relay
+        - provider_api
+        - provider_webhook
+        - client_sdk
+        - user
+    type:
+      "$ref": "#/EventName"
+    attempt_no:
+      oneOf:
+        - type: integer
+        - type: "null"
+    raw_code:
+      oneOf:
+        - type: string
+          maxLength: 128
+        - type: "null"
+    provider:
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    occurred_at:
+      "$ref": "#/Timestamp"
+    received_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+DeliveryHistory:
+  type: object
+  description: "Attempt history and ledger of one delivery. Raw provider responses are masked; revealing them is a sensitive operation."
+  required:
+    - object
+    - delivery
+    - attempts
+    - events
+  properties:
+    object:
+      type: string
+      const: delivery_history
+    delivery:
+      "$ref": "#/Delivery"
+    attempts:
+      type: array
+      items:
+        "$ref": "#/Attempt"
+    events:
+      type: array
+      items:
+        "$ref": "#/LedgerEvent"
+  additionalProperties: false
+CancelDetail:
+  type: object
+  required:
+    - result
+  properties:
+    notification_id:
+      "$ref": "#/Id_ntf"
+    delivery_id:
+      "$ref": "#/Id_dlv"
+    result:
+      type: string
+      enum:
+        - cancelled
+        - already_sent
+        - not_found
+        - already_closed
+  additionalProperties: false
+CancelResult:
+  type: object
+  description: "Cancellation counts. Sent SMS, email and push cannot be recalled; only deliveries not yet handed to a provider stop."
+  required:
+    - object
+    - id
+    - cancelled
+    - already_sent
+    - not_found
+    - details
+  properties:
+    object:
+      type: string
+      const: cancellation
+    id:
+      "$ref": "#/Id_cnl"
+    cancelled:
+      type: integer
+      minimum: 0
+    already_sent:
+      type: integer
+      minimum: 0
+    not_found:
+      type: integer
+      minimum: 0
+    details:
+      type: array
+      items:
+        "$ref": "#/CancelDetail"
+    has_more:
+      type: boolean
+      description: "True when more matching work remains; repeat the call with a new Idempotency-Key."
+      x-relay-choice: true
+      x-relay-choice-note: One call cancels at most 1000 notifications so it fits the API statement timeout.
+  additionalProperties: false
+CancelRequest:
+  type: object
+  description: Optional cancellation reason.
+  properties:
+    reason:
+      type: string
+      maxLength: 500
+  additionalProperties: false
+CancelByKeyRequest:
+  type: object
+  required:
+    - cancellation_key
+  properties:
+    cancellation_key:
+      type: string
+      minLength: 1
+      maxLength: 256
+      pattern: "^[\\x21-\\x7E]+$"
+    recipients:
+      type: array
+      description: Only these recipients.
+      items:
+        "$ref": "#/ExternalId"
+      minItems: 1
+      maxItems: 100
+      uniqueItems: true
+    channels:
+      type: array
+      description: Only these channels.
+      items:
+        "$ref": "#/Channel"
+      minItems: 1
+      uniqueItems: true
+    reason:
+      type: string
+      maxLength: 500
+  additionalProperties: false
+ChannelReachability:
+  type: object
+  required:
+    - reachable
+    - reason
+  properties:
+    reachable:
+      type: boolean
+    reason:
+      oneOf:
+        - type: string
+          enum:
+            - no_address
+            - address_disabled
+            - suppressed_address
+            - no_active_device
+            - no_permission
+          x-relay-choice: true
+        - type: "null"
+  additionalProperties: false
+Subscriber:
+  type: object
+  description: "Subscriber. Personal fields are returned masked (for example j***@example.com); see the operator reveal operation."
+  required:
+    - object
+    - id
+    - external_id
+    - channels
+    - state
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: subscriber
+    id:
+      "$ref": "#/Id_sub"
+    external_id:
+      "$ref": "#/ExternalId"
+    email:
+      oneOf:
+        - description: Masked unless revealed through the operator API.
+          "$ref": "#/Email"
+        - type: "null"
+    phone:
+      oneOf:
+        - "$ref": "#/E164"
+        - type: "null"
+    name:
+      oneOf:
+        - type: string
+          maxLength: 200
+        - type: "null"
+    locale:
+      oneOf:
+        - "$ref": "#/Locale"
+        - type: "null"
+    timezone:
+      oneOf:
+        - "$ref": "#/TimeZone"
+        - type: "null"
+    legal_type:
+      oneOf:
+        - "$ref": "#/LegalType"
+        - type: "null"
+    attributes:
+      type: object
+    channels:
+      type: object
+      description: Reachability summary per channel.
+      propertyNames:
+        "$ref": "#/Channel"
+      additionalProperties:
+        "$ref": "#/ChannelReachability"
+    state:
+      type: string
+      enum:
+        - active
+        - deletion_requested
+        - deleted
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+SubscriberCreate:
+  type: object
+  description: "Create a subscriber; 409 resource_conflict if the external id exists."
+  required:
+    - external_id
+  properties:
+    external_id:
+      "$ref": "#/ExternalId"
+    email:
+      oneOf:
+        - "$ref": "#/Email"
+        - type: "null"
+    phone:
+      oneOf:
+        - "$ref": "#/E164"
+        - type: "null"
+    name:
+      oneOf:
+        - type: string
+          maxLength: 200
+        - type: "null"
+    locale:
+      oneOf:
+        - "$ref": "#/Locale"
+        - type: "null"
+    timezone:
+      oneOf:
+        - "$ref": "#/TimeZone"
+        - type: "null"
+    legal_type:
+      oneOf:
+        - "$ref": "#/LegalType"
+        - type: "null"
+    attributes:
+      oneOf:
+        - type: object
+          description: Recipient attributes available to templates and conditions. Values are strings, numbers or booleans.
+          maxProperties: 64
+          propertyNames:
+            pattern: "^[a-z][a-z0-9_]{0,63}$"
+          additionalProperties:
+            type:
+              - string
+              - number
+              - boolean
+          x-relay-choice: true
+          x-relay-choice-note: "The spec mentions declared recipient attributes; shape and bounds are chosen by the contract."
+        - type: "null"
+  additionalProperties: false
+SubscriberReplace:
+  type: object
+  description: "Full replacement: absent fields are cleared."
+  properties:
+    email:
+      oneOf:
+        - "$ref": "#/Email"
+        - type: "null"
+    phone:
+      oneOf:
+        - "$ref": "#/E164"
+        - type: "null"
+    name:
+      oneOf:
+        - type: string
+          maxLength: 200
+        - type: "null"
+    locale:
+      oneOf:
+        - "$ref": "#/Locale"
+        - type: "null"
+    timezone:
+      oneOf:
+        - "$ref": "#/TimeZone"
+        - type: "null"
+    legal_type:
+      oneOf:
+        - "$ref": "#/LegalType"
+        - type: "null"
+    attributes:
+      oneOf:
+        - type: object
+          description: Recipient attributes available to templates and conditions. Values are strings, numbers or booleans.
+          maxProperties: 64
+          propertyNames:
+            pattern: "^[a-z][a-z0-9_]{0,63}$"
+          additionalProperties:
+            type:
+              - string
+              - number
+              - boolean
+          x-relay-choice: true
+          x-relay-choice-note: "The spec mentions declared recipient attributes; shape and bounds are chosen by the contract."
+        - type: "null"
+  additionalProperties: false
+SubscriberPatch:
+  type: object
+  description: "JSON Merge Patch: null clears a field, an absent field is left untouched."
+  properties:
+    email:
+      oneOf:
+        - "$ref": "#/Email"
+        - type: "null"
+    phone:
+      oneOf:
+        - "$ref": "#/E164"
+        - type: "null"
+    name:
+      oneOf:
+        - type: string
+          maxLength: 200
+        - type: "null"
+    locale:
+      oneOf:
+        - "$ref": "#/Locale"
+        - type: "null"
+    timezone:
+      oneOf:
+        - "$ref": "#/TimeZone"
+        - type: "null"
+    legal_type:
+      oneOf:
+        - "$ref": "#/LegalType"
+        - type: "null"
+    attributes:
+      oneOf:
+        - type: object
+          description: Recipient attributes available to templates and conditions. Values are strings, numbers or booleans.
+          maxProperties: 64
+          propertyNames:
+            pattern: "^[a-z][a-z0-9_]{0,63}$"
+          additionalProperties:
+            type:
+              - string
+              - number
+              - boolean
+          x-relay-choice: true
+          x-relay-choice-note: "The spec mentions declared recipient attributes; shape and bounds are chosen by the contract."
+        - type: "null"
+  additionalProperties: false
+SubscriberList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Subscriber"
+SubscriberBulkRow:
+  type: object
+  required:
+    - external_id
+  properties:
+    ref:
+      type: string
+      maxLength: 128
+    external_id:
+      "$ref": "#/ExternalId"
+    email:
+      oneOf:
+        - "$ref": "#/Email"
+        - type: "null"
+    phone:
+      oneOf:
+        - "$ref": "#/E164"
+        - type: "null"
+    name:
+      oneOf:
+        - type: string
+          maxLength: 200
+        - type: "null"
+    locale:
+      oneOf:
+        - "$ref": "#/Locale"
+        - type: "null"
+    timezone:
+      oneOf:
+        - "$ref": "#/TimeZone"
+        - type: "null"
+    legal_type:
+      oneOf:
+        - "$ref": "#/LegalType"
+        - type: "null"
+    attributes:
+      oneOf:
+        - type: object
+          description: Recipient attributes available to templates and conditions. Values are strings, numbers or booleans.
+          maxProperties: 64
+          propertyNames:
+            pattern: "^[a-z][a-z0-9_]{0,63}$"
+          additionalProperties:
+            type:
+              - string
+              - number
+              - boolean
+          x-relay-choice: true
+          x-relay-choice-note: "The spec mentions declared recipient attributes; shape and bounds are chosen by the contract."
+        - type: "null"
+  additionalProperties: false
+SubscriberBulkRequest:
+  type: object
+  description: "Bulk upsert; batch rules apply (one Idempotency-Key for the whole request, per-row results)."
+  required:
+    - subscribers
+  properties:
+    subscribers:
+      type: array
+      items:
+        "$ref": "#/SubscriberBulkRow"
+      minItems: 1
+      maxItems: 500
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: Row limit 500 follows the event batch limit.
+SubscriberBulkRowResult:
+  type: object
+  required:
+    - index
+    - status
+  properties:
+    index:
+      type: integer
+      minimum: 0
+    ref:
+      type: string
+      maxLength: 128
+    status:
+      type: string
+      enum:
+        - created
+        - updated
+        - unchanged
+        - rejected
+    subscriber:
+      "$ref": "#/Subscriber"
+    error:
+      "$ref": "./problem.yaml#/Problem"
+  additionalProperties: false
+SubscriberBulkResult:
+  type: object
+  required:
+    - object
+    - summary
+    - results
+  properties:
+    object:
+      type: string
+      const: batch_result
+    summary:
+      "$ref": "#/BatchSummary"
+    results:
+      type: array
+      items:
+        "$ref": "#/SubscriberBulkRowResult"
+  additionalProperties: false
+SubscriberDeletion:
+  type: object
+  description: "Deletion request. It applies to queued jobs, scheduled sends, digest buffers and the inbox; personal fields become unreadable by crypto-shredding. Rows are never physically deleted."
+  required:
+    - object
+    - id
+    - subscriber_id
+    - status
+    - created_at
+  properties:
+    object:
+      type: string
+      const: subscriber_deletion
+    id:
+      "$ref": "#/Id_sdr"
+    subscriber_id:
+      "$ref": "#/Id_sub"
+    status:
+      type: string
+      enum:
+        - pending
+        - completed
+        - held
+    created_at:
+      "$ref": "#/Timestamp"
+    completed_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+ChannelStep:
+  type: object
+  description: "Channel step: sends to one channel using one template. Route policies, variants and escalation come in a later stage."
+  required:
+    - type
+    - key
+    - channel
+    - template
+  properties:
+    type:
+      type: string
+      const: channel
+    key:
+      type: string
+      description: Step key, unique within the workflow.
+      pattern: "^[a-z][a-z0-9_]{0,63}$"
+    channel:
+      "$ref": "#/Channel"
+    template:
+      type: string
+      description: Template key the step renders.
+      pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+      maxLength: 100
+  additionalProperties: false
+WorkflowDefinition:
+  type: object
+  description: Workflow definition. The same definition is accepted by the file format and the SDK compiler.
+  required:
+    - name
+    - category
+    - message_class
+    - event_schema
+    - steps
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    description:
+      type: string
+      maxLength: 2000
+    category:
+      type: string
+      description: Tenant category key.
+      pattern: "^[a-z][a-z0-9_]{0,63}$"
+    message_class:
+      "$ref": "#/MessageClass"
+    event_schema:
+      type: object
+      description: "JSON Schema 2020-12 for event data; incoming data is validated against it at accept time."
+    steps:
+      type: array
+      items:
+        "$ref": "#/ChannelStep"
+      minItems: 1
+      maxItems: 50
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "Until tenant categories exist (later stage), the definition declares message_class next to category; afterwards the class must match the category's class."
+WorkflowCreate:
+  type: object
+  description: Create a workflow and its first draft.
+  required:
+    - key
+    - definition
+  properties:
+    key:
+      "$ref": "#/WorkflowKey"
+    definition:
+      "$ref": "#/WorkflowDefinition"
+  additionalProperties: false
+WorkflowDraft:
+  type: object
+  description: Replace the draft of the workflow.
+  required:
+    - definition
+  properties:
+    definition:
+      "$ref": "#/WorkflowDefinition"
+  additionalProperties: false
+Publication:
+  type: object
+  required:
+    - status
+    - requested_at
+  properties:
+    status:
+      type: string
+      enum:
+        - pending
+        - published
+        - rejected
+    version:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    errors:
+      type: array
+      items:
+        "$ref": "./problem.yaml#/FieldError"
+    requested_at:
+      "$ref": "#/Timestamp"
+    finished_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+Workflow:
+  type: object
+  required:
+    - object
+    - id
+    - key
+    - name
+    - managed_by
+    - state
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: workflow
+    id:
+      "$ref": "#/Id_wfl"
+    key:
+      "$ref": "#/WorkflowKey"
+    name:
+      type: string
+      maxLength: 200
+    managed_by:
+      type: string
+      enum:
+        - panel
+        - code
+      description: "Single manager of the workflow; managed_by rules come in a later stage."
+    published_version:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    draft:
+      oneOf:
+        - "$ref": "#/WorkflowDefinition"
+        - type: "null"
+    draft_version_id:
+      oneOf:
+        - "$ref": "#/Id_wfv"
+        - type: "null"
+    last_publication:
+      oneOf:
+        - "$ref": "#/Publication"
+        - type: "null"
+    state:
+      type: string
+      enum:
+        - active
+        - archived
+    version:
+      type: integer
+      minimum: 1
+      description: "Optimistic concurrency version; the ETag carries it."
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+WorkflowList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Workflow"
+WorkflowVersion:
+  type: object
+  description: "Published workflow version; immutable."
+  required:
+    - object
+    - id
+    - workflow_key
+    - version
+    - definition
+    - definition_digest
+    - published_at
+  properties:
+    object:
+      type: string
+      const: workflow_version
+    id:
+      "$ref": "#/Id_wfv"
+    workflow_key:
+      "$ref": "#/WorkflowKey"
+    version:
+      type: integer
+      minimum: 1
+    definition:
+      "$ref": "#/WorkflowDefinition"
+    definition_digest:
+      type: string
+      description: SHA-256 of the canonical definition, lowercase hex.
+      pattern: "^[0-9a-f]{64}$"
+    promoted_from:
+      oneOf:
+        - type: integer
+          minimum: 1
+          description: Version this one republished (rollback).
+        - type: "null"
+    published_at:
+      "$ref": "#/Timestamp"
+    published_by:
+      type: string
+      maxLength: 256
+  additionalProperties: false
+WorkflowVersionList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/WorkflowVersion"
+PublishRequest:
+  type: object
+  description: Optional publication note recorded in the audit log.
+  properties:
+    note:
+      type: string
+      maxLength: 500
+  additionalProperties: false
+PublicationAccepted:
+  type: object
+  description: "Publication accepted for the publication gate; the result appears on the workflow."
+  required:
+    - object
+    - workflow_key
+    - publication
+  properties:
+    object:
+      type: string
+      const: workflow_publication
+    workflow_key:
+      "$ref": "#/WorkflowKey"
+    publication:
+      "$ref": "#/Publication"
+  additionalProperties: false
+EventTypeMapping:
+  type: object
+  required:
+    - object
+    - id
+    - type
+    - source
+    - workflow
+    - to_pointer
+    - data_fields
+    - state
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: event_type_mapping
+    id:
+      "$ref": "#/Id_cem"
+    type:
+      type: string
+      description: CloudEvents type.
+      minLength: 1
+      maxLength: 256
+    source:
+      oneOf:
+        - type: string
+          description: "Exact CloudEvents source to match; null matches any source."
+          maxLength: 1024
+        - type: "null"
+    workflow:
+      "$ref": "#/WorkflowKey"
+    to_pointer:
+      type: string
+      description: JSON Pointer into data locating a recipient target or an array of them.
+      maxLength: 256
+    tenant_pointer:
+      oneOf:
+        - type: string
+          description: JSON Pointer into data locating a subtenant id.
+          maxLength: 256
+        - type: "null"
+    data_fields:
+      type: array
+      description: Allow-list of JSON Pointers copied into event data. The empty pointer copies the whole object.
+      items:
+        type: string
+        maxLength: 256
+      minItems: 1
+      maxItems: 100
+      uniqueItems: true
+    state:
+      type: string
+      enum:
+        - active
+        - archived
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+EventTypeMappingWrite:
+  type: object
+  description: Tenant-defined mapping from a CloudEvents type to a workflow, with a field allow-list instead of a transformation script.
+  required:
+    - type
+    - workflow
+    - to_pointer
+    - data_fields
+  properties:
+    type:
+      type: string
+      minLength: 1
+      maxLength: 256
+    source:
+      oneOf:
+        - type: string
+          maxLength: 1024
+        - type: "null"
+    workflow:
+      "$ref": "#/WorkflowKey"
+    to_pointer:
+      type: string
+      maxLength: 256
+    tenant_pointer:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+    data_fields:
+      type: array
+      items:
+        type: string
+        maxLength: 256
+      minItems: 1
+      maxItems: 100
+      uniqueItems: true
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "The spec defines the type-to-workflow table and a field allow-list; recipient and subtenant pointers are chosen by the contract because CloudEvents carry no recipients."
+EventTypeMappingList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/EventTypeMapping"
+KillSwitch:
+  type: object
+  required:
+    - object
+    - id
+    - scope_kind
+    - target_kind
+    - state
+    - reason
+    - origin
+    - created_by
+    - status
+    - created_at
+  properties:
+    object:
+      type: string
+      const: kill_switch
+    id:
+      "$ref": "#/Id_ksw"
+    scope_kind:
+      type: string
+      enum:
+        - platform
+        - tenant
+        - subtenant
+        - campaign
+        - workflow
+        - api_client
+        - sender
+    scope_ref:
+      oneOf:
+        - type: string
+          maxLength: 128
+        - type: "null"
+    channel:
+      oneOf:
+        - "$ref": "#/Channel"
+        - type: "null"
+    target_kind:
+      type: string
+      enum:
+        - all
+        - provider_account
+        - template
+    target_ref:
+      oneOf:
+        - type: string
+          maxLength: 128
+        - type: "null"
+    message_class:
+      oneOf:
+        - "$ref": "#/MessageClass"
+          description: null means every class except security.
+        - type: "null"
+    state:
+      type: string
+      enum:
+        - "on"
+        - "off"
+        - canary
+        - paused_until
+    canary_percent:
+      oneOf:
+        - type: integer
+          minimum: 1
+          maximum: 99
+        - type: "null"
+    paused_until:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    reason:
+      type: string
+      maxLength: 2000
+    ticket_ref:
+      oneOf:
+        - type: string
+          maxLength: 512
+        - type: "null"
+    origin:
+      type: string
+      enum:
+        - operator
+        - dead_man
+    created_by:
+      type: string
+      maxLength: 256
+    expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    supersedes_id:
+      oneOf:
+        - "$ref": "#/Id_ksw"
+        - type: "null"
+    status:
+      type: string
+      enum:
+        - active
+        - released
+    released_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    released_by:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+    release_reason:
+      oneOf:
+        - type: string
+          maxLength: 2000
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+KillSwitchList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/KillSwitch"
+KillSwitchEngage:
+  type: object
+  required:
+    - scope_kind
+    - reason
+  properties:
+    scope_kind:
+      type: string
+      enum:
+        - tenant
+        - subtenant
+        - campaign
+        - workflow
+        - api_client
+        - sender
+      description: API clients with the kill_switch scope may use only campaign and workflow.
+    scope_ref:
+      type: string
+      description: Identifier of the scoped object (stn_, campaign, workflow key, cli_, sender).
+      maxLength: 128
+    channel:
+      "$ref": "#/Channel"
+    target_kind:
+      type: string
+      enum:
+        - all
+        - provider_account
+        - template
+      default: all
+    target_ref:
+      type: string
+      maxLength: 128
+    message_class:
+      "$ref": "#/MessageClass"
+      description: Omit to stop every class except security. Stopping security is a separate choice that needs step-up.
+    state:
+      type: string
+      enum:
+        - "off"
+        - canary
+        - paused_until
+      default: "off"
+    canary_percent:
+      type: integer
+      minimum: 1
+      maximum: 99
+    paused_until:
+      "$ref": "#/Timestamp"
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 2000
+    ticket_ref:
+      type: string
+      maxLength: 512
+    ttl:
+      "$ref": "#/Duration"
+      description: "Time to live; required unless no_ttl is true."
+    no_ttl:
+      type: boolean
+      description: A record without TTL needs explicit approval (operator session with step-up).
+  additionalProperties: false
+PlatformKillSwitchEngage:
+  type: object
+  description: "Platform kill switch; applies to every tenant and both environments."
+  required:
+    - reason
+  properties:
+    channel:
+      "$ref": "#/Channel"
+    target_kind:
+      type: string
+      enum:
+        - all
+        - provider_account
+        - template
+      default: all
+    target_ref:
+      type: string
+      maxLength: 128
+    message_class:
+      "$ref": "#/MessageClass"
+      description: Omit to stop every class except security. Stopping security is a separate choice that needs step-up.
+    state:
+      type: string
+      enum:
+        - "off"
+        - canary
+        - paused_until
+      default: "off"
+    canary_percent:
+      type: integer
+      minimum: 1
+      maximum: 99
+    paused_until:
+      "$ref": "#/Timestamp"
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 2000
+    ticket_ref:
+      type: string
+      maxLength: 512
+    ttl:
+      "$ref": "#/Duration"
+      description: "Time to live; required unless no_ttl is true."
+    no_ttl:
+      type: boolean
+      description: A record without TTL needs explicit approval (operator session with step-up).
+  additionalProperties: false
+KillSwitchReplace:
+  type: object
+  description: "Replace the state of a kill switch, keeping its dimensions. Tightening needs no step-up; relaxing needs an operator session with step-up."
+  required:
+    - state
+    - reason
+  properties:
+    state:
+      type: string
+      enum:
+        - "off"
+        - canary
+        - paused_until
+    canary_percent:
+      type: integer
+      minimum: 1
+      maximum: 99
+    paused_until:
+      "$ref": "#/Timestamp"
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 2000
+    ttl:
+      "$ref": "#/Duration"
+    no_ttl:
+      type: boolean
+  additionalProperties: false
+KillSwitchRelease:
+  type: object
+  description: "Release is a relaxation: operator session with step-up only. PAUSED deliveries are not resumed automatically."
+  required:
+    - reason
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 2000
+  additionalProperties: false
+KillSwitchResume:
+  type: object
+  required:
+    - reason
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 2000
+  additionalProperties: false
+KillSwitchBulkCancel:
+  type: object
+  required:
+    - reason
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 2000
+  additionalProperties: false
+KillSwitchActionResult:
+  type: object
+  required:
+    - object
+    - kill_switch_id
+    - action
+    - affected
+    - has_more
+  properties:
+    object:
+      type: string
+      const: kill_switch_action
+    kill_switch_id:
+      "$ref": "#/Id_ksw"
+    action:
+      type: string
+      enum:
+        - resume
+        - bulk_cancel
+    affected:
+      type: integer
+      minimum: 0
+    has_more:
+      type: boolean
+  additionalProperties: false
+ErrorDescription:
+  type: object
+  description: Description of one error code, served from the error catalog.
+  required:
+    - object
+    - code
+    - family
+    - type
+    - title
+    - status
+    - retryable
+    - retry_after
+    - description
+  properties:
+    object:
+      type: string
+      const: error_code
+    code:
+      type: string
+      pattern: "^[a-z][a-z0-9_]*$"
+    family:
+      type: string
+    type:
+      type: string
+      format: uri
+    title:
+      type: string
+    status:
+      type: integer
+      minimum: 400
+      maximum: 599
+    retryable:
+      type: boolean
+    retry_after:
+      type: object
+      required:
+        - kind
+        - seconds
+        - max_seconds
+      properties:
+        kind:
+          type: string
+          enum:
+            - none
+            - fixed
+            - window
+            - range
+        seconds:
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: "null"
+        max_seconds:
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: "null"
+      additionalProperties: false
+    description:
+      type: string
+  additionalProperties: false
+VirtualClock:
+  type: object
+  description: Virtual clock of the test environment.
+  required:
+    - object
+    - offset_ms
+    - business_now
+  properties:
+    object:
+      type: string
+      const: virtual_clock
+    offset_ms:
+      type: integer
+      minimum: 0
+    business_now:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+VirtualClockAdvance:
+  type: object
+  required:
+    - by
+  properties:
+    by:
+      "$ref": "#/Duration"
+      description: Forward step, at most 366 days. The clock never moves back.
+  additionalProperties: false
+AccessEventDelivery:
+  type: object
+  description: Access event delivered to Relay with the shared Suiss webhook profile. Event types and data schemas are in the event catalog.
+  required:
+    - specversion
+    - id
+    - source
+    - type
+    - time
+    - data
+  properties:
+    specversion:
+      type: string
+      const: "1.0"
+    id:
+      type: string
+      minLength: 1
+      maxLength: 512
+    source:
+      type: string
+      maxLength: 1024
+    type:
+      "$ref": "#/EventName"
+    time:
+      "$ref": "#/Timestamp"
+    subject:
+      type: string
+      maxLength: 512
+    datacontenttype:
+      type: string
+      const: application/json
+    data:
+      type: object
+    traceparent:
+      type: string
+      pattern: "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
+  additionalProperties: false
+Role:
+  type: object
+  required:
+    - object
+    - key
+    - scope
+    - rank
+    - description
+  properties:
+    object:
+      type: string
+      const: role
+    key:
+      type: string
+      enum:
+        - installation_operator
+        - tenant_admin
+        - tenant_operator
+    scope:
+      type: string
+      enum:
+        - installation
+        - tenant
+    rank:
+      type: integer
+      description: "installation_operator 3 > tenant_admin 2 > tenant_operator 1."
+    description:
+      type: string
+  additionalProperties: false

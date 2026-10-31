@@ -1,0 +1,3759 @@
+openapi: "3.1.0"
+jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema"
+info:
+  title: Relay Operator API
+  version: "2026-11-01"
+  description: "Operator family: Access OIDC session and step-up, roles, platform kill switch, tenant suspension, send modes, support delegation, personal data reveal, cross-tenant overview, audit log, API client view and queue panel. Sensitive operations need an Access step-up and fail closed when Access cannot be reached; every management action is audited. JSON in UTF-8, snake_case fields, RFC 3339 UTC times, ISO 8601 durations, amounts and large integers as strings. Unknown fields are rejected with 422 unknown_field at every depth, including overrides; null clears a field and an absent field is left untouched. HTTPS only (TLS 1.2 or later, HSTS). Every response carries Request-Id and Relay-Version. Errors are RFC 9457 problem details whose type resolves to /v1/errors/{code} on the same region. Every POST, PUT, PATCH and DELETE needs an Idempotency-Key (24 hours, fixed); a replay returns the first response byte for byte with Idempotency-Replayed: true. Relay delivers at least once and, with durable idempotency, processes effectively once. Identifiers are opaque, prefixed and time ordered (x-relay-id-prefixes). Resources of other tenants and environments return 404. Health endpoints are not part of this API."
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: "https://{host}"
+    description: "Base address of a data region. A region's address never reaches another region's data and never routes between regions."
+    variables:
+      host:
+        default: relay.example.com
+tags:
+  - name: session
+    description: Operator session through Access OIDC and step-up.
+  - name: roles
+    description: Built-in roles and role assignments.
+  - name: platform
+    description: "Installation operator: platform kill switch, tenants, suspension, queue panel."
+  - name: tenant-settings
+    description: Send modes and API version pin.
+  - name: support
+    description: Support access delegation.
+  - name: pii
+    description: Audited reveal of masked personal data.
+  - name: audit
+    description: Audit log read.
+  - name: api-clients
+    description: Relay-side view of Access API clients.
+paths:
+  "/v1/operator/session/login":
+    get:
+      operationId: startOperatorLogin
+      tags:
+        - session
+      summary: Start operator login
+      description: "Redirects to Access (OIDC authorization code with PKCE). Relay has no local users or passwords; the first installation operator also comes from Access and emergency access is Access break-glass."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - name: return_to
+          in: query
+          description: Panel path to return to.
+          required: false
+          schema:
+            type: string
+            pattern: "^/[^/].*$"
+            maxLength: 512
+      security: []
+      responses:
+        "302":
+          description: Redirect to the Access authorization endpoint.
+          headers:
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - malformed_request
+        - validation_failed
+        - auth_invalid_token
+        - auth_step_up_unavailable
+        - service_unavailable
+        - internal_error
+      x-relay-role: null
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+  "/v1/operator/session/callback":
+    get:
+      operationId: completeOperatorLogin
+      tags:
+        - session
+      summary: Complete operator login
+      description: "OIDC callback. Validates state, nonce and the ID token, creates the operator record on first sign-in and starts a session cookie. The external IdP claim behind Access is identity evidence only; roles come from Relay."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - name: code
+          in: query
+          required: true
+          description: Authorization code.
+          schema:
+            type: string
+            maxLength: 2048
+        - name: state
+          in: query
+          required: true
+          description: State.
+          schema:
+            type: string
+            maxLength: 512
+      security: []
+      responses:
+        "302":
+          description: "Session started; redirect to the panel."
+          headers:
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Set-Cookie:
+              "$ref": "./components/headers.yaml#/Set-Cookie"
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - malformed_request
+        - validation_failed
+        - auth_invalid_token
+        - auth_step_up_unavailable
+        - service_unavailable
+        - internal_error
+      x-relay-role: null
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+  "/v1/operator/session":
+    get:
+      operationId: getOperatorSession
+      tags:
+        - session
+      summary: Get the current session
+      description: Returns the operator, role grants and step-up state of the session.
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The session.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/OperatorSession"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+      x-relay-role: null
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+    delete:
+      operationId: endOperatorSession
+      tags:
+        - session
+      summary: Sign out
+      description: Revokes the session.
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "204":
+          description: Signed out.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Set-Cookie:
+              "$ref": "./components/headers.yaml#/Set-Cookie"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+      x-relay-role: null
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+  "/v1/operator/session/step_up":
+    post:
+      operationId: startStepUp
+      tags:
+        - session
+      summary: Start a step-up
+      description: Returns an Access authorization URL that requests re-authentication (acr_values, max_age). Step-up stays valid for 5 minutes and is bound to this session. If Access cannot be reached, no sensitive operation is performed (auth_step_up_unavailable).
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: false
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/StepUpStart"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Step-up challenge.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/StepUpChallenge"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_unavailable
+      x-relay-role: null
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: Step-up flow, its 5 minute validity and paths are chosen by the contract.
+  "/v1/operator/session/step_up/callback":
+    get:
+      operationId: completeStepUp
+      tags:
+        - session
+      summary: Complete a step-up
+      description: "OIDC callback of the step-up. Records auth_time, acr and the Access step-up record reference on the session; the reference is written to the audit record of every operation that uses it."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - name: code
+          in: query
+          required: true
+          description: Authorization code.
+          schema:
+            type: string
+            maxLength: 2048
+        - name: state
+          in: query
+          required: true
+          description: State.
+          schema:
+            type: string
+            maxLength: 512
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "302":
+          description: "Step-up complete; redirect to return_to."
+          headers:
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_step_up_unavailable
+        - validation_failed
+      x-relay-role: null
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+  "/v1/operator/roles":
+    get:
+      operationId: listRoles
+      tags:
+        - roles
+      summary: List roles
+      description: "Built-in roles: installation_operator (the only role above tenants; cannot read tenant data past RLS), tenant_admin, tenant_operator."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Roles.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/RoleList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+      x-relay-role: null
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+  "/v1/operator/role_assignments":
+    get:
+      operationId: listRoleAssignments
+      tags:
+        - roles
+      summary: List role assignments
+      description: "Role assignments of the selected tenant and environment; the installation operator also sees installation assignments."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: A page of assignments.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/RoleAssignmentList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+    post:
+      operationId: createRoleAssignment
+      tags:
+        - roles
+      summary: Assign a role
+      description: "Role changes need step-up. A tenant admin assigns tenant roles in its tenant; only the installation operator assigns installation_operator (through the installation tenant context)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/RoleAssignmentCreate"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "201":
+          description: Assigned.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/RoleAssignment"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - operator_not_found
+        - resource_conflict
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+  "/v1/operator/role_assignments/{role_assignment_id}/revoke":
+    post:
+      operationId: revokeRoleAssignment
+      tags:
+        - roles
+      summary: Revoke a role
+      description: "Revocation is a state change; the row stays. Needs step-up."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/RoleAssignmentId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/RevokeRequest"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Revoked.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/RoleAssignment"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - role_assignment_not_found
+        - resource_conflict
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+  "/v1/operator/kill_switches":
+    get:
+      operationId: listPlatformKillSwitches
+      tags:
+        - platform
+      summary: List platform kill switches
+      description: "Platform scope records; they apply to every tenant and both environments."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+        - name: include_released
+          in: query
+          required: false
+          description: Include released records.
+          schema:
+            type: boolean
+            default: false
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: A page of kill switches.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/KillSwitchList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+    post:
+      operationId: engagePlatformKillSwitch
+      tags:
+        - platform
+      summary: Engage a platform kill switch
+      description: "Installation operator only. Stopping is immediate and needs no step-up, except stopping the security class or a record without TTL. A full platform stop may also answer new events with 503 and Retry-After. The same record can be written by the CLI and by the documented emergency procedure; all three produce the same audit record."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/PlatformKillSwitchEngage"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "201":
+          description: Engaged.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/KillSwitch"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: conditional
+      x-relay-step-up-when: message_class is security, or no_ttl is true
+  "/v1/operator/kill_switches/{kill_switch_id}/replace":
+    post:
+      operationId: replacePlatformKillSwitch
+      tags:
+        - platform
+      summary: Replace a platform kill switch
+      description: "Tightening needs no step-up; relaxing needs step-up."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/KillSwitchId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/KillSwitchReplace"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "201":
+          description: Replaced.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/KillSwitch"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - kill_switch_not_found
+        - resource_conflict
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: conditional
+      x-relay-step-up-when: the replacement relaxes the record
+  "/v1/operator/kill_switches/{kill_switch_id}/release":
+    post:
+      operationId: releasePlatformKillSwitch
+      tags:
+        - platform
+      summary: Release a platform kill switch
+      description: "Relaxation: step-up required. PAUSED deliveries stay paused until resumed."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/KillSwitchId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/KillSwitchRelease"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Released.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/KillSwitch"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - kill_switch_not_found
+        - resource_conflict
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+  "/v1/operator/tenants":
+    get:
+      operationId: listTenants
+      tags:
+        - platform
+      summary: Cross-tenant overview
+      description: "Installation operator only. Returns installation-level facts and aggregates per tenant, never tenant record content; reading tenant data needs a support delegation. Every query writes an audit record (cross_tenant.queried)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+        - name: status
+          in: query
+          required: false
+          description: Filter by status.
+          schema:
+            type: string
+            enum:
+              - active
+              - suspended
+              - closed
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: A page of tenants.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/TenantOverviewList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+  "/v1/operator/tenants/{tenant_id}":
+    get:
+      operationId: getTenant
+      tags:
+        - platform
+      summary: Get a tenant overview
+      description: "Installation operator only; audited like the list."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/TenantId"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The tenant.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/TenantOverview"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - tenant_not_found
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+  "/v1/operator/tenants/{tenant_id}/suspend":
+    post:
+      operationId: suspendTenant
+      tags:
+        - platform
+      summary: Suspend a tenant or subtenant
+      description: "Installation operator with step-up. Once effective, every entry point rejects new work with auth_tenant_suspended at the same moment (API, campaigns, CloudEvents, inbound webhooks, agents, scheduled sends, recurrences, outgoing events); open realtime connections are closed and pending jobs become PAUSED."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/TenantId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/SuspendRequest"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "201":
+          description: Suspension recorded.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/TenantSuspension"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - tenant_not_found
+        - resource_conflict
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+  "/v1/operator/tenants/{tenant_id}/resume":
+    post:
+      operationId: resumeTenant
+      tags:
+        - platform
+      summary: Lift a suspension
+      description: Installation operator with step-up. PAUSED jobs are not resumed automatically.
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/TenantId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/ResumeRequest"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Suspension lifted.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/TenantSuspension"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - tenant_not_found
+        - resource_conflict
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+  "/v1/operator/send_modes":
+    get:
+      operationId: listSendModes
+      tags:
+        - tenant-settings
+      summary: List send modes
+      description: Send mode levels of the selected tenant and environment.
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Send mode levels.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/SendModeList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+    put:
+      operationId: setSendMode
+      tags:
+        - tenant-settings
+      summary: Set a send mode level
+      description: "Changes are audited. Moving a level towards live (off or dry_run to shadow, shadow to live) is a relaxation and needs step-up; the installation default is set by the installation operator in the installation tenant context."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/SendModeWrite"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Set.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/SendModeSetting"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: conditional
+      x-relay-step-up-when: the new mode is closer to live than the current one
+      x-relay-choice: true
+      x-relay-choice-note: "Relaxing needs higher authority and step-up like other controls; the spec only requires the change to be audited."
+  "/v1/operator/support_delegations":
+    get:
+      operationId: listSupportDelegations
+      tags:
+        - support
+      summary: List support delegations
+      description: "Delegations of the selected tenant; an installation operator sees the delegations granted to itself."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: A page of delegations.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/SupportDelegationList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+    post:
+      operationId: grantSupportDelegation
+      tags:
+        - support
+      summary: Grant support access
+      description: "A tenant admin grants an installation operator time-limited, read-only access on behalf of the tenant. Needs step-up; audited."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/SupportDelegationCreate"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "201":
+          description: Granted.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/SupportDelegation"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - operator_not_found
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+      x-relay-choice: true
+      x-relay-choice-note: Grant direction (tenant admin grants), read-only access and the PT4H default / P3D maximum are chosen by the contract.
+  "/v1/operator/support_delegations/{delegation_id}/revoke":
+    post:
+      operationId: revokeSupportDelegation
+      tags:
+        - support
+      summary: Revoke support access
+      description: "Ends the delegation at once. Tightening; no step-up."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/DelegationId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/RevokeRequest"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Revoked.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/SupportDelegation"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - support_delegation_not_found
+        - resource_conflict
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+  "/v1/operator/subscribers/{subscriber_id}/reveal":
+    post:
+      operationId: revealSubscriberPii
+      tags:
+        - pii
+      summary: Reveal subscriber personal data
+      description: "Personal data is masked by default. Revealing needs the role and step-up; each revealed field writes its own pii.revealed audit record (operator, subscriber, field) before the value is returned. Not available under support delegation."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/SubscriberId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/RevealRequest"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Revealed values.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/RevealResult"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - subscriber_not_found
+        - auth_delegation_required
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+      x-relay-idempotency-replay: not_stored
+      x-relay-choice: true
+      x-relay-choice-note: "Reveal responses are never stored for replay: a repeat with the same key performs a new reveal with new audit records."
+  "/v1/operator/audit_log":
+    get:
+      operationId: listAuditRecords
+      tags:
+        - audit
+      summary: Read the audit log
+      description: Reading the audit log is itself audited (one audit_log.read record per query). Installation-level records are read in the installation tenant context.
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - name: from
+          in: query
+          required: true
+          description: Inclusive start.
+          schema:
+            "$ref": "./components/schemas.yaml#/Timestamp"
+        - name: to
+          in: query
+          required: true
+          description: Exclusive end.
+          schema:
+            "$ref": "./components/schemas.yaml#/Timestamp"
+        - name: action
+          in: query
+          required: false
+          description: Filter by action.
+          schema:
+            "$ref": "./components/schemas.yaml#/EventName"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: A page of audit records.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/AuditRecordList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+        - auth_environment_mismatch
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+  "/v1/operator/api_clients":
+    get:
+      operationId: listApiClients
+      tags:
+        - api-clients
+      summary: List API clients
+      description: Relay-side view of Access API clients with last use and the unused warning. Lifecycle stays in Access.
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: A page of API clients.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ApiClientList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+        - auth_environment_mismatch
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+  "/v1/operator/api_clients/{api_client_id}":
+    get:
+      operationId: getApiClient
+      tags:
+        - api-clients
+      summary: Get an API client
+      description: Relay-side view of one Access API client.
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/ApiClientId"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The API client.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ApiClient"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - api_client_not_found
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+  "/v1/operator/api_version":
+    get:
+      operationId: getApiVersion
+      tags:
+        - tenant-settings
+      summary: Get the pinned API version
+      description: A new tenant is pinned to the current version on its first successful request.
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Pinned version.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ApiVersionPin"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-choice: true
+    put:
+      operationId: setApiVersion
+      tags:
+        - tenant-settings
+      summary: Change the pinned API version
+      description: "Moves the tenant pin to another supported version; audited."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/ApiVersionWrite"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Pinned.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ApiVersionPin"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: The spec defines automatic pinning but no operation to change the pin.
+  "/v1/operator/quotas":
+    get:
+      operationId: listQuotaPolicies
+      tags:
+        - tenant-settings
+      summary: List quota policies
+      description: Quota policies of the selected tenant and environment with current usage.
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Quota policies.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/QuotaPolicyList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-choice: true
+    put:
+      operationId: setQuotaPolicy
+      tags:
+        - tenant-settings
+      summary: Set a quota policy
+      description: "The limit is set by the installation operator; class caps and the security reserve by the tenant admin within the limit. Changes are audited."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/QuotaPolicyWrite"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Set.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/QuotaPolicy"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: conditional
+      x-relay-step-up-when: the change raises the limit, a class cap or the reserve, or removes the policy
+      x-relay-role-by-field:
+        limit: installation_operator
+        class_caps: tenant_admin
+        security_reserve_bp: tenant_admin
+      x-relay-choice: true
+      x-relay-choice-note: "Quota limits are tenant configuration data in the spec; the operation, its roles and step-up on raising (higher authority for relaxation) are chosen by the contract."
+  "/v1/operator/queue_panel":
+    get:
+      operationId: getQueuePanel
+      tags:
+        - platform
+      summary: Get the queue panel link
+      description: Link to the job queue view (Oban Web with oban_met), mounted under /v1/operator/queues for installation operators. Count queries on large tables are monitored and bounded.
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Queue panel link.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/QueuePanel"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: Mount path chosen by the contract.
+components:
+  securitySchemes:
+    access_bearer:
+      type: oauth2
+      description: "Short-lived Access access token obtained with OAuth 2.0 client credentials for an API client registered in Access. The client is bound to one tenant, one environment and optionally one subtenant. Relay validates the token with the cached Access JWKS: iss, aud (Relay server API), exp and nbf on every request, an allow-list of algorithms, no unsigned tokens. Relay has no API keys of its own. The token endpoint is discovered from the Access issuer."
+      flows:
+        clientCredentials:
+          tokenUrl: "https://access.example.com/oauth2/token"
+          scopes:
+            publish: Send events and batches, and cancel.
+            read: Query events, notifications, deliveries and history.
+            subscribers: Write subscribers, devices, topics and subscriptions.
+            config: Write workflows, templates, layouts, partials, routes, recurrences, CloudEvents mappings and webhook endpoints.
+            kill_switch: Engage and tighten kill switches of campaign and workflow scope only.
+    mtls:
+      type: mutualTLS
+      description: "Optional additional layer for enterprise tenants: RFC 8705 certificate-bound Access tokens. It is used together with access_bearer, never alone."
+    operator_session:
+      type: apiKey
+      in: cookie
+      name: relay_operator_session
+      description: "Operator session started through Access OIDC on the operator API. Requests carry Relay-Tenant and Relay-Environment; mutating requests carry Relay-Csrf-Token."
+      x-relay-choice: true
+    operator_bearer:
+      type: oauth2
+      description: Access access token of an operator whose audience is the Relay operator API, used by the CLI. Step-up uses the RFC 9470 challenge.
+      flows:
+        authorizationCode:
+          authorizationUrl: "https://access.example.com/oauth2/authorize"
+          tokenUrl: "https://access.example.com/oauth2/token"
+          scopes: {}
+      x-relay-choice: true
+    suiss_webhook_signature:
+      type: apiKey
+      in: header
+      name: webhook-signature
+      description: "Shared Suiss webhook profile: webhook-id, webhook-timestamp and webhook-signature (v1a Ed25519 by default, v1 HMAC only for compatibility), verified against the Access keys from discovery."
+  schemas:
+    Operator:
+      type: object
+      required:
+        - object
+        - id
+        - display_name
+        - status
+        - created_at
+      properties:
+        object:
+          type: string
+          const: operator
+        id:
+          "$ref": "./components/schemas.yaml#/Id_opr"
+        display_name:
+          type: string
+          maxLength: 200
+        status:
+          type: string
+          enum:
+            - active
+            - suspended
+            - deleted
+          description: Mirrors the Access user lifecycle.
+        created_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+      additionalProperties: false
+    RoleGrant:
+      type: object
+      description: tenant_id and environment are null for the installation operator role.
+      required:
+        - role
+        - tenant_id
+        - environment
+      properties:
+        role:
+          type: string
+          enum:
+            - installation_operator
+            - tenant_admin
+            - tenant_operator
+        tenant_id:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Id_ten"
+            - type: "null"
+        environment:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Environment"
+            - type: "null"
+      additionalProperties: false
+    OperatorSession:
+      type: object
+      required:
+        - object
+        - id
+        - operator
+        - roles
+        - auth_time
+        - expires_at
+        - csrf_token
+      properties:
+        object:
+          type: string
+          const: operator_session
+        id:
+          "$ref": "./components/schemas.yaml#/Id_oss"
+        operator:
+          "$ref": "#/components/schemas/Operator"
+        roles:
+          type: array
+          items:
+            "$ref": "#/components/schemas/RoleGrant"
+        auth_time:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        acr:
+          type: string
+          maxLength: 128
+        step_up_valid_until:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        expires_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        csrf_token:
+          type: string
+          description: Send in Relay-Csrf-Token on mutating cookie-authenticated requests.
+          minLength: 32
+          maxLength: 128
+      additionalProperties: false
+    StepUpStart:
+      type: object
+      properties:
+        return_to:
+          type: string
+          description: Panel path to return to after step-up.
+          pattern: "^/[^/].*$"
+          maxLength: 512
+      additionalProperties: false
+    StepUpChallenge:
+      type: object
+      required:
+        - object
+        - authorization_url
+        - expires_at
+      properties:
+        object:
+          type: string
+          const: step_up_challenge
+        authorization_url:
+          type: string
+          description: "Access authorization URL with acr_values, max_age and prompt=login."
+          format: uri
+        expires_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+      additionalProperties: false
+    Role:
+      "$ref": "./components/schemas.yaml#/Role"
+    RoleList:
+      allOf:
+        - "$ref": "./components/schemas.yaml#/ListEnvelope"
+        - properties:
+            data:
+              type: array
+              items:
+                "$ref": "./components/schemas.yaml#/Role"
+    RoleAssignment:
+      type: object
+      required:
+        - object
+        - id
+        - operator_id
+        - role
+        - status
+        - granted_by
+        - created_at
+      properties:
+        object:
+          type: string
+          const: role_assignment
+        id:
+          "$ref": "./components/schemas.yaml#/Id_rla"
+        operator_id:
+          "$ref": "./components/schemas.yaml#/Id_opr"
+        role:
+          type: string
+          enum:
+            - installation_operator
+            - tenant_admin
+            - tenant_operator
+        tenant_id:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Id_ten"
+            - type: "null"
+        environment:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Environment"
+            - type: "null"
+        status:
+          type: string
+          enum:
+            - active
+            - revoked
+        granted_by:
+          type: string
+          maxLength: 256
+        created_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        revoked_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        revoked_by:
+          oneOf:
+            - type: string
+              maxLength: 256
+            - type: "null"
+      additionalProperties: false
+    RoleAssignmentList:
+      allOf:
+        - "$ref": "./components/schemas.yaml#/ListEnvelope"
+        - properties:
+            data:
+              type: array
+              items:
+                "$ref": "#/components/schemas/RoleAssignment"
+    RoleAssignmentCreate:
+      type: object
+      description: Assign a tenant role in the selected tenant. The operator must have signed in once.
+      required:
+        - operator_id
+        - role
+        - reason
+      properties:
+        operator_id:
+          "$ref": "./components/schemas.yaml#/Id_opr"
+        role:
+          type: string
+          enum:
+            - tenant_admin
+            - tenant_operator
+        environments:
+          type: array
+          items:
+            "$ref": "./components/schemas.yaml#/Environment"
+          minItems: 1
+          uniqueItems: true
+          default:
+            - live
+            - test
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      additionalProperties: false
+    RevokeRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      additionalProperties: false
+    TenantSuspension:
+      type: object
+      description: "Suspension. Grounds other than abuse, security or legal take effect at least 7 days after notice; abuse, security and legal take effect at once with a reasoned notice within 24 hours. The appeal window is 14 days after the suspension takes effect. These values await legal approval."
+      required:
+        - object
+        - id
+        - tenant_id
+        - ground
+        - reason
+        - effective_at
+        - notice_due_at
+        - appeal_until
+        - state
+        - created_by
+        - created_at
+      properties:
+        object:
+          type: string
+          const: tenant_suspension
+        id:
+          "$ref": "./components/schemas.yaml#/Id_tsp"
+        tenant_id:
+          "$ref": "./components/schemas.yaml#/Id_ten"
+        subtenant_id:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Id_stn"
+            - type: "null"
+        ground:
+          type: string
+          enum:
+            - abuse
+            - security
+            - legal
+            - other
+        reason:
+          type: string
+          maxLength: 2000
+        effective_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        notice_due_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        appeal_until:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        state:
+          type: string
+          enum:
+            - scheduled
+            - effective
+            - lifted
+            - cancelled
+        created_by:
+          type: string
+          maxLength: 256
+        created_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        lifted_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+      additionalProperties: false
+    SuspendRequest:
+      type: object
+      required:
+        - ground
+        - reason
+      properties:
+        ground:
+          type: string
+          enum:
+            - abuse
+            - security
+            - legal
+            - other
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        subtenant_id:
+          "$ref": "./components/schemas.yaml#/Id_stn"
+        effective_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+          description: "Required for ground other and at least 7 days ahead; must be absent for the other grounds."
+      additionalProperties: false
+    ResumeRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        subtenant_id:
+          "$ref": "./components/schemas.yaml#/Id_stn"
+      additionalProperties: false
+    TenantCounters:
+      type: object
+      description: "Aggregates only; never tenant record content."
+      required:
+        - notifications_24h
+        - queued_deliveries
+        - paused_deliveries
+        - active_kill_switches
+      properties:
+        notifications_24h:
+          type: integer
+          minimum: 0
+        queued_deliveries:
+          type: integer
+          minimum: 0
+        paused_deliveries:
+          type: integer
+          minimum: 0
+        active_kill_switches:
+          type: integer
+          minimum: 0
+      additionalProperties: false
+    TenantOverview:
+      type: object
+      required:
+        - object
+        - id
+        - access_tenant_id
+        - region
+        - status
+        - counters
+        - created_at
+      properties:
+        object:
+          type: string
+          const: tenant_overview
+        id:
+          "$ref": "./components/schemas.yaml#/Id_ten"
+        access_tenant_id:
+          type: string
+          maxLength: 128
+        region:
+          type: string
+          enum:
+            - tr
+            - eu
+            - us
+        status:
+          type: string
+          enum:
+            - active
+            - suspended
+            - closed
+        platform_product:
+          oneOf:
+            - type: string
+              enum:
+                - access
+                - work
+                - executor
+                - one
+                - pay
+            - type: "null"
+        api_version:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/ApiVersion"
+            - type: "null"
+        suspensions:
+          type: array
+          items:
+            "$ref": "#/components/schemas/TenantSuspension"
+        counters:
+          "$ref": "#/components/schemas/TenantCounters"
+        created_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+      additionalProperties: false
+    TenantOverviewList:
+      allOf:
+        - "$ref": "./components/schemas.yaml#/ListEnvelope"
+        - properties:
+            data:
+              type: array
+              items:
+                "$ref": "#/components/schemas/TenantOverview"
+    SendModeSetting:
+      type: object
+      required:
+        - object
+        - level
+        - mode
+        - updated_at
+        - updated_by
+      properties:
+        object:
+          type: string
+          const: send_mode_setting
+        level:
+          type: string
+          enum:
+            - installation
+            - tenant
+            - channel
+            - category_channel
+        category:
+          oneOf:
+            - type: string
+              pattern: "^[a-z][a-z0-9_]{0,63}$"
+            - type: "null"
+        channel:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Channel"
+            - type: "null"
+        mode:
+          "$ref": "./components/schemas.yaml#/SendMode"
+        updated_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        updated_by:
+          type: string
+          maxLength: 256
+      additionalProperties: false
+    SendModeList:
+      type: object
+      description: "Every send mode level of the tenant and environment, plus the installation default. Resolution order: (tenant, category, channel), (tenant, channel), (tenant), installation."
+      required:
+        - object
+        - data
+        - has_more
+        - next_cursor
+      properties:
+        object:
+          type: string
+          const: list
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/SendModeSetting"
+        has_more:
+          type: boolean
+          const: false
+        next_cursor:
+          type: "null"
+      additionalProperties: false
+    SendModeWrite:
+      type: object
+      description: "Set one level; mode null clears the level. category requires channel. off is not a kill switch."
+      required:
+        - mode
+        - reason
+      properties:
+        category:
+          type: string
+          pattern: "^[a-z][a-z0-9_]{0,63}$"
+        channel:
+          "$ref": "./components/schemas.yaml#/Channel"
+        mode:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/SendMode"
+            - type: "null"
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      additionalProperties: false
+    SupportDelegation:
+      type: object
+      required:
+        - object
+        - id
+        - operator_id
+        - access
+        - reason
+        - granted_by
+        - starts_at
+        - expires_at
+        - status
+      properties:
+        object:
+          type: string
+          const: support_delegation
+        id:
+          "$ref": "./components/schemas.yaml#/Id_dlg"
+        operator_id:
+          "$ref": "./components/schemas.yaml#/Id_opr"
+        access:
+          type: string
+          enum:
+            - read
+          description: Read-only access with masked personal data.
+        reason:
+          type: string
+          maxLength: 2000
+        granted_by:
+          type: string
+          maxLength: 256
+        starts_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        expires_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        status:
+          type: string
+          enum:
+            - active
+            - revoked
+            - expired
+        revoked_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+      additionalProperties: false
+    SupportDelegationList:
+      allOf:
+        - "$ref": "./components/schemas.yaml#/ListEnvelope"
+        - properties:
+            data:
+              type: array
+              items:
+                "$ref": "#/components/schemas/SupportDelegation"
+    SupportDelegationCreate:
+      type: object
+      required:
+        - operator_id
+        - reason
+      properties:
+        operator_id:
+          "$ref": "./components/schemas.yaml#/Id_opr"
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        duration:
+          "$ref": "./components/schemas.yaml#/Duration"
+          description: "Validity, PT15M to P3D; default PT4H."
+      additionalProperties: false
+    RevealRequest:
+      type: object
+      required:
+        - fields
+        - reason
+      properties:
+        fields:
+          type: array
+          items:
+            type: string
+            enum:
+              - email
+              - phone
+              - name
+              - attributes
+          minItems: 1
+          uniqueItems: true
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      additionalProperties: false
+    RevealResult:
+      type: object
+      required:
+        - object
+        - subscriber_id
+        - fields
+        - audit_ids
+      properties:
+        object:
+          type: string
+          const: pii_reveal
+        subscriber_id:
+          "$ref": "./components/schemas.yaml#/Id_sub"
+        fields:
+          type: object
+          properties:
+            email:
+              oneOf:
+                - "$ref": "./components/schemas.yaml#/Email"
+                - type: "null"
+            phone:
+              oneOf:
+                - "$ref": "./components/schemas.yaml#/E164"
+                - type: "null"
+            name:
+              oneOf:
+                - type: string
+                  maxLength: 200
+                - type: "null"
+            attributes:
+              oneOf:
+                - type: object
+                - type: "null"
+          additionalProperties: false
+        audit_ids:
+          type: array
+          description: One pii.revealed audit record per revealed field.
+          items:
+            "$ref": "./components/schemas.yaml#/Id_aud"
+      additionalProperties: false
+    AuditRecord:
+      type: object
+      required:
+        - object
+        - id
+        - action
+        - actor_kind
+        - actor_ref
+        - on_behalf_of
+        - created_at
+      properties:
+        object:
+          type: string
+          const: audit_record
+        id:
+          "$ref": "./components/schemas.yaml#/Id_aud"
+        action:
+          "$ref": "./components/schemas.yaml#/EventName"
+        actor_kind:
+          type: string
+          enum:
+            - operator
+            - installation_operator
+            - api_client
+            - access
+            - system
+        actor_ref:
+          type: string
+          maxLength: 256
+        on_behalf_of:
+          type: string
+          maxLength: 256
+        access_record_ref:
+          oneOf:
+            - type: string
+              maxLength: 256
+            - type: "null"
+        target_type:
+          oneOf:
+            - type: string
+              maxLength: 64
+            - type: "null"
+        target_id:
+          oneOf:
+            - type: string
+              maxLength: 128
+            - type: "null"
+        reason:
+          oneOf:
+            - type: string
+              maxLength: 2000
+            - type: "null"
+        created_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+      additionalProperties: false
+    AuditRecordList:
+      allOf:
+        - "$ref": "./components/schemas.yaml#/ListEnvelope"
+        - properties:
+            data:
+              type: array
+              items:
+                "$ref": "#/components/schemas/AuditRecord"
+    ApiClient:
+      type: object
+      description: Relay-side view of an Access API client. Creation, secret rotation and revocation happen in Access.
+      required:
+        - object
+        - id
+        - access_client_id
+        - environment
+        - scopes
+        - status
+        - unused_warning
+        - created_at
+        - updated_at
+      properties:
+        object:
+          type: string
+          const: api_client
+        id:
+          "$ref": "./components/schemas.yaml#/Id_cli"
+        access_client_id:
+          type: string
+          maxLength: 256
+        environment:
+          "$ref": "./components/schemas.yaml#/Environment"
+        tenant:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Id_stn"
+            - type: "null"
+        scopes:
+          type: array
+          items:
+            "$ref": "./components/schemas.yaml#/ScopeName"
+        status:
+          type: string
+          enum:
+            - active
+            - suspended
+            - revoked
+        last_used_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        last_used_ip:
+          oneOf:
+            - type: string
+              maxLength: 45
+            - type: "null"
+        unused_warning:
+          type: boolean
+          description: True when unused for 90 days.
+        created_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        updated_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+      additionalProperties: false
+    ApiClientList:
+      allOf:
+        - "$ref": "./components/schemas.yaml#/ListEnvelope"
+        - properties:
+            data:
+              type: array
+              items:
+                "$ref": "#/components/schemas/ApiClient"
+    QueuePanel:
+      type: object
+      required:
+        - object
+        - url
+      properties:
+        object:
+          type: string
+          const: queue_panel
+        url:
+          type: string
+          format: uri-reference
+          examples:
+            - "/v1/operator/queues"
+      additionalProperties: false
+    ApiVersionPin:
+      type: object
+      required:
+        - object
+        - pinned
+        - supported
+        - latest
+      properties:
+        object:
+          type: string
+          const: api_version
+        pinned:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/ApiVersion"
+            - type: "null"
+        pinned_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        supported:
+          type: array
+          items:
+            "$ref": "./components/schemas.yaml#/ApiVersion"
+        latest:
+          "$ref": "./components/schemas.yaml#/ApiVersion"
+      additionalProperties: false
+    ApiVersionWrite:
+      type: object
+      required:
+        - version
+        - reason
+      properties:
+        version:
+          "$ref": "./components/schemas.yaml#/ApiVersion"
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      additionalProperties: false
+    QuotaPolicy:
+      type: object
+      description: Sending quota of the tenant and environment. Without a policy no quota applies.
+      required:
+        - object
+        - period
+        - limit
+        - class_caps
+        - security_reserve_bp
+        - used
+        - period_start
+        - version
+        - updated_at
+      properties:
+        object:
+          type: string
+          const: quota_policy
+        period:
+          type: string
+          enum:
+            - day
+            - month
+        limit:
+          type: integer
+          minimum: 0
+          description: Notifications (one per recipient) accepted per period across all classes.
+        class_caps:
+          type: object
+          description: "Optional per-class share of the limit in basis points (for example marketing 8000 = 80 percent)."
+          propertyNames:
+            "$ref": "./components/schemas.yaml#/MessageClass"
+          additionalProperties:
+            type: integer
+            minimum: 1
+            maximum: 10000
+        security_reserve_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: "Extra share open only to the security class once the limit is reached; default 1000 (10 percent)."
+        used:
+          type: integer
+          minimum: 0
+        period_start:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        version:
+          type: integer
+          minimum: 1
+        updated_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+      additionalProperties: false
+    QuotaPolicyList:
+      type: object
+      required:
+        - object
+        - data
+        - has_more
+        - next_cursor
+      properties:
+        object:
+          type: string
+          const: list
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/QuotaPolicy"
+        has_more:
+          type: boolean
+          const: false
+        next_cursor:
+          type: "null"
+      additionalProperties: false
+    QuotaPolicyWrite:
+      type: object
+      description: "limit null removes the policy of this period. Lowering is immediate; raising the limit, raising a class cap or the reserve, or removing the policy is a relaxation that needs step-up."
+      required:
+        - period
+        - reason
+      properties:
+        period:
+          type: string
+          enum:
+            - day
+            - month
+        limit:
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: "null"
+        class_caps:
+          type: object
+          propertyNames:
+            "$ref": "./components/schemas.yaml#/MessageClass"
+          additionalProperties:
+            type: integer
+            minimum: 1
+            maximum: 10000
+        security_reserve_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      additionalProperties: false
+x-relay-family:
+  - operator
+x-relay-error-catalog: "../errors.yaml"

@@ -202,9 +202,15 @@ defmodule Relay.Access.Events do
 
   defp provision(attrs, receipt) do
     case Relay.Tenancy.Provisioning.create_tenant(attrs, actor(receipt)) do
-      {result, _id} when result in [:created, :exists] -> :processed
-      {:region_mismatch, _id} -> {:rejected, "region_mismatch"}
-      {:conflict, _id} -> {:rejected, "conflict"}
+      {result, _id} when result in [:created, :exists] ->
+        :processed
+
+      {:region_mismatch, _id} ->
+        {:rejected, "region_mismatch"}
+
+      {:conflict, _id} ->
+        {:rejected, "conflict"}
+
       {:error, %Relay.Error{code: code}} when code in [:invalid_time_zone, :invalid_locale] ->
         {:rejected, "invalid_defaults"}
 

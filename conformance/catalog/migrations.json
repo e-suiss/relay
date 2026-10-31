@@ -53,7 +53,7 @@
   {"file": "20261102000000_create_access_tables.exs", "sha256": "1efbb630cbf157fab078f69042b9eb663000710725ab2185b7ca0bc3e89f5cfb"},
   {"file": "20261102000100_add_tenant_access_columns.exs", "sha256": "f5b23add74c7dbea35ac71b06eb2baede2b0a1b52abad16026df4b6178aa98b0"},
   {"file": "20261102000200_validate_tenant_access_checks.exs", "sha256": "70a110c7a78c9e2ca6d513bdad5c0ef52eddb1194df52d7e5eb99e8e474fab3d"},
-  {"file": "20261102000300_create_access_functions.exs", "sha256": "028e6306e3a3078fbbd56897e4d760445872793fab48d7869b7f712931db4f2a"},
+  {"file": "20261102000300_create_access_functions.exs", "sha256": "83e84853eeba488c2b201db931a83a4856c8cf3566fd1883d176fe6ebeb4e3cb"},
   {"file": "20261102000400_recreate_tenant_create_for_platform_tenants.exs", "sha256": "fbf37ac3ed8c8dc134fbde1718dc8602c3c5848df9cf6e012202679544a57eb4"},
   {"file": "20261102000500_rebuild_reference_check_for_api_clients.exs", "sha256": "f36949a7b307ee87337d2927d28eda0340cce0489a651b991cbae9a42e21ab70"}
 ]

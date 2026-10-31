@@ -222,7 +222,7 @@ defmodule Relay.Access.SubscriberToken do
   end
 
   defp unavailable,
-    do: {:error, Relay.Error.new(:service_unavailable, "the subscriber token could not be signed")}
+    do: {:error, Relay.Error.new(:service_unavailable, "the subscriber token is not signed")}
 
   defp now, do: DateTime.to_unix(Relay.Clock.utc_now())
 end

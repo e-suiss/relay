@@ -61,6 +61,7 @@ defmodule Relay.Access.DiscoveryTest do
 
       assert Relay.Access.link_state() == :region_mismatch
       assert %{keys: []} = Link.current()
+
       assert [[_, "region_mismatch", ^region, nil, nil, false, nil]] =
                Relay.Repo.query!(@link, []).rows
 

@@ -157,12 +157,12 @@ defmodule Relay.Repo.Migrations.CreateAccessFunctions do
       ~S"""
       CREATE FUNCTION relay_ops.access_event_receipt_read(p_id uuid)
         RETURNS TABLE (webhook_id text, event_type text, access_tenant_id text, payload jsonb,
-          state text)
+          state text, reason text)
       LANGUAGE sql STABLE SECURITY DEFINER
       SET search_path = pg_catalog, pg_temp
       SET TimeZone = 'UTC'
       AS $fn$
-        SELECT r.webhook_id, r.event_type::text, r.access_tenant_id, r.payload, r.state
+        SELECT r.webhook_id, r.event_type::text, r.access_tenant_id, r.payload, r.state, r.reason
         FROM relay.access_event_receipts r
         WHERE r.id = p_id
       $fn$

@@ -98,6 +98,7 @@ defmodule Relay.Access.TokenTest do
 
     test "API-71: an RSA key below 2048 bits or a key set with private members is refused" do
       {small, _private} = rsa(1024)
+
       assert {:error, %Relay.Error{code: :access_keys_invalid}} =
                Jose.public_keys(%{"keys" => [small]})
 

@@ -237,6 +237,7 @@ defmodule Relay.Access.ApiClientTest do
 
       {:ok, {:created, subtenant, _}} =
         Relay.Tenancy.upsert_subtenant(ctx.tenant.test, attrs, TenantFixture.actor())
+
       named = Relay.ExternalId.encode("stn", subtenant)
       other = Relay.ExternalId.encode("stn", Relay.Id.generate())
       select = &Relay.Access.select_subtenant(ctx.tenant.test, &1, &2)

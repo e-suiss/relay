@@ -118,6 +118,26 @@ defmodule Relay.Jitter do
     base_ms + scale(digest, div(base_ms, 5) + 1)
   end
 
+  # WF-42
+  # PC-58 (5)
+  @doc "Release offset of a recipient's deferred deliveries that become allowed at the local time `local_time` (ISO 8601 text): `scale(h, spread_ms)`, in `[0, spread_ms)`; zero for a zero spread."
+  @spec release(
+          Relay.Id.t(),
+          Relay.Environment.t(),
+          Relay.Id.t(),
+          String.t(),
+          non_neg_integer()
+        ) ::
+          non_neg_integer()
+  def release(_tenant_id, _environment, _recipient_id, local_time, 0) when is_binary(local_time),
+    do: 0
+
+  def release(tenant_id, environment, recipient_id, local_time, spread_ms)
+      when is_binary(local_time) and is_integer(spread_ms) and spread_ms > 0 do
+    digest = h("release", [id(tenant_id), env(environment), id(recipient_id), local_time])
+    scale(digest, spread_ms)
+  end
+
   # T-30
   @doc "Backoff of a crashed job attempt: `scale(h, min(300000, 1000 · 2^attempt) + 1)`."
   @spec crash_backoff(non_neg_integer(), non_neg_integer()) :: non_neg_integer()

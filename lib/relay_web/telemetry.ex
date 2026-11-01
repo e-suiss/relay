@@ -59,6 +59,7 @@ defmodule RelayWeb.Telemetry do
   # T-9
   # T-17
   # T-86
+  # PC-50
   @doc "The stage 1 alarm metrics."
   @spec alarm_metrics() :: [Telemetry.Metrics.t()]
   def alarm_metrics do
@@ -128,6 +129,10 @@ defmodule RelayWeb.Telemetry do
         event_name: [:relay, :access, :link],
         measurement: :down,
         description: "1 while the Access link is not established or its keys are stale"
+      ),
+      counter("relay.frequency_counter.unavailable.total",
+        event_name: [:relay, :frequency_counter, :unavailable],
+        description: "Frequency counter reads and writes that Valkey did not answer"
       )
     ]
   end

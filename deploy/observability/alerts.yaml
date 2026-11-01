@@ -94,3 +94,10 @@ groups:
           decision: E-75
         annotations:
           summary: "The Access link is not established or its keys are stale"
+      - alert: RelayFrequencyCounterUnavailable
+        expr: increase(relay_frequency_counter_unavailable_total[5m]) > 0
+        labels:
+          severity: warning
+          decision: PC-50
+        annotations:
+          summary: "The frequency counter is unavailable and frequency caps fail open"

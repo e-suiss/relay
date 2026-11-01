@@ -233,10 +233,8 @@ defmodule Relay.CLITest do
     end
 
     test "X-33, API-42: a token of the other environment is refused before any API call" do
-      routes = %{
-        {"POST", "/token"} =>
-          {200, %{"access_token" => jwt(%{"environment" => "live"}), "token_type" => "Bearer"}}
-      }
+      body = %{"access_token" => jwt(%{"suiss_environment" => "live"}), "token_type" => "Bearer"}
+      routes = %{{"POST", "/token"} => {200, body}}
 
       assert {3, out, ""} = cli(["kill-switch", "list", "--json"], routes)
 

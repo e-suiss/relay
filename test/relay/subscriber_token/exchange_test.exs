@@ -121,6 +121,23 @@ defmodule Relay.SubscriberToken.ExchangeTest do
       Api.assert_contract(conn)
       assert Jason.decode!(conn.resp_body)["code"] == "unknown_field"
     end
+
+    test "E-79 (1): a subject token naming its client's environment in suiss_environment is exchanged, another is refused",
+         ctx do
+      token = fn named ->
+        claims = %{"suiss_environment" => named}
+        FakeAccess.user_token(ctx.access_tenant, ctx.app, "pairwise-env", claims)
+      end
+
+      assert exchange(form(token.("test"))).status == 200
+
+      for named <- ["live", "staging"] do
+        conn = exchange(form(token.(named)))
+        assert conn.status == 401
+        Api.assert_contract(conn)
+        assert Jason.decode!(conn.resp_body)["code"] == "auth_invalid_token"
+      end
+    end
   end
 
   describe "E-25 IN-41 credentials" do

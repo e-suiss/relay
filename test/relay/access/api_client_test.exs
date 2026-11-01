@@ -215,6 +215,115 @@ defmodule Relay.Access.ApiClientTest do
     end
   end
 
+  describe "E-79 Access token claims" do
+    test "E-79 (1): suiss_environment names the environment and must be the client's", ctx do
+      assert {:ok, %{scope: scope}} = verify(token(ctx, "read", %{"suiss_environment" => "test"}))
+      assert scope == ctx.tenant.test
+      assert {:ok, _principal} = verify(token(ctx, "read", %{"environment" => "live"}))
+
+      for named <- ["live", "staging", 7] do
+        assert {:error, %Relay.Error{code: :auth_invalid_token}} =
+                 verify(token(ctx, "read", %{"suiss_environment" => named}))
+      end
+
+      assert Relay.AccessClaims.names() == %{
+               tenant: "tenant_id",
+               client: "client_id",
+               environment: "suiss_environment"
+             }
+    end
+
+    test "E-79 (3): a client whose Access event has not arrived is 401 auth_invalid_token", ctx do
+      unknown = "app_" <> FakeAccess.random()
+      conn = clock(FakeAccess.server_token(ctx.access_tenant, unknown, "read"))
+
+      assert conn.status == 401
+      Api.assert_contract(conn)
+      assert Jason.decode!(conn.resp_body)["code"] == "auth_invalid_token"
+    end
+  end
+
+  defp certificate do
+    %{cert: der} = :public_key.pkix_test_root_cert(~c"relay client", [])
+    der
+  end
+
+  defp thumbprint(der), do: Base.url_encode64(:crypto.hash(:sha256, der), padding: false)
+
+  defp client_cert_proxies(ranges) do
+    previous = Application.get_env(:relay, RelayWeb.Api, [])
+    Application.put_env(:relay, RelayWeb.Api, Keyword.put(previous, :client_cert_proxies, ranges))
+    on_exit(fn -> Application.put_env(:relay, RelayWeb.Api, previous) end)
+  end
+
+  defp from(ip, headers) do
+    fn conn ->
+      Enum.reduce(headers, %{conn | remote_ip: ip}, fn {name, value}, acc ->
+        put_req_header(acc, name, value)
+      end)
+    end
+  end
+
+  describe "E-79 (4) RFC 9440 client certificates" do
+    setup ctx do
+      change = %{key: "api.mtls_required", value: true, record_digest: TenantFixture.digest()}
+      actor = TenantFixture.actor()
+      {:ok, {:created, _}} = Relay.Tenancy.put_setting(ctx.tenant.test, change, actor)
+      der = certificate()
+      bound = token(ctx, "read", %{"cnf" => %{"x5t#S256" => thumbprint(der)}})
+      %{der: der, bound: bound, header: ":" <> Base.encode64(der) <> ":"}
+    end
+
+    test "E-79 (4): a Client-Cert from a configured proxy binds the token", ctx do
+      proxy = Api.ip()
+      client_cert_proxies([to_string(:inet.ntoa(proxy))])
+      chain = ctx.header <> ", :" <> Base.encode64(certificate()) <> ":"
+
+      conn = clock(ctx.bound, from(proxy, [{"client-cert", ctx.header}]))
+      assert conn.status == 200
+      Api.assert_contract(conn)
+
+      headers = [{"client-cert", ctx.header}, {"client-cert-chain", chain}]
+      assert clock(ctx.bound, from(proxy, headers)).status == 200
+    end
+
+    test "E-79 (4): a Client-Cert from any other peer is ignored", ctx do
+      proxy = Api.ip()
+      other = Api.ip()
+
+      for ranges <- [[], [to_string(:inet.ntoa(proxy))]] do
+        client_cert_proxies(ranges)
+        conn = clock(ctx.bound, from(other, [{"client-cert", ctx.header}]))
+        assert conn.status == 401
+        Api.assert_contract(conn)
+        assert Jason.decode!(conn.resp_body)["code"] == "auth_invalid_token"
+      end
+
+    end
+
+    test "E-79 (4): a malformed Client-Cert or chain from a configured proxy is ignored", ctx do
+      proxy = Api.ip()
+      client_cert_proxies([to_string(:inet.ntoa(proxy)) <> "/32"])
+      bare = Base.encode64(ctx.der)
+      junk = ":" <> Base.encode64(:crypto.strong_rand_bytes(300)) <> ":"
+
+      for headers <- [
+            [{"client-cert", bare}],
+            [{"client-cert", ":%%%:"}],
+            [{"client-cert", junk}],
+            [{"client-cert", ctx.header <> ";a=1"}],
+            [{"client-cert", ctx.header}, {"client-cert-chain", "not-a-chain"}],
+            [{"client-cert", ctx.header}, {"client-cert-chain", ctx.header <> ", " <> junk}]
+          ] do
+        conn = clock(ctx.bound, from(proxy, headers))
+        assert conn.status == 401, inspect(headers)
+        assert Jason.decode!(conn.resp_body)["code"] == "auth_invalid_token"
+      end
+
+      assert clock(ctx.bound, from(proxy, [{"client-cert", ctx.header}])).status == 200
+    end
+  end
+
   describe "API-47 invalid tokens" do
     test "API-47, API-77 (3): invalid Access tokens are limited per client IP", ctx do
       ip = Api.ip()

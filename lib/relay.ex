@@ -24,6 +24,7 @@ defmodule Relay do
       Scope,
       ScopeError,
       Actor,
+      AccessClaims,
       LogRedactor,
       Id,
       ExternalId,

@@ -4327,7 +4327,7 @@ components:
   securitySchemes:
     access_bearer:
       type: oauth2
-      description: "Short-lived Access access token obtained with OAuth 2.0 client credentials for an API client registered in Access. The client is bound to one tenant, one environment and optionally one subtenant. Relay validates the token with the cached Access JWKS: iss, aud (Relay server API), exp and nbf on every request, an allow-list of algorithms, no unsigned tokens. Relay has no API keys of its own. The token endpoint is discovered from the Access issuer."
+      description: "Short-lived Access access token obtained with OAuth 2.0 client credentials for an API client registered in Access. The client is bound to one tenant, one environment and optionally one subtenant. Relay validates the token with the cached Access JWKS: iss, aud (Relay server API), exp and nbf on every request, an allow-list of algorithms (EdDSA or Ed25519 for Ed25519 keys, ES256, PS256), no unsigned tokens. The token names the Access tenant in tenant_id, the Access client in client_id and, when present, the environment in suiss_environment, which must be the client's. Relay has no API keys of its own. The token endpoint is discovered from the Access issuer."
       flows:
         clientCredentials:
           tokenUrl: "https://access.example.com/oauth2/token"
@@ -4339,7 +4339,7 @@ components:
             kill_switch: Engage and tighten kill switches of campaign and workflow scope only.
     mtls:
       type: mutualTLS
-      description: "Optional additional layer for enterprise tenants: RFC 8705 certificate-bound Access tokens. It is used together with access_bearer, never alone."
+      description: "Optional additional layer for enterprise tenants: RFC 8705 certificate-bound Access tokens. It is used together with access_bearer, never alone. Behind a proxy that terminates TLS, the client certificate is read from the RFC 9440 Client-Cert header (and Client-Cert-Chain) only when the connection comes from a configured client certificate proxy; the header from any other peer is ignored."
     operator_session:
       type: apiKey
       in: cookie
@@ -4348,7 +4348,7 @@ components:
       x-relay-choice: true
     operator_bearer:
       type: oauth2
-      description: Access access token of an operator whose audience is the Relay operator API, used by the CLI. Step-up uses the RFC 9470 challenge.
+      description: "Access access token of an operator whose audience is the Relay operator API, used by the CLI, signed with EdDSA or Ed25519 (Ed25519 keys), ES256 or PS256. Step-up uses the RFC 9470 challenge."
       flows:
         authorizationCode:
           authorizationUrl: "https://access.example.com/oauth2/authorize"

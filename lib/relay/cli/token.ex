@@ -2,15 +2,13 @@ defmodule Relay.CLI.Token do
   @moduledoc """
   Access token client of the command line tool. The token endpoint is discovered from the Access issuer (`<issuer>/.well-known/openid-configuration`, whose `issuer` must be the configured one); the token is obtained with the OAuth 2.0 client credentials grant, with `client_secret_basic` unless the issuer supports only `client_secret_post`, and is kept in memory for the rest of the run.
 
-  When the token is a JWT whose payload names an environment (`environment` or `suiss_environment`), it must be the configured one; the payload is read for this check only and is not verified here. The secret and the token are never printed.
+  When the token is a JWT whose payload names an environment (the `suiss_environment` claim of `Relay.AccessClaims`), it must be the configured one; the payload is read for this check only and is not verified here. The secret and the token are never printed.
   """
 
   alias Relay.CLI.Config
   alias Relay.CLI.Context
   alias Relay.CLI.Failure
   alias Relay.CLI.HTTP
-
-  @claims ["environment", "suiss_environment"]
 
   # E-78
   # API-41
@@ -168,13 +166,8 @@ defmodule Relay.CLI.Token do
     end
   end
 
-  defp named_environment(%{} = claims) do
-    Enum.find_value(@claims, fn claim ->
-      if is_binary(claims[claim]), do: claims[claim]
-    end)
-  end
-
-  defp named_environment(nil), do: nil
+  # E-79 (1)
+  defp named_environment(claims), do: Relay.AccessClaims.environment(claims)
 
   defp oauth_error(%{"error" => error}) when is_binary(error) do
     if Regex.match?(~r/\A[a-z_]{1,64}\z/, error), do: error, else: "token_refused"

@@ -202,6 +202,7 @@ defmodule Relay.Operators.Access.Http do
   # E-79 (2)
   defp usable?(%{"kty" => "OKP", "crv" => "Ed25519"} = key, alg) when alg in @ed25519,
     do: Map.get(key, "alg", alg) in @ed25519
+
   defp usable?(%{"kty" => "EC", "crv" => "P-256"}, "ES256"), do: true
   defp usable?(%{"kty" => "RSA"}, "PS256"), do: true
   defp usable?(_key, _alg), do: false

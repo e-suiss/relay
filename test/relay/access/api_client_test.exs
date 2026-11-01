@@ -298,7 +298,6 @@ defmodule Relay.Access.ApiClientTest do
         Api.assert_contract(conn)
         assert Jason.decode!(conn.resp_body)["code"] == "auth_invalid_token"
       end
-
     end
 
     test "E-79 (4): a malformed Client-Cert or chain from a configured proxy is ignored", ctx do

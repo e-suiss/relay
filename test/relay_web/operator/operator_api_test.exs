@@ -1033,6 +1033,7 @@ defmodule RelayWeb.Operator.OperatorApiTest do
       assert %{"security_reserve_bp" => 900} = raising(ctx, day.(%{"security_reserve_bp" => 900}))
       caps = %{"marketing" => 6_000, "social" => 9_000}
       assert %{"class_caps" => ^caps} = raising(ctx, day.(%{"class_caps" => caps}))
+
       assert %{"class_caps" => %{"social" => 9_000}} =
                raising(ctx, day.(%{"class_caps" => %{"social" => 9_000}}))
 

@@ -130,10 +130,10 @@ defmodule Relay.Policy.Window do
       else: floor
   end
 
-  defp floor_minute(at), do: %{DateTime.truncate(at, :second) | second: 0}
+  defp floor_minute(at), do: %{at | second: 0, microsecond: {0, 0}}
 
   defp ceil_second(at) do
-    floor = DateTime.truncate(at, :second)
+    floor = %{at | microsecond: {0, 0}}
 
     if DateTime.compare(floor, at) == :lt,
       do: DateTime.add(floor, 1, :second),

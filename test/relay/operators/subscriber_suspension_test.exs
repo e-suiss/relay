@@ -130,7 +130,7 @@ defmodule Relay.Operators.SubscriberSuspensionTest do
       assert %{"status" => "skipped", "reason" => "subscriber_suspended"} = delivery
       assert delivery["rule_id"] == "subscriber.suspended"
       assert F.delivery_jobs(delivery["id"]) == []
-      assert pause_state(ctx.scope, delivery_id) == {false, nil, nil}
+      assert pause_state(ctx.scope, delivery_id) == {false, nil, "skipped"}
 
       {:ok, subscriber} = Relay.Subscribers.fetch(ctx.scope, external_id)
       assert %DateTime{} = subscriber["suspended_at"]

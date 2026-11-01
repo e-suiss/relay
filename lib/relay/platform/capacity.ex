@@ -8,7 +8,7 @@ defmodule Relay.Platform.Capacity do
 
   Each node samples `relay_ops.lane_capacity` every 5 s (`Relay.Platform.Capacity.Sampler`, unless `sampler: false`) and keeps the result in an ETS table it owns; a node that never sampled knows no capacity and admits. `l0` and `l1` are never checked against `L_max`.
 
-  Each sample also moves the lanes' input rate ceilings (`Relay.Platform.Aimd`, T-97), kept in the same table; the theoretical arrival time each lane's ceiling is enforced with lives in a second, public table of the node, written with compare-and-swap by the requests themselves (`admit_input/2`) on the monotonic clock of `Relay.Clock`. Both tables hold one entry per lane, never one per tenant. A lane without a ceiling, and a node that never sampled, does not limit input.
+  Each sample also moves the lanes' input rate ceilings (`Relay.Platform.Aimd`, T-97), kept in the same table; the theoretical arrival time each lane's ceiling is enforced with lives there too, read by the requests (`admit_input/2`, on the monotonic clock of `Relay.Clock`) and advanced in order by the table's owner, as the node-local rate filter does. The table holds one entry per lane, never one per tenant; a burst that arrives before the owner advances may pass a few requests over the ceiling. A lane without a ceiling, and a node that never sampled, does not limit input.
   """
 
   alias Relay.Platform.Admission
@@ -20,7 +20,6 @@ defmodule Relay.Platform.Capacity do
   @lanes [:l2, :l3]
   @window_s 60
   @table __MODULE__
-  @input Module.concat(__MODULE__, Input)
 
   @type t :: %{optional(Lane.t()) => Admission.capacity() | nil}
 
@@ -110,7 +109,7 @@ defmodule Relay.Platform.Capacity do
     :ok = table()
     true = :ets.insert(@table, {:ceilings, ceilings})
 
-    for lane <- @lanes, Map.get(ceilings, lane) == nil, do: :ets.delete(@input, lane)
+    for lane <- @lanes, Map.get(ceilings, lane) == nil, do: :ets.delete(@table, {:input, lane})
 
     :ok
   end
@@ -131,32 +130,44 @@ defmodule Relay.Platform.Capacity do
   end
 
   defp spend(lane, ceiling, now_us) do
-    previous =
-      case :ets.lookup(@input, lane) do
-        [{^lane, tat}] -> tat
-        [] -> nil
-      end
-
-    with {:allow, tat} <- Aimd.admit(ceiling, previous, now_us) do
-      if store(lane, previous, tat), do: :ok, else: spend(lane, ceiling, now_us)
+    case Aimd.admit(ceiling, arrival(lane), now_us) do
+      {:allow, _tat} -> note(lane, ceiling, now_us)
+      {:deny, retry_ms} -> {:deny, retry_ms}
     end
-  rescue
-    ArgumentError -> :ok
   end
 
-  defp store(lane, nil, tat), do: :ets.insert_new(@input, {lane, tat})
+  defp arrival(lane) do
+    case :ets.lookup(@table, {:input, lane}) do
+      [{_key, tat}] -> tat
+      [] -> nil
+    end
+  rescue
+    ArgumentError -> nil
+  end
 
-  defp store(lane, previous, tat),
-    do: :ets.select_replace(@input, [{{lane, previous}, [], [{{{:const, lane}, tat}}]}]) == 1
+  defp note(lane, ceiling, now_us) do
+    if :ets.info(@table, :owner) == self(),
+      do: advance(lane, ceiling, now_us),
+      else: GenServer.cast(Relay.Platform.Capacity.Sampler, {:input, lane, ceiling, now_us})
 
-  @doc "Creates this node's capacity tables when they do not exist; the sampler owns them."
+    :ok
+  end
+
+  # T-97
+  @doc "Advances `lane`'s theoretical arrival time by one request admitted at `now_us`; called by the owner of the capacity table, in order."
+  @spec advance(Lane.t(), Aimd.ceiling(), integer()) :: :ok
+  def advance(lane, ceiling, now_us) do
+    with {:allow, tat} <- Aimd.admit(ceiling, arrival(lane), now_us),
+         do: :ets.insert(@table, {{:input, lane}, tat})
+
+    :ok
+  end
+
+  @doc "Creates this node's capacity table when it does not exist; the sampler owns it."
   @spec table() :: :ok
   def table do
     if :ets.whereis(@table) == :undefined,
       do: :ets.new(@table, [:named_table, :protected, :set, read_concurrency: true])
-
-    if :ets.whereis(@input) == :undefined,
-      do: :ets.new(@input, [:named_table, :public, :set, write_concurrency: true])
 
     :ok
   rescue

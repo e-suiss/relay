@@ -1,6 +1,6 @@
 defmodule Relay.Platform.Capacity.Sampler do
   @moduledoc """
-  Keeps this node's view of the bulk lane capacities current: it samples `relay_ops.lane_capacity` at start and every 5 s and puts the result into the node's capacity table, which it owns (`Relay.Platform.Capacity`). A failed sample keeps the last known capacities. Runs on every node unless `config :relay, Relay.Platform.Capacity, sampler: false`.
+  Keeps this node's view of the bulk lane capacities current: it samples `relay_ops.lane_capacity` at start and every 5 s and puts the result into the node's capacity table, which it owns (`Relay.Platform.Capacity`). A failed sample keeps the last known capacities. It also advances the lanes' input arrival times that the requests under an AIMD ceiling note (T-97). Runs on every node unless `config :relay, Relay.Platform.Capacity, sampler: false`.
   """
 
   use GenServer
@@ -31,6 +31,13 @@ defmodule Relay.Platform.Capacity.Sampler do
     end
 
     Process.send_after(self(), :poll, state.poll_ms)
+    {:noreply, state}
+  end
+
+  # T-97
+  @impl GenServer
+  def handle_cast({:input, lane, ceiling, now_us}, state) do
+    :ok = Capacity.advance(lane, ceiling, now_us)
     {:noreply, state}
   end
 end

@@ -159,14 +159,15 @@ defmodule Relay.Operators.SubscriberSuspension do
   end
 
   defp access_scope(scope, kind, subject, reason, actor) do
-    with {:ok, ids} <- subscribers(scope, subject) do
-      Enum.reduce_while(ids, :ok, fn id, :ok ->
-        case access_apply(scope, kind, id, reason, actor) do
-          {:ok, _view} -> {:cont, :ok}
-          {:error, %Relay.Error{code: :subscriber_not_found}} -> {:cont, :ok}
-          {:error, error} -> {:halt, {:error, error}}
-        end
-      end)
+    with {:ok, ids} <- subscribers(scope, subject),
+         do: Enum.reduce_while(ids, :ok, &access_step(scope, kind, &1, reason, actor, &2))
+  end
+
+  defp access_step(scope, kind, id, reason, actor, :ok) do
+    case access_apply(scope, kind, id, reason, actor) do
+      {:ok, _view} -> {:cont, :ok}
+      {:error, %Relay.Error{code: :subscriber_not_found}} -> {:cont, :ok}
+      {:error, error} -> {:halt, {:error, error}}
     end
   end
 

@@ -131,24 +131,23 @@ defmodule Relay.Platform.Capacity do
   end
 
   defp spend(lane, ceiling, now_us) do
-    case :ets.lookup(@input, lane) do
-      [] ->
-        with {:allow, tat} <- Aimd.admit(ceiling, nil, now_us) do
-          if :ets.insert_new(@input, {lane, tat}), do: :ok, else: spend(lane, ceiling, now_us)
-        end
+    previous =
+      case :ets.lookup(@input, lane) do
+        [{^lane, tat}] -> tat
+        [] -> nil
+      end
 
-      [{^lane, previous}] ->
-        with {:allow, tat} <- Aimd.admit(ceiling, previous, now_us) do
-          spec = [{{lane, previous}, [], [{{{:const, lane}, tat}}]}]
-
-          if :ets.select_replace(@input, spec) == 1,
-            do: :ok,
-            else: spend(lane, ceiling, now_us)
-        end
+    with {:allow, tat} <- Aimd.admit(ceiling, previous, now_us) do
+      if store(lane, previous, tat), do: :ok, else: spend(lane, ceiling, now_us)
     end
   rescue
     ArgumentError -> :ok
   end
+
+  defp store(lane, nil, tat), do: :ets.insert_new(@input, {lane, tat})
+
+  defp store(lane, previous, tat),
+    do: :ets.select_replace(@input, [{{lane, previous}, [], [{{{:const, lane}, tat}}]}]) == 1
 
   @doc "Creates this node's capacity tables when they do not exist; the sampler owns them."
   @spec table() :: :ok

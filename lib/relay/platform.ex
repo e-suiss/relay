@@ -206,9 +206,20 @@ defmodule Relay.Platform do
   # API-51
   # T-35
   # T-92
-  @doc "Admission control for an incoming request; see `Relay.Platform.Admission.decide/1`."
+  # T-97
+  @doc "Admission control for an incoming request; see `Relay.Platform.Admission.decide/1`. A request the decision admits then spends its lane's input under the node's AIMD ceiling (`Relay.Platform.Capacity.admit_input/2`); input above it is refused with status `429` and rule `admission.aimd.<lane>`."
   @spec admit(Admission.input()) :: :admit | {:reject, Admission.rejection()}
-  def admit(input), do: Admission.decide(input)
+  def admit(input) do
+    with :admit <- Admission.decide(input),
+         lane when lane != nil <- Admission.ceiling_lane(input),
+         {:deny, retry_ms} <- Capacity.admit_input(lane) do
+      {:reject, Admission.over_ceiling(lane, retry_ms)}
+    else
+      nil -> :admit
+      :ok -> :admit
+      {:reject, rejection} -> {:reject, rejection}
+    end
+  end
 
   # T-35 (2)
   @doc "This node's last sampled bulk lane capacities for `admit/1`'s `lane_capacity`; see `Relay.Platform.Capacity`."

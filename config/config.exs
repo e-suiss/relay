@@ -60,7 +60,7 @@ config :relay, Relay.Platform.Outbox, dispatcher: true
 config :relay, Relay.Access,
   subscriber_token_key: "subscriber-token",
   autoload: true,
-  user_handlers: [Relay.Operators.AccessUserHandler]
+  user_handlers: [Relay.Operators.AccessUserHandler, Relay.Operators.AccessSubscriberHandler]
 
 config :relay, RelayWeb.Auth, verifier: RelayWeb.Auth.Access
 

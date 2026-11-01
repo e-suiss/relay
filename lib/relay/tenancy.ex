@@ -259,6 +259,12 @@ defmodule Relay.Tenancy do
     end
   end
 
+  # TN-73
+  @doc "Whether a recipient of `scope` is suspended."
+  @spec recipient_suspended?(Scope.t(), Relay.Id.t()) :: {:ok, boolean()} | {:error, term()}
+  def recipient_suspended?(scope, recipient_id),
+    do: within(scope, fn _status -> Store.recipient_suspended?(recipient_id) end)
+
   # TN-27
   @doc "Returns the identifier of the scope's active tenant key of a purpose (`:data` or `:dek_wrap`)."
   @spec active_tenant_key(Scope.t(), :data | :dek_wrap) ::

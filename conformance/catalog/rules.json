@@ -7937,6 +7937,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "TN-73",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "Subscriber suspension by tenant operators and Access user events",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
     "id": "T-1",
     "section": "§19",
     "status": "central",
@@ -8701,6 +8709,14 @@
     "section": "§19",
     "status": "frozen_technical",
     "title": "Connectors come from the RELAY_CONNECTORS_FILE JSON file, strictly checked at boot",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-97",
+    "section": "§19",
+    "status": "engineering_assumption",
+    "title": "Per-lane AIMD input rate ceiling at admission",
     "verify_stage": 3
   },
   {

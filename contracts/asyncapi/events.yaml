@@ -145,6 +145,10 @@ channels:
         "$ref": "#/components/messages/audit.api_version.pinned"
       audit.subscriber.deletion_requested:
         "$ref": "#/components/messages/audit.subscriber.deletion_requested"
+      audit.subscriber.suspended:
+        "$ref": "#/components/messages/audit.subscriber.suspended"
+      audit.subscriber.resumed:
+        "$ref": "#/components/messages/audit.subscriber.resumed"
       audit.cross_tenant.queried:
         "$ref": "#/components/messages/audit.cross_tenant.queried"
       audit.operator_session.revoked:
@@ -333,6 +337,8 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.quota_policy.changed"
       - "$ref": "#/channels/auditLog/messages/audit.api_version.pinned"
       - "$ref": "#/channels/auditLog/messages/audit.subscriber.deletion_requested"
+      - "$ref": "#/channels/auditLog/messages/audit.subscriber.suspended"
+      - "$ref": "#/channels/auditLog/messages/audit.subscriber.resumed"
       - "$ref": "#/channels/auditLog/messages/audit.cross_tenant.queried"
       - "$ref": "#/channels/auditLog/messages/audit.operator_session.revoked"
       - "$ref": "#/channels/auditLog/messages/webhook.killswitch.engaged"
@@ -2504,6 +2510,90 @@ components:
       x-relay-stage: 3
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.subscriber.suspended:
+      name: subscriber.suspended
+      title: subscriber.suspended
+      summary: "A subscriber was suspended by a tenant operator or by an Access user.suspended event; new sends to it are recorded as decisions and its pending deliveries are paused."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            recipient_id:
+              "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+            reason:
+              type: string
+              maxLength: 2000
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: false
+    audit.subscriber.resumed:
+      name: subscriber.resumed
+      title: subscriber.resumed
+      summary: "A subscriber suspension was lifted by a tenant administrator with step-up or by an Access user.reactivated event; its paused deliveries pass the policy lattice again."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          type: object
+          required:
+            - actor_kind
+            - actor_ref
+            - on_behalf_of
+          properties:
+            actor_kind:
+              type: string
+              enum:
+                - operator
+                - installation_operator
+                - api_client
+                - access
+                - system
+            actor_ref:
+              type: string
+              maxLength: 256
+            on_behalf_of:
+              type: string
+              maxLength: 256
+            access_record_ref:
+              oneOf:
+                - type: string
+                  maxLength: 256
+                - type: "null"
+            recipient_id:
+              "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+            reason:
+              type: string
+              maxLength: 2000
+          additionalProperties: false
+      x-relay-surface: audit
+      x-relay-stage: 3
+      x-relay-choice: false
     audit.cross_tenant.queried:
       name: cross_tenant.queried
       title: cross_tenant.queried
@@ -3467,7 +3557,7 @@ components:
     access.user.suspended:
       name: user.suspended
       title: user.suspended
-      summary: "An Access user was suspended; the operator's Relay sessions are revoked."
+      summary: "An Access user was suspended; the operator's Relay sessions are revoked and the subscribers whose external_id is the subject are suspended."
       contentType: application/cloudevents+json
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -3495,7 +3585,7 @@ components:
     access.user.reactivated:
       name: user.reactivated
       title: user.reactivated
-      summary: "An Access user was reactivated; roles in Relay are unchanged."
+      summary: "An Access user was reactivated; roles in Relay are unchanged and the suspension of the subscribers whose external_id is the subject is lifted."
       contentType: application/cloudevents+json
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -3657,6 +3747,8 @@ x-relay-event-names:
   - subject.erased
   - subject_key.retired
   - subscriber.deletion_requested
+  - subscriber.resumed
+  - subscriber.suspended
   - subtenant.archived
   - subtenant.created
   - subtenant.updated

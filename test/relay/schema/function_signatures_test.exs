@@ -19,6 +19,8 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.idempotency_begin" => ~w(created replayed in_progress conflict),
     "relay_fn.idempotency_complete" => ~w(stored not_cacheable not_claimed),
     "relay_fn.recipient_create" => ~w(created exists tenant_inactive),
+    "relay_fn.recipient_suspend" => ~w(suspended already_suspended not_found),
+    "relay_fn.recipient_resume" => ~w(resumed not_suspended not_found),
     "relay_fn.subject_key_create" => ~w(created exists recipient_not_found recipient_deleted),
     "relay_fn.subject_erase" => ~w(erased already_erased held not_found),
     "relay_fn.subject_key_retire" => ~w(retired already_destroyed held not_found),

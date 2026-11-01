@@ -140,6 +140,7 @@ defmodule Relay.Connectors.Intake do
   end
 
   # T-35
+  # T-97
   # API-51
   defp admission(prepared) do
     {class, channels} = Events.admission(prepared)
@@ -155,6 +156,11 @@ defmodule Relay.Connectors.Intake do
     case Relay.Platform.admit(input) do
       :admit ->
         :ok
+
+      {:reject, %{status: 429, retry_after_s: retry, rule_id: rule}} ->
+        message = "the lane's input is above its ceiling (#{rule})"
+        details = %{retry_after: retry, limit_name: rule}
+        {:error, Relay.Error.new(:rate_limited, message, details)}
 
       {:reject, %{retry_after_s: retry, rule_id: rule}} ->
         message = "Relay is overloaded (#{rule})"

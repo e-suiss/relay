@@ -7,9 +7,12 @@ defmodule Relay.Platform.Capacity do
   * `μ` is the lane's service rate in jobs per second: the configured rate (`config :relay, Relay.Platform.Capacity, service_rate: %{l2: 50, l3: 10}`) when there is one, else the jobs of the lane's queues completed in the last 60 s divided by 60. A lane with no configured rate and no completed job has no known rate and is not checked; an unmeasured lane is never a reason to refuse.
 
   Each node samples `relay_ops.lane_capacity` every 5 s (`Relay.Platform.Capacity.Sampler`, unless `sampler: false`) and keeps the result in an ETS table it owns; a node that never sampled knows no capacity and admits. `l0` and `l1` are never checked against `L_max`.
+
+  Each sample also moves the lanes' input rate ceilings (`Relay.Platform.Aimd`, T-97), kept in the same table; the theoretical arrival time each lane's ceiling is enforced with lives there too, read by the requests (`admit_input/2`, on the monotonic clock of `Relay.Clock`) and advanced in order by the table's owner, as the node-local rate filter does. The table holds one entry per lane, never one per tenant; a burst that arrives before the owner advances may pass a few requests over the ceiling. A lane without a ceiling, and a node that never sampled, does not limit input.
   """
 
   alias Relay.Platform.Admission
+  alias Relay.Platform.Aimd
   alias Relay.Platform.Capacity.Store
   alias Relay.Platform.Lane
   alias Relay.Platform.LoadShed
@@ -71,11 +74,92 @@ defmodule Relay.Platform.Capacity do
     ArgumentError -> nil
   end
 
-  @doc "Puts the lane capacities of this node."
+  @doc "Puts the lane capacities of this node; `nil`, a node that never sampled, also clears the input ceilings."
   @spec put(t() | nil) :: :ok
   def put(capacity) do
     :ok = table()
     true = :ets.insert(@table, {:capacity, capacity})
+    if capacity == nil, do: put_ceilings(%{})
+    :ok
+  end
+
+  # T-97
+  @doc "This node's input rate ceilings per lane, in requests per second; a lane without one is absent or `nil`."
+  @spec ceilings() :: %{optional(Lane.t()) => Aimd.ceiling() | nil}
+  def ceilings do
+    case :ets.whereis(@table) do
+      :undefined -> %{}
+      _table -> lookup_ceilings()
+    end
+  end
+
+  defp lookup_ceilings do
+    case :ets.lookup(@table, :ceilings) do
+      [{:ceilings, ceilings}] -> ceilings
+      [] -> %{}
+    end
+  rescue
+    ArgumentError -> %{}
+  end
+
+  # T-97
+  @doc "Puts the input rate ceilings of this node and forgets the arrival times of the lanes it no longer limits."
+  @spec put_ceilings(%{optional(Lane.t()) => Aimd.ceiling() | nil}) :: :ok
+  def put_ceilings(ceilings) do
+    :ok = table()
+    true = :ets.insert(@table, {:ceilings, ceilings})
+
+    for lane <- @lanes, Map.get(ceilings, lane) == nil, do: :ets.delete(@table, {:input, lane})
+
+    :ok
+  end
+
+  # T-97
+  # T-35 (5)
+  @doc "Spends one request of `lane`'s input under its ceiling: `:ok`, or `{:deny, retry_after_ms}` when the input is above it. Options: `:clock`, a `Relay.Clock` implementation."
+  @spec admit_input(Lane.t(), keyword()) :: :ok | {:deny, pos_integer()}
+  def admit_input(lane, opts \\ []) do
+    case Map.get(ceilings(), lane) do
+      ceiling when is_number(ceiling) and ceiling > 0 ->
+        now_us = Keyword.get(opts, :clock, Relay.Clock).monotonic_ms() * 1_000
+        spend(lane, ceiling, now_us)
+
+      _none ->
+        :ok
+    end
+  end
+
+  defp spend(lane, ceiling, now_us) do
+    case Aimd.admit(ceiling, arrival(lane), now_us) do
+      {:allow, _tat} -> note(lane, ceiling, now_us)
+      {:deny, retry_ms} -> {:deny, retry_ms}
+    end
+  end
+
+  defp arrival(lane) do
+    case :ets.lookup(@table, {:input, lane}) do
+      [{_key, tat}] -> tat
+      [] -> nil
+    end
+  rescue
+    ArgumentError -> nil
+  end
+
+  defp note(lane, ceiling, now_us) do
+    if :ets.info(@table, :owner) == self(),
+      do: advance(lane, ceiling, now_us),
+      else: GenServer.cast(Relay.Platform.Capacity.Sampler, {:input, lane, ceiling, now_us})
+
+    :ok
+  end
+
+  # T-97
+  @doc "Advances `lane`'s theoretical arrival time by one request admitted at `now_us`; called by the owner of the capacity table, in order."
+  @spec advance(Lane.t(), Aimd.ceiling(), integer()) :: :ok
+  def advance(lane, ceiling, now_us) do
+    with {:allow, tat} <- Aimd.admit(ceiling, arrival(lane), now_us),
+         do: :ets.insert(@table, {{:input, lane}, tat})
+
     :ok
   end
 
@@ -91,13 +175,22 @@ defmodule Relay.Platform.Capacity do
   end
 
   # T-35 (2)
-  @doc "Samples the lane backlogs and completions now and puts the capacities of this node."
+  @doc "Samples the lane backlogs and completions now and puts the capacities and the moved input ceilings of this node."
   @spec sample() :: {:ok, t()} | {:error, Relay.Error.t()}
   def sample do
     with {:ok, rows} <- Store.lane_capacity(@window_s) do
       capacity = build(rows, service_rates(), @window_s)
       :ok = put(capacity)
+      :ok = put_ceilings(step(ceilings(), capacity))
       {:ok, capacity}
     end
+  end
+
+  # T-97
+  @doc "Moves every bulk lane's input ceiling by one sample of the lane capacities."
+  @spec step(%{optional(Lane.t()) => Aimd.ceiling() | nil}, t()) ::
+          %{optional(Lane.t()) => Aimd.ceiling() | nil}
+  def step(ceilings, capacity) do
+    Map.new(@lanes, &{&1, Aimd.step(Map.get(ceilings, &1), Map.get(capacity, &1))})
   end
 end

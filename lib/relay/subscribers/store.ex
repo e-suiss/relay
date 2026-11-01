@@ -8,7 +8,7 @@ defmodule Relay.Subscribers.Store do
 
   @row """
   SELECT r.id, r.kind, r.state, r.version, r.inbox_only, r.external_id_ct, r.name_ct,
-    r.locale, r.timezone, r.legal_type, r.created_at, r.updated_at,
+    r.locale, r.timezone, r.legal_type, r.suspended_at, r.created_at, r.updated_at,
     (SELECT a.address_ct FROM relay.recipient_addresses a
       WHERE a.tenant_id = r.tenant_id AND a.environment = r.environment
         AND a.recipient_id = r.id AND a.kind = 'email' AND a.state = 'active') AS email_ct,

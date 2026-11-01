@@ -161,6 +161,16 @@ defmodule Relay.Tenancy.Store do
     {Repo.code!(row["result"], [:created, :exists, :tenant_inactive]), row["recipient_id"]}
   end
 
+  # TN-73
+  @doc "True when the recipient is suspended."
+  @spec recipient_suspended?(Relay.Id.t()) :: boolean()
+  def recipient_suspended?(recipient_id) do
+    "SELECT r.suspended_at IS NOT NULL AS suspended FROM relay.recipients r WHERE r.id = $1"
+    |> Repo.scoped_query!([recipient_id])
+    |> rows()
+    |> Enum.any?(&(&1["suspended"] == true))
+  end
+
   # TN-27
   @doc "Registers a tenant key wrapped under the region key encryption key."
   @spec tenant_key_register(map(), digest(), Actor.t()) :: :created | :exists | :active_exists

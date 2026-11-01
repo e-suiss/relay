@@ -90,4 +90,56 @@ defmodule Relay.Operators.AuthzTest do
       refute Authz.send_mode_relaxes?("live", "live")
     end
   end
+
+  defp policy(limit, caps \\ %{"marketing" => 5_000}, reserve \\ 1_000),
+    do: %{limit_total: limit, class_caps: caps, security_reserve_bp: reserve}
+
+  describe "TN-72 quota changes" do
+    test "TN-72: creating, removing and raising a policy raise; lowering does not" do
+      current = policy(1_000)
+
+      for raised <- [
+            policy(2_000),
+            policy(1_000, %{"marketing" => 6_000}),
+            policy(1_000, %{}),
+            policy(1_000, %{"marketing" => 5_000}, 1_500),
+            policy(nil)
+          ] do
+        assert Authz.quota_raises?(current, raised)
+      end
+
+      assert Authz.quota_raises?(policy(nil), policy(1_000))
+
+      for lowered <- [
+            policy(900),
+            policy(1_000, %{"marketing" => 4_000}),
+            policy(1_000, %{"marketing" => 5_000, "social" => 9_000}),
+            policy(1_000, %{"marketing" => 5_000}, 500),
+            current
+          ] do
+        refute Authz.quota_raises?(current, lowered)
+      end
+    end
+
+    test "TN-72: the installation operator passes a by-change operation in any tenant" do
+      scope = Relay.Scope.new!(@tenant, :live)
+      operator = [grant(@installation, :live, :installation_operator)]
+      admin = [grant(@tenant, :live, :tenant_admin)]
+      allowed = context(scope, installation_allowed?: true)
+
+      assert Authz.authorize(operator, :tenant_admin, allowed) == {:ok, :own}
+
+      assert {:error, :delegation_required, _details} =
+               Authz.authorize(operator, :tenant_admin, context(scope))
+
+      both = [:tenant_admin, :installation_operator]
+      assert Authz.holds_any?(operator, both, scope, @installation)
+      refute Authz.holds_any?(operator, [:tenant_admin], scope, @installation)
+      assert Authz.holds_any?(admin, both, scope, @installation)
+      refute Authz.holds_any?(admin, [:installation_operator], scope, @installation)
+
+      other = Relay.Scope.new!(Relay.Id.generate(), :live)
+      refute Authz.holds_any?(admin, both, other, @installation)
+    end
+  end
 end

@@ -1,6 +1,6 @@
 defmodule Relay.Api.Contract do
   @moduledoc """
-  The API contract, read at compile time from `contracts/openapi/server.yaml`, `contracts/openapi/subscriber.yaml`, `contracts/openapi/operator.yaml` and their components. It answers which operations exist, which family each belongs to (`:server`, `:subscriber` or `:operator`), how it is authenticated (`:bearer`, `:public` or `:webhook`), what it requires (scopes, weight, idempotency, environment; for an operator operation the lowest role and the step-up rule) and which schemas its requests and responses follow. A subscriber or operator operation's local schema references are inlined. The contract files are the single source; nothing here repeats their values.
+  The API contract, read at compile time from `contracts/openapi/server.yaml`, `contracts/openapi/subscriber.yaml`, `contracts/openapi/operator.yaml` and their components. It answers which operations exist, which family each belongs to (`:server`, `:subscriber` or `:operator`), how it is authenticated (`:bearer`, `:public` or `:webhook`), what it requires (scopes, weight, idempotency, environment; for an operator operation the lowest role, the roles by direction of change and the step-up rule) and which schemas its requests and responses follow. A subscriber or operator operation's local schema references are inlined. The contract files are the single source; nothing here repeats their values.
   """
 
   @root Path.expand("../../../contracts/openapi", __DIR__)
@@ -26,10 +26,13 @@ defmodule Relay.Api.Contract do
 
   @methods ~w(get post put patch delete)
 
+  @type role :: :installation_operator | :tenant_admin | :tenant_operator
+
   @type operation :: %{
           id: String.t(),
           family: :server | :subscriber | :operator,
           role: :installation_operator | :tenant_admin | :tenant_operator | nil,
+          role_by_change: %{lower: [role()], raise: [role()]} | nil,
           step_up: :always | :conditional | :never,
           stored_replay: boolean(),
           security: :bearer | :public | :webhook,
@@ -81,6 +84,8 @@ defmodule Relay.Api.Contract do
     "tenant_admin" => :tenant_admin,
     "tenant_operator" => :tenant_operator
   }
+
+  role_list = fn names -> Enum.map(names, &Map.fetch!(roles, &1)) end
 
   families = [
     server: @documents["server"],
@@ -142,6 +147,14 @@ defmodule Relay.Api.Contract do
         idempotency: idempotency,
         environment: if(op["x-relay-environment"] == "test", do: :test),
         role: Map.get(roles, op["x-relay-role"]),
+        role_by_change:
+          case op["x-relay-role-by-change"] do
+            %{"lower" => lowering, "raise" => raising} ->
+              %{lower: role_list.(lowering), raise: role_list.(raising)}
+
+            nil ->
+              nil
+          end,
         step_up:
           case op["x-relay-step-up"] do
             "always" -> :always

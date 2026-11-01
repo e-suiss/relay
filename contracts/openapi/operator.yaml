@@ -2641,7 +2641,7 @@ paths:
       tags:
         - tenant-settings
       summary: Set a quota policy
-      description: "The limit is set by the installation operator; class caps and the security reserve by the tenant admin within the limit. Changes are audited."
+      description: "Lowering the limit, a class cap or the security reserve is open to the tenant admin of the tenant and to the installation operator, applies at once and needs no step-up. Raising any of them, removing the policy or creating the first policy of a period is for the installation operator with step-up. Every change is audited as quota_policy.changed."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -2738,13 +2738,15 @@ paths:
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: conditional
-      x-relay-step-up-when: the change raises the limit, a class cap or the reserve, or removes the policy
-      x-relay-role-by-field:
-        limit: installation_operator
-        class_caps: tenant_admin
-        security_reserve_bp: tenant_admin
+      x-relay-step-up-when: the change raises the limit, a class cap or the reserve, removes the policy or creates the first policy of the period
+      x-relay-role-by-change:
+        lower:
+          - tenant_admin
+          - installation_operator
+        raise:
+          - installation_operator
       x-relay-choice: true
-      x-relay-choice-note: "Quota limits are tenant configuration data in the spec; the operation, its roles and step-up on raising (higher authority for relaxation) are chosen by the contract."
+      x-relay-choice-note: "Quota limits are tenant configuration data in the spec; the operation and its path are chosen by the contract. Roles and step-up follow the spec: lowering is open to the tenant admin and the installation operator at once, raising, removing and first creation need the installation operator with step-up."
   "/v1/operator/queue_panel":
     get:
       operationId: getQueuePanel
@@ -2820,7 +2822,7 @@ components:
   securitySchemes:
     access_bearer:
       type: oauth2
-      description: "Short-lived Access access token obtained with OAuth 2.0 client credentials for an API client registered in Access. The client is bound to one tenant, one environment and optionally one subtenant. Relay validates the token with the cached Access JWKS: iss, aud (Relay server API), exp and nbf on every request, an allow-list of algorithms, no unsigned tokens. Relay has no API keys of its own. The token endpoint is discovered from the Access issuer."
+      description: "Short-lived Access access token obtained with OAuth 2.0 client credentials for an API client registered in Access. The client is bound to one tenant, one environment and optionally one subtenant. Relay validates the token with the cached Access JWKS: iss, aud (Relay server API), exp and nbf on every request, an allow-list of algorithms (EdDSA or Ed25519 for Ed25519 keys, ES256, PS256), no unsigned tokens. The token names the Access tenant in tenant_id, the Access client in client_id and, when present, the environment in suiss_environment, which must be the client's. Relay has no API keys of its own. The token endpoint is discovered from the Access issuer."
       flows:
         clientCredentials:
           tokenUrl: "https://access.example.com/oauth2/token"
@@ -2832,7 +2834,7 @@ components:
             kill_switch: Engage and tighten kill switches of campaign and workflow scope only.
     mtls:
       type: mutualTLS
-      description: "Optional additional layer for enterprise tenants: RFC 8705 certificate-bound Access tokens. It is used together with access_bearer, never alone."
+      description: "Optional additional layer for enterprise tenants: RFC 8705 certificate-bound Access tokens. It is used together with access_bearer, never alone. Behind a proxy that terminates TLS, the client certificate is read from the RFC 9440 Client-Cert header (and Client-Cert-Chain) only when the connection comes from a configured client certificate proxy; the header from any other peer is ignored."
     operator_session:
       type: apiKey
       in: cookie
@@ -2841,7 +2843,7 @@ components:
       x-relay-choice: true
     operator_bearer:
       type: oauth2
-      description: Access access token of an operator whose audience is the Relay operator API, used by the CLI. Step-up uses the RFC 9470 challenge.
+      description: "Access access token of an operator whose audience is the Relay operator API, used by the CLI, signed with EdDSA or Ed25519 (Ed25519 keys), ES256 or PS256. Step-up uses the RFC 9470 challenge."
       flows:
         authorizationCode:
           authorizationUrl: "https://access.example.com/oauth2/authorize"
@@ -3722,7 +3724,7 @@ components:
       additionalProperties: false
     QuotaPolicyWrite:
       type: object
-      description: "limit null removes the policy of this period. Lowering is immediate; raising the limit, raising a class cap or the reserve, or removing the policy is a relaxation that needs step-up."
+      description: "limit null removes the policy of this period. Lowering the limit, a class cap or the reserve is immediate and open to the tenant admin; raising any of them, dropping a class cap, removing the policy or creating the first policy of a period needs the installation operator with step-up."
       required:
         - period
         - reason

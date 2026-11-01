@@ -35,6 +35,7 @@ contracts/
 - Per-operation extensions:
   - `x-relay-scopes`: Access API client scopes that grant the operation (any one of them).
   - `x-relay-role`: minimum operator role when an operator session is used.
+  - `x-relay-role-by-change`: for an operation whose change can tighten or relax, the operator roles that may `lower` (tighten) and `raise` (relax, remove or create) it.
   - `x-relay-weight`: API rate limit weight (`rows` for batches).
   - `x-relay-idempotency`: `required`, `derived` (CloudEvents and webhook ids) or `not_applicable`.
   - `x-relay-step-up`: `false`, `always` or `conditional` (with `x-relay-step-up-when`).

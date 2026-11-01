@@ -4,7 +4,7 @@ defmodule Relay.Operators.Authz do
 
   * An operation without a role needs only a valid session.
   * An installation operation needs the `installation_operator` grant of the installation tenant's `live` environment.
-  * A tenant operation needs a grant of the selected tenant and environment whose rank reaches the operation's role. In the installation tenant the installation operator ranks above every tenant role; in any other tenant the installation operator holds no tenant role and cannot read past row level security (TN-23): with an active support delegation of that tenant and environment it may run reading operations only, on the tenant's behalf, and never reveal personal data.
+  * A tenant operation needs a grant of the selected tenant and environment whose rank reaches the operation's role. An operation whose contract lets the installation operator change it by direction (`x-relay-role-by-change`, such as a quota policy, TN-72) admits the installation operator in any tenant as itself; the operation then checks the direction of the change. In the installation tenant the installation operator ranks above every tenant role; in any other tenant the installation operator holds no tenant role and cannot read past row level security (TN-23): with an active support delegation of that tenant and environment it may run reading operations only, on the tenant's behalf, and never reveal personal data.
   """
 
   @type role :: :installation_operator | :tenant_admin | :tenant_operator
@@ -18,6 +18,7 @@ defmodule Relay.Operators.Authz do
           required(:installation_tenant_id) => Relay.Id.t(),
           required(:scope) => Relay.Scope.t() | nil,
           optional(:delegation_id) => Relay.Id.t() | nil,
+          optional(:installation_allowed?) => boolean(),
           optional(:reads?) => boolean(),
           optional(:reveal?) => boolean()
         }
@@ -58,6 +59,10 @@ defmodule Relay.Operators.Authz do
       best >= rank(role) ->
         {:ok, :own}
 
+      Map.get(context, :installation_allowed?, false) and
+          installation_operator?(grants, context.installation_tenant_id) ->
+        {:ok, :own}
+
       delegated?(grants, context) ->
         {:ok, {:delegated, context.delegation_id}}
 
@@ -81,6 +86,19 @@ defmodule Relay.Operators.Authz do
         role != :installation_operator or tenant == installation,
         uniq: true,
         do: role
+  end
+
+  # TN-22
+  # TN-72
+  @doc "Returns true if an operator holding `grants` in `scope` holds one of the `allowed` roles; the installation operator role counts in every tenant."
+  @spec holds_any?([grant()], [role()], Relay.Scope.t(), Relay.Id.t()) :: boolean()
+  def holds_any?(grants, allowed, %Relay.Scope{} = scope, installation) do
+    held = installation_role(grants, installation) ++ granted(grants, scope, installation)
+    Enum.any?(allowed, &(&1 in held))
+  end
+
+  defp installation_role(grants, installation) do
+    if installation_operator?(grants, installation), do: [:installation_operator], else: []
   end
 
   # TN-23
@@ -107,15 +125,16 @@ defmodule Relay.Operators.Authz do
   def send_mode_relaxes?(previous, new), do: mode_rank(new) > mode_rank(previous)
 
   # TN-22
+  # TN-72
   # API-51
   @doc """
-  Returns true if a quota policy change relaxes: removing an active policy, raising its limit or its `security` reserve, or raising or dropping a class cap. Creating a policy where none is active only tightens. `current` and `new` carry `:limit_total` (`nil` for no active policy), `:class_caps` and `:security_reserve_bp`.
+  Returns true if a quota policy change raises, which needs the installation operator with step-up: creating the first policy of a period, removing an active policy, raising its limit or its `security` reserve, or raising or dropping a class cap. Any other change lowers and is open to the tenant admin at once. `current` and `new` carry `:limit_total` (`nil` for no active policy), `:class_caps` and `:security_reserve_bp`.
   """
-  @spec quota_relaxes?(map(), map()) :: boolean()
-  def quota_relaxes?(%{limit_total: nil}, _new), do: false
-  def quota_relaxes?(_current, %{limit_total: nil}), do: true
+  @spec quota_raises?(map(), map()) :: boolean()
+  def quota_raises?(%{limit_total: nil}, _new), do: true
+  def quota_raises?(_current, %{limit_total: nil}), do: true
 
-  def quota_relaxes?(current, new) do
+  def quota_raises?(current, new) do
     new.limit_total > current.limit_total or
       new.security_reserve_bp > current.security_reserve_bp or
       Enum.any?(current.class_caps, fn {class, cap} ->

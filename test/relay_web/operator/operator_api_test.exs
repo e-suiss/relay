@@ -814,21 +814,20 @@ defmodule RelayWeb.Operator.OperatorApiTest do
       assert [_] = audit(tenant.live, "tenant.resumed")
     end
 
-    test "API-82 (3): a role assignment of the installation tenant is stored and replayed",
+    test "API-82 (3): revoking an installation operator role is stored and replayed",
          %{operator: operator} do
       member = sign_in("member-" <> random())
+      attrs = %{operator_id: member.operator_id, role: :installation_operator, reason: "on call"}
 
-      body = %{
-        "operator_id" => Relay.ExternalId.encode("opr", member.operator_id),
-        "role" => "tenant_operator",
-        "environments" => ["live"],
-        "reason" => "on call"
-      }
+      {:ok, %{"id" => id}} =
+        Admin.assign_role(Operators.installation_scope(), attrs, TenantFixture.actor(), nil)
 
+      path = "/v1/operator/role_assignments/" <> Relay.ExternalId.encode("rla", id) <> "/revoke"
       opts = [tenant: Operators.installation_scope()]
-      created = replayed(operator, :post, "/v1/operator/role_assignments", body, opts)
-      assert created["role"] == "tenant_operator"
-      assert [_] = installation_rows("role_assignment.created", operator)
+      revoked = replayed(operator, :post, path, %{"reason" => "rotation"}, opts)
+      assert revoked["role"] == "installation_operator"
+      assert revoked["tenant_id"] == nil
+      assert [_] = installation_rows("role_assignment.revoked", operator)
     end
 
     test "API-82 (3): the installation scope holds an active data key after the first write",

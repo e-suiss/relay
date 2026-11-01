@@ -78,7 +78,6 @@ defmodule RelayWeb.Operator.PlatformController do
     with {:ok, conn} <- if(body["no_ttl"] == true, do: step_up(conn), else: {:ok, conn}),
          {:ok, expires_at} <- expiry(body),
          {:ok, state} <- state(body),
-         {:ok, record} <- platform_record(id),
          {:ok, conn} <- relax_step_up(conn) do
       change = %{
         reason: body["reason"],
@@ -89,7 +88,8 @@ defmodule RelayWeb.Operator.PlatformController do
       }
 
       idempotent(conn, fn ->
-        record.id |> KillSwitch.replace(change, operator(conn)) |> answer(201)
+        with {:ok, record} <- platform_record(id),
+             do: record.id |> KillSwitch.replace(change, operator(conn)) |> answer(201)
       end)
     else
       {:error, error} -> problem(conn, error)
@@ -104,17 +104,14 @@ defmodule RelayWeb.Operator.PlatformController do
 
   # TN-22
   # TN-40
+  # API-13
   @spec release(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def release(conn, %{"kill_switch_id" => id}) do
-    case platform_record(id) do
-      {:ok, record} ->
-        change = %{reason: conn.assigns.body["reason"], relax_approval: step_up_ref(conn)}
+    change = %{reason: conn.assigns.body["reason"], relax_approval: step_up_ref(conn)}
 
-        idempotent(conn, fn -> release_record(conn, record.id, change) end)
-
-      {:error, error} ->
-        problem(conn, error)
-    end
+    idempotent(conn, fn ->
+      with {:ok, record} <- platform_record(id), do: release_record(conn, record.id, change)
+    end)
   end
 
   defp release_record(conn, id, change) do

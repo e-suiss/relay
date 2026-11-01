@@ -198,10 +198,8 @@ defmodule Relay.Sql.KeysTest do
     assert one(rotate, [next, digest() | actor()]) == "rotating"
     assert one(rotate, [next, digest() | actor()]) == "rotating"
 
-    assert rows("SELECT id, state FROM relay.blind_index_keys ORDER BY created_at, id") == [
-             [first, "active"],
-             [next, "rotating"]
-           ]
+    assert Enum.sort(rows("SELECT id, state FROM relay.blind_index_keys")) ==
+             Enum.sort([[first, "active"], [next, "rotating"]])
   end
 
   test "TN-26: secrets are stored as references with fingerprints and passwords in URIs are rejected" do

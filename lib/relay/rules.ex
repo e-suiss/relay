@@ -27,7 +27,7 @@ defmodule Relay.Rules do
   end
 
   # X-12
-  @doc "Returns the explanation of a recorded rule id in `language` (`\"en\"` or `\"tr\"`)."
+  @doc "Returns the explanation of a recorded rule id in `language`: `en` or `tr`."
   @spec describe(String.t(), String.t()) :: {:ok, String.t()} | {:error, Relay.Error.t()}
   def describe(rule_id, language) when language in ["en", "tr"] do
     with {:ok, entry} <- entry(rule_id), do: {:ok, entry["description"][language]}

@@ -1,6 +1,7 @@
 defmodule Relay.RuleDictionaryTest do
   use ExUnit.Case, async: true
 
+  alias Relay.Datasets.Package
   alias Relay.RuleDictionary
 
   @events "contracts/asyncapi/events.yaml"
@@ -70,7 +71,7 @@ defmodule Relay.RuleDictionaryTest do
 
   describe "DS-47 rule dictionary" do
     test "DS-47: every bundled version is valid and its identifiers are of the dictionary form" do
-      assert {:ok, datasets} = Relay.Datasets.Package.read(Relay.Datasets.Package.root())
+      assert {:ok, datasets} = Package.read(Package.root())
       assert Enum.any?(datasets, &(&1.name == "rule_dictionary"))
 
       for version <- versions() do

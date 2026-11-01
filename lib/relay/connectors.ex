@@ -1,6 +1,6 @@
 defmodule Relay.Connectors do
   @moduledoc """
-  Ingest connectors (T-41): Broadway pipelines that take a producer's events from its own outbox table, Kafka or SQS and accept them through the same path as `POST /v1/events` (`Relay.Connectors.Intake`). Broadway is used only here; its rate limiting is never used for a provider limit.
+  Ingest connectors (T-41, T-95): Broadway pipelines that take a producer's events from its own outbox table (the built-in source), Kafka or SQS and accept them through the same path as `POST /v1/events` (`Relay.Connectors.Intake`). Broadway is used only here; its rate limiting is never used for a provider limit.
 
   Connectors are installation configuration (`Relay.Connectors.Connector`) and run on worker nodes. Without a configured connector nothing starts, and no source needs a component beyond PostgreSQL and Valkey to boot (T-7). Other contexts use only the functions of this module.
   """

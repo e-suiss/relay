@@ -1915,6 +1915,40 @@ WorkflowDefinition:
   additionalProperties: false
   x-relay-choice: true
   x-relay-choice-note: "Until tenant categories exist (later stage), the definition declares message_class next to category; afterwards the class must match the category's class."
+WorkflowDefinitionRequest:
+  type: object
+  description: "Workflow definition as written. message_class may be left out only by a platform tenant: the default class of its product applies (Access: security) and is frozen in the stored definition. Every other tenant declares it; without it the write is 422 validation_failed at /definition/message_class."
+  required:
+    - name
+    - category
+    - event_schema
+    - steps
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    description:
+      type: string
+      maxLength: 2000
+    category:
+      type: string
+      description: Tenant category key.
+      pattern: "^[a-z][a-z0-9_]{0,63}$"
+    message_class:
+      "$ref": "#/MessageClass"
+    event_schema:
+      type: object
+      description: "JSON Schema 2020-12 for event data; incoming data is validated against it at accept time."
+    steps:
+      type: array
+      items:
+        "$ref": "#/ChannelStep"
+      minItems: 1
+      maxItems: 50
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "Until tenant categories exist (later stage), the definition declares message_class next to category; afterwards the class must match the category's class."
 WorkflowCreate:
   type: object
   description: Create a workflow and its first draft.
@@ -1925,7 +1959,7 @@ WorkflowCreate:
     key:
       "$ref": "#/WorkflowKey"
     definition:
-      "$ref": "#/WorkflowDefinition"
+      "$ref": "#/WorkflowDefinitionRequest"
   additionalProperties: false
 WorkflowDraft:
   type: object
@@ -1934,7 +1968,7 @@ WorkflowDraft:
     - definition
   properties:
     definition:
-      "$ref": "#/WorkflowDefinition"
+      "$ref": "#/WorkflowDefinitionRequest"
   additionalProperties: false
 Publication:
   type: object

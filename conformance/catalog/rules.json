@@ -3849,6 +3849,22 @@
   },
   {
     "acceptance": "pending",
+    "id": "API-81",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "Message class lives in the workflow version; a platform tenant may omit it and gets its product default",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "API-82",
+    "section": "§9",
+    "status": "frozen_technical",
+    "title": "Audit names, workflow lifecycle audit and installation level idempotency",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
     "id": "WF-1",
     "section": "§10",
     "status": "frozen_technical",
@@ -8653,6 +8669,22 @@
     "section": "§19",
     "status": "frozen_technical",
     "title": "Node-local API filter is our own clock-port GCRA on ETS, not Hammer",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-95",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "Built-in ingest source is the PostgreSQL outbox with a contract table shape; Kafka and SQS stay out of the release",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "T-96",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "Connectors come from the RELAY_CONNECTORS_FILE JSON file, strictly checked at boot",
     "verify_stage": 3
   },
   {

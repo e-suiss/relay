@@ -1,7 +1,51 @@
 defmodule Relay.Connectors.OutboxStore do
   @moduledoc """
   The SQL of the outbox source (`Relay.Connectors.Outbox`), run on the connector's own connection to the producer's database. The table name is checked when the connector is configured and quoted here; every value is a parameter.
+
+  The table shape is a contract (T-95), `contracts/connectors/outbox.sql`, read at compile time: `check/2` compares the producer's table with its columns and types.
   """
+
+  @contract Path.expand("../../../contracts/connectors/outbox.sql", __DIR__)
+  @external_resource @contract
+
+  @column ~r/^ +([a-z_]+) ([a-z ]+?)(?: PRIMARY KEY| NOT NULL)?,?$/m
+  @columns @column |> Regex.scan(File.read!(@contract)) |> Enum.map(&List.to_tuple(tl(&1)))
+
+  # T-95
+  @doc "The columns of the outbox contract with their PostgreSQL types, in contract order."
+  @spec columns() :: [{String.t(), String.t()}, ...]
+  def columns, do: @columns
+
+  # T-95
+  @doc "Compares a quoted table with the outbox contract: every contract column must exist with its type; other columns are the producer's own. Returns the differences, or the error of the query."
+  @spec check(DBConnection.conn(), String.t()) ::
+          :ok | {:mismatch, [String.t(), ...]} | {:error, Exception.t()}
+  def check(conn, table) do
+    sql = """
+    SELECT a.attname::text, format_type(a.atttypid, a.atttypmod)
+      FROM pg_attribute a
+     WHERE a.attrelid = to_regclass($1::text) AND a.attnum > 0 AND NOT a.attisdropped
+    """
+
+    case Postgrex.query(conn, sql, [table]) do
+      {:ok, %{rows: []}} -> {:mismatch, ["table #{table} does not exist"]}
+      {:ok, %{rows: rows}} -> differences(Map.new(rows, fn [name, type] -> {name, type} end))
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  defp differences(found) do
+    case Enum.flat_map(@columns, fn {name, type} -> difference(name, type, found[name]) end) do
+      [] -> :ok
+      problems -> {:mismatch, problems}
+    end
+  end
+
+  defp difference(name, _type, nil), do: ["column #{name} is missing"]
+  defp difference(_name, type, type), do: []
+
+  defp difference(name, type, found),
+    do: ["column #{name} is #{found}, the contract has #{type}"]
 
   # T-41
   @doc "Quotes a checked `name` or `schema.name` table identifier."

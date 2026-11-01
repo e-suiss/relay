@@ -70,15 +70,17 @@ defmodule Relay.Api.Workflows do
   @doc "Creates a workflow with its first draft inside the request's transaction."
   @spec create(Relay.Scope.t(), map(), Relay.Actor.t()) :: answer()
   def create(scope, body, actor) do
-    case Relay.Workflow.create(scope, body["key"], body["definition"], actor) do
-      {:ok, {:created, _id, version}} ->
-        {:ok, {201, [etag(version)], view(Relay.Workflow.view(body["key"]))}}
+    with {:ok, definition} <- definition(body["definition"]) do
+      case Relay.Workflow.create(scope, body["key"], definition, actor) do
+        {:ok, {:created, _id, version}} ->
+          {:ok, {201, [etag(version)], view(Relay.Workflow.view(body["key"]))}}
 
-      {:ok, {:key_conflict, _id, _version}} ->
-        {:error, Relay.Error.new(:resource_conflict, "a workflow with this key exists")}
+        {:ok, {:key_conflict, _id, _version}} ->
+          {:error, Relay.Error.new(:resource_conflict, "a workflow with this key exists")}
 
-      {:ok, {:tenant_inactive, _id, _version}} ->
-        {:error, Relay.Error.new(:auth_tenant_suspended, "the tenant is suspended")}
+        {:ok, {:tenant_inactive, _id, _version}} ->
+          {:error, Relay.Error.new(:auth_tenant_suspended, "the tenant is suspended")}
+      end
     end
   end
 
@@ -86,15 +88,43 @@ defmodule Relay.Api.Workflows do
   @doc "Replaces the draft of a workflow inside the request's transaction."
   @spec replace(Relay.Scope.t(), String.t(), map(), pos_integer(), Relay.Actor.t()) :: answer()
   def replace(scope, key, body, expected_version, actor) do
-    case Relay.Workflow.replace_draft(scope, key, body["definition"], expected_version, actor) do
-      {:ok, {result, version}} when result in [:replaced, :unchanged] ->
-        {:ok, {200, [etag(version)], view(Relay.Workflow.view(key))}}
+    with {:ok, definition} <- definition(body["definition"]) do
+      case Relay.Workflow.replace_draft(scope, key, definition, expected_version, actor) do
+        {:ok, {result, version}} when result in [:replaced, :unchanged] ->
+          {:ok, {200, [etag(version)], view(Relay.Workflow.view(key))}}
 
-      {:ok, {:version_conflict, _version}} ->
-        {:error, precondition_failed()}
+        {:ok, {:version_conflict, _version}} ->
+          {:error, precondition_failed()}
 
-      {:ok, {:not_found, _version}} ->
-        {:error, workflow_not_found()}
+        {:ok, {:not_found, _version}} ->
+          {:error, workflow_not_found()}
+      end
+    end
+  end
+
+  # API-81
+  # E-10
+  @doc "The definition with its message class: the declared class, else the default class of the tenant's platform product, frozen into the definition; a tenant without a default must declare it. Runs inside the request's scoped transaction."
+  @spec definition(map()) :: {:ok, map()} | {:error, Relay.Error.t()}
+  def definition(%{"message_class" => class} = definition) when is_binary(class),
+    do: {:ok, definition}
+
+  def definition(definition) do
+    case Relay.Access.message_class(Relay.Ingest.platform_product(), nil) do
+      nil ->
+        {:error,
+         Relay.Error.new(:validation_failed, "the workflow definition is invalid", %{
+           errors: [
+             %{
+               pointer: "/definition/message_class",
+               code: "required",
+               detail: "the message class is required"
+             }
+           ]
+         })}
+
+      class ->
+        {:ok, Map.put(definition, "message_class", Atom.to_string(class))}
     end
   end
 

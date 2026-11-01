@@ -121,4 +121,37 @@ defmodule Relay.Access.PlatformTenantTest do
       assert Relay.Access.message_class("work", nil) == nil
     end
   end
+
+  describe "API-81 message class of a workflow version" do
+    test "API-81: a platform tenant's workflow without a class takes the product default" do
+      platform = platform!("access")
+      token = F.token(platform.live)
+      shown = F.workflow!(platform.live, token, "login-alert", message_class: nil)
+
+      version = F.body(F.request(:get, "/v1/workflows/login-alert/versions/1", token), 200)
+      assert version["definition"]["message_class"] == "security"
+      assert shown["published_version"] == 1
+      assert notification_class(token, "login-alert") == "security"
+    end
+
+    test "API-81: a declared class wins over the product default" do
+      platform = platform!("access")
+      token = F.token(platform.live)
+      F.workflow!(platform.live, token, "weekly-note", message_class: "operational")
+
+      assert notification_class(token, "weekly-note") == "operational"
+    end
+
+    test "API-81: a platform product without a default class must declare one" do
+      platform = platform!("work")
+      token = F.token(platform.live)
+      body = %{"key" => "task-due", "definition" => F.definition(message_class: nil)}
+      problem = F.body(F.request(:post, "/v1/workflows", token, body), 422)
+
+      assert problem["code"] == "validation_failed"
+
+      assert [%{"pointer" => "/definition/message_class", "code" => "required"}] =
+               problem["errors"]
+    end
+  end
 end

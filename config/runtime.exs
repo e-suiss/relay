@@ -68,6 +68,9 @@ if config_env() == :prod do
       queue_repo: Relay.Config.Env.fetch!("QUEUE_DATABASE_PASSWORD_FILE")
   end
 
+  config :relay, Relay.Connectors,
+    connectors: Relay.Connectors.ConfigFile.read!(System.get_env("RELAY_CONNECTORS_FILE"))
+
   config :relay, roles: roles
   config :relay, RelayWeb.Endpoint, server: :api in roles or :socket in roles
 end

@@ -17,12 +17,15 @@ contracts/
 │       ├── parameters.yaml     # shared headers, path and pagination parameters
 │       ├── headers.yaml        # shared response headers
 │       └── responses.yaml      # shared error responses
-└── asyncapi/
-    └── events.yaml             # single event catalog: webhooks, realtime, audit actions, Access events
+├── asyncapi/
+│   └── events.yaml             # single event catalog: webhooks, realtime, audit actions, Access events
+└── connectors/
+    └── outbox.sql              # table shape of the PostgreSQL outbox source of ingest connectors
 ```
 
 - **OpenAPI 3.1** with JSON Schema 2020-12 for HTTP families; **AsyncAPI 3.1** for the event catalog.
 - Every family lives in its own file and has its own authentication rule. The agent family is added in a later stage.
+- `connectors/outbox.sql` is the table a producer exposes to Relay's built-in ingest source: `id` orders the rows, `payload` holds one structured mode CloudEvent, and Relay writes `relay_claimed_until`, `relayed_at` and `relay_outcome`. The producer names the table and may add columns of its own. Relay checks the columns and types when it connects, reads and updates rows, and never deletes one.
 
 ## Conventions
 

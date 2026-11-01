@@ -18,7 +18,9 @@ defmodule Relay.Connectors.Connector do
   Sources:
 
   * `:outbox`, the producer's transactional outbox table in its own PostgreSQL database (`Relay.Connectors.Outbox`); it needs no other component.
-  * `:kafka` and `:sqs`, through the Broadway producers of the `broadway_kafka` and `broadway_sqs` packages, whose `options` are passed to them as they are. These packages are not dependencies of Relay (T-7): a release that configures such a source must carry its package, or the node does not start.
+  * `:kafka` and `:sqs`, through the Broadway producers of the `broadway_kafka` and `broadway_sqs` packages, whose `options` are passed to them as they are. These packages are not dependencies of Relay and are not in its release (T-7, T-95): an installation that configures such a source builds its own release with the package, or the node does not start.
+
+  A production node reads its connectors from the JSON file named by `RELAY_CONNECTORS_FILE` (`Relay.Connectors.ConfigFile`, T-96).
 
   Every message is one structured mode CloudEvent (`application/cloudevents+json`). A configuration error stops the node before any connector starts (INV-46).
   """

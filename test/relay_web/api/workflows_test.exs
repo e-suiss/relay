@@ -19,6 +19,21 @@ defmodule RelayWeb.Api.WorkflowsTest do
   defp etag(token, key),
     do: get_resp_header(F.request(:get, "/v1/workflows/" <> key, token), "etag")
 
+  defp audit(scope, action) do
+    now = DateTime.utc_now()
+
+    {:ok, rows} =
+      Relay.Repo.in_scope(scope, fn _status ->
+        Relay.Repo.call!(
+          "relay_fn.audit_query",
+          [DateTime.add(now, -3_600), DateTime.add(now, 3_600), action, nil, 1_000] ++
+            [TenantFixture.digest() | Relay.Actor.params(TenantFixture.actor())]
+        )
+      end)
+
+    for row <- rows, do: Map.take(row, ~w(actor_kind actor_ref target_type target_id))
+  end
+
   describe "WF-5 WF-6 INV-48 workflow lifecycle" do
     test "API-69: create answers 201 with an ETag and a draft; the same key again is 409", ctx do
       conn = create(ctx.token, "welcome", F.definition())
@@ -98,11 +113,74 @@ defmodule RelayWeb.Api.WorkflowsTest do
       assert Enum.map(versions["data"], & &1["version"]) == [3, 2, 1]
     end
 
+    test "API-81: a tenant that is not a platform tenant must declare the message class", ctx do
+      definition = F.definition(message_class: nil)
+      problem = F.body(create(ctx.token, "no-class", definition), 422)
+
+      assert problem["code"] == "validation_failed"
+
+      assert [%{"pointer" => "/definition/message_class", "code" => "required"}] =
+               problem["errors"]
+
+      F.body(create(ctx.token, "no-class", F.definition()), 201)
+      [etag] = etag(ctx.token, "no-class")
+      body = %{"definition" => definition}
+      replaced = F.request(:put, "/v1/workflows/no-class", ctx.token, body, [{"if-match", etag}])
+      assert code(replaced, 422) == "validation_failed"
+    end
+
     test "WF-6: an unknown version is 404 workflow_version_not_found", ctx do
       F.workflow!(ctx.scope, ctx.token, "welcome")
 
       assert code(F.request(:get, "/v1/workflows/welcome/versions/7", ctx.token), 404) ==
                "workflow_version_not_found"
+    end
+  end
+
+  describe "API-82 workflow audit" do
+    test "API-82: create, draft, publication request, publication and promote are audited",
+         ctx do
+      created = F.body(create(ctx.token, "welcome", F.definition()), 201)
+      [etag] = etag(ctx.token, "welcome")
+      body = %{"definition" => F.definition(name: "Welcome v2")}
+      drafted = F.request(:put, "/v1/workflows/welcome", ctx.token, body, [{"if-match", etag}])
+      draft_id = F.body(drafted, 200)["draft_version_id"]
+      F.publish!(ctx.scope, ctx.token, "welcome")
+      F.body(F.request(:post, "/v1/workflows/welcome/versions/1/promote", ctx.token), 202)
+      F.run_gates!(ctx.scope)
+
+      assert [%{"target_type" => "workflow", "target_id" => workflow_id} = row] =
+               audit(ctx.scope, "workflow.created")
+
+      assert "wfl_" <> _ = created["id"]
+      assert Relay.Api.Views.id("wfl", Ecto.UUID.dump!(workflow_id)) == created["id"]
+      assert row["actor_kind"] == "api_client"
+      assert is_binary(row["actor_ref"])
+
+      assert [%{"target_type" => "workflow_version", "target_id" => drafted_id}] =
+               audit(ctx.scope, "workflow.drafted")
+
+      assert Relay.Api.Views.id("wfv", Ecto.UUID.dump!(drafted_id)) == draft_id
+
+      assert [%{"target_type" => "workflow_version", "target_id" => ^drafted_id}] =
+               audit(ctx.scope, "workflow.publication_requested")
+
+      assert [%{"target_type" => "workflow_version"}] = audit(ctx.scope, "workflow.promoted")
+      assert length(audit(ctx.scope, "workflow.published")) == 2
+
+      for action <- ~w(workflow.drafted workflow.publication_requested workflow.promoted),
+          row <- audit(ctx.scope, action),
+          do: assert(row["actor_kind"] == "api_client")
+    end
+
+    test "API-82: an unchanged draft writes no audit record", ctx do
+      F.body(create(ctx.token, "welcome", F.definition()), 201)
+      [etag] = etag(ctx.token, "welcome")
+      body = %{"definition" => F.definition()}
+      same = F.request(:put, "/v1/workflows/welcome", ctx.token, body, [{"if-match", etag}])
+      F.body(same, 200)
+
+      assert audit(ctx.scope, "workflow.drafted") == []
     end
   end
 

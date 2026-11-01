@@ -3,12 +3,15 @@ defmodule Relay.Connectors.OutboxTest do
 
   alias Relay.Access.Clients
   alias Relay.Connectors.Connector
+  alias Relay.Connectors.Outbox
+  alias Relay.Connectors.OutboxStore
   alias Relay.Repo
   alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
 
   @database "relay_connector_source"
+  @contract Path.expand("../../../contracts/connectors/outbox.sql", __DIR__)
 
   defp admin(database) do
     config = Application.fetch_env!(:relay, Relay.Repo)
@@ -134,6 +137,101 @@ defmodule Relay.Connectors.OutboxTest do
       )
 
     %{scope: tenant.live, conn: conn, table: table, connector: connector}
+  end
+
+  describe "T-95 outbox table contract" do
+    test "T-95: the contract names the five columns and their types" do
+      assert OutboxStore.columns() == [
+               {"id", "bigint"},
+               {"payload", "jsonb"},
+               {"relay_claimed_until", "timestamp with time zone"},
+               {"relayed_at", "timestamp with time zone"},
+               {"relay_outcome", "text"}
+             ]
+    end
+
+    test "T-95: a table made from the contract file, with columns of its own, matches it",
+         ctx do
+      table = "outbox_" <> TenantFixture.random()
+
+      sql =
+        @contract
+        |> File.read!()
+        |> String.replace("CREATE TABLE relay_outbox (", "CREATE TABLE #{table} (")
+        |> String.replace("  id bigint PRIMARY KEY,", "  id bigint PRIMARY KEY,\n  note text,")
+
+      Postgrex.query!(ctx.conn, sql, [])
+
+      assert OutboxStore.check(ctx.conn, OutboxStore.quoted_table(table)) == :ok
+      assert OutboxStore.check(ctx.conn, OutboxStore.quoted_table(ctx.table)) == :ok
+    end
+
+    test "T-95: a missing table, a missing column or another type is reported", ctx do
+      table = "outbox_" <> TenantFixture.random()
+
+      Postgrex.query!(
+        ctx.conn,
+        """
+        CREATE TABLE #{table} (
+          id bigint PRIMARY KEY,
+          payload text NOT NULL,
+          relayed_at timestamptz,
+          relay_outcome text
+        )
+        """,
+        []
+      )
+
+      assert OutboxStore.check(ctx.conn, OutboxStore.quoted_table(table)) ==
+               {:mismatch,
+                [
+                  "column payload is text, the contract has jsonb",
+                  "column relay_claimed_until is missing"
+                ]}
+
+      missing = OutboxStore.quoted_table("outbox_" <> TenantFixture.random())
+      assert {:mismatch, [problem]} = OutboxStore.check(ctx.conn, missing)
+      assert problem =~ "does not exist"
+    end
+
+    test "T-95: the source never reads a table that does not match the contract", ctx do
+      table = "outbox_" <> TenantFixture.random()
+
+      Postgrex.query!(
+        ctx.conn,
+        """
+        CREATE TABLE #{table} (
+          id bigint PRIMARY KEY,
+          payload text NOT NULL,
+          relay_claimed_until timestamptz,
+          relayed_at timestamptz,
+          relay_outcome text
+        )
+        """,
+        []
+      )
+
+      Postgrex.query!(ctx.conn, "INSERT INTO #{table} (id, payload) VALUES (1, $1)", [
+        Jason.encode!(cloudevent("order-1", "com.shop.order.shipped"))
+      ])
+
+      producer = {Outbox, Keyword.put(elem(ctx.connector.producer, 1), :table, table)}
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          start_supervised!(Relay.Connectors.child_spec(%{ctx.connector | producer: producer}))
+          Process.sleep(500)
+        end)
+
+      assert log =~ "outbox table does not match"
+
+      assert %{rows: [[nil, nil]]} =
+               Postgrex.query!(
+                 ctx.conn,
+                 "SELECT relay_claimed_until, relay_outcome FROM #{table}",
+                 []
+               )
+    end
   end
 
   describe "T-41 L-42 INV-2 outbox source" do

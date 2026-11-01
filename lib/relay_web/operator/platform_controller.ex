@@ -87,13 +87,15 @@ defmodule RelayWeb.Operator.PlatformController do
         relax_approval: step_up_ref(conn)
       }
 
-      idempotent(conn, fn ->
-        with {:ok, record} <- platform_record(id),
-             do: record.id |> KillSwitch.replace(change, operator(conn)) |> answer(201)
-      end)
+      idempotent(conn, fn -> replace_record(conn, id, change) end)
     else
       {:error, error} -> problem(conn, error)
     end
+  end
+
+  defp replace_record(conn, id, change) do
+    with {:ok, record} <- platform_record(id),
+         do: record.id |> KillSwitch.replace(change, operator(conn)) |> answer(201)
   end
 
   defp relax_step_up(conn) do

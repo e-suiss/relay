@@ -42,6 +42,20 @@ defmodule Relay.Tenancy.Provisioning do
            )
   end
 
+  # API-82 (3)
+  # TN-27
+  # TN-63
+  @doc "Provisions the `data` key of one tenant environment when it has none, generated and wrapped under the region KEK inside the key store; the installation tenant's `live` environment gets the key that seals its stored operator responses this way."
+  @spec provision_data_key(Scope.t(), Actor.t()) :: :ok | {:error, Error.t()}
+  def provision_data_key(%Scope{} = scope, %Actor{} = actor) do
+    with {:ok, kek_label} <- Relay.Keys.kek_label() do
+      id = Relay.Id.generate()
+      {action, target_type} = Map.fetch!(@targets, :data)
+      entry = %{id: id, record_digest: record_digest(scope, action, target_type, id, actor)}
+      Relay.Tenancy.provision_data_key(scope, entry, kek_label, actor)
+    end
+  end
+
   # TN-65 (2)
   @doc "The key store label of a tenant environment's blind index key."
   @spec blind_index_label(Scope.t(), Relay.Id.t()) :: Relay.Keys.label()

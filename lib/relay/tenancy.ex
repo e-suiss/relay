@@ -107,6 +107,15 @@ defmodule Relay.Tenancy do
           :ok | {:error, Relay.Error.t()}
   defdelegate provision_tenant_keys(tenant_id, plan, actor), to: KeyProvisioning, as: :provision
 
+  # API-82 (3)
+  # TN-63
+  @doc "Provisions the `data` key of one tenant environment when it has none; see `Relay.Tenancy.KeyProvisioning.data_key/4`. `Relay.Tenancy.Provisioning.provision_data_key/2` builds the entry and is the way to call this."
+  @spec provision_data_key(Scope.t(), KeyProvisioning.entry(), Relay.Keys.label(), Actor.t()) ::
+          :ok | {:error, Relay.Error.t()}
+  defdelegate provision_data_key(scope, entry, kek_label, actor),
+    to: KeyProvisioning,
+    as: :data_key
+
   @doc "The environments and key purposes a key plan names an entry for."
   @spec key_plan_slots() :: [{Relay.Environment.t(), KeyProvisioning.purpose()}]
   defdelegate key_plan_slots(), to: KeyProvisioning, as: :slots

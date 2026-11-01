@@ -5,6 +5,7 @@ defmodule Relay.Access.TokenTest do
   alias Relay.Access.PlatformTenant
   alias Relay.Access.Token
   alias Relay.Access.Webhook
+  alias Relay.Operators.Access.Http
 
   @issuer "https://access.test"
   @audience "https://relay.test/v1"
@@ -51,6 +52,11 @@ defmodule Relay.Access.TokenTest do
     input <> "." <> b64(<<r::256, s::256>>)
   end
 
+  defp sign_ed25519(header, claims, private) do
+    input = input(header, claims)
+    input <> "." <> b64(:crypto.sign(:eddsa, :none, input, [private, :ed25519]))
+  end
+
   defp claims(extra \\ %{}) do
     now = System.system_time(:second)
     Map.merge(%{"iss" => @issuer, "aud" => @audience, "exp" => now + 300, "nbf" => now}, extra)
@@ -93,7 +99,45 @@ defmodule Relay.Access.TokenTest do
                  Token.verify(bad, keys, expectation())
       end
 
-      assert Jose.algorithms() == ["EdDSA", "ES256", "PS256"]
+      assert Jose.algorithms() == ["EdDSA", "Ed25519", "ES256", "PS256"]
+    end
+
+    test "E-79 (2): an Ed25519 key verifies EdDSA and Ed25519 tokens under either key alg" do
+      {ed, private} = ed25519()
+
+      for key_alg <- [nil, "EdDSA", "Ed25519"], token_alg <- ["EdDSA", "Ed25519"] do
+        jwk = if key_alg, do: Map.put(ed, "alg", key_alg), else: ed
+        token = sign_ed25519(%{"alg" => token_alg, "kid" => "ed"}, claims(), private)
+        assert {:ok, _claims} = Token.verify(token, keys([jwk]), expectation())
+      end
+
+      {es, _private} = es256()
+      ed_named_es = Map.put(ed, "alg", "ES256")
+      assert {:error, _error} = Jose.public_keys(%{"keys" => [ed_named_es]})
+
+      assert {:ok, [%{alg: "EdDSA"}, %{alg: "ES256"}], _public} =
+               Jose.public_keys(%{"keys" => [Map.put(ed, "alg", "Ed25519"), es]})
+
+      {_other, other_private} = ed25519()
+      forged = sign_ed25519(%{"alg" => "Ed25519", "kid" => "ed"}, claims(), other_private)
+
+      assert {:error, %Relay.Error{code: :auth_invalid_token}} =
+               Token.verify(forged, keys([ed]), expectation())
+    end
+
+    test "E-79 (2): the operator adapter verifies EdDSA and Ed25519 tokens of an Ed25519 key" do
+      {ed, private} = ed25519()
+      audience = "relay-operator"
+      discovery = %{"issuer" => @issuer, "jwks" => %{"keys" => [Map.put(ed, "alg", "Ed25519")]}}
+      operator_claims = claims(%{"aud" => audience, "sub" => "op-1"})
+
+      for alg <- ["EdDSA", "Ed25519"] do
+        token = sign_ed25519(%{"alg" => alg, "kid" => "ed"}, operator_claims, private)
+        assert {:ok, %{"sub" => "op-1"}} = Http.verify(token, discovery, audience)
+      end
+
+      bad = sign_ed25519(%{"alg" => "ES256", "kid" => "ed"}, operator_claims, private)
+      assert {:error, %Relay.Error{}} = Http.verify(bad, discovery, audience)
     end
 
     test "API-71: an RSA key below 2048 bits or a key set with private members is refused" do

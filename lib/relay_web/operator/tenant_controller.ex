@@ -89,6 +89,7 @@ defmodule RelayWeb.Operator.TenantController do
   # API-51
   # TN-22
   # TN-52
+  # TN-72
   @spec set_quota(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def set_quota(conn, _params) do
     body = conn.assigns.body
@@ -96,7 +97,7 @@ defmodule RelayWeb.Operator.TenantController do
 
     with {:ok, plan} <- Admin.quota_change(scope, body),
          :ok <- quota_role(conn, plan),
-         {:ok, conn} <- if(plan.relaxes?, do: step_up(conn), else: {:ok, conn}) do
+         {:ok, conn} <- if(plan.raises?, do: step_up(conn), else: {:ok, conn}) do
       idempotent(conn, fn -> write_quota(conn, scope, plan, body["reason"]) end)
     else
       {:error, %Relay.Error{} = error} -> problem(conn, error)
@@ -104,25 +105,35 @@ defmodule RelayWeb.Operator.TenantController do
   end
 
   defp write_quota(conn, scope, plan, reason) do
-    with {:ok, policy} <- Admin.set_quota_policy(scope, plan, reason, actor(conn)),
+    actor = actor(conn, installation: installation_role?(conn, plan))
+
+    with {:ok, policy} <- Admin.set_quota_policy(scope, plan, reason, actor),
          do: {:ok, {200, Json.quota_policy(policy)}}
   end
 
-  # TN-23
-  defp quota_role(_conn, %{limit_changed?: false}), do: :ok
+  # TN-48
+  # TN-72
+  defp installation_role?(conn, plan) do
+    %{operator_session: session, operator_scope: scope} = conn.assigns
+    installation = Operators.installation_tenant_id()
+    plan.raises? or not Authz.holds_any?(session.grants, [:tenant_admin], scope, installation)
+  end
 
-  defp quota_role(conn, _plan) do
-    grants = conn.assigns.operator_session.grants
+  # TN-22
+  # TN-72
+  defp quota_role(conn, plan) do
+    %{operation: operation, operator_session: session, operator_scope: scope} = conn.assigns
+    allowed = Map.fetch!(operation.role_by_change, if(plan.raises?, do: :raise, else: :lower))
 
-    if Authz.installation_operator?(grants, Operators.installation_tenant_id()) do
+    if Authz.holds_any?(session.grants, allowed, scope, Operators.installation_tenant_id()) do
       :ok
     else
       {:error,
        Relay.Error.new(
          :auth_insufficient_role,
-         "only the installation operator sets the limit",
+         "the operator lacks the role for this change",
          %{
-           required_role: "installation_operator",
+           required_role: Atom.to_string(hd(allowed)),
            granted_roles: granted_roles(conn)
          }
        )}

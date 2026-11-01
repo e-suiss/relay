@@ -308,6 +308,38 @@ defmodule Relay.Subscribers do
     end
   end
 
+  # X-5
+  @doc "Reads the personal field ciphertexts of a subscriber inside the caller's scoped transaction, for `open_personal/3`; `nil` when there is no such subscriber."
+  @spec personal_record(Relay.Id.t()) :: map() | nil
+  defdelegate personal_record(subscriber_id), to: Store, as: :personal
+
+  # X-5
+  @doc "Decrypts the named personal fields (`email`, `phone`, `name`, `attributes`) of a `personal_record/1`, so call it outside any transaction. A field Relay holds no value for, or one whose subject key was erased, is `nil`."
+  @spec open_personal(Scope.t(), map() | nil, [String.t()]) :: %{String.t() => term()}
+  def open_personal(%Scope{} = scope, record, fields) do
+    Map.new(fields, &{&1, personal(scope, record, &1)})
+  end
+
+  defp personal(_scope, nil, _field), do: nil
+
+  defp personal(scope, record, kind) when kind in ["email", "phone"],
+    do: decrypt(scope, record["id"], "recipient_addresses", "address_ct", record[kind <> "_ct"])
+
+  defp personal(scope, record, "name"),
+    do: decrypt(scope, record["id"], "recipients", "name_ct", record["name_ct"])
+
+  defp personal(scope, record, "attributes") do
+    case decrypt(scope, record["id"], "recipients", "attributes_ct", record["attributes_ct"]) do
+      nil -> nil
+      json -> attributes(Jason.decode(json))
+    end
+  end
+
+  defp personal(_scope, _record, _field), do: nil
+
+  defp attributes({:ok, %{} = attributes}), do: attributes
+  defp attributes(_other), do: nil
+
   # API-21
   @doc "The blind indexes of external identifiers, computed outside any transaction."
   @spec indexes(Scope.t(), [String.t()]) :: {:ok, [binary()]} | {:error, term()}

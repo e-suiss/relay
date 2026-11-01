@@ -19,7 +19,10 @@ defmodule Relay.Operators do
       Relay.Delivery,
       Relay.Platform,
       Relay.Platform.Leadership,
-      Relay.Policy.Lattice
+      Relay.Policy.Lattice,
+      Relay.Subscribers,
+      Relay.Tenancy,
+      Relay.Tenancy.Provisioning
     ],
     exports: [Access, Authz, Session, Admin, Suspension, SuspensionActivator, AccessUserHandler]
 
@@ -33,6 +36,11 @@ defmodule Relay.Operators do
   alias Relay.Scope
 
   @step_up_window_s Relay.Limits.fetch!(["operator_step_up_window_seconds"])
+  @key_actor %Actor{
+    kind: :system,
+    ref: "relay:installation_data_key",
+    on_behalf_of_ref: "relay:installation_data_key"
+  }
   @step_up_start "/v1/operator/session/step_up"
 
   @doc "The validity of a step-up, in seconds."
@@ -46,6 +54,31 @@ defmodule Relay.Operators do
   @doc "The installation scope: the installation tenant's `live` environment."
   @spec installation_scope() :: Scope.t()
   def installation_scope, do: Relay.Datasets.installation_scope()
+
+  # API-82 (3)
+  # TN-63
+  @doc "Makes sure the installation scope holds an active data key, under which installation-level operator writes seal the responses they store for replay; on first use the key is generated and wrapped under the region KEK inside the key store and registered with its audit record. Call it outside any transaction."
+  @spec installation_data_key() :: :ok | {:error, Relay.Error.t()}
+  def installation_data_key do
+    scope = installation_scope()
+
+    case Relay.Tenancy.active_tenant_key(scope, :data) do
+      {:ok, _key_id} -> :ok
+      {:error, %Relay.Error{code: :data_key_not_found}} -> provision_data_key(scope)
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  defp provision_data_key(scope) do
+    case Relay.Tenancy.Provisioning.provision_data_key(scope, @key_actor) do
+      :ok ->
+        :ok
+
+      {:error, error} ->
+        Logger.warning("the installation data key could not be provisioned", code: error.code)
+        {:error, Relay.Error.new(:service_unavailable, "the installation data key is not ready")}
+    end
+  end
 
   # E-26
   @doc "Fresh login parameters: `state`, `nonce` and the PKCE `verifier` with its S256 `challenge`."

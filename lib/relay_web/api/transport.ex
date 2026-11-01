@@ -1,6 +1,8 @@
 defmodule RelayWeb.Api.Transport do
   @moduledoc """
   The transport rules of the API (API-8): HTTPS only, with HSTS on every answer, and the client address. Behind a TLS terminating proxy the scheme and the client address come from `X-Forwarded-Proto` and `X-Forwarded-For`, but only when the connection's peer is one of the proxies listed in `config :relay, RelayWeb.Api, trusted_proxies: [cidr]`; there is no setting that admits plain HTTP.
+
+  The client certificate of an mTLS connection (RFC 8705) is the connection's own. Behind a proxy that terminates mTLS it comes from the RFC 9440 `Client-Cert` header (and `Client-Cert-Chain`), but only when the connection's peer is one of the proxies listed in `config :relay, RelayWeb.Api, client_cert_proxies: [cidr]` (E-79 (4)); the list is empty by default, and a header from any other peer, or one that is not a well-formed DER certificate, is ignored.
   """
 
   import Bitwise
@@ -43,6 +45,63 @@ defmodule RelayWeb.Api.Transport do
       conn.remote_ip
     end
   end
+
+  # API-41
+  # API-48
+  # E-79 (4)
+  @doc "The client certificate of the request as DER, or nil: the connection's own, else the RFC 9440 `Client-Cert` of a configured client certificate proxy."
+  @spec client_certificate(Plug.Conn.t(), [String.t()]) :: binary() | nil
+  def client_certificate(conn, proxies \\ client_cert_proxies()) do
+    case Plug.Conn.get_peer_data(conn) do
+      %{ssl_cert: der} when is_binary(der) -> der
+      _plain -> forwarded_certificate(conn, proxies)
+    end
+  end
+
+  defp forwarded_certificate(conn, proxies) do
+    with true <- trusted?(conn.remote_ip, proxies),
+         [value] <- Plug.Conn.get_req_header(conn, "client-cert"),
+         {:ok, der} <- byte_sequence(value),
+         true <- certificate?(der),
+         {:ok, _chain} <- chain(Plug.Conn.get_req_header(conn, "client-cert-chain")) do
+      der
+    else
+      _ignored -> nil
+    end
+  end
+
+  defp chain([]), do: {:ok, []}
+
+  defp chain(values) do
+    values
+    |> Enum.flat_map(&String.split(&1, ","))
+    |> Enum.reduce_while({:ok, []}, fn member, {:ok, acc} ->
+      with {:ok, der} <- byte_sequence(member),
+           true <- certificate?(der) do
+        {:cont, {:ok, [der | acc]}}
+      else
+        _malformed -> {:halt, :error}
+      end
+    end)
+  end
+
+  defp byte_sequence(value) do
+    case Regex.run(~r/\A[ \t]*:([A-Za-z0-9+\/]*={0,2}):[ \t]*\z/, value) do
+      [_, encoded] when encoded != "" -> Base.decode64(encoded)
+      _malformed -> :error
+    end
+  end
+
+  defp certificate?(der) do
+    match?({:Certificate, _, _, _}, :public_key.pkix_decode_cert(der, :plain))
+  rescue
+    _malformed -> false
+  end
+
+  @doc "The client certificate proxy ranges of the configuration; empty by default."
+  @spec client_cert_proxies() :: [String.t()]
+  def client_cert_proxies,
+    do: :relay |> Application.get_env(RelayWeb.Api, []) |> Keyword.get(:client_cert_proxies, [])
 
   @doc "The trusted proxy ranges of the configuration."
   @spec trusted_proxies() :: [String.t()]

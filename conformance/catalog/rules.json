@@ -2881,6 +2881,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "E-79",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
     "id": "X-1",
     "section": "§8",
     "status": "canonical_invariant",
@@ -7916,6 +7924,14 @@
     "id": "TN-71",
     "section": "§18",
     "status": "policy_default",
+    "title": "",
+    "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-72",
+    "section": "§18",
+    "status": "frozen_technical",
     "title": "",
     "verify_stage": 3
   },

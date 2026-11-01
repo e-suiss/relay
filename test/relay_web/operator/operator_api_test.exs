@@ -575,6 +575,44 @@ defmodule RelayWeb.Operator.OperatorApiTest do
              end)
     end
 
+    test "X-5: a reveal returns the stored value of each field that has one" do
+      tenant = TenantFixture.tenant!()
+      token = IngestFixture.token(tenant.live)
+
+      full = %{
+        "external_id" => "user-" <> random(),
+        "email" => "ayse@example.com",
+        "phone" => "+905321234567",
+        "name" => "Ayşe Yılmaz",
+        "attributes" => %{"plan" => "gold", "seats" => 3}
+      }
+
+      bare = %{"external_id" => "user-" <> random()}
+      subscriber = fn body -> IngestFixture.request(:post, "/v1/subscribers", token, body) end
+      %{"id" => full_id} = IngestFixture.body(subscriber.(full), 201)
+      %{"id" => bare_id} = IngestFixture.body(subscriber.(bare), 201)
+
+      admin =
+        sign_in("admin-" <> random())
+        |> then(&grant!(tenant.live, &1, :tenant_admin))
+        |> step_up()
+
+      fields = ~w(email phone name attributes)
+
+      reveal = fn id ->
+        path = "/v1/operator/subscribers/" <> id <> "/reveal"
+        body = %{"fields" => fields, "reason" => "support case"}
+        json(request(:post, path, body: body, as: admin, tenant: tenant.live), 200)
+      end
+
+      revealed = reveal.(full_id)
+      assert revealed["fields"] == Map.take(full, fields)
+      assert length(revealed["audit_ids"]) == 4
+
+      assert reveal.(bare_id)["fields"] == Map.new(fields, &{&1, nil})
+      assert length(audit(tenant.live, "pii.revealed")) == 8
+    end
+
     test "TN-48: the audit log names the operator's Access identity and its read is audited" do
       tenant = TenantFixture.tenant!()
 
@@ -724,6 +762,86 @@ defmodule RelayWeb.Operator.OperatorApiTest do
     end
   end
 
+  defp replayed(session, method, path, body, opts \\ []) do
+    opts = [body: body, as: session, key: "installation-" <> random()] ++ opts
+    first = request(method, path, opts)
+    again = request(method, path, opts)
+
+    assert first.status in 200..299, first.resp_body
+    assert get_resp_header(first, "idempotency-replayed") == []
+    assert get_resp_header(again, "idempotency-replayed") == ["true"]
+    assert again.status == first.status
+    assert again.resp_body == first.resp_body
+    Api.assert_contract(again)
+    Jason.decode!(first.resp_body)
+  end
+
+  defp installation_rows(action, session) do
+    rows = audit(Operators.installation_scope(), action)
+    Enum.filter(rows, &(Enum.at(&1, 2) == session.subject))
+  end
+
+  describe "API-82 installation-level write replay" do
+    setup do
+      TenantFixture.suspension_policy!()
+      %{operator: installation_operator("platform-" <> random()) |> step_up()}
+    end
+
+    test "API-82 (3): a platform kill switch write is stored and replayed",
+         %{operator: operator} do
+      body = %{"reason" => "provider outage", "ttl" => "PT1H", "channel" => "email"}
+      engaged = replayed(operator, :post, "/v1/operator/kill_switches", body)
+      assert engaged["scope_kind"] == "platform"
+      assert [_] = installation_rows("killswitch.engaged", operator)
+
+      release = "/v1/operator/kill_switches/#{engaged["id"]}/release"
+      assert replayed(operator, :post, release, %{"reason" => "fixed"})["status"] == "released"
+      assert [_] = installation_rows("killswitch.released", operator)
+    end
+
+    test "API-82 (3): a tenant suspension and resume are stored and replayed",
+         %{operator: operator} do
+      tenant = TenantFixture.tenant!()
+      path = "/v1/operator/tenants/" <> Relay.ExternalId.encode("ten", tenant.id)
+
+      suspend = %{"ground" => "abuse", "reason" => "spam"}
+      assert replayed(operator, :post, path <> "/suspend", suspend)["state"] == "effective"
+      assert [_] = audit(tenant.live, "tenant.suspended")
+
+      assert replayed(operator, :post, path <> "/resume", %{"reason" => "appeal"})["state"] ==
+               "lifted"
+
+      assert [_] = audit(tenant.live, "tenant.resumed")
+    end
+
+    test "API-82 (3): revoking an installation operator role is stored and replayed",
+         %{operator: operator} do
+      member = sign_in("member-" <> random())
+      attrs = %{operator_id: member.operator_id, role: :installation_operator, reason: "on call"}
+
+      {:ok, %{"id" => id}} =
+        Admin.assign_role(Operators.installation_scope(), attrs, TenantFixture.actor(), nil)
+
+      path = "/v1/operator/role_assignments/" <> Relay.ExternalId.encode("rla", id) <> "/revoke"
+      opts = [tenant: Operators.installation_scope()]
+      revoked = replayed(operator, :post, path, %{"reason" => "rotation"}, opts)
+      assert revoked["role"] == "installation_operator"
+      assert revoked["tenant_id"] == nil
+      assert [_] = installation_rows("role_assignment.revoked", operator)
+    end
+
+    test "API-82 (3): the installation scope holds an active data key after the first write",
+         %{operator: operator} do
+      body = %{"reason" => "provider outage", "ttl" => "PT1H", "channel" => "sms"}
+      replayed(operator, :post, "/v1/operator/kill_switches", body)
+
+      assert {:ok, <<_::128>>} =
+               Relay.Tenancy.active_tenant_key(Operators.installation_scope(), :data)
+
+      assert :ok = Operators.installation_data_key()
+    end
+  end
+
   describe "API-52 API version pin" do
     test "API-52: a tenant administrator reads and moves the pin" do
       tenant = TenantFixture.tenant!()
@@ -756,12 +874,13 @@ defmodule RelayWeb.Operator.OperatorApiTest do
     do: request(:put, "/v1/operator/quotas", body: body, as: session, tenant: scope)
 
   describe "API-51 TN-52 TN-22 quota policies" do
-    test "API-51, TN-22: the installation operator sets the limit; a tenant administrator only tightens at once" do
+    test "API-51, TN-72: the installation operator sets the limit; a tenant administrator only tightens at once" do
       tenant = TenantFixture.tenant!()
 
       operator =
         installation_operator("platform-" <> TenantFixture.random())
         |> then(&grant!(tenant.live, &1, :tenant_admin))
+        |> step_up()
 
       admin =
         sign_in("admin-" <> TenantFixture.random())
@@ -788,17 +907,19 @@ defmodule RelayWeb.Operator.OperatorApiTest do
       assert lowered["limit"] == 1_000
 
       relax = %{"period" => "day", "class_caps" => %{"marketing" => 6_000}, "reason" => "x"}
-      assert json(quota(admin, tenant.live, relax), 401)["code"] == "auth_step_up_required"
+      assert json(quota(admin, tenant.live, relax), 403)["code"] == "auth_insufficient_role"
 
       step_up(admin)
-      assert json(quota(admin, tenant.live, relax), 200)["class_caps"] == %{"marketing" => 6_000}
+      assert json(quota(admin, tenant.live, relax), 403)["code"] == "auth_insufficient_role"
+      relaxed = json(quota(operator, tenant.live, relax), 200)
+      assert relaxed["class_caps"] == %{"marketing" => 6_000}
 
       listed = json(request(:get, "/v1/operator/quotas", as: admin, tenant: tenant.live), 200)
       assert [%{"period" => "day", "used" => 0, "limit" => 1_000}] = listed["data"]
       assert length(audit(tenant.live, "quota_policy.changed")) == 3
     end
 
-    test "TN-22: removing or raising a policy needs step-up; a new policy needs a limit" do
+    test "TN-72: creating, removing or raising a policy needs step-up; a new policy needs a limit" do
       tenant = TenantFixture.tenant!()
 
       operator =
@@ -809,12 +930,12 @@ defmodule RelayWeb.Operator.OperatorApiTest do
       assert missing["code"] == "validation_failed"
 
       body = %{"period" => "month", "limit" => 500, "reason" => "plan"}
+      assert json(quota(operator, tenant.live, body), 401)["code"] == "auth_step_up_required"
+
+      step_up(operator)
       json(quota(operator, tenant.live, body), 200)
 
       removal = %{"period" => "month", "limit" => nil, "reason" => "drop"}
-      assert json(quota(operator, tenant.live, removal), 401)["code"] == "auth_step_up_required"
-
-      step_up(operator)
       json(quota(operator, tenant.live, removal), 200)
 
       listed = json(request(:get, "/v1/operator/quotas", as: operator, tenant: tenant.live), 200)
@@ -827,6 +948,7 @@ defmodule RelayWeb.Operator.OperatorApiTest do
       operator =
         installation_operator("platform-" <> TenantFixture.random())
         |> then(&grant!(tenant.live, &1, :tenant_admin))
+        |> step_up()
 
       body = %{"period" => "day", "limit" => 1, "reason" => "tiny"}
       json(quota(operator, tenant.live, body), 200)
@@ -844,6 +966,84 @@ defmodule RelayWeb.Operator.OperatorApiTest do
 
       assert event.().status == 202
       assert json(event.(), 429)["code"] == "quota_exhausted"
+    end
+  end
+
+  defp cell(ctx, who, body), do: quota(Map.fetch!(ctx, who), ctx.tenant.live, body)
+
+  defp raising(ctx, body) do
+    for who <- [:admin, :admin_up, :stranger, :member] do
+      assert json(cell(ctx, who, body), 403)["code"] == "auth_insufficient_role", "#{who}"
+    end
+
+    assert json(cell(ctx, :operator, body), 401)["code"] == "auth_step_up_required"
+    json(cell(ctx, :operator_up, body), 200)
+  end
+
+  defp lowering(ctx, body, who) do
+    for outsider <- [:stranger, :member] do
+      assert json(cell(ctx, outsider, body), 403)["code"] == "auth_insufficient_role"
+    end
+
+    json(cell(ctx, who, body), 200)
+  end
+
+  describe "TN-72 quota policy roles" do
+    setup do
+      tenant = TenantFixture.tenant!()
+      other = TenantFixture.tenant!()
+      admin = sign_in("admin-" <> random()) |> then(&grant!(tenant.live, &1, :tenant_admin))
+
+      %{
+        tenant: tenant,
+        admin: admin,
+        admin_up: sign_in("admin-" <> random()) |> then(&grant!(tenant.live, &1, :tenant_admin)),
+        operator: installation_operator("platform-" <> random()),
+        operator_up: installation_operator("platform-" <> random()),
+        stranger: sign_in("admin-" <> random()) |> then(&grant!(other.live, &1, :tenant_admin)),
+        member: sign_in("op-" <> random()) |> then(&grant!(tenant.live, &1, :tenant_operator))
+      }
+    end
+
+    test "TN-72: lowering is the tenant admin's or the installation operator's at once; raising, removing and creating need the installation operator with step-up",
+         ctx do
+      step_up(ctx.admin_up)
+      step_up(ctx.operator_up)
+      day = fn fields -> Map.merge(%{"period" => "day", "reason" => "plan"}, fields) end
+
+      first = day.(%{"limit" => 1_000, "class_caps" => %{"marketing" => 5_000}})
+      raising(ctx, first)
+
+      assert %{"limit" => 900} = lowering(ctx, day.(%{"limit" => 900}), :admin)
+      assert %{"limit" => 800} = lowering(ctx, day.(%{"limit" => 800}), :operator)
+
+      assert %{"security_reserve_bp" => 800} =
+               lowering(ctx, day.(%{"security_reserve_bp" => 800}), :admin)
+
+      assert %{"security_reserve_bp" => 600} =
+               lowering(ctx, day.(%{"security_reserve_bp" => 600}), :operator)
+
+      caps = %{"marketing" => 4_000}
+      assert %{"class_caps" => ^caps} = lowering(ctx, day.(%{"class_caps" => caps}), :admin)
+      caps = %{"marketing" => 3_000, "social" => 9_000}
+      assert %{"class_caps" => ^caps} = lowering(ctx, day.(%{"class_caps" => caps}), :operator)
+
+      assert %{"limit" => 2_000} = raising(ctx, day.(%{"limit" => 2_000}))
+      assert %{"security_reserve_bp" => 900} = raising(ctx, day.(%{"security_reserve_bp" => 900}))
+      caps = %{"marketing" => 6_000, "social" => 9_000}
+      assert %{"class_caps" => ^caps} = raising(ctx, day.(%{"class_caps" => caps}))
+
+      assert %{"class_caps" => %{"social" => 9_000}} =
+               raising(ctx, day.(%{"class_caps" => %{"social" => 9_000}}))
+
+      raising(ctx, day.(%{"limit" => nil}))
+
+      listed =
+        json(request(:get, "/v1/operator/quotas", as: ctx.admin, tenant: ctx.tenant.live), 200)
+
+      assert listed["data"] == []
+
+      assert length(operator_audit(ctx.tenant.live, "quota_policy.changed")) == 12
     end
   end
 end

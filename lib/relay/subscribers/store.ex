@@ -115,6 +115,26 @@ defmodule Relay.Subscribers.Store do
      ]), row["recipient_id"], row["version"]}
   end
 
+  # X-5
+  @doc "Reads the personal field ciphertexts of a subscriber: its name, its attributes and its active email and phone addresses; `nil` when there is no such subscriber."
+  @spec personal(Relay.Id.t()) :: map() | nil
+  def personal(id) do
+    one(
+      """
+      SELECT r.id, r.name_ct, r.attributes_ct,
+        (SELECT a.address_ct FROM relay.recipient_addresses a
+          WHERE a.tenant_id = r.tenant_id AND a.environment = r.environment
+            AND a.recipient_id = r.id AND a.kind = 'email' AND a.state = 'active') AS email_ct,
+        (SELECT a.address_ct FROM relay.recipient_addresses a
+          WHERE a.tenant_id = r.tenant_id AND a.environment = r.environment
+            AND a.recipient_id = r.id AND a.kind = 'phone' AND a.state = 'active') AS phone_ct
+      FROM relay.recipients r
+      WHERE r.id = $1 AND r.kind = 'subscriber'
+      """,
+      [id]
+    )
+  end
+
   @doc "Reads a recipient with its address states, or `nil`."
   @spec row(Relay.Id.t()) :: map() | nil
   def row(id), do: one(@row <> " WHERE r.id = $1", [id])

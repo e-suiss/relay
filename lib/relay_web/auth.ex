@@ -7,7 +7,7 @@ defmodule RelayWeb.Auth do
   * A missing scope is `403 auth_insufficient_scope` with `required_scope` and `granted_scopes`; the other environment's operation is `403 auth_environment_mismatch`.
   * `Relay-Tenant` and `Relay-Environment` belong to operator sessions; with an API client credential they are `422 validation_failed`.
 
-  The verifier (`RelayWeb.Auth.Access` in production) receives the operation, the client address and the connection's client certificate. An operation authenticated with the shared Suiss webhook profile (`:webhook`) needs its `webhook-id`, `webhook-timestamp` and `webhook-signature` headers here; its controller verifies the signature over the raw body.
+  The verifier (`RelayWeb.Auth.Access` in production) receives the operation, the client address and the request's client certificate (`RelayWeb.Api.Transport.client_certificate/2`: the connection's own, or the RFC 9440 `Client-Cert` of a configured proxy). An operation authenticated with the shared Suiss webhook profile (`:webhook`) needs its `webhook-id`, `webhook-timestamp` and `webhook-signature` headers here; its controller verifies the signature over the raw body.
   """
 
   @behaviour Plug
@@ -91,19 +91,12 @@ defmodule RelayWeb.Auth do
 
   defp verify(conn, token, operation) do
     ip = Transport.client_ip(conn)
-    context = %{operation: operation, ip: ip, certificate: certificate(conn)}
+    context = %{operation: operation, ip: ip, certificate: Transport.client_certificate(conn)}
 
     case verifier().verify(token, context) do
       {:ok, %Principal{} = principal} -> {:ok, principal}
       {:error, %Relay.Error{code: code} = error} when code in @counted -> throttled(conn, error)
       {:error, %Relay.Error{} = error} -> {:error, error}
-    end
-  end
-
-  defp certificate(conn) do
-    case get_peer_data(conn) do
-      %{ssl_cert: der} when is_binary(der) -> der
-      _plain -> nil
     end
   end
 

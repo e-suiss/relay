@@ -1,9 +1,10 @@
 defmodule Relay.Access.Jose do
   @moduledoc """
-  JSON Web Key and compact JSON Web Signature primitives of the Access link. Only the allowed algorithms verify: EdDSA over Ed25519, ES256 over P-256 and PS256 over RSA keys of at least 2048 bits (S-68). An unsigned token, any other algorithm and a key whose `alg` or `use` does not fit are refused. A key set that carries private key members is refused as a whole, and the stored key set keeps only the public members.
+  JSON Web Key and compact JSON Web Signature primitives of the Access link. Only the allowed algorithms verify: Ed25519 keys under `EdDSA` or its fully specified name `Ed25519` (RFC 9864), ES256 over P-256 and PS256 over RSA keys of at least 2048 bits (S-68, E-79 (2)). A key's `alg`, when present, may name either Ed25519 form; a token of either form verifies under an Ed25519 key. An unsigned token, any other algorithm and a key whose `alg` or `use` does not fit are refused. A key set that carries private key members is refused as a whole, and the stored key set keeps only the public members.
   """
 
-  @algorithms ["EdDSA", "ES256", "PS256"]
+  @algorithms ["EdDSA", "Ed25519", "ES256", "PS256"]
+  @ed25519 ["EdDSA", "Ed25519"]
   @private ["d", "p", "q", "dp", "dq", "qi", "k", "oth"]
   @public ["kty", "kid", "use", "alg", "crv", "x", "y", "n", "e"]
   @pss [rsa_padding: :rsa_pkcs1_pss_padding, rsa_pss_saltlen: 32]
@@ -18,6 +19,7 @@ defmodule Relay.Access.Jose do
   @type failure :: :malformed | :algorithm | :unknown_key | :signature
 
   # API-71
+  # E-79 (2)
   @doc "The signature algorithms a token may use."
   @spec algorithms() :: [String.t(), ...]
   def algorithms, do: @algorithms
@@ -46,7 +48,7 @@ defmodule Relay.Access.Jose do
 
   defp key(%{"kty" => "OKP", "crv" => "Ed25519", "x" => x} = jwk) do
     case decode(x) do
-      {:ok, <<_::256>> = public} -> fit(jwk, "EdDSA", :ed25519, public)
+      {:ok, <<_::256>> = public} -> fit(jwk, @ed25519, :ed25519, public)
       _ -> []
     end
   end
@@ -54,7 +56,7 @@ defmodule Relay.Access.Jose do
   defp key(%{"kty" => "EC", "crv" => "P-256", "x" => x, "y" => y} = jwk) do
     case {decode(x), decode(y)} do
       {{:ok, <<_::256>> = px}, {:ok, <<_::256>> = py}} ->
-        fit(jwk, "ES256", :es256, <<4, px::binary, py::binary>>)
+        fit(jwk, ["ES256"], :es256, <<4, px::binary, py::binary>>)
 
       _ ->
         []
@@ -66,7 +68,7 @@ defmodule Relay.Access.Jose do
          {:ok, exponent} <- decode(e),
          true <- bit_size(modulus) >= 2048 do
       rsa = {:RSAPublicKey, :binary.decode_unsigned(modulus), :binary.decode_unsigned(exponent)}
-      fit(jwk, "PS256", :ps256, rsa)
+      fit(jwk, ["PS256"], :ps256, rsa)
     else
       _ -> []
     end
@@ -74,11 +76,11 @@ defmodule Relay.Access.Jose do
 
   defp key(_jwk), do: []
 
-  defp fit(jwk, alg, type, public) do
-    case Map.get(jwk, "alg", alg) do
-      ^alg -> [%{kid: kid(jwk), alg: alg, type: type, public: public}]
-      _other -> []
-    end
+  # E-79 (2)
+  defp fit(jwk, [alg | _] = accepted, type, public) do
+    if Map.get(jwk, "alg", alg) in accepted,
+      do: [%{kid: kid(jwk), alg: alg, type: type, public: public}],
+      else: []
   end
 
   defp kid(%{"kid" => kid}) when is_binary(kid), do: kid
@@ -133,12 +135,19 @@ defmodule Relay.Access.Jose do
 
   defp candidates(keys, header, alg) do
     kid = Map.get(header, "kid")
+    alg = family(alg)
 
     case Enum.filter(keys, &(&1.alg == alg and (is_nil(kid) or &1.kid == kid))) do
       [] -> {:error, :unknown_key}
       found -> {:ok, found}
     end
   end
+
+  # E-79 (2)
+  @doc "The algorithm a key of the set is stored under: `EdDSA` for both Ed25519 forms, else the algorithm itself."
+  @spec family(String.t()) :: String.t()
+  def family(alg) when alg in @ed25519, do: "EdDSA"
+  def family(alg), do: alg
 
   # API-71
   @doc "Whether `signature` is a valid signature of `input` under `key`; malformed input is not valid."

@@ -20,9 +20,10 @@ defmodule RelayWeb.Operator.Helpers do
   # API-10
   # API-13
   # API-14
+  # API-82 (3)
   # sobelow_skip ["XSS.SendResp"]
   @doc """
-  Runs a write that carries its validated `Idempotency-Key` and answers its result; see `Relay.Api.Idempotency.run_spanning/5`. `work` returns `{:ok, {status, body}}`, `{:partial, error}` for a failure after part of the write took effect, or `{:error, error}` for a failure without side effects. The response is stored in the request's idempotency scope once the write completed, and the same key and body later replay it with `Idempotency-Replayed: true`.
+  Runs a write that carries its validated `Idempotency-Key` and answers its result; see `Relay.Api.Idempotency.run_spanning/5`. `work` returns `{:ok, {status, body}}`, `{:partial, error}` for a failure after part of the write took effect, or `{:error, error}` for a failure without side effects. The response is stored in the request's idempotency scope once the write completed, and the same key and body later replay it with `Idempotency-Replayed: true`. An installation-level write (platform kill switch, tenant suspension, a role without a tenant) is stored in the installation scope, sealed under the installation tenant's data key (`Relay.Operators.installation_data_key/0`); a write that finds no such key and cannot provision it is not run.
   """
   @spec idempotent(
           Plug.Conn.t(),
@@ -39,17 +40,22 @@ defmodule RelayWeb.Operator.Helpers do
       end
     end
 
-    case Idempotency.run_spanning(scope, operation.endpoint, key, raw || "", run) do
-      {:ok, {kind, {status, headers, body}}} ->
-        replayed = if kind == :replayed, do: [{"idempotency-replayed", "true"}], else: []
+    with :ok <- sealable(scope),
+         {:ok, {kind, {status, headers, body}}} <-
+           Idempotency.run_spanning(scope, operation.endpoint, key, raw || "", run) do
+      replayed = if kind == :replayed, do: [{"idempotency-replayed", "true"}], else: []
 
-        conn
-        |> Plug.Conn.merge_resp_headers([{"idempotency-key", key} | headers] ++ replayed)
-        |> Plug.Conn.send_resp(status, body)
-
-      {:error, %Relay.Error{} = error} ->
-        Response.problem(conn, error)
+      conn
+      |> Plug.Conn.merge_resp_headers([{"idempotency-key", key} | headers] ++ replayed)
+      |> Plug.Conn.send_resp(status, body)
+    else
+      {:error, %Relay.Error{} = error} -> Response.problem(conn, error)
     end
+  end
+
+  # API-82 (3)
+  defp sealable(scope) do
+    if scope == Operators.installation_scope(), do: Operators.installation_data_key(), else: :ok
   end
 
   # API-56

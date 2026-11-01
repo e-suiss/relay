@@ -9,6 +9,7 @@ defmodule Relay.Access.SubscriberToken do
   alias Relay.Access.Jose
   alias Relay.Access.Link
   alias Relay.Access.Token
+  alias Relay.AccessClaims
   alias Relay.Scope
 
   @token_type "urn:suiss:relay:token-type:subscriber"
@@ -99,22 +100,29 @@ defmodule Relay.Access.SubscriberToken do
     do: {:error, field("/subject_token", "required", "an Access token is required")}
 
   # API-79 (4)
-  defp registration(%{"tenant_id" => tenant, "client_id" => client})
-       when is_binary(tenant) and is_binary(client) do
-    case Clients.resolve(tenant, client) do
-      {:ok, %{status: "active", tenant_status: "active"} = resolved} ->
-        Scope.new(resolved.tenant_id, resolved.environment)
+  # E-79 (1)
+  # E-79 (3)
+  defp registration(claims) do
+    case {AccessClaims.tenant(claims), AccessClaims.client(claims)} do
+      {tenant, client} when is_binary(tenant) and is_binary(client) ->
+        tenant |> Clients.resolve(client) |> registered(claims)
 
-      {:ok, %{status: "active"}} ->
-        {:error, Relay.Error.new(:auth_tenant_suspended, "the tenant is suspended")}
-
-      _revoked_or_unknown ->
-        {:error, Relay.Error.new(:auth_invalid_token, "the Access client is not registered")}
+      _missing ->
+        {:error, Relay.Error.new(:auth_invalid_token, "the token names no Access client")}
     end
   end
 
-  defp registration(_claims),
-    do: {:error, Relay.Error.new(:auth_invalid_token, "the token names no Access client")}
+  defp registered({:ok, %{status: "active", tenant_status: "active"} = resolved}, claims) do
+    if AccessClaims.environment?(claims, resolved.environment),
+      do: Scope.new(resolved.tenant_id, resolved.environment),
+      else: {:error, Relay.Error.new(:auth_invalid_token, "the token names another environment")}
+  end
+
+  defp registered({:ok, %{status: "active"}}, _claims),
+    do: {:error, Relay.Error.new(:auth_tenant_suspended, "the tenant is suspended")}
+
+  defp registered(_revoked_or_unknown, _claims),
+    do: {:error, Relay.Error.new(:auth_invalid_token, "the Access client is not registered")}
 
   # E-24
   # API-21

@@ -4,7 +4,7 @@ defmodule Relay.Operators.Access.Http do
 
   `issuer` defaults to the issuer of the Access link (`config :relay, Relay.Access, issuer: ...`). `discovery` is a `{module, function, args}` callback returning `{:ok, map}` with the string keys of an OpenID Provider metadata document: `"issuer"`, `"authorization_endpoint"`, `"token_endpoint"`, `"jwks"` (the JSON Web Key Set itself, `%{"keys" => [...]}`) and, when Access offers AuthZEN, `"access_evaluation_endpoint"`. The Access link's discovery cache plugs in here; without one the adapter reads `<issuer>/.well-known/openid-configuration` and its `jwks_uri` on every call (`discover/0`, with `issuer` configured). Any failure to reach Access is `auth_step_up_unavailable`.
 
-  Tokens are JWS compact serialisations signed with `EdDSA`, `ES256` or `PS256`; any other algorithm, an unsigned token, a wrong `iss` or `aud`, an expired token or a token not yet valid (60 seconds of clock skew) is refused.
+  Tokens are JWS compact serialisations signed with `EdDSA` or `Ed25519` (RFC 9864) over an Ed25519 key, `ES256` or `PS256` (E-79 (2)); any other algorithm, an unsigned token, a wrong `iss` or `aud`, an expired token or a token not yet valid (60 seconds of clock skew) is refused.
   """
 
   @behaviour Relay.Operators.Access
@@ -13,7 +13,8 @@ defmodule Relay.Operators.Access.Http do
 
   @timeout_ms 5_000
   @skew_s 60
-  @algorithms ["EdDSA", "ES256", "PS256"]
+  @algorithms ["EdDSA", "Ed25519", "ES256", "PS256"]
+  @ed25519 ["EdDSA", "Ed25519"]
 
   @impl Access
   def authorization_url(params) do
@@ -198,12 +199,15 @@ defmodule Relay.Operators.Access.Http do
 
   defp key(_jwks, _header), do: :error
 
-  defp usable?(%{"kty" => "OKP", "crv" => "Ed25519"}, "EdDSA"), do: true
+  # E-79 (2)
+  defp usable?(%{"kty" => "OKP", "crv" => "Ed25519"} = key, alg) when alg in @ed25519,
+    do: Map.get(key, "alg", alg) in @ed25519
+
   defp usable?(%{"kty" => "EC", "crv" => "P-256"}, "ES256"), do: true
   defp usable?(%{"kty" => "RSA"}, "PS256"), do: true
   defp usable?(_key, _alg), do: false
 
-  defp signed?("EdDSA", input, signature, %{"x" => x}) do
+  defp signed?(alg, input, signature, %{"x" => x}) when alg in @ed25519 do
     with {:ok, public} <- Base.url_decode64(x, padding: false),
          do: :crypto.verify(:eddsa, :none, input, signature, [public, :ed25519])
   end

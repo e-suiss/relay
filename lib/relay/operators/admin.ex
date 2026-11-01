@@ -202,22 +202,26 @@ defmodule Relay.Operators.Admin do
   # TN-21
   # TN-47
   @doc """
-  Reveals personal fields of a subscriber of `scope`: one `pii.revealed` audit record per field is written before any value is read, in the same transaction. Fields Relay holds no value for come back `nil`.
+  Reveals personal fields of a subscriber of `scope`: one `pii.revealed` audit record per field is written before any value is read, in the same transaction, which reads the stored ciphertexts; the values are decrypted after it commits, outside any transaction. A field Relay holds no value for comes back `nil`.
   """
   @spec reveal(Scope.t(), Relay.Id.t(), [String.t()], String.t(), Actor.t()) ::
           {:ok, %{fields: map(), audit_ids: [Relay.Id.t()]}} | {:error, Relay.Error.t()}
   def reveal(%Scope{} = scope, subscriber_id, fields, reason, %Actor{} = actor) do
     target = Relay.Id.to_string(subscriber_id)
 
-    Store.in_scope(scope, fn _status ->
-      if Store.subscriber?(subscriber_id) do
-        ids = Enum.map(fields, &reveal_audit(scope, target, &1, reason, actor))
-        {:ok, %{fields: Map.new(fields, &{&1, nil}), audit_ids: ids}}
-      else
-        {:error, Relay.Error.new(:subscriber_not_found, "no such subscriber")}
-      end
-    end)
-    |> unwrap()
+    read =
+      Store.in_scope(scope, fn _status ->
+        if Store.subscriber?(subscriber_id) do
+          ids = Enum.map(fields, &reveal_audit(scope, target, &1, reason, actor))
+          {:ok, {Relay.Subscribers.personal_record(subscriber_id), ids}}
+        else
+          {:error, Relay.Error.new(:subscriber_not_found, "no such subscriber")}
+        end
+      end)
+
+    with {:ok, {record, ids}} <- unwrap(read) do
+      {:ok, %{fields: Relay.Subscribers.open_personal(scope, record, fields), audit_ids: ids}}
+    end
   end
 
   defp reveal_audit(scope, target, field, reason, actor) do
@@ -315,8 +319,9 @@ defmodule Relay.Operators.Admin do
   # API-51
   # TN-22
   # TN-52
+  # TN-72
   @doc """
-  Plans a quota policy change of `scope` from a `QuotaPolicyWrite` body without writing it. A field the body leaves out keeps its current value; `limit: null` removes the policy. Returns the attributes to write with `limit_changed?` (the limit field changes, which only the installation operator may do) and `relaxes?` (the change relaxes the policy and needs step-up, `Relay.Operators.Authz.quota_relaxes?/2`).
+  Plans a quota policy change of `scope` from a `QuotaPolicyWrite` body without writing it. A field the body leaves out keeps its current value; `limit: null` removes the policy. Returns the attributes to write with `raises?`: the change creates the first policy of the period, removes it or raises a value, which needs the installation operator with step-up (`Relay.Operators.Authz.quota_raises?/2`); any other change lowers and is open to the tenant admin at once.
   """
   @spec quota_change(Scope.t(), map()) :: {:ok, map()} | {:error, term()}
   def quota_change(%Scope{} = scope, body) do
@@ -334,11 +339,7 @@ defmodule Relay.Operators.Admin do
 
       cond do
         not is_nil(current.limit_total) or not is_nil(new.limit_total) ->
-          {:ok,
-           Map.merge(new, %{
-             limit_changed?: new.limit_total != current.limit_total,
-             relaxes?: Authz.quota_relaxes?(current, new)
-           })}
+          {:ok, Map.put(new, :raises?, Authz.quota_raises?(current, new))}
 
         Map.has_key?(body, "limit") ->
           {:error, field("/limit", "not_found", "there is no policy to remove")}

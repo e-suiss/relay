@@ -222,7 +222,8 @@ defmodule RelayWeb.Operator.Pipeline do
       scope: scope,
       delegation_id: delegation(session, scope, installation),
       reads?: conn.method == "GET",
-      reveal?: operation.id == "revealSubscriberPii"
+      reveal?: operation.id == "revealSubscriberPii",
+      installation_allowed?: installation_allowed?(operation)
     }
 
     case Authz.authorize(session.grants, operation.role, context) do
@@ -242,6 +243,14 @@ defmodule RelayWeb.Operator.Pipeline do
            required_role: Atom.to_string(required),
            granted_roles: Enum.map(granted, &Atom.to_string/1)
          })}
+    end
+  end
+
+  # TN-72
+  defp installation_allowed?(operation) do
+    case Map.get(operation, :role_by_change) do
+      %{lower: lowering, raise: raising} -> :installation_operator in (lowering ++ raising)
+      nil -> false
     end
   end
 

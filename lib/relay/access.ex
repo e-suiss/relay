@@ -28,6 +28,7 @@ defmodule Relay.Access do
   alias Relay.Access.SubscriberToken
   alias Relay.Access.Token
   alias Relay.Access.Usage
+  alias Relay.AccessClaims
   alias Relay.Scope
 
   @scopes ~w(publish read subscribers config kill_switch)
@@ -84,7 +85,7 @@ defmodule Relay.Access do
   @doc """
   Verifies an Access client credentials token for the server API. Options: `:audience` (required, the Relay server API), `:ip` (the client address, for last use) and `:certificate` (the DER client certificate of the connection, for RFC 8705 binding).
 
-  The token names its Access tenant (`tenant_id`) and client (`client_id`); tenant, environment and sub-tenant come from the API client trace, never from the request. The granted scopes are the trace's API-75 scopes that the token also carries. A revoked or suspended client is `auth_revoked_client`, a suspended tenant or sub-tenant `auth_tenant_suspended`, a link without keys `service_unavailable`. A token bound to a certificate (`cnf.x5t#S256`) needs that certificate.
+  The token names its Access tenant, client and environment in the claims of `Relay.AccessClaims` (`tenant_id`, `client_id`, `suiss_environment`); tenant, environment and sub-tenant come from the API client trace, never from the request, and a token naming another environment than its client's is `auth_invalid_token`. A client whose trace is not known is `auth_invalid_token` as well (E-79 (3)). The granted scopes are the trace's API-75 scopes that the token also carries. A revoked or suspended client is `auth_revoked_client`, a suspended tenant or sub-tenant `auth_tenant_suspended`, a link without keys `service_unavailable`. A token bound to a certificate (`cnf.x5t#S256`) needs that certificate.
   """
   @spec verify_server_token(String.t(), keyword()) ::
           {:ok, principal()} | {:error, Relay.Error.t()}
@@ -93,6 +94,7 @@ defmodule Relay.Access do
 
     with {:ok, claims} <- verified(token, audience),
          {:ok, resolved} <- client(claims),
+         :ok <- same_environment(claims, resolved),
          :ok <- active(resolved),
          {:ok, bound} <- binding(claims, Keyword.get(opts, :certificate)),
          {:ok, scope} <- Scope.new(resolved.tenant_id, resolved.environment) do
@@ -120,8 +122,7 @@ defmodule Relay.Access do
           {:ok, principal()} | {:error, Relay.Error.t()}
   def connector_principal(access_tenant_id, access_client_id)
       when is_binary(access_tenant_id) and is_binary(access_client_id) do
-    with {:ok, resolved} <-
-           client(%{"tenant_id" => access_tenant_id, "client_id" => access_client_id}),
+    with {:ok, resolved} <- client(AccessClaims.build(access_tenant_id, access_client_id)),
          :ok <- active(resolved),
          {:ok, scope} <- Scope.new(resolved.tenant_id, resolved.environment) do
       {:ok,
@@ -161,15 +162,29 @@ defmodule Relay.Access do
     end
   end
 
-  defp client(%{"tenant_id" => tenant, "client_id" => client})
-       when is_binary(tenant) and is_binary(client) do
+  # E-79 (1)
+  # E-79 (3)
+  defp client(claims) do
+    case {AccessClaims.tenant(claims), AccessClaims.client(claims)} do
+      {tenant, client} when is_binary(tenant) and is_binary(client) -> resolve(tenant, client)
+      _missing -> invalid("the token names no Access tenant and client")
+    end
+  end
+
+  defp resolve(tenant, client) do
     case Clients.resolve(tenant, client) do
       {:ok, resolved} -> {:ok, resolved}
       :unknown -> invalid("the API client is not registered")
     end
   end
 
-  defp client(_claims), do: invalid("the token names no Access tenant and client")
+  # E-79 (1)
+  # API-42
+  defp same_environment(claims, %{environment: environment}) do
+    if AccessClaims.environment?(claims, environment),
+      do: :ok,
+      else: invalid("the token names another environment than its client's")
+  end
 
   # API-44
   # API-47

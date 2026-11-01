@@ -66,6 +66,20 @@ defmodule Relay.Tenancy.KeyProvisioning do
          do: provision_environments(@environments, tenant_id, plan, actor)
   end
 
+  # API-82 (3)
+  # TN-27
+  # TN-63
+  @doc "Provisions the `data` key of one tenant environment when it has no active one, wrapped under `kek_label` inside the key store and registered with `entry`; the installation tenant gets the key that seals its stored responses this way."
+  @spec data_key(Scope.t(), entry(), Relay.Keys.label(), Relay.Actor.t()) ::
+          :ok | {:error, Error.t()}
+  def data_key(%Scope{} = scope, %{id: <<_::128>>} = entry, kek, actor) when is_binary(kek) do
+    plan = %{kek_label: kek, keys: %{{scope.environment, :data} => entry}}
+
+    with {:ok, active} <- Relay.Tenancy.active_key_purposes(scope) do
+      if :data in active, do: :ok, else: tenant_keys(scope, [:data], plan, actor)
+    end
+  end
+
   # TN-65 (2)
   @doc "The key store label of a tenant environment's blind index key."
   @spec blind_index_label(Scope.t(), Relay.Id.t()) :: Relay.Keys.label()

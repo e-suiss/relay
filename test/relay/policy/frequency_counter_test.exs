@@ -158,6 +158,7 @@ defmodule Relay.Policy.FrequencyCounterTest do
       recipient: recipient
     } do
       short = %{@policy | window_ms: 300}
+
       read = fn ->
         FrequencyCounter.read(scope, recipient, Relay.Id.generate(), [short], real())
       end

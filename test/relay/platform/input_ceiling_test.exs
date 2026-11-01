@@ -63,8 +63,10 @@ defmodule Relay.Platform.InputCeilingTest do
       assert l2.details.limit_name == "admission.aimd.l2"
 
       assert Admission.decide(input(:marketing)) == :ok
+
       assert {:error, %Relay.Error{code: :rate_limited} = l3} =
                Admission.decide(input(:marketing))
+
       assert l3.details.retry_after in 9..10
       assert l3.details.limit_name == "admission.aimd.l3"
 

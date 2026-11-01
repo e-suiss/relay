@@ -19,6 +19,7 @@ defmodule Relay.SubscriberToken.SuspensionTest do
 
   defp exchange(ctx, sub) do
     token = FakeAccess.user_token(ctx.access_tenant, ctx.app, sub)
+
     form = %{
       "grant_type" => @grant,
       "subject_token" => token,

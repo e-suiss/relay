@@ -31,12 +31,20 @@ defmodule Relay.AccessClaims do
   # API-42
   @doc "Whether the claims name no environment or name `environment`; an unknown environment name never matches."
   @spec environment?(term(), Relay.Environment.t() | String.t()) :: boolean()
-  def environment?(claims, environment) do
-    case environment(claims) do
-      nil -> true
-      named -> same?(Relay.Environment.cast(named), Relay.Environment.cast(environment))
+  def environment?(%{} = claims, environment) do
+    case Map.fetch(claims, @environment) do
+      :error ->
+        true
+
+      {:ok, named} when is_binary(named) ->
+        same?(Relay.Environment.cast(named), Relay.Environment.cast(environment))
+
+      {:ok, _named} ->
+        false
     end
   end
+
+  def environment?(_claims, _environment), do: true
 
   defp same?({:ok, named}, {:ok, expected}), do: named == expected
   defp same?(_named, _expected), do: false

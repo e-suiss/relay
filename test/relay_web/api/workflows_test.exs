@@ -3,6 +3,7 @@ defmodule RelayWeb.Api.WorkflowsTest do
 
   import Plug.Conn
 
+  alias Relay.Api.Views
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
 
@@ -153,14 +154,14 @@ defmodule RelayWeb.Api.WorkflowsTest do
                audit(ctx.scope, "workflow.created")
 
       assert "wfl_" <> _ = created["id"]
-      assert Relay.Api.Views.id("wfl", Ecto.UUID.dump!(workflow_id)) == created["id"]
+      assert Views.id("wfl", Ecto.UUID.dump!(workflow_id)) == created["id"]
       assert row["actor_kind"] == "api_client"
       assert is_binary(row["actor_ref"])
 
       assert [%{"target_type" => "workflow_version", "target_id" => drafted_id}] =
                audit(ctx.scope, "workflow.drafted")
 
-      assert Relay.Api.Views.id("wfv", Ecto.UUID.dump!(drafted_id)) == draft_id
+      assert Views.id("wfv", Ecto.UUID.dump!(drafted_id)) == draft_id
 
       assert [%{"target_type" => "workflow_version", "target_id" => ^drafted_id}] =
                audit(ctx.scope, "workflow.publication_requested")

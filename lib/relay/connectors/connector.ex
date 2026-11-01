@@ -42,7 +42,7 @@ defmodule Relay.Connectors.Connector do
 
   @type source :: :outbox | :kafka | :sqs
   @type t :: %__MODULE__{
-          name: atom(),
+          name: atom() | String.t(),
           source: source() | :test,
           producer: {module(), keyword()},
           access_tenant_id: String.t(),
@@ -69,7 +69,7 @@ defmodule Relay.Connectors.Connector do
     unknown = Keyword.keys(config) -- [:connectors]
     if unknown != [], do: raise(Error, "unknown Relay.Connectors keys: #{inspect(unknown)}")
 
-    connectors = Enum.map(Keyword.get(config, :connectors, []), &parse!/1)
+    connectors = Enum.map(Keyword.get(config, :connectors, []), &read!/1)
     names = Enum.map(connectors, & &1.name)
 
     if Enum.uniq(names) != names,
@@ -78,10 +78,14 @@ defmodule Relay.Connectors.Connector do
     connectors
   end
 
+  defp read!(%__MODULE__{} = connector), do: connector
+  defp read!(entry), do: parse!(entry)
+
   # T-41
-  @doc "Reads one connector entry; raises `Relay.Config.Error` when it is invalid."
-  @spec parse!(term()) :: t()
-  def parse!(entry) do
+  # T-96
+  @doc "Reads one connector entry; raises `Relay.Config.Error` when it is invalid. The name is a lowercase atom; with `names: :string` (a connector read from `RELAY_CONNECTORS_FILE`) it is a lowercase string."
+  @spec parse!(term(), keyword()) :: t()
+  def parse!(entry, opts \\ []) do
     unless Keyword.keyword?(entry), do: raise(Error, "a connector is a keyword list")
 
     case Keyword.keys(entry) -- @keys do
@@ -89,7 +93,7 @@ defmodule Relay.Connectors.Connector do
       unknown -> raise Error, "unknown connector keys: #{inspect(unknown)}"
     end
 
-    name = name!(entry[:name])
+    name = name!(entry[:name], Keyword.get(opts, :names, :atom))
     source = entry[:source]
 
     %__MODULE__{
@@ -106,16 +110,22 @@ defmodule Relay.Connectors.Connector do
   @spec process_name(t()) :: module()
   def process_name(%__MODULE__{name: name}) do
     # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
-    Module.concat(Relay.Connectors.Pipeline, Atom.to_string(name))
+    Module.concat(Relay.Connectors.Pipeline, to_string(name))
   end
 
-  defp name!(name) when is_atom(name) and not is_nil(name) do
+  defp name!(name, :atom) when is_atom(name) and not is_nil(name) do
     if Regex.match?(@name, Atom.to_string(name)),
       do: name,
       else: raise(Error, "a connector name is a lowercase atom of at most 32 characters")
   end
 
-  defp name!(_name), do: raise(Error, "a connector needs a name")
+  defp name!(name, :string) when is_binary(name) do
+    if Regex.match?(@name, name),
+      do: name,
+      else: raise(Error, "a connector name is a lowercase string of at most 32 characters")
+  end
+
+  defp name!(_name, _format), do: raise(Error, "a connector needs a name")
 
   defp producer!(name, :outbox, options), do: {Outbox, Outbox.options!(name, options)}
 

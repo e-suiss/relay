@@ -4,6 +4,7 @@ defmodule Relay.SecretFilesTest do
   import ExUnit.CaptureLog
 
   alias Relay.Config.SecretFiles
+  alias Relay.Connectors.Connector
   alias Relay.Redacted
 
   @moduletag :tmp_dir
@@ -129,9 +130,10 @@ defmodule Relay.SecretFilesTest do
       File.write!(file, Jason.encode!(%{"connectors" => [connector]}))
       env = with_env(%{"RELAY_CONNECTORS_FILE" => file}, fn -> production_env(dir) end)
 
-      assert [entry] = env[Relay.Connectors][:connectors]
-      assert entry[:name] == :orders
-      assert entry[:options][:password_file] == password_file
+      assert [%Connector{name: "orders", producer: {_outbox, options}}] =
+               env[Relay.Connectors][:connectors]
+
+      assert options[:password_file] == password_file
       refute inspect(env, limit: :infinity, printable_limit: :infinity) =~ "plain-shop-marker"
       assert :ok = Relay.Config.validate!(env, %{}, production?: true)
 

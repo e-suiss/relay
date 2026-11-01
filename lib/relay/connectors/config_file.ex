@@ -1,6 +1,6 @@
 defmodule Relay.Connectors.ConfigFile do
   @moduledoc """
-  The ingest connectors of a production node, read from the JSON file that `RELAY_CONNECTORS_FILE` names (T-96). `config/runtime.exs` reads the file once at boot; the file is checked strictly with the connector rules of `Relay.Connectors.Connector`, and any error stops the node before it starts. Without the variable no connector runs.
+  The ingest connectors of a production node, read from the JSON file that `RELAY_CONNECTORS_FILE` names (T-96). `config/runtime.exs` reads the file once at boot into `Relay.Connectors.Connector` structs, whose names are strings; the file is checked strictly with the connector rules, and any error stops the node before it starts. Without the variable no connector runs.
 
       {
         "connectors": [
@@ -44,12 +44,11 @@ defmodule Relay.Connectors.ConfigFile do
                  &{Atom.to_string(&1), &1}
                )
   @ssl_keys %{"cacertfile" => :cacertfile, "server_name_indication" => :server_name_indication}
-  @name ~r/\A[a-z][a-z0-9_]{0,31}\z/
 
   # T-96
   # INV-46
-  @doc "The connector entries of the file at `path`; `nil` (the variable is not set) is no connector. Raises `Relay.Config.Error` when the file cannot be read, is not JSON or holds an invalid connector."
-  @spec read!(String.t() | nil) :: [keyword()]
+  @doc "The connectors of the file at `path`; `nil` (the variable is not set) is no connector. Raises `Relay.Config.Error` when the file cannot be read, is not JSON or holds an invalid connector."
+  @spec read!(String.t() | nil) :: [Connector.t()]
   def read!(nil), do: []
   def read!(""), do: raise(Error, "#{@variable} is empty; leave it unset for no connector")
 
@@ -63,8 +62,8 @@ defmodule Relay.Connectors.ConfigFile do
 
   # T-96
   # INV-46
-  @doc "The connector entries of a JSON document, checked with `Relay.Connectors.Connector.configured/1`; raises `Relay.Config.Error` on any error."
-  @spec parse!(String.t()) :: [keyword()]
+  @doc "The connectors of a JSON document, checked with `Relay.Connectors.Connector.parse!/2` and `Relay.Connectors.Connector.configured/1`; raises `Relay.Config.Error` on any error."
+  @spec parse!(String.t()) :: [Connector.t()]
   def parse!(content) when is_binary(content) do
     entries =
       case Jason.decode(content) do
@@ -78,8 +77,7 @@ defmodule Relay.Connectors.ConfigFile do
           fail!("the file is not valid JSON")
       end
 
-    Connector.configured(connectors: entries)
-    entries
+    Connector.configured(connectors: Enum.map(entries, &Connector.parse!(&1, names: :string)))
   end
 
   defp entry!(entry) when is_map(entry) do
@@ -95,22 +93,12 @@ defmodule Relay.Connectors.ConfigFile do
 
   defp entry_pair!({key, value}) do
     case Map.fetch(@entry_keys, key) do
-      {:ok, :name} -> {:name, name!(value)}
+      {:ok, :name} -> {:name, value}
       {:ok, :source} -> {:source, source!(value)}
       {:ok, atom} -> {atom, value}
       :error -> fail!("unknown connector key #{inspect(key)}")
     end
   end
-
-  defp name!(name) when is_binary(name) do
-    if not Regex.match?(@name, name),
-      do: fail!("a connector name is lowercase, at most 32 characters")
-
-    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
-    String.to_atom(name)
-  end
-
-  defp name!(_name), do: fail!("a connector name is a string")
 
   defp source!(source) do
     case Map.fetch(@sources, source) do

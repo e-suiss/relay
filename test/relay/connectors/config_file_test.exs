@@ -46,12 +46,11 @@ defmodule Relay.Connectors.ConfigFileTest do
       File.write!(path, document([entry(%{"concurrency" => 2, "options" => options})]))
 
       assert [read] = ConfigFile.read!(path)
-      assert read[:name] == :orders
-      assert read[:source] == :outbox
-      assert read[:concurrency] == 2
+      assert %Connector{name: "orders", source: :outbox, concurrency: 2} = read
+      assert Connector.configured(connectors: [read]) == [read]
+      assert Connector.process_name(read) == :"Elixir.Relay.Connectors.Pipeline.orders"
 
-      assert [%Connector{name: :orders, concurrency: 2, producer: {Outbox, producer}}] =
-               Connector.configured(connectors: [read])
+      {Outbox, producer} = read.producer
 
       assert producer[:port] == 6432
       assert producer[:poll_ms] == 500

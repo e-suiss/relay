@@ -56,7 +56,7 @@ defmodule Relay.Connectors.Intake do
          {:ok, prepared} <- CloudEvent.prepare(ctx, event),
          :ok <- admission(prepared),
          {:ok, key} <- key(event) do
-      endpoint = "CONNECTOR " <> Atom.to_string(connector.name)
+      endpoint = "CONNECTOR " <> to_string(connector.name)
       work = fn _status -> stored(Events.accept(prepared, ctx)) end
 
       case Idempotency.run(principal.scope, endpoint, key, raw, work) do

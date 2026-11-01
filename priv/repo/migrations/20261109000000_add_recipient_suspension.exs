@@ -7,7 +7,5 @@ defmodule Relay.Repo.Migrations.AddRecipientSuspension do
     execute("ALTER TABLE relay.recipients ADD COLUMN suspended_at timestamptz")
   end
 
-  def down do
-    execute("ALTER TABLE relay.recipients DROP COLUMN suspended_at")
-  end
+  def down, do: :ok
 end

@@ -83,6 +83,6 @@
   {"file": "20261106000200_order_key_tombstones_by_lock.exs", "sha256": "ecf4d03824654cb0cb65573c6f8464594ebc961719a4dc2632345f1a53839d83"},
   {"file": "20261106100000_create_lane_capacity_function.exs", "sha256": "0dc691d94bfe4853380b21367160653e2902cd8a5f6a02e4bb27f3f3c5be1b41"},
   {"file": "20261108000000_audit_workflow_lifecycle.exs", "sha256": "43a375893ccb6efc54903fec0987687a3c32735e56d0bcf1ee17c764de2bb51a"},
-  {"file": "20261109000000_add_recipient_suspension.exs", "sha256": "f2c6d62428caf00e234d086e3e1d91646a194703a63b2d6d551c37e90231df3b"},
+  {"file": "20261109000000_add_recipient_suspension.exs", "sha256": "04c4768d23fa0344fe8aa6106b525ac594697fbb7ce65d6ea5e188f4c4121da5"},
   {"file": "20261109000200_create_subscriber_suspension_functions.exs", "sha256": "f0c8dddcf6a2c684eb34f35638388ce7c0f1ff97bdba8143526ddbf5a9b5ad6f"}
 ]

@@ -164,7 +164,23 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.cancel_by_key" => ~w(cancelled),
     "relay_fn.quota_consume" => ~w(allowed reserve exhausted class_cap no_policy),
     "relay_fn.quota_policy_set" =>
-      ~w(created updated removed unchanged version_conflict invalid_caps)
+      ~w(created updated removed unchanged version_conflict invalid_caps),
+    "relay_fn.category_create" =>
+      ~w(created key_conflict lock_not_allowed default_forbidden invalid_settings tenant_inactive),
+    "relay_fn.category_update" =>
+      ~w(updated unchanged not_found archived version_conflict lock_not_allowed default_forbidden invalid_settings),
+    "relay_fn.category_archive" => ~w(archived already_archived not_found builtin),
+    "relay_fn.category_subtenant_put" =>
+      ~w(created updated unchanged not_found archived subtenant_not_found default_forbidden invalid_settings),
+    "relay_fn.preference_set" =>
+      ~w(set unchanged direction_forbidden last_channel category_not_found recipient_not_found),
+    "relay_fn.preference_profile_put" =>
+      ~w(created updated unchanged writer_forbidden invalid_profile digest_not_allowed recipient_not_found version_conflict),
+    "relay_fn.consent_record" =>
+      ~w(recorded duplicate stale evidence_required evidence_key_invalid recipient_not_found subtenant_not_found),
+    "relay_fn.suppression_add" => ~w(added exists invalid_expiry key_not_found),
+    "relay_fn.suppression_lift" =>
+      ~w(lifted already_lifted not_found lift_forbidden step_up_required)
   }
 
   defp functions do

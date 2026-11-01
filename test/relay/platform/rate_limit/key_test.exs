@@ -65,7 +65,7 @@ defmodule Relay.Platform.RateLimit.KeyTest do
     test "T-20 (1): a Valkey denial is a decision with a retry and a rule, not an error" do
       expect(ValkeyMock, :command, fn ["EVALSHA" | _] -> {:ok, [1, 50_000, 0, 0, 1]} end)
 
-      assert {:deny, 50, "rate_limit.provider.sms.mps"} =
+      assert {:deny, 50, "rate_limit.limit:provider.sms.mps"} =
                RateLimit.check(scope(), @sms, ["sms", "acct"], 1, :l1,
                  backend: __MODULE__.Unstarted,
                  adapter: ValkeyMock

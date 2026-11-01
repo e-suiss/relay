@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "rule_dictionary",
+  "description": "The single dictionary of rule identifiers that record why a delivery was skipped, postponed, paused, expired, cancelled, failed or refused. A rule is never removed: it is marked deprecated and its identifier is not reused. The description is the sentence a recipient or operator is shown.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_ref",
+    "rules"
+  ],
+  "properties": {
+    "source_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "reason",
+          "kind",
+          "outcome",
+          "decision",
+          "detail",
+          "description"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(\\.[a-z0-9][a-z0-9_]*)+$",
+            "maxLength": 96
+          },
+          "reason": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,63}$"
+          },
+          "kind": {
+            "enum": [
+              "gate",
+              "filter",
+              "shaper",
+              "terminal",
+              "admission"
+            ]
+          },
+          "outcome": {
+            "enum": [
+              "skip",
+              "defer",
+              "expire",
+              "cancel",
+              "pause",
+              "reject",
+              "fail",
+              "resume",
+              "alarm"
+            ]
+          },
+          "decision": {
+            "type": "string",
+            "pattern": "^[A-Z]+-[0-9]+$"
+          },
+          "detail": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            }
+          },
+          "description": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "en",
+              "tr"
+            ],
+            "properties": {
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "tr": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              }
+            }
+          },
+          "deprecated": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

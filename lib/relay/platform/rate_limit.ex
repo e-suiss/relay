@@ -333,6 +333,6 @@ defmodule Relay.Platform.RateLimit do
   end
 
   defp adapter(opts), do: Keyword.get_lazy(opts, :adapter, &Valkey.adapter/0)
-  defp rule(%Limit{id: id}), do: "rate_limit." <> id
+  defp rule(%Limit{id: id}), do: "rate_limit.limit:" <> id
   defp ms(us), do: max(1, Gcra.ceil_div(us, 1000))
 end

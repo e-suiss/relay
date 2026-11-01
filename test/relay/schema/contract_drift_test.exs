@@ -88,7 +88,15 @@ defmodule Relay.Schema.ContractDriftTest do
     {"relay.tenant_suspensions", "tenant_suspensions_state_check",
      {"operator", @operator_schemas ++ ["TenantSuspension", "properties", "state"]}},
     {"relay.quota_policies", "quota_policies_period_check",
-     {"operator", @operator_schemas ++ ["QuotaPolicy", "properties", "period"]}}
+     {"operator", @operator_schemas ++ ["QuotaPolicy", "properties", "period"]}},
+    {"relay.categories", "categories_state_check", {"schemas", ["CategoryState"]}},
+    {"relay.categories", "categories_frequency_fate_check", {"schemas", ["FrequencyFate"]}},
+    {"relay.preferences", "preferences_level_check", {"schemas", ["PreferenceLevel"]}},
+    {"relay.preferences", "preferences_value_check", {"schemas", ["PreferenceValue"]}},
+    {"relay.consents", "consents_status_check", {"schemas", ["ConsentStatus"]}},
+    {"relay.consents", "consents_consent_kind_check", {"schemas", ["ConsentKind"]}},
+    {"relay.consents", "consents_recipient_type_check", {"schemas", ["LegalType"]}},
+    {"relay.suppressions", "suppressions_reason_check", {"schemas", ["SuppressionReason"]}}
   ]
 
   defp values(definition), do: ~r/'([^']*)'/ |> Regex.scan(definition) |> Enum.map(&List.last/1)

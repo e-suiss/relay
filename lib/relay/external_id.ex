@@ -46,7 +46,10 @@ defmodule Relay.ExternalId do
     {"cem", "event_type_mappings"},
     {"cnl", "cancellations"},
     {"adr", "recipient_addresses"},
-    {"sdr", "recipient_deletion_requests"}
+    {"sdr", "recipient_deletion_requests"},
+    {"ctg", "categories"},
+    {"cns", "consents"},
+    {"sup", "suppressions"}
   ]
   @by_prefix Map.new(@tables)
 

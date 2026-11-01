@@ -40,7 +40,7 @@ defmodule Relay.Channels.BreakerIsolationTest do
     assert Breaker.provider_state(ctx.provider) == :open
     assert Breaker.tenant_state(ctx.a) == :closed
 
-    assert {{:reject, :breaker_open, _, "breaker.provider." <> _}, _} =
+    assert {{:reject, :breaker_open, _, "breaker.provider:" <> _}, _} =
              Channels.check_breaker(p, ctx.b, 30)
   end
 

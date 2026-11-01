@@ -122,7 +122,7 @@ defmodule Relay.Channels.BreakerTest do
       assert Breaker.provider_state(name) == :open
 
       assert {{:reject, :breaker_open, wait, rule}, _} = Channels.check_breaker(p, t, now + 100)
-      assert rule == "breaker.provider." <> name
+      assert rule == "breaker.provider:" <> name
       assert wait > 30_000 - 100 and wait <= 39_000
 
       assert {:probe, ticket} = Channels.check_breaker(p, t, now + 100 + wait)

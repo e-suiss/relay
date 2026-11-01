@@ -834,3 +834,171 @@ codes:
     choice: false
     description: The request conflicts with the current state of the resource, such as creating a subscriber that exists or an invalid state transition.
     type: "{base_url}/v1/errors/resource_conflict"
+  - code: category_not_found
+    family: category
+    status: 404
+    title: Category not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No category with this key exists in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/category_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: category_archived
+    family: category
+    status: 409
+    title: Category is archived
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The category is archived and can no longer be changed, given subtenant settings or named by a new workflow."
+    type: "{base_url}/v1/errors/category_archived"
+    choice_note: "Code name and status chosen by the contract."
+  - code: category_builtin
+    family: category
+    status: 409
+    title: Category is built in
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The built-in security category of the Access platform tenant cannot be archived."
+    type: "{base_url}/v1/errors/category_builtin"
+    choice_note: "Code name and status chosen by the contract."
+  - code: category_class_mismatch
+    family: category
+    status: 422
+    title: Message class does not match the category
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The workflow's message_class differs from the message class of the category it names. The class of a category is fixed when it is created."
+    type: "{base_url}/v1/errors/category_class_mismatch"
+    choice_note: "Code name and status chosen by the contract."
+  - code: category_lock_not_allowed
+    family: category
+    status: 422
+    title: Category cannot be locked
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "Only transactional, operational and action_required categories can be locked; security is always locked and marketing and social never are."
+    type: "{base_url}/v1/errors/category_lock_not_allowed"
+    choice_note: "Code name and status chosen by the contract."
+  - code: category_default_forbidden
+    family: category
+    status: 422
+    title: Channel default is not allowed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "A marketing category cannot default email, sms, voice or whatsapp to on. Other settings the category's class does not allow (an expiry for security, a frequency limit outside marketing, social and operational, a digest outside operational) are 422 validation_failed at their field."
+    type: "{base_url}/v1/errors/category_default_forbidden"
+    choice_note: "Code name and status chosen by the contract."
+  - code: preference_direction_forbidden
+    family: preference
+    status: 422
+    title: Preference value is not allowed for this writer
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "A tenant may only write opt_out on behalf of a subscriber; opting in or clearing a switch is the subscriber's own choice."
+    type: "{base_url}/v1/errors/preference_direction_forbidden"
+    choice_note: "Code name and status chosen by the contract."
+  - code: preference_last_channel
+    family: preference
+    status: 422
+    title: Last open channel cannot be closed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The write would close the last open channel of a locked or security category for this subscriber. At least one channel stays open."
+    type: "{base_url}/v1/errors/preference_last_channel"
+    choice_note: "Code name and status chosen by the contract."
+  - code: preference_digest_not_allowed
+    family: preference
+    status: 422
+    title: Digest is not allowed for this category
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "A digest can be chosen only for social categories and for operational categories that allow a digest."
+    type: "{base_url}/v1/errors/preference_digest_not_allowed"
+    choice_note: "Code name and status chosen by the contract."
+  - code: suppression_not_found
+    family: resource
+    status: 404
+    title: Suppression not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No suppression with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/suppression_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: suppression_lift_forbidden
+    family: suppression
+    status: 403
+    title: Suppression cannot be lifted here
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "A tenant can lift only manual and invalid suppressions. Hard bounce, complaint and soft bounce suppressions are lifted by a tenant administrator with step-up through the operator API."
+    type: "{base_url}/v1/errors/suppression_lift_forbidden"
+    choice_note: "Code name and status chosen by the contract."
+  - code: subtenant_not_found
+    family: resource
+    status: 404
+    title: Subtenant not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No subtenant with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/subtenant_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."

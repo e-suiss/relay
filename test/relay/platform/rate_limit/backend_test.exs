@@ -76,7 +76,7 @@ defmodule Relay.Platform.RateLimit.BackendTest do
 
       eventually(fn -> Backend.state(server).phase == :pg end)
 
-      assert {:deny, retry, "rate_limit.test.g1"} =
+      assert {:deny, retry, "rate_limit.limit:test.g1"} =
                RateLimit.check(scope, @g1, ["sms", "acct"], 1, :l1, opts)
 
       assert retry in 1..100
@@ -143,7 +143,7 @@ defmodule Relay.Platform.RateLimit.BackendTest do
       send(server, :ping)
       eventually(fn -> Backend.current_mode(Limit.horizon_ms(@hourly), server) == :dual end)
 
-      assert {:deny, _retry, "rate_limit.test.hourly"} =
+      assert {:deny, _retry, "rate_limit.limit:test.hourly"} =
                RateLimit.check(scope, @hourly, ["sms", "acct"], 1, :l1, backend: server)
 
       {:ok, vkey} = Scripts.key(scope, ["rl", "g"], key)

@@ -345,6 +345,50 @@
       "subject_erasure": "not subject data",
       "table": "quota_threshold_marks",
       "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "categories",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "category_subtenant_settings",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "row kept; preference values carry no personal value and stop applying once the recipient is deleted",
+      "table": "preferences",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "row kept; the change log carries no personal value",
+      "table": "preference_changes",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "row kept; quiet hours, schedule and digest choices carry no personal value",
+      "table": "preference_profiles",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [
+        "evidence_ct"
+      ],
+      "subject_erasure": "evidence is encrypted under the commercial_consent subject key: restricted under a statutory retention, otherwise destroyed; row kept as the minimal legal evidence",
+      "table": "consents",
+      "tenant_close": "tenant keys destroyed; row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "row kept; the keyed target digest is never destroyed so an erased address is not mailed again on a later import",
+      "table": "suppressions",
+      "tenant_close": "row kept"
     }
   ],
   "locations": [

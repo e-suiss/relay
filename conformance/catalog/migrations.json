@@ -84,5 +84,14 @@
   {"file": "20261106100000_create_lane_capacity_function.exs", "sha256": "0dc691d94bfe4853380b21367160653e2902cd8a5f6a02e4bb27f3f3c5be1b41"},
   {"file": "20261108000000_audit_workflow_lifecycle.exs", "sha256": "43a375893ccb6efc54903fec0987687a3c32735e56d0bcf1ee17c764de2bb51a"},
   {"file": "20261109000000_add_recipient_suspension.exs", "sha256": "04c4768d23fa0344fe8aa6106b525ac594697fbb7ce65d6ea5e188f4c4121da5"},
-  {"file": "20261109000200_create_subscriber_suspension_functions.exs", "sha256": "f0c8dddcf6a2c684eb34f35638388ce7c0f1ff97bdba8143526ddbf5a9b5ad6f"}
+  {"file": "20261109000200_create_subscriber_suspension_functions.exs", "sha256": "f0c8dddcf6a2c684eb34f35638388ce7c0f1ff97bdba8143526ddbf5a9b5ad6f"},
+  {"file": "20261110000000_register_rule_dictionary.exs", "sha256": "b25e71d71d18649cf0dfcbccd6959d3a66652c53062e85b334121695594b17e6"},
+  {"file": "20261110000100_register_country_time_zones.exs", "sha256": "e0b863a9a0826b6a76dca9e1444fdcd6ba97406339f5d3d81aaa319136a6368a"},
+  {"file": "20261110000200_create_preference_tables.exs", "sha256": "6e31115e2f533aee70ffbef520d799541dc3b284d5069797db6a20adef7320f3"},
+  {"file": "20261110000300_create_category_functions.exs", "sha256": "95b3e7763af8933eaf8914fc6c147cc99dd008b45e5dc2934d00928420c37091"},
+  {"file": "20261110000400_create_preference_functions.exs", "sha256": "5700c6c33a45dcc5a124b23f8a20311d8c842dd03307e4fe1e88989c3f8834bf"},
+  {"file": "20261110000500_create_consent_and_suppression_functions.exs", "sha256": "381c4416927b8b18e74463a08027690d7a2560f735d6a2b6c629e4ffabb1aa66"},
+  {"file": "20261110000600_seed_platform_security_categories.exs", "sha256": "d04155f2d3a22550d9c47be103682fe6526a30bc0d4bd0718900ec89205b0023"},
+  {"file": "20261110000700_rebuild_reference_check_for_preferences.exs", "sha256": "75bbae16b80e5902b77ca35d10349765af859ce360482dfc686ca4bac64dec58"},
+  {"file": "20261110000800_use_dictionary_cancel_rule_ids.exs", "sha256": "317ea3b7be518113c098aae9713dd396745129b267b6cf31d2bd9f1490336dd6"}
 ]

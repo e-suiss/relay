@@ -94,7 +94,7 @@ defmodule Relay.Platform.ValkeyLossTest do
       assert {:allow, %{backend: :pg}} =
                RateLimit.check(scope, @limit, ["sms", "b"], 1, :l1, opts)
 
-      assert {:deny, _, "rate_limit.test.loss"} =
+      assert {:deny, _, "rate_limit.limit:test.loss"} =
                RateLimit.check(scope, @limit, ["sms", "b"], 1, :l1, opts)
 
       assert {:ok, 1} = Concurrency.acquire(scope, "cc.tenant_deliveries", 1, "oban:1", opts)

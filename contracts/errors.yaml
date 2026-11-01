@@ -152,6 +152,19 @@ codes:
     choice: false
     description: "The tenant or subtenant is suspended; every entry point rejects new work until the suspension is lifted."
     type: "{base_url}/v1/errors/auth_tenant_suspended"
+  - code: auth_subscriber_suspended
+    family: auth
+    status: 403
+    title: Subscriber is suspended
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: "The subscriber is suspended by the tenant or by Access; the subscriber token exchange and every subscriber endpoint refuse it until the suspension is lifted."
+    type: "{base_url}/v1/errors/auth_subscriber_suspended"
   - code: auth_insufficient_role
     family: auth
     status: 403

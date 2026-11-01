@@ -101,6 +101,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_tenant_suspended
+        - auth_subscriber_suspended
         - auth_environment_mismatch
         - upstream_timeout
       x-relay-weight: 1

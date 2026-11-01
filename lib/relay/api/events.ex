@@ -2,7 +2,7 @@ defmodule Relay.Api.Events do
   @moduledoc """
   The send operations (API-19 … API-34, OP-7, DS-36). An event is prepared outside any transaction (`prepare/3`): its workflow version is resolved and frozen (WF-7), the request's field rules and the event schema are checked (API-20, API-27), the recipients' writes are prepared with their keys (API-21) and the payload is sealed under the tenant data key. It is then accepted inside the request's idempotency transaction (`accept/2`), so the idempotency claim, the event, its notifications and deliveries with their opening ledger events, the queue jobs, the quota counters and the outbox events commit together or not at all.
 
-  Policy outcomes are decisions, not errors (C-4, MD-12): a matching kill switch pauses the delivery at acceptance and queues no job (TN-40), the send mode `off` and an unknown sub-tenant skip it with a rule (OP-51, API-25), and a recipient without an address for a step's channel is skipped as well. A durable write failure is `503` (INV-2).
+  Policy outcomes are decisions, not errors (C-4, MD-12): a matching kill switch pauses the delivery at acceptance and queues no job (TN-40), the send mode `off` and an unknown sub-tenant skip it with a rule (OP-51, API-25), and a recipient without an address for a step's channel is skipped as well. A suspended subscriber's deliveries are skipped with `subscriber.suspended` (TN-73): the send is accepted and no delivery is sent. A durable write failure is `503` (INV-2).
   """
 
   alias Relay.Api.Schema
@@ -520,6 +520,11 @@ defmodule Relay.Api.Events do
         end
     end
   end
+
+  # TN-73
+  # MD-12
+  defp decision(_step, %{"state" => "suspended"}, _mismatch?, mode) when mode != :dry_run,
+    do: {:skip, "subscriber_suspended", "subscriber.suspended"}
 
   defp decision(%{skip: {reason, rule}}, _row, _mismatch?, _mode), do: {:skip, reason, rule}
   defp decision(_step, _row, true, _mode), do: {:skip, "scope_mismatch", "tenancy.scope_mismatch"}

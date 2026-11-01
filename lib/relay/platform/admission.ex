@@ -1,6 +1,6 @@
 defmodule Relay.Platform.Admission do
   @moduledoc """
-  Admission control at the entrance, as a pure function: the cheapest place to shed work is before it exists. Overload answers `503` with `Retry-After`, never `429`, which stays for tenant quota and rate limits. A `security` message is never refused, and an `l1` message is admitted while its lane sheds, to be postponed in the queue rather than lost.
+  Admission control at the entrance, as a pure function: the cheapest place to shed work is before it exists. Overload answers `503` with `Retry-After`, never `429`, which stays for tenant quota and rate limits and for input above a lane's AIMD ceiling (T-97). A `security` message is never refused, and an `l1` message is admitted while its lane sheds, to be postponed in the queue rather than lost.
 
   | # | Condition, in order | Result | Rule |
   |---|---|---|---|
@@ -11,6 +11,8 @@ defmodule Relay.Platform.Admission do
   | 5 | `marketing` and every requested channel has all its providers' breakers open | 503, retry after the shortest remaining open time, at least 1 s | `admission.breaker_open` |
   | 6 | lane `l2` or `l3` with a known capacity and `queued + 1 > μ · W_max` | 503, retry after `ceil(W_max)` seconds | `admission.lmax.<lane>` |
   | 7 | otherwise | admit | — |
+
+  An admitted `l2` or `l3` request that is not `security` then spends its lane's input under the lane's AIMD ceiling (T-97, `Relay.Platform.Aimd`); above it the answer is `429` with `Retry-After` and rule `admission.aimd.<lane>` (`ceiling_lane/1`, `over_ceiling/2`). That ceiling is a rate, kept by the node, so it is not part of the pure table.
 
   `breaker_open` names the channels whose providers are all open; the optional `breaker_remaining_ms` gives each one's remaining open time. `lane_capacity` gives a lane's service rate per second, its target wait in milliseconds and its queued jobs; a lane without it is not checked against `L_max`. A database pool that cannot hand out a connection is an infrastructure failure, not an admission decision: the request fails with `503` and nothing is recorded, `security` included.
   """
@@ -26,7 +28,7 @@ defmodule Relay.Platform.Admission do
           optional(:breaker_remaining_ms) => %{Lane.channel() => non_neg_integer()},
           required(:lane_capacity) => %{optional(Lane.t()) => capacity() | nil} | nil
         }
-  @type rejection :: %{status: 503, retry_after_s: pos_integer(), rule_id: String.t()}
+  @type rejection :: %{status: 503 | 429, retry_after_s: pos_integer(), rule_id: String.t()}
 
   # API-51
   # T-35
@@ -83,6 +85,26 @@ defmodule Relay.Platform.Admission do
       _unknown ->
         false
     end
+  end
+
+  # T-97
+  @doc "The lane whose input ceiling an admitted request spends, or `nil`: `l2` and `l3`, never `security`."
+  @spec ceiling_lane(input()) :: Lane.t() | nil
+  def ceiling_lane(%{message_class: :security}), do: nil
+
+  def ceiling_lane(%{message_class: class}) do
+    case Lane.of(class) do
+      lane when lane in [:l2, :l3] -> lane
+      _lane -> nil
+    end
+  end
+
+  # T-97
+  @doc "The rejection of input above `lane`'s ceiling, retried after `retry_ms` rounded up to seconds."
+  @spec over_ceiling(Lane.t(), non_neg_integer()) :: rejection()
+  def over_ceiling(lane, retry_ms) do
+    retry_after_s = max(div(retry_ms + 999, 1_000), 1)
+    %{status: 429, retry_after_s: retry_after_s, rule_id: "admission.aimd.#{lane}"}
   end
 
   defp capacity(lane, %{lane_capacity: %{} = capacity}), do: Map.get(capacity, lane)

@@ -248,6 +248,12 @@ defmodule RelayWeb.Router do
     post "/subscribers/:subscriber_id/reveal", SupportController, :reveal,
       private: %{relay_operation: "revealSubscriberPii"}
 
+    post "/subscribers/:subscriber_id/suspend", SubscriberController, :suspend,
+      private: %{relay_operation: "suspendSubscriber"}
+
+    post "/subscribers/:subscriber_id/resume", SubscriberController, :resume,
+      private: %{relay_operation: "resumeSubscriber"}
+
     get "/audit_log", SupportController, :audit_log,
       private: %{relay_operation: "listAuditRecords"}
 

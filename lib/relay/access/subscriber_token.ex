@@ -1,6 +1,6 @@
 defmodule Relay.Access.SubscriberToken do
   @moduledoc """
-  The subscriber token (C-17, E-23, E-24, API-45, TN-25, IN-41, IN-42). `exchange/2` is the only way to obtain one: the client presents its end user's Access access token (RFC 8693); Relay verifies it under the cached Access keys, takes tenant and environment from the Access client registration the token was issued to (never from the request; API-79 (4)), matches the subscriber by the Access pairwise `sub` as its `external_id` and creates an inbox-only subscriber when there is none. When the Access link is not fully established (`:stale` included) no token is issued (E-75).
+  The subscriber token (C-17, E-23, E-24, API-45, TN-25, IN-41, IN-42). `exchange/2` is the only way to obtain one: the client presents its end user's Access access token (RFC 8693); Relay verifies it under the cached Access keys, takes tenant and environment from the Access client registration the token was issued to (never from the request; API-79 (4)), matches the subscriber by the Access pairwise `sub` as its `external_id` and creates an inbox-only subscriber when there is none. A suspended subscriber gets no token, and its tokens no longer verify (`auth_subscriber_suspended`, TN-73). When the Access link is not fully established (`:stale` included) no token is issued (E-75).
 
   The token is a JWS (ES256) signed in the key store under the key named by `config :relay, Relay.Access, subscriber_token_key: label` (TN-63), valid for the contract's `subscriber_token_lifetime_seconds`, with the scopes `inbox:read`, `inbox:write`, `preferences`, `devices:write` and `presence:write` (API-79 (9)). It names the subscriber and the environment; the tenant travels sealed under the region KEK, so the client never sees it (TN-25). `verify/2` accepts only such a token: an Access token is never a subscriber credential (E-25).
   """
@@ -131,13 +131,28 @@ defmodule Relay.Access.SubscriberToken do
 
     case Relay.Tenancy.create_recipient(scope, attrs) do
       {:ok, {result, <<_::128>> = id}} when result in [:created, :exists] ->
-        {:ok, id}
+        active(scope, id)
 
       {:ok, {:tenant_inactive, _id}} ->
         {:error, Relay.Error.new(:auth_tenant_suspended, "the tenant is suspended")}
 
       _failed ->
         {:error, Relay.Error.new(:service_unavailable, "the subscriber could not be recorded")}
+    end
+  end
+
+  # TN-73
+  # API-45
+  defp active(scope, subscriber_id) do
+    case Relay.Tenancy.recipient_suspended?(scope, subscriber_id) do
+      {:ok, false} ->
+        {:ok, subscriber_id}
+
+      {:ok, true} ->
+        {:error, Relay.Error.new(:auth_subscriber_suspended, "the subscriber is suspended")}
+
+      {:error, _error} ->
+        {:error, Relay.Error.new(:service_unavailable, "the subscriber could not be read")}
     end
   end
 
@@ -189,9 +204,16 @@ defmodule Relay.Access.SubscriberToken do
   # E-25
   # IN-41
   # API-76 (2)
-  @doc "Verifies a subscriber token for `audiences` and returns its scope, subscriber and scopes; an Access token or any other token is `auth_invalid_token`."
+  # TN-73
+  @doc "Verifies a subscriber token for `audiences` and returns its scope, subscriber and scopes; an Access token or any other token is `auth_invalid_token`, and the token of a suspended subscriber is `auth_subscriber_suspended`."
   @spec verify(String.t(), audiences()) :: {:ok, verified()} | {:error, Relay.Error.t()}
   def verify(token, audiences) when is_binary(token) do
+    with {:ok, verified} <- signed(token, audiences),
+         {:ok, _subscriber_id} <- active(verified.scope, verified.subscriber_id),
+         do: {:ok, verified}
+  end
+
+  defp signed(token, audiences) do
     label = key_label()
 
     with {:ok, %{"kid" => ^label, "alg" => "ES256"}} <- Jose.peek_header(token),

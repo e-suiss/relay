@@ -6,7 +6,7 @@ defmodule Relay.Operators do
 
   Sensitive operations need a step-up that is at most five minutes old and bound to the session, at the `acr` the installation configures; when Access offers the AuthZEN decision API, Access decides too (`config :relay, Relay.Operators, authzen: :when_offered | :required | :off`). Access that cannot be reached means the operation is not performed (`auth_step_up_unavailable`). Every audit record of an operator action carries the operator's Access subject and the Access record of its step-up or session (TN-48, E-31).
 
-  The Access event consumer calls `Relay.Operators.AccessUserHandler` for the Access `user.*` events (TN-20) and `tenant_owner/2` for the owners named by `tenant.created` (API-79 (5)).
+  The Access event consumer calls `Relay.Operators.AccessUserHandler` and `Relay.Operators.AccessSubscriberHandler` for the Access `user.*` events (TN-20, TN-73) and `tenant_owner/2` for the owners named by `tenant.created` (API-79 (5)).
   """
 
   use Boundary,
@@ -24,7 +24,17 @@ defmodule Relay.Operators do
       Relay.Tenancy,
       Relay.Tenancy.Provisioning
     ],
-    exports: [Access, Authz, Session, Admin, Suspension, SuspensionActivator, AccessUserHandler]
+    exports: [
+      Access,
+      Authz,
+      Session,
+      Admin,
+      Suspension,
+      SuspensionActivator,
+      SubscriberSuspension,
+      AccessUserHandler,
+      AccessSubscriberHandler
+    ]
 
   require Logger
 

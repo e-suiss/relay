@@ -82,5 +82,8 @@
   {"file": "20261106000100_extend_deliveries_pause_matching.exs", "sha256": "a0899a813d1aacbe0fca8d78f7d22b4d179008a31f59382751540fa597600adc"},
   {"file": "20261106000200_order_key_tombstones_by_lock.exs", "sha256": "ecf4d03824654cb0cb65573c6f8464594ebc961719a4dc2632345f1a53839d83"},
   {"file": "20261106100000_create_lane_capacity_function.exs", "sha256": "0dc691d94bfe4853380b21367160653e2902cd8a5f6a02e4bb27f3f3c5be1b41"},
-  {"file": "20261108000000_audit_workflow_lifecycle.exs", "sha256": "43a375893ccb6efc54903fec0987687a3c32735e56d0bcf1ee17c764de2bb51a"}
+  {"file": "20261108000000_audit_workflow_lifecycle.exs", "sha256": "43a375893ccb6efc54903fec0987687a3c32735e56d0bcf1ee17c764de2bb51a"},
+  {"file": "20261109000000_add_recipient_suspension.exs", "sha256": "7054580e9b5385ffa8a10d327a073a3fa27b58c74ff093dfea53dc70d0a35910"},
+  {"file": "20261109000100_validate_recipient_suspension.exs", "sha256": "88e56ca590766a247d268653c0fa50e3422f7ea645f8199cbb9fa6927efc12f2"},
+  {"file": "20261109000200_create_subscriber_suspension_functions.exs", "sha256": "2692d60ea8da1c4731d4afb076a680b5da5fb97d301b2d187c4997669bedc81a"}
 ]

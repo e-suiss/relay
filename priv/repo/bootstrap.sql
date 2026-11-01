@@ -134,6 +134,7 @@ DECLARE
     "relay_ops.retention_due": ["relay_worker"],
     "relay_ops.singleton_acquire": ["relay_worker"],
     "relay_ops.singleton_save": ["relay_worker"],
+    "relay_ops.subscriber_tenants": ["relay_worker"],
     "relay_ops.support_delegation_active": ["relay_app"],
     "relay_ops.tenant_create": ["relay_app"],
     "relay_ops.tenant_lookup": ["relay_app"],

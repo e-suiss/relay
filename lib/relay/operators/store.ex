@@ -7,6 +7,10 @@ defmodule Relay.Operators.Store do
   alias Relay.Repo
 
   @type digest :: <<_::256>>
+  @type work_filter :: %{
+          optional(:subtenant_id) => Relay.Id.t() | nil,
+          optional(:recipient_id) => Relay.Id.t() | nil
+        }
 
   @doc "Runs work in a transaction scoped to `scope`; see `Relay.Repo.in_scope/3`."
   @spec in_scope(Relay.Scope.t(), (atom() -> term())) :: {:ok, term()} | {:error, term()}
@@ -404,9 +408,10 @@ defmodule Relay.Operators.Store do
 
   # TN-10
   # TN-40
-  @doc "Reads up to `limit` pending deliveries of the established scope that are neither terminal nor paused; with a subtenant, only those of its notifications."
-  @spec pending_deliveries(Relay.Id.t() | nil, pos_integer()) :: [Relay.Id.t()]
-  def pending_deliveries(subtenant_id, limit) do
+  # TN-73
+  @doc "Reads up to `limit` pending deliveries of the established scope that are neither terminal nor paused; `filter` narrows them to the notifications of a subtenant (`:subtenant_id`) or of a recipient (`:recipient_id`)."
+  @spec pending_deliveries(work_filter(), pos_integer()) :: [Relay.Id.t()]
+  def pending_deliveries(filter, limit) do
     """
     SELECT d.tenant_id, d.environment, d.id
     FROM relay.deliveries d
@@ -414,33 +419,93 @@ defmodule Relay.Operators.Store do
       AND n.id = d.notification_id
     WHERE d.delivery_rank = 0 AND d.failure_kind IS NULL AND d.paused_at IS NULL
       AND ($1::uuid IS NULL OR n.subtenant_id = $1::uuid)
+      AND ($2::uuid IS NULL OR n.recipient_id = $2::uuid)
     ORDER BY d.created_at, d.id
-    LIMIT $2
+    LIMIT $3
     """
-    |> rows([subtenant_id, limit])
+    |> rows([filter[:subtenant_id], filter[:recipient_id], limit])
     |> Enum.map(& &1["id"])
   end
 
   # TN-10
   # TN-40
-  @doc "Reads up to `limit` deliveries of the established scope paused with `rule_id`, with their notification and message class; with a subtenant, only those of its notifications."
-  @spec paused_deliveries(String.t(), Relay.Id.t() | nil, pos_integer()) :: [map()]
-  def paused_deliveries(rule_id, subtenant_id, limit) do
+  # TN-73
+  @doc "Reads up to `limit` deliveries of the established scope paused with `rule_id`, with their notification, message class and whether their subtenant or recipient is still suspended; `filter` narrows them as in `pending_deliveries/2`."
+  @spec paused_deliveries(String.t(), work_filter(), pos_integer()) :: [map()]
+  def paused_deliveries(rule_id, filter, limit) do
     rows(
       """
       SELECT d.tenant_id, d.environment, d.id, d.notification_id,
-        n.message_class::text AS message_class
+        n.message_class::text AS message_class,
+        EXISTS (SELECT 1 FROM relay.subtenants s
+          WHERE s.tenant_id = n.tenant_id AND s.environment = n.environment
+            AND s.id = n.subtenant_id AND s.state = 'suspended') AS subtenant_suspended,
+        EXISTS (SELECT 1 FROM relay.recipients r
+          WHERE r.tenant_id = n.tenant_id AND r.environment = n.environment
+            AND r.id = n.recipient_id AND r.suspended_at IS NOT NULL) AS recipient_suspended
       FROM relay.deliveries d
       JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
         AND n.id = d.notification_id
       WHERE d.delivery_rank = 0 AND d.failure_kind IS NULL AND d.paused_at IS NOT NULL
         AND d.pause_kill_switch_id IS NULL AND d.pause_rule_id::text = $1
         AND ($2::uuid IS NULL OR n.subtenant_id = $2::uuid)
+        AND ($3::uuid IS NULL OR n.recipient_id = $3::uuid)
       ORDER BY d.created_at, d.id
-      LIMIT $3
+      LIMIT $4
       """,
-      [rule_id, subtenant_id, limit]
+      [rule_id, filter[:subtenant_id], filter[:recipient_id], limit]
     )
+  end
+
+  # TN-73
+  @doc "Suspends a subscriber of the established scope and writes its `subscriber.suspended` audit record; returns the result and the subscriber's version."
+  @spec subscriber_suspend(Relay.Id.t(), String.t() | nil, digest(), Actor.t()) ::
+          {:suspended | :already_suspended | :not_found, pos_integer() | nil}
+  def subscriber_suspend(recipient_id, reason, digest, %Actor{} = actor) do
+    [row] =
+      Repo.call!(
+        "relay_fn.recipient_suspend",
+        [recipient_id, reason, digest] ++ Actor.params(actor)
+      )
+
+    {Repo.code!(row["result"], [:suspended, :already_suspended, :not_found]), row["version"]}
+  end
+
+  # TN-73
+  @doc "Lifts the suspension of a subscriber of the established scope and writes its `subscriber.resumed` audit record; returns the result and the subscriber's version."
+  @spec subscriber_resume(Relay.Id.t(), String.t() | nil, digest(), Actor.t()) ::
+          {:resumed | :not_suspended | :not_found, pos_integer() | nil}
+  def subscriber_resume(recipient_id, reason, digest, %Actor{} = actor) do
+    [row] =
+      Repo.call!(
+        "relay_fn.recipient_resume",
+        [recipient_id, reason, digest] ++ Actor.params(actor)
+      )
+
+    {Repo.code!(row["result"], [:resumed, :not_suspended, :not_found]), row["version"]}
+  end
+
+  # TN-73
+  @doc "Reads the state and `suspended_at` of a subscriber of the established scope, or `nil` when there is no such subscriber."
+  @spec subscriber_suspension(Relay.Id.t()) :: map() | nil
+  def subscriber_suspension(recipient_id) do
+    """
+    SELECT r.tenant_id, r.environment, r.state, r.suspended_at
+    FROM relay.recipients r
+    WHERE r.id = $1 AND r.kind = 'subscriber' AND r.state <> 'deleted'
+    """
+    |> rows([recipient_id])
+    |> List.first()
+  end
+
+  # TN-73
+  # S-69
+  @doc "Lists, after `after_id`, up to `limit` tenants an Access user event may reach a subscriber of: every tenant that is not closed, by identifier only, through the `:access_event_intake` escape hatch."
+  @spec subscriber_tenants(Relay.Id.t() | nil, pos_integer()) :: [Relay.Id.t()]
+  def subscriber_tenants(after_id, limit) do
+    :access_event_intake
+    |> Repo.call_unscoped!("relay_ops.subscriber_tenants", [after_id, limit])
+    |> Enum.map(& &1["tenant_id"])
   end
 
   # TN-10

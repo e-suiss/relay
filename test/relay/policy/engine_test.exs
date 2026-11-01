@@ -44,7 +44,7 @@ defmodule Relay.Policy.EngineTest do
     webhook: :in_app
   }
 
-  defp snapshot(changes \\ []), do: Fixture.snapshot(changes)
+  defp snapshot(changes), do: Fixture.snapshot(changes)
 
   defp evaluate(changes), do: changes |> snapshot() |> Engine.evaluate()
 
@@ -554,7 +554,7 @@ defmodule Relay.Policy.EngineTest do
       changes = [
         now: ~U[2026-11-07 07:00:00Z],
         channel: :push,
-        notification: [message_class: :action_required],
+        notification: [message_class: :action_required, expires_at: ~U[2026-11-08 00:00:00Z]],
         profile: [schedule: weekdays()]
       ]
 

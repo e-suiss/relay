@@ -148,10 +148,10 @@ defmodule Relay.Policy.WindowTest do
   end
 
   defp range do
-    gen all days <- uniq_list_of(integer(1..7), min_length: 1, max_length: 7),
+    gen all days <- list_of(integer(1..7), min_length: 1, max_length: 7),
             from <- integer(0..(24 * 60 - 1)),
             to <- integer(0..(24 * 60 - 1)) do
-      %{days: Enum.sort(days), from: time(from), to: time(to)}
+      %{days: days |> Enum.uniq() |> Enum.sort(), from: time(from), to: time(to)}
     end
   end
 

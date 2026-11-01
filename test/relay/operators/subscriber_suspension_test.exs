@@ -133,7 +133,11 @@ defmodule Relay.Operators.SubscriberSuspensionTest do
       assert pause_state(ctx.scope, delivery_id) == {false, nil, nil}
 
       {:ok, subscriber} = Relay.Subscribers.fetch(ctx.scope, external_id)
-      assert subscriber["state"] == "suspended"
+      assert %DateTime{} = subscriber["suspended_at"]
+      assert subscriber["state"] == "active"
+
+      read = F.body(F.request(:get, "/v1/subscribers/" <> external_id, ctx.token), 200)
+      assert is_binary(read["suspended_at"])
     end
 
     test "TN-73: after the suspension is lifted a send opens a delivery to send again", ctx do
@@ -268,7 +272,7 @@ defmodule Relay.Operators.SubscriberSuspensionTest do
       id = subscriber_id(ctx.scope, sub)
 
       assert :ok = AccessSubscriberHandler.handle_user_event(:suspended, sub, "evt-s")
-      assert {:ok, %{"state" => "suspended"}} = Relay.Subscribers.fetch(ctx.scope, sub)
+      assert {:ok, %{"suspended_at" => %DateTime{}}} = Relay.Subscribers.fetch(ctx.scope, sub)
       assert pause_state(ctx.scope, delivery_id) == {true, "subscriber.suspended", nil}
       assert [["access", "evt-s"]] = audit(ctx.scope, "subscriber.suspended", id)
 
@@ -276,7 +280,7 @@ defmodule Relay.Operators.SubscriberSuspensionTest do
       assert [_] = audit(ctx.scope, "subscriber.suspended", id)
 
       assert :ok = AccessSubscriberHandler.handle_user_event(:reactivated, sub, "evt-r")
-      assert {:ok, %{"state" => "active"}} = Relay.Subscribers.fetch(ctx.scope, sub)
+      assert {:ok, %{"suspended_at" => nil}} = Relay.Subscribers.fetch(ctx.scope, sub)
       assert [["access", "evt-r"]] = audit(ctx.scope, "subscriber.resumed", id)
     end
 
@@ -286,7 +290,7 @@ defmodule Relay.Operators.SubscriberSuspensionTest do
 
       assert :ok = AccessSubscriberHandler.handle_user_event(:suspended, "nobody", "evt-1")
       assert :ok = AccessSubscriberHandler.handle_user_event(:deleted, sub, "evt-2")
-      assert {:ok, %{"state" => "active"}} = Relay.Subscribers.fetch(ctx.scope, sub)
+      assert {:ok, %{"suspended_at" => nil}} = Relay.Subscribers.fetch(ctx.scope, sub)
     end
 
     test "TN-73, TN-20: the subscriber handler is registered next to the operator handler" do

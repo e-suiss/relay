@@ -1562,9 +1562,14 @@ Subscriber:
       type: string
       enum:
         - active
-        - suspended
         - deletion_requested
         - deleted
+    suspended_at:
+      description: "When the subscriber was suspended by a tenant operator or by Access; null when it is not. A suspended subscriber's sends are accepted and recorded as skipped with rule_id subscriber.suspended."
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+      x-relay-choice: true
     version:
       type: integer
       minimum: 1

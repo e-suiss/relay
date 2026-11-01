@@ -523,7 +523,7 @@ defmodule Relay.Api.Events do
 
   # TN-73
   # MD-12
-  defp decision(_step, %{"state" => "suspended"}, _mismatch?, mode) when mode != :dry_run,
+  defp decision(_step, %{"suspended_at" => %DateTime{}}, _mismatch?, mode) when mode != :dry_run,
     do: {:skip, "subscriber_suspended", "subscriber.suspended"}
 
   defp decision(%{skip: {reason, rule}}, _row, _mismatch?, _mode), do: {:skip, reason, rule}

@@ -279,6 +279,7 @@ defmodule Relay.Subscribers do
       "legal_type" => row["legal_type"],
       "channels" => Profile.channels(row["email_state"], row["phone_state"]),
       "state" => row["state"],
+      "suspended_at" => row["suspended_at"],
       "version" => row["version"],
       "created_at" => row["created_at"],
       "updated_at" => row["updated_at"],

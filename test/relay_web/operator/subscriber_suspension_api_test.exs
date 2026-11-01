@@ -140,7 +140,7 @@ defmodule RelayWeb.Operator.SubscriberSuspensionApiTest do
 
   defp suspended?(ctx) do
     {:ok, subscriber} = Relay.Subscribers.fetch(ctx.scope, ctx.external_id)
-    subscriber["state"] == "suspended"
+    subscriber["suspended_at"] != nil
   end
 
   defp change(ctx, action, session) do

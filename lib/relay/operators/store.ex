@@ -499,7 +499,6 @@ defmodule Relay.Operators.Store do
   end
 
   # TN-73
-  # S-69
   @doc "Lists, after `after_id`, up to `limit` tenants an Access user event may reach a subscriber of: every tenant that is not closed, by identifier only, through the `:access_event_intake` escape hatch."
   @spec subscriber_tenants(Relay.Id.t() | nil, pos_integer()) :: [Relay.Id.t()]
   def subscriber_tenants(after_id, limit) do

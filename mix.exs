@@ -59,7 +59,7 @@ defmodule Relay.MixProject do
       {:req, "~> 0.7.5"},
       {:logger_json, "~> 7.0"},
       {:tzdata, "~> 1.2.2"},
-      {:jsv, "0.26.1"},
+      {:jsv, "0.26.2"},
       {:yaml_elixir, "~> 2.12.2", runtime: false},
       {:boundary, "~> 0.11", runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

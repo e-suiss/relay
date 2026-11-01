@@ -4,6 +4,24 @@ defmodule Relay.Delivery.UsageRecordTest do
   alias Relay.Repo
   alias RelayTest.TenantFixture
 
+  setup_all do
+    day = Date.add(DateTime.to_date(Relay.Clock.utc_now()), -1)
+    from = DateTime.new!(Date.beginning_of_month(day), ~T[00:00:00], "Etc/UTC")
+    to = DateTime.new!(Date.add(Date.end_of_month(day), 1), ~T[00:00:00], "Etc/UTC")
+    conn = Relay.SqlCase.connect(:admin)
+
+    %{rows: [[result]]} =
+      Postgrex.query!(conn, "SELECT relay_private.partition_create($1, $2, $3)", [
+        "usage_records",
+        from,
+        to
+      ])
+
+    GenServer.stop(conn)
+    assert result in ["created", "exists"]
+    :ok
+  end
+
   setup do
     TenantFixture.as_role("relay_worker")
     %{scope: TenantFixture.tenant!().live}

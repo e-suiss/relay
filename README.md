@@ -126,6 +126,35 @@ relay kill-switch engage --scope workflow --ref welcome --reason "bad copy" --tt
 
 Every command accepts `--json` and then prints one JSON object with an `exit_code` field. Exit codes are stable: `0` success, `1` unexpected error, `2` usage error, `3` authentication or authorization, `4` not found, `5` validation or conflict, `6` rate limit or quota, `7` server or connection, `8` live change not confirmed. A command that changes the live environment asks for confirmation, or takes `--yes`. Run `relay help` for every option, including profiles in `~/.config/relay/config.json`.
 
+## Ingest connectors
+
+Besides the HTTP API (native JSON events and CloudEvents on `POST /v1/events`), Relay can take events from a producer's own database. The built-in source is a **PostgreSQL outbox table**: your service writes one structured mode CloudEvent per row in the same transaction as its own change, and Relay relays the rows and records the outcome of each one. Relay never deletes a row. The table shape is a contract, [`contracts/connectors/outbox.sql`](contracts/connectors/outbox.sql); Relay checks it when it connects and does not read a table that differs.
+
+A production node reads its connectors from the JSON file that `RELAY_CONNECTORS_FILE` names; without the variable no connector runs. The file is checked strictly at boot and a node with an invalid file does not start. Database passwords never go in the file: each connector names a `password_file`, read at every connect.
+
+```json
+{
+  "connectors": [
+    {
+      "name": "orders",
+      "source": "outbox",
+      "access_tenant_id": "acc_...",
+      "access_client_id": "app_...",
+      "options": {
+        "hostname": "db.example.com",
+        "database": "shop",
+        "username": "relay_reader",
+        "password_file": "/run/secrets/shop_db",
+        "table": "public.relay_outbox",
+        "ssl": true
+      }
+    }
+  ]
+}
+```
+
+Kafka and SQS sources are not part of the Relay release. The recommended path for those is to forward events to Relay as CloudEvents over HTTP, or to write them to an outbox table. An installation that needs a direct Kafka or SQS source builds its own release with the `broadway_kafka` or `broadway_sqs` package; Relay carries only the adapter.
+
 ## Tech stack
 
 Elixir/OTP, Phoenix, PostgreSQL, Valkey, Oban (open source), React for the console and UI components.

@@ -45,6 +45,7 @@ defmodule Relay.Api.Events do
   # API-21
   # API-27
   # WF-7
+  # API-81
   @doc "Prepares a native event request outside any transaction. `opts`: `:source` (`:api` or `:cloudevents`), `:cloudevent` (its attributes) and `:dedup_key`."
   @spec prepare(context(), map(), keyword()) :: {:ok, prepared()} | {:error, Relay.Error.t()}
   def prepare(%{scope: scope} = ctx, body, opts \\ []) do
@@ -53,7 +54,7 @@ defmodule Relay.Api.Events do
     with {:ok, workflow} <- workflow(scope, body["workflow"]),
          steps = Relay.Workflow.steps(workflow["definition"]),
          {:ok, tenant} <- tenant_settings(scope, workflow, steps),
-         class = message_class(tenant.platform_product, workflow["message_class"]),
+         class = workflow["message_class"],
          {:ok, request} <-
            Relay.Ingest.check_request(body, %{
              message_class: class,
@@ -213,30 +214,17 @@ defmodule Relay.Api.Events do
   end
 
   # OP-51
-  # TN-9
   defp tenant_settings(scope, workflow, steps) do
     category = workflow["definition"]["category"]
     keys = Enum.uniq(Enum.flat_map(steps, &Relay.Ingest.send_mode_keys(category, &1.channel)))
 
-    read = fn _status ->
-      %{settings: Relay.Ingest.settings(keys), platform_product: Relay.Ingest.platform_product()}
-    end
+    read = fn _status -> %{settings: Relay.Ingest.settings(keys)} end
 
     with {:ok, tenant} <- Relay.Ingest.in_event_scope(scope, read),
          {:ok, mode} <- Relay.Ingest.installation_send_mode() do
       {:ok, Map.put(tenant, :installation_mode, mode)}
     else
       {:error, _reason} -> {:error, unavailable("the send mode could not be read")}
-    end
-  end
-
-  # E-10
-  # E-11
-  # TN-9
-  defp message_class(product, declared) do
-    case Relay.Access.message_class(product, Map.get(@classes, declared)) do
-      nil -> declared
-      class -> Atom.to_string(class)
     end
   end
 

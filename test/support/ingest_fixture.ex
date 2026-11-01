@@ -51,7 +51,7 @@ defmodule RelayTest.IngestFixture do
     Jason.decode!(conn.resp_body)
   end
 
-  @doc "A workflow definition with one channel step per channel."
+  @doc "A workflow definition with one channel step per channel; `message_class: nil` leaves the class out."
   @spec definition(keyword()) :: map()
   def definition(opts \\ []) do
     steps =
@@ -76,6 +76,7 @@ defmodule RelayTest.IngestFixture do
         }),
       "steps" => steps
     }
+    |> Map.reject(fn {key, value} -> key == "message_class" and value == nil end)
   end
 
   @doc "Creates a workflow through the API and publishes its draft through the gate."

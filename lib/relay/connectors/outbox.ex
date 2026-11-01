@@ -2,13 +2,15 @@ defmodule Relay.Connectors.Outbox do
   @moduledoc """
   The outbox source of an ingest connector (T-41): a Broadway producer that reads the producer's transactional outbox table in its own PostgreSQL database, and the acknowledger that records the outcome there. It needs nothing beyond PostgreSQL (T-7).
 
-  The table belongs to the producer and has at least these columns; Relay reads and updates rows and never deletes one:
+  The table belongs to the producer and has at least the columns of the outbox contract, `contracts/connectors/outbox.sql` (T-95); Relay reads and updates rows and never deletes one:
 
       id                  bigint PRIMARY KEY
       payload             jsonb NOT NULL      -- one structured mode CloudEvent
       relay_claimed_until timestamptz NULL
       relayed_at          timestamptz NULL
       relay_outcome       text NULL
+
+  When the source connects, the table is compared with the contract (`Relay.Connectors.OutboxStore.check/2`). A table that is missing or whose columns or types differ is never read: the source logs the differences as an error and checks again at every poll, so a corrected table is taken up without a restart.
 
   Rows are taken by state, not by an id cursor (L-42): a batch is the oldest rows with `relayed_at IS NULL` whose claim is absent or expired, claimed for `lease_s` seconds with `FOR UPDATE SKIP LOCKED`, so several nodes share one table without taking the same row twice. When a row's event is accepted, `relayed_at` is set and `relay_outcome` is `accepted`; when it can never be accepted, `relayed_at` is set and `relay_outcome` is the error code. A row whose message is neither (a node stopped, the outcome could not be written) keeps its claim until it expires and is taken again; the idempotency key of its event makes that harmless. Times are the source database's clock.
 
@@ -131,7 +133,8 @@ defmodule Relay.Connectors.Outbox do
        lease_s: opts[:lease_s],
        demand: 0,
        timer: nil,
-       draining: false
+       draining: false,
+       shape: :unchecked
      }}
   end
 
@@ -150,8 +153,31 @@ defmodule Relay.Connectors.Outbox do
 
   defp fetch(%{draining: true} = state), do: {:noreply, [], state}
   defp fetch(%{demand: 0} = state), do: {:noreply, [], state}
+  defp fetch(%{shape: :ok} = state), do: claim(state)
 
+  # T-95
   defp fetch(state) do
+    case OutboxStore.check(state.conn, state.table) do
+      :ok ->
+        claim(%{state | shape: :ok})
+
+      {:mismatch, problems} ->
+        if problems != state.shape do
+          Logger.error("outbox table does not match contracts/connectors/outbox.sql",
+            table: state.table,
+            problems: Enum.join(problems, "; ")
+          )
+        end
+
+        {:noreply, [], schedule(%{state | shape: problems}, state.poll_ms)}
+
+      {:error, reason} ->
+        Logger.warning("outbox source unavailable", reason: inspect(reason.__struct__))
+        {:noreply, [], schedule(state, state.poll_ms)}
+    end
+  end
+
+  defp claim(state) do
     limit = min(state.demand, state.batch_size)
 
     rows =

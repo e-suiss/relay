@@ -4,6 +4,7 @@ defmodule Relay.SecretFilesTest do
   import ExUnit.CaptureLog
 
   alias Relay.Config.SecretFiles
+  alias Relay.Connectors.Connector
   alias Relay.Redacted
 
   @moduletag :tmp_dir
@@ -102,6 +103,45 @@ defmodule Relay.SecretFilesTest do
 
       assert Enum.sort(Keyword.keys(env[SecretFiles])) == Enum.sort(SecretFiles.names())
       assert :ok = Relay.Config.validate!(env, %{}, production?: true)
+    end
+
+    test "T-96: production reads connectors from RELAY_CONNECTORS_FILE, without a password",
+         %{tmp_dir: dir} do
+      assert production_env(dir)[Relay.Connectors][:connectors] == []
+
+      password_file = Path.join(dir, "shop_db")
+      File.write!(password_file, "plain-shop-marker\n")
+      file = Path.join(dir, "connectors.json")
+
+      connector = %{
+        "name" => "orders",
+        "source" => "outbox",
+        "access_tenant_id" => "acc_1",
+        "access_client_id" => "app_1",
+        "options" => %{
+          "hostname" => "db.example.com",
+          "database" => "shop",
+          "username" => "relay_reader",
+          "password_file" => password_file,
+          "table" => "public.relay_outbox"
+        }
+      }
+
+      File.write!(file, Jason.encode!(%{"connectors" => [connector]}))
+      env = with_env(%{"RELAY_CONNECTORS_FILE" => file}, fn -> production_env(dir) end)
+
+      assert [%Connector{name: "orders", producer: {_outbox, options}}] =
+               env[Relay.Connectors][:connectors]
+
+      assert options[:password_file] == password_file
+      refute inspect(env, limit: :infinity, printable_limit: :infinity) =~ "plain-shop-marker"
+      assert :ok = Relay.Config.validate!(env, %{}, production?: true)
+
+      File.write!(file, Jason.encode!(%{"connectors" => [Map.put(connector, "retry", true)]}))
+
+      assert_raise Relay.Config.Error, ~r/RELAY_CONNECTORS_FILE/, fn ->
+        with_env(%{"RELAY_CONNECTORS_FILE" => file}, fn -> production_env(dir) end)
+      end
     end
 
     test "TN-67: a production node refuses a plain database password or object store key", %{

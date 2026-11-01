@@ -230,10 +230,10 @@ defmodule Relay.Ingest.Request do
 
   # API-24
   defp subtype_rule(step, "otp_oob") when step.channel == "email",
-    do: Map.put(step, :skip, {"security_subtype", "security.otp_oob_email"})
+    do: Map.put(step, :skip, {"otp_channel_forbidden", "channel_policy.otp_channel_forbidden"})
 
   defp subtype_rule(step, "email_verification") when step.channel != "email",
-    do: Map.put(step, :skip, {"security_subtype", "security.email_verification_channel"})
+    do: Map.put(step, :skip, {"channel_policy", "channel_policy.email_verification_only"})
 
   defp subtype_rule(step, _subtype), do: Map.put(step, :skip, nil)
 

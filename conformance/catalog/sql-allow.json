@@ -160,5 +160,17 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "API-82 (2), TN-47: committed relay_fn workflow functions are replaced as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261110000200_create_preference_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "INV-6, PC-57 (5), PC-59 (1): the append-only triggers of the preference change log and the consent copy reject TRUNCATE"
+  },
+  {
+    "path": "priv/repo/migrations/20261110000800_use_dictionary_cancel_rule_ids.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "DS-47 (1), API-58: committed relay_fn cancellation functions are replaced as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   }
 ]

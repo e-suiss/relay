@@ -269,3 +269,24 @@ CeDataschema:
   schema:
     type: string
     format: uri
+CategoryKey:
+  name: category_key
+  in: path
+  description: Category key.
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/CategoryKey"
+SubtenantId:
+  name: subtenant_id
+  in: path
+  description: Subtenant identifier.
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_stn"
+SuppressionId:
+  name: suppression_id
+  in: path
+  description: Suppression identifier.
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_sup"

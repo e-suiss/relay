@@ -100,7 +100,7 @@ defmodule Relay.Delivery.TombstoneTest do
       assert row["cancelled"] == 1
       assert row["has_more"] == true
 
-      rule = "cancelled:" <> Relay.Id.to_string(cancellation_id)
+      rule = "cancel.request:" <> Relay.Id.to_string(cancellation_id)
       [{_first_text, first_id}] = delivery_ids(ctx.token, first)
       assert state(ctx.scope, first_id) == {"cancelled", rule}
 
@@ -126,7 +126,7 @@ defmodule Relay.Delivery.TombstoneTest do
       [{second_text, second_id}] = delivery_ids(ctx.token, second)
 
       assert run!(second_text) == :ok
-      assert {"cancelled", "cancelled:" <> _} = state(ctx.scope, second_id)
+      assert {"cancelled", "cancel.request:" <> _} = state(ctx.scope, second_id)
     end
 
     test "API-58: a run without a tombstone goes on to the gate", ctx do

@@ -64,7 +64,7 @@ defmodule Relay.Channels.Breaker do
 
     case admit(provider, now, row) do
       {:reject, after_ms} ->
-        {{:reject, :breaker_open, after_ms, "breaker.provider." <> target.provider}, ticket}
+        {{:reject, :breaker_open, after_ms, "breaker.provider:" <> target.provider}, ticket}
 
       provider_decision ->
         admit_tenant(ticket, provider, provider_decision, tenant, now)

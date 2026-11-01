@@ -9,8 +9,8 @@ defmodule Relay.Schema.SchemaSecurityTest do
                           installation kill_switch_generation load_shed_events operator_sessions
                           operators partition_policies schema_migrations singleton_tasks)
   @append_only ~w(audit_checkpoint_publications audit_checkpoints audit_leaves audit_log
-                  cancellations dataset_versions delivery_events erasure_log load_shed_events
-                  usage_records
+                  cancellations consents dataset_versions delivery_events erasure_log
+                  load_shed_events preference_changes usage_records
                   waitpoint_responders waitpoint_responses waitpoint_response_rejections
                   waitpoint_unmatched_events)
   @shared_read ~w(dataset_active dataset_versions kill_switches)

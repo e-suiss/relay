@@ -123,7 +123,7 @@ defmodule Relay.Ingest.Accept do
     Map.merge(delivery, %{
       decision: :skip,
       decision_reason: "scope_mismatch",
-      decision_rule_id: "TN-5",
+      decision_rule_id: "scope.mismatch",
       deferred_until: nil
     })
   end

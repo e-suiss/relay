@@ -223,6 +223,20 @@ channels:
         "$ref": "#/components/messages/audit.tenant_key.registered"
       audit.waitpoint.cancelled:
         "$ref": "#/components/messages/audit.waitpoint.cancelled"
+      audit.category.created:
+        "$ref": "#/components/messages/audit.category.created"
+      audit.category.updated:
+        "$ref": "#/components/messages/audit.category.updated"
+      audit.category.lock_changed:
+        "$ref": "#/components/messages/audit.category.lock_changed"
+      audit.category.archived:
+        "$ref": "#/components/messages/audit.category.archived"
+      audit.category_subtenant_setting.changed:
+        "$ref": "#/components/messages/audit.category_subtenant_setting.changed"
+      audit.suppression.added:
+        "$ref": "#/components/messages/audit.suppression.added"
+      audit.suppression.lifted:
+        "$ref": "#/components/messages/audit.suppression.lifted"
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
@@ -250,6 +264,8 @@ channels:
         "$ref": "#/components/messages/access.user.reactivated"
       access.user.deleted:
         "$ref": "#/components/messages/access.user.deleted"
+      access.consent.updated:
+        "$ref": "#/components/messages/access.consent.updated"
   accessOutbound:
     address: null
     title: accessOutbound
@@ -376,6 +392,13 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.tenant_key.destroyed"
       - "$ref": "#/channels/auditLog/messages/audit.tenant_key.registered"
       - "$ref": "#/channels/auditLog/messages/audit.waitpoint.cancelled"
+      - "$ref": "#/channels/auditLog/messages/audit.category.created"
+      - "$ref": "#/channels/auditLog/messages/audit.category.updated"
+      - "$ref": "#/channels/auditLog/messages/audit.category.lock_changed"
+      - "$ref": "#/channels/auditLog/messages/audit.category.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.category_subtenant_setting.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.suppression.added"
+      - "$ref": "#/channels/auditLog/messages/audit.suppression.lifted"
   receiveAccessInbound:
     action: receive
     channel:
@@ -392,6 +415,7 @@ operations:
       - "$ref": "#/channels/accessInbound/messages/access.user.suspended"
       - "$ref": "#/channels/accessInbound/messages/access.user.reactivated"
       - "$ref": "#/channels/accessInbound/messages/access.user.deleted"
+      - "$ref": "#/channels/accessInbound/messages/access.consent.updated"
   sendAccessOutbound:
     action: send
     channel:
@@ -3636,6 +3660,214 @@ components:
       x-relay-stage: 3
       x-relay-choice: true
       x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    audit.category.created:
+      name: category.created
+      title: category.created
+      summary: "A category was created with its message class."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: category
+      x-relay-surface: audit
+      x-relay-stage: 4
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.category.updated:
+      name: category.updated
+      title: category.updated
+      summary: "A category's name, enabled state, channel defaults, expiry, frequency or digest setting changed."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: category
+      x-relay-surface: audit
+      x-relay-stage: 4
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.category.lock_changed:
+      name: category.lock_changed
+      title: category.lock_changed
+      summary: "A category was locked or unlocked."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: category
+      x-relay-surface: audit
+      x-relay-stage: 4
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.category.archived:
+      name: category.archived
+      title: category.archived
+      summary: "A category was archived; the row stays."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: category
+      x-relay-surface: audit
+      x-relay-stage: 4
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.category_subtenant_setting.changed:
+      name: category_subtenant_setting.changed
+      title: category_subtenant_setting.changed
+      summary: "A subtenant's overrides of a category were created or replaced."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: category
+      x-relay-surface: audit
+      x-relay-stage: 4
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.suppression.added:
+      name: suppression.added
+      title: suppression.added
+      summary: "An address was suppressed on a channel by hand."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: suppression
+      x-relay-surface: audit
+      x-relay-stage: 4
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.suppression.lifted:
+      name: suppression.lifted
+      title: suppression.lifted
+      summary: "A suppression was lifted with a reason, by the tenant or by a tenant administrator with step-up."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: suppression
+      x-relay-surface: audit
+      x-relay-stage: 4
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    access.consent.updated:
+      name: consent.updated
+      title: consent.updated
+      summary: "A commercial consent of an Access subject changed; Relay records it idempotently in its consent copy and ignores an older sequence."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: consent.updated
+                data:
+                  type: object
+                  required:
+                    - sub
+                    - access_tenant_id
+                    - channel
+                    - status
+                    - source
+                    - occurred_at
+                    - sequence
+                  properties:
+                    sub:
+                      type: string
+                      description: Pairwise Access subject of the subscriber for the Relay client.
+                      maxLength: 256
+                    access_tenant_id:
+                      type: string
+                      description: Access tenant the consent belongs to.
+                      maxLength: 256
+                    access_organization_id:
+                      type: string
+                      description: "Access organization that is the brand of the consent; absent for the tenant itself."
+                      maxLength: 256
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    status:
+                      type: string
+                      enum:
+                        - NONE
+                        - PENDING
+                        - ACTIVE
+                        - REVOKED
+                        - EXPIRED
+                    consent_kind:
+                      "$ref": "../openapi/components/schemas.yaml#/ConsentKind"
+                    recipient_type:
+                      "$ref": "../openapi/components/schemas.yaml#/LegalType"
+                    source:
+                      type: string
+                      maxLength: 64
+                    occurred_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    text_version_digest:
+                      type: string
+                      description: Hex SHA-256 of the consent text version the subject saw.
+                      pattern: "^[0-9a-f]{64}$"
+                    evidence:
+                      type: object
+                      properties:
+                        ip:
+                          type: string
+                          maxLength: 64
+                        device:
+                          type: string
+                          maxLength: 512
+                      additionalProperties: false
+                    iys_transaction_id:
+                      type: string
+                      maxLength: 128
+                    sequence:
+                      type: integer
+                      minimum: 0
+                      description: Monotonic per subject; an event with an older sequence than the recorded one is ignored.
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 4
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
     access.delivery.paused:
       name: delivery.paused
       title: delivery.paused
@@ -3700,6 +3932,12 @@ x-relay-event-names:
   - audit_log.read
   - blind_index_key.registered
   - blind_index_key.rotation_started
+  - category.archived
+  - category.created
+  - category.lock_changed
+  - category.updated
+  - category_subtenant_setting.changed
+  - consent.updated
   - cross_tenant.queried
   - dataset.activated
   - dataset.version_published
@@ -3754,6 +3992,8 @@ x-relay-event-names:
   - subtenant.updated
   - support_delegation.granted
   - support_delegation.revoked
+  - suppression.added
+  - suppression.lifted
   - tenant.closed
   - tenant.created
   - tenant.defaults_updated

@@ -527,7 +527,7 @@ defmodule Relay.Api.Events do
     do: {:skip, "subscriber_suspended", "subscriber.suspended"}
 
   defp decision(%{skip: {reason, rule}}, _row, _mismatch?, _mode), do: {:skip, reason, rule}
-  defp decision(_step, _row, true, _mode), do: {:skip, "scope_mismatch", "tenancy.scope_mismatch"}
+  defp decision(_step, _row, true, _mode), do: {:skip, "scope_mismatch", "scope.mismatch"}
   defp decision(_step, _row, _mismatch?, :dry_run), do: :none
   defp decision(_step, _row, _mismatch?, :off), do: {:skip, "send_mode_off", "send_mode.off"}
 
@@ -536,7 +536,7 @@ defmodule Relay.Api.Events do
       {:ok, state} when is_map_key(row, state) ->
         if row[state] == "active",
           do: {:send, nil, nil},
-          else: {:skip, "no_address", "recipient.no_address"}
+          else: {:skip, "no_address", "channel.no_address"}
 
       _ ->
         {:send, nil, nil}

@@ -232,6 +232,24 @@ Id_tpl:
   pattern: "^tpl_[0-7][0-9a-hjkmnp-tv-z]{25}$"
   examples:
     - tpl_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_ctg:
+  type: string
+  description: "Category identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^ctg_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - ctg_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_cns:
+  type: string
+  description: "Consent copy record identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^cns_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - cns_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_sup:
+  type: string
+  description: "Suppression identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^sup_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - sup_01j9zq3k4m5n6p7q8r9s0t1v2w
 RecipientId:
   description: "Relay identifier of a recipient: sub_ for a subscriber, agt_ for an agent."
   oneOf:
@@ -526,7 +544,7 @@ Actor:
         - human
         - system
         - agent
-      description: Sender type, independent of the message class.
+      description: "Sender type, independent of the message class. A request made with agent credentials is always agent and the request cannot change it; otherwise the default is system."
     id:
       "$ref": "#/ExternalId"
     name:
@@ -761,6 +779,11 @@ AcceptedNotification:
       description: "Present when the dedup_key matched an existing notification for this recipient: the event that created it. notification_id is then the existing notification."
       x-relay-choice: true
       x-relay-choice-note: "The spec says a duplicate returns the existing notification id and duplicate_of; the contract makes duplicate_of the original event id."
+    decisions:
+      type: array
+      description: "Present only in a dry_run response: the decision Relay would make for each channel of this notification. Nothing is sent in dry_run."
+      items:
+        "$ref": "#/DryRunDecision"
   additionalProperties: false
 WorkflowRef:
   type: object
@@ -2727,4 +2750,743 @@ Role:
       description: "installation_operator 3 > tenant_admin 2 > tenant_operator 1."
     description:
       type: string
+  additionalProperties: false
+CategoryState:
+  type: string
+  enum:
+    - active
+    - archived
+PreferenceValue:
+  type: string
+  enum:
+    - opt_in
+    - opt_out
+    - unset
+  description: "Stored preference value; unset falls back to the next level."
+PreferenceLevel:
+  type: string
+  enum:
+    - category_channel
+    - channel
+    - workflow
+    - scope_key
+PreferenceSource:
+  type: string
+  enum:
+    - user
+    - tenant
+    - category_default
+    - class_default
+    - locked
+  description: "Where the effective value of a cell comes from: the subscriber's own switch, the tenant (an opt_out it wrote or the category being turned off), the category's channel default, the class default matrix, or the lock of a locked category."
+ConsentStatus:
+  type: string
+  enum:
+    - none
+    - pending
+    - active
+    - revoked
+    - expired
+  description: "Status of a commercial consent as Access records it. none means never asked and is not revoked; a revoked record of any source wins."
+ConsentKind:
+  type: string
+  enum:
+    - explicit_opt_in
+    - soft_opt_in
+    - legitimate_interest
+    - none
+SuppressionReason:
+  type: string
+  enum:
+    - hard_bounce
+    - complaint
+    - invalid
+    - soft_bounce
+    - manual
+FrequencyFate:
+  type: string
+  enum:
+    - drop
+    - defer
+    - digest
+    - inbox_only
+  description: "What happens to a notification over the frequency limit. Class defaults: marketing drop, operational defer, social digest."
+SuppressionState:
+  type: string
+  enum:
+    - active
+    - expired
+    - lifted
+  description: "active until lifted or, for a suppression with expires_at, until that time passes (expired)."
+  x-relay-choice: true
+  x-relay-choice-note: "Derived from lifted_at and expires_at; the names are chosen by the contract."
+CategoryKey:
+  type: string
+  description: Tenant category key, unique in the environment.
+  pattern: "^[a-z][a-z0-9_]{0,63}$"
+  examples:
+    - order_updates
+ChannelDefaults:
+  type: object
+  description: "Default of each channel for subscribers who set nothing. A channel left out falls back to the class default matrix. A marketing category may not default email, sms, voice or whatsapp to on."
+  propertyNames:
+    "$ref": "#/Channel"
+  additionalProperties:
+    type: string
+    enum:
+      - "on"
+      - "off"
+ChannelDefaultsPatch:
+  type: object
+  description: "Merge patch of channel defaults: on or off sets a channel, null removes it so it falls back to the class default matrix."
+  propertyNames:
+    "$ref": "#/Channel"
+  additionalProperties:
+    oneOf:
+      - type: string
+        enum:
+          - "on"
+          - "off"
+      - type: "null"
+CategoryFrequency:
+  type: object
+  description: "Frequency limit of a category: at most limit notifications per subscriber in each window. Only marketing, social and operational categories have one."
+  required:
+    - limit
+    - window
+    - fate
+  properties:
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 10000
+    window:
+      description: "ISO 8601 duration from PT1H to P7D."
+      "$ref": "#/Duration"
+    fate:
+      "$ref": "#/FrequencyFate"
+  additionalProperties: false
+Category:
+  type: object
+  description: "Tenant category. A workflow names its category, and the workflow's message class must be the category's class."
+  required:
+    - object
+    - id
+    - key
+    - name
+    - message_class
+    - locked
+    - enabled
+    - channel_defaults
+    - default_expires_in
+    - frequency
+    - digest_allowed
+    - state
+    - builtin
+    - version
+    - created_at
+    - updated_at
+    - archived_at
+  properties:
+    object:
+      type: string
+      const: category
+    id:
+      "$ref": "#/Id_ctg"
+    key:
+      "$ref": "#/CategoryKey"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    message_class:
+      "$ref": "#/MessageClass"
+    locked:
+      type: boolean
+      description: "A locked category keeps at least one channel open for every subscriber. Always true for security."
+    enabled:
+      type: boolean
+      description: "false turns the category off for the whole tenant."
+    channel_defaults:
+      "$ref": "#/ChannelDefaults"
+    default_expires_in:
+      description: "Expiry of notifications of this category, PT1M to P30D. null applies the class default: transactional PT6H, operational PT24H, social PT48H, marketing P2D, action_required PT24H, system PT1H. Never set for security."
+      oneOf:
+        - "$ref": "#/Duration"
+        - type: "null"
+    frequency:
+      oneOf:
+        - "$ref": "#/CategoryFrequency"
+        - type: "null"
+    digest_allowed:
+      type: boolean
+      description: "Whether subscribers may choose a digest for this operational category. Social categories are always digestible."
+    state:
+      "$ref": "#/CategoryState"
+    builtin:
+      type: boolean
+      description: "true for the built-in security category of the Access platform tenant; it cannot be archived."
+    version:
+      type: integer
+      minimum: 1
+      description: "Optimistic concurrency version; the ETag carries it."
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+    archived_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+CategoryList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Category"
+CategoryCreate:
+  type: object
+  description: "Create a category. message_class is fixed here. locked defaults to false (always true for security), enabled to true, channel_defaults to empty and digest_allowed to false; default_expires_in and frequency left out apply the class defaults."
+  required:
+    - key
+    - name
+    - message_class
+  properties:
+    key:
+      "$ref": "#/CategoryKey"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    message_class:
+      "$ref": "#/MessageClass"
+    locked:
+      type: boolean
+    enabled:
+      type: boolean
+    channel_defaults:
+      "$ref": "#/ChannelDefaults"
+    default_expires_in:
+      description: "ISO 8601 duration from PT1M to P30D; not allowed for security."
+      "$ref": "#/Duration"
+    frequency:
+      "$ref": "#/CategoryFrequency"
+    digest_allowed:
+      type: boolean
+      description: Only operational categories may allow a digest.
+  additionalProperties: false
+CategoryPatch:
+  type: object
+  description: "JSON Merge Patch of a category. key, message_class and builtin cannot be changed."
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    locked:
+      type: boolean
+    enabled:
+      type: boolean
+    channel_defaults:
+      "$ref": "#/ChannelDefaultsPatch"
+    default_expires_in:
+      description: "ISO 8601 duration from PT1M to P30D; null applies the class default."
+      oneOf:
+        - "$ref": "#/Duration"
+        - type: "null"
+    frequency:
+      description: "Written as a whole object; null removes the limit."
+      oneOf:
+        - "$ref": "#/CategoryFrequency"
+        - type: "null"
+    digest_allowed:
+      type: boolean
+  additionalProperties: false
+CategorySubtenantSetting:
+  type: object
+  description: "Overrides of a category for one subtenant. A null override inherits the category's value."
+  required:
+    - object
+    - category
+    - subtenant_id
+    - enabled
+    - channel_defaults
+    - frequency
+    - default_expires_in
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: category_subtenant_setting
+    category:
+      "$ref": "#/CategoryKey"
+    subtenant_id:
+      "$ref": "#/Id_stn"
+    enabled:
+      oneOf:
+        - type: boolean
+        - type: "null"
+    channel_defaults:
+      oneOf:
+        - "$ref": "#/ChannelDefaults"
+        - type: "null"
+    frequency:
+      oneOf:
+        - "$ref": "#/CategoryFrequency"
+        - type: "null"
+    default_expires_in:
+      oneOf:
+        - "$ref": "#/Duration"
+        - type: "null"
+    version:
+      type: integer
+      minimum: 0
+      description: "Version of the setting; 0 when the subtenant has none."
+    created_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    updated_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+CategorySubtenantSettingWrite:
+  type: object
+  description: "Full replacement of a subtenant's overrides; an absent or null field inherits the category's value."
+  properties:
+    enabled:
+      oneOf:
+        - type: boolean
+        - type: "null"
+    channel_defaults:
+      oneOf:
+        - "$ref": "#/ChannelDefaults"
+        - type: "null"
+    frequency:
+      oneOf:
+        - "$ref": "#/CategoryFrequency"
+        - type: "null"
+    default_expires_in:
+      description: "ISO 8601 duration from PT1M to P30D; not allowed for security."
+      oneOf:
+        - "$ref": "#/Duration"
+        - type: "null"
+  additionalProperties: false
+PreferenceCell:
+  type: object
+  description: "One category and channel of a subscriber. web_push follows push and voice follows sms."
+  required:
+    - category
+    - channel
+    - value
+    - effective
+    - source
+  properties:
+    category:
+      "$ref": "#/CategoryKey"
+    channel:
+      "$ref": "#/Channel"
+    value:
+      "$ref": "#/PreferenceValue"
+    effective:
+      type: boolean
+      description: Whether the channel is open for this category after every level is applied.
+    source:
+      "$ref": "#/PreferenceSource"
+  additionalProperties: false
+ChannelPreference:
+  type: object
+  description: Channel-level switch across all categories.
+  required:
+    - channel
+    - value
+  properties:
+    channel:
+      "$ref": "#/Channel"
+    value:
+      "$ref": "#/PreferenceValue"
+  additionalProperties: false
+WorkflowPreference:
+  type: object
+  required:
+    - workflow
+    - value
+  properties:
+    workflow:
+      "$ref": "#/WorkflowKey"
+    value:
+      "$ref": "#/PreferenceValue"
+  additionalProperties: false
+ScopeKeyPreference:
+  type: object
+  required:
+    - scope_key
+    - value
+  properties:
+    scope_key:
+      type: string
+      minLength: 1
+      maxLength: 256
+    value:
+      "$ref": "#/PreferenceValue"
+  additionalProperties: false
+TimeRange:
+  type: object
+  description: "Weekly time range in the subscriber's time zone. An end before the start crosses midnight; start and end differ."
+  required:
+    - day
+    - start
+    - end
+  properties:
+    day:
+      type: string
+      enum:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+        - sat
+        - sun
+    start:
+      type: string
+      pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+      examples:
+        - "22:00"
+    end:
+      type: string
+      pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+      examples:
+        - "07:30"
+  additionalProperties: false
+DigestChoices:
+  type: object
+  description: "Digest choice by category key. Only social categories and operational categories that allow a digest may be chosen."
+  propertyNames:
+    "$ref": "#/CategoryKey"
+  additionalProperties:
+    type: string
+    enum:
+      - instant
+      - digest
+PreferenceProfile:
+  type: object
+  description: "The subscriber's delivery profile. Only the subscriber writes it."
+  required:
+    - quiet_hours
+    - schedule
+    - dnd_until
+    - quiet_hours_email
+    - digest
+  properties:
+    quiet_hours:
+      type: array
+      items:
+        "$ref": "#/TimeRange"
+      maxItems: 28
+    schedule:
+      type: array
+      description: Weekly availability.
+      items:
+        "$ref": "#/TimeRange"
+      maxItems: 28
+    dnd_until:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    quiet_hours_email:
+      type: boolean
+      description: "Email is outside quiet hours unless this is true."
+    digest:
+      "$ref": "#/DigestChoices"
+  additionalProperties: false
+SubscriberPreferences:
+  type: object
+  description: "A subscriber's preferences: one cell for every active category other than system and every channel, so no cell is undefined, beside the channel, workflow and scope key switches and the profile."
+  required:
+    - object
+    - subscriber_id
+    - cells
+    - channels
+    - workflows
+    - scope_keys
+    - profile
+  properties:
+    object:
+      type: string
+      const: subscriber_preferences
+    subscriber_id:
+      "$ref": "#/Id_sub"
+    cells:
+      type: array
+      items:
+        "$ref": "#/PreferenceCell"
+    channels:
+      type: array
+      items:
+        "$ref": "#/ChannelPreference"
+    workflows:
+      type: array
+      items:
+        "$ref": "#/WorkflowPreference"
+    scope_keys:
+      type: array
+      items:
+        "$ref": "#/ScopeKeyPreference"
+    profile:
+      "$ref": "#/PreferenceProfile"
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "subscriber_id is added so a client can match the response to the subscriber."
+PreferenceWrite:
+  type: object
+  description: "One preference switch. category_channel needs category and channel; channel needs channel only; workflow needs workflow; scope_key needs scope_key."
+  required:
+    - level
+    - value
+  properties:
+    level:
+      "$ref": "#/PreferenceLevel"
+    category:
+      "$ref": "#/CategoryKey"
+    channel:
+      "$ref": "#/Channel"
+    workflow:
+      "$ref": "#/WorkflowKey"
+    scope_key:
+      type: string
+      minLength: 1
+      maxLength: 256
+    value:
+      "$ref": "#/PreferenceValue"
+  additionalProperties: false
+PreferencesPatch:
+  type: object
+  description: "Preference writes of the tenant on behalf of a subscriber; the tenant may only write opt_out."
+  required:
+    - preferences
+  properties:
+    preferences:
+      type: array
+      items:
+        "$ref": "#/PreferenceWrite"
+      minItems: 1
+      maxItems: 100
+  additionalProperties: false
+PreferenceProfileWrite:
+  type: object
+  description: "Profile fields to write; an absent field is untouched and digest is replaced as a whole."
+  properties:
+    quiet_hours:
+      type: array
+      items:
+        "$ref": "#/TimeRange"
+      maxItems: 28
+    schedule:
+      type: array
+      items:
+        "$ref": "#/TimeRange"
+      maxItems: 28
+    dnd_until:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    quiet_hours_email:
+      type: boolean
+    digest:
+      "$ref": "#/DigestChoices"
+  additionalProperties: false
+MyPreferencesPatch:
+  type: object
+  description: "The subscriber's own preference writes and profile; at least one of them."
+  minProperties: 1
+  properties:
+    preferences:
+      type: array
+      items:
+        "$ref": "#/PreferenceWrite"
+      minItems: 1
+      maxItems: 100
+    profile:
+      "$ref": "#/PreferenceProfileWrite"
+  additionalProperties: false
+Consent:
+  type: object
+  description: "Read-only copy of a commercial consent recorded by Access for one brand and channel."
+  required:
+    - object
+    - id
+    - brand
+    - channel
+    - status
+    - consent_kind
+    - recipient_type
+    - source
+    - occurred_at
+  properties:
+    object:
+      type: string
+      const: consent
+    id:
+      "$ref": "#/Id_cns"
+    brand:
+      description: "Subtenant that is the brand of the consent; null is the tenant itself."
+      oneOf:
+        - "$ref": "#/Id_stn"
+        - type: "null"
+    channel:
+      "$ref": "#/Channel"
+    status:
+      "$ref": "#/ConsentStatus"
+    consent_kind:
+      oneOf:
+        - "$ref": "#/ConsentKind"
+        - type: "null"
+    recipient_type:
+      oneOf:
+        - "$ref": "#/LegalType"
+        - type: "null"
+    source:
+      type: string
+      description: Where the consent was given, as Access names it.
+      maxLength: 64
+    occurred_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+ConsentList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Consent"
+Suppression:
+  type: object
+  description: "An address that Relay does not deliver to on one channel. The address is held only as a keyed digest and is never returned."
+  required:
+    - object
+    - id
+    - channel
+    - reason
+    - state
+    - expires_at
+    - created_at
+    - lifted_at
+    - lifted_by
+    - lift_reason
+  properties:
+    object:
+      type: string
+      const: suppression
+    id:
+      "$ref": "#/Id_sup"
+    channel:
+      "$ref": "#/Channel"
+    reason:
+      "$ref": "#/SuppressionReason"
+    state:
+      "$ref": "#/SuppressionState"
+    expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+    lifted_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    lifted_by:
+      description: Reference of the actor that lifted the suppression.
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+    lift_reason:
+      oneOf:
+        - type: string
+          maxLength: 2000
+        - type: "null"
+  additionalProperties: false
+SuppressionList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Suppression"
+SuppressionCreate:
+  type: object
+  description: "Manual suppression of an address on one channel."
+  required:
+    - channel
+    - address
+  properties:
+    channel:
+      "$ref": "#/Channel"
+    address:
+      type: string
+      description: "The email address, E.164 phone number or device token to suppress. It is digested and never stored or returned in clear."
+      minLength: 1
+      maxLength: 512
+      writeOnly: true
+    reason:
+      type: string
+      enum:
+        - manual
+        - invalid
+      default: manual
+    expires_at:
+      description: "Future time the suppression ends; only for reason manual."
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+SuppressionLift:
+  type: object
+  required:
+    - reason
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 2000
+  additionalProperties: false
+DryRunDecision:
+  type: object
+  description: "The decision Relay would make for one channel in dry_run."
+  required:
+    - channel
+    - decision
+    - reason
+    - rule_id
+    - deferred_until
+  properties:
+    channel:
+      "$ref": "#/Channel"
+    decision:
+      type: string
+      enum:
+        - send
+        - skip
+        - defer
+    reason:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+    rule_id:
+      oneOf:
+        - "$ref": "#/RuleId"
+        - type: "null"
+    deferred_until:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
   additionalProperties: false

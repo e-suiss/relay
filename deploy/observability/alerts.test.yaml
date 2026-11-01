@@ -153,3 +153,20 @@ tests:
       - eval_time: 8d2h
         alertname: RelayProjectionDifference
         exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'relay_frequency_counter_unavailable_total'
+        values: "0 0 0 1 2 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: RelayFrequencyCounterUnavailable
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: RelayFrequencyCounterUnavailable
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: PC-50}
+            exp_annotations:
+              summary: "The frequency counter is unavailable and frequency caps fail open"
+      - eval_time: 15m
+        alertname: RelayFrequencyCounterUnavailable
+        exp_alerts: []

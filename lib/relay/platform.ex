@@ -20,6 +20,7 @@ defmodule Relay.Platform do
   alias Relay.Platform.Queue
   alias Relay.Platform.RateLimit
   alias Relay.Platform.Signal
+  alias Relay.Platform.SlidingSet
   alias Relay.Platform.Store
   alias Relay.Platform.Valkey
   alias Relay.Platform.VirtualClock
@@ -291,6 +292,28 @@ defmodule Relay.Platform do
           {:ok, {non_neg_integer(), non_neg_integer()}} | {:error, Relay.Error.t()}
   def rate_ring(scope, limit_key, cost, current, baseline),
     do: RateLimit.ring(scope, limit_key, cost, current, baseline)
+
+  # PC-50
+  # PC-58 (6)
+  @doc "Counts a sliding set's members within a window, leaving one out; see `Relay.Platform.SlidingSet.count/6`."
+  @spec sliding_set_count(
+          Relay.Scope.t(),
+          SlidingSet.path(),
+          pos_integer(),
+          String.t(),
+          pos_integer(),
+          [SlidingSet.option()]
+        ) :: {:ok, SlidingSet.count()} | {:error, Relay.Error.t()}
+  def sliding_set_count(scope, path, window_ms, member, limit, opts \\ []),
+    do: SlidingSet.count(scope, path, window_ms, member, limit, opts)
+
+  @doc "Adds a member to a sliding set once; see `Relay.Platform.SlidingSet.add/5`."
+  @spec sliding_set_add(Relay.Scope.t(), SlidingSet.path(), pos_integer(), String.t(), [
+          SlidingSet.option()
+        ]) ::
+          {:ok, non_neg_integer()} | {:error, Relay.Error.t()}
+  def sliding_set_add(scope, path, window_ms, member, opts \\ []),
+    do: SlidingSet.add(scope, path, window_ms, member, opts)
 
   # T-20 (5)
   # T-91 (1)

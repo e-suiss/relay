@@ -5689,6 +5689,30 @@
   },
   {
     "acceptance": "pending",
+    "id": "PC-57",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "Category, preference and sender kind data model",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-58",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "Operation of the policy lattice: pure core, time zone chain, deferral, frequency counter and priority ceiling",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-59",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "Consent copy and suppression records",
+    "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
     "id": "DS-1",
     "section": "§14",
     "status": "frozen_product",
@@ -6054,6 +6078,14 @@
     "status": "frozen_technical",
     "title": "",
     "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-47",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "Rule id format and the stage 4 rule dictionary entries",
+    "verify_stage": 4
   },
   {
     "acceptance": "pending",

@@ -216,9 +216,8 @@ defmodule Relay.Api.Categories do
 
       case Relay.Preferences.put_subtenant_setting(scope, key, subtenant_id, attrs, actor) do
         {result, _version} when result in [:created, :updated, :unchanged] ->
-          status = if result == :created, do: 201, else: 200
           setting = Relay.Preferences.subtenant_setting(key, subtenant_id)
-          {:ok, {status, [], setting_view(key, subtenant_id, setting)}}
+          {:ok, {written(result), [], setting_view(key, subtenant_id, setting)}}
 
         {:not_found, _version} ->
           {:error, not_found()}
@@ -234,6 +233,9 @@ defmodule Relay.Api.Categories do
       end
     end
   end
+
+  defp written(:created), do: 201
+  defp written(_result), do: 200
 
   # PC-57 (2)
   @doc "Reads a sub-tenant's overrides of a category."

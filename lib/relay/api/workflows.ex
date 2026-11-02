@@ -88,7 +88,8 @@ defmodule Relay.Api.Workflows do
   @doc "Replaces the draft of a workflow inside the request's transaction."
   @spec replace(Relay.Scope.t(), String.t(), map(), pos_integer(), Relay.Actor.t()) :: answer()
   def replace(scope, key, body, expected_version, actor) do
-    with {:ok, definition} <- definition(body["definition"]) do
+    with {:ok, _workflow} <- existing(key),
+         {:ok, definition} <- definition(body["definition"]) do
       case Relay.Workflow.replace_draft(scope, key, definition, expected_version, actor) do
         {:ok, {result, version}} when result in [:replaced, :unchanged] ->
           {:ok, {200, [etag(version)], view(Relay.Workflow.view(key))}}
@@ -99,6 +100,13 @@ defmodule Relay.Api.Workflows do
         {:ok, {:not_found, _version}} ->
           {:error, workflow_not_found()}
       end
+    end
+  end
+
+  defp existing(key) do
+    case Relay.Workflow.view(key) do
+      nil -> {:error, workflow_not_found()}
+      workflow -> {:ok, workflow}
     end
   end
 

@@ -142,7 +142,7 @@ defmodule RelayWeb.Api.WorkflowsTest do
 
       F.body(create(ctx.token, "welcome", F.definition()), 201)
       [etag] = etag(ctx.token, "welcome")
-      body = %{"definition" => F.definition(message_class: "security")}
+      body = %{"definition" => F.definition(category: "orders", message_class: "security")}
       replaced = F.request(:put, "/v1/workflows/welcome", ctx.token, body, [{"if-match", etag}])
       assert code(replaced, 422) == "category_class_mismatch"
     end

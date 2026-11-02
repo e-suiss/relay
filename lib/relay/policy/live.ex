@@ -150,9 +150,12 @@ defmodule Relay.Policy.Live do
       "decision" => decision,
       "reason" => reason,
       "rule_id" => rule_id,
-      "deferred_until" => until && DateTime.truncate(until, :second)
+      "deferred_until" => whole_second(until)
     }
   end
+
+  defp whole_second(nil), do: nil
+  defp whole_second(%DateTime{} = at), do: %{at | microsecond: {0, 0}}
 
   # PC-8
   # PC-58 (2)

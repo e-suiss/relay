@@ -179,15 +179,16 @@ defmodule Relay.Tenancy.KillSwitchPauseTest do
                delivery_state(delivery)
     end
 
-    test "TN-70: resume with the stage 2 lattice is refused and changes nothing", %{
+    test "TN-70: resume through a lattice that is not ready is refused and changes nothing", %{
       scope: scope,
       delivery: delivery
     } do
       {external, _ksw} = engage!(scope)
       {:done, :paused} = KillSwitch.first_step(scope, delivery, snapshot: snapshot())
+      change = %{reason: "ok", relax_approval: "CAB-2", lattice: Relay.Policy.Lattice.Unavailable}
 
       assert {:error, :policy_lattice_unavailable} =
-               KillSwitch.resume(external, %{reason: "ok", relax_approval: "CAB-2"}, @operator)
+               KillSwitch.resume(external, change, @operator)
 
       assert [true, "killswitch.off", _, nil, nil] = delivery_state(delivery)
     end

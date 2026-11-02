@@ -35,6 +35,7 @@ defmodule Relay.Config do
     Relay.Config.SecretFiles,
     Relay.Tenancy.KillSwitch.Cache,
     Relay.Policy.Lattice,
+    Relay.Policy.Live,
     RelayWeb.Metrics,
     RelayWeb.Api,
     RelayWeb.Auth,

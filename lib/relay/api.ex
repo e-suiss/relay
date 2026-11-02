@@ -15,7 +15,8 @@ defmodule Relay.Api do
       Relay.Subscribers,
       Relay.Delivery,
       Relay.Access,
-      Relay.Preferences
+      Relay.Preferences,
+      Relay.Policy.Live
     ],
     exports: [
       Contract,

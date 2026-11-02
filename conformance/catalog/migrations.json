@@ -93,5 +93,6 @@
   {"file": "20261110000500_create_consent_and_suppression_functions.exs", "sha256": "381c4416927b8b18e74463a08027690d7a2560f735d6a2b6c629e4ffabb1aa66"},
   {"file": "20261110000600_seed_platform_security_categories.exs", "sha256": "d04155f2d3a22550d9c47be103682fe6526a30bc0d4bd0718900ec89205b0023"},
   {"file": "20261110000700_rebuild_reference_check_for_preferences.exs", "sha256": "75bbae16b80e5902b77ca35d10349765af859ce360482dfc686ca4bac64dec58"},
-  {"file": "20261110000800_use_dictionary_cancel_rule_ids.exs", "sha256": "317ea3b7be518113c098aae9713dd396745129b267b6cf31d2bd9f1490336dd6"}
+  {"file": "20261110000800_use_dictionary_cancel_rule_ids.exs", "sha256": "317ea3b7be518113c098aae9713dd396745129b267b6cf31d2bd9f1490336dd6"},
+  {"file": "20261111000000_create_delivery_decision_function.exs", "sha256": "ea8ac4c14558f32d88cac53d49e306493408dc2254d757c7bd4e2bed56e5c1cc"}
 ]

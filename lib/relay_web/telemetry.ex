@@ -18,7 +18,7 @@ defmodule RelayWeb.Telemetry do
   @impl true
   def init(_arg) do
     children = [
-      {Peep, name: @reporter, metrics: alarm_metrics()},
+      {Peep, name: @reporter, metrics: alarm_metrics() ++ policy_metrics()},
       {:telemetry_poller, measurements: [], period: 10_000}
     ]
 
@@ -45,7 +45,21 @@ defmodule RelayWeb.Telemetry do
       summary("vm.total_run_queue_lengths.total"),
       summary("vm.total_run_queue_lengths.cpu"),
       summary("vm.total_run_queue_lengths.io")
-    ] ++ alarm_metrics()
+    ] ++ alarm_metrics() ++ policy_metrics()
+  end
+
+  # DS-24
+  # T-63
+  @doc "The policy lattice's decision counter by decision kind and reason family, both from bounded sets; exported on `/metrics` beside the alarms."
+  @spec policy_metrics() :: [Telemetry.Metrics.t()]
+  def policy_metrics do
+    [
+      counter("relay.policy.decision.total",
+        event_name: [:relay, :policy, :decision],
+        tags: [:decision, :reason],
+        description: "Policy lattice decisions recorded on deliveries"
+      )
+    ]
   end
 
   # OP-69

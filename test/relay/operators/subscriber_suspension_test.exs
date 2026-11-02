@@ -171,9 +171,22 @@ defmodule Relay.Operators.SubscriberSuspensionTest do
       {_delivery, delivery_id} = send!(ctx.token, external_id)
       id = subscriber_id(ctx.scope, external_id)
       suspend!(ctx.scope, id)
-      resume!(ctx.scope, id)
+      with_lattice({:error, :not_ready}, fn -> resume!(ctx.scope, id) end)
 
       assert pause_state(ctx.scope, delivery_id) == {true, "subscriber.suspended", nil}
+    end
+
+    test "TN-73, PC-58 (2): lifting resumes through the running lattice", ctx do
+      external_id = external()
+      {_delivery, delivery_id} = send!(ctx.token, external_id)
+      id = subscriber_id(ctx.scope, external_id)
+      suspend!(ctx.scope, id)
+      complete_jobs!(delivery_id)
+
+      resume!(ctx.scope, id)
+
+      assert pause_state(ctx.scope, delivery_id) == {false, nil, nil}
+      assert available_jobs(delivery_id) == 1
     end
 
     test "TN-73, TN-40: lifting resumes through the lattice and queues the delivery job", ctx do

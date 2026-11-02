@@ -92,8 +92,8 @@ defmodule Relay.Release.KillSwitchTest do
                )
     end
 
-    test "TN-70: resume is refused in stage 2", %{s: s, tenant: tenant} do
-      id = engage!(scope: :tenant, tenant: tenant, environment: :test)
+    test "TN-70: resume through a lattice that is not ready is refused", %{s: s, tenant: t} do
+      id = engage!(scope: :tenant, tenant: t, environment: :test)
       delivery = delivery!(s.notification)
       {:ok, ksw} = Relay.ExternalId.decode(id, ["ksw"])
       "active" = ctx(s.tenant)
@@ -103,7 +103,12 @@ defmodule Relay.Release.KillSwitchTest do
                KillSwitch.resume(id, operator: "ops", reason: "go")
 
       assert {:error, :policy_lattice_unavailable} =
-               KillSwitch.resume(id, operator: "ops", reason: "go", confirm_relax: "CAB-4")
+               KillSwitch.resume(id,
+                 operator: "ops",
+                 reason: "go",
+                 confirm_relax: "CAB-4",
+                 lattice: Relay.Policy.Lattice.Unavailable
+               )
     end
 
     test "TN-70: bulk cancel runs", %{s: s, tenant: tenant} do

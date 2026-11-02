@@ -27,6 +27,17 @@ defmodule Relay.Delivery do
   @spec send_worker() :: module()
   def send_worker, do: Relay.Delivery.Send
 
+  # T-15
+  # TN-40
+  @doc "The send job changeset of a resumed delivery; its arguments are the scope and `delivery_id`."
+  @spec send_job(Scope.t(), Relay.Id.t()) :: Ecto.Changeset.t()
+  def send_job(%Scope{} = scope, delivery_id) do
+    scope
+    |> Scope.to_job_args()
+    |> Map.put("delivery_id", Relay.Id.to_string(delivery_id))
+    |> Relay.Delivery.Send.new()
+  end
+
   # C-32
   @doc "Builds a ledger entry; see `Relay.Delivery.Ledger.new/1`."
   @spec ledger_entry(map() | keyword()) :: {:ok, Ledger.t()} | {:error, Relay.Error.t()}

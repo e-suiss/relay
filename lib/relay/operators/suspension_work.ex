@@ -197,6 +197,7 @@ defmodule Relay.Operators.SuspensionWork do
 
   defp count({:ok, result}, acc, result),
     do: {:cont, {:ok, Map.update(acc, result, 1, &(&1 + 1))}}
+
   defp count({:ok, _other}, acc, _result), do: {:cont, {:ok, acc}}
   defp count({:error, error}, _acc, _result), do: {:halt, {:error, error}}
 

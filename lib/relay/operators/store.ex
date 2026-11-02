@@ -540,6 +540,14 @@ defmodule Relay.Operators.Store do
     Repo.code!(row["delivery_cancel"], [:cancelled, :already_terminal, :not_found])
   end
 
+  # TN-40
+  @doc "Closes a paused delivery the policy lattice decided has expired as `expired`."
+  @spec delivery_expire(Relay.Id.t(), String.t()) :: :expired | :already_terminal | :not_found
+  def delivery_expire(delivery_id, rule_id) do
+    [row] = Repo.call!("relay_fn.delivery_expire", [delivery_id, rule_id])
+    Repo.code!(row["delivery_expire"], [:expired, :already_terminal, :not_found])
+  end
+
   # T-15
   @doc "True when a delivery job of `delivery_id` still waits or runs in the queue."
   @spec delivery_job?(Relay.Id.t()) :: boolean()

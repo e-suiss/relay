@@ -66,6 +66,23 @@ defmodule Relay.Tenancy.KillSwitch do
   @spec snapshot() :: Snapshot.t() | :unknown
   def snapshot, do: Cache.current()
 
+  # TN-38
+  # INV-43
+  @doc "Returns the node's snapshot or, while the node has none, one read from the database; `:unknown` when it cannot be read. Call it outside any scoped transaction."
+  @spec current_snapshot() :: Snapshot.t() | :unknown
+  def current_snapshot do
+    case snapshot() do
+      :unknown ->
+        case Store.snapshot() do
+          {:ok, generation, records} -> Snapshot.new(generation, records)
+          {:error, _error} -> :unknown
+        end
+
+      %Snapshot{} = current ->
+        current
+    end
+  end
+
   # TN-37
   # TN-38
   # TN-42
@@ -402,7 +419,7 @@ defmodule Relay.Tenancy.KillSwitch do
   # TN-40
   # TN-70 (2)
   @doc """
-  Resumes the deliveries a kill switch paused: each one passes the policy lattice again (`Relay.Policy.Lattice`); `send` lifts the pause and, in the same transaction, inserts the job `:job` builds for it, `skip` cancels it with the lattice's rule. A lattice that is not ready stops the command at the first delivery with `:policy_lattice_unavailable` and nothing changes. `change` carries `:reason`, `:relax_approval` and the optional `:lattice` and `:job` (a function of the scope and the delivery identifier returning an Oban job changeset).
+  Resumes the deliveries a kill switch paused: each one passes the policy lattice again (`Relay.Policy.Lattice`); `send` and `defer` lift the pause and, in the same transaction, insert the job `:job` builds for it, whose run records the deferral; `skip` cancels it with the lattice's rule; `expire` closes it as `expired` with the lattice's rule; `pause` leaves it paused, since a kill switch in force still holds it. A lattice that is not ready, or one of whose inputs cannot be read, stops the command at that delivery with `:policy_lattice_unavailable`; the deliveries before it keep their outcome. `change` carries `:reason`, `:relax_approval` and the optional `:lattice` and `:job` (a function of the scope and the delivery identifier returning an Oban job changeset).
   """
   @spec resume(String.t() | Relay.Id.t(), map(), operator()) :: result()
   def resume(id, change, %{kind: _, ref: _} = operator) do
@@ -439,9 +456,23 @@ defmodule Relay.Tenancy.KillSwitch do
       {:send, decision_ref} ->
         {:cont, {:ok, resume_one(scope, delivery_id, decision_ref, run.job, acc)}}
 
+      {:defer, _reason, rule_id, _until} ->
+        {:cont, {:ok, resume_one(scope, delivery_id, "lattice:" <> rule_id, run.job, acc)}}
+
       {:skip, _reason, rule_id} ->
         {:cont, {:ok, cancel_one(scope, delivery_id, rule_id, run.actor, acc)}}
+
+      {:expire, rule_id} ->
+        {:cont, {:ok, expire_one(scope, delivery_id, rule_id, acc)}}
+
+      {:pause, _rule_id} ->
+        {:cont, {:ok, acc}}
     end
+  end
+
+  defp expire_one(scope, delivery_id, rule_id, acc) do
+    {:ok, result} = Store.in_scope(scope, fn _status -> Store.expire(delivery_id, rule_id) end)
+    if result == :expired, do: Map.update(acc, :expired, 1, &(&1 + 1)), else: acc
   end
 
   defp resume_one(scope, delivery_id, decision_ref, job, acc) do

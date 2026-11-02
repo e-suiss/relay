@@ -2,11 +2,12 @@ defmodule Relay.Api.Events do
   @moduledoc """
   The send operations (API-19 … API-34, OP-7, DS-36). An event is prepared outside any transaction (`prepare/3`): its workflow version is resolved and frozen (WF-7), the request's field rules and the event schema are checked (API-20, API-27), the recipients' writes are prepared with their keys (API-21) and the payload is sealed under the tenant data key. It is then accepted inside the request's idempotency transaction (`accept/2`), so the idempotency claim, the event, its notifications and deliveries with their opening ledger events, the queue jobs, the quota counters and the outbox events commit together or not at all.
 
-  Policy outcomes are decisions, not errors (C-4, MD-12): a matching kill switch pauses the delivery at acceptance and queues no job (TN-40), the send mode `off` and an unknown sub-tenant skip it with a rule (OP-51, API-25), and a recipient without an address for a step's channel is skipped as well. A suspended subscriber's deliveries are skipped with `subscriber.suspended` (TN-73): the send is accepted and no delivery is sent. A durable write failure is `503` (INV-2).
+  Policy outcomes are decisions, not errors (C-4, MD-12, DS-26): every delivery is opened and the policy lattice decides it at once (`Relay.Policy.Live`, PC-58 (2)): a gate or filter skips it, a shaper defers it to `deferred_until` and queues its job for then, and an expiry closes it, each recorded with its reason, rule and detail and announced as `notification.suppressed` (DS-24, DS-27). The class comes from the workflow's category (PC-57 (3)), the priority is clamped to the class ceiling with a `priority_clamped` warning (API-22, PC-58 (7)) and a request without `expires_at` gets the category's or the class default (PC-57 (4)). A matching kill switch pauses the delivery at acceptance and queues no job (TN-40), the send mode `off` and an unknown sub-tenant skip it with a rule (OP-51, API-25), and a suspended subscriber's deliveries are skipped with `subscriber.suspended` (TN-73): the send is accepted and no delivery is sent. In `dry_run` the lattice runs and the answer carries each channel's decision; nothing is opened or counted (PC-58 (8)). A durable write failure is `503` (INV-2).
   """
 
   alias Relay.Api.Schema
   alias Relay.Api.Views
+  alias Relay.Policy.Live
   alias Relay.Scope
   alias Relay.Tenancy.KillSwitch
 
@@ -20,12 +21,7 @@ defmodule Relay.Api.Events do
              &{Atom.to_string(&1), &1}
            )
   @priorities %{"low" => :low, "normal" => :normal, "high" => :high}
-  @address_channels %{
-    "email" => "email_state",
-    "sms" => "phone_state",
-    "voice" => "phone_state",
-    "whatsapp" => "phone_state"
-  }
+  @no_readings %{global: nil, policy: nil}
   @shards 16
 
   @type context :: %{
@@ -55,7 +51,8 @@ defmodule Relay.Api.Events do
     with {:ok, workflow} <- workflow(scope, body["workflow"]),
          steps = Relay.Workflow.steps(workflow["definition"]),
          {:ok, tenant} <- tenant_settings(scope, workflow, steps),
-         class = workflow["message_class"],
+         {:ok, category} <- category(scope, workflow, nil),
+         class = Atom.to_string(category.message_class),
          {:ok, request} <-
            Relay.Ingest.check_request(body, %{
              message_class: class,
@@ -68,14 +65,22 @@ defmodule Relay.Api.Events do
          :ok <- platform(class),
          {:ok, recipients} <- recipients(scope, request.targets),
          {:ok, payload} <- payload(scope, request, cloudevent),
-         {:ok, subtenant} <- subtenant(scope, request.tenant, Map.get(ctx, :subtenant_id)) do
+         {:ok, subtenant} <- subtenant(scope, request.tenant, Map.get(ctx, :subtenant_id)),
+         {:ok, category} <- subtenant_category(scope, workflow, category, subtenant) do
+      request = clamp(request, body, category.message_class)
+      now = Relay.Clock.business_now(scope)
+
       {:ok,
        %{
          scope: scope,
          event_id: Relay.Id.generate(),
          workflow: workflow,
          category: workflow["definition"]["category"],
+         policy: category,
          message_class: class,
+         now: now,
+         expires_at: expires_at(request, category, now),
+         frequency: frequency(scope, category, recipients, request.steps),
          request: request,
          recipients: recipients,
          payload: payload,
@@ -93,6 +98,56 @@ defmodule Relay.Api.Events do
 
   defp ce_digest(nil), do: nil
   defp ce_digest(event), do: Relay.Ingest.ce_key_digest(event["source"], event["id"])
+
+  # PC-57 (3)
+  defp category(scope, workflow, subtenant_id) do
+    key = workflow["definition"]["category"] || workflow["message_class"]
+    class = Map.fetch!(@classes, workflow["message_class"])
+
+    case Live.category(scope, key, class, subtenant_id) do
+      {:ok, category} -> {:ok, category}
+      {:error, _reason} -> {:error, unavailable("the category could not be read")}
+    end
+  end
+
+  # PC-57 (2)
+  defp subtenant_category(scope, workflow, _category, {:ok, id}),
+    do: category(scope, workflow, id)
+
+  defp subtenant_category(_scope, _workflow, category, _subtenant), do: {:ok, category}
+
+  # API-22
+  # PC-58 (7)
+  defp clamp(request, body, class) do
+    {priority, clamped?} = Live.clamp_priority(class, Map.get(@priorities, body["priority"]))
+    kept = Enum.reject(request.warnings, &(&1["code"] == "priority_clamped"))
+    warnings = if clamped?, do: kept ++ [clamped(priority)], else: kept
+    %{request | priority: Atom.to_string(priority), warnings: warnings}
+  end
+
+  defp clamped(priority) do
+    detail = "the class allows at most #{priority}"
+    %{"code" => "priority_clamped", "pointer" => "/priority", "detail" => detail}
+  end
+
+  # PC-49
+  # PC-57 (4)
+  defp expires_at(%{expires_at: %DateTime{} = at}, _category, _now), do: at
+
+  defp expires_at(request, category, now),
+    do: Live.default_expires_at(category, category.message_class, request.send_at || now)
+
+  # PC-58 (6)
+  defp frequency(scope, category, recipients, steps) do
+    for %{plan: %{id: recipient_id}} <- recipients,
+        recipient_id != nil,
+        %{channel: name} <- steps,
+        channel = Map.fetch!(@channels, name),
+        into: %{} do
+      readings = Live.frequency(scope, category, category.message_class, recipient_id, channel)
+      {{recipient_id, channel}, readings}
+    end
+  end
 
   @doc "The lane class and channels of a prepared event, for admission control."
   @spec admission(prepared()) :: {atom(), [atom()]}
@@ -388,24 +443,25 @@ defmodule Relay.Api.Events do
   defp notification(p, event, %{plan: plan, index: index, external_id: external_id}, ctx) do
     with {:ok, recipient_id} <- upsert(plan, index),
          {:ok, result, id, original, mismatch?} <- open_notification(p, event, recipient_id),
-         :ok <- created(result, p, id, recipient_id, mismatch?, ctx) do
+         {:ok, decisions} <- created(result, p, id, recipient_id, mismatch?, ctx) do
       duplicate_of = if result == :duplicate, do: original
-      {:ok, entry(recipient_id, external_id, id, duplicate_of)}
+      {:ok, entry(recipient_id, external_id, id, duplicate_of, decisions)}
     end
   end
 
   defp created(:created, p, id, recipient_id, mismatch?, ctx),
     do: open_deliveries(p, id, Relay.Subscribers.row(recipient_id), mismatch?, ctx)
 
-  defp created(:duplicate, _p, _id, _recipient_id, _mismatch?, _ctx), do: :ok
+  defp created(:duplicate, _p, _id, _recipient_id, _mismatch?, _ctx), do: {:ok, []}
 
-  defp entry(recipient_id, external_id, notification_id, duplicate_of) do
+  defp entry(recipient_id, external_id, notification_id, duplicate_of, decisions) do
     Views.accepted_notification(%{
       recipient_kind: "subscriber",
       recipient_id: recipient_id,
       external_id: external_id,
       notification_id: notification_id,
-      duplicate_of: duplicate_of
+      duplicate_of: duplicate_of,
+      decisions: decisions
     })
   end
 
@@ -445,7 +501,7 @@ defmodule Relay.Api.Events do
       message_class: p.message_class,
       security_subtype: p.request.security_subtype,
       sender_type: p.request.sender_type,
-      expires_at: p.request.expires_at,
+      expires_at: p.expires_at,
       is_test: false,
       traceparent: p.traceparent,
       event_id: event.id,
@@ -476,9 +532,9 @@ defmodule Relay.Api.Events do
     do: {:error, Relay.Error.new(:auth_tenant_suspended, "the tenant is suspended")}
 
   defp open_deliveries(p, notification_id, row, mismatch?, ctx) do
-    Enum.reduce_while(p.request.steps, :ok, fn step, :ok ->
+    Enum.reduce_while(p.request.steps, {:ok, []}, fn step, {:ok, acc} ->
       case open_delivery(p, notification_id, row, mismatch?, step, ctx) do
-        :ok -> {:cont, :ok}
+        {:ok, decisions} -> {:cont, {:ok, acc ++ decisions}}
         {:error, error} -> {:halt, {:error, error}}
       end
     end)
@@ -488,7 +544,10 @@ defmodule Relay.Api.Events do
   # TN-40
   # API-25
   # API-24
-  defp open_delivery(p, notification_id, row, mismatch?, step, ctx) do
+  # PC-58 (2)
+  # PC-58 (8)
+  # INV-15
+  defp open_delivery(p, notification_id, row, mismatch?, step, _ctx) do
     mode =
       Relay.Ingest.send_mode(
         p.request.send_mode,
@@ -498,50 +557,116 @@ defmodule Relay.Api.Events do
         p.installation_mode
       )
 
-    case decision(step, row, mismatch?, mode) do
-      :none ->
-        :ok
+    delivery_id = Relay.Id.generate()
 
-      {decision, reason, rule} ->
-        delivery = %{
-          id: Relay.Id.generate(),
-          channel: Map.fetch!(@channels, step.channel),
-          target_kind: target_kind(step.channel),
-          target_key: target_key(step.channel, row["id"]),
-          decision: decision,
-          decision_reason: reason,
-          decision_rule_id: rule,
-          deferred_until: nil,
-          traceparent: p.traceparent
-        }
+    case {decision(step, row, mismatch?, mode), mode} do
+      {{:skip, reason, rule}, :dry_run} ->
+        {:ok, [Live.dry_run_skip(step.channel, reason, rule)]}
 
-        case Relay.Ingest.delivery_open(notification_id, delivery) do
-          {:opened, id} when decision == :send -> enqueue(p, notification_id, id, ctx)
-          {result, _id} when result in [:opened, :exists] -> :ok
-          {_other, _id} -> {:error, unavailable("the delivery could not be opened")}
+      {{:skip, reason, rule}, _mode} ->
+        with {:ok, id} <- open(p, notification_id, row, step, delivery_id) do
+          if id, do: Live.record_skip(id, reason, rule)
+          {:ok, []}
         end
+
+      {:lattice, :dry_run} ->
+        dry_run(step.channel, Live.decide(lattice_input(p, row, step, delivery_id)))
+
+      {:lattice, _mode} ->
+        result = Live.decide(lattice_input(p, row, step, delivery_id))
+        opened(p, notification_id, row, step, delivery_id, result)
     end
   end
 
   # TN-73
   # MD-12
-  defp decision(_step, %{"suspended_at" => %DateTime{}}, _mismatch?, mode) when mode != :dry_run,
+  defp decision(_step, %{"suspended_at" => %DateTime{}}, _mismatch?, _mode),
     do: {:skip, "subscriber_suspended", "subscriber.suspended"}
 
   defp decision(%{skip: {reason, rule}}, _row, _mismatch?, _mode), do: {:skip, reason, rule}
   defp decision(_step, _row, true, _mode), do: {:skip, "scope_mismatch", "scope.mismatch"}
-  defp decision(_step, _row, _mismatch?, :dry_run), do: :none
   defp decision(_step, _row, _mismatch?, :off), do: {:skip, "send_mode_off", "send_mode.off"}
+  defp decision(_step, _row, _mismatch?, _mode), do: :lattice
 
-  defp decision(%{channel: channel}, row, _mismatch?, _mode) do
-    case Map.fetch(@address_channels, channel) do
-      {:ok, state} when is_map_key(row, state) ->
-        if row[state] == "active",
-          do: {:send, nil, nil},
-          else: {:skip, "no_address", "channel.no_address"}
+  # PC-58 (8)
+  defp dry_run(channel, result) do
+    case Live.dry_run(channel, result) do
+      {:ok, decision} -> {:ok, [decision]}
+      :error -> {:error, unavailable("a policy input could not be read")}
+    end
+  end
 
-      _ ->
-        {:send, nil, nil}
+  # PC-58 (1)
+  defp lattice_input(p, row, step, delivery_id) do
+    channel = Map.fetch!(@channels, step.channel)
+
+    %{
+      scope: p.scope,
+      now: p.request.send_at || p.now,
+      delivery_id: delivery_id,
+      recipient_id: row["id"],
+      subtenant_id: subtenant_id(p.subtenant),
+      channel: channel,
+      category: p.policy,
+      workflow_key: p.workflow["key"],
+      notification:
+        Live.notification(%{
+          message_class: p.message_class,
+          security_subtype: p.request.security_subtype,
+          priority: p.request.priority,
+          expires_at: p.expires_at,
+          sender_type: p.request.sender_type
+        }),
+      frequency: Map.get(p.frequency, {row["id"], channel}, @no_readings)
+    }
+  end
+
+  # DS-24
+  # DS-27
+  # INV-43
+  defp opened(p, notification_id, row, step, delivery_id, result) do
+    case open(p, notification_id, row, step, delivery_id) do
+      {:ok, nil} -> {:ok, []}
+      {:ok, id} -> after_open(p, notification_id, id, result)
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  defp after_open(p, notification_id, id, {:send, _info} = result) do
+    _ = Live.record(id, result)
+    enqueue(p, notification_id, id, p.request.send_at)
+  end
+
+  defp after_open(p, notification_id, id, {:defer, _reason, _rule, until, _detail} = result) do
+    _ = Live.record(id, result)
+    enqueue(p, notification_id, id, Relay.Clock.wall_time(p.scope, until))
+  end
+
+  defp after_open(p, notification_id, id, {:error, _input_unavailable}),
+    do: enqueue(p, notification_id, id, p.request.send_at)
+
+  defp after_open(_p, _notification_id, id, skip_or_expire) do
+    _ = Live.record(id, skip_or_expire)
+    {:ok, []}
+  end
+
+  defp open(p, notification_id, row, step, delivery_id) do
+    delivery = %{
+      id: delivery_id,
+      channel: Map.fetch!(@channels, step.channel),
+      target_kind: target_kind(step.channel),
+      target_key: target_key(step.channel, row["id"]),
+      decision: :send,
+      decision_reason: nil,
+      decision_rule_id: nil,
+      deferred_until: nil,
+      traceparent: p.traceparent
+    }
+
+    case Relay.Ingest.delivery_open(notification_id, delivery) do
+      {:opened, id} -> {:ok, id}
+      {:exists, _id} -> {:ok, nil}
+      {_other, _id} -> {:error, unavailable("the delivery could not be opened")}
     end
   end
 
@@ -556,10 +681,10 @@ defmodule Relay.Api.Events do
 
   # T-15
   # TN-40 (1)
-  defp enqueue(p, notification_id, delivery_id, _ctx) do
+  defp enqueue(p, notification_id, delivery_id, at) do
     case KillSwitch.at_acceptance(delivery_id) do
       {:paused, _rule_id} ->
-        :ok
+        {:ok, []}
 
       _allow_or_hold ->
         class = Map.fetch!(@classes, p.message_class)
@@ -578,11 +703,11 @@ defmodule Relay.Api.Events do
           ref_kind: "delivery",
           ref_id: delivery_id,
           priority: Relay.Platform.job_priority(:delivery, 1, @priorities[p.request.priority]),
-          scheduled_at: p.request.send_at
+          scheduled_at: at
         }
 
         case Relay.Platform.enqueue_job(job) do
-          {:ok, _queued} -> :ok
+          {:ok, _queued} -> {:ok, []}
           {:error, _error} -> {:error, unavailable("the delivery job could not be queued")}
         end
     end

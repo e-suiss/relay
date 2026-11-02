@@ -1,6 +1,6 @@
 defmodule Relay.Policy.Lattice.Unavailable do
   @moduledoc """
-  The stage 2 policy lattice: it is never ready (TN-70 (2)).
+  A policy lattice that is never ready (TN-70 (2)): every resume through it is refused and the paused deliveries wait. The running lattice is `Relay.Policy.Live`.
   """
 
   @behaviour Relay.Policy.Lattice

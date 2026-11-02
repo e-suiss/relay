@@ -46,6 +46,7 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.delivery_resume" => ~w(resumed not_paused already_terminal not_found),
     "relay_fn.delivery_hold" => ~w(held already_terminal not_found),
     "relay_fn.delivery_expire" => ~w(expired already_terminal not_found),
+    "relay_fn.delivery_decide" => ~w(recorded unchanged paused already_terminal not_found),
     "relay_fn.dead_letter_record" =>
       ~w(recorded already_open delivery_not_found delivery_terminal),
     "relay_fn.dead_letter_replay" =>

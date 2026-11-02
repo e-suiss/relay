@@ -5,7 +5,7 @@ defmodule Relay.Delivery do
   Every function takes the scope and runs in its own scoped transaction (`Relay.Repo.in_scope/3`).
   """
 
-  use Boundary, top_level?: true, deps: [Relay], exports: []
+  use Boundary, top_level?: true, deps: [Relay, Relay.Policy.Live], exports: []
 
   require Logger
 
@@ -26,6 +26,17 @@ defmodule Relay.Delivery do
   @doc "The job worker that sends a delivery; its arguments are the scope, `notification_id` and `delivery_id`."
   @spec send_worker() :: module()
   def send_worker, do: Relay.Delivery.Send
+
+  # T-15
+  # TN-40
+  @doc "The send job changeset of a resumed delivery; its arguments are the scope and `delivery_id`."
+  @spec send_job(Scope.t(), Relay.Id.t()) :: Ecto.Changeset.t()
+  def send_job(%Scope{} = scope, delivery_id) do
+    scope
+    |> Scope.to_job_args()
+    |> Map.put("delivery_id", Relay.Id.to_string(delivery_id))
+    |> Relay.Delivery.Send.new()
+  end
 
   # C-32
   @doc "Builds a ledger entry; see `Relay.Delivery.Ledger.new/1`."

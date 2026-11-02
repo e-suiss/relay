@@ -32,7 +32,8 @@ defmodule Relay.Api.Views do
   end
 
   # API-19
-  @doc "One accepted notification of an event answer."
+  # PC-58 (8)
+  @doc "One accepted notification of an event answer; `decisions` are the channel decisions of a dry run."
   @spec accepted_notification(map()) :: map()
   def accepted_notification(n) do
     %{
@@ -41,6 +42,7 @@ defmodule Relay.Api.Views do
       "notification_id" => id("ntf", n.notification_id)
     }
     |> put_unless_nil("duplicate_of", id("evt", n.duplicate_of))
+    |> put_unless_empty("decisions", Map.get(n, :decisions, []))
   end
 
   # DS-15

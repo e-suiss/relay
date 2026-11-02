@@ -114,9 +114,20 @@ defmodule Relay.Operators.SuspensionWorkTest do
     test "TN-40: lifting keeps deliveries PAUSED while the policy lattice is not ready", ctx do
       {_delivery, delivery_id} = accept!(ctx.token)
       suspend!(ctx.tenant)
-      lift!(ctx.tenant)
+      with_lattice({:error, :not_ready}, fn -> lift!(ctx.tenant) end)
 
       assert pause_state(ctx.tenant.live, delivery_id) == {true, "tenant.suspended", nil}
+    end
+
+    test "TN-40, PC-58 (2): lifting resumes through the running lattice and queues a job", ctx do
+      {_delivery, delivery_id} = accept!(ctx.token)
+      suspend!(ctx.tenant)
+      complete_jobs!(delivery_id)
+
+      lift!(ctx.tenant)
+
+      assert pause_state(ctx.tenant.live, delivery_id) == {false, nil, nil}
+      assert available_jobs(delivery_id) == 1
     end
 
     test "TN-40: lifting resumes through the lattice; send lifts the pause and queues a job",

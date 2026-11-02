@@ -7,7 +7,10 @@ defmodule Relay.Release.KillSwitch do
   The direct SQL emergency procedure calls the same `relay_fn.kill_switch_*` functions and then publishes the generation on `relay:s:signal:killswitch` (TN-45).
   """
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Tenancy.KillSwitch], exports: []
+  use Boundary,
+    top_level?: true,
+    deps: [Relay, Relay.Delivery, Relay.Tenancy.KillSwitch],
+    exports: []
 
   alias Relay.Tenancy.KillSwitch
 
@@ -85,14 +88,14 @@ defmodule Relay.Release.KillSwitch do
 
   # TN-40
   # TN-70 (2)
-  @doc "Resumes the deliveries a kill switch paused through the policy lattice. Options: `operator:`, `reason:` and `confirm_relax:`. In stage 2 the lattice is not ready and the command returns `{:error, :policy_lattice_unavailable}` without changing anything."
+  @doc "Resumes the deliveries a kill switch paused through the policy lattice. Options: `operator:`, `reason:` and `confirm_relax:`. Each delivery passes the running lattice (`Relay.Policy.Live`); a lattice that is not ready, or an input it cannot read, returns `{:error, :policy_lattice_unavailable}`. `lattice:` replaces the lattice and `job:` the builder of a resumed delivery's job, by default `Relay.Delivery.send_job/2`."
   @spec resume(String.t(), keyword()) :: {:ok, map()} | {:error, atom()}
   def resume(id, opts) when is_list(opts) do
     with {:ok, operator} <- operator(opts) do
       change =
         %{reason: opts[:reason], relax_approval: opts[:confirm_relax]}
         |> put_present(:lattice, opts[:lattice])
-        |> put_present(:job, opts[:job])
+        |> Map.put(:job, Keyword.get(opts, :job, &Relay.Delivery.send_job/2))
 
       KillSwitch.resume(id, change, operator)
     end

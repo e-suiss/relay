@@ -5242,7 +5242,7 @@ paths:
       tags:
         - kill-switches
       summary: Resume paused deliveries
-      description: Re-evaluates every PAUSED delivery of a released record through the policy lattice (preference, consent, quiet hours, frequency, quota) in pages. Until the policy lattice exists the call fails with service_unavailable and changes nothing.
+      description: Re-evaluates every PAUSED delivery of a released record through the policy lattice (preference, consent, quiet hours, frequency, quota) in pages. A delivery the lattice sends or defers is queued again, one it skips is cancelled with the lattice's rule_id, one past expires_at closes as expired, and one a kill switch in force still holds stays PAUSED. When an input of the lattice cannot be read the call fails with service_unavailable at that delivery; the deliveries before it keep their outcome.
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"

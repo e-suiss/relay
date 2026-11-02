@@ -1,6 +1,6 @@
 defmodule Relay.Operators.SuspensionWork do
   @moduledoc """
-  The pending work of a suspended tenant, subtenant or subscriber (TN-10, TN-73), with the mechanism of a kill switch (TN-40). When a suspension takes effect, every pending delivery of the tenant in both environments, of the subtenant's notifications or of the subscriber's notifications is marked `PAUSED` with the rule `tenant.suspended`, `subtenant.suspended` or `subscriber.suspended`, batch by batch: it is not deleted, not counted as an error and not retried. Lifting the suspension is the explicit resume: each delivery the suspension paused passes the policy lattice again (`Relay.Policy.Lattice`); `send` lifts the pause and queues its delivery job when none waits, `skip` cancels it with the lattice's rule, and a lattice that is not ready leaves the rest `PAUSED` until it is. A delivery whose tenant, subtenant or subscriber is still suspended is not resumed: it stays `PAUSED` under the rule of the suspension that still holds it, whose lift resumes it.
+  The pending work of a suspended tenant, subtenant or subscriber (TN-10, TN-73), with the mechanism of a kill switch (TN-40). When a suspension takes effect, every pending delivery of the tenant in both environments, of the subtenant's notifications or of the subscriber's notifications is marked `PAUSED` with the rule `tenant.suspended`, `subtenant.suspended` or `subscriber.suspended`, batch by batch: it is not deleted, not counted as an error and not retried. Lifting the suspension is the explicit resume: each delivery the suspension paused passes the policy lattice again (`Relay.Policy.Lattice`); `send` lifts the pause and queues its delivery job when none waits, and so do `defer` and `pause`, since the job's run records the deferral or pauses the delivery under the kill switch that holds it; `skip` cancels it with the lattice's rule, `expire` closes it as `expired`, and a lattice that is not ready, or one of whose inputs cannot be read, leaves the rest `PAUSED` until it is. A delivery whose tenant, subtenant or subscriber is still suspended is not resumed: it stays `PAUSED` under the rule of the suspension that still holds it, whose lift resumes it.
   """
 
   alias Relay.Actor
@@ -13,7 +13,12 @@ defmodule Relay.Operators.SuspensionWork do
   @subscriber_rule "subscriber.suspended"
 
   @type totals :: %{paused: non_neg_integer()}
-  @type resumed :: %{resumed: non_neg_integer(), cancelled: non_neg_integer(), waiting: boolean()}
+  @type resumed :: %{
+          required(:resumed) => non_neg_integer(),
+          required(:cancelled) => non_neg_integer(),
+          required(:waiting) => boolean(),
+          optional(:expired) => non_neg_integer()
+        }
 
   # TN-10
   # TN-40
@@ -166,16 +171,32 @@ defmodule Relay.Operators.SuspensionWork do
         {:halt, {:ok, %{acc | waiting: true}}}
 
       {:send, decision_ref} ->
-        scope
-        |> Store.in_scope(fn _status -> send(scope, row, decision_ref, run.rule) end)
-        |> count(acc, :resumed)
+        resume_send(scope, row, decision_ref, run, acc)
+
+      {:defer, _reason, rule_id, _until} ->
+        resume_send(scope, row, "lattice:" <> rule_id, run, acc)
+
+      {:pause, rule_id} ->
+        resume_send(scope, row, "lattice:" <> rule_id, run, acc)
 
       {:skip, _reason, rule_id} ->
         scope |> cancel(row["id"], rule_id, run.actor) |> count(acc, :cancelled)
+
+      {:expire, rule_id} ->
+        scope
+        |> Store.in_scope(fn _status -> Store.delivery_expire(row["id"], rule_id) end)
+        |> count(acc, :expired)
     end
   end
 
-  defp count({:ok, result}, acc, result), do: {:cont, {:ok, Map.update!(acc, result, &(&1 + 1))}}
+  defp resume_send(scope, row, decision_ref, run, acc) do
+    scope
+    |> Store.in_scope(fn _status -> send(scope, row, decision_ref, run.rule) end)
+    |> count(acc, :resumed)
+  end
+
+  defp count({:ok, result}, acc, result),
+    do: {:cont, {:ok, Map.update(acc, result, 1, &(&1 + 1))}}
   defp count({:ok, _other}, acc, _result), do: {:cont, {:ok, acc}}
   defp count({:error, error}, _acc, _result), do: {:halt, {:error, error}}
 

@@ -29,6 +29,19 @@ defmodule Relay.Policy do
   @spec frequency_counters(Snapshot.t()) :: [Frequency.key()]
   def frequency_counters(snapshot), do: Engine.counters(snapshot)
 
+  # PC-50
+  # PC-58 (6)
+  @doc "The frequency counters of a delivery of `class` on `channel` in a category, before a snapshot exists; see `Relay.Policy.Frequency.keys/5`."
+  @spec frequency_keys(
+          Snapshot.message_class(),
+          Snapshot.channel(),
+          String.t(),
+          Snapshot.frequency_policy() | nil,
+          pos_integer() | nil
+        ) :: [Frequency.key()]
+  def frequency_keys(class, channel, category_key, policy, global_cap),
+    do: Frequency.keys(class, channel, category_key, policy, global_cap)
+
   # WF-45
   # PC-58 (4)
   @doc "Resolves a recipient's time zone and its source; see `Relay.Policy.Zone.resolve/4`."

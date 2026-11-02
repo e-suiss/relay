@@ -28,7 +28,12 @@ defmodule RelayTest.Isolation do
        "workflow" => "isolation",
        "to_pointer" => "/to",
        "data_fields" => [""]
-     }}
+     }},
+    {"updateSubscriberPreferences",
+     %{"preferences" => [%{"level" => "channel", "channel" => "sms", "value" => "opt_out"}]}},
+    {"updateCategory", %{"name" => "Isolation"}},
+    {"replaceCategorySubtenantSetting", %{"enabled" => false}},
+    {"liftSuppression", %{"reason" => "isolation"}}
   ]
   @upserts ["replaceSubscriber"]
 
@@ -60,7 +65,10 @@ defmodule RelayTest.Isolation do
       "subscriber_id" => &subscriber!/1,
       "workflow_key" => &workflow!/1,
       "version" => fn _scope -> "1" end,
-      "mapping_id" => &mapping!/1
+      "mapping_id" => &mapping!/1,
+      "category_key" => &category!/1,
+      "subtenant_id" => &subtenant!/1,
+      "suppression_id" => &suppression!/1
     }
   end
 
@@ -181,6 +189,36 @@ defmodule RelayTest.Isolation do
 
     created = F.request(:post, "/v1/event_type_mappings", owner(scope), body)
     F.body(created, 201)["id"]
+  end
+
+  @doc "Creates a category in `scope` and returns its key."
+  @spec category!(Relay.Scope.t()) :: String.t()
+  def category!(scope) do
+    key = "iso_" <> random()
+    :ok = F.category!(owner(scope), key)
+    key
+  end
+
+  @doc "Creates a sub-tenant in `scope` and returns its identifier."
+  @spec subtenant!(Relay.Scope.t()) :: String.t()
+  def subtenant!(scope) do
+    id = Relay.Id.generate()
+    actor = ["system", "relay-test", "relay-test", nil]
+    params = [id, "org_iso_" <> random(), "Isolation", :crypto.strong_rand_bytes(32)] ++ actor
+
+    {:ok, [%{"result" => "created"}]} =
+      Relay.Repo.in_scope(scope, fn _status ->
+        Relay.Repo.call!("relay_fn.subtenant_upsert", params)
+      end)
+
+    Relay.ExternalId.encode("stn", id)
+  end
+
+  @doc "Suppresses an address in `scope` by hand and returns the suppression's identifier."
+  @spec suppression!(Relay.Scope.t()) :: String.t()
+  def suppression!(scope) do
+    body = %{"channel" => "email", "address" => "iso-" <> random() <> "@example.com"}
+    F.body(F.request(:post, "/v1/suppressions", owner(scope), body), 201)["id"]
   end
 
   @doc "Engages a tenant-scope kill switch in `scope` and returns its identifier."

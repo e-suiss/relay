@@ -9,6 +9,7 @@ defmodule RelayDev do
       Relay,
       Relay.Access,
       Relay.Datasets,
+      Relay.Preferences,
       Relay.Tenancy,
       Relay.Tenancy.Provisioning,
       Relay.Workflow,

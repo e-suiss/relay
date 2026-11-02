@@ -239,7 +239,8 @@ defmodule RelayWeb.Api.Pipeline do
   # API-41
   # API-48
   defp active(conn, edge) do
-    if edge.mtls_required and not conn.assigns.principal.certificate_bound do
+    if edge.mtls_required and conn.assigns.operation.family == :server and
+         not conn.assigns.principal.certificate_bound do
       {:error, conn, Relay.Error.new(:auth_invalid_token, "a certificate-bound token is needed")}
     else
       {version, source} = Versions.resolve(conn.assigns.requested_version, edge.api_version)

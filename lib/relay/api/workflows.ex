@@ -88,7 +88,8 @@ defmodule Relay.Api.Workflows do
   @doc "Replaces the draft of a workflow inside the request's transaction."
   @spec replace(Relay.Scope.t(), String.t(), map(), pos_integer(), Relay.Actor.t()) :: answer()
   def replace(scope, key, body, expected_version, actor) do
-    with {:ok, definition} <- definition(body["definition"]) do
+    with {:ok, _workflow} <- existing(key),
+         {:ok, definition} <- definition(body["definition"]) do
       case Relay.Workflow.replace_draft(scope, key, definition, expected_version, actor) do
         {:ok, {result, version}} when result in [:replaced, :unchanged] ->
           {:ok, {200, [etag(version)], view(Relay.Workflow.view(key))}}
@@ -102,30 +103,46 @@ defmodule Relay.Api.Workflows do
     end
   end
 
-  # API-81
-  # E-10
-  @doc "The definition with its message class: the declared class, else the default class of the tenant's platform product, frozen into the definition; a tenant without a default must declare it. Runs inside the request's scoped transaction."
-  @spec definition(map()) :: {:ok, map()} | {:error, Relay.Error.t()}
-  def definition(%{"message_class" => class} = definition) when is_binary(class),
-    do: {:ok, definition}
-
-  def definition(definition) do
-    case Relay.Access.message_class(Relay.Ingest.platform_product(), nil) do
-      nil ->
-        {:error,
-         Relay.Error.new(:validation_failed, "the workflow definition is invalid", %{
-           errors: [
-             %{
-               pointer: "/definition/message_class",
-               code: "required",
-               detail: "the message class is required"
-             }
-           ]
-         })}
-
-      class ->
-        {:ok, Map.put(definition, "message_class", Atom.to_string(class))}
+  defp existing(key) do
+    case Relay.Workflow.view(key) do
+      nil -> {:error, workflow_not_found()}
+      workflow -> {:ok, workflow}
     end
+  end
+
+  # PC-57 (3)
+  # API-79 (11)
+  # API-81
+  @doc "The definition checked against its category inside the request's scoped transaction: the category exists and is not archived, a declared message class is the category's class, and a definition without one takes the category's class, frozen into the definition."
+  @spec definition(map()) :: {:ok, map()} | {:error, Relay.Error.t()}
+  def definition(definition) do
+    case Relay.Preferences.category(definition["category"]) do
+      nil ->
+        {:error, category_error("not_found", "no category has this key")}
+
+      %{"state" => "archived"} ->
+        {:error, category_error("not_allowed", "the category is archived")}
+
+      %{"message_class" => class} ->
+        case definition["message_class"] do
+          nil -> {:ok, Map.put(definition, "message_class", class)}
+          ^class -> {:ok, definition}
+          _other -> {:error, class_mismatch(class)}
+        end
+    end
+  end
+
+  defp category_error(code, detail) do
+    Relay.Error.new(:validation_failed, "the workflow definition is invalid", %{
+      errors: [%{pointer: "/definition/category", code: code, detail: detail}]
+    })
+  end
+
+  defp class_mismatch(class) do
+    Relay.Error.new(
+      :category_class_mismatch,
+      "the message class must be the category's class, #{class}"
+    )
   end
 
   # WF-6

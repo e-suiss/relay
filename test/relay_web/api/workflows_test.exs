@@ -9,7 +9,9 @@ defmodule RelayWeb.Api.WorkflowsTest do
 
   setup do
     tenant = TenantFixture.tenant!()
-    %{scope: tenant.live, token: F.token(tenant.live)}
+    token = F.token(tenant.live)
+    :ok = F.category!(token, "orders")
+    %{scope: tenant.live, token: token}
   end
 
   defp code(conn, status), do: F.body(conn, status)["code"]
@@ -114,19 +116,49 @@ defmodule RelayWeb.Api.WorkflowsTest do
       assert Enum.map(versions["data"], & &1["version"]) == [3, 2, 1]
     end
 
-    test "API-81: a tenant that is not a platform tenant must declare the message class", ctx do
-      definition = F.definition(message_class: nil)
-      problem = F.body(create(ctx.token, "no-class", definition), 422)
+    test "PC-57, API-79: a definition without a message class takes the class of its category",
+         ctx do
+      created = F.body(create(ctx.token, "no-class", F.definition(message_class: nil)), 201)
+      assert created["draft"]["message_class"] == "transactional"
+      assert created["draft"]["category"] == "orders"
 
-      assert problem["code"] == "validation_failed"
-
-      assert [%{"pointer" => "/definition/message_class", "code" => "required"}] =
-               problem["errors"]
-
-      F.body(create(ctx.token, "no-class", F.definition()), 201)
       [etag] = etag(ctx.token, "no-class")
-      body = %{"definition" => definition}
+      body = %{"definition" => F.definition(name: "Again", message_class: nil)}
       replaced = F.request(:put, "/v1/workflows/no-class", ctx.token, body, [{"if-match", etag}])
+      assert F.body(replaced, 200)["draft"]["message_class"] == "transactional"
+    end
+
+    test "PC-57, API-79: an unknown category is a field error and another class is a mismatch",
+         ctx do
+      unknown = F.body(create(ctx.token, "nowhere", F.definition(category: "missing")), 422)
+      assert unknown["code"] == "validation_failed"
+      assert [%{"pointer" => "/definition/category", "code" => "not_found"}] = unknown["errors"]
+
+      marketing = F.definition(category: "orders", message_class: "marketing")
+      assert code(create(ctx.token, "wrong-class", marketing), 422) == "category_class_mismatch"
+
+      assert code(F.request(:get, "/v1/workflows/wrong-class", ctx.token), 404) ==
+               "workflow_not_found"
+
+      F.body(create(ctx.token, "welcome", F.definition()), 201)
+      [etag] = etag(ctx.token, "welcome")
+      body = %{"definition" => F.definition(category: "orders", message_class: "security")}
+      replaced = F.request(:put, "/v1/workflows/welcome", ctx.token, body, [{"if-match", etag}])
+      assert code(replaced, 422) == "category_class_mismatch"
+    end
+
+    test "PC-57: an archived category takes no new workflow and no new draft", ctx do
+      F.body(create(ctx.token, "welcome", F.definition()), 201)
+      :ok = F.category!(ctx.token, "old_news", "operational")
+      F.body(F.request(:post, "/v1/categories/old_news/archive", ctx.token), 200)
+
+      definition = F.definition(category: "old_news", message_class: nil)
+      problem = F.body(create(ctx.token, "late", definition), 422)
+      assert [%{"pointer" => "/definition/category", "code" => "not_allowed"}] = problem["errors"]
+
+      [etag] = etag(ctx.token, "welcome")
+      body = %{"definition" => definition}
+      replaced = F.request(:put, "/v1/workflows/welcome", ctx.token, body, [{"if-match", etag}])
       assert code(replaced, 422) == "validation_failed"
     end
 

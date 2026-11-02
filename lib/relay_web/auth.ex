@@ -6,6 +6,7 @@ defmodule RelayWeb.Auth do
   * Invalid credentials are limited per client IP (`throttle_invalid/1`); past the limit the answer is `429 rate_limited`.
   * A missing scope is `403 auth_insufficient_scope` with `required_scope` and `granted_scopes`; the other environment's operation is `403 auth_environment_mismatch`.
   * `Relay-Tenant` and `Relay-Environment` belong to operator sessions; with an API client credential they are `422 validation_failed`.
+  * A subscriber operation accepts only a Relay subscriber token (`RelayWeb.Auth.Subscriber`); its principal names the subscriber, and the token of a suspended subscriber is `403 auth_subscriber_suspended`.
 
   The verifier (`RelayWeb.Auth.Access` in production) receives the operation, the client address and the request's client certificate (`RelayWeb.Api.Transport.client_certificate/2`: the connection's own, or the RFC 9440 `Client-Cert` of a configured proxy). An operation authenticated with the shared Suiss webhook profile (`:webhook`) needs its `webhook-id`, `webhook-timestamp` and `webhook-signature` headers here; its controller verifies the signature over the raw body.
   """
@@ -56,6 +57,17 @@ defmodule RelayWeb.Auth do
       else: {:error, conn, Relay.Error.new(:auth_missing_credentials, "the webhook is unsigned")}
   end
 
+  def authenticate(conn, %{family: :subscriber} = operation) do
+    with {:ok, token} <- credential(conn),
+         {:ok, principal} <- subscriber(conn, token),
+         :ok <- operator_headers(conn),
+         :ok <- scopes(principal, operation) do
+      {:ok, conn |> assign(:principal, principal) |> assign(:scope, principal.scope)}
+    else
+      {:error, error} -> {:error, conn, error}
+    end
+  end
+
   def authenticate(conn, operation) do
     with {:ok, token} <- credential(conn),
          {:ok, principal} <- verify(conn, token, operation),
@@ -97,6 +109,27 @@ defmodule RelayWeb.Auth do
       {:ok, %Principal{} = principal} -> {:ok, principal}
       {:error, %Relay.Error{code: code} = error} when code in @counted -> throttled(conn, error)
       {:error, %Relay.Error{} = error} -> {:error, error}
+    end
+  end
+
+  # API-45
+  # E-25
+  # TN-73
+  defp subscriber(conn, token) do
+    case RelayWeb.Auth.Subscriber.verify(token) do
+      {:ok, verified} ->
+        {:ok,
+         %Principal{
+           scope: verified.scope,
+           scopes: verified.scopes,
+           subscriber_id: verified.subscriber_id
+         }}
+
+      {:error, %Relay.Error{code: code} = error} when code in @counted ->
+        throttled(conn, error)
+
+      {:error, %Relay.Error{} = error} ->
+        {:error, error}
     end
   end
 

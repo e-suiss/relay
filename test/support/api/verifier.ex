@@ -7,7 +7,7 @@ defmodule RelayTest.Api.Verifier do
 
   alias RelayWeb.Auth.Principal
 
-  @doc "Issues a token for a scope with the given scopes; options `:api_client_id`, `:rate_limit`."
+  @doc "Issues a token for a scope with the given scopes; options `:api_client_id`, `:rate_limit`, `:agent`."
   @spec issue(Relay.Scope.t(), [String.t()], keyword()) :: String.t()
   def issue(%Relay.Scope{} = scope, scopes, opts \\ []) do
     encode(%{
@@ -15,7 +15,8 @@ defmodule RelayTest.Api.Verifier do
       "environment" => Atom.to_string(scope.environment),
       "scopes" => scopes,
       "api_client_id" => Keyword.get(opts, :api_client_id, "cli_test"),
-      "rate_limit" => Keyword.get(opts, :rate_limit)
+      "rate_limit" => Keyword.get(opts, :rate_limit),
+      "agent" => Keyword.get(opts, :agent, false)
     })
   end
 
@@ -53,7 +54,8 @@ defmodule RelayTest.Api.Verifier do
        scope: Relay.Scope.new!(tenant_id, claims["environment"]),
        scopes: claims["scopes"],
        api_client_id: claims["api_client_id"],
-       rate_limit: claims["rate_limit"]
+       rate_limit: claims["rate_limit"],
+       agent: claims["agent"] == true
      }}
   end
 

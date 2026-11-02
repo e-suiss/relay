@@ -31,9 +31,12 @@ defmodule Relay.Ingest.Request do
   # API-24
   # API-26
   # API-62
-  @doc "Checks a decoded send request against its workflow version (`message_class`, `steps`), the `environment` and `now`; returns the normalised request or the first failing rule's error."
+  @doc "Checks a decoded send request against its workflow version (`message_class`, `steps`), the `environment`, `now` and whether the credential is an agent's (`agent`, PC-57 (7)); returns the normalised request or the first failing rule's error."
   @spec check(map(), map()) :: {:ok, map()} | {:error, Relay.Error.t()}
-  def check(body, %{message_class: class, steps: steps, environment: environment, now: now}) do
+  def check(
+        body,
+        %{message_class: class, steps: steps, environment: environment, now: now} = ctx
+      ) do
     with :ok <- send_mode(body, environment),
          :ok <- policy_fields(body),
          :ok <- sender(body),
@@ -52,7 +55,7 @@ defmodule Relay.Ingest.Request do
            targets: Enum.map(Map.get(body, "to", []), &target/1),
            priority: priority,
            warnings: warnings,
-           sender_type: get_in(body, ["actor", "type"]) || "system",
+           sender_type: sender_type(body, ctx),
            actor: Map.get(body, "actor"),
            tenant: Map.get(body, "tenant"),
            dedup_key: Map.get(body, "dedup_key"),
@@ -73,6 +76,10 @@ defmodule Relay.Ingest.Request do
       end
     end
   end
+
+  # PC-57 (7)
+  defp sender_type(_body, %{agent: true}), do: "agent"
+  defp sender_type(body, _ctx), do: get_in(body, ["actor", "type"]) || "system"
 
   # API-62
   # API-76

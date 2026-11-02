@@ -92,6 +92,43 @@ defmodule RelayWeb.Router do
     delete "/subscribers/:subscriber_id", SubscriberController, :delete,
       private: %{relay_operation: "deleteSubscriber"}
 
+    get "/subscribers/:subscriber_id/preferences", PreferenceController, :show,
+      private: %{relay_operation: "getSubscriberPreferences"}
+
+    patch "/subscribers/:subscriber_id/preferences", PreferenceController, :update,
+      private: %{relay_operation: "updateSubscriberPreferences"}
+
+    get "/subscribers/:subscriber_id/consents", PreferenceController, :consents,
+      private: %{relay_operation: "listSubscriberConsents"}
+
+    get "/categories", CategoryController, :index, private: %{relay_operation: "listCategories"}
+
+    post "/categories", CategoryController, :create, private: %{relay_operation: "createCategory"}
+
+    get "/categories/:category_key", CategoryController, :show,
+      private: %{relay_operation: "getCategory"}
+
+    patch "/categories/:category_key", CategoryController, :update,
+      private: %{relay_operation: "updateCategory"}
+
+    post "/categories/:category_key/archive", CategoryController, :archive,
+      private: %{relay_operation: "archiveCategory"}
+
+    get "/categories/:category_key/subtenants/:subtenant_id", CategoryController, :setting,
+      private: %{relay_operation: "getCategorySubtenantSetting"}
+
+    put "/categories/:category_key/subtenants/:subtenant_id", CategoryController, :put_setting,
+      private: %{relay_operation: "replaceCategorySubtenantSetting"}
+
+    get "/suppressions", SuppressionController, :index,
+      private: %{relay_operation: "listSuppressions"}
+
+    post "/suppressions", SuppressionController, :create,
+      private: %{relay_operation: "createSuppression"}
+
+    post "/suppressions/:suppression_id/lift", SuppressionController, :lift,
+      private: %{relay_operation: "liftSuppression"}
+
     get "/workflows", WorkflowController, :index, private: %{relay_operation: "listWorkflows"}
     post "/workflows", WorkflowController, :create, private: %{relay_operation: "createWorkflow"}
 
@@ -160,6 +197,12 @@ defmodule RelayWeb.Router do
 
     post "/subscriber/token", SubscriberTokenController, :create,
       private: %{relay_operation: "exchangeSubscriberToken"}
+
+    get "/subscriber/preferences", PreferenceController, :mine,
+      private: %{relay_operation: "getMyPreferences"}
+
+    patch "/subscriber/preferences", PreferenceController, :update_mine,
+      private: %{relay_operation: "updateMyPreferences"}
   end
 
   # API-78
@@ -253,6 +296,9 @@ defmodule RelayWeb.Router do
 
     post "/subscribers/:subscriber_id/resume", SubscriberController, :resume,
       private: %{relay_operation: "resumeSubscriber"}
+
+    post "/suppressions/:suppression_id/lift", SuppressionController, :lift,
+      private: %{relay_operation: "liftSuppressionAsOperator"}
 
     get "/audit_log", SupportController, :audit_log,
       private: %{relay_operation: "listAuditRecords"}

@@ -564,10 +564,7 @@ defmodule Relay.Api.Events do
         {:ok, [Live.dry_run_skip(step.channel, reason, rule)]}
 
       {{:skip, reason, rule}, _mode} ->
-        with {:ok, id} <- open(p, notification_id, row, step, delivery_id) do
-          if id, do: Live.record_skip(id, reason, rule)
-          {:ok, []}
-        end
+        skip(p, notification_id, row, step, delivery_id, {reason, rule})
 
       {:lattice, :dry_run} ->
         dry_run(step.channel, Live.decide(lattice_input(p, row, step, delivery_id)))
@@ -575,6 +572,21 @@ defmodule Relay.Api.Events do
       {:lattice, _mode} ->
         result = Live.decide(lattice_input(p, row, step, delivery_id))
         opened(p, notification_id, row, step, delivery_id, result)
+    end
+  end
+
+  # DS-24
+  defp skip(p, notification_id, row, step, delivery_id, {reason, rule}) do
+    case open(p, notification_id, row, step, delivery_id) do
+      {:ok, nil} ->
+        {:ok, []}
+
+      {:ok, id} ->
+        _ = Live.record_skip(id, reason, rule)
+        {:ok, []}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 

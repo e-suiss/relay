@@ -166,9 +166,10 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
     for [payload] <- sql!(scope, sql, []), payload["delivery_id"] == id, do: payload
   end
 
-  defp run!(delivery) do
-    [job | _] = F.delivery_jobs(delivery["id"])
-    Relay.Delivery.Send.perform(%Oban.Job{args: Map.delete(job, "queue")})
+  defp run!(scope, delivery) do
+    id = Relay.Id.to_string(internal(delivery))
+    args = Map.put(Relay.Scope.to_job_args(scope), "delivery_id", id)
+    Relay.Delivery.Send.perform(%Oban.Job{args: args})
   end
 
   defp attach(event) do
@@ -388,7 +389,7 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
                  TenantFixture.actor()
                )
 
-      assert run!(delivery) == {:snooze, 300}
+      assert run!(scope, delivery) == {:snooze, 300}
       assert ["send", nil, nil] = decision(scope, delivery)
     end
 
@@ -422,13 +423,14 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
 
         first = delivery!(ctx.token, "deal", external_id)
         assert first["status"] == "queued"
-        assert run!(first) == {:snooze, 300}
+        assert run!(ctx.scope, first) == {:snooze, 300}
 
         dropped = delivery!(ctx.token, "deal", external_id)
         assert %{"status" => "skipped", "reason" => "frequency_capped"} = dropped
         assert dropped["rule_id"] == "frequency.dropped"
 
-        assert run!(delivery!(ctx.token, "promo", external_id)) == {:snooze, 300}
+        promo = delivery!(ctx.token, "promo", external_id)
+        assert run!(ctx.scope, promo) == {:snooze, 300}
         deferred = delivery!(ctx.token, "promo", external_id)
 
         assert %{"status" => "queued", "rule_id" => "frequency.deferred"} = deferred
@@ -452,7 +454,7 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
         capture_log(fn ->
           first = delivery!(ctx.token, "deal", external_id)
           assert first["status"] == "queued"
-          assert run!(first) == {:snooze, 300}
+          assert run!(ctx.scope, first) == {:snooze, 300}
           assert delivery!(ctx.token, "deal", external_id)["status"] == "queued"
         end)
       end)
@@ -516,7 +518,7 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
       {:ok, %{result: :engaged, id: kill_switch}} = KillSwitch.engage(spec, @operator)
 
       delivery = delivery!(ctx.token, "order-shipped", subscriber!(ctx.token))
-      assert run!(delivery) == :ok
+      assert run!(ctx.scope, delivery) == :ok
 
       paused = "SELECT paused_at IS NOT NULL, pause_rule_id FROM relay.deliveries WHERE id = $1"
       assert [[true, "killswitch.off"]] = sql!(ctx.scope, paused, [internal(delivery)])

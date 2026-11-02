@@ -2,7 +2,7 @@ defmodule Relay.Delivery.Send do
   @moduledoc """
   The job that sends one delivery. Its arguments carry the scope and identifiers only (T-15). The job, also when it starts at a delivery's `send_at`, first applies a cancellation tombstone written before the run started: a covered delivery becomes `cancelled` with the tombstone's rule (API-58, INV-6). It then reads the delivery's gate: a delivery that is cancelled, paused, terminal or gone ends the job without error.
 
-  Every other run passes the policy lattice again (`Relay.Policy.Live.job/2`, PC-8): a skip, an expiry or a kill switch pause is recorded and ends the job; a deferral is recorded and the job runs again at `deferred_until`, which carries the release jitter; an input that cannot be read records nothing and the job retries (INV-43), and while the kill switch state is unknown it waits five seconds (TN-38). Channel adapters, which hand a sendable delivery to its provider, join this job in the channel stage; until then a delivery the lattice sends waits in the queue and the job comes back later.
+  Every other run passes the policy lattice again (PC-8), through the lattice step configured as `config :relay, Relay.Delivery, lattice: Module`, by default `Relay.Policy.Live`, whose `job/2` it calls; the delivery context itself depends on no other context (T-56): a skip, an expiry or a kill switch pause is recorded and ends the job; a deferral is recorded and the job runs again at `deferred_until`, which carries the release jitter; an input that cannot be read records nothing and the job retries (INV-43), and while the kill switch state is unknown it waits five seconds (TN-38). Channel adapters, which hand a sendable delivery to its provider, join this job in the channel stage; until then a delivery the lattice sends waits in the queue and the job comes back later.
   """
 
   use Relay.Worker, queue: :l1, max_attempts: 20, timeout: 30_000
@@ -31,13 +31,17 @@ defmodule Relay.Delivery.Send do
   # PC-58 (5)
   # WF-42
   defp decide(scope, delivery_id) do
-    case Relay.Policy.Live.job(scope, delivery_id) do
+    case lattice().job(scope, delivery_id) do
       {:send, _info} -> {:snooze, @wait_s}
       {:defer, until} -> {:snooze, seconds_until(Relay.Clock.wall_time(scope, until))}
       :done -> :ok
       {:error, {:input_unavailable, :kill_switch}} -> {:snooze, @hold_s}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  defp lattice do
+    :relay |> Application.get_env(Relay.Delivery, []) |> Keyword.get(:lattice, Relay.Policy.Live)
   end
 
   defp seconds_until(at) do

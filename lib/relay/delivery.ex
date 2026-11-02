@@ -5,7 +5,7 @@ defmodule Relay.Delivery do
   Every function takes the scope and runs in its own scoped transaction (`Relay.Repo.in_scope/3`).
   """
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Policy.Live], exports: []
+  use Boundary, top_level?: true, deps: [Relay], exports: []
 
   require Logger
 

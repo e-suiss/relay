@@ -122,11 +122,24 @@ defmodule Relay.Access.PlatformTenantTest do
     end
   end
 
-  describe "API-81 message class of a workflow version" do
-    test "API-81: a platform tenant's workflow without a class takes the product default" do
+  describe "API-81 PC-57 message class of a workflow version" do
+    test "API-81, PC-57: an Access platform tenant opens with a built-in security category" do
       platform = platform!("access")
       token = F.token(platform.live)
-      shown = F.workflow!(platform.live, token, "login-alert", message_class: nil)
+      category = F.body(F.request(:get, "/v1/categories/security", token), 200)
+
+      assert %{"message_class" => "security", "locked" => true, "builtin" => true} = category
+      assert category["state"] == "active"
+      problem = F.body(F.request(:post, "/v1/categories/security/archive", token), 409)
+      assert problem["code"] == "category_builtin"
+    end
+
+    test "API-81, PC-57: a platform tenant's workflow without a class takes its security category's class" do
+      platform = platform!("access")
+      token = F.token(platform.live)
+
+      shown =
+        F.workflow!(platform.live, token, "login-alert", message_class: nil, category: "security")
 
       version = F.body(F.request(:get, "/v1/workflows/login-alert/versions/1", token), 200)
       assert version["definition"]["message_class"] == "security"
@@ -142,7 +155,7 @@ defmodule Relay.Access.PlatformTenantTest do
       assert notification_class(token, "weekly-note") == "operational"
     end
 
-    test "API-81: a platform product without a default class must declare one" do
+    test "PC-57: a platform product without a default class takes the class of the category" do
       platform = platform!("work")
       token = F.token(platform.live)
       body = %{"key" => "task-due", "definition" => F.definition(message_class: nil)}
@@ -150,8 +163,11 @@ defmodule Relay.Access.PlatformTenantTest do
 
       assert problem["code"] == "validation_failed"
 
-      assert [%{"pointer" => "/definition/message_class", "code" => "required"}] =
-               problem["errors"]
+      assert [%{"pointer" => "/definition/category", "code" => "not_found"}] = problem["errors"]
+
+      F.category!(token, "orders", "operational")
+      created = F.body(F.request(:post, "/v1/workflows", token, body), 201)
+      assert created["draft"]["message_class"] == "operational"
     end
   end
 end

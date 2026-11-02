@@ -18,7 +18,7 @@ defmodule Relay.Access do
       Relay.Tenancy,
       Relay.Tenancy.Provisioning
     ],
-    exports: [UserHandler]
+    exports: [UserHandler, ConsentHandler]
 
   alias Relay.Access.Clients
   alias Relay.Access.ClientStore

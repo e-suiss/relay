@@ -51,7 +51,7 @@ defmodule RelayTest.IngestFixture do
     Jason.decode!(conn.resp_body)
   end
 
-  @doc "A workflow definition with one channel step per channel; `message_class: nil` leaves the class out."
+  @doc "A workflow definition with one channel step per channel; `message_class: nil` leaves the class out. The category defaults to `orders` for a `transactional` or absent class and to the class name otherwise."
   @spec definition(keyword()) :: map()
   def definition(opts \\ []) do
     steps =
@@ -66,7 +66,7 @@ defmodule RelayTest.IngestFixture do
 
     %{
       "name" => Keyword.get(opts, :name, "Order shipped"),
-      "category" => Keyword.get(opts, :category, "orders"),
+      "category" => Keyword.get_lazy(opts, :category, fn -> category(opts) end),
       "message_class" => Keyword.get(opts, :message_class, "transactional"),
       "event_schema" =>
         Keyword.get(opts, :event_schema, %{
@@ -79,10 +79,33 @@ defmodule RelayTest.IngestFixture do
     |> Map.reject(fn {key, value} -> key == "message_class" and value == nil end)
   end
 
-  @doc "Creates a workflow through the API and publishes its draft through the gate."
+  defp category(opts) do
+    case Keyword.get(opts, :message_class, "transactional") do
+      class when class in [nil, "transactional"] -> "orders"
+      class -> class
+    end
+  end
+
+  # PC-57 (3)
+  @doc "Creates a category through the API unless its key exists; the class defaults to `transactional`."
+  @spec category!(String.t(), String.t(), String.t() | nil) :: :ok
+  def category!(token, key, class \\ nil) do
+    body = %{"key" => key, "name" => key, "message_class" => class || "transactional"}
+    created = request(:post, "/v1/categories", token, body)
+    assert created.status in [201, 409], created.resp_body
+    :ok
+  end
+
+  @doc "Creates the category a definition names, as `category!/3` does."
+  @spec category_of!(String.t(), map()) :: :ok
+  def category_of!(token, definition),
+    do: category!(token, definition["category"], definition["message_class"])
+
+  @doc "Creates a workflow and its category through the API and publishes its draft through the gate."
   @spec workflow!(Relay.Scope.t(), String.t(), String.t(), keyword()) :: map()
   def workflow!(scope, token, key, opts \\ []) do
     body = %{"key" => key, "definition" => definition(opts)}
+    :ok = category_of!(token, body["definition"])
     created = request(:post, "/v1/workflows", token, body)
     assert created.status == 201, created.resp_body
     publish!(scope, token, key)

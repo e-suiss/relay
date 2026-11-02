@@ -115,12 +115,13 @@ defmodule RelayWeb.Api.Response do
   # API-13
   # API-14
   # sobelow_skip ["XSS.SendResp"]
-  @doc "Runs the work of an idempotent request (`Relay.Api.Idempotency.run/5`) and sends its response, or the stored one with `Idempotency-Replayed: true`."
+  @doc "Runs the work of an idempotent request (`Relay.Api.Idempotency.run/5`) and sends its response, or the stored one with `Idempotency-Replayed: true`. The key is kept for the operation's endpoint, or for `:idempotency_endpoint` when the request assigns one (a subscriber operation keeps each subscriber's keys apart)."
   @spec idempotent(Plug.Conn.t(), Idempotency.work()) :: Plug.Conn.t()
   def idempotent(conn, work) do
     %{scope: scope, operation: operation, idempotency_key: key, raw_body: raw} = conn.assigns
+    endpoint = conn.assigns[:idempotency_endpoint] || operation.endpoint
 
-    case Idempotency.run(scope, operation.endpoint, key, raw, work) do
+    case Idempotency.run(scope, endpoint, key, raw, work) do
       {:ok, {kind, {status, headers, body}}} ->
         replayed = if kind == :replayed, do: [{"idempotency-replayed", "true"}], else: []
 

@@ -22,7 +22,8 @@ defmodule RelayWeb.Api.Work do
       actor: actor(conn),
       api_client_id: principal.api_client_id,
       subtenant_id: principal.subtenant_id,
-      traceparent: traceparent(conn)
+      traceparent: traceparent(conn),
+      agent: principal.agent
     }
   end
 

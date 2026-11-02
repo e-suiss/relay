@@ -8,6 +8,7 @@ defmodule Relay.Access.Events do
   * `organization.created` and `organization.updated` create, rename or archive the mapped sub-tenant in both environments under one identifier (TN-6, C-12).
   * `api_client.created`, `api_client.updated`, `api_client.suspended`, `api_client.reactivated` and `api_client.revoked` write the API client trace and announce the new generation to every node (API-44, TN-24).
   * `user.suspended`, `user.reactivated` and `user.deleted` go to the configured user event handlers (`config :relay, Relay.Access, user_handlers: [module]`, `Relay.Access.UserHandler`); without one the receipt waits as `deferred` with reason `no_handler`.
+  * `consent.updated` goes, in each environment of the mapped tenant, to the configured consent handler (`config :relay, Relay.Access, consent_handler: module`, `Relay.Access.ConsentHandler`) with its status and source in lowercase and its brand: the sub-tenant mapped from the event's organization, or the tenant itself without one (E-80). A consent that cannot be read is `rejected`; without a handler, or while its organization is not mapped yet, it waits as `deferred`.
 
   A receipt whose tenant, sub-tenant or client does not exist yet is `deferred` and queued again when a later event of the same Access tenant is applied; anything else that cannot apply is `rejected` with a reason.
   """
@@ -35,7 +36,10 @@ defmodule Relay.Access.Events do
     "api_client.revoked" => ~w(access_tenant_id access_client_id),
     "user.suspended" => ~w(subject),
     "user.reactivated" => ~w(subject),
-    "user.deleted" => ~w(subject)
+    "user.deleted" => ~w(subject),
+    "consent.updated" =>
+      ~w(sub access_tenant_id access_organization_id channel status consent_kind recipient_type
+         source occurred_at text_version_digest evidence iys_transaction_id sequence)
   }
   @statuses %{
     "api_client.suspended" => "suspended",
@@ -48,6 +52,11 @@ defmodule Relay.Access.Events do
     "user.deleted" => :deleted
   }
   @scopes ~w(publish read subscribers config kill_switch)
+  @channels ~w(push web_push email sms voice whatsapp slack teams telegram discord in_app webhook)
+  @consent_statuses ~w(none pending active revoked expired)
+  @consent_kinds ~w(explicit_opt_in soft_opt_in legitimate_interest none)
+  @recipient_types ~w(individual merchant)
+  @consent_source ~r/\A[a-z][a-z0-9_]{0,63}\z/
   @requeue_after ~w(tenant.created organization.created organization.updated api_client.created)
   @batch 100
 
@@ -170,6 +179,9 @@ defmodule Relay.Access.Events do
 
   defp handle("user." <> _ = type, payload, receipt) when is_map_key(@users, type),
     do: user(Map.fetch!(@users, type), payload, receipt)
+
+  defp handle("consent.updated", payload, receipt),
+    do: with_tenant(payload, &consent(payload, receipt, &1))
 
   defp handle(_type, _payload, _receipt), do: {:rejected, "unsupported_type"}
 
@@ -429,6 +441,122 @@ defmodule Relay.Access.Events do
         end
     end
   end
+
+  # E-80
+  # PC-59 (1)
+  defp consent(payload, receipt, tenant_id) do
+    case {Keyword.get(Relay.Access.config(), :consent_handler), consent_attrs(payload)} do
+      {nil, _attrs} ->
+        {:deferred, "no_handler"}
+
+      {_handler, :error} ->
+        {:rejected, "invalid_consent"}
+
+      {handler, {:ok, attrs}} ->
+        attrs = Map.put(attrs, :source_event_ref, receipt.webhook_id)
+        organization = payload["access_organization_id"]
+        scopes = Enum.map(Relay.Environment.all(), &Scope.new!(tenant_id, &1))
+        Enum.reduce_while(scopes, :processed, &consent_step(handler, &1, organization, attrs, &2))
+    end
+  end
+
+  defp consent_step(handler, scope, organization, attrs, :processed) do
+    case consent_in(handler, scope, organization, attrs) do
+      :ok -> {:cont, :processed}
+      other -> {:halt, other}
+    end
+  end
+
+  defp consent_in(handler, scope, organization, attrs) do
+    with {:ok, brand} <- brand(scope, organization) do
+      case handler.handle_consent(scope, Map.put(attrs, :brand_subtenant_id, brand)) do
+        :ok -> :ok
+        {:rejected, reason} when is_binary(reason) -> {:rejected, reason}
+        {:error, error} -> {:error, error}
+      end
+    end
+  end
+
+  defp brand(_scope, nil), do: {:ok, nil}
+
+  defp brand(scope, organization) do
+    case subtenant_in(scope, to_string(organization)) do
+      {:ok, %{id: id}} -> {:ok, id}
+      {:ok, nil} -> {:deferred, "subtenant_not_found"}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  defp consent_attrs(payload) do
+    with sub when is_binary(sub) and sub != "" <- text(payload["sub"], 256),
+         channel when channel in @channels <- payload["channel"],
+         status when status in @consent_statuses <- lower(payload["status"]),
+         source when is_binary(source) <- consent_source(payload["source"]),
+         sequence when is_integer(sequence) and sequence >= 0 <- payload["sequence"],
+         {:ok, occurred_at} <- timestamp(payload["occurred_at"]),
+         {:ok, kind} <- optional(payload["consent_kind"], @consent_kinds),
+         {:ok, recipient_type} <- optional(payload["recipient_type"], @recipient_types),
+         {:ok, text_digest} <- text_digest(payload["text_version_digest"]),
+         {:ok, evidence} <- evidence(payload["evidence"]) do
+      {:ok,
+       %{
+         sub: sub,
+         channel: channel,
+         status: status,
+         consent_kind: kind,
+         recipient_type: recipient_type,
+         source: source,
+         sequence: sequence,
+         occurred_at: occurred_at,
+         text_version_digest: text_digest,
+         evidence: evidence,
+         iys_transaction_ref: text(payload["iys_transaction_id"], 128)
+       }}
+    else
+      _invalid -> :error
+    end
+  end
+
+  defp lower(value) when is_binary(value), do: String.downcase(value)
+  defp lower(_value), do: nil
+
+  defp consent_source(value) when is_binary(value) do
+    source = value |> String.trim() |> String.downcase()
+    if Regex.match?(@consent_source, source), do: source
+  end
+
+  defp consent_source(_value), do: nil
+
+  defp timestamp(value) when is_binary(value) do
+    case DateTime.from_iso8601(value) do
+      {:ok, at, _offset} -> {:ok, at}
+      {:error, _reason} -> :error
+    end
+  end
+
+  defp timestamp(_value), do: :error
+
+  defp optional(nil, _allowed), do: {:ok, nil}
+  defp optional(value, allowed), do: if(value in allowed, do: {:ok, value}, else: :error)
+
+  defp text_digest(nil), do: {:ok, nil}
+
+  defp text_digest(hex) when is_binary(hex) and byte_size(hex) == 64,
+    do: Base.decode16(hex, case: :lower)
+
+  defp text_digest(_hex), do: :error
+
+  defp evidence(nil), do: {:ok, nil}
+
+  defp evidence(%{} = evidence) do
+    taken = Map.take(evidence, ["ip", "device"])
+
+    if Enum.all?(taken, fn {_key, value} -> is_binary(value) end),
+      do: {:ok, taken},
+      else: :error
+  end
+
+  defp evidence(_evidence), do: :error
 
   defp actor(receipt) do
     {:ok, actor} = Relay.Actor.new(:access, "access", "access", receipt.webhook_id)

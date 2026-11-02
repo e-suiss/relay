@@ -33,7 +33,8 @@ defmodule Relay.Api.Events do
           required(:actor) => Relay.Actor.t(),
           optional(:api_client_id) => String.t() | nil,
           optional(:subtenant_id) => Relay.Id.t() | nil,
-          optional(:traceparent) => String.t() | nil
+          optional(:traceparent) => String.t() | nil,
+          optional(:agent) => boolean()
         }
 
   @type prepared :: map()
@@ -60,7 +61,8 @@ defmodule Relay.Api.Events do
              message_class: class,
              steps: steps,
              environment: scope.environment,
-             now: Relay.Clock.utc_now()
+             now: Relay.Clock.utc_now(),
+             agent: Map.get(ctx, :agent, false)
            }),
          :ok <- event_data(workflow, request.data),
          :ok <- platform(class),

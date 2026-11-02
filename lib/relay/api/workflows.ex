@@ -102,30 +102,39 @@ defmodule Relay.Api.Workflows do
     end
   end
 
+  # PC-57 (3)
+  # API-79 (11)
   # API-81
-  # E-10
-  @doc "The definition with its message class: the declared class, else the default class of the tenant's platform product, frozen into the definition; a tenant without a default must declare it. Runs inside the request's scoped transaction."
+  @doc "The definition checked against its category inside the request's scoped transaction: the category exists and is not archived, a declared message class is the category's class, and a definition without one takes the category's class, frozen into the definition."
   @spec definition(map()) :: {:ok, map()} | {:error, Relay.Error.t()}
-  def definition(%{"message_class" => class} = definition) when is_binary(class),
-    do: {:ok, definition}
-
   def definition(definition) do
-    case Relay.Access.message_class(Relay.Ingest.platform_product(), nil) do
+    case Relay.Preferences.category(definition["category"]) do
       nil ->
-        {:error,
-         Relay.Error.new(:validation_failed, "the workflow definition is invalid", %{
-           errors: [
-             %{
-               pointer: "/definition/message_class",
-               code: "required",
-               detail: "the message class is required"
-             }
-           ]
-         })}
+        {:error, category_error("not_found", "no category has this key")}
 
-      class ->
-        {:ok, Map.put(definition, "message_class", Atom.to_string(class))}
+      %{"state" => "archived"} ->
+        {:error, category_error("not_allowed", "the category is archived")}
+
+      %{"message_class" => class} ->
+        case definition["message_class"] do
+          nil -> {:ok, Map.put(definition, "message_class", class)}
+          ^class -> {:ok, definition}
+          _other -> {:error, class_mismatch(class)}
+        end
     end
+  end
+
+  defp category_error(code, detail) do
+    Relay.Error.new(:validation_failed, "the workflow definition is invalid", %{
+      errors: [%{pointer: "/definition/category", code: code, detail: detail}]
+    })
+  end
+
+  defp class_mismatch(class) do
+    Relay.Error.new(
+      :category_class_mismatch,
+      "the message class must be the category's class, #{class}"
+    )
   end
 
   # WF-6

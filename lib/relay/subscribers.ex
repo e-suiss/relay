@@ -239,6 +239,17 @@ defmodule Relay.Subscribers do
 
   defp found_row(_other), do: nil
 
+  # API-66
+  @doc "The identifier of the active subscriber with this external identifier, or `nil`; nothing is decrypted."
+  @spec locate(Scope.t(), String.t()) :: {:ok, Relay.Id.t() | nil} | {:error, term()}
+  def locate(%Scope{} = scope, external_id) do
+    with {:ok, {_key_id, bidx}} <- index(scope, "external_id", external_id),
+         do: Store.in_scope(scope, fn _status -> active_id(Store.lookup(bidx)) end)
+  end
+
+  defp active_id(%{"id" => id, "kind" => "subscriber", "state" => "active"}), do: id
+  defp active_id(_other), do: nil
+
   # API-56
   @doc "Lists subscribers from a decoded cursor and describes them; at most `limit + 1` come back."
   @spec list(Scope.t(), map() | nil, pos_integer()) :: {:ok, [map()]} | {:error, term()}
@@ -355,6 +366,20 @@ defmodule Relay.Subscribers do
       {:ok, list} -> {:ok, Enum.reverse(list)}
       error -> error
     end
+  end
+
+  # PC-59 (2)
+  # OP-20
+  @doc "The blind indexes of an address under every readable key, the current key first, normalised as subscriber addresses are (an email trimmed and lowercase), computed outside any transaction."
+  @spec address_digests(Scope.t(), String.t(), String.t()) ::
+          {:ok, [{Relay.Id.t(), <<_::256>>}, ...]} | {:error, term()}
+  def address_digests(%Scope{} = scope, channel, address) when is_binary(address) do
+    value = if channel == "email", do: Profile.email(address), else: String.trim(address)
+
+    Relay.Tenancy.blind_index_digests(
+      %{tenant_id: scope.tenant_id, environment: scope.environment, purpose: "address"},
+      value
+    )
   end
 
   @doc "The subscribers of blind indexes, inside the caller's scoped transaction."

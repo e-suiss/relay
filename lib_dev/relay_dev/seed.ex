@@ -1,6 +1,6 @@
 defmodule RelayDev.Seed do
   @moduledoc """
-  Sample data of the local environment (T-65 (1)): a sample tenant with its `live` and `test` environments and keys, a recipient in the test plane, the bundled data set versions, the link to the local Access stand-in (`RelayDev.Access`), a test plane API client trace with every server scope and a published `welcome` workflow, so a single request to `POST /v1/events` works right after `just dev`. `mix relay.dev.token` prints a token of the sample client. Running it again changes nothing.
+  Sample data of the local environment (T-65 (1)): a sample tenant with its `live` and `test` environments and keys, a recipient in the test plane, the bundled data set versions, the link to the local Access stand-in (`RelayDev.Access`), a test plane API client trace with every server scope, the `account` category and a published `welcome` workflow, so a single request to `POST /v1/events` works right after `just dev`. `mix relay.dev.token` prints a token of the sample client. Running it again changes nothing.
   """
 
   @tenant "dev-sample-tenant"
@@ -69,6 +69,20 @@ defmodule RelayDev.Seed do
     }
   end
 
+  defp category do
+    %{
+      key: "account",
+      name: "Account",
+      message_class: "transactional",
+      locked: false,
+      enabled: true,
+      channel_defaults: %{},
+      default_expires_in: nil,
+      frequency: nil,
+      digest_allowed: false
+    }
+  end
+
   defp tenant(actor) do
     {:ok, region} = Relay.Region.cast(RelayDev.Access.region())
 
@@ -116,8 +130,12 @@ defmodule RelayDev.Seed do
     end
   end
 
+  # PC-57 (3)
   defp create(test, actor) do
-    work = fn _status -> Relay.Workflow.create(test, @workflow, definition(), actor) end
+    work = fn _status ->
+      _ = Relay.Preferences.create_category(test, category(), actor)
+      Relay.Workflow.create(test, @workflow, definition(), actor)
+    end
 
     case Relay.Repo.in_scope(test, work) do
       {:ok, {:ok, {:created, _id, _version}}} -> :ok

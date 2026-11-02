@@ -157,16 +157,20 @@ defmodule Relay.Api.Suppressions do
 
     {filters, errors} =
       Enum.reduce(checks, {%{}, []}, fn {name, allowed}, {filters, errors} ->
-        case Map.get(query, Atom.to_string(name)) do
-          nil -> {filters, errors}
-          value when value in allowed -> {Map.put(filters, name, value), errors}
-          _other -> {filters, errors ++ [invalid(name)]}
-        end
+        filter(name, Map.get(query, Atom.to_string(name)), allowed, {filters, errors})
       end)
 
     if errors == [],
       do: {:ok, filters},
       else: {:error, Relay.Error.new(:validation_failed, "invalid filters", %{errors: errors})}
+  end
+
+  defp filter(_name, nil, _allowed, acc), do: acc
+
+  defp filter(name, value, allowed, {filters, errors}) do
+    if value in allowed,
+      do: {Map.put(filters, name, value), errors},
+      else: {filters, errors ++ [invalid(name)]}
   end
 
   defp invalid(name) do

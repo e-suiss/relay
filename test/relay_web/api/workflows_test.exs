@@ -136,6 +136,7 @@ defmodule RelayWeb.Api.WorkflowsTest do
 
       marketing = F.definition(category: "orders", message_class: "marketing")
       assert code(create(ctx.token, "wrong-class", marketing), 422) == "category_class_mismatch"
+
       assert code(F.request(:get, "/v1/workflows/wrong-class", ctx.token), 404) ==
                "workflow_not_found"
 

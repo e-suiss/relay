@@ -146,7 +146,7 @@ defmodule Relay.Policy.Live.Store do
           String.t() | nil,
           String.t() | nil,
           DateTime.t() | nil,
-          map()
+          map() | nil
         ) :: :recorded | :unchanged | :paused | :already_terminal | :not_found
   def decide(delivery_id, decision, reason, rule_id, deferred_until, detail) do
     [row] =

@@ -122,8 +122,8 @@ defmodule Relay.Preferences.Store do
   end
 
   defp settings(attrs) do
-    frequency = attrs.frequency || %{}
-    [attrs.default_expires_in, frequency[:limit], frequency[:window], frequency[:fate]]
+    frequency = Map.get(attrs, :frequency) || %{}
+    [Map.get(attrs, :default_expires_in), frequency[:limit], frequency[:window], frequency[:fate]]
   end
 
   @doc "Reads a category by key, or `nil`."

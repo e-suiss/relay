@@ -1946,7 +1946,7 @@ WorkflowDefinition:
   x-relay-choice-note: "Until tenant categories exist (later stage), the definition declares message_class next to category; afterwards the class must match the category's class."
 WorkflowDefinitionRequest:
   type: object
-  description: "Workflow definition as written. message_class may be left out only by a platform tenant: the default class of its product applies (Access: security) and is frozen in the stored definition. Every other tenant declares it; without it the write is 422 validation_failed at /definition/message_class."
+  description: "Workflow definition as written. category names an existing category that is not archived; otherwise the write is 422 validation_failed at /definition/category (not_found, or not_allowed for an archived one). message_class may be left out: the class of the category applies and is frozen in the stored definition (an Access platform tenant has the built-in security category). A declared message_class that differs from the category's class is 422 category_class_mismatch."
   required:
     - name
     - category

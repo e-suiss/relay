@@ -8,7 +8,7 @@ defmodule Relay.Access.Events do
   * `organization.created` and `organization.updated` create, rename or archive the mapped sub-tenant in both environments under one identifier (TN-6, C-12).
   * `api_client.created`, `api_client.updated`, `api_client.suspended`, `api_client.reactivated` and `api_client.revoked` write the API client trace and announce the new generation to every node (API-44, TN-24).
   * `user.suspended`, `user.reactivated` and `user.deleted` go to the configured user event handlers (`config :relay, Relay.Access, user_handlers: [module]`, `Relay.Access.UserHandler`); without one the receipt waits as `deferred` with reason `no_handler`.
-  * `consent.updated` goes, in each environment of the mapped tenant, to the configured consent handler (`config :relay, Relay.Access, consent_handler: module`, `Relay.Access.ConsentHandler`) with its status and source in lowercase and its brand: the sub-tenant mapped from the event's organization, or the tenant itself without one (E-80). A consent that cannot be read is `rejected`; without a handler, or while its organization is not mapped yet, it waits as `deferred`.
+  * `consent.updated` goes, in each environment of the mapped tenant, to the configured consent handler (`config :relay, Relay.Access, consent_handler: module`, `Relay.Access.ConsentHandler`) with its status and source in lowercase, the evidence it sealed for that environment when the event was received (the receipt keeps only that ciphertext and never the evidence in clear) and its brand: the sub-tenant mapped from the event's organization, or the tenant itself without one (E-80). A consent that cannot be read is `rejected`; without a handler, or while its organization is not mapped yet, it waits as `deferred`.
 
   A receipt whose tenant, sub-tenant or client does not exist yet is `deferred` and queued again when a later event of the same Access tenant is applied; anything else that cannot apply is `rejected` with a reason.
   """
@@ -97,8 +97,13 @@ defmodule Relay.Access.Events do
 
   defp record(%{envelope: envelope} = request) do
     type = envelope["type"]
-    payload = minimal(type, envelope["data"])
 
+    with {:ok, payload} <- sealed(type, minimal(type, envelope["data"])) do
+      store(request, envelope, type, payload)
+    end
+  end
+
+  defp store(request, envelope, type, payload) do
     attrs = %{
       id: Relay.Id.generate(),
       webhook_id: request.webhook_id,
@@ -114,6 +119,40 @@ defmodule Relay.Access.Events do
       {:error, _reason} -> {:error, Relay.Error.new(:service_unavailable, "not recorded")}
     end
   end
+
+  # E-80
+  # PC-59 (1)
+  defp sealed("consent.updated", %{"evidence" => evidence} = payload) do
+    clear = Map.delete(payload, "evidence")
+
+    with handler when handler != nil <- Keyword.get(Relay.Access.config(), :consent_handler),
+         sub when is_binary(sub) <- payload["sub"],
+         {:ok, %{} = evidence} <- evidence(evidence),
+         %{id: tenant_id} <- ClientStore.tenant(to_string(payload["access_tenant_id"])),
+         {:ok, by_environment} <- seal_each(handler, tenant_id, sub, evidence) do
+      {:ok, put_sealed(clear, by_environment)}
+    else
+      {:error, _reason} -> {:error, unsealed()}
+      _nothing_to_seal -> {:ok, clear}
+    end
+  end
+
+  defp sealed(_type, payload), do: {:ok, payload}
+
+  defp seal_each(handler, tenant_id, sub, evidence) do
+    Enum.reduce_while(Relay.Environment.all(), {:ok, %{}}, fn environment, {:ok, acc} ->
+      case handler.seal_evidence(Scope.new!(tenant_id, environment), sub, evidence) do
+        {:ok, nil} -> {:cont, {:ok, acc}}
+        {:ok, %{} = sealed} -> {:cont, {:ok, Map.put(acc, Atom.to_string(environment), sealed)}}
+        {:error, error} -> {:halt, {:error, error}}
+      end
+    end)
+  end
+
+  defp put_sealed(payload, sealed) when sealed == %{}, do: payload
+  defp put_sealed(payload, sealed), do: Map.put(payload, "evidence_sealed", sealed)
+
+  defp unsealed, do: Relay.Error.new(:service_unavailable, "the consent evidence was not sealed")
 
   # E-70
   @doc "The fields of an event's data that cross the boundary; an unknown type keeps none."
@@ -453,7 +492,12 @@ defmodule Relay.Access.Events do
         {:rejected, "invalid_consent"}
 
       {handler, {:ok, attrs}} ->
-        attrs = Map.put(attrs, :source_event_ref, receipt.webhook_id)
+        attrs =
+          Map.merge(attrs, %{
+            source_event_ref: receipt.webhook_id,
+            evidence_sealed: sealed_map(payload["evidence_sealed"])
+          })
+
         organization = payload["access_organization_id"]
         scopes = Enum.map(Relay.Environment.all(), &Scope.new!(tenant_id, &1))
         Enum.reduce_while(scopes, :processed, &consent_step(handler, &1, organization, attrs, &2))
@@ -469,7 +513,14 @@ defmodule Relay.Access.Events do
 
   defp consent_in(handler, scope, organization, attrs) do
     with {:ok, brand} <- brand(scope, organization) do
-      case handler.handle_consent(scope, Map.put(attrs, :brand_subtenant_id, brand)) do
+      sealed = Map.get(attrs.evidence_sealed, Atom.to_string(scope.environment))
+
+      consent =
+        attrs
+        |> Map.delete(:evidence_sealed)
+        |> Map.merge(%{brand_subtenant_id: brand, sealed_evidence: sealed})
+
+      case handler.handle_consent(scope, consent) do
         :ok -> :ok
         {:rejected, reason} when is_binary(reason) -> {:rejected, reason}
         {:error, error} -> {:error, error}
@@ -496,8 +547,7 @@ defmodule Relay.Access.Events do
          {:ok, occurred_at} <- timestamp(payload["occurred_at"]),
          {:ok, kind} <- optional(payload["consent_kind"], @consent_kinds),
          {:ok, recipient_type} <- optional(payload["recipient_type"], @recipient_types),
-         {:ok, text_digest} <- text_digest(payload["text_version_digest"]),
-         {:ok, evidence} <- evidence(payload["evidence"]) do
+         {:ok, text_digest} <- text_digest(payload["text_version_digest"]) do
       {:ok,
        %{
          sub: sub,
@@ -509,7 +559,6 @@ defmodule Relay.Access.Events do
          sequence: sequence,
          occurred_at: occurred_at,
          text_version_digest: text_digest,
-         evidence: evidence,
          iys_transaction_ref: text(payload["iys_transaction_id"], 128)
        }}
     else
@@ -545,6 +594,9 @@ defmodule Relay.Access.Events do
     do: Base.decode16(hex, case: :lower)
 
   defp text_digest(_hex), do: :error
+
+  defp sealed_map(%{} = sealed), do: sealed
+  defp sealed_map(_sealed), do: %{}
 
   defp evidence(nil), do: {:ok, nil}
 

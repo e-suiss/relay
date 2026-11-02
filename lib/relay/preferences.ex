@@ -181,11 +181,17 @@ defmodule Relay.Preferences do
   # PC-59 (1)
   # E-80
   @doc """
-  Records a consent of a recipient in its consent copy (E-80). `attrs` carries `:recipient_id`, `:brand_subtenant_id`, `:channel`, `:status`, `:consent_kind`, `:recipient_type`, `:source`, `:sequence`, `:occurred_at`, `:text_version_digest`, `:evidence` (a map or `nil`), `:iys_transaction_ref` and `:source_event_ref`. The evidence is encrypted under the recipient's `commercial_consent` subject key, which is created on first use; the key store is called outside any transaction, so this function must not run inside one. An older or repeated sequence changes nothing.
+  Records a consent of a recipient in its consent copy (E-80). `attrs` carries `:recipient_id`, `:brand_subtenant_id`, `:channel`, `:status`, `:consent_kind`, `:recipient_type`, `:source`, `:sequence`, `:occurred_at`, `:text_version_digest`, `:evidence` (a map or `nil`), `:iys_transaction_ref` and `:source_event_ref`; instead of `:evidence` it may carry `:sealed`, evidence already sealed by `seal_consent_evidence/3`. The evidence is encrypted under the recipient's `commercial_consent` subject key, which is created on first use; the key store is called outside any transaction, so this function must not run inside one. An older or repeated sequence changes nothing.
   """
   @spec record_consent(Scope.t(), map()) :: result(atom())
   def record_consent(%Scope{} = scope, attrs) do
-    with {:ok, sealed} <- seal_evidence(scope, attrs.recipient_id, attrs.evidence) do
+    sealing =
+      case attrs do
+        %{sealed: %{evidence_ct: _, evidence_key_id: _} = sealed} -> {:ok, sealed}
+        _plain -> seal_evidence(scope, attrs.recipient_id, Map.get(attrs, :evidence))
+      end
+
+    with {:ok, sealed} <- sealing do
       row = Map.merge(attrs, sealed)
 
       Store.in_scope(scope, fn _status ->
@@ -194,6 +200,14 @@ defmodule Relay.Preferences do
       end)
     end
   end
+
+  # PC-59 (1)
+  # E-80
+  @doc "Encrypts consent evidence for the consent copy of a recipient under its `commercial_consent` subject key, created on first use, so that only the ciphertext is kept until the consent is recorded; call it outside any transaction."
+  @spec seal_consent_evidence(Scope.t(), Relay.Id.t(), map()) ::
+          {:ok, %{evidence_ct: binary(), evidence_key_id: Relay.Id.t()}} | {:error, term()}
+  def seal_consent_evidence(%Scope{} = scope, recipient_id, %{} = evidence),
+    do: seal_evidence(scope, recipient_id, evidence)
 
   defp seal_evidence(_scope, _recipient_id, nil),
     do: {:ok, %{evidence_ct: nil, evidence_key_id: nil}}

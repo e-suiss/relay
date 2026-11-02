@@ -7,6 +7,9 @@ defmodule Relay.Access.ConsentEventsTest do
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
 
+  @ip "203.0.113.7"
+  @device "relay-test-device-7f3a"
+
   setup do
     :ok = FakeAccess.install!()
     tenant = TenantFixture.tenant!()
@@ -61,7 +64,7 @@ defmodule Relay.Access.ConsentEventsTest do
       "consent_kind" => "explicit_opt_in",
       "recipient_type" => "individual",
       "text_version_digest" => String.duplicate("ab", 32),
-      "evidence" => %{"ip" => "203.0.113.7", "device" => "ios"}
+      "evidence" => %{"ip" => @ip, "device" => @device}
     })
   end
 
@@ -114,8 +117,15 @@ defmodule Relay.Access.ConsentEventsTest do
     test "PC-59: an active consent keeps its evidence encrypted under the subject's consent key",
          ctx do
       id = deliver!("consent.updated", active(ctx, 3))
+      receipt = receipt_of(id)
 
-      assert receipt_of(id)["state"] == "processed"
+      assert receipt["state"] == "processed"
+      stored = Jason.encode!(receipt["payload"])
+      refute stored =~ @ip
+      refute stored =~ @device
+      refute Map.has_key?(receipt["payload"], "evidence")
+      assert %{"live" => %{"ct" => _, "key_id" => _}} = receipt["payload"]["evidence_sealed"]
+
       assert [%{"status" => "active", "consent_kind" => "explicit_opt_in"}] = consents(ctx)
       assert rows(ctx) == [["active", "access", 3, true, true]]
 
@@ -136,11 +146,15 @@ defmodule Relay.Access.ConsentEventsTest do
       assert rows(ctx) == []
     end
 
-    test "E-80: a sub without a subscriber creates nothing", ctx do
+    test "E-80: a sub without a subscriber creates nothing and its evidence is not kept", ctx do
       stranger = "pairwise-" <> FakeAccess.random()
-      id = deliver!("consent.updated", consent(ctx, %{"sub" => stranger}))
+      id = deliver!("consent.updated", Map.put(active(ctx, 3), "sub", stranger))
+      receipt = receipt_of(id)
 
-      assert receipt_of(id)["state"] == "processed"
+      assert receipt["state"] == "processed"
+      refute Jason.encode!(receipt["payload"]) =~ @ip
+      refute Map.has_key?(receipt["payload"], "evidence")
+      refute Map.has_key?(receipt["payload"], "evidence_sealed")
       assert Relay.Subscribers.locate(ctx.scope, stranger) == {:ok, nil}
       assert rows(ctx) == []
     end

@@ -12,10 +12,12 @@ defmodule Relay.Api.IsolationTest do
 
   setup do
     :ok = FakeAccess.install!()
-    a = TenantFixture.tenant!()
-    b = TenantFixture.tenant!()
+    a = TenantFixture.tenant!(platform_product: "access")
+    b = TenantFixture.tenant!(platform_product: "access")
 
     clients = [{:a_test, a, a.test}, {:a_live, a, a.live}, {:b_test, b, b.test}]
+
+    for {_name, _tenant, scope} <- clients, do: unlimited!(scope)
 
     tokens =
       Map.new(clients, fn {name, tenant, scope} ->
@@ -26,10 +28,26 @@ defmodule Relay.Api.IsolationTest do
     %{a: a, b: b, tokens: tokens}
   end
 
+  # API-50
+  defp unlimited!(scope) do
+    change = %{
+      key: "api.rate.burst",
+      value: %{"weight" => 1_000_000, "window_seconds" => 1},
+      expected_version: nil,
+      record_digest: TenantFixture.digest()
+    }
+
+    {:ok, _} = Relay.Tenancy.put_setting(scope, change, TenantFixture.actor())
+  end
+
   defp assert_not_found(conn, %{id: id} = operation, why) do
-    if id in Isolation.upserts(),
-      do: assert(conn.status == 201, "#{id} #{why}: #{conn.status} #{conn.resp_body}"),
-      else: assert_missing(conn, operation, why)
+    case Map.fetch(Isolation.upserts(), id) do
+      {:ok, status} ->
+        assert conn.status == status, "#{id} #{why}: #{conn.status} #{conn.resp_body}"
+
+      :error ->
+        assert_missing(conn, operation, why)
+    end
   end
 
   defp assert_missing(conn, operation, why) do

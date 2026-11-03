@@ -44,6 +44,7 @@ defmodule Relay.Config do
     Relay.Operators.Access,
     Relay.Connectors,
     Relay.Templates.Sandbox,
+    Relay.Templates.Mjml,
     Oban
   ]
   @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.Platform.MaintRepo]

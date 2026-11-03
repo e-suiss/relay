@@ -150,6 +150,99 @@ defmodule RelayWeb.Router do
     post "/workflows/:workflow_key/versions/:version/promote", WorkflowController, :promote,
       private: %{relay_operation: "promoteWorkflowVersion"}
 
+    post "/workflows/:workflow_key/preview", WorkflowController, :preview,
+      private: %{relay_operation: "previewWorkflow"}
+
+    get "/templates", TemplateController, :index, private: %{relay_operation: "listTemplates"}
+    post "/templates", TemplateController, :create, private: %{relay_operation: "createTemplate"}
+
+    get "/templates/:template_key", TemplateController, :show,
+      private: %{relay_operation: "getTemplate"}
+
+    put "/templates/:template_key", TemplateController, :replace,
+      private: %{relay_operation: "replaceTemplateDraft"}
+
+    post "/templates/:template_key/publish", TemplateController, :publish,
+      private: %{relay_operation: "publishTemplate"}
+
+    post "/templates/:template_key/archive", TemplateController, :archive,
+      private: %{relay_operation: "archiveTemplate"}
+
+    get "/templates/:template_key/versions", TemplateController, :versions,
+      private: %{relay_operation: "listTemplateVersions"}
+
+    get "/templates/:template_key/versions/:version", TemplateController, :version,
+      private: %{relay_operation: "getTemplateVersion"}
+
+    post "/templates/:template_key/versions/:version/promote", TemplateController, :promote,
+      private: %{relay_operation: "promoteTemplateVersion"}
+
+    get "/templates/:template_key/translations", TemplateController, :translations,
+      private: %{relay_operation: "getTemplateTranslations"}
+
+    post "/templates/:template_key/preview", TemplateController, :preview,
+      private: %{relay_operation: "previewTemplate"}
+
+    put "/producer_templates/:template_key", TemplateController, :producer,
+      private: %{relay_operation: "publishProducerTemplate"}
+
+    get "/layouts", TemplateAssetController, :index,
+      private: %{relay_operation: "listLayouts", relay_kind: :layout}
+
+    post "/layouts", TemplateAssetController, :create,
+      private: %{relay_operation: "createLayout", relay_kind: :layout}
+
+    get "/layouts/:layout_key", TemplateAssetController, :show,
+      private: %{relay_operation: "getLayout", relay_kind: :layout}
+
+    put "/layouts/:layout_key", TemplateAssetController, :replace,
+      private: %{relay_operation: "replaceLayoutDraft", relay_kind: :layout}
+
+    post "/layouts/:layout_key/publish", TemplateAssetController, :publish,
+      private: %{relay_operation: "publishLayout", relay_kind: :layout}
+
+    post "/layouts/:layout_key/archive", TemplateAssetController, :archive,
+      private: %{relay_operation: "archiveLayout", relay_kind: :layout}
+
+    get "/layouts/:layout_key/versions", TemplateAssetController, :versions,
+      private: %{relay_operation: "listLayoutVersions", relay_kind: :layout}
+
+    get "/layouts/:layout_key/versions/:version", TemplateAssetController, :version,
+      private: %{relay_operation: "getLayoutVersion", relay_kind: :layout}
+
+    post "/layouts/:layout_key/versions/:version/promote", TemplateAssetController, :promote,
+      private: %{relay_operation: "promoteLayoutVersion", relay_kind: :layout}
+
+    get "/partials", TemplateAssetController, :index,
+      private: %{relay_operation: "listPartials", relay_kind: :partial}
+
+    post "/partials", TemplateAssetController, :create,
+      private: %{relay_operation: "createPartial", relay_kind: :partial}
+
+    get "/partials/:partial_key", TemplateAssetController, :show,
+      private: %{relay_operation: "getPartial", relay_kind: :partial}
+
+    put "/partials/:partial_key", TemplateAssetController, :replace,
+      private: %{relay_operation: "replacePartialDraft", relay_kind: :partial}
+
+    post "/partials/:partial_key/publish", TemplateAssetController, :publish,
+      private: %{relay_operation: "publishPartial", relay_kind: :partial}
+
+    post "/partials/:partial_key/archive", TemplateAssetController, :archive,
+      private: %{relay_operation: "archivePartial", relay_kind: :partial}
+
+    get "/partials/:partial_key/versions", TemplateAssetController, :versions,
+      private: %{relay_operation: "listPartialVersions", relay_kind: :partial}
+
+    get "/partials/:partial_key/versions/:version", TemplateAssetController, :version,
+      private: %{relay_operation: "getPartialVersion", relay_kind: :partial}
+
+    post "/partials/:partial_key/versions/:version/promote", TemplateAssetController, :promote,
+      private: %{relay_operation: "promotePartialVersion", relay_kind: :partial}
+
+    get "/brand", BrandController, :show, private: %{relay_operation: "getBrand"}
+    patch "/brand", BrandController, :update, private: %{relay_operation: "updateBrand"}
+
     get "/event_type_mappings", MappingController, :index,
       private: %{relay_operation: "listEventTypeMappings"}
 

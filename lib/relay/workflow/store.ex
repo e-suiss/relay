@@ -258,6 +258,26 @@ defmodule Relay.Workflow.Store do
 
   defp from_us(us), do: DateTime.from_unix!(us, :microsecond)
 
+  # TP-13
+  @doc "The active workflows whose published version has a channel step naming the template key, with that version's number and event schema, ordered by key."
+  @spec using_template(String.t()) :: [map()]
+  def using_template(template_key) do
+    maps(
+      Repo.scoped_query!(
+        """
+        SELECT w.key, v.version_no, v.event_schema FROM relay.workflows w
+        JOIN relay.workflow_versions v ON v.tenant_id = w.tenant_id
+          AND v.environment = w.environment AND v.id = w.published_version_id
+        WHERE w.state = 'active' AND EXISTS (
+          SELECT 1 FROM jsonb_array_elements(v.definition -> 'steps') s
+          WHERE s ->> 'template' = $1)
+        ORDER BY w.key
+        """,
+        [template_key]
+      )
+    )
+  end
+
   defp one(sql, params) do
     case maps(Repo.scoped_query!(sql, params)) do
       [row] -> row

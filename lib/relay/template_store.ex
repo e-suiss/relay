@@ -31,6 +31,7 @@ defmodule Relay.TemplateStore do
   @type row :: %{String.t() => term()}
   @type version :: pos_integer() | nil
   @type maybe_id :: Relay.Id.t() | nil
+  @type brand_field :: %{value: term(), source: String.t()}
 
   @lookup [:not_found, :archived, :protected, :version_conflict]
   @gate [:no_draft, :draft_changed, :gate_failed, :warnings_unaccepted, :duplicate]
@@ -56,6 +57,8 @@ defmodule Relay.TemplateStore do
   @rollback [:rolled_back, :unchanged, :version_not_found, :version_archived]
   @archive [:archived, :already_archived, :not_found, :version_conflict]
   @asset_draft [:created, :replaced, :unchanged, :not_found, :archived, :version_conflict]
+  @brand_fields ~w(contact footer legal_name logo_url mersis postal_address primary_color
+                   secondary_color sender_name)
 
   @template_columns """
   t.tenant_id, t.environment::text AS environment, t.id, t.key, t.subtenant_id, t.owner,
@@ -458,6 +461,200 @@ defmodule Relay.TemplateStore do
     [row] = Repo.call!("relay_fn.delivery_render_fail", params)
 
     code(row["delivery_render_fail"], [:failed, :already_terminal, :not_found])
+  end
+
+  # API-56
+  @doc "A page of the templates of one level, newest first, after or before a cursor position (`%{direction: :after | :before, sort_ts_us: integer, id: id}`); at most `limit + 1` rows, each with its sort time as `cursor_at`."
+  @spec template_page(maybe_id(), map() | nil, pos_integer()) :: [row()]
+  def template_page(subtenant_id, cursor, limit) do
+    %{
+      from: """
+      relay.templates t JOIN relay.categories c ON c.tenant_id = t.tenant_id
+        AND c.environment = t.environment AND c.id = t.category_id
+      """,
+      columns: @template_columns,
+      alias: "t",
+      where: "t.subtenant_id IS NOT DISTINCT FROM $1",
+      params: [subtenant_id],
+      sort: "created_at"
+    }
+    |> page(cursor, limit)
+  end
+
+  # API-56
+  @doc "A page of the published and archived versions of a template, newest publication first; see `template_page/3` for the cursor."
+  @spec template_version_page(Relay.Id.t(), map() | nil, pos_integer()) :: [row()]
+  def template_version_page(template_id, cursor, limit) do
+    %{
+      from: "relay.template_versions v",
+      columns: @template_version_columns,
+      alias: "v",
+      where: "v.template_id = $1 AND v.version_no IS NOT NULL",
+      params: [template_id],
+      sort: "published_at"
+    }
+    |> page(cursor, limit)
+  end
+
+  # API-56
+  @doc "A page of the layouts or partials of one level, newest first; see `template_page/3` for the cursor."
+  @spec asset_page(kind(), maybe_id(), map() | nil, pos_integer()) :: [row()]
+  def asset_page(kind, subtenant_id, cursor, limit) when kind in [:layout, :partial] do
+    %{
+      from: "relay.#{kind}s a",
+      columns: @asset_columns,
+      alias: "a",
+      where: "a.subtenant_id IS NOT DISTINCT FROM $1",
+      params: [subtenant_id],
+      sort: "created_at"
+    }
+    |> page(cursor, limit)
+  end
+
+  # API-56
+  @doc "A page of the published and archived versions of a layout or partial, newest publication first; see `template_page/3` for the cursor."
+  @spec asset_version_page(kind(), Relay.Id.t(), map() | nil, pos_integer()) :: [row()]
+  def asset_version_page(kind, id, cursor, limit) when kind in [:layout, :partial] do
+    %{
+      from: "relay.#{kind}_versions v",
+      columns: @asset_version_columns,
+      alias: "v",
+      where: "v.#{kind}_id = $1 AND v.version_no IS NOT NULL",
+      params: [id],
+      sort: "published_at"
+    }
+    |> page(cursor, limit)
+  end
+
+  defp page(spec, cursor, limit) do
+    %{alias: as, sort: sort, params: params} = spec
+
+    {condition, order, params} =
+      case cursor do
+        nil ->
+          {"", "DESC", params}
+
+        %{direction: :after, sort_ts_us: ts, id: id} ->
+          n = length(params)
+
+          {" AND (#{as}.#{sort}, #{as}.id) < ($#{n + 1}, $#{n + 2})", "DESC",
+           params ++ [at(ts), id]}
+
+        %{direction: :before, sort_ts_us: ts, id: id} ->
+          n = length(params)
+
+          {" AND (#{as}.#{sort}, #{as}.id) > ($#{n + 1}, $#{n + 2})", "ASC",
+           params ++ [at(ts), id]}
+      end
+
+    sql = """
+    SELECT #{spec.columns}, #{as}.#{sort} AS cursor_at FROM #{spec.from}
+    WHERE #{spec.where}#{condition}
+    ORDER BY #{as}.#{sort} #{order}, #{as}.id #{order}
+    LIMIT #{limit + 1}
+    """
+
+    rows = maps(Repo.scoped_query!(sql, params))
+    if order == "ASC", do: Enum.reverse(rows), else: rows
+  end
+
+  defp at(us), do: DateTime.from_unix!(us, :microsecond)
+
+  # TP-35
+  # TP-36
+  @doc "The brand fields at a level (`nil` for the tenant level): each field's effective value and its source (`subtenant`, `tenant` or `none`), with the sum of the versions of the brand settings stored at that level, which grows with every change."
+  @spec brand(maybe_id()) :: {%{String.t() => brand_field()}, non_neg_integer()}
+  def brand(subtenant_id) do
+    keys = Enum.map(@brand_fields, &("brand." <> &1))
+
+    fields =
+      for row <- Repo.call!("relay_fn.setting_resolve", [subtenant_id, keys]), into: %{} do
+        "brand." <> field = row["key"]
+        {field, %{value: row["value"], source: row["source"]}}
+      end
+
+    versions =
+      Repo.scoped_query!(
+        """
+        SELECT s.tenant_id, s.environment::text AS environment, s.version FROM relay.settings s
+        WHERE s.subtenant_id IS NOT DISTINCT FROM $1 AND s.key = ANY($2)
+        """,
+        [subtenant_id, keys]
+      )
+
+    {fields, versions |> maps() |> Enum.map(& &1["version"]) |> Enum.sum()}
+  end
+
+  # TP-35
+  # TP-36
+  @doc "Sets or clears (`nil`) one brand field at a level; the value is checked by the caller."
+  @spec brand_put(maybe_id(), String.t(), String.t() | nil, digest(), Actor.t()) :: atom()
+  def brand_put(subtenant_id, field, value, digest, %Actor{} = actor)
+      when field in @brand_fields do
+    params = [subtenant_id, "brand." <> field, value, nil, digest | Actor.params(actor)]
+    [row] = Repo.call!("relay_fn.setting_set", params)
+    code(row, [:created, :updated, :unchanged, :cleared, :version_conflict, :subtenant_not_found])
+  end
+
+  @doc "The brand field names."
+  @spec brand_fields() :: [String.t()]
+  def brand_fields, do: @brand_fields
+
+  # TP-36
+  @doc "Whether an active sub-tenant has this identifier in the scope."
+  @spec subtenant?(Relay.Id.t()) :: boolean()
+  def subtenant?(id) do
+    sql = """
+    SELECT s.tenant_id, s.environment::text AS environment, s.id FROM relay.subtenants s
+    WHERE s.id = $1 AND s.state = 'active'
+    """
+
+    one(sql, [id]) != nil
+  end
+
+  # TP-33
+  # TP-56
+  @doc "The region, default locale and default time zone of the scope's tenant."
+  @spec tenant_facts() :: %{
+          region: String.t(),
+          default_locale: String.t(),
+          default_timezone: String.t()
+        }
+  def tenant_facts do
+    sql = "SELECT region, default_locale, default_timezone FROM relay.tenants"
+    [row] = maps(Repo.scoped_query!(sql, []))
+
+    %{
+      region: row["region"],
+      default_locale: row["default_locale"],
+      default_timezone: row["default_timezone"]
+    }
+  end
+
+  # TP-38
+  # TP-47
+  @doc "The newest accepted events of a workflow created at or after `since` whose content is kept (neither `retention: none` nor a security subtype, payload not erased), newest first, at most `limit`; each carries its encrypted `data_ct` and `key_id`. Nothing is decrypted or stored."
+  @spec recent_events(String.t(), DateTime.t(), pos_integer()) :: [row()]
+  def recent_events(workflow_key, %DateTime{} = since, limit) do
+    maps(
+      Repo.scoped_query!(
+        """
+        SELECT e.tenant_id, e.environment::text AS environment, e.id, e.created_at, p.data_ct,
+          p.key_id
+        FROM relay.events e
+        JOIN relay.workflows w ON w.tenant_id = e.tenant_id AND w.environment = e.environment
+          AND w.id = e.workflow_id
+        JOIN relay.event_payloads p ON p.tenant_id = e.tenant_id AND p.environment = e.environment
+          AND p.event_id = e.id AND p.created_at = e.payload_created_at
+        WHERE w.key = $1 AND e.state = 'accepted' AND NOT e.retention_none
+          AND e.security_subtype IS NULL AND e.created_at >= $2 AND p.erased_at IS NULL
+          AND p.data_ct IS NOT NULL
+        ORDER BY e.created_at DESC, e.id DESC
+        LIMIT $3
+        """,
+        [workflow_key, since, limit]
+      )
+    )
   end
 
   defp address(at), do: [at.key, at[:subtenant_id], at[:product]]

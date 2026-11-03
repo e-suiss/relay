@@ -3,6 +3,7 @@ defmodule RelayWeb.Api.WorkflowController do
 
   use RelayWeb, :api_controller
 
+  alias Relay.Api.Previews
   alias Relay.Api.Workflows
   alias RelayWeb.Api.Response
   alias RelayWeb.Api.Work
@@ -101,6 +102,20 @@ defmodule RelayWeb.Api.WorkflowController do
       Work.idempotent(conn, fn _status -> Workflows.promote(scope, key, number, actor) end)
     else
       {:error, error} -> Response.problem(conn, error)
+    end
+  end
+
+  # API-60
+  @spec preview(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def preview(conn, %{"workflow_key" => key}) do
+    %{scope: scope, body: body, principal: principal} = conn.assigns
+
+    case key(key) do
+      {:ok, key} ->
+        Work.answer(conn, Previews.workflow(scope, key, body || %{}, principal.subtenant_id))
+
+      {:error, error} ->
+        Response.problem(conn, error)
     end
   end
 

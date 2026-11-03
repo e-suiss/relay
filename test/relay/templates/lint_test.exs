@@ -139,7 +139,7 @@ defmodule Relay.Templates.LintTest do
              ] = LegalFooter.check([email], brand, opts)
 
       assert detail == %{
-               missing: ["legal_name", "mersis_or_contact", "opt_out", "commercial_mark"],
+               missing: ["legal_name", "mersis_or_contact", "opt_out"],
                country: "TR"
              }
     end

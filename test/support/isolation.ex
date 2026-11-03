@@ -33,9 +33,22 @@ defmodule RelayTest.Isolation do
      %{"preferences" => [%{"level" => "channel", "channel" => "sms", "value" => "opt_out"}]}},
     {"updateCategory", %{"name" => "Isolation"}},
     {"replaceCategorySubtenantSetting", %{"enabled" => false}},
-    {"liftSuppression", %{"reason" => "isolation"}}
+    {"liftSuppression", %{"reason" => "isolation"}},
+    {"publishTemplate", %{}},
+    {"previewTemplate", %{"workflow" => "iso-preview"}},
+    {"publishLayout", %{}},
+    {"replaceLayoutDraft", %{"definition" => %{"mjml" => "<mjml><mj-body></mj-body></mjml>"}}},
+    {"publishPartial", %{}},
+    {"replacePartialDraft",
+     %{"definition" => %{"default_locale" => "tr", "bodies" => %{"tr" => "Merhaba"}}}},
+    {"previewWorkflow", %{}}
   ]
-  @upserts ["replaceSubscriber"]
+  @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
+  @sms %{
+    "default_locale" => "tr",
+    "sensitivity" => "public",
+    "cells" => %{"sms" => %{"tr" => %{"body" => "Kodunuz hazır"}}}
+  }
 
   @doc "The server operations with path parameters that `router` mounts, authenticated with a bearer token."
   @spec operations(module()) :: [Contract.operation()]
@@ -68,18 +81,31 @@ defmodule RelayTest.Isolation do
       "mapping_id" => &mapping!/1,
       "category_key" => &category!/1,
       "subtenant_id" => &subtenant!/1,
-      "suppression_id" => &suppression!/1
+      "suppression_id" => &suppression!/1,
+      "template_key" => &template!/1,
+      "layout_key" => &asset!(&1, "layouts"),
+      "partial_key" => &asset!(&1, "partials")
     }
   end
 
-  @doc "The operations whose path names a resource they create when it is missing: the caller's own scope gets a new one (`201`) and the other scope's resource is never found."
-  @spec upserts() :: [String.t()]
+  @doc "The operations whose path names a resource they create when it is missing, with the status of a creation: the caller's own scope gets a new one and the other scope's resource is never found."
+  @spec upserts() :: %{String.t() => pos_integer()}
   def upserts, do: @upserts
 
   @doc "Request bodies by operation for operations that take one."
   @spec bodies() :: %{String.t() => map()}
-  def bodies,
-    do: @bodies |> Map.new() |> Map.put("replaceWorkflowDraft", %{"definition" => F.definition()})
+  def bodies do
+    @bodies
+    |> Map.new()
+    |> Map.put("replaceWorkflowDraft", %{"definition" => F.definition()})
+    |> Map.put("replaceTemplateDraft", %{"definition" => @sms})
+    |> Map.put("publishProducerTemplate", %{
+      "name" => "Isolation",
+      "category" => "security",
+      "definition" => @sms,
+      "accept_warnings" => true
+    })
+  end
 
   @doc "The path parameters of an operation without a fixture, and whether its body is missing."
   @spec gaps(Contract.operation()) :: [String.t()]
@@ -143,6 +169,48 @@ defmodule RelayTest.Isolation do
       key ->
         key
     end
+  end
+
+  @doc "Publishes an SMS template in `scope`, with the `iso-preview` workflow its preview names, and returns its key."
+  @spec template!(Relay.Scope.t()) :: String.t()
+  def template!(scope) do
+    token = owner(scope)
+    cache = {__MODULE__, :preview_workflow, scope.tenant_id, scope.environment}
+
+    if Process.get(cache) == nil do
+      F.workflow!(scope, token, "iso-preview")
+      Process.put(cache, true)
+    end
+
+    key = "iso-" <> random()
+    body = %{"key" => key, "name" => "Isolation", "category" => "orders", "definition" => @sms}
+    created = F.request(:post, "/v1/templates", token, body)
+    F.body(created, 201)
+    [etag] = Plug.Conn.get_resp_header(created, "etag")
+    path = "/v1/templates/#{key}/publish"
+    F.body(F.request(:post, path, token, %{}, [{"if-match", etag}]), 200)
+    key
+  end
+
+  @doc "Creates and publishes a layout or partial in `scope` and returns its key."
+  @spec asset!(Relay.Scope.t(), String.t()) :: String.t()
+  def asset!(scope, collection) do
+    token = owner(scope)
+    key = "iso-" <> random()
+
+    definition =
+      if collection == "layouts",
+        do: %{"mjml" => "<mjml><mj-body></mj-body></mjml>"},
+        else: %{"default_locale" => "tr", "bodies" => %{"tr" => "Merhaba"}}
+
+    body = %{"key" => key, "name" => "Isolation", "definition" => definition}
+    created = F.request(:post, "/v1/#{collection}", token, body)
+    F.body(created, 201)
+    [etag] = Plug.Conn.get_resp_header(created, "etag")
+    path = "/v1/#{collection}/#{key}/publish"
+    published = F.request(:post, path, token, %{"accept_warnings" => true}, [{"if-match", etag}])
+    F.body(published, 200)
+    key
   end
 
   @doc "Accepts an event in `scope` and returns the identifier of the event, its notification or its delivery."

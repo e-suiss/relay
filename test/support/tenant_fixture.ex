@@ -50,6 +50,7 @@ defmodule RelayTest.TenantFixture do
       sector: "general",
       default_timezone: "Europe/Istanbul",
       default_locale: "tr-TR",
+      platform_product: Keyword.get(opts, :platform_product),
       record_digest: digest()
     }
 

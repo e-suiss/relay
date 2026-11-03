@@ -4,7 +4,7 @@ defmodule Relay.Templates.Lint.LegalFooter do
 
   A variant is `%{channel: atom, locale: String.t(), helpers: [String.t()], opt_out: String.t() | nil}`: `helpers` are the render helpers the parsed template uses and `opt_out` is the resolved opt-out instruction of that channel (the SMS opt-out short code text, the e-mail `unsubscribe_url`). Brand fields are a map with string keys and without the `brand.` prefix.
 
-  Required per country: `TR` needs `legal_name`, `mersis` or `contact`, the opt-out instruction and `commercial_mark`; `US` needs `postal_address`. Other countries need the helper only.
+  Required per country: `TR` needs `legal_name`, `mersis` or `contact` and the opt-out instruction, while the helper itself appends the commercial message mark from Relay's system text (TP-60); `US` needs `postal_address`. Other countries need the helper only.
   """
 
   alias Relay.Templates.Finding
@@ -38,8 +38,7 @@ defmodule Relay.Templates.Lint.LegalFooter do
     [
       blank?(brand["legal_name"]) && "legal_name",
       (blank?(brand["mersis"]) and blank?(brand["contact"])) && "mersis_or_contact",
-      blank?(Map.get(variant, :opt_out)) && "opt_out",
-      blank?(brand["commercial_mark"]) && "commercial_mark"
+      blank?(Map.get(variant, :opt_out)) && "opt_out"
     ]
     |> Enum.filter(&is_binary/1)
   end

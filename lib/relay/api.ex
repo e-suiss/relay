@@ -1,6 +1,6 @@
 defmodule Relay.Api do
   @moduledoc """
-  The core of the HTTP API edge: the contract read from `contracts/`, the error catalog and problem documents, API versions, request schema validation, signed pagination cursors, the API rate limit tiers and idempotent request execution, and the operations of the server API, which compose the contexts for each request: sending (`Events`, `CloudEvent`, `Cancels`), queries, subscribers, workflows, type mappings, kill switches, categories, preferences and consents, and suppressions. The web layer (`RelayWeb`) turns these into plugs and responses.
+  The core of the HTTP API edge: the contract read from `contracts/`, the error catalog and problem documents, API versions, request schema validation, signed pagination cursors, the API rate limit tiers and idempotent request execution, and the operations of the server API, which compose the contexts for each request: sending (`Events`, `CloudEvent`, `Cancels`), queries, subscribers, workflows, type mappings, kill switches, categories, preferences and consents, suppressions, and templates, layouts, partials, brand fields and previews. The web layer (`RelayWeb`) turns these into plugs and responses.
   """
 
   use Boundary,
@@ -17,6 +17,9 @@ defmodule Relay.Api do
       Relay.Access,
       Relay.Preferences,
       Relay.Policy.Live,
+      Relay.Templates,
+      Relay.TemplateStore,
+      Relay.Datasets,
       Relay.Templates.Live
     ],
     exports: [
@@ -45,6 +48,10 @@ defmodule Relay.Api do
       KillSwitches,
       Categories,
       Preferences,
-      Suppressions
+      Suppressions,
+      Templates,
+      TemplateAssets,
+      Brand,
+      Previews
     ]
 end

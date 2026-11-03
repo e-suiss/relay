@@ -46,6 +46,7 @@ defmodule Relay.Templates.Sms.EncodingTest do
 
     test "the backtick and the euro sign differ: one is unsupported, the other an escape" do
       assert Encoding.units("`", :gsm7) == :error
+
       assert Encoding.unsupported("a`b`ş", :gsm7) == [
                %{codepoint: ?`, count: 2},
                %{codepoint: ?ş, count: 1}

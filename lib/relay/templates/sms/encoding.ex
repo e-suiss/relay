@@ -27,6 +27,7 @@ defmodule Relay.Templates.Sms.Encoding do
   @doc "The encodings a policy may choose from, cheapest first: `:ucs2` never uses the Turkish single shift table."
   @spec candidates(policy()) :: [t()]
   def candidates(:ucs2), do: [:gsm7, :ucs2]
+
   def candidates(policy) when policy in [:transliterate, :turkish_shift],
     do: [:gsm7, :gsm7_tr, :ucs2]
 

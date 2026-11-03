@@ -41,7 +41,7 @@ defmodule Relay.Templates.SanitizerTest do
 
         assert String.valid?(clean)
         assert Sanitizer.utf8(clean) == {clean, []}
-        assert (changes == []) == String.valid?(bytes)
+        assert Enum.empty?(changes) == String.valid?(bytes)
         assert byte_size(clean) + Enum.sum(Enum.map(changes, & &1.count)) == byte_size(bytes)
       end
     end

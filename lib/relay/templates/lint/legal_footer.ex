@@ -37,7 +37,7 @@ defmodule Relay.Templates.Lint.LegalFooter do
   def missing(brand, variant, "TR") do
     [
       blank?(brand["legal_name"]) && "legal_name",
-      blank?(brand["mersis"]) and blank?(brand["contact"]) && "mersis_or_contact",
+      (blank?(brand["mersis"]) and blank?(brand["contact"])) && "mersis_or_contact",
       blank?(Map.get(variant, :opt_out)) && "opt_out",
       blank?(brand["commercial_mark"]) && "commercial_mark"
     ]

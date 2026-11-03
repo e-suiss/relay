@@ -3522,10 +3522,12 @@ Id_ptv:
     - ptv_01j9zq3k4m5n6p7q8r9s0t1v2w
 TemplateKey:
   type: string
-  description: "Key of a template, layout or partial, unique in its tenant or subtenant: a lowercase letter and up to 63 lowercase letters, digits, dots, underscores or hyphens."
-  pattern: "^[a-z][a-z0-9_.-]{0,63}$"
+  description: "Key of a template, layout or partial, unique in its tenant or subtenant: a slug of lowercase letters and digits joined by single hyphens, the same form as a workflow step's template key."
+  pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+  minLength: 1
+  maxLength: 100
   examples:
-    - order.shipped
+    - order-shipped
 TemplateOwner:
   type: string
   description: "Owner of a template: the tenant, a subtenant, or a producer product whose template is protected."

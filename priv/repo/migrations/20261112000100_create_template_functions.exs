@@ -96,10 +96,11 @@ defmodule Relay.Repo.Migrations.CreateTemplateFunctions do
             'boolean') <> 'boolean'
           OR COALESCE(jsonb_typeof(NULLIF(p_definition -> 'layout', 'null'::jsonb)), 'string')
             <> 'string'
-          OR v_layout !~ '^[a-z][a-z0-9_.-]{0,63}$'
+          OR v_layout !~ '^[a-z0-9]+(-[a-z0-9]+)*$' OR char_length(v_layout) > 100
           OR jsonb_typeof(v_partials) <> 'array' OR jsonb_array_length(v_partials) > 50
           OR EXISTS (SELECT 1 FROM jsonb_array_elements(v_partials) e
-            WHERE jsonb_typeof(e) <> 'string' OR (e #>> '{}') !~ '^[a-z][a-z0-9_.-]{0,63}$')
+            WHERE jsonb_typeof(e) <> 'string' OR (e #>> '{}') !~ '^[a-z0-9]+(-[a-z0-9]+)*$'
+              OR char_length(e #>> '{}') > 100)
           OR COALESCE(jsonb_typeof(NULLIF(p_definition -> 'producer_brand', 'null'::jsonb)),
             'object') <> 'object'
           OR (NOT COALESCE(p_producer, false)
@@ -225,7 +226,7 @@ defmodule Relay.Repo.Migrations.CreateTemplateFunctions do
           RETURN QUERY SELECT 'tenant_inactive'::text, NULL::uuid, NULL::uuid, NULL::bigint;
           RETURN;
         END IF;
-        IF p_key IS NULL OR p_key !~ '^[a-z][a-z0-9_.-]{0,63}$' OR p_name IS NULL
+        IF p_key IS NULL OR p_key !~ '^[a-z0-9]+(-[a-z0-9]+)*$' OR char_length(p_key) > 100 OR p_name IS NULL
           OR char_length(p_name) NOT BETWEEN 1 AND 200 OR p_category IS NULL
           OR (p_subtenant_id IS NOT NULL AND p_owner_product IS NOT NULL) THEN
           RAISE EXCEPTION 'invalid_argument' USING HINT = 'TP-48';

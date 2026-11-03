@@ -163,7 +163,7 @@ defmodule Relay.Sql.TemplatesTest do
 
   defp delivery_with_plan!(notification) do
     category!("orders", "transactional")
-    version_id = published_version!("order.shipped", "orders")
+    version_id = published_version!("order-shipped", "orders")
     delivery = delivery!(notification)
     assert one(@pin, [delivery, version_id, nil, [], "tr", false]) == "pinned"
     {delivery, version_id}
@@ -182,14 +182,14 @@ defmodule Relay.Sql.TemplatesTest do
       category!("orders", "transactional")
       category!("offers", "marketing")
 
-      assert ["created", template_id, _draft, 1] = create("order.shipped", "orders")
-      assert ["key_conflict", ^template_id, nil, 1] = create("order.shipped", "offers")
-      assert ["created", _other, _, 1] = create("offer.weekly", "offers")
-      assert ["category_not_found", nil, nil, nil] = create("x.y", "missing")
+      assert ["created", template_id, _draft, 1] = create("order-shipped", "orders")
+      assert ["key_conflict", ^template_id, nil, 1] = create("order-shipped", "offers")
+      assert ["created", _other, _, 1] = create("offer-weekly", "offers")
+      assert ["category_not_found", nil, nil, nil] = create("x-y", "missing")
 
       assert rows(@templates) == [
-               ["offer.weekly", "tenant", "marketing", "marketing"],
-               ["order.shipped", "tenant", "transactional", "transactional"]
+               ["offer-weekly", "tenant", "marketing", "marketing"],
+               ["order-shipped", "tenant", "transactional", "transactional"]
              ]
 
       assert Relay.Id.to_string(template_id) in audited("template.created")
@@ -203,15 +203,15 @@ defmodule Relay.Sql.TemplatesTest do
       category!("receipts", "transactional")
       category!("offers", "marketing")
 
-      ["created", _, _, 1] = create("order.shipped", "orders")
-      assert ["updated", 2] = update("order.shipped", "offers", nil)
+      ["created", _, _, 1] = create("order-shipped", "orders")
+      assert ["updated", 2] = update("order-shipped", "offers", nil)
       assert one("SELECT template_type FROM relay.templates") == "marketing"
-      assert ["updated", 3] = update("order.shipped", "orders", nil)
-      assert ["published", _, 1, 4] = publish("order.shipped")
+      assert ["updated", 3] = update("order-shipped", "orders", nil)
+      assert ["published", _, 1, 4] = publish("order-shipped")
 
-      assert ["class_locked", 4] = update("order.shipped", "offers", nil)
-      assert ["updated", 5] = update("order.shipped", "receipts", 4)
-      assert ["version_conflict", 5] = update("order.shipped", "orders", 4)
+      assert ["class_locked", 4] = update("order-shipped", "offers", nil)
+      assert ["updated", 5] = update("order-shipped", "receipts", 4)
+      assert ["version_conflict", 5] = update("order-shipped", "orders", 4)
     end
   end
 
@@ -222,12 +222,12 @@ defmodule Relay.Sql.TemplatesTest do
       category!("orders", "transactional")
       second = definition(body: "Kargonuz {{ order.id }} yolda")
 
-      ["created", template_id, first_draft, 1] = create("order.shipped", "orders")
-      assert ["published", ^first_draft, 1, 2] = publish("order.shipped")
-      assert ["no_draft", nil, nil, 2] = publish("order.shipped")
-      assert ["created", second_draft, 3] = draft("order.shipped", second)
-      assert ["unchanged", ^second_draft, 3] = draft("order.shipped", second)
-      assert ["published", ^second_draft, 2, 4] = publish("order.shipped", diff: %{"sms" => 1})
+      ["created", template_id, first_draft, 1] = create("order-shipped", "orders")
+      assert ["published", ^first_draft, 1, 2] = publish("order-shipped")
+      assert ["no_draft", nil, nil, 2] = publish("order-shipped")
+      assert ["created", second_draft, 3] = draft("order-shipped", second)
+      assert ["unchanged", ^second_draft, 3] = draft("order-shipped", second)
+      assert ["published", ^second_draft, 2, 4] = publish("order-shipped", diff: %{"sms" => 1})
 
       assert rows(@versions, [template_id]) == [[1, "published", nil], [2, "published", 1]]
       assert one("SELECT live_version_no FROM relay.templates") == 2
@@ -238,27 +238,27 @@ defmodule Relay.Sql.TemplatesTest do
       tenant = tenant!()
       ctx(tenant)
       category!("orders", "transactional")
-      ["created", _, _, 1] = create("order.shipped", "orders")
-      ["published", _, 1, 2] = publish("order.shipped")
+      ["created", _, _, 1] = create("order-shipped", "orders")
+      ["published", _, 1, 2] = publish("order-shipped")
 
-      assert ["created", _draft, 3] = draft("order.shipped", definition())
-      assert ["duplicate", _, 1, 3] = publish("order.shipped")
+      assert ["created", _draft, 3] = draft("order-shipped", definition())
+      assert ["duplicate", _, 1, 3] = publish("order-shipped")
     end
 
     test "TP-32: a hard finding refuses publication and warnings publish only when accepted" do
       tenant = tenant!()
       ctx(tenant)
       category!("orders", "transactional")
-      ["created", _, draft_id, 1] = create("order.shipped", "orders")
+      ["created", _, draft_id, 1] = create("order-shipped", "orders")
       warning = %{"check" => "sms_segments", "level" => "warning", "message" => "two segments"}
       hard = %{"check" => "plain_text_missing", "level" => "hard", "message" => "missing"}
       accepted = [findings: [warning], accept: true]
 
-      assert ["gate_failed", ^draft_id, nil, 1] = publish("order.shipped", findings: [hard])
-      assert ["warnings_unaccepted", _, nil, 1] = publish("order.shipped", findings: [warning])
-      changed = publish("order.shipped", [checksum: digest()] ++ accepted)
+      assert ["gate_failed", ^draft_id, nil, 1] = publish("order-shipped", findings: [hard])
+      assert ["warnings_unaccepted", _, nil, 1] = publish("order-shipped", findings: [warning])
+      changed = publish("order-shipped", [checksum: digest()] ++ accepted)
       assert ["draft_changed", ^draft_id, nil, 1] = changed
-      assert ["published", ^draft_id, 1, 2] = publish("order.shipped", accepted)
+      assert ["published", ^draft_id, 1, 2] = publish("order-shipped", accepted)
       assert rows(@accepted, [draft_id]) == [[true, "acc_op_1", [warning]]]
     end
 
@@ -272,10 +272,10 @@ defmodule Relay.Sql.TemplatesTest do
 
       machine = definition(cells: cells)
 
-      ["created", _, _, 1] = create("order.shipped", "orders", definition: machine)
-      assert ["translation_unapproved", _, nil, 1] = publish("order.shipped")
-      assert ["replaced", _, 2] = draft("order.shipped", definition(cells: approved))
-      assert ["published", _, 1, 3] = publish("order.shipped")
+      ["created", _, _, 1] = create("order-shipped", "orders", definition: machine)
+      assert ["translation_unapproved", _, nil, 1] = publish("order-shipped")
+      assert ["replaced", _, 2] = draft("order-shipped", definition(cells: approved))
+      assert ["published", _, 1, 3] = publish("order-shipped")
     end
 
     test "TP-31: a published version never changes, even for the table owner, and is never deleted" do
@@ -285,7 +285,7 @@ defmodule Relay.Sql.TemplatesTest do
         tenant = tenant!()
         ctx(tenant)
         category!("orders", "transactional")
-        version = published_version!("order.shipped", "orders")
+        version = published_version!("order-shipped", "orders")
         archive = "UPDATE relay.template_versions SET state = 'archived', archived_at = now()"
         restore = "UPDATE relay.template_versions SET state = 'published', archived_at = NULL"
 
@@ -312,7 +312,7 @@ defmodule Relay.Sql.TemplatesTest do
         tenant = tenant!()
         ctx(tenant)
         category!("orders", "transactional")
-        published_version!("order.shipped", "orders")
+        published_version!("order-shipped", "orders")
         assert sql_error(@reclass).postgres.message == "invariant_violation"
       end)
 
@@ -323,21 +323,21 @@ defmodule Relay.Sql.TemplatesTest do
       tenant = tenant!()
       ctx(tenant)
       category!("orders", "transactional")
-      ["created", template_id, first, 1] = create("order.shipped", "orders")
-      ["published", ^first, 1, 2] = publish("order.shipped")
-      ["created", second, 3] = draft("order.shipped", definition(body: "İkinci {{ order.id }}"))
-      ["published", ^second, 2, 4] = publish("order.shipped")
+      ["created", template_id, first, 1] = create("order-shipped", "orders")
+      ["published", ^first, 1, 2] = publish("order-shipped")
+      ["created", second, 3] = draft("order-shipped", definition(body: "İkinci {{ order.id }}"))
+      ["published", ^second, 2, 4] = publish("order-shipped")
 
-      assert ["rolled_back", ^first, 5] = rollback("order.shipped", 1)
-      assert ["unchanged", ^first, 5] = rollback("order.shipped", 1)
-      assert ["version_not_found", nil, 5] = rollback("order.shipped", 9)
+      assert ["rolled_back", ^first, 5] = rollback("order-shipped", 1)
+      assert ["unchanged", ^first, 5] = rollback("order-shipped", 1)
+      assert ["version_not_found", nil, 5] = rollback("order-shipped", 9)
       assert one("SELECT live_version_no FROM relay.templates") == 1
       assert one("SELECT count(*) FROM relay.template_versions") == 2
 
-      assert version_archive("order.shipped", 1) == "live_version"
-      assert version_archive("order.shipped", 2) == "archived"
-      assert version_archive("order.shipped", 2) == "already_archived"
-      assert ["version_archived", ^second, 5] = rollback("order.shipped", 2)
+      assert version_archive("order-shipped", 1) == "live_version"
+      assert version_archive("order-shipped", 2) == "archived"
+      assert version_archive("order-shipped", 2) == "already_archived"
+      assert ["version_archived", ^second, 5] = rollback("order-shipped", 2)
       assert Relay.Id.to_string(template_id) in audited("template.rolled_back")
     end
   end
@@ -347,16 +347,16 @@ defmodule Relay.Sql.TemplatesTest do
       tenant = tenant!()
       ctx(tenant)
       category!("orders", "transactional")
-      ["created", _, _, 1] = create("draft.only", "orders")
-      published_version!("order.shipped", "orders")
-      published_version!("order.old", "orders")
-      assert ["archived", _] = archive("order.old")
-      assert ["already_archived", _] = archive("order.old")
+      ["created", _, _, 1] = create("draft-only", "orders")
+      published_version!("order-shipped", "orders")
+      published_version!("order-old", "orders")
+      assert ["archived", _] = archive("order-old")
+      assert ["already_archived", _] = archive("order-old")
 
-      assert live(["order.shipped", "draft.only", "order.old", "missing"]) == [
-               ["order.shipped", "tenant", 1, nil, [], "tenant", nil],
-               ["draft.only", "tenant", nil, nil, [], "tenant", "template.not_published"],
-               ["order.old", "tenant", nil, nil, [], "tenant", "template.archived"],
+      assert live(["order-shipped", "draft-only", "order-old", "missing"]) == [
+               ["order-shipped", "tenant", 1, nil, [], "tenant", nil],
+               ["draft-only", "tenant", nil, nil, [], "tenant", "template.not_published"],
+               ["order-old", "tenant", nil, nil, [], "tenant", "template.archived"],
                ["missing", nil, nil, nil, [], nil, "template.not_published"]
              ]
     end
@@ -366,17 +366,17 @@ defmodule Relay.Sql.TemplatesTest do
       ctx(tenant)
       category!("orders", "transactional")
       subtenant = subtenant!()
-      published_version!("order.shipped", "orders")
+      published_version!("order-shipped", "orders")
 
-      assert [[_, "tenant", 1, _, _, "tenant", nil]] = live(["order.shipped"], subtenant)
-      assert ["created", _, _, 1] = create("order.shipped", "orders", subtenant: subtenant)
-      assert [[_, "tenant", 1, _, _, "tenant", nil]] = live(["order.shipped"], subtenant)
-      assert ["published", _, 1, 2] = publish("order.shipped", subtenant: subtenant)
+      assert [[_, "tenant", 1, _, _, "tenant", nil]] = live(["order-shipped"], subtenant)
+      assert ["created", _, _, 1] = create("order-shipped", "orders", subtenant: subtenant)
+      assert [[_, "tenant", 1, _, _, "tenant", nil]] = live(["order-shipped"], subtenant)
+      assert ["published", _, 1, 2] = publish("order-shipped", subtenant: subtenant)
 
-      assert [["order.shipped", "subtenant", 1, _, _, "subtenant", nil]] =
-               live(["order.shipped"], subtenant)
+      assert [["order-shipped", "subtenant", 1, _, _, "subtenant", nil]] =
+               live(["order-shipped"], subtenant)
 
-      assert [["order.shipped", "tenant", 1, _, _, "tenant", nil]] = live(["order.shipped"])
+      assert [["order-shipped", "tenant", 1, _, _, "tenant", nil]] = live(["order-shipped"])
     end
 
     test "TP-36: brand fields of a subtenant fall back to the tenant's" do
@@ -384,7 +384,7 @@ defmodule Relay.Sql.TemplatesTest do
       ctx(tenant)
       category!("orders", "transactional")
       subtenant = subtenant!()
-      version_id = published_version!("order.shipped", "orders")
+      version_id = published_version!("order-shipped", "orders")
       setting!(nil, "brand.sender_name", "Acme")
       setting!(nil, "brand.logo_url", "https://cdn.example.com/acme.png")
       setting!(subtenant, "brand.sender_name", "Acme TR")
@@ -407,13 +407,13 @@ defmodule Relay.Sql.TemplatesTest do
       tenant_text = definition(body: "Tenant text")
 
       opts = [product: "access", definition: producer]
-      assert ["created", _, _, 1] = create("access.otp", "codes", opts)
-      assert ["protected", nil, 1] = draft("access.otp", tenant_text)
-      assert ["protected", nil, nil, 1] = publish("access.otp")
-      assert ["protected", _] = archive("access.otp")
-      assert ["protected", nil, 1] = rollback("access.otp", 1)
-      assert ["protected", nil, 1] = draft("access.otp", producer, product: "other")
-      assert ["published", version_id, 1, 2] = publish("access.otp", product: "access")
+      assert ["created", _, _, 1] = create("access-otp", "codes", opts)
+      assert ["protected", nil, 1] = draft("access-otp", tenant_text)
+      assert ["protected", nil, nil, 1] = publish("access-otp")
+      assert ["protected", _] = archive("access-otp")
+      assert ["protected", nil, 1] = rollback("access-otp", 1)
+      assert ["protected", nil, 1] = draft("access-otp", producer, product: "other")
+      assert ["published", version_id, 1, 2] = publish("access-otp", product: "access")
       assert one("SELECT owner FROM relay.templates") == "producer"
 
       setting!(nil, "brand.sender_name", "Tenant")
@@ -426,7 +426,7 @@ defmodule Relay.Sql.TemplatesTest do
       assert fields["footer"] == {"F", "producer"}
       assert fields["primary_color"] == {"#112233", "tenant"}
 
-      params = [id(), id(), "t.b", nil, nil, "T", "codes", producer, digest() | actor()]
+      params = [id(), id(), "t-b", nil, nil, "T", "codes", producer, digest() | actor()]
       assert sql_error(@create, params).postgres.message == "invalid_argument"
     end
   end
@@ -439,21 +439,21 @@ defmodule Relay.Sql.TemplatesTest do
       with_assets = definition(layout: "main", partials: ["legal"])
 
       assert ["layout_not_found", nil, nil, nil] =
-               create("order.shipped", "orders", definition: definition(layout: "main"))
+               create("order-shipped", "orders", definition: definition(layout: "main"))
 
       layout = asset!("layout", "main", %{"mjml" => "<mjml/>"})
       partial = asset!("partial", "legal", %{"bodies" => %{"tr" => "Yasal"}})
 
-      assert ["created", _, _, 1] = create("order.shipped", "orders", definition: with_assets)
-      assert ["layout_not_published", _, nil, 1] = publish("order.shipped")
+      assert ["created", _, _, 1] = create("order-shipped", "orders", definition: with_assets)
+      assert ["layout_not_published", _, nil, 1] = publish("order-shipped")
       assert ["published", ^layout, 1, 2] = asset_publish("layout", "main")
-      assert ["partial_not_published", _, nil, 1] = publish("order.shipped")
+      assert ["partial_not_published", _, nil, 1] = publish("order-shipped")
       assert ["published", ^partial, 1, 2] = asset_publish("partial", "legal")
       assert ["no_draft", nil, nil, 2] = asset_publish("partial", "legal")
-      assert ["published", _, 1, 2] = publish("order.shipped")
+      assert ["published", _, 1, 2] = publish("order-shipped")
 
-      assert [["order.shipped", "tenant", 1, ^layout, [^partial], "tenant", nil]] =
-               live(["order.shipped"])
+      assert [["order-shipped", "tenant", 1, ^layout, [^partial], "tenant", nil]] =
+               live(["order-shipped"])
 
       assert ["in_use", 2] = asset_archive("layout", "main")
       assert ["in_use", 2] = asset_archive("partial", "legal")
@@ -464,12 +464,12 @@ defmodule Relay.Sql.TemplatesTest do
     test "TP-50: the render plan is pinned once, only to published versions" do
       s = scenario!()
       category!("orders", "transactional")
-      ["created", _, version, 1] = create("order.shipped", "orders")
+      ["created", _, version, 1] = create("order-shipped", "orders")
       delivery = delivery!(s.notification)
 
       assert one(@pin, [delivery, version, nil, [], "tr", false]) == "version_not_published"
       assert one(@pin, [id(), version, nil, [], "tr", false]) == "delivery_not_found"
-      ["published", ^version, 1, 2] = publish("order.shipped")
+      ["published", ^version, 1, 2] = publish("order-shipped")
       assert one(@pin, [delivery, version, nil, [id()], "tr", false]) == "partial_not_published"
       assert one(@pin, [delivery, version, id(), [], "tr", false]) == "layout_not_published"
       assert one(@pin, [delivery, version, nil, [], "tr-TR", true]) == "pinned"
@@ -526,7 +526,7 @@ defmodule Relay.Sql.TemplatesTest do
     test "TP-41, INV-46: a render failure fails the delivery with its ledger event and outbox event at once" do
       s = scenario!()
       {delivery, _version_id} = delivery_with_plan!(s.notification)
-      template = %{"key" => "order.shipped", "version" => 1}
+      template = %{"key" => "order-shipped", "version" => 1}
 
       missing = %{"variables" => ["order.id"]}
       assert one(@fail, [delivery, "missing_variable", missing]) == "failed"

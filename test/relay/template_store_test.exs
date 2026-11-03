@@ -37,7 +37,7 @@ defmodule Relay.TemplateStoreTest do
 
   defp template_flow(actor) do
     digest = TenantFixture.digest()
-    at = %{key: "order.shipped", subtenant_id: nil, product: nil}
+    at = %{key: "order-shipped", subtenant_id: nil, product: nil}
     category!(actor)
 
     attrs = %{

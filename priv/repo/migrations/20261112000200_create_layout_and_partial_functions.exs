@@ -93,7 +93,7 @@ defmodule Relay.Repo.Migrations.CreateLayoutAndPartialFunctions do
           RETURN QUERY SELECT 'tenant_inactive'::text, NULL::uuid, NULL::uuid, NULL::bigint;
           RETURN;
         END IF;
-        IF p_key IS NULL OR p_key !~ '^[a-z][a-z0-9_.-]{0,63}$' OR p_name IS NULL
+        IF p_key IS NULL OR p_key !~ '^[a-z0-9]+(-[a-z0-9]+)*$' OR char_length(p_key) > 100 OR p_name IS NULL
           OR char_length(p_name) NOT BETWEEN 1 AND 200 OR p_content IS NULL
           OR jsonb_typeof(p_content) <> 'object' THEN
           RAISE EXCEPTION 'invalid_argument' USING HINT = 'TP-48';

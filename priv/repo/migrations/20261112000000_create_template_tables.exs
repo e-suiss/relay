@@ -5,7 +5,7 @@ defmodule Relay.Repo.Migrations.CreateTemplateTables do
   @context_guard "(select current_setting('relay.tenant_id')::uuid) IS NOT NULL AND (select current_setting('relay.environment')::relay.environment) IS NOT NULL"
   @tenant_scope "#{@tenant_match} AND #{@context_guard}"
 
-  @key "'^[a-z][a-z0-9_.-]{0,63}$'"
+  @key "'^[a-z0-9]+(-[a-z0-9]+)*$'"
   @locale "'^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$'"
 
   @tables ~w(templates template_versions layouts layout_versions partials partial_versions
@@ -83,7 +83,7 @@ defmodule Relay.Repo.Migrations.CreateTemplateTables do
         tenant_id uuid NOT NULL,
         environment relay.environment NOT NULL,
         id uuid NOT NULL,
-        key text NOT NULL CONSTRAINT templates_key_check CHECK (key ~ #{@key}),
+        key text NOT NULL CONSTRAINT templates_key_check CHECK (key ~ #{@key} AND char_length(key) <= 100),
         subtenant_id uuid,
         owner text NOT NULL
           CONSTRAINT templates_owner_check CHECK (owner IN ('tenant', 'subtenant', 'producer')),
@@ -147,7 +147,7 @@ defmodule Relay.Repo.Migrations.CreateTemplateTables do
             CHECK (sms_encoding IN ('transliterate', 'turkish_shift', 'ucs2')),
         transliterate boolean NOT NULL,
         allow_raw boolean NOT NULL,
-        layout_key text CONSTRAINT template_versions_layout_key_check CHECK (layout_key ~ #{@key}),
+        layout_key text CONSTRAINT template_versions_layout_key_check CHECK (layout_key ~ #{@key} AND char_length(layout_key) <= 100),
         partial_keys text[] NOT NULL
           CONSTRAINT template_versions_partial_keys_check CHECK (cardinality(partial_keys) <= 50),
         producer_brand jsonb
@@ -302,7 +302,7 @@ defmodule Relay.Repo.Migrations.CreateTemplateTables do
         tenant_id uuid NOT NULL,
         environment relay.environment NOT NULL,
         id uuid NOT NULL,
-        key text NOT NULL CONSTRAINT #{table}_key_check CHECK (key ~ #{@key}),
+        key text NOT NULL CONSTRAINT #{table}_key_check CHECK (key ~ #{@key} AND char_length(key) <= 100),
         subtenant_id uuid,
         owner text NOT NULL CONSTRAINT #{table}_owner_check CHECK (owner IN ('tenant', 'subtenant')),
         name text NOT NULL CONSTRAINT #{table}_name_check CHECK (char_length(name) BETWEEN 1 AND 200),

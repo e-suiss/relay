@@ -18,7 +18,7 @@ defmodule RelayWeb.Telemetry do
   @impl true
   def init(_arg) do
     children = [
-      {Peep, name: @reporter, metrics: alarm_metrics() ++ policy_metrics()},
+      {Peep, name: @reporter, metrics: alarm_metrics() ++ policy_metrics() ++ render_metrics()},
       {:telemetry_poller, measurements: [], period: 10_000}
     ]
 
@@ -45,7 +45,7 @@ defmodule RelayWeb.Telemetry do
       summary("vm.total_run_queue_lengths.total"),
       summary("vm.total_run_queue_lengths.cpu"),
       summary("vm.total_run_queue_lengths.io")
-    ] ++ alarm_metrics() ++ policy_metrics()
+    ] ++ alarm_metrics() ++ policy_metrics() ++ render_metrics()
   end
 
   # DS-24
@@ -58,6 +58,34 @@ defmodule RelayWeb.Telemetry do
         event_name: [:relay, :policy, :decision],
         tags: [:decision, :reason],
         description: "Policy lattice decisions recorded on deliveries"
+      )
+    ]
+  end
+
+  # TP-26
+  # TP-49
+  # TP-50
+  # T-63
+  @doc "The render counters by channel and result, the render duration by channel and the `template_locale_missing` fallback counter by channel, all tags from bounded sets; exported on `/metrics` beside the alarms."
+  @spec render_metrics() :: [Telemetry.Metrics.t()]
+  def render_metrics do
+    [
+      counter("relay.render.total",
+        event_name: [:relay, :render, :stop],
+        tags: [:channel, :result],
+        description: "Renders of pinned template cells on the send path by result"
+      ),
+      distribution("relay.render.duration",
+        event_name: [:relay, :render, :stop],
+        measurement: :duration,
+        unit: :millisecond,
+        tags: [:channel],
+        description: "Duration of renders on the send path"
+      ),
+      counter("relay.template_locale_missing.total",
+        event_name: [:relay, :templates, :locale_missing],
+        tags: [:channel],
+        description: "Deliveries pinned to the tenant's default locale instead of the recipient's"
       )
     ]
   end

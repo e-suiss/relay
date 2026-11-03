@@ -118,10 +118,11 @@ defmodule Relay.Policy.Live do
 
   # DS-24
   # MD-12
-  @doc "Records a skip decided before the lattice (subscriber suspension, send mode `off`, sub-tenant scope, the subtype's channel rule) on an opened delivery, inside the caller's transaction."
-  @spec record_skip(Relay.Id.t(), String.t(), String.t()) :: atom()
-  def record_skip(delivery_id, reason, rule_id),
-    do: decide!(delivery_id, :skip, reason, rule_id, nil, %{})
+  # TP-51
+  @doc "Records a skip decided before the lattice (subscriber suspension, send mode `off`, sub-tenant scope, the subtype's channel rule, a template that cannot send) on an opened delivery with its detail, inside the caller's transaction."
+  @spec record_skip(Relay.Id.t(), String.t(), String.t(), map()) :: atom()
+  def record_skip(delivery_id, reason, rule_id, detail \\ %{}),
+    do: decide!(delivery_id, :skip, reason, rule_id, nil, detail)
 
   # PC-58 (8)
   # DS-26

@@ -61,4 +61,12 @@ defmodule Relay.Templates do
   @spec resolve_locale(Locale.candidates(), [String.t()]) ::
           {:ok, Locale.resolution()} | {:error, :locale_missing}
   def resolve_locale(candidates, cells), do: Locale.resolve(candidates, cells)
+
+  # TP-49
+  # TP-50
+  @doc "Renders one pinned template cell for its channel on the send path; see `Relay.Templates.Render.run/1`."
+  @spec render_cell(Relay.Templates.Render.input()) ::
+          {:ok, Relay.Templates.Render.rendered()}
+          | {:error, Relay.Templates.Render.reason(), map()}
+  def render_cell(input), do: Relay.Templates.Render.run(input)
 end

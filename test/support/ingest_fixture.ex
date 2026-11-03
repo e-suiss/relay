@@ -3,12 +3,13 @@ defmodule RelayTest.IngestFixture do
 
   use Boundary,
     top_level?: true,
-    deps: [Relay, Relay.Workflow, RelayWeb, RelayTest.Api],
+    deps: [Relay, Relay.TemplateStore, Relay.Workflow, RelayWeb, RelayTest.Api],
     exports: []
 
   import ExUnit.Assertions
 
   alias Relay.Repo
+  alias Relay.TemplateStore
   alias RelayTest.Api
 
   @scopes ["publish", "read", "subscribers", "config", "kill_switch"]
@@ -101,15 +102,130 @@ defmodule RelayTest.IngestFixture do
   def category_of!(token, definition),
     do: category!(token, definition["category"], definition["message_class"])
 
-  @doc "Creates a workflow and its category through the API and publishes its draft through the gate."
+  @doc "Creates a workflow and its category through the API and publishes its draft through the gate, and publishes the `order-shipped` template its steps name unless the scope has it."
   @spec workflow!(Relay.Scope.t(), String.t(), String.t(), keyword()) :: map()
   def workflow!(scope, token, key, opts \\ []) do
     body = %{"key" => key, "definition" => definition(opts)}
     :ok = category_of!(token, body["definition"])
+    :ok = template!(scope, "order-shipped", body["definition"]["category"])
     created = request(:post, "/v1/workflows", token, body)
     assert created.status == 201, created.resp_body
     publish!(scope, token, key)
   end
+
+  @html ~s(<html><head><meta name="color-scheme" content="light"></head><body>Yolda</body></html>)
+
+  @cells %{
+    "sms" => %{"body" => "Siparişiniz kargoda."},
+    "push" => %{"title" => "Sipariş", "body" => "Siparişiniz kargoda."},
+    "web_push" => %{"title" => "Sipariş", "body" => "Siparişiniz kargoda."},
+    "email" => %{
+      "subject" => "Siparişiniz kargoda",
+      "html_kind" => "raw_html",
+      "html" => @html,
+      "text" => "Siparişiniz kargoda."
+    },
+    "whatsapp" => %{
+      "template_name" => "order_shipped",
+      "language" => "tr",
+      "parameters" => [%{"name" => "status", "value" => "kargoda"}]
+    },
+    "in_app" => %{"title" => "Sipariş", "body" => "Siparişiniz kargoda."},
+    "webhook" => %{"body" => ~s({"status": "shipped"})},
+    "voice" => %{"body" => "Siparişiniz kargoda."},
+    "slack" => %{"body" => "Siparişiniz kargoda."},
+    "teams" => %{"body" => "Siparişiniz kargoda."},
+    "telegram" => %{"body" => "Siparişiniz kargoda."},
+    "discord" => %{"body" => "Siparişiniz kargoda."}
+  }
+
+  @gate %{
+    variables: %{"always" => [], "conditional" => []},
+    measures: %{},
+    findings: [],
+    accept_warnings: false
+  }
+
+  @doc "A template definition with a `tr` cell on every channel, or the given `cells`: channel to cell, or channel to a map of locale to cell."
+  @spec template_definition(map() | nil, keyword()) :: map()
+  def template_definition(cells \\ nil, opts \\ []) do
+    cells = cells || @cells
+
+    %{
+      "default_locale" => "tr",
+      "sensitivity" => Keyword.get(opts, :sensitivity, "personal"),
+      "cells" => Map.new(cells, fn {channel, cell} -> {channel, locales(cell)} end)
+    }
+    |> Map.merge(Map.new(Keyword.get(opts, :extra, [])))
+  end
+
+  defp locales(cell) do
+    if Enum.all?(Map.keys(cell), &Regex.match?(~r/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, &1)),
+      do: cell,
+      else: %{"tr" => cell}
+  end
+
+  # TP-48
+  # TP-50
+  @doc "Creates and publishes a template in a scope unless one exists at its key and level; `opts`: `:definition`, `:subtenant_id`."
+  @spec template!(Relay.Scope.t(), String.t(), String.t(), keyword()) :: :ok
+  def template!(scope, key, category, opts \\ []) do
+    {:ok, actor} = Relay.Actor.new(:system, "relay-test", "relay-test")
+    at = %{key: key, subtenant_id: opts[:subtenant_id], product: nil}
+
+    attrs = %{
+      id: Relay.Id.generate(),
+      version_id: Relay.Id.generate(),
+      key: key,
+      subtenant_id: opts[:subtenant_id],
+      name: "Template " <> key,
+      category: category,
+      definition: Keyword.get_lazy(opts, :definition, &template_definition/0)
+    }
+
+    {:ok, result} =
+      Repo.in_scope(scope, fn _status ->
+        case TemplateStore.template_create(attrs, digest(), actor) do
+          {:created, _id, _version_id, version} ->
+            {:published, _, _, _} =
+              TemplateStore.template_publish(at, @gate, version, digest(), actor)
+
+            :ok
+
+          {:key_conflict, _id, _version_id, _version} ->
+            :ok
+
+          other ->
+            other
+        end
+      end)
+
+    assert result == :ok, inspect(result)
+    :ok
+  end
+
+  @doc "Publishes a new version of a template in a scope from `definition`."
+  @spec publish_template!(Relay.Scope.t(), String.t(), map(), keyword()) :: :ok
+  def publish_template!(scope, key, definition, opts \\ []) do
+    {:ok, actor} = Relay.Actor.new(:system, "relay-test", "relay-test")
+    at = %{key: key, subtenant_id: opts[:subtenant_id], product: nil}
+
+    {:ok, :ok} =
+      Repo.in_scope(scope, fn _status ->
+        %{"version" => version} = TemplateStore.template(key, opts[:subtenant_id])
+        id = Relay.Id.generate()
+
+        {:created, _, draft} =
+          TemplateStore.template_draft_put(at, id, definition, version, digest(), actor)
+
+        {:published, _, _, _} = TemplateStore.template_publish(at, @gate, draft, digest(), actor)
+        :ok
+      end)
+
+    :ok
+  end
+
+  defp digest, do: :crypto.strong_rand_bytes(32)
 
   @doc "Publishes a workflow's draft through the API and runs the publication gate."
   @spec publish!(Relay.Scope.t(), String.t(), String.t()) :: map()

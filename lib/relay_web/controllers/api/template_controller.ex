@@ -72,11 +72,7 @@ defmodule RelayWeb.Api.TemplateController do
 
     with_at(conn, key, fn at, expected ->
       prepared = Templates.prepare_publish(scope, at, body)
-
-      Work.idempotent(conn, fn _status ->
-        with {:ok, prepared} <- prepared,
-             do: Templates.publish(scope, at, prepared, expected, actor)
-      end)
+      run_prepared(conn, prepared, &Templates.publish(scope, at, &1, expected, actor))
     end)
   end
 
@@ -123,18 +119,8 @@ defmodule RelayWeb.Api.TemplateController do
     actor = Work.actor(conn)
 
     case number(number) do
-      {:ok, number} ->
-        with_at(conn, key, fn at, expected ->
-          checked = Templates.prepare_promote(scope, at, number)
-
-          Work.idempotent(conn, fn _status ->
-            with {:ok, _inputs} <- checked,
-                 do: Templates.promote(scope, at, number, expected, actor)
-          end)
-        end)
-
-      {:error, error} ->
-        Response.problem(conn, error)
+      {:ok, number} -> with_at(conn, key, &promote_at(conn, scope, actor, number, &1, &2))
+      {:error, error} -> Response.problem(conn, error)
     end
   end
 
@@ -173,16 +159,25 @@ defmodule RelayWeb.Api.TemplateController do
     case key(key) do
       {:ok, key} ->
         prepared = Templates.prepare_producer(scope, key, body)
-
-        Work.idempotent(conn, fn _status ->
-          with {:ok, prepared} <- prepared,
-               do: Templates.producer_publish(scope, prepared, body, actor)
-        end)
+        run_prepared(conn, prepared, &Templates.producer_publish(scope, &1, body, actor))
 
       {:error, error} ->
         Response.problem(conn, error)
     end
   end
+
+  defp promote_at(conn, scope, actor, number, at, expected) do
+    checked = Templates.prepare_promote(scope, at, number)
+
+    run_prepared(conn, checked, fn _inputs ->
+      Templates.promote(scope, at, number, expected, actor)
+    end)
+  end
+
+  defp run_prepared(conn, {:ok, prepared}, fun),
+    do: Work.idempotent(conn, fn _status -> fun.(prepared) end)
+
+  defp run_prepared(conn, error, _fun), do: Work.idempotent(conn, fn _status -> error end)
 
   defp with_at(conn, key, fun) do
     with {:ok, at} <- at(conn, key),

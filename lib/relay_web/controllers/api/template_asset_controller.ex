@@ -78,11 +78,7 @@ defmodule RelayWeb.Api.TemplateAssetController do
 
     with_at(conn, kind, params, fn at, expected ->
       prepared = TemplateAssets.prepare_publish(kind, scope, at, body)
-
-      Work.idempotent(conn, fn _status ->
-        with {:ok, prepared} <- prepared,
-             do: TemplateAssets.publish(kind, scope, at, prepared, expected, actor)
-      end)
+      run_prepared(conn, prepared, &TemplateAssets.publish(kind, scope, at, &1, expected, actor))
     end)
   end
 
@@ -137,14 +133,7 @@ defmodule RelayWeb.Api.TemplateAssetController do
 
     case number(kind, number) do
       {:ok, number} ->
-        with_at(conn, kind, params, fn at, expected ->
-          checked = TemplateAssets.prepare_promote(kind, scope, at, number)
-
-          Work.idempotent(conn, fn _status ->
-            with :ok <- checked,
-                 do: TemplateAssets.promote(kind, scope, at, number, expected, actor)
-          end)
-        end)
+        with_at(conn, kind, params, &promote_at(conn, {kind, scope, actor, number}, &1, &2))
 
       {:error, error} ->
         Response.problem(conn, error)
@@ -152,6 +141,21 @@ defmodule RelayWeb.Api.TemplateAssetController do
   end
 
   defp kind(conn), do: Map.fetch!(conn.private, :relay_kind)
+
+  defp promote_at(conn, {kind, scope, actor, number}, at, expected) do
+    checked = TemplateAssets.prepare_promote(kind, scope, at, number)
+
+    run_prepared(conn, checked, fn _ok ->
+      TemplateAssets.promote(kind, scope, at, number, expected, actor)
+    end)
+  end
+
+  defp run_prepared(conn, :ok, fun), do: Work.idempotent(conn, fn _status -> fun.(:ok) end)
+
+  defp run_prepared(conn, {:ok, prepared}, fun),
+    do: Work.idempotent(conn, fn _status -> fun.(prepared) end)
+
+  defp run_prepared(conn, error, _fun), do: Work.idempotent(conn, fn _status -> error end)
 
   defp with_at(conn, kind, params, fun) do
     with {:ok, at} <- at(conn, kind, params),

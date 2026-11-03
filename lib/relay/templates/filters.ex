@@ -403,6 +403,48 @@ defmodule Relay.Templates.Filters do
 
   defp icu(_message, _bindings, _state), do: {:error, "icu expects a message"}
 
+  # TP-27
+  # TP-59
+  @doc "The plural and select forms an ICU message lacks for a locale: `other` and every CLDR category of the locale, in every `plural`, `selectordinal` and `select` argument. An unparsable message or an unsupported locale lacks `other`."
+  @spec icu_categories_missing(String.t(), String.t()) :: [String.t()]
+  def icu_categories_missing(message, locale) when is_binary(message) and is_binary(locale) do
+    with {:ok, tag} <- Backend.language_tag(locale),
+         {:ok, parsed} <- Cldr.Message.V1.Parser.parse(message, false) do
+      cardinal = categories(Backend.Number.Cardinal.plural_rules_for(tag))
+      ordinal = categories(Backend.Number.Ordinal.plural_rules_for(tag))
+      parsed |> missing(cardinal, ordinal) |> Enum.uniq() |> Enum.sort()
+    else
+      _ -> ["other"]
+    end
+  end
+
+  defp categories(rules) when is_list(rules),
+    do: Enum.map(rules, fn {category, _rule} -> Atom.to_string(category) end)
+
+  defp categories(_rules), do: []
+
+  defp missing(list, cardinal, ordinal) when is_list(list),
+    do: Enum.flat_map(list, &missing(&1, cardinal, ordinal))
+
+  defp missing({:plural, _arg, _options, forms}, cardinal, ordinal) when is_map(forms),
+    do: absent(forms, cardinal) ++ nested(forms, cardinal, ordinal)
+
+  defp missing({:select_ordinal, _arg, _options, forms}, cardinal, ordinal) when is_map(forms),
+    do: absent(forms, ordinal) ++ nested(forms, cardinal, ordinal)
+
+  defp missing({:select, _arg, forms}, cardinal, ordinal) when is_map(forms),
+    do: absent(forms, []) ++ nested(forms, cardinal, ordinal)
+
+  defp missing(_part, _cardinal, _ordinal), do: []
+
+  defp absent(forms, categories) do
+    keys = forms |> Map.keys() |> Enum.map(&to_string/1)
+    Enum.reject(["other" | categories], &(&1 in keys))
+  end
+
+  defp nested(forms, cardinal, ordinal),
+    do: forms |> Map.values() |> Enum.flat_map(&missing(&1, cardinal, ordinal))
+
   defp style(kind, style) do
     case Map.fetch(@styles, style) do
       {:ok, style} -> {:ok, style}

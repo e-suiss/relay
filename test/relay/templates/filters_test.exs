@@ -160,6 +160,30 @@ defmodule Relay.Templates.FiltersTest do
       assert render(source, %{"n" => 3}) == "3 ürün"
     end
 
+    test "TP-59: an icu message lists other and every CLDR category of the locale" do
+      two = "{n, plural, one {#} other {#}}"
+
+      assert Filters.icu_categories_missing(two, "tr") == []
+      assert Filters.icu_categories_missing(two, "ar") == ["few", "many", "two", "zero"]
+      assert Filters.icu_categories_missing("{n, plural, one {#}}", "en") == ["other"]
+      assert Filters.icu_categories_missing("{g, select, female {a}}", "tr") == ["other"]
+
+      nested = "{g, select, other {{n, plural, =0 {none} other {#}}}}"
+      assert Filters.icu_categories_missing(nested, "en") == ["one"]
+      assert Filters.icu_categories_missing("{n, plural,", "tr") == ["other"]
+    end
+
+    test "TP-59: an icu message without the recipient's category fails the render" do
+      source =
+        "{% capture msg %}{n, plural, one {bir} other {çok}}{% endcapture %}{{ msg | icu: n: n }}"
+
+      {:ok, template} = Engine.parse(source)
+
+      {:ok, context} = Context.new(:sms, locale: "ar", time_zone: "UTC", data: %{"n" => 2})
+
+      assert {:error, {:schema_violation, _}} = Engine.render(template, context, :sms)
+    end
+
     test "TP-27: icu refuses MessageFormat 2" do
       {:ok, template} = Engine.parse("{{ m | icu: n: 1 }}")
 

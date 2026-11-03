@@ -4689,14 +4689,6 @@
   },
   {
     "acceptance": "pending",
-    "id": "TP-58",
-    "section": "§11",
-    "status": "frozen_technical",
-    "title": "",
-    "verify_stage": null
-  },
-  {
-    "acceptance": "pending",
     "id": "TP-45",
     "section": "§11",
     "status": "frozen_technical",
@@ -4797,6 +4789,22 @@
     "section": "§11",
     "status": "frozen_technical",
     "title": "Conservative concatenated SMS limits and the email subject length warning",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-58",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-59",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
     "verify_stage": null
   },
   {

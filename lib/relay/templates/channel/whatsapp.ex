@@ -26,7 +26,7 @@ defmodule Relay.Templates.Channel.Whatsapp do
       &Sanitizer.utf8(&1, field),
       &replace(&1, ~r/\r\n|[\r\n\t]/, :line_break, field),
       &replace(&1, ~r/ {4,}/, :space_run, field),
-      &truncate(&1, limit(component), field)
+      &clip(&1, limit(component), field)
     ])
   end
 
@@ -56,7 +56,7 @@ defmodule Relay.Templates.Channel.Whatsapp do
     end
   end
 
-  defp truncate(value, limit, field) do
+  defp clip(value, limit, field) do
     length = String.length(value)
 
     if length > limit do

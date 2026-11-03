@@ -173,15 +173,17 @@ defmodule Relay.Api.Gate do
     before = cells(live)
     now = cells(definition)
 
+    changed =
+      for {cell, content} <- Enum.sort(now),
+          Map.has_key?(before, cell),
+          before[cell] != content,
+          do: cell
+
     %{
       "fields" => fields,
       "cells_added" => now |> Map.keys() |> Kernel.--(Map.keys(before)) |> Enum.sort(),
       "cells_removed" => before |> Map.keys() |> Kernel.--(Map.keys(now)) |> Enum.sort(),
-      "cells_changed" =>
-        for {cell, content} <- Enum.sort(now),
-            Map.has_key?(before, cell),
-            before[cell] != content,
-            do: cell
+      "cells_changed" => changed
     }
   end
 

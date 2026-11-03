@@ -226,6 +226,26 @@ defmodule RelayWeb.Api.TemplatesTest do
       assert code(promote(ctx.token, @key, 1), 422) == "template_gate_failed"
     end
 
+    test "TP-8, TP-60: publication keeps the compiled MJML in the cell; views leave it out", ctx do
+      mjml =
+        "<mjml><mj-body><mj-section><mj-column><mj-text>Merhaba</mj-text>" <>
+          "</mj-column></mj-section></mj-body></mjml>"
+
+      cell = %{"subject" => "Sipariş", "html" => mjml, "text" => "Merhaba"}
+      F.body(create(ctx.token, @key, sms("x", %{"cells" => %{"email" => %{"tr" => cell}}})), 201)
+      version = F.body(publish(ctx.token, @key, @accept), 200)
+
+      refute Map.has_key?(version["definition"]["cells"]["email"]["tr"], "compiled_html")
+
+      {:ok, stored} =
+        Relay.TemplateStore.in_scope(ctx.scope, fn _status ->
+          t = Relay.TemplateStore.template(@key, nil)
+          Relay.TemplateStore.template_version(t["id"], 1)
+        end)
+
+      assert stored["cells"]["email"]["tr"]["compiled_html"] =~ "Merhaba"
+    end
+
     test "TP-21, TP-46: a sensitive term needs the class confirmed against the terms", ctx do
       workflow!(ctx)
       F.body(create(ctx.token, @key, sms("Borcunuz {{ order }}")), 201)

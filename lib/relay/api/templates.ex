@@ -85,8 +85,26 @@ defmodule Relay.Api.Templates do
       "layout" => v["layout_key"],
       "partials" => v["partial_keys"] || [],
       "producer_brand" => v["producer_brand"],
-      "cells" => v["cells"]
+      "cells" => cells(v["cells"])
     }
+  end
+
+  # TP-60
+  defp cells(%{"email" => email} = cells) when is_map(email) do
+    Map.put(cells, "email", Map.new(email, fn {locale, cell} -> {locale, strip(cell)} end))
+  end
+
+  defp cells(cells), do: cells
+
+  defp strip(cell) when is_map(cell), do: Map.delete(cell, "compiled_html")
+  defp strip(cell), do: cell
+
+  # TP-8
+  # TP-60
+  defp compiled(definition, compiled) do
+    Enum.reduce(compiled, definition, fn {locale, html}, acc ->
+      put_in(acc, ["cells", "email", locale, "compiled_html"], html)
+    end)
   end
 
   @doc "The ETag header of a template version number."
@@ -326,17 +344,43 @@ defmodule Relay.Api.Templates do
   @doc "Publishes the draft a prepared gate ran on inside the request's transaction; `200` with the new version."
   @spec publish(Relay.Scope.t(), at(), map(), pos_integer(), Relay.Actor.t()) :: answer()
   def publish(scope, at, prepared, expected, actor) do
-    live = prepared.live && definition(prepared.live)
+    with {:ok, expected, checksum} <- seal(scope, at, prepared, expected, actor) do
+      live = prepared.live && definition(prepared.live)
 
-    gate = %{
-      variables: prepared.gate.variables,
-      measures: prepared.gate.measures,
-      findings: Enum.map(prepared.gate.findings, &Gate.view/1),
-      accept_warnings: prepared.accept,
-      checksum: prepared.draft["checksum"],
-      diff: Gate.diff(live, definition(prepared.draft))
-    }
+      gate = %{
+        variables: prepared.gate.variables,
+        measures: prepared.gate.measures,
+        findings: Enum.map(prepared.gate.findings, &Gate.view/1),
+        accept_warnings: prepared.accept,
+        checksum: checksum,
+        diff: Gate.diff(live, definition(prepared.draft))
+      }
 
+      record(scope, at, prepared, gate, expected, actor)
+    end
+  end
+
+  # TP-8
+  # TP-60
+  defp seal(_scope, _at, %{gate: %{compiled: compiled}} = prepared, expected, _actor)
+       when compiled == %{},
+       do: {:ok, expected, prepared.draft["checksum"]}
+
+  defp seal(scope, at, prepared, expected, actor) do
+    definition = compiled(definition(prepared.draft), prepared.gate.compiled)
+    digest = Gate.digest(scope, "template.drafted", at.key)
+    id = Relay.Id.generate()
+
+    case TemplateStore.template_draft_put(at, id, definition, expected, digest, actor) do
+      {result, _id, version} when result in [:created, :replaced, :unchanged] ->
+        {:ok, version, nil}
+
+      {code, _id, _version} ->
+        {:error, write_error(code)}
+    end
+  end
+
+  defp record(scope, at, prepared, gate, expected, actor) do
     digest = Gate.digest(scope, "template.published", at.key)
 
     case TemplateStore.template_publish(at, gate, expected, digest, actor) do
@@ -669,7 +713,9 @@ defmodule Relay.Api.Templates do
   def producer_publish(scope, prepared, body, actor) do
     at = prepared.at
 
-    with {:ok, expected} <- producer_write(scope, at, body, actor) do
+    sealed = Map.put(body, "definition", compiled(body["definition"], prepared.gate.compiled))
+
+    with {:ok, expected} <- producer_write(scope, at, sealed, actor) do
       live =
         case TemplateStore.template(at.key, nil) do
           %{"live_version_no" => nil} -> nil

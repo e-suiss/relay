@@ -205,14 +205,30 @@ defmodule Relay.Templates.PublishGateTest do
   end
 
   describe "TP-32 warnings" do
-    test "TP-30, TP-32: locales of one channel that read different variables are a warning" do
+    test "TP-62: a locale missing a required variable is hard; other differences are warnings" do
+      decorative = Map.put(string(5), "x-relay-criticality", "decorative")
       cells = %{"sms" => %{"tr" => %{"body" => "{{ a }}"}, "en" => %{"body" => "{{ b }}"}}}
-      result = gate(cells, %{schemas: [schema(%{"a" => string(5), "b" => string(5)})]})
+      soft = gate(cells, %{schemas: [schema(%{"a" => decorative, "b" => decorative})]})
 
       assert [%{check: :locale_variables, level: :warning, detail: %{missing: missing}}] =
-               result.findings
+               soft.findings
 
       assert missing == %{"en" => ["a"], "tr" => ["b"]}
+
+      hard = gate(cells, %{schemas: [schema(%{"a" => string(5), "b" => decorative})]})
+
+      assert [%{check: :locale_required_variables, level: :hard, detail: detail}] =
+               Enum.filter(hard.findings, &(&1.level == :hard))
+
+      assert detail.missing == %{"en" => ["a"]}
+    end
+
+    test "TP-61: a bound partial is a helper; an unbound one is undeclared" do
+      binding = %{definition: %{"partials" => ["footer"]}}
+      assert gate(sms("Kargo {{ partial.footer }}"), binding).findings == []
+
+      unbound = gate(sms("Kargo {{ partial.other }}"), binding)
+      assert [%{check: :variables, detail: %{code: "undeclared_variable"}}] = unbound.findings
     end
 
     test "TP-15, TP-18: an SMS that can need more than one segment is one warning" do
@@ -248,7 +264,7 @@ defmodule Relay.Templates.PublishGateTest do
 
   describe "TP-35 layouts and partials" do
     test "TP-8, TP-58: a layout compiles and reads only brand fields and helpers" do
-      ok = fn _source -> {:ok, "<html>{{ brand.logo_url }} {{ content }}</html>"} end
+      ok = fn _source -> {:ok, "<html>{{ brand.logo_url }} {{ content_for_layout }}</html>"} end
       definition = %{"mjml" => "<mjml/>", "text_footer" => "{{ legal_footer }}"}
 
       assert %{findings: [], compiled: "<html>" <> _} =
@@ -272,6 +288,11 @@ defmodule Relay.Templates.PublishGateTest do
 
       assert :locale_not_supported in checks
       assert :parse in checks
+
+      nested = %{"default_locale" => "tr", "bodies" => %{"tr" => "{{ partial.other }}"}}
+
+      assert [%{check: :variables, detail: %{code: "partial_in_partial"}}] =
+               PublishGate.partial(nested).findings
     end
   end
 

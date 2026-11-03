@@ -30,7 +30,7 @@ defmodule Relay.Api.TemplateAssets do
       "subtenant" => Views.id("stn", a["subtenant_id"]),
       "state" => a["state"],
       "live_version" => a["live_version_no"],
-      "draft" => draft && draft["content"],
+      "draft" => draft && content(draft["content"]),
       "version" => a["version"],
       "created_at" => a["created_at"],
       "updated_at" => a["updated_at"]
@@ -50,7 +50,7 @@ defmodule Relay.Api.TemplateAssets do
       "version" => v["version_no"],
       "state" => v["state"],
       "live" => v["id"] == live_id,
-      "definition" => v["content"],
+      "definition" => content(v["content"]),
       "checksum" => Gate.hex(v["checksum"]),
       "findings" => v["findings"] || [],
       "warnings_accepted" => v["warnings_accepted"],
@@ -60,6 +60,11 @@ defmodule Relay.Api.TemplateAssets do
       "published_by" => v["published_by_ref"]
     }
   end
+
+  # TP-60
+  @doc "The definition of a stored layout or partial content: the compiled HTML the publication keeps for the send path is not part of it."
+  @spec content(map()) :: map()
+  def content(content), do: Map.delete(content, "compiled_html")
 
   @doc "The ETag header of a resource version number."
   @spec etag(pos_integer()) :: {String.t(), String.t()}
@@ -148,11 +153,12 @@ defmodule Relay.Api.TemplateAssets do
 
     with {:ok, {:ok, inputs}} <- read,
          :ok <- reviewed(body, inputs.draft) do
-      findings = gate(kind, inputs.draft["content"])
+      {findings, compiled} = gate(kind, content(inputs.draft["content"]))
       accept = Map.get(body || %{}, "accept_warnings", false) == true
+      result = %{findings: findings, compiled: compiled, accept: accept}
 
       with :ok <- Gate.outcome(findings, accept, :asset),
-           do: {:ok, Map.merge(inputs, %{findings: findings, accept: accept})}
+           do: {:ok, Map.merge(inputs, result)}
     else
       {:ok, {:error, error}} -> {:error, error}
       {:error, %Relay.Error{} = error} -> {:error, error}
@@ -169,25 +175,53 @@ defmodule Relay.Api.TemplateAssets do
   defp live(_kind, %{"live_version_no" => nil}), do: nil
   defp live(kind, a), do: TemplateStore.asset_version(kind, a["id"], a["live_version_no"])
 
-  defp gate(:layout, content),
-    do: Relay.Templates.layout_gate(content, compile: &Relay.Templates.compile_mjml/1).findings
+  defp gate(:layout, content) do
+    result = Relay.Templates.layout_gate(content, compile: &Relay.Templates.compile_mjml/1)
+    {result.findings, result.compiled}
+  end
 
-  defp gate(:partial, content), do: Relay.Templates.partial_gate(content).findings
+  defp gate(:partial, content), do: {Relay.Templates.partial_gate(content).findings, nil}
 
   # TP-31
   # TP-35
   @doc "Publishes the draft a prepared gate ran on inside the request's transaction; `200` with the new version."
   @spec publish(kind(), Relay.Scope.t(), at(), map(), pos_integer(), Relay.Actor.t()) :: answer()
   def publish(kind, scope, at, prepared, expected, actor) do
-    live = prepared.live && prepared.live["content"]
+    with {:ok, expected, checksum} <- seal(kind, scope, at, prepared, expected, actor) do
+      live = prepared.live && content(prepared.live["content"])
 
-    gate = %{
-      findings: Enum.map(prepared.findings, &Gate.view/1),
-      accept_warnings: prepared.accept,
-      checksum: prepared.draft["checksum"],
-      diff: diff(live, prepared.draft["content"])
-    }
+      gate = %{
+        findings: Enum.map(prepared.findings, &Gate.view/1),
+        accept_warnings: prepared.accept,
+        checksum: checksum,
+        diff: diff(live, content(prepared.draft["content"]))
+      }
 
+      record(kind, scope, at, prepared, gate, expected, actor)
+    end
+  end
+
+  # TP-8
+  # TP-60
+  defp seal(_kind, _scope, _at, %{compiled: nil} = prepared, expected, _actor),
+    do: {:ok, expected, prepared.draft["checksum"]}
+
+  defp seal(kind, scope, at, prepared, expected, actor) do
+    content = Map.put(content(prepared.draft["content"]), "compiled_html", prepared.compiled)
+    attrs = %{name: prepared.asset["name"], content: content}
+    digest = Gate.digest(scope, "#{kind}.drafted", at.key)
+    id = Relay.Id.generate()
+
+    case TemplateStore.asset_draft_put(kind, at, id, attrs, expected, digest, actor) do
+      {result, _id, version} when result in [:created, :replaced, :unchanged] ->
+        {:ok, version, nil}
+
+      {code, _id, _version} ->
+        {:error, error(kind, code)}
+    end
+  end
+
+  defp record(kind, scope, at, prepared, gate, expected, actor) do
     digest = Gate.digest(scope, "#{kind}.published", at.key)
 
     case TemplateStore.asset_publish(kind, at, gate, expected, digest, actor) do
@@ -240,7 +274,8 @@ defmodule Relay.Api.TemplateAssets do
 
     case read do
       {:ok, {:ok, v}} ->
-        hard = kind |> gate(v["content"]) |> Enum.filter(&(&1.level == :hard))
+        {findings, _compiled} = gate(kind, content(v["content"]))
+        hard = Enum.filter(findings, &(&1.level == :hard))
         if hard == [], do: :ok, else: {:error, Gate.gate_failed(hard)}
 
       {:ok, {:error, error}} ->

@@ -273,7 +273,7 @@ defmodule Relay.Api.Previews do
       html: html,
       locale: locale,
       time_zone: read.facts.default_timezone,
-      data: data,
+      data: partials(data, definition["partials"]),
       brand: read.brand,
       helpers: helpers(read.brand),
       variables: Relay.Templates.criticality(read.schema),
@@ -282,6 +282,10 @@ defmodule Relay.Api.Previews do
       message_class: read.message_class
     ]
   end
+
+  # TP-61
+  defp partials(data, [_ | _] = keys), do: Map.put(data, "partial", Map.new(keys, &{&1, ""}))
+  defp partials(data, _none), do: data
 
   # TP-55
   defp helpers(brand) do

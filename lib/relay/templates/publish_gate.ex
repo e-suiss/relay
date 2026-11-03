@@ -43,7 +43,8 @@ defmodule Relay.Templates.PublishGate do
 
   @empty_schema %{"type" => "object", "properties" => %{}}
   @helpers ["legal_footer", "unsubscribe_url"]
-  @layout_helpers ["legal_footer", "unsubscribe_url", "content"]
+  @layout_helpers ["legal_footer", "unsubscribe_url", "content_for_layout"]
+  @not_required ["brand", "recipient", "partial", "legal_footer", "unsubscribe_url"]
   @sms_segments 1
   @sms_samples ["max", "turkish"]
   @lint_sample "max"
@@ -60,7 +61,17 @@ defmodule Relay.Templates.PublishGate do
     definition = input.definition
     cells = cells(definition)
     {compiled, mjml} = compile_cells(cells, Map.get(input, :compile))
-    ctx = %{input: input, definition: definition, schemas: schemas(input), compiled: compiled}
+    schemas = schemas(input)
+
+    ctx = %{
+      input: input,
+      definition: definition,
+      schemas: schemas,
+      compiled: compiled,
+      partials: partials(definition),
+      optional: Enum.map(schemas, &Variables.criticality/1)
+    }
+
     results = Enum.map(cells, &check_cell(&1, ctx))
 
     findings =
@@ -76,6 +87,13 @@ defmodule Relay.Templates.PublishGate do
       measures: measures(results),
       compiled: compiled
     }
+  end
+
+  defp partials(definition) do
+    case definition["partials"] do
+      keys when is_list(keys) -> keys
+      _none -> []
+    end
   end
 
   defp schemas(input) do
@@ -214,6 +232,7 @@ defmodule Relay.Templates.PublishGate do
       locale: locale,
       texts: texts,
       paths: Enum.map(reads, & &1.path),
+      required: required(reads, ctx),
       reads: reads,
       findings: static ++ worst.findings,
       measures: worst.measures,
@@ -236,6 +255,20 @@ defmodule Relay.Templates.PublishGate do
   defp renderable?(:email, cell, markup), do: not mjml?(cell) or markup != nil
   defp renderable?(_channel, _cell, _markup), do: true
 
+  # TP-61
+  defp bound_partial?("partial." <> key, :any), do: not String.contains?(key, ".")
+  defp bound_partial?("partial." <> key, partials) when is_list(partials), do: key in partials
+  defp bound_partial?(_path, _partials), do: false
+
+  # TP-62
+  defp required(reads, ctx) do
+    for %{path: path, segments: [root | _]} <- reads,
+        root not in @not_required,
+        Enum.all?(ctx.optional, &(not Map.has_key?(&1, path))),
+        into: MapSet.new(),
+        do: path
+  end
+
   defp blocks_render?(%{level: :hard, check: check}),
     do: check in [:parse, :variables, :icu_categories]
 
@@ -250,7 +283,7 @@ defmodule Relay.Templates.PublishGate do
       )
 
     parse_findings(errors, where) ++
-      variable_findings(templates, ctx.schemas, where) ++
+      variable_findings(templates, ctx.schemas, where, @helpers, ctx.partials) ++
       icu_findings(templates, where) ++ channel_static(where, cell, templates) ++ promotion
   end
 
@@ -266,10 +299,11 @@ defmodule Relay.Templates.PublishGate do
 
   # TP-13
   # TP-14
-  defp variable_findings(templates, schemas, where, helpers \\ @helpers) do
+  defp variable_findings(templates, schemas, where, helpers, partials) do
     for {pointer, template} <- templates,
         schema <- schemas,
-        finding <- Variables.validate(template, schema, helpers: helpers) do
+        finding <- Variables.validate(template, schema, helpers: helpers),
+        not bound_partial?(finding.path, partials) do
       level = if finding.severity == :error, do: :hard, else: :warning
       detail = %{code: finding.code, path: finding.path, message: finding.detail}
       Finding.new(:variables, level, fields(where, pointer, detail))
@@ -351,7 +385,7 @@ defmodule Relay.Templates.PublishGate do
     Render.cell(where.channel, cell, parsed,
       locale: where.locale,
       time_zone: "Etc/UTC",
-      data: data,
+      data: partial_data(data, ctx.partials),
       brand: Map.get(ctx.input, :brand, %{}),
       helpers: sample_helpers(),
       variables: Variables.criticality(schema),
@@ -361,6 +395,10 @@ defmodule Relay.Templates.PublishGate do
       limits: @worst_limits
     )
   end
+
+  # TP-61
+  defp partial_data(data, []), do: data
+  defp partial_data(data, keys), do: Map.put(data, "partial", Map.new(keys, &{&1, ""}))
 
   defp sample_helpers,
     do: %{"legal_footer" => "", "unsubscribe_url" => "https://unsubscribe.invalid/0000000000"}
@@ -499,7 +537,7 @@ defmodule Relay.Templates.PublishGate do
         %{channel: result.channel, locale: result.locale, helpers: helpers, opt_out: opt_out}
       end
 
-    brand = input |> Map.get(:brand, %{}) |> Map.put("commercial_mark", "legal_footer")
+    brand = Map.get(input, :brand, %{})
     opts = [message_class: input.message_class, country: Map.get(input, :country)]
     LegalFooter.check(variants, brand, opts)
   end
@@ -511,6 +549,7 @@ defmodule Relay.Templates.PublishGate do
     |> Enum.flat_map(fn {channel, group} ->
       sets = Map.new(group, fn result -> {result.locale, MapSet.new(result.paths)} end)
       union = sets |> Map.values() |> Enum.reduce(MapSet.new(), &MapSet.union/2)
+      required = group |> Enum.map(& &1.required) |> Enum.reduce(MapSet.new(), &MapSet.union/2)
 
       missing =
         for {locale, set} <- sets,
@@ -519,14 +558,28 @@ defmodule Relay.Templates.PublishGate do
             into: %{},
             do: {locale, difference |> MapSet.to_list() |> Enum.sort()}
 
-      locale_set_finding(channel, missing)
+      {hard, soft} = split_missing(missing, required)
+
+      locale_set_finding(:locale_required_variables, :hard, channel, hard) ++
+        locale_set_finding(:locale_variables, :warning, channel, soft)
     end)
   end
 
-  defp locale_set_finding(_channel, missing) when missing == %{}, do: []
+  # TP-62
+  defp split_missing(missing, required) do
+    Enum.reduce(missing, {%{}, %{}}, fn {locale, paths}, {hard, soft} ->
+      {needed, other} = Enum.split_with(paths, &MapSet.member?(required, &1))
+      {put_present(hard, locale, needed), put_present(soft, locale, other)}
+    end)
+  end
 
-  defp locale_set_finding(channel, missing),
-    do: [Finding.new(:locale_variables, :warning, channel: channel, detail: %{missing: missing})]
+  defp put_present(map, _locale, []), do: map
+  defp put_present(map, locale, paths), do: Map.put(map, locale, paths)
+
+  defp locale_set_finding(_check, _level, _channel, missing) when missing == %{}, do: []
+
+  defp locale_set_finding(check, level, channel, missing),
+    do: [Finding.new(check, level, channel: channel, detail: %{missing: missing})]
 
   # TP-17
   defp usage(results) do
@@ -571,7 +624,7 @@ defmodule Relay.Templates.PublishGate do
 
     case Engine.parse(text) do
       {:ok, template} ->
-        variable_findings(%{pointer => template}, [@empty_schema], where, @layout_helpers)
+        variable_findings(%{pointer => template}, [@empty_schema], where, @layout_helpers, :any)
 
       {:error, found} ->
         parse_findings([{pointer, found}], where)
@@ -593,11 +646,22 @@ defmodule Relay.Templates.PublishGate do
         pointer = "/bodies/" <> locale
 
         case Engine.parse(body) do
-          {:ok, template} -> icu_findings(%{pointer => template}, where)
+          {:ok, template} -> partial_body(template, pointer, where)
           {:error, found} -> parse_findings([{pointer, found}], where)
         end
       end)
 
     %{findings: locale_findings(locales, supported) ++ body_findings}
+  end
+
+  defp partial_body(template, pointer, where),
+    do: nested_partials(template, pointer, where) ++ icu_findings(%{pointer => template}, where)
+
+  # TP-61
+  defp nested_partials(template, pointer, where) do
+    for %{path: path, segments: ["partial" | _]} <- Variables.reads(template), uniq: true do
+      detail = %{code: "partial_in_partial", path: path, message: "a partial reads no partial"}
+      Finding.new(:variables, :hard, fields(where, pointer, detail))
+    end
   end
 end

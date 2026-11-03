@@ -37,6 +37,7 @@ defmodule Relay.Tenancy.SettingKeys do
   @spec cast(term(), term()) :: {:ok, term()} | {:error, Relay.Error.t()}
   def cast(key, value) do
     case Map.fetch(@catalog, key) do
+      {:ok, {:brand, kind, max}} when not is_nil(value) -> brand(kind, max, value)
       :error when is_binary(key) -> send_mode(key, value)
       found -> catalog(found, key, value)
     end
@@ -70,9 +71,6 @@ defmodule Relay.Tenancy.SettingKeys do
 
       {:ok, kind} when kind in [:api_rate, :boolean] ->
         check(kind, value)
-
-      {:ok, {:brand, kind, max}} ->
-        brand(kind, max, value)
 
       {:ok, field} ->
         Defaults.cast(field, value)

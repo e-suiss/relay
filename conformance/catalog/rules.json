@@ -4824,6 +4824,13 @@
     "verify_stage": null
   },
   {
+    "id": "TP-62",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
     "acceptance": "pending",
     "id": "CH-1",
     "section": "§12",

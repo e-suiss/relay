@@ -9,6 +9,7 @@ defmodule Relay.Templates.LocaleTest do
                {:ok, "de", :profile}
 
       assert Locale.recipient(%{device: "fr-fr", tenant_default: "tr"}) == {:ok, "fr-FR", :device}
+
       assert Locale.recipient(%{profile: "not a tag", tenant_default: "tr"}) ==
                {:ok, "tr", :tenant_default}
     end

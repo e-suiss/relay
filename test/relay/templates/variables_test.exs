@@ -116,6 +116,7 @@ defmodule Relay.Templates.VariablesTest do
       assert codes("{{ order.missing }}") == [{"undeclared_variable", "order.missing"}]
       assert codes("{{ brand.secret }}") == [{"undeclared_variable", "brand.secret"}]
       assert codes("{{ legal_footer.x }}") == [{"undeclared_variable", "legal_footer.x"}]
+
       assert codes("{{ recipient.first_name }}") ==
                [{"undeclared_variable", "recipient.first_name"}]
 

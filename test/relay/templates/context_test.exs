@@ -67,6 +67,7 @@ defmodule Relay.Templates.ContextTest do
       assert {:error, {:schema_violation, _}} = Context.new(:sms, locale: "ja", time_zone: "UTC")
       assert {:error, {:schema_violation, _}} = Context.new(:sms, locale: "tr", time_zone: "Mars")
       assert {:error, {:schema_violation, _}} = Context.new(:sms, time_zone: "UTC")
+
       assert {:ok, %Context{locale: "tr-TR"}} =
                Context.new(:sms, locale: "tr-tr", time_zone: "UTC")
     end
@@ -152,6 +153,7 @@ defmodule Relay.Templates.ContextTest do
       assert render("مرحبا {{ name }}", :push, fields) == {:ok, "مرحبا \u2068Ali\u2069"}
       assert render("مرحبا {{ name }}", :in_app, fields) == {:ok, "مرحبا \u2068Ali\u2069"}
       assert render("مرحبا {{ name }}", :sms, fields) == {:ok, "مرحبا Ali"}
+
       assert render("Hi {{ name }}", :push, locale: "tr", data: %{"name" => "Ali"}) ==
                {:ok, "Hi Ali"}
     end

@@ -153,6 +153,7 @@ defmodule Relay.Templates.EngineTest do
   describe "TP-4 strict rendering" do
     test "TP-4: an undefined variable stops the render" do
       assert render("Kod {{ code }}", %{}) == {:error, {:missing_variable, "code"}}
+
       assert render("{{ order.id }}", %{"order" => %{}}) ==
                {:error, {:missing_variable, "order.id"}}
     end

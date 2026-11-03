@@ -412,8 +412,10 @@ defmodule Relay.Templates.Engine do
   end
 
   defp detail(%Solid.ArgumentError{message: message}) when is_binary(message), do: message
+
   defp detail(%Solid.UndefinedFilterError{filter: filter}),
     do: "the filter #{filter} does not exist"
+
   defp detail(_error), do: "the template cannot be rendered with this data"
 
   defp finding(code, detail, line), do: %{code: code, detail: detail, line: line}

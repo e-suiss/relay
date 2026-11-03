@@ -188,6 +188,7 @@ defmodule Relay.Templates.FiltersTest do
 
     test "TP-24: raw prints a value without escaping when the template allows it" do
       data = %{"html" => "<b>x</b>"}
+
       assert render("{{ html | raw }}", data, channel: :email, part: :html, allow_raw: true) ==
                "<b>x</b>"
     end

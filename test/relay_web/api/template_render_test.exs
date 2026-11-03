@@ -2,6 +2,7 @@ defmodule RelayWeb.Api.TemplateRenderTest do
   use Relay.DataCase, async: false
 
   alias Relay.Repo
+  alias Relay.Templates.Live
   alias Relay.TemplateStore
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
@@ -388,7 +389,7 @@ defmodule RelayWeb.Api.TemplateRenderTest do
       assert run!(ctx.scope, delivery) == {:snooze, 300}
       assert %{digest: ^first, count: 1} = plan(ctx.scope, delivery)
 
-      assert Relay.Templates.Live.verify(ctx.scope, internal(delivery)) == :rendered
+      assert Live.verify(ctx.scope, internal(delivery)) == :rendered
       assert %{digest: ^first, count: 2} = plan(ctx.scope, delivery)
       assert length(snapshots(ctx.scope, delivery)) == 1
       assert sql!(ctx.scope, @failure, [internal(delivery)]) == [[nil, nil, nil]]
@@ -403,7 +404,7 @@ defmodule RelayWeb.Api.TemplateRenderTest do
       assert run!(ctx.scope, delivery) == {:snooze, 300}
       setting!(ctx.scope, nil, "brand.sender_name", "Other")
       assert run!(ctx.scope, delivery) == {:snooze, 300}
-      assert Relay.Templates.Live.verify(ctx.scope, internal(delivery)) == :failed
+      assert Live.verify(ctx.scope, internal(delivery)) == :failed
       assert run!(ctx.scope, delivery) == :ok
 
       failure = sql!(ctx.scope, @failure, [internal(delivery)])

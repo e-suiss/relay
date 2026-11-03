@@ -63,11 +63,6 @@ jobs:
       - run: rustup toolchain install
         working-directory: native/mjml_port
       - run: native/build.sh
-      - run: GOLDEN_UPDATE=1 mix test --include integration test/relay/templates/mjml_port_test.exs
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: mjml-golden
-          path: test/golden/mjml
       - run: mix test --include integration --warnings-as-errors
 
   contracts:

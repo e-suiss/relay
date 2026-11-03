@@ -23,7 +23,7 @@ defmodule Relay.Templates.Direction do
   def of(nil), do: :ltr
 
   # TP-29
-  @doc "The value of an HTML `dir` attribute or an inbox `dir` field: `\"rtl\"` or `\"ltr\"`."
+  @doc ~s[The value of an HTML `dir` attribute or an inbox `dir` field: `"rtl"` or `"ltr"`.]
   @spec attribute(String.t() | nil) :: String.t()
   def attribute(locale), do: Atom.to_string(of(locale))
 end

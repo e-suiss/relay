@@ -17,7 +17,7 @@ defmodule Relay.Templates.Lint.Accessibility do
   @greeting_max 30
 
   # TP-34
-  @doc "E-mail lint over the rendered `\"html\"` and `\"text\"` fields; `opts` takes `:locale`."
+  @doc ~s[E-mail lint over the rendered `"html"` and `"text"` fields; `opts` takes `:locale`.]
   @spec email(map(), keyword()) :: [Finding.t()]
   def email(fields, opts \\ []) do
     html = string(fields, "html")
@@ -54,7 +54,7 @@ defmodule Relay.Templates.Lint.Accessibility do
 
   # TP-21
   # TP-34
-  @doc "Lock screen lint: `fields` maps a field name (`\"title\"`, `\"body\"`, `\"lock_screen_body\"`) to its static text; `opts` takes `:channel` and `:locale`."
+  @doc ~s[Lock screen lint: `fields` maps a field name (`"title"`, `"body"`, `"lock_screen_body"`) to its static text; `opts` takes `:channel` and `:locale`.]
   @spec lock_screen(map(), [Terms.entry()], keyword()) :: [Finding.t()]
   def lock_screen(fields, entries, opts \\ []) do
     locale = Keyword.get(opts, :locale)

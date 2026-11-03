@@ -1,0 +1,50 @@
+<mjml>
+  <mj-head>
+    <mj-font name="Roboto" href="https://fonts.googleapis.com/css?family=Roboto:400,700" />
+    <mj-breakpoint width="480px" />
+  </mj-head>
+  <mj-body>
+    <mj-wrapper background-color="#eeeeee" padding="10px">
+      <mj-section>
+        <mj-column>
+          <mj-navbar>
+            <mj-navbar-link href="https://example.com/a">Home</mj-navbar-link>
+            <mj-navbar-link href="https://example.com/b">Orders</mj-navbar-link>
+          </mj-navbar>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+    <mj-hero mode="fixed-height" height="200px" background-url="https://example.com/hero.png" background-color="#2a2a2a">
+      <mj-text color="#ffffff" font-family="Roboto, Arial">Hero</mj-text>
+    </mj-hero>
+    <mj-section>
+      <mj-group>
+        <mj-column width="50%"><mj-text>Left</mj-text></mj-column>
+        <mj-column width="50%"><mj-text>Right</mj-text></mj-column>
+      </mj-group>
+    </mj-section>
+    <mj-section>
+      <mj-column>
+        <mj-table>
+          <tr><th>Item</th><th>Price</th></tr>
+          <tr><td>Book</td><td>10</td></tr>
+        </mj-table>
+        <mj-spacer height="20px" />
+        <mj-accordion>
+          <mj-accordion-element>
+            <mj-accordion-title>Question</mj-accordion-title>
+            <mj-accordion-text>Answer</mj-accordion-text>
+          </mj-accordion-element>
+        </mj-accordion>
+        <mj-carousel>
+          <mj-carousel-image src="https://example.com/1.png" />
+          <mj-carousel-image src="https://example.com/2.png" />
+        </mj-carousel>
+        <mj-social>
+          <mj-social-element name="github" href="https://example.com/gh">GitHub</mj-social-element>
+        </mj-social>
+        <mj-raw><p class="raw">raw</p></mj-raw>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

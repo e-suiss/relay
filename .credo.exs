@@ -82,6 +82,23 @@
            ]},
           {RelayDev.Credo.TenantProcesses,
            [files: %{included: ["lib/"], excluded: ["lib/relay/tenant_worker.ex"]}]},
+          {RelayDev.Credo.MjmlOnSendPath,
+           [
+             files: %{
+               included: [
+                 "lib/relay/delivery.ex",
+                 "lib/relay/delivery/",
+                 "lib/relay/channels.ex",
+                 "lib/relay/channels/",
+                 "lib/relay/policy.ex",
+                 "lib/relay/policy/",
+                 "lib/relay/ingest.ex",
+                 "lib/relay/ingest/",
+                 "lib/relay/workflow.ex",
+                 "lib/relay/workflow/"
+               ]
+             }
+           ]},
           {RelayDev.Credo.LimitClock,
            [
              files: %{

@@ -1,0 +1,17 @@
+<mjml>
+  <mj-head>
+    <mj-title>{{ brand.name }}</mj-title>
+    <mj-preview>Hi {{ recipient.first_name }}</mj-preview>
+  </mj-head>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-text>Hi {{ recipient.first_name | default: "there" }},</mj-text>
+        <mj-text>{% if order.total > 100 %}Shipping is free.{% else %}Shipping costs {{ order.shipping | currency }}.{% endif %}</mj-text>
+        <mj-text>{% for item in order.items %}{{ item.name }} × {{ item.quantity }}<br />{% endfor %}</mj-text>
+        <mj-button href="{{ links.order }}">Track your order</mj-button>
+        <mj-image src="{{ brand.logo_url }}" alt="{{ brand.name }}" />
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

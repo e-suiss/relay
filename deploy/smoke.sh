@@ -212,4 +212,14 @@ if docker logs relay-smoke 2>&1 | grep -q "key store"; then
   fail "the key store failed on the node"
 fi
 
+# T-98
+mjml_check='{:ok, _} = Application.ensure_all_started(:crypto); IO.puts(case Relay.Templates.Mjml.compile("<mjml><mj-body><mj-section><mj-column><mj-text>{{ name }}</mj-text></mj-column></mj-section></mj-body></mjml>"), do: ({:ok, html} -> if(html =~ "{{ name }}", do: "mjml: ok", else: "mjml: lost"); {:error, e} -> "mjml: #{e.code}"))'
+run -e RELAY_ROLES=worker "$image" eval "$mjml_check" >"$work/mjml.log" 2>&1 || { cat "$work/mjml.log" >&2; fail "MJML check failed"; }
+grep -q '^mjml: ok$' "$work/mjml.log" || { cat "$work/mjml.log" >&2; fail "the bundled MJML compiler did not compile"; }
+
+compiler="$(run -e RELAY_ROLES=worker "$image" eval 'IO.puts(Application.app_dir(:relay, "priv/native/mjml_port"))' | tail -1)"
+run -e RELAY_ROLES=worker -v "$work/replaced:$compiler:ro" "$image" eval "$mjml_check" >"$work/mjml-replaced.log" 2>&1 || true
+grep -q '^mjml: mjml_integrity$' "$work/mjml-replaced.log" \
+  || { cat "$work/mjml-replaced.log" >&2; fail "a replaced MJML compiler was not refused"; }
+
 echo "smoke: ok"

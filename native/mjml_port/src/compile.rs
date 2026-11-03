@@ -1,5 +1,6 @@
 //! MJML to HTML compilation under Relay's limits: bounded input and output, no `mj-include`, no file system or network access.
 
+use std::collections::HashMap;
 use std::io::ErrorKind;
 
 use mrml::prelude::parser::loader::{IncludeLoader, IncludeLoaderError};
@@ -87,7 +88,7 @@ pub fn compile(source: &[u8], max_output: usize) -> Result<String, Failure> {
         mrml::parse_with_options(text, &options).map_err(|error| parse_failure(text, error))?;
     let html = parsed
         .element
-        .render(&RenderOptions::default())
+        .render(&render_options())
         .map_err(|error| Failure::new(Kind::Render, error.to_string()))?;
     let limit = max_output.min(MAX_OUTPUT);
     if html.len() > limit {
@@ -97,6 +98,13 @@ pub fn compile(source: &[u8], max_output: usize) -> Result<String, Failure> {
         ));
     }
     Ok(html)
+}
+
+fn render_options() -> RenderOptions {
+    RenderOptions {
+        fonts: HashMap::new(),
+        ..RenderOptions::default()
+    }
 }
 
 fn find_include(bytes: &[u8]) -> Option<usize> {
@@ -185,6 +193,16 @@ mod tests {
         assert!(html.contains("{{ recipient.first_name }}"), "{html}");
         assert!(html.contains("{% if order.total > 100 %}"), "{html}");
         assert!(html.contains("{% endif %}"), "{html}");
+    }
+
+    #[test]
+    fn t_98_only_declared_fonts_are_linked() {
+        let source = "<mjml><mj-body><mj-section><mj-column><mj-text font-family=\"Roboto, Arial\">x</mj-text></mj-column></mj-section></mj-body></mjml>";
+        let html = compile(source.as_bytes(), MAX_OUTPUT).unwrap();
+        assert!(!html.contains("fonts.googleapis.com"), "{html}");
+        let declared = "<mjml><mj-head><mj-font name=\"Brand\" href=\"brand.css\" /></mj-head><mj-body><mj-section><mj-column><mj-text font-family=\"Brand\">x</mj-text></mj-column></mj-section></mj-body></mjml>";
+        let html = compile(declared.as_bytes(), MAX_OUTPUT).unwrap();
+        assert!(html.contains("brand.css"), "{html}");
     }
 
     #[test]

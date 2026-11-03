@@ -1,6 +1,6 @@
 defmodule Relay.Templates.Mjml do
   @moduledoc """
-  MJML compiler client. Every call verifies the `mjml_port` program against its SHA-256, starts it as a fresh OS process, sends one request and reads one response, so no tenant's source shares a process with another's and a crash or overrun ends only that call. The program runs under a hard deadline that it also enforces on itself, refuses `mj-include`, and caps input at 256 KiB and output at a configurable limit. It runs only when a template version is published, never on the send path.
+  MJML compiler client. Every call verifies the `mjml_port` program against its SHA-256, starts it as a fresh OS process, sends one request and reads one response, so no tenant's source shares a process with another's and a crash or overrun ends only that call. The program runs under a hard deadline that it also enforces on itself, refuses `mj-include`, links only the fonts the template declares with `mj-font`, and caps input at 256 KiB and output at a configurable limit. It runs only when a template version is published, never on the send path.
   """
 
   alias Relay.Error

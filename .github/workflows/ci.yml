@@ -15,7 +15,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     env:
       MIX_ENV: test
     steps:
@@ -103,7 +103,7 @@ jobs:
 
   native:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: native/pkcs11_port

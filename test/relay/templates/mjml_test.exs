@@ -15,8 +15,8 @@ defmodule Relay.Templates.MjmlTest do
   defp checksum(path), do: :crypto.hash(:sha256, File.read!(path)) |> Base.encode16(case: :lower)
 
   defp compile(exe, opts \\ []) do
-    opts = Keyword.merge([executable: exe, sha256: checksum(exe)], opts)
-    Mjml.compile("<mjml><mj-body /></mjml>", opts)
+    opts = Keyword.put_new_lazy(opts, :sha256, fn -> checksum(exe) end)
+    Mjml.compile("<mjml><mj-body /></mjml>", Keyword.put(opts, :executable, exe))
   end
 
   test "T-98: the compiled HTML travels back over the port", %{tmp_dir: dir} do

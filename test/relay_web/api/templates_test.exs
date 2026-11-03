@@ -39,7 +39,7 @@ defmodule RelayWeb.Api.TemplatesTest do
     )
   end
 
-  defp push(body, extra) do
+  defp plus(body, extra) do
     cells = %{"push" => %{"tr" => %{"title" => "Kod", "body" => body}}}
     sms("x", Map.put(extra, "cells", cells))
   end
@@ -339,7 +339,7 @@ defmodule RelayWeb.Api.TemplatesTest do
          ctx do
       produced = %{"logo_url" => "https://access.example/logo.png", "legal_name" => "Access A.Ş."}
       body = "{{ brand.logo_url }} {{ brand.legal_name }}"
-      F.body(produce(ctx.producer, "otp-code", push(body, %{"producer_brand" => produced})), 200)
+      F.body(produce(ctx.producer, "otp-code", plus(body, %{"producer_brand" => produced})), 200)
 
       patch = %{"logo_url" => "https://tenant.example/logo.png", "legal_name" => "Kiracı A.Ş."}
       merge = [{"content-type", "application/merge-patch+json"}]

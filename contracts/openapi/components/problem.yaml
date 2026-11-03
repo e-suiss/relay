@@ -141,6 +141,13 @@ Problem:
         - invalid_target
       description: OAuth 2.0 error code, present only on the token exchange endpoint for OAuth library compatibility.
       x-relay-choice: true
+    findings:
+      type: array
+      description: "Publication gate findings of a template, layout or partial draft; present with template_gate_failed and template_warnings_unacknowledged."
+      items:
+        "$ref": "./schemas.yaml#/GateFinding"
+      x-relay-choice: true
+      x-relay-choice-note: "The spec requires hard and warning gate results to be shown; the member carrying them is chosen by the contract."
   additionalProperties: false
 FieldError:
   type: object

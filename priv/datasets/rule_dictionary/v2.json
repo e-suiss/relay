@@ -1,0 +1,1152 @@
+{
+  "source_ref": "DS-47; DS-25; TP-51",
+  "rules": [
+    {
+      "id": "admission.aimd.l2",
+      "reason": "overloaded",
+      "kind": "admission",
+      "outcome": "reject",
+      "decision": "T-97",
+      "detail": [
+        "lane",
+        "retry_after_s"
+      ],
+      "description": {
+        "en": "The request was refused because it is above the input ceiling of lane l2.",
+        "tr": "İstek, l2 şeridinin giriş tavanının üstünde olduğu için reddedildi."
+      }
+    },
+    {
+      "id": "admission.aimd.l3",
+      "reason": "overloaded",
+      "kind": "admission",
+      "outcome": "reject",
+      "decision": "T-97",
+      "detail": [
+        "lane",
+        "retry_after_s"
+      ],
+      "description": {
+        "en": "The request was refused because it is above the input ceiling of lane l3.",
+        "tr": "İstek, l3 şeridinin giriş tavanının üstünde olduğu için reddedildi."
+      }
+    },
+    {
+      "id": "admission.breaker_open",
+      "reason": "overloaded",
+      "kind": "admission",
+      "outcome": "reject",
+      "decision": "T-35",
+      "detail": [
+        "channels",
+        "retry_after_s"
+      ],
+      "description": {
+        "en": "The marketing request was refused because every provider of each requested channel is unavailable.",
+        "tr": "Pazarlama isteği, istenen her kanalın bütün sağlayıcıları kullanılamadığı için reddedildi."
+      }
+    },
+    {
+      "id": "admission.lmax.l2",
+      "reason": "overloaded",
+      "kind": "admission",
+      "outcome": "reject",
+      "decision": "T-92",
+      "detail": [
+        "lane",
+        "retry_after_s"
+      ],
+      "description": {
+        "en": "The request was refused because lane l2 cannot drain its queue within the allowed wait.",
+        "tr": "İstek, l2 şeridi kuyruğunu izin verilen bekleme süresinde boşaltamayacağı için reddedildi."
+      }
+    },
+    {
+      "id": "admission.lmax.l3",
+      "reason": "overloaded",
+      "kind": "admission",
+      "outcome": "reject",
+      "decision": "T-92",
+      "detail": [
+        "lane",
+        "retry_after_s"
+      ],
+      "description": {
+        "en": "The request was refused because lane l3 cannot drain its queue within the allowed wait.",
+        "tr": "İstek, l3 şeridi kuyruğunu izin verilen bekleme süresinde boşaltamayacağı için reddedildi."
+      }
+    },
+    {
+      "id": "admission.overload.l2",
+      "reason": "overloaded",
+      "kind": "admission",
+      "outcome": "reject",
+      "decision": "T-35",
+      "detail": [
+        "lane",
+        "retry_after_s"
+      ],
+      "description": {
+        "en": "The request was refused because lane l2 is shedding load.",
+        "tr": "İstek, l2 şeridi yük attığı için reddedildi."
+      }
+    },
+    {
+      "id": "admission.overload.l3",
+      "reason": "overloaded",
+      "kind": "admission",
+      "outcome": "reject",
+      "decision": "T-35",
+      "detail": [
+        "lane",
+        "retry_after_s"
+      ],
+      "description": {
+        "en": "The request was refused because lane l3 is shedding load.",
+        "tr": "İstek, l3 şeridi yük attığı için reddedildi."
+      }
+    },
+    {
+      "id": "breaker.provider",
+      "reason": "provider_unavailable",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "T-25",
+      "detail": [
+        "provider",
+        "retry_after_ms"
+      ],
+      "description": {
+        "en": "The send waits because the provider's circuit breaker is open.",
+        "tr": "Gönderim, sağlayıcının devre kesicisi açık olduğu için bekliyor."
+      }
+    },
+    {
+      "id": "breaker.tenant_provider",
+      "reason": "provider_unavailable",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "T-25",
+      "detail": [
+        "provider",
+        "retry_after_ms"
+      ],
+      "description": {
+        "en": "The send waits because the circuit breaker of this tenant at the provider is open.",
+        "tr": "Gönderim, bu kiracının sağlayıcıdaki devre kesicisi açık olduğu için bekliyor."
+      }
+    },
+    {
+      "id": "cancel.request",
+      "reason": "cancelled",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "API-58",
+      "detail": [
+        "cancellation_id"
+      ],
+      "description": {
+        "en": "The delivery was cancelled by a cancellation request.",
+        "tr": "Teslim bir iptal isteğiyle iptal edildi."
+      }
+    },
+    {
+      "id": "channel.address_disabled",
+      "reason": "no_address",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "PC-8",
+      "detail": [
+        "channel",
+        "address_rule_id"
+      ],
+      "description": {
+        "en": "Not sent because the recipient's address or token on the channel is disabled.",
+        "tr": "Alıcının bu kanaldaki adresi ya da belirteci devre dışı olduğu için gönderilmedi."
+      }
+    },
+    {
+      "id": "channel.no_address",
+      "reason": "no_address",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "PC-8",
+      "detail": [
+        "channel"
+      ],
+      "description": {
+        "en": "Not sent because the recipient has no address or active device for the channel.",
+        "tr": "Alıcının bu kanalda adresi ya da etkin cihazı olmadığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "channel.no_permission",
+      "reason": "no_permission",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "PC-8",
+      "detail": [
+        "channel",
+        "device_permission"
+      ],
+      "description": {
+        "en": "Not sent because notifications are turned off for the app in the device settings.",
+        "tr": "Cihaz ayarlarında uygulamanın bildirimleri kapalı olduğu için gönderilmedi."
+      }
+    },
+    {
+      "id": "channel_parameters.missing",
+      "reason": "channel_parameters_missing",
+      "kind": "terminal",
+      "outcome": "fail",
+      "decision": "CH-70",
+      "detail": [
+        "channel",
+        "provider"
+      ],
+      "description": {
+        "en": "The delivery stopped because no channel parameters cover its channel and provider.",
+        "tr": "Kanalı ve sağlayıcısı için kanal parametresi bulunmadığından teslim durdu."
+      }
+    },
+    {
+      "id": "channel_policy.email_verification_only",
+      "reason": "channel_policy",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "PC-51",
+      "detail": [
+        "channel",
+        "security_subtype"
+      ],
+      "description": {
+        "en": "Not sent because an email verification message goes only by email.",
+        "tr": "E-posta doğrulama iletisi yalnız e-postayla gittiği için gönderilmedi."
+      }
+    },
+    {
+      "id": "channel_policy.otp_channel_forbidden",
+      "reason": "otp_channel_forbidden",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "PC-51",
+      "detail": [
+        "channel",
+        "security_subtype"
+      ],
+      "description": {
+        "en": "Not sent because a second-factor code is never sent by email.",
+        "tr": "İkinci faktör kodu hiçbir zaman e-postayla gönderilmediği için gönderilmedi."
+      }
+    },
+    {
+      "id": "consent.expired",
+      "reason": "consent_missing",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "PC-21",
+      "detail": [
+        "channel",
+        "brand",
+        "consent_id"
+      ],
+      "description": {
+        "en": "Not sent because the recipient's consent for marketing messages on this channel has expired.",
+        "tr": "Alıcının bu kanalda pazarlama iletileri için verdiği iznin süresi dolduğu için gönderilmedi."
+      }
+    },
+    {
+      "id": "consent.missing",
+      "reason": "consent_missing",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "PC-58",
+      "detail": [
+        "channel",
+        "brand"
+      ],
+      "description": {
+        "en": "Not sent because there is no active consent for marketing messages on this channel.",
+        "tr": "Bu kanalda pazarlama iletileri için etkin izin olmadığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "consent.revoked",
+      "reason": "consent_revoked",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "PC-21",
+      "detail": [
+        "channel",
+        "brand",
+        "consent_id"
+      ],
+      "description": {
+        "en": "Not sent because the recipient withdrew consent for marketing messages on this channel.",
+        "tr": "Alıcı bu kanalda pazarlama iletilerine verdiği izni geri çektiği için gönderilmedi."
+      }
+    },
+    {
+      "id": "dnd.deferred",
+      "reason": "dnd",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "WF-41",
+      "detail": [
+        "dnd_until"
+      ],
+      "description": {
+        "en": "Postponed until the recipient's do-not-disturb period ends.",
+        "tr": "Alıcının rahatsız etmeyin süresi bitene kadar ertelendi."
+      }
+    },
+    {
+      "id": "expiry.expires_at",
+      "reason": "expired",
+      "kind": "terminal",
+      "outcome": "expire",
+      "decision": "PC-49",
+      "detail": [
+        "expires_at"
+      ],
+      "description": {
+        "en": "Not sent because the message expired before it could be sent.",
+        "tr": "İleti gönderilemeden süresi dolduğu için gönderilmedi."
+      }
+    },
+    {
+      "id": "expiry.no_window",
+      "reason": "expired",
+      "kind": "terminal",
+      "outcome": "expire",
+      "decision": "PC-46",
+      "detail": [
+        "expires_at",
+        "timezone_source"
+      ],
+      "description": {
+        "en": "Not sent because no allowed sending time remained before the message expired.",
+        "tr": "İletinin süresi dolmadan önce izin verilen bir gönderim anı kalmadığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "frequency.deferred",
+      "reason": "frequency_capped",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "PC-50",
+      "detail": [
+        "category",
+        "channel",
+        "limit",
+        "window"
+      ],
+      "description": {
+        "en": "Postponed because the recipient reached the frequency cap.",
+        "tr": "Alıcı frekans tavanına ulaştığı için ertelendi."
+      }
+    },
+    {
+      "id": "frequency.digest",
+      "reason": "frequency_capped",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "PC-50",
+      "detail": [
+        "category",
+        "channel",
+        "limit",
+        "window"
+      ],
+      "description": {
+        "en": "Moved to a digest because the recipient reached the frequency cap.",
+        "tr": "Alıcı frekans tavanına ulaştığı için özete alındı."
+      }
+    },
+    {
+      "id": "frequency.dropped",
+      "reason": "frequency_capped",
+      "kind": "shaper",
+      "outcome": "skip",
+      "decision": "PC-50",
+      "detail": [
+        "category",
+        "channel",
+        "limit",
+        "window"
+      ],
+      "description": {
+        "en": "Not sent because the recipient reached the frequency cap.",
+        "tr": "Alıcı frekans tavanına ulaştığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "frequency.inbox_only",
+      "reason": "frequency_capped",
+      "kind": "shaper",
+      "outcome": "skip",
+      "decision": "PC-50",
+      "detail": [
+        "category",
+        "channel",
+        "limit",
+        "window"
+      ],
+      "description": {
+        "en": "Kept only in the in-app inbox because the recipient reached the frequency cap.",
+        "tr": "Alıcı frekans tavanına ulaştığı için yalnız uygulama içi gelen kutusunda tutuldu."
+      }
+    },
+    {
+      "id": "killswitch.bulk_cancel",
+      "reason": "cancelled",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "TN-41",
+      "detail": [
+        "kill_switch_id"
+      ],
+      "description": {
+        "en": "Cancelled with every delivery a kill switch held.",
+        "tr": "Bir acil durdurma anahtarının beklettiği bütün teslimlerle birlikte iptal edildi."
+      }
+    },
+    {
+      "id": "killswitch.canary",
+      "reason": "kill_switch",
+      "kind": "gate",
+      "outcome": "pause",
+      "decision": "TN-38",
+      "detail": [
+        "kill_switch_id"
+      ],
+      "description": {
+        "en": "Paused because the delivery is outside the canary share of a kill switch.",
+        "tr": "Teslim bir acil durdurma anahtarının kanarya payının dışında kaldığı için bekletildi."
+      }
+    },
+    {
+      "id": "killswitch.off",
+      "reason": "kill_switch",
+      "kind": "gate",
+      "outcome": "pause",
+      "decision": "TN-40",
+      "detail": [
+        "kill_switch_id"
+      ],
+      "description": {
+        "en": "Paused because a kill switch stopped sending.",
+        "tr": "Bir acil durdurma anahtarı gönderimi durdurduğu için bekletildi."
+      }
+    },
+    {
+      "id": "killswitch.paused_expired",
+      "reason": "expired",
+      "kind": "terminal",
+      "outcome": "expire",
+      "decision": "TN-43",
+      "detail": [
+        "kill_switch_id"
+      ],
+      "description": {
+        "en": "Not sent because the message expired while a kill switch held it.",
+        "tr": "Bir acil durdurma anahtarı bekletirken iletinin süresi dolduğu için gönderilmedi."
+      }
+    },
+    {
+      "id": "killswitch.paused_until",
+      "reason": "kill_switch",
+      "kind": "gate",
+      "outcome": "pause",
+      "decision": "TN-37",
+      "detail": [
+        "kill_switch_id"
+      ],
+      "description": {
+        "en": "Paused until the end time a kill switch set.",
+        "tr": "Bir acil durdurma anahtarının belirlediği bitiş zamanına kadar bekletildi."
+      }
+    },
+    {
+      "id": "killswitch.resume",
+      "reason": "kill_switch",
+      "kind": "gate",
+      "outcome": "resume",
+      "decision": "TN-40",
+      "detail": [
+        "decision_ref"
+      ],
+      "description": {
+        "en": "Released after the kill switch was lifted and the policy lattice allowed the delivery.",
+        "tr": "Acil durdurma anahtarı kaldırıldıktan ve karar kafesi izin verdikten sonra serbest bırakıldı."
+      }
+    },
+    {
+      "id": "killswitch.state_unknown",
+      "reason": "kill_switch",
+      "kind": "gate",
+      "outcome": "defer",
+      "decision": "INV-43",
+      "detail": [],
+      "description": {
+        "en": "Held because the kill switch state could not be read.",
+        "tr": "Acil durdurma anahtarlarının durumu okunamadığı için bekletildi."
+      }
+    },
+    {
+      "id": "load_shed.l0_alarm",
+      "reason": "load_shed",
+      "kind": "admission",
+      "outcome": "alarm",
+      "decision": "T-34",
+      "detail": [
+        "lane",
+        "queue_delay_ms"
+      ],
+      "description": {
+        "en": "The security lane's queue delay is above its target; nothing is held.",
+        "tr": "Güvenlik şeridinin kuyruk gecikmesi hedefin üstünde; hiçbir şey bekletilmez."
+      }
+    },
+    {
+      "id": "load_shed.l1",
+      "reason": "load_shed",
+      "kind": "admission",
+      "outcome": "defer",
+      "decision": "T-34",
+      "detail": [
+        "lane",
+        "until"
+      ],
+      "description": {
+        "en": "Postponed because lane l1 is shedding load.",
+        "tr": "l1 şeridi yük attığı için ertelendi."
+      }
+    },
+    {
+      "id": "load_shed.l2",
+      "reason": "load_shed",
+      "kind": "admission",
+      "outcome": "defer",
+      "decision": "T-34",
+      "detail": [
+        "lane",
+        "until"
+      ],
+      "description": {
+        "en": "Postponed because lane l2 is shedding load.",
+        "tr": "l2 şeridi yük attığı için ertelendi."
+      }
+    },
+    {
+      "id": "load_shed.l3",
+      "reason": "load_shed",
+      "kind": "admission",
+      "outcome": "pause",
+      "decision": "T-34",
+      "detail": [
+        "lane"
+      ],
+      "description": {
+        "en": "Paused because the marketing lane is shedding load.",
+        "tr": "Pazarlama şeridi yük attığı için bekletildi."
+      }
+    },
+    {
+      "id": "preference.category_channel",
+      "reason": "preference_off",
+      "kind": "filter",
+      "outcome": "skip",
+      "decision": "PC-12",
+      "detail": [
+        "level",
+        "category",
+        "channel"
+      ],
+      "description": {
+        "en": "Not sent because the recipient turned this category off on this channel.",
+        "tr": "Gönderilmedi, çünkü alıcı bu kategoriyi bu kanalda kapattı."
+      }
+    },
+    {
+      "id": "preference.category_default",
+      "reason": "preference_off",
+      "kind": "filter",
+      "outcome": "skip",
+      "decision": "PC-12",
+      "detail": [
+        "level",
+        "category",
+        "channel"
+      ],
+      "description": {
+        "en": "Not sent because the category is off by default on this channel and the recipient did not turn it on.",
+        "tr": "Gönderilmedi, çünkü kategori bu kanalda varsayılan olarak kapalı ve alıcı açmadı."
+      }
+    },
+    {
+      "id": "preference.channel",
+      "reason": "preference_off",
+      "kind": "filter",
+      "outcome": "skip",
+      "decision": "PC-12",
+      "detail": [
+        "level",
+        "category",
+        "channel"
+      ],
+      "description": {
+        "en": "Not sent because the recipient turned this channel off.",
+        "tr": "Gönderilmedi, çünkü alıcı bu kanalı kapattı."
+      }
+    },
+    {
+      "id": "preference.schedule",
+      "reason": "preference_off",
+      "kind": "filter",
+      "outcome": "skip",
+      "decision": "PC-12",
+      "detail": [
+        "level",
+        "category",
+        "channel"
+      ],
+      "description": {
+        "en": "Not sent because the recipient's weekly availability excludes this time.",
+        "tr": "Gönderilmedi, çünkü alıcının haftalık uygunluk programı bu zamanı kapsamıyor."
+      }
+    },
+    {
+      "id": "preference.scope_key",
+      "reason": "preference_off",
+      "kind": "filter",
+      "outcome": "skip",
+      "decision": "PC-12",
+      "detail": [
+        "level",
+        "category",
+        "channel"
+      ],
+      "description": {
+        "en": "Not sent because the recipient muted this object.",
+        "tr": "Gönderilmedi, çünkü alıcı bu nesneyi sessize aldı."
+      }
+    },
+    {
+      "id": "preference.tenant_category",
+      "reason": "preference_off",
+      "kind": "filter",
+      "outcome": "skip",
+      "decision": "PC-12",
+      "detail": [
+        "level",
+        "category",
+        "channel"
+      ],
+      "description": {
+        "en": "Not sent because the tenant turned the category off.",
+        "tr": "Gönderilmedi, çünkü kiracı kategoriyi kapattı."
+      }
+    },
+    {
+      "id": "preference.workflow",
+      "reason": "preference_off",
+      "kind": "filter",
+      "outcome": "skip",
+      "decision": "PC-12",
+      "detail": [
+        "level",
+        "category",
+        "channel"
+      ],
+      "description": {
+        "en": "Not sent because the recipient turned this kind of notification off.",
+        "tr": "Gönderilmedi, çünkü alıcı bu bildirim türünü kapattı."
+      }
+    },
+    {
+      "id": "quality.alarm",
+      "reason": "quality_alarm",
+      "kind": "terminal",
+      "outcome": "fail",
+      "decision": "T-29",
+      "detail": [
+        "channel",
+        "provider"
+      ],
+      "description": {
+        "en": "The delivery stopped because a sending quality alarm is active.",
+        "tr": "Gönderim kalitesi alarmı etkin olduğu için teslim durdu."
+      }
+    },
+    {
+      "id": "quality.complaint_rate",
+      "reason": "quality_alarm",
+      "kind": "terminal",
+      "outcome": "fail",
+      "decision": "T-29",
+      "detail": [
+        "channel",
+        "provider"
+      ],
+      "description": {
+        "en": "The delivery stopped because the complaint rate is above its threshold.",
+        "tr": "Şikâyet oranı eşiğin üstünde olduğu için teslim durdu."
+      }
+    },
+    {
+      "id": "quiet_hours.deferred",
+      "reason": "quiet_hours",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "PC-45",
+      "detail": [
+        "local_time",
+        "timezone_source"
+      ],
+      "description": {
+        "en": "Postponed until the recipient's quiet hours end.",
+        "tr": "Alıcının sessiz saati bitene kadar ertelendi."
+      }
+    },
+    {
+      "id": "rate_limit.backend_unavailable",
+      "reason": "rate_limited",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "INV-44",
+      "detail": [
+        "retry_after_ms"
+      ],
+      "description": {
+        "en": "Postponed because no rate limit backend answered; there is no unlimited path.",
+        "tr": "Hiçbir hız sınırı arka ucu yanıt vermediği için ertelendi; sınırsız yol yoktur."
+      }
+    },
+    {
+      "id": "rate_limit.cost_exceeds_burst",
+      "reason": "rate_limited",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "T-19",
+      "detail": [
+        "limit"
+      ],
+      "description": {
+        "en": "Postponed because one send costs more than the limit's burst.",
+        "tr": "Tek gönderimin maliyeti sınırın patlama payını aştığı için ertelendi."
+      }
+    },
+    {
+      "id": "rate_limit.lane_ceiling.l1",
+      "reason": "rate_limited",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "T-20",
+      "detail": [
+        "lane",
+        "retry_after_ms"
+      ],
+      "description": {
+        "en": "Postponed because the cumulative ceiling of lane l1 is reached.",
+        "tr": "l1 şeridinin toplam tavanına ulaşıldığı için ertelendi."
+      }
+    },
+    {
+      "id": "rate_limit.lane_ceiling.l2",
+      "reason": "rate_limited",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "T-20",
+      "detail": [
+        "lane",
+        "retry_after_ms"
+      ],
+      "description": {
+        "en": "Postponed because the cumulative ceiling of lane l2 is reached.",
+        "tr": "l2 şeridinin toplam tavanına ulaşıldığı için ertelendi."
+      }
+    },
+    {
+      "id": "rate_limit.lane_ceiling.l3",
+      "reason": "rate_limited",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "T-20",
+      "detail": [
+        "lane",
+        "retry_after_ms"
+      ],
+      "description": {
+        "en": "Postponed because the cumulative ceiling of lane l3 is reached.",
+        "tr": "l3 şeridinin toplam tavanına ulaşıldığı için ertelendi."
+      }
+    },
+    {
+      "id": "rate_limit.limit",
+      "reason": "rate_limited",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "T-20",
+      "detail": [
+        "limit",
+        "retry_after_ms"
+      ],
+      "description": {
+        "en": "Postponed because a rate limit is reached.",
+        "tr": "Bir hız sınırına ulaşıldığı için ertelendi."
+      }
+    },
+    {
+      "id": "rate_limit.node_filter",
+      "reason": "rate_limited",
+      "kind": "admission",
+      "outcome": "reject",
+      "decision": "API-51",
+      "detail": [
+        "tier",
+        "retry_after_s"
+      ],
+      "description": {
+        "en": "The request was refused by the node's local rate filter.",
+        "tr": "İstek düğümün yerel hız süzgeci tarafından reddedildi."
+      }
+    },
+    {
+      "id": "retry.budget_denied",
+      "reason": "budget_denied",
+      "kind": "terminal",
+      "outcome": "fail",
+      "decision": "T-27",
+      "detail": [
+        "channel"
+      ],
+      "description": {
+        "en": "The retry was not made because the channel's retry budget is spent.",
+        "tr": "Kanalın yeniden deneme bütçesi tükendiği için yeniden denenmedi."
+      }
+    },
+    {
+      "id": "retry.expires_at",
+      "reason": "expired",
+      "kind": "terminal",
+      "outcome": "expire",
+      "decision": "CH-12",
+      "detail": [
+        "expires_at"
+      ],
+      "description": {
+        "en": "Not retried because the next attempt would start after the message expires.",
+        "tr": "Sonraki deneme ileti süresi dolduktan sonra başlayacağı için yeniden denenmedi."
+      }
+    },
+    {
+      "id": "retry.max_attempts",
+      "reason": "exhausted",
+      "kind": "terminal",
+      "outcome": "fail",
+      "decision": "T-26",
+      "detail": [
+        "attempt_no"
+      ],
+      "description": {
+        "en": "The delivery failed after its last allowed attempt.",
+        "tr": "Teslim izin verilen son denemeden sonra başarısız oldu."
+      }
+    },
+    {
+      "id": "retry.permanent",
+      "reason": "failed",
+      "kind": "terminal",
+      "outcome": "fail",
+      "decision": "INV-14",
+      "detail": [
+        "failure_class"
+      ],
+      "description": {
+        "en": "The delivery failed permanently and is not retried.",
+        "tr": "Teslim kalıcı olarak başarısız oldu ve yeniden denenmez."
+      }
+    },
+    {
+      "id": "retry.policy",
+      "reason": "failed",
+      "kind": "terminal",
+      "outcome": "fail",
+      "decision": "T-26",
+      "detail": [
+        "failure_class"
+      ],
+      "description": {
+        "en": "The delivery failed with a policy failure and is not retried.",
+        "tr": "Teslim bir politika hatasıyla başarısız oldu ve yeniden denenmez."
+      }
+    },
+    {
+      "id": "retry.uncertain",
+      "reason": "unknown",
+      "kind": "terminal",
+      "outcome": "fail",
+      "decision": "T-28",
+      "detail": [
+        "attempt_no"
+      ],
+      "description": {
+        "en": "Not retried because the outcome of the last attempt is unknown.",
+        "tr": "Son denemenin sonucu bilinmediği için yeniden denenmedi."
+      }
+    },
+    {
+      "id": "schedule.deferred",
+      "reason": "schedule",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "PC-12",
+      "detail": [
+        "local_time",
+        "timezone_source"
+      ],
+      "description": {
+        "en": "Postponed to the next time in the recipient's weekly availability.",
+        "tr": "Alıcının haftalık uygunluk programındaki bir sonraki zamana ertelendi."
+      }
+    },
+    {
+      "id": "scope.mismatch",
+      "reason": "scope_mismatch",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "API-25",
+      "detail": [
+        "subtenant"
+      ],
+      "description": {
+        "en": "Not sent because the subtenant is unknown or does not match the tenant.",
+        "tr": "Alt kiracı tanımsız olduğu ya da kiracıyla eşleşmediği için gönderilmedi."
+      }
+    },
+    {
+      "id": "send_mode.off",
+      "reason": "send_mode_off",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "OP-51",
+      "detail": [
+        "level"
+      ],
+      "description": {
+        "en": "Not sent because the send mode of this tenant, channel or category is off.",
+        "tr": "Bu kiracının, kanalın ya da kategorinin gönderim modu kapalı olduğu için gönderilmedi."
+      }
+    },
+    {
+      "id": "subscriber.suspended",
+      "reason": "subscriber_suspended",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "TN-73",
+      "detail": [],
+      "description": {
+        "en": "Not sent because the recipient is suspended.",
+        "tr": "Alıcı askıya alındığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "subscriber.suspended.resume",
+      "reason": "subscriber_suspended",
+      "kind": "gate",
+      "outcome": "resume",
+      "decision": "TN-73",
+      "detail": [
+        "decision_ref"
+      ],
+      "description": {
+        "en": "Released after the recipient's suspension was lifted and the policy lattice allowed the delivery.",
+        "tr": "Alıcının askısı kalktıktan ve karar kafesi izin verdikten sonra serbest bırakıldı."
+      }
+    },
+    {
+      "id": "subtenant.suspended",
+      "reason": "tenant_suspended",
+      "kind": "gate",
+      "outcome": "pause",
+      "decision": "TN-10",
+      "detail": [
+        "subtenant"
+      ],
+      "description": {
+        "en": "Paused because the subtenant is suspended.",
+        "tr": "Alt kiracı askıya alındığı için bekletildi."
+      }
+    },
+    {
+      "id": "subtenant.suspended.resume",
+      "reason": "tenant_suspended",
+      "kind": "gate",
+      "outcome": "resume",
+      "decision": "TN-10",
+      "detail": [
+        "decision_ref"
+      ],
+      "description": {
+        "en": "Released after the subtenant's suspension was lifted and the policy lattice allowed the delivery.",
+        "tr": "Alt kiracının askısı kalktıktan ve karar kafesi izin verdikten sonra serbest bırakıldı."
+      }
+    },
+    {
+      "id": "suppression.address",
+      "reason": "suppressed_address",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "PC-59",
+      "detail": [
+        "suppression_id",
+        "suppression_reason"
+      ],
+      "description": {
+        "en": "Not sent because the address is on the suppression list.",
+        "tr": "Adres bastırma listesinde olduğu için gönderilmedi."
+      }
+    },
+    {
+      "id": "template.archived",
+      "reason": "template_unavailable",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "TP-51",
+      "detail": [
+        "template"
+      ],
+      "description": {
+        "en": "The notification was not sent because the step's template is archived.",
+        "tr": "Adımın şablonu arşivlendiği için bildirim gönderilmedi."
+      }
+    },
+    {
+      "id": "template.locale_missing",
+      "reason": "template_locale_missing",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "TP-26",
+      "detail": [
+        "template",
+        "locale"
+      ],
+      "description": {
+        "en": "The notification was not sent because the template has no variant in any language of the recipient's language chain.",
+        "tr": "Şablonun alıcının dil zincirindeki hiçbir dilde varyantı olmadığı için bildirim gönderilmedi."
+      }
+    },
+    {
+      "id": "template.not_published",
+      "reason": "template_unavailable",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "TP-51",
+      "detail": [
+        "template"
+      ],
+      "description": {
+        "en": "The notification was not sent because the step's template has no live version.",
+        "tr": "Adımın şablonunun canlı sürümü olmadığı için bildirim gönderilmedi."
+      }
+    },
+    {
+      "id": "template.variant_missing",
+      "reason": "no_channel_variant",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "TP-11",
+      "detail": [
+        "template",
+        "channel"
+      ],
+      "description": {
+        "en": "The channel was skipped because the template has no variant for it; the route moved on to the next channel.",
+        "tr": "Şablonun bu kanal için varyantı olmadığı için kanal atlandı; rota sıradaki kanala geçti."
+      }
+    },
+    {
+      "id": "tenant.suspended",
+      "reason": "tenant_suspended",
+      "kind": "gate",
+      "outcome": "pause",
+      "decision": "TN-10",
+      "detail": [],
+      "description": {
+        "en": "Paused because the tenant is suspended.",
+        "tr": "Kiracı askıya alındığı için bekletildi."
+      }
+    },
+    {
+      "id": "tenant.suspended.resume",
+      "reason": "tenant_suspended",
+      "kind": "gate",
+      "outcome": "resume",
+      "decision": "TN-10",
+      "detail": [
+        "decision_ref"
+      ],
+      "description": {
+        "en": "Released after the tenant's suspension was lifted and the policy lattice allowed the delivery.",
+        "tr": "Kiracının askısı kalktıktan ve karar kafesi izin verdikten sonra serbest bırakıldı."
+      }
+    },
+    {
+      "id": "tenant_timezone_window.deferred",
+      "reason": "tenant_timezone_window",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "PC-48",
+      "detail": [
+        "local_time"
+      ],
+      "description": {
+        "en": "Postponed to 10:00-18:00 in the tenant's time zone because the recipient's own time zone is unknown.",
+        "tr": "Alıcının saat dilimi bilinmediği için kiracı saat diliminde 10:00-18:00 aralığına ertelendi."
+      }
+    },
+    {
+      "id": "waitpoint.closed",
+      "reason": "waitpoint_unmatched",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "AG-11",
+      "detail": [
+        "waitpoint_id"
+      ],
+      "description": {
+        "en": "The event was kept unmatched because the matched waitpoint was already closed.",
+        "tr": "Olay eşleşmeden kaydedildi, çünkü eşleşen bekleme noktası zaten kapanmıştı."
+      }
+    },
+    {
+      "id": "waitpoint.condition_false",
+      "reason": "waitpoint_unmatched",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "AG-11",
+      "detail": [
+        "waitpoint_id"
+      ],
+      "description": {
+        "en": "The event was kept unmatched because the waitpoint's condition was false for the event.",
+        "tr": "Olay eşleşmeden kaydedildi, çünkü bekleme noktasının koşulu olay için yanlış çıktı."
+      }
+    },
+    {
+      "id": "waitpoint.no_match",
+      "reason": "waitpoint_unmatched",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "AG-11",
+      "detail": [
+        "waitpoint_id"
+      ],
+      "description": {
+        "en": "The event was kept unmatched because no open waitpoint matched the event.",
+        "tr": "Olay eşleşmeden kaydedildi, çünkü olay hiçbir açık bekleme noktasıyla eşleşmedi."
+      }
+    }
+  ]
+}

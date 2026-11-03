@@ -172,5 +172,11 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "DS-47 (1), API-58: committed relay_fn cancellation functions are replaced as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261112000000_create_template_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "INV-6, TP-31, TP-48: the no-truncate triggers of the template, layout and partial tables and of the render plan, and the append-only triggers of the render snapshot, reject TRUNCATE"
   }
 ]

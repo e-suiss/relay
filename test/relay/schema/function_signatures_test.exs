@@ -181,7 +181,43 @@ defmodule Relay.Schema.FunctionSignaturesTest do
       ~w(recorded duplicate stale evidence_required evidence_key_invalid recipient_not_found subtenant_not_found),
     "relay_fn.suppression_add" => ~w(added exists invalid_expiry key_not_found),
     "relay_fn.suppression_lift" =>
-      ~w(lifted already_lifted not_found lift_forbidden step_up_required)
+      ~w(lifted already_lifted not_found lift_forbidden step_up_required),
+    "relay_fn.template_create" =>
+      ~w(created key_conflict subtenant_not_found category_not_found category_archived layout_not_found partial_not_found tenant_inactive),
+    "relay_fn.template_update" =>
+      ~w(updated unchanged not_found archived protected version_conflict category_not_found category_archived class_locked),
+    "relay_fn.template_draft_put" =>
+      ~w(created replaced unchanged not_found archived protected version_conflict layout_not_found partial_not_found),
+    "relay_fn.template_publish" =>
+      ~w(published not_found archived protected version_conflict no_draft draft_changed gate_failed warnings_unaccepted sensitivity_missing translation_unapproved layout_not_published partial_not_published duplicate),
+    "relay_fn.template_rollback" =>
+      ~w(rolled_back unchanged version_not_found version_archived not_found archived protected version_conflict),
+    "relay_fn.template_archive" =>
+      ~w(archived already_archived not_found protected version_conflict),
+    "relay_fn.template_version_archive" =>
+      ~w(archived already_archived live_version version_not_found not_found protected),
+    "relay_fn.layout_create" => ~w(created key_conflict subtenant_not_found tenant_inactive),
+    "relay_fn.layout_draft_put" =>
+      ~w(created replaced unchanged not_found archived version_conflict),
+    "relay_fn.layout_publish" =>
+      ~w(published no_draft draft_changed gate_failed warnings_unaccepted duplicate not_found archived version_conflict),
+    "relay_fn.layout_rollback" =>
+      ~w(rolled_back unchanged version_not_found version_archived not_found archived version_conflict),
+    "relay_fn.layout_archive" => ~w(archived already_archived not_found version_conflict in_use),
+    "relay_fn.partial_create" => ~w(created key_conflict subtenant_not_found tenant_inactive),
+    "relay_fn.partial_draft_put" =>
+      ~w(created replaced unchanged not_found archived version_conflict),
+    "relay_fn.partial_publish" =>
+      ~w(published no_draft draft_changed gate_failed warnings_unaccepted duplicate not_found archived version_conflict),
+    "relay_fn.partial_rollback" =>
+      ~w(rolled_back unchanged version_not_found version_archived not_found archived version_conflict),
+    "relay_fn.partial_archive" => ~w(archived already_archived not_found version_conflict in_use),
+    "relay_fn.delivery_plan_pin" =>
+      ~w(pinned exists delivery_not_found version_not_published layout_not_published partial_not_published),
+    "relay_fn.delivery_render_policy" => ~w(ok not_found),
+    "relay_fn.delivery_render_record" =>
+      ~w(recorded matched digest_mismatch content_not_allowed content_required key_invalid plan_not_found delivery_not_found already_terminal),
+    "relay_fn.delivery_render_fail" => ~w(failed already_terminal not_found)
   }
 
   defp functions do

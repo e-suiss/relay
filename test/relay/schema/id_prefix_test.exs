@@ -55,6 +55,18 @@ defmodule Relay.Schema.IdPrefixTest do
           do: assert(ExternalId.table(prefix) == {:ok, table})
     end
 
+    test "TP-48: the stage five record tables have their prefixes" do
+      for {prefix, table} <- [
+            {"tpl", "templates"},
+            {"tpv", "template_versions"},
+            {"lay", "layouts"},
+            {"lyv", "layout_versions"},
+            {"prt", "partials"},
+            {"ptv", "partial_versions"}
+          ],
+          do: assert(ExternalId.table(prefix) == {:ok, table})
+    end
+
     test "API-72: an identifier is the prefix and 26 lowercase Crockford base32 characters" do
       text = ExternalId.encode("ntf", id())
       assert text =~ ~r/^ntf_[0-9abcdefghjkmnpqrstvwxyz]{26}$/

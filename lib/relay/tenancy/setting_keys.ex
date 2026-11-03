@@ -1,6 +1,6 @@
 defmodule Relay.Tenancy.SettingKeys do
   @moduledoc """
-  The catalog of setting keys (`relay.settings.key`). A setting write names a key from the catalog and a value that passes the key's check; `nil` clears the setting at that level. Stage 1 holds the keys the setting resolver falls back to the tenant defaults for: `default_timezone` and `default_locale`, checked and canonicalised like the tenant defaults (`Relay.Tenancy.Defaults`). `fairness.weight.l2` and `fairness.weight.l3` hold the tenant's DRR weight in a bulk lane, an integer from 1 to 100 (1 when unset); only the tenant-level value counts. `api.rate.burst` and `api.rate.sustained` hold the tenant's API rate limit tiers (API-50, API-77), an object with a positive integer `weight` and a positive integer `window_seconds` of at most 3600; an unset tier takes the contract default. `api.mtls_required` (`true` or `false`) makes the tenant's server API accept only certificate-bound tokens (RFC 8705; API-41, API-48). `send_mode`, `send_mode.channel.<channel>` and `send_mode.category.<category>.channel.<channel>` hold the tenant's send modes (OP-51): `live`, `shadow`, `dry_run` or `off`.
+  The catalog of setting keys (`relay.settings.key`). A setting write names a key from the catalog and a value that passes the key's check; `nil` clears the setting at that level. Stage 1 holds the keys the setting resolver falls back to the tenant defaults for: `default_timezone` and `default_locale`, checked and canonicalised like the tenant defaults (`Relay.Tenancy.Defaults`). `fairness.weight.l2` and `fairness.weight.l3` hold the tenant's DRR weight in a bulk lane, an integer from 1 to 100 (1 when unset); only the tenant-level value counts. `api.rate.burst` and `api.rate.sustained` hold the tenant's API rate limit tiers (API-50, API-77), an object with a positive integer `weight` and a positive integer `window_seconds` of at most 3600; an unset tier takes the contract default. `api.mtls_required` (`true` or `false`) makes the tenant's server API accept only certificate-bound tokens (RFC 8705; API-41, API-48). `send_mode`, `send_mode.channel.<channel>` and `send_mode.category.<category>.channel.<channel>` hold the tenant's send modes (OP-51): `live`, `shadow`, `dry_run` or `off`. The `brand.*` keys hold the brand fields templates render (TP-35, TP-48): `brand.logo_url` (an `https` URL of at most 2048 characters), `brand.primary_color` and `brand.secondary_color` (`#RRGGBB`), `brand.sender_name` (at most 100 characters), `brand.footer` (at most 2000), `brand.legal_name` (at most 200), `brand.mersis` (16 digits), `brand.contact` and `brand.postal_address` (at most 500); a sub-tenant inherits every brand field it does not set (TP-36).
   """
 
   alias Relay.Tenancy.Defaults
@@ -12,7 +12,16 @@ defmodule Relay.Tenancy.SettingKeys do
     "fairness.weight.l3" => :fairness_weight,
     "api.rate.burst" => :api_rate,
     "api.rate.sustained" => :api_rate,
-    "api.mtls_required" => :boolean
+    "api.mtls_required" => :boolean,
+    "brand.logo_url" => {:brand, :url, 2048},
+    "brand.primary_color" => {:brand, :color, 7},
+    "brand.secondary_color" => {:brand, :color, 7},
+    "brand.sender_name" => {:brand, :text, 100},
+    "brand.footer" => {:brand, :text, 2000},
+    "brand.legal_name" => {:brand, :text, 200},
+    "brand.mersis" => {:brand, :mersis, 16},
+    "brand.contact" => {:brand, :text, 500},
+    "brand.postal_address" => {:brand, :text, 500}
   }
 
   @send_modes ~w(live shadow dry_run off)
@@ -28,6 +37,7 @@ defmodule Relay.Tenancy.SettingKeys do
   @spec cast(term(), term()) :: {:ok, term()} | {:error, Relay.Error.t()}
   def cast(key, value) do
     case Map.fetch(@catalog, key) do
+      {:ok, {:brand, kind, max}} when not is_nil(value) -> brand(kind, max, value)
       :error when is_binary(key) -> send_mode(key, value)
       found -> catalog(found, key, value)
     end
@@ -77,6 +87,39 @@ defmodule Relay.Tenancy.SettingKeys do
 
   defp check(:boolean, _value),
     do: {:error, Relay.Error.new(:invalid_setting, "the setting is true or false")}
+
+  # TP-35
+  # TP-48
+  defp brand(kind, max, value) when is_binary(value) do
+    if String.valid?(value) and String.length(value) in 1..max and brand?(kind, value),
+      do: {:ok, value},
+      else: brand_error(kind)
+  end
+
+  defp brand(kind, _max, _value), do: brand_error(kind)
+
+  defp brand?(:url, value) do
+    case URI.parse(value) do
+      %URI{scheme: "https", host: host} when is_binary(host) and host != "" -> true
+      _other -> false
+    end
+  end
+
+  defp brand?(:color, value), do: Regex.match?(~r/\A#[0-9a-fA-F]{6}\z/, value)
+  defp brand?(:mersis, value), do: Regex.match?(~r/\A[0-9]{16}\z/, value)
+  defp brand?(:text, value), do: not Regex.match?(~r/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/, value)
+
+  defp brand_error(kind) do
+    message =
+      case kind do
+        :url -> "a brand URL is an https URL"
+        :color -> "a brand color is #RRGGBB"
+        :mersis -> "a MERSIS number is 16 digits"
+        :text -> "a brand text is a non-empty string within its length"
+      end
+
+    {:error, Relay.Error.new(:invalid_setting, message)}
+  end
 
   # API-50
   # API-77 (4)

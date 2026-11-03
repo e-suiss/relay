@@ -1,0 +1,27 @@
+{
+  "source_ref": "TP-54; TP-12",
+  "phrases": [
+    {"phrase": "indirim kodu", "locale": "tr"},
+    {"phrase": "kupon kodu", "locale": "tr"},
+    {"phrase": "promosyon kodu", "locale": "tr"},
+    {"phrase": "kampanyayı kaçırma", "locale": "tr"},
+    {"phrase": "fırsatı kaçırma", "locale": "tr"},
+    {"phrase": "hemen satın al", "locale": "tr"},
+    {"phrase": "şimdi satın al", "locale": "tr"},
+    {"phrase": "sepete ekle", "locale": "tr"},
+    {"phrase": "son gün", "locale": "tr"},
+    {"phrase": "sınırlı süre", "locale": "tr"},
+    {"phrase": "stoklarla sınırlı", "locale": "tr"},
+    {"phrase": "promo code", "locale": "en"},
+    {"phrase": "coupon code", "locale": "en"},
+    {"phrase": "discount code", "locale": "en"},
+    {"phrase": "use code", "locale": "en"},
+    {"phrase": "shop now", "locale": "en"},
+    {"phrase": "buy now", "locale": "en"},
+    {"phrase": "add to cart", "locale": "en"},
+    {"phrase": "limited time", "locale": "en"},
+    {"phrase": "last chance", "locale": "en"},
+    {"phrase": "don't miss", "locale": "en"},
+    {"phrase": "while supplies last", "locale": "en"}
+  ]
+}

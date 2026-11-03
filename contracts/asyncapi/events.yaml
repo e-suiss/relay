@@ -237,6 +237,40 @@ channels:
         "$ref": "#/components/messages/audit.suppression.added"
       audit.suppression.lifted:
         "$ref": "#/components/messages/audit.suppression.lifted"
+      audit.template.created:
+        "$ref": "#/components/messages/audit.template.created"
+      audit.template.updated:
+        "$ref": "#/components/messages/audit.template.updated"
+      audit.template.drafted:
+        "$ref": "#/components/messages/audit.template.drafted"
+      audit.template.published:
+        "$ref": "#/components/messages/audit.template.published"
+      audit.template.rolled_back:
+        "$ref": "#/components/messages/audit.template.rolled_back"
+      audit.template.archived:
+        "$ref": "#/components/messages/audit.template.archived"
+      audit.template.version_archived:
+        "$ref": "#/components/messages/audit.template.version_archived"
+      audit.layout.created:
+        "$ref": "#/components/messages/audit.layout.created"
+      audit.layout.drafted:
+        "$ref": "#/components/messages/audit.layout.drafted"
+      audit.layout.published:
+        "$ref": "#/components/messages/audit.layout.published"
+      audit.layout.rolled_back:
+        "$ref": "#/components/messages/audit.layout.rolled_back"
+      audit.layout.archived:
+        "$ref": "#/components/messages/audit.layout.archived"
+      audit.partial.created:
+        "$ref": "#/components/messages/audit.partial.created"
+      audit.partial.drafted:
+        "$ref": "#/components/messages/audit.partial.drafted"
+      audit.partial.published:
+        "$ref": "#/components/messages/audit.partial.published"
+      audit.partial.rolled_back:
+        "$ref": "#/components/messages/audit.partial.rolled_back"
+      audit.partial.archived:
+        "$ref": "#/components/messages/audit.partial.archived"
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
@@ -399,6 +433,23 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.category_subtenant_setting.changed"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.added"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.lifted"
+      - "$ref": "#/channels/auditLog/messages/audit.template.created"
+      - "$ref": "#/channels/auditLog/messages/audit.template.updated"
+      - "$ref": "#/channels/auditLog/messages/audit.template.drafted"
+      - "$ref": "#/channels/auditLog/messages/audit.template.published"
+      - "$ref": "#/channels/auditLog/messages/audit.template.rolled_back"
+      - "$ref": "#/channels/auditLog/messages/audit.template.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.template.version_archived"
+      - "$ref": "#/channels/auditLog/messages/audit.layout.created"
+      - "$ref": "#/channels/auditLog/messages/audit.layout.drafted"
+      - "$ref": "#/channels/auditLog/messages/audit.layout.published"
+      - "$ref": "#/channels/auditLog/messages/audit.layout.rolled_back"
+      - "$ref": "#/channels/auditLog/messages/audit.layout.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.partial.created"
+      - "$ref": "#/channels/auditLog/messages/audit.partial.drafted"
+      - "$ref": "#/channels/auditLog/messages/audit.partial.published"
+      - "$ref": "#/channels/auditLog/messages/audit.partial.rolled_back"
+      - "$ref": "#/channels/auditLog/messages/audit.partial.archived"
   receiveAccessInbound:
     action: receive
     channel:
@@ -661,6 +712,38 @@ components:
                         - render_timeout
                         - output_too_large
                         - schema_violation
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    workflow:
+                      type: object
+                      required:
+                        - key
+                        - version
+                      properties:
+                        key:
+                          "$ref": "../openapi/components/schemas.yaml#/WorkflowKey"
+                        version:
+                          type: integer
+                          minimum: 1
+                      additionalProperties: false
+                    template:
+                      type: object
+                      description: Template and version the delivery was pinned to.
+                      required:
+                        - key
+                        - version
+                      properties:
+                        key:
+                          "$ref": "../openapi/components/schemas.yaml#/TemplateKey"
+                        version:
+                          type: integer
+                          minimum: 1
+                      additionalProperties: false
+                    tenant:
+                      oneOf:
+                        - type: string
+                          pattern: "^stn_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                        - type: "null"
                     metadata:
                       "$ref": "../openapi/components/schemas.yaml#/Metadata"
                   additionalProperties: false
@@ -3786,6 +3869,312 @@ components:
       x-relay-stage: 4
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.template.created:
+      name: template.created
+      title: template.created
+      summary: "A template was created with its first draft, owner and category."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: template
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.template.updated:
+      name: template.updated
+      title: template.updated
+      summary: "A template's name or category changed; its class is fixed after the first publication."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: template
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.template.drafted:
+      name: template.drafted
+      title: template.drafted
+      summary: "A template draft was written."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: template
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.template.published:
+      name: template.published
+      title: template.published
+      summary: "A template draft passed the publication gate and became the live version; the reason carries the version, checksum and previous version."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: template
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.template.rolled_back:
+      name: template.rolled_back
+      title: template.rolled_back
+      summary: "A template's live pointer moved back to an earlier published version; the reason carries the version, checksum and previous version."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: template
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.template.archived:
+      name: template.archived
+      title: template.archived
+      summary: "A template was archived."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: template
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.template.version_archived:
+      name: template.version_archived
+      title: template.version_archived
+      summary: "A template version or draft was archived."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: template
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.layout.created:
+      name: layout.created
+      title: layout.created
+      summary: "A layout was created with its first draft."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: layout
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.layout.drafted:
+      name: layout.drafted
+      title: layout.drafted
+      summary: "A layout draft or name was written."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: layout
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.layout.published:
+      name: layout.published
+      title: layout.published
+      summary: "A layout draft became the live version; the reason carries the version, checksum and previous version."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: layout
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.layout.rolled_back:
+      name: layout.rolled_back
+      title: layout.rolled_back
+      summary: "A layout's live pointer moved back to an earlier published version."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: layout
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.layout.archived:
+      name: layout.archived
+      title: layout.archived
+      summary: "A layout was archived."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: layout
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.partial.created:
+      name: partial.created
+      title: partial.created
+      summary: "A partial was created with its first draft."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: partial
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.partial.drafted:
+      name: partial.drafted
+      title: partial.drafted
+      summary: "A partial draft or name was written."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: partial
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.partial.published:
+      name: partial.published
+      title: partial.published
+      summary: "A partial draft became the live version; the reason carries the version, checksum and previous version."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: partial
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.partial.rolled_back:
+      name: partial.rolled_back
+      title: partial.rolled_back
+      summary: "A partial's live pointer moved back to an earlier published version."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: partial
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.partial.archived:
+      name: partial.archived
+      title: partial.archived
+      summary: "A partial was archived."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: partial
+      x-relay-surface: audit
+      x-relay-stage: 5
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     access.consent.updated:
       name: consent.updated
       title: consent.updated
@@ -3957,6 +4346,11 @@ x-relay-event-names:
   - killswitch.bulk_cancelled
   - killswitch.engaged
   - killswitch.released
+  - layout.archived
+  - layout.created
+  - layout.drafted
+  - layout.published
+  - layout.rolled_back
   - legal_hold.placed
   - legal_hold.released
   - mailbox.abuse_reported
@@ -3969,6 +4363,11 @@ x-relay-event-names:
   - operator_session.revoked
   - organization.created
   - organization.updated
+  - partial.archived
+  - partial.created
+  - partial.drafted
+  - partial.published
+  - partial.rolled_back
   - partition_policy.updated
   - pii.revealed
   - provider.unknown_code
@@ -3994,6 +4393,13 @@ x-relay-event-names:
   - support_delegation.revoked
   - suppression.added
   - suppression.lifted
+  - template.archived
+  - template.created
+  - template.drafted
+  - template.published
+  - template.rolled_back
+  - template.updated
+  - template.version_archived
   - tenant.closed
   - tenant.created
   - tenant.defaults_updated

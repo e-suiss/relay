@@ -5,6 +5,7 @@ defmodule Relay.Templates do
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
+  alias Relay.Templates.CellRender
   alias Relay.Templates.Cldr
   alias Relay.Templates.Context
   alias Relay.Templates.Engine
@@ -12,7 +13,6 @@ defmodule Relay.Templates do
   alias Relay.Templates.Locale
   alias Relay.Templates.Mjml
   alias Relay.Templates.PublishGate
-  alias Relay.Templates.Render
   alias Relay.Templates.Samples
   alias Relay.Templates.Sandbox
   alias Relay.Templates.TermSets
@@ -112,30 +112,30 @@ defmodule Relay.Templates do
 
   # TP-38
   # API-60
-  @doc "Parses and renders one cell for a channel; see `Relay.Templates.Render.parse/3` and `Relay.Templates.Render.cell/4`. Returns the parse findings when a field does not parse."
-  @spec render_cell(Context.channel(), map(), keyword()) ::
-          {:ok, Render.result()}
-          | {:error, Render.failure(), String.t() | nil}
+  @doc "Parses and renders one cell for a channel; see `Relay.Templates.CellRender.parse/3` and `Relay.Templates.CellRender.cell/4`. Returns the parse findings when a field does not parse."
+  @spec render_preview(Context.channel(), map(), keyword()) ::
+          {:ok, CellRender.result()}
+          | {:error, CellRender.failure(), String.t() | nil}
           | {:parse_error, [{String.t(), [Engine.finding()]}]}
-  def render_cell(channel, cell, opts) do
-    case Render.parse(channel, cell, Keyword.take(opts, [:allow_raw, :html])) do
-      {parsed, []} -> Render.cell(channel, cell, parsed, opts)
+  def render_preview(channel, cell, opts) do
+    case CellRender.parse(channel, cell, Keyword.take(opts, [:allow_raw, :html])) do
+      {parsed, []} -> CellRender.cell(channel, cell, parsed, opts)
       {_parsed, errors} -> {:parse_error, errors}
     end
   end
 
   # TP-9
-  @doc "The channel of a cell key of the definition, or `nil`; see `Relay.Templates.Render.channel/1`."
+  @doc "The channel of a cell key of the definition, or `nil`; see `Relay.Templates.CellRender.channel/1`."
   @spec channel(String.t()) :: Context.channel() | nil
-  defdelegate channel(key), to: Render
+  defdelegate channel(key), to: CellRender
 
-  @doc "The SMS encoding policy of a definition's `sms_encoding`; see `Relay.Templates.Render.policy/1`."
+  @doc "The SMS encoding policy of a definition's `sms_encoding`; see `Relay.Templates.CellRender.policy/1`."
   @spec sms_policy(String.t() | nil) :: atom()
-  def sms_policy(name), do: Render.policy(name)
+  def sms_policy(name), do: CellRender.policy(name)
 
-  @doc "The sensitivity class of a definition's `sensitivity`; see `Relay.Templates.Render.sensitivity/1`."
+  @doc "The sensitivity class of a definition's `sensitivity`; see `Relay.Templates.CellRender.sensitivity/1`."
   @spec sensitivity(String.t() | nil) :: :public | :personal | :sensitive | nil
-  defdelegate sensitivity(name), to: Render
+  defdelegate sensitivity(name), to: CellRender
 
   # TP-14
   @doc "The criticality declarations of an event schema; see `Relay.Templates.Variables.criticality/1`."
@@ -168,4 +168,17 @@ defmodule Relay.Templates do
   @spec term_entries(String.t(), map() | nil) :: [map()]
   def term_entries(name, nil), do: name |> TermSets.bundled() |> TermSets.entries()
   def term_entries(_name, content), do: TermSets.entries(content)
+
+  # TP-49
+  # TP-50
+  @doc "Renders one pinned template cell for its channel on the send path; see `Relay.Templates.Render.run/1`."
+  @spec render_cell(Relay.Templates.Render.input()) ::
+          {:ok, Relay.Templates.Render.rendered()}
+          | {:error, Relay.Templates.Render.reason(), map()}
+  def render_cell(input), do: Relay.Templates.Render.run(input)
+
+  # TP-26
+  @doc "The truncation chain of a locale; see `Relay.Templates.Locale.chain/1`."
+  @spec locale_chain(String.t()) :: [String.t()]
+  def locale_chain(locale), do: Locale.chain(locale)
 end

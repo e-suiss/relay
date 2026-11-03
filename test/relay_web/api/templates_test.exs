@@ -90,7 +90,8 @@ defmodule RelayWeb.Api.TemplatesTest do
   end
 
   describe "API-69 TP-48 template resources" do
-    test "API-69, TP-48: create answers 201 with an ETag and its draft; reads and lists it", ctx do
+    test "API-69, TP-48: create answers 201 with an ETag and its draft; reads and lists it",
+         ctx do
       conn = create(ctx.token, @key, sms("Kargoda"))
       body = F.body(conn, 201)
 
@@ -158,7 +159,8 @@ defmodule RelayWeb.Api.TemplatesTest do
       assert finding["locale"] == "tr"
     end
 
-    test "TP-32, TP-15: warnings publish only when accepted and are recorded on the version", ctx do
+    test "TP-32, TP-15: warnings publish only when accepted and are recorded on the version",
+         ctx do
       workflow!(ctx)
       F.body(create(ctx.token, @key, sms("Merhaba {{ order }}")), 201)
 
@@ -226,7 +228,8 @@ defmodule RelayWeb.Api.TemplatesTest do
       assert code(promote(ctx.token, @key, 1), 422) == "template_gate_failed"
     end
 
-    test "TP-8, TP-60: publication keeps the compiled MJML in the cell; views leave it out", ctx do
+    test "TP-8, TP-60: publication keeps the compiled MJML in the cell; views leave it out",
+         ctx do
       mjml =
         "<mjml><mj-body><mj-section><mj-column><mj-text>Merhaba</mj-text>" <>
           "</mj-column></mj-section></mj-body></mjml>"

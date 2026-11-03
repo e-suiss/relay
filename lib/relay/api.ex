@@ -19,7 +19,8 @@ defmodule Relay.Api do
       Relay.Policy.Live,
       Relay.Templates,
       Relay.TemplateStore,
-      Relay.Datasets
+      Relay.Datasets,
+      Relay.Templates.Live
     ],
     exports: [
       Contract,

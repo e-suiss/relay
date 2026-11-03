@@ -536,11 +536,15 @@ defmodule Relay.TemplateStore do
 
         %{direction: :after, sort_ts_us: ts, id: id} ->
           n = length(params)
-          {" AND (#{as}.#{sort}, #{as}.id) < ($#{n + 1}, $#{n + 2})", "DESC", params ++ [at(ts), id]}
+
+          {" AND (#{as}.#{sort}, #{as}.id) < ($#{n + 1}, $#{n + 2})", "DESC",
+           params ++ [at(ts), id]}
 
         %{direction: :before, sort_ts_us: ts, id: id} ->
           n = length(params)
-          {" AND (#{as}.#{sort}, #{as}.id) > ($#{n + 1}, $#{n + 2})", "ASC", params ++ [at(ts), id]}
+
+          {" AND (#{as}.#{sort}, #{as}.id) > ($#{n + 1}, $#{n + 2})", "ASC",
+           params ++ [at(ts), id]}
       end
 
     sql = """

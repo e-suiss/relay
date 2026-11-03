@@ -252,7 +252,7 @@ defmodule Relay.Api.Previews do
     case compiled(channel, cell) do
       {:ok, html} ->
         channel
-        |> Relay.Templates.render_cell(cell, options(read, resolution.locale, data, html))
+        |> Relay.Templates.render_preview(cell, options(read, resolution.locale, data, html))
         |> answer(base)
 
       {:error, error} ->

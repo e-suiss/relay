@@ -7,6 +7,7 @@ defmodule Relay.Templates.PublishGate do
   Warnings: the variable sets of the locales of one channel differ; worst-case lengths over the channel limits (SMS segments and characters that force UCS-2, WhatsApp parameters, email size and subject); the accessibility and content lint (TP-34). The worst case renders the automatic boundary samples of the schemas (TP-38); SMS is measured on the `max` and `turkish` samples, since emoji in values are flagged at send time (TP-19).
   """
 
+  alias Relay.Templates.CellRender
   alias Relay.Templates.Cldr
   alias Relay.Templates.Engine
   alias Relay.Templates.Filters
@@ -16,7 +17,6 @@ defmodule Relay.Templates.PublishGate do
   alias Relay.Templates.Lint.Promotion
   alias Relay.Templates.Lint.Sensitive
   alias Relay.Templates.Locale
-  alias Relay.Templates.Render
   alias Relay.Templates.Samples
   alias Relay.Templates.Sms.Content
   alias Relay.Templates.Variables
@@ -108,7 +108,7 @@ defmodule Relay.Templates.PublishGate do
   @spec cells(map()) :: [{String.t(), atom(), String.t(), map()}]
   def cells(definition) do
     for {key, by_locale} <- Enum.sort(Map.get(definition, "cells") || %{}),
-        channel = Render.channel(key),
+        channel = CellRender.channel(key),
         is_map(by_locale),
         {locale, cell} <- Enum.sort(by_locale),
         is_map(cell),
@@ -218,7 +218,7 @@ defmodule Relay.Templates.PublishGate do
   defp check_cell({key, channel, locale, cell}, ctx) do
     markup = markup(channel, locale, cell, ctx.compiled)
     options = [allow_raw: ctx.definition["allow_raw"] == true, html: markup]
-    {parsed, errors} = Render.parse(channel, cell, options)
+    {parsed, errors} = CellRender.parse(channel, cell, options)
     templates = Map.new(parsed, fn {pointer, {_part, template}} -> {pointer, template} end)
     reads = templates |> Map.values() |> Enum.flat_map(&Variables.reads/1)
     texts = templates |> Map.values() |> Enum.flat_map(&Walk.texts/1)
@@ -382,15 +382,15 @@ defmodule Relay.Templates.PublishGate do
   defp sample?(_channel, _name), do: true
 
   defp render_sample(where, cell, parsed, data, schema, ctx) do
-    Render.cell(where.channel, cell, parsed,
+    CellRender.cell(where.channel, cell, parsed,
       locale: where.locale,
       time_zone: "Etc/UTC",
       data: partial_data(data, ctx.partials),
       brand: Map.get(ctx.input, :brand, %{}),
       helpers: sample_helpers(),
       variables: Variables.criticality(schema),
-      sensitivity: Render.sensitivity(ctx.definition["sensitivity"]),
-      sms_policy: Render.policy(ctx.definition["sms_encoding"]),
+      sensitivity: CellRender.sensitivity(ctx.definition["sensitivity"]),
+      sms_policy: CellRender.policy(ctx.definition["sms_encoding"]),
       message_class: ctx.input.message_class,
       limits: @worst_limits
     )
@@ -464,7 +464,7 @@ defmodule Relay.Templates.PublishGate do
   # TP-46
   defp sensitivity_findings(results, definition, input) do
     class =
-      if Render.sensitivity(definition["sensitivity"]),
+      if CellRender.sensitivity(definition["sensitivity"]),
         do: [],
         else: [Finding.new(:sensitivity_missing, :hard)]
 
@@ -514,7 +514,7 @@ defmodule Relay.Templates.PublishGate do
     definition
     |> cells()
     |> Enum.map(fn {_key, channel, locale, cell} ->
-      {parsed, _errors} = Render.parse(channel, cell, allow_raw: allow_raw)
+      {parsed, _errors} = CellRender.parse(channel, cell, allow_raw: allow_raw)
       templates = Enum.map(parsed, fn {_pointer, {_part, template}} -> template end)
       paths = for template <- templates, read <- Variables.reads(template), do: read.path
       {locale, Enum.flat_map(templates, &Walk.texts/1), paths}

@@ -59,7 +59,8 @@ defmodule RelayWeb.Api.TemplateAssetsTest do
       assert code(missing, 404) == "layout_version_not_found"
     end
 
-    test "TP-58, TP-8: default icons and MJML that does not compile refuse the publication", ctx do
+    test "TP-58, TP-8: default icons and MJML that does not compile refuse the publication",
+         ctx do
       social =
         ~s(<mjml><mj-body><mj-section><mj-column><mj-social>) <>
           ~s(<mj-social-element name="github" href="https://e.x">G</mj-social-element>) <>
@@ -109,7 +110,8 @@ defmodule RelayWeb.Api.TemplateAssetsTest do
   end
 
   describe "TP-35 partials" do
-    test "TP-35, TP-59: a partial publishes with complete icu forms and is refused without", ctx do
+    test "TP-35, TP-59: a partial publishes with complete icu forms and is refused without",
+         ctx do
       ok = %{"default_locale" => "tr", "bodies" => %{"tr" => "Merhaba", "en" => "Hello"}}
       body = F.body(create(ctx.token, "partials", "greeting", ok), 201)
       assert %{"object" => "partial", "draft" => ^ok} = body

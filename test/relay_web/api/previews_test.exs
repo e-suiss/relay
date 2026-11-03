@@ -48,7 +48,8 @@ defmodule RelayWeb.Api.PreviewsTest do
   defp sms(body), do: %{"sms" => %{"tr" => %{"body" => body}}}
 
   describe "API-60 TP-38 template preview" do
-    test "API-60, TP-53, TP-39: an SMS render carries its encoding, segments and characters", ctx do
+    test "API-60, TP-53, TP-39: an SMS render carries its encoding, segments and characters",
+         ctx do
       workflow!(ctx)
       template!(ctx.token, sms("Çağrı {{ order }}"))
       conn = preview(ctx.token, %{})
@@ -85,7 +86,8 @@ defmodule RelayWeb.Api.PreviewsTest do
       assert [%{"code" => "missing_variable", "variable" => "order"}] = render["warnings"]
     end
 
-    test "TP-38: the boundary sample fills strings to maxLength and a variant can be missing", ctx do
+    test "TP-38: the boundary sample fills strings to maxLength and a variant can be missing",
+         ctx do
       workflow!(ctx)
       template!(ctx.token, sms("{{ order }}"))
       body = %{"sample" => "boundary", "channels" => ["sms", "push"]}

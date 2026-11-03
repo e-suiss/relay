@@ -2,13 +2,14 @@ defmodule Relay.Api.Events do
   @moduledoc """
   The send operations (API-19 … API-34, OP-7, DS-36). An event is prepared outside any transaction (`prepare/3`): its workflow version is resolved and frozen (WF-7), the request's field rules and the event schema are checked (API-20, API-27), the recipients' writes are prepared with their keys (API-21) and the payload is sealed under the tenant data key. It is then accepted inside the request's idempotency transaction (`accept/2`), so the idempotency claim, the event, its notifications and deliveries with their opening ledger events, the queue jobs, the quota counters and the outbox events commit together or not at all.
 
-  Policy outcomes are decisions, not errors (C-4, MD-12, DS-26): every delivery is opened and the policy lattice decides it at once (`Relay.Policy.Live`, PC-58 (2)): a gate or filter skips it, a shaper defers it to `deferred_until` and queues its job for then, and an expiry closes it, each recorded with its reason, rule and detail and announced as `notification.suppressed` (DS-24, DS-27). The class comes from the workflow's category (PC-57 (3)), the priority is clamped to the class ceiling with a `priority_clamped` warning (API-22, PC-58 (7)) and a request without `expires_at` gets the category's or the class default (PC-57 (4)). A matching kill switch pauses the delivery at acceptance and queues no job (TN-40), the send mode `off` and an unknown sub-tenant skip it with a rule (OP-51, API-25), and a suspended subscriber's deliveries are skipped with `subscriber.suspended` (TN-73): the send is accepted and no delivery is sent. In `dry_run` the lattice runs and the answer carries each channel's decision; nothing is opened or counted (PC-58 (8)). A durable write failure is `503` (INV-2).
+  Policy outcomes are decisions, not errors (C-4, MD-12, DS-26): every delivery is opened and the policy lattice decides it at once (`Relay.Policy.Live`, PC-58 (2)): a gate or filter skips it, a shaper defers it to `deferred_until` and queues its job for then, and an expiry closes it, each recorded with its reason, rule and detail and announced as `notification.suppressed` (DS-24, DS-27). The class comes from the workflow's category (PC-57 (3)), the priority is clamped to the class ceiling with a `priority_clamped` warning (API-22, PC-58 (7)) and a request without `expires_at` gets the category's or the class default (PC-57 (4)). A matching kill switch pauses the delivery at acceptance and queues no job (TN-40), the send mode `off` and an unknown sub-tenant skip it with a rule (OP-51, API-25), and a suspended subscriber's deliveries are skipped with `subscriber.suspended` (TN-73): the send is accepted and no delivery is sent. Before the lattice, each delivery's template is resolved with sub-tenant inheritance and its cell chosen for the recipient's locale (`Relay.Templates.Live`): a channel without a variant, a locale chain without a cell and a template without a live version skip the delivery with their template rule, and otherwise the template, layout and partial versions and the locale are pinned with the delivery (TP-50, TP-11, TP-26, WF-16). In `dry_run` the template step and the lattice run and the answer carries each channel's decision; nothing is opened, pinned or counted (PC-58 (8)). A durable write failure is `503` (INV-2).
   """
 
   alias Relay.Api.Schema
   alias Relay.Api.Views
   alias Relay.Policy.Live
   alias Relay.Scope
+  alias Relay.Templates.Live, as: Templates
   alias Relay.Tenancy.KillSwitch
 
   @channels Map.new(
@@ -316,6 +317,7 @@ defmodule Relay.Api.Events do
     with :ok <- lock(prepared),
          :ok <- quota(prepared),
          {:ok, event} <- event(prepared),
+         prepared = templates(prepared),
          {:ok, notifications} <- notifications(prepared, event, ctx) do
       {:ok,
        Views.event_accepted(%{
@@ -423,6 +425,13 @@ defmodule Relay.Api.Events do
 
   defp subtenant_id({:ok, id}), do: id
   defp subtenant_id(_other), do: nil
+
+  # TP-50
+  # TP-36
+  defp templates(p) do
+    keys = Enum.map(p.request.steps, & &1.template)
+    Map.put(p, :templates, Templates.templates(keys, subtenant_id(p.subtenant)))
+  end
 
   defp notifications(p, event, ctx) do
     Enum.reduce_while(p.recipients, {:ok, []}, fn recipient, {:ok, acc} ->
@@ -559,30 +568,41 @@ defmodule Relay.Api.Events do
 
     delivery_id = Relay.Id.generate()
 
-    case {decision(step, row, mismatch?, mode), mode} do
-      {{:skip, reason, rule}, :dry_run} ->
+    case {gate(p, step, row, mismatch?, mode), mode} do
+      {{:skip, reason, rule, _detail}, :dry_run} ->
         {:ok, [Live.dry_run_skip(step.channel, reason, rule)]}
 
-      {{:skip, reason, rule}, _mode} ->
-        skip(p, notification_id, row, step, delivery_id, {reason, rule})
+      {{:skip, reason, rule, detail}, _mode} ->
+        skip(p, notification_id, row, step, delivery_id, {reason, rule, detail})
 
-      {:lattice, :dry_run} ->
+      {{:ok, _plan}, :dry_run} ->
         dry_run(step.channel, Live.decide(lattice_input(p, row, step, delivery_id)))
 
-      {:lattice, _mode} ->
+      {{:ok, plan}, _mode} ->
         result = Live.decide(lattice_input(p, row, step, delivery_id))
-        opened(p, notification_id, row, step, delivery_id, result)
+        opened(p, notification_id, row, step, {delivery_id, plan}, result)
+    end
+  end
+
+  # WF-16
+  # TP-11
+  # TP-26
+  # TP-51
+  defp gate(p, step, row, mismatch?, mode) do
+    case decision(step, row, mismatch?, mode) do
+      {:skip, reason, rule} -> {:skip, reason, rule, %{}}
+      :lattice -> Templates.choose(p.templates, step, row)
     end
   end
 
   # DS-24
-  defp skip(p, notification_id, row, step, delivery_id, {reason, rule}) do
+  defp skip(p, notification_id, row, step, delivery_id, {reason, rule, detail}) do
     case open(p, notification_id, row, step, delivery_id) do
       {:ok, nil} ->
         {:ok, []}
 
       {:ok, id} ->
-        _ = Live.record_skip(id, reason, rule)
+        _ = Live.record_skip(id, reason, rule, detail)
         {:ok, []}
 
       {:error, error} ->
@@ -636,13 +656,21 @@ defmodule Relay.Api.Events do
   # DS-24
   # DS-27
   # INV-43
-  defp opened(p, notification_id, row, step, delivery_id, result) do
+  # TP-50
+  # INV-48
+  defp opened(p, notification_id, row, step, {delivery_id, plan}, result) do
     case open(p, notification_id, row, step, delivery_id) do
       {:ok, nil} -> {:ok, []}
-      {:ok, id} -> after_open(p, notification_id, id, result)
+      {:ok, id} -> pinned(Templates.pin(id, plan), p, notification_id, id, result)
       {:error, error} -> {:error, error}
     end
   end
+
+  defp pinned(:pinned, p, notification_id, id, result),
+    do: after_open(p, notification_id, id, result)
+
+  defp pinned(_not_pinned, _p, _notification_id, _id, _result),
+    do: {:error, unavailable("the render plan could not be pinned")}
 
   defp after_open(p, notification_id, id, {:send, _info} = result) do
     _ = Live.record(id, result)

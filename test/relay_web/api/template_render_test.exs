@@ -524,7 +524,7 @@ defmodule RelayWeb.Api.TemplateRenderTest do
 
       accepted = send!(ctx.token, subscriber!(ctx.token), %{"workflow" => "newsletter"})
       delivery = deliveries(ctx.token, accepted)["in_app"]
-      assert run!(ctx.scope, delivery) == {:snooze, 300}
+      assert Live.verify(ctx.scope, internal(delivery)) == :rendered
 
       [row] = snapshots(ctx.scope, delivery)
       {_plain, snapshot} = content(ctx.scope, recipient(accepted), row)

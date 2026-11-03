@@ -248,7 +248,7 @@ defmodule Relay.Api.Templates do
 
   # TP-31
   # TP-32
-  @doc "Prepares a publication outside any transaction: reads the draft and its inputs and runs the publication gate. The result is handed to `publish/6`."
+  @doc "Prepares a publication outside any transaction: reads the draft and its inputs and runs the publication gate. The result is handed to `publish/5`."
   @spec prepare_publish(Relay.Scope.t(), at(), map()) :: {:ok, map()} | {:error, Relay.Error.t()}
   def prepare_publish(scope, at, body) do
     read =

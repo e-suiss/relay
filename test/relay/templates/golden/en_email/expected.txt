@@ -1,0 +1,4 @@
+<p>Hello Tom &amp; &lt;Jerry&gt;,</p>
+<p>Your order of July 4, 2026 at 11:05 AM came to $1,249.90.</p>
+<p>1 item · 1 · 9,876,543.21</p>
+<p>Suiss Inc.</p><a href="https://example.com/u?a=1&amp;b=2">Unsubscribe</a>

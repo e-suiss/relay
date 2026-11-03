@@ -91,6 +91,20 @@ defmodule RelayDev.Credo.ChecksTest do
       assert length(issues(code, UnsafeConversion)) == 6
     end
 
+    test "TP-3: compiling code and the Erlang evaluator are reported" do
+      code = """
+      defmodule Relay.Example do
+        def a(s), do: Code.compile_string(s)
+        def b(q), do: Code.compile_quoted(q)
+        def c(s), do: Code.string_to_quoted_with_comments(s)
+        def d(t), do: :erl_eval.exprs(t, [])
+        def e(s), do: :erl_scan.string(s)
+      end
+      """
+
+      assert length(issues(code, UnsafeConversion)) == 5
+    end
+
     test "DS-40: existing-atom conversion is allowed" do
       code = "defmodule Relay.Example do\n  def a(s), do: String.to_existing_atom(s)\nend\n"
       assert issues(code, UnsafeConversion) == []

@@ -1,0 +1,19 @@
+{
+  "channel": "email",
+  "part": "html",
+  "locale": "en",
+  "time_zone": "America/New_York",
+  "data": {
+    "customer": {"name": "Tom & <Jerry>"},
+    "order": {
+      "placed_at": "2026-07-04T15:05:00Z",
+      "total": {"amount": "1249.90", "currency": "USD"},
+      "count": 1,
+      "big": 9876543.21
+    }
+  },
+  "helpers": {
+    "legal_footer": {"trusted": "<p>Suiss Inc.</p>"},
+    "unsubscribe_url": "https://example.com/u?a=1&b=2"
+  }
+}

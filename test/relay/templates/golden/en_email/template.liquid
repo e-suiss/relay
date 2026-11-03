@@ -1,0 +1,4 @@
+<p>Hello {{ customer.name }},</p>
+<p>Your order of {{ order.placed_at | date: "long" }} at {{ order.placed_at | time }} came to {{ order.total | currency }}.</p>
+<p>{{ order.count | plural: zero: "No items", one: "# item", other: "# items" }} · {{ order.count | number }} · {{ order.big | number }}</p>
+{{ legal_footer }}<a href="{{ unsubscribe_url }}">Unsubscribe</a>

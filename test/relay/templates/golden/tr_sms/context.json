@@ -1,0 +1,16 @@
+{
+  "channel": "sms",
+  "locale": "tr",
+  "time_zone": "Europe/Istanbul",
+  "data": {
+    "customer": {"name": "ılgın"},
+    "order": {
+      "id": "ist-42i",
+      "placed_at": "2026-01-15T09:30:00Z",
+      "total": {"amount": "1249.90", "currency": "TRY"},
+      "count": 3,
+      "ratio": 0.25,
+      "weight": 1234.5
+    }
+  }
+}

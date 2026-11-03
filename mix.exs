@@ -60,6 +60,13 @@ defmodule Relay.MixProject do
       {:logger_json, "~> 7.0"},
       {:tzdata, "~> 1.2.2"},
       {:jsv, "0.26.2"},
+      {:solid, "1.3.4"},
+      {:ex_cldr, "2.47.5"},
+      {:ex_cldr_numbers, "2.38.3"},
+      {:ex_cldr_dates_times, "2.25.6"},
+      {:ex_cldr_messages, "2.0.1"},
+      {:ex_cldr_currencies, "2.17.2"},
+      {:ex_cldr_calendars, "2.4.4"},
       {:yaml_elixir, "~> 2.12.2", runtime: false},
       {:boundary, "~> 0.11", runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -106,9 +113,14 @@ defmodule Relay.MixProject do
     [
       main: "readme",
       extras: ["README.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "LICENSE"],
-      source_ref: "v#{@version}"
+      source_ref: "v#{@version}",
+      filter_modules: &documented?/2
     ]
   end
+
+  # TP-56
+  defp documented?(module, _metadata),
+    do: not String.starts_with?(inspect(module), "Relay.Templates.Cldr.")
 
   defp dialyzer do
     [

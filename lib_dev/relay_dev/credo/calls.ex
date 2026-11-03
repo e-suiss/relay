@@ -30,7 +30,7 @@ defmodule RelayDev.Credo.Calls do
   defp walk(ast, ctx, _rules, _check), do: {ast, ctx}
 
   defp target_module({:__aliases__, _, parts}) when is_list(parts) do
-    Module.safe_concat(parts)
+    if Enum.all?(parts, &is_atom/1), do: Module.safe_concat(parts), else: :unknown
   rescue
     ArgumentError -> :unknown
   end

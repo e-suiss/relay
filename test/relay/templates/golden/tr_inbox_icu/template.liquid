@@ -1,0 +1,3 @@
+{% capture cart %}{count, plural, =0 {Sepetiniz boş} one {Sepetinizde # ürün var} other {Sepetinizde # ürün var}}{% endcapture %}{{ cart | icu: count: none }} / {{ cart | icu: count: many }}
+{% for item in items limit: 2 %}{{ forloop.index }}. {{ item.name | truncate: 10 }} {{ item.price | currency }}
+{% endfor %}{{ note | default: "Not yok" }}

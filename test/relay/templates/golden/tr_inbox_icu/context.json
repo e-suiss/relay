@@ -1,0 +1,15 @@
+{
+  "channel": "in_app",
+  "locale": "tr",
+  "time_zone": "Europe/Istanbul",
+  "data": {
+    "none": 0,
+    "many": 1234,
+    "items": [
+      {"name": "Kablosuz kulaklık", "price": {"amount": "799.00", "currency": "TRY"}},
+      {"name": "Şarj aleti", "price": {"amount": "149.5", "currency": "EUR"}},
+      {"name": "Kılıf", "price": {"amount": "99", "currency": "TRY"}}
+    ],
+    "note": null
+  }
+}

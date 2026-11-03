@@ -13,11 +13,11 @@ defmodule Relay.Templates.Escape do
   @type mode :: :html | :text | :json | :structured
 
   @modes [:html, :text, :json, :structured]
-  @line_breaks ["\r\n", "\r", "\n", "\u0085", " ", " "]
+  @line_breaks ["\r\n", "\r", "\n", "\u0085", "\u2028", "\u2029"]
   @entities %{"&amp;" => "&", "&lt;" => "<", "&gt;" => ">", "&quot;" => "\"", "&#39;" => "'"}
   @entity ~r/&(?:amp|lt|gt|quot|#39);/
-  @first_strong_isolate "⁨"
-  @pop_directional_isolate "⁩"
+  @first_strong_isolate "\u2068"
+  @pop_directional_isolate "\u2069"
 
   @doc "The escaping modes."
   @spec modes() :: [mode()]

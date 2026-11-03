@@ -149,8 +149,8 @@ defmodule Relay.Templates.ContextTest do
     test "TP-29: printed values are isolated in RTL locales except on SMS" do
       fields = [locale: "ar", data: %{"name" => "Ali", "n" => 3}]
 
-      assert render("مرحبا {{ name }}", :push, fields) == {:ok, "مرحبا ⁨Ali⁩"}
-      assert render("مرحبا {{ name }}", :in_app, fields) == {:ok, "مرحبا ⁨Ali⁩"}
+      assert render("مرحبا {{ name }}", :push, fields) == {:ok, "مرحبا \u2068Ali\u2069"}
+      assert render("مرحبا {{ name }}", :in_app, fields) == {:ok, "مرحبا \u2068Ali\u2069"}
       assert render("مرحبا {{ name }}", :sms, fields) == {:ok, "مرحبا Ali"}
       assert render("Hi {{ name }}", :push, locale: "tr", data: %{"name" => "Ali"}) ==
                {:ok, "Hi Ali"}

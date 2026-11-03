@@ -73,7 +73,7 @@ defmodule Relay.Templates.FiltersTest do
     end
 
     test "TP-19: sms_safe removes invisible characters and plain-texts punctuation" do
-      data = %{"s" => "“Merhaba”​ – dünya…‮ son"}
+      data = %{"s" => "“Merhaba”\u200B – dünya…\u202E\u00A0son"}
       assert render("{{ s | sms_safe }}", data) == "\"Merhaba\" - dünya... son"
     end
   end

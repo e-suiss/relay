@@ -178,5 +178,17 @@
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",
     "reason": "INV-6, TP-31, TP-48: the no-truncate triggers of the template, layout and partial tables and of the render plan, and the append-only triggers of the render snapshot, reject TRUNCATE"
+  },
+  {
+    "path": "lib/relay/templates/engine.ex",
+    "rule": "physical_delete",
+    "match": "truncate",
+    "reason": "TP-45: `truncate` is the name of the Liquid text filter; the file holds no SQL"
+  },
+  {
+    "path": "lib/relay/templates/filters.ex",
+    "rule": "physical_delete",
+    "match": "truncate",
+    "reason": "TP-45: `truncate` is the name of the Liquid text filter; the file holds no SQL"
   }
 ]

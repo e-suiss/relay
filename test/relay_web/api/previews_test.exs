@@ -41,7 +41,8 @@ defmodule RelayWeb.Api.PreviewsTest do
   end
 
   defp workflow!(ctx, key \\ "order-flow", opts \\ []) do
-    opts = Keyword.merge([event_schema: @schema, channels: ["sms", "email"]], opts)
+    defaults = [event_schema: @schema, channels: ["sms", "email"], template: false]
+    opts = Keyword.merge(defaults, opts)
     F.workflow!(ctx.scope, ctx.token, key, opts)
   end
 

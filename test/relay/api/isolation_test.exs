@@ -17,6 +17,8 @@ defmodule Relay.Api.IsolationTest do
 
     clients = [{:a_test, a, a.test}, {:a_live, a, a.live}, {:b_test, b, b.test}]
 
+    for {_name, _tenant, scope} <- clients, do: unlimited!(scope)
+
     tokens =
       Map.new(clients, fn {name, tenant, scope} ->
         client = FakeAccess.client!(scope, @all)
@@ -24,6 +26,18 @@ defmodule Relay.Api.IsolationTest do
       end)
 
     %{a: a, b: b, tokens: tokens}
+  end
+
+  # API-50
+  defp unlimited!(scope) do
+    change = %{
+      key: "api.rate.burst",
+      value: %{"weight" => 1_000_000, "window_seconds" => 1},
+      expected_version: nil,
+      record_digest: TenantFixture.digest()
+    }
+
+    {:ok, _} = Relay.Tenancy.put_setting(scope, change, TenantFixture.actor())
   end
 
   defp assert_not_found(conn, %{id: id} = operation, why) do

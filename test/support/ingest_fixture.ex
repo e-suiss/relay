@@ -102,12 +102,15 @@ defmodule RelayTest.IngestFixture do
   def category_of!(token, definition),
     do: category!(token, definition["category"], definition["message_class"])
 
-  @doc "Creates a workflow and its category through the API and publishes its draft through the gate, and publishes the `order-shipped` template its steps name unless the scope has it."
+  @doc "Creates a workflow and its category through the API and publishes its draft through the gate, and publishes the `order-shipped` template its steps name unless the scope has it or `template: false` is given."
   @spec workflow!(Relay.Scope.t(), String.t(), String.t(), keyword()) :: map()
   def workflow!(scope, token, key, opts \\ []) do
     body = %{"key" => key, "definition" => definition(opts)}
     :ok = category_of!(token, body["definition"])
-    :ok = template!(scope, "order-shipped", body["definition"]["category"])
+
+    if Keyword.get(opts, :template, true),
+      do: :ok = template!(scope, "order-shipped", body["definition"]["category"])
+
     created = request(:post, "/v1/workflows", token, body)
     assert created.status == 201, created.resp_body
     publish!(scope, token, key)

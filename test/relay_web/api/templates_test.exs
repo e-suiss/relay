@@ -66,8 +66,10 @@ defmodule RelayWeb.Api.TemplatesTest do
 
   defp promote(token, key, number), do: write(token, :post, key, "/versions/#{number}/promote")
 
-  defp workflow!(ctx, schema \\ @schema),
-    do: F.workflow!(ctx.scope, ctx.token, "order-flow", channels: ["sms"], event_schema: schema)
+  defp workflow!(ctx, schema \\ @schema) do
+    opts = [channels: ["sms"], event_schema: schema, template: false]
+    F.workflow!(ctx.scope, ctx.token, "order-flow", opts)
+  end
 
   defp produce(token, key, definition) do
     body = %{"name" => "OTP", "category" => "security", "definition" => definition}

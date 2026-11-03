@@ -34,7 +34,8 @@ defmodule Relay.Templates.Sms.Segments do
   # CH-48
   @doc "The units a message of `segments` segments holds in `encoding`, after `reserved` units."
   @spec capacity(Encoding.t(), pos_integer(), non_neg_integer()) :: non_neg_integer()
-  def capacity(encoding, segments, reserved \\ 0) do
+  def capacity(encoding, segments, reserved \\ 0)
+      when is_integer(segments) and is_integer(reserved) do
     {single, per_segment} = limits(encoding)
     total = if segments == 1, do: single, else: segments * per_segment
     max(total - reserved, 0)

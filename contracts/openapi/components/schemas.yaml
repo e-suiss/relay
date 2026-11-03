@@ -3490,3 +3490,1414 @@ DryRunDecision:
         - "$ref": "#/Timestamp"
         - type: "null"
   additionalProperties: false
+Id_tpv:
+  type: string
+  description: "Template version identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^tpv_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - tpv_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_lay:
+  type: string
+  description: "Layout identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^lay_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - lay_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_lyv:
+  type: string
+  description: "Layout version identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^lyv_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - lyv_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_prt:
+  type: string
+  description: "Partial identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^prt_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - prt_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_ptv:
+  type: string
+  description: "Partial version identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^ptv_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - ptv_01j9zq3k4m5n6p7q8r9s0t1v2w
+TemplateKey:
+  type: string
+  description: "Key of a template, layout or partial, unique in its tenant or subtenant: a lowercase letter and up to 63 lowercase letters, digits, dots, underscores or hyphens."
+  pattern: "^[a-z][a-z0-9_.-]{0,63}$"
+  examples:
+    - order.shipped
+TemplateOwner:
+  type: string
+  description: "Owner of a template: the tenant, a subtenant, or a producer product whose template is protected."
+  enum:
+    - tenant
+    - subtenant
+    - producer
+TemplateType:
+  type: string
+  description: "Transactional or marketing; follows the message class of the category (marketing for a marketing category) and never converts into the other after the first publication."
+  enum:
+    - transactional
+    - marketing
+Sensitivity:
+  type: string
+  description: "Sensitivity class of a template. A sensitive push shows only lock_screen_body on the lock screen and fetches in_app_body when the app opens."
+  enum:
+    - public
+    - personal
+    - sensitive
+SmsEncodingPolicy:
+  type: string
+  description: "SMS encoding policy of a template; turkish_shift is the default. A provider not verified for the Turkish single shift table receives ucs2."
+  enum:
+    - transliterate
+    - turkish_shift
+    - ucs2
+SmsEncoding:
+  type: string
+  description: Planned SMS encoding of a render.
+  enum:
+    - GSM7
+    - GSM7_TR
+    - UCS2
+SensitivityApproval:
+  type: object
+  description: "Explicit confirmation of the sensitivity class after the sensitive term dictionary matched the fixed text or variable names."
+  required:
+    - matched_terms
+    - approved_by
+    - approved_at
+  properties:
+    matched_terms:
+      type: array
+      items:
+        type: string
+        maxLength: 64
+      maxItems: 200
+    approved_by:
+      type: string
+      maxLength: 256
+    approved_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+SmsCell:
+  type: object
+  required:
+    - body
+  properties:
+    body:
+      type: string
+      maxLength: 262144
+      description: "Liquid source; no emoji in the template text."
+    machine_translated:
+      type: boolean
+    translation_approved_by:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+  additionalProperties: false
+PushCell:
+  type: object
+  required:
+    - title
+    - body
+  properties:
+    title:
+      type: string
+      maxLength: 262144
+    subtitle:
+      type: string
+      maxLength: 262144
+    body:
+      type: string
+      maxLength: 262144
+    lock_screen_body:
+      type: string
+      maxLength: 262144
+      description: "Neutral text for the lock screen; required for a sensitive template."
+    in_app_body:
+      type: string
+      maxLength: 262144
+      description: "Full content fetched when the app opens; required for a sensitive template."
+    machine_translated:
+      type: boolean
+    translation_approved_by:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+  additionalProperties: false
+EmailCell:
+  type: object
+  required:
+    - subject
+    - html
+    - text
+  properties:
+    subject:
+      type: string
+      maxLength: 262144
+    preheader:
+      type: string
+      maxLength: 262144
+    html_kind:
+      type: string
+      enum:
+        - mjml
+        - raw_html
+      default: mjml
+      description: "raw_html is for enterprise tenants; it is shown only in the sandboxed preview."
+    html:
+      type: string
+      maxLength: 262144
+    text:
+      type: string
+      maxLength: 262144
+      description: Plain text body; required and separate from the HTML.
+    machine_translated:
+      type: boolean
+    translation_approved_by:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+  additionalProperties: false
+WhatsappCell:
+  type: object
+  required:
+    - template_name
+    - parameters
+  properties:
+    template_name:
+      type: string
+      maxLength: 512
+      description: Approved Meta template name; new content is a new name.
+    language:
+      type: string
+      maxLength: 35
+    parameters:
+      type: array
+      maxItems: 100
+      items:
+        type: object
+        required:
+          - name
+          - value
+        properties:
+          name:
+            type: string
+            maxLength: 128
+          value:
+            type: string
+            maxLength: 262144
+        additionalProperties: false
+    machine_translated:
+      type: boolean
+    translation_approved_by:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+  additionalProperties: false
+InboxCell:
+  type: object
+  required:
+    - title
+    - body
+  properties:
+    title:
+      type: string
+      maxLength: 262144
+    body:
+      type: string
+      maxLength: 262144
+    avatar_url:
+      type: string
+      maxLength: 2048
+    actions:
+      type: array
+      maxItems: 5
+      items:
+        type: object
+        required:
+          - label
+          - url
+        properties:
+          label:
+            type: string
+            maxLength: 262144
+          url:
+            type: string
+            maxLength: 262144
+        additionalProperties: false
+    machine_translated:
+      type: boolean
+    translation_approved_by:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+  additionalProperties: false
+WebhookCell:
+  type: object
+  required:
+    - body
+  properties:
+    body:
+      type: string
+      maxLength: 262144
+      description: "JSON body template in restricted mode; values are encoded with the JSON encoder."
+    machine_translated:
+      type: boolean
+    translation_approved_by:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+  additionalProperties: false
+TemplateCells:
+  type: object
+  description: "The channel × locale matrix: content is written per channel and never derived from another channel. A channel without a variant is skipped with rule_id template.variant_missing."
+  properties:
+    sms:
+      type: object
+      propertyNames:
+        "$ref": "#/Locale"
+      additionalProperties:
+        "$ref": "#/SmsCell"
+    push:
+      type: object
+      propertyNames:
+        "$ref": "#/Locale"
+      additionalProperties:
+        "$ref": "#/PushCell"
+    web_push:
+      type: object
+      propertyNames:
+        "$ref": "#/Locale"
+      additionalProperties:
+        "$ref": "#/PushCell"
+    email:
+      type: object
+      propertyNames:
+        "$ref": "#/Locale"
+      additionalProperties:
+        "$ref": "#/EmailCell"
+    whatsapp:
+      type: object
+      propertyNames:
+        "$ref": "#/Locale"
+      additionalProperties:
+        "$ref": "#/WhatsappCell"
+    in_app:
+      type: object
+      propertyNames:
+        "$ref": "#/Locale"
+      additionalProperties:
+        "$ref": "#/InboxCell"
+    webhook:
+      type: object
+      propertyNames:
+        "$ref": "#/Locale"
+      additionalProperties:
+        "$ref": "#/WebhookCell"
+  additionalProperties: false
+BrandFields:
+  type: object
+  description: "Brand fields (brand.*). A subtenant inherits every field it does not set from the tenant."
+  properties:
+    logo_url:
+      type: string
+      format: uri
+      maxLength: 2048
+    primary_color:
+      type: string
+      pattern: "^#[0-9a-fA-F]{6}$"
+    secondary_color:
+      type: string
+      pattern: "^#[0-9a-fA-F]{6}$"
+    sender_name:
+      type: string
+      maxLength: 100
+    footer:
+      type: string
+      maxLength: 2000
+    legal_name:
+      type: string
+      maxLength: 200
+    mersis:
+      type: string
+      pattern: "^[0-9]{16}$"
+    contact:
+      type: string
+      maxLength: 500
+    postal_address:
+      type: string
+      maxLength: 500
+  additionalProperties: false
+TemplateDefinition:
+  type: object
+  description: "Template definition: the shared layer and the channel × locale matrix. The same definition is accepted by the file format, the management API and the producer API. The variable schema comes from the workflow version that uses the template."
+  required:
+    - default_locale
+    - cells
+  properties:
+    default_locale:
+      "$ref": "#/Locale"
+    sensitivity:
+      oneOf:
+        - "$ref": "#/Sensitivity"
+        - type: "null"
+    sensitivity_approval:
+      oneOf:
+        - "$ref": "#/SensitivityApproval"
+        - type: "null"
+    sms_encoding:
+      "$ref": "#/SmsEncodingPolicy"
+    transliterate:
+      type: boolean
+      default: false
+      description: "Transliterate SMS text outside the legal text; off by default except for security messages."
+    allow_raw:
+      type: boolean
+      default: false
+      description: "Allows the raw filter in this template."
+    layout:
+      oneOf:
+        - "$ref": "#/TemplateKey"
+        - type: "null"
+    partials:
+      type: array
+      items:
+        "$ref": "#/TemplateKey"
+      maxItems: 50
+      uniqueItems: true
+    producer_brand:
+      oneOf:
+        - "$ref": "#/BrandFields"
+        - type: "null"
+      description: "Producer templates only: the producer's brand values; the tenant overrides only logo_url, primary_color, sender_name and footer."
+    cells:
+      "$ref": "#/TemplateCells"
+  additionalProperties: false
+TemplateCreate:
+  type: object
+  required:
+    - key
+    - name
+    - category
+    - definition
+  properties:
+    key:
+      "$ref": "#/TemplateKey"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    category:
+      "$ref": "#/CategoryKey"
+    definition:
+      "$ref": "#/TemplateDefinition"
+  additionalProperties: false
+TemplateDraft:
+  type: object
+  required:
+    - definition
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    category:
+      "$ref": "#/CategoryKey"
+    definition:
+      "$ref": "#/TemplateDefinition"
+  additionalProperties: false
+Template:
+  type: object
+  required:
+    - object
+    - id
+    - key
+    - name
+    - owner
+    - category
+    - message_class
+    - type
+    - protected
+    - state
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: template
+    id:
+      "$ref": "#/Id_tpl"
+    key:
+      "$ref": "#/TemplateKey"
+    name:
+      type: string
+      maxLength: 200
+    owner:
+      "$ref": "#/TemplateOwner"
+    product:
+      oneOf:
+        - type: string
+          pattern: "^[a-z][a-z0-9_]{0,63}$"
+        - type: "null"
+      description: Producer product of a producer-owned template.
+    subtenant:
+      oneOf:
+        - "$ref": "#/Id_stn"
+        - type: "null"
+    category:
+      "$ref": "#/CategoryKey"
+    message_class:
+      "$ref": "#/MessageClass"
+    type:
+      "$ref": "#/TemplateType"
+    protected:
+      type: boolean
+      description: "True for a producer-owned template: the tenant cannot change its text."
+    state:
+      type: string
+      enum:
+        - active
+        - archived
+    live_version:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    draft:
+      oneOf:
+        - "$ref": "#/TemplateDefinition"
+        - type: "null"
+    draft_checksum:
+      oneOf:
+        - type: string
+          pattern: "^[0-9a-f]{64}$"
+        - type: "null"
+      description: "SHA-256 of the draft content, lowercase hex; publication can name it to refuse a draft changed meanwhile."
+    version:
+      type: integer
+      minimum: 1
+      description: "Optimistic concurrency version; the ETag carries it."
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+TemplateList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Template"
+GateFinding:
+  type: object
+  description: "One publication gate result. A hard finding blocks publication; warnings pass only when accepted and are recorded on the version."
+  required:
+    - check
+    - level
+    - message
+  properties:
+    check:
+      type: string
+      pattern: "^[a-z][a-z0-9_]*$"
+      maxLength: 64
+      examples:
+        - plain_text_missing
+    level:
+      type: string
+      enum:
+        - hard
+        - warning
+    channel:
+      "$ref": "#/Channel"
+    locale:
+      "$ref": "#/Locale"
+    message:
+      type: string
+      maxLength: 1000
+    detail:
+      type: object
+  additionalProperties: false
+TemplateVariables:
+  type: object
+  description: "Variable paths the template reads, extracted at publication: always read and read only under a condition."
+  required:
+    - always
+    - conditional
+  properties:
+    always:
+      type: array
+      items:
+        type: string
+        maxLength: 256
+    conditional:
+      type: array
+      items:
+        type: string
+        maxLength: 256
+  additionalProperties: false
+TemplateVersion:
+  type: object
+  description: "Published template version; immutable."
+  required:
+    - object
+    - id
+    - template_key
+    - version
+    - state
+    - definition
+    - checksum
+    - variables
+    - measures
+    - findings
+    - warnings_accepted
+    - published_at
+    - published_by
+  properties:
+    object:
+      type: string
+      const: template_version
+    id:
+      "$ref": "#/Id_tpv"
+    template_key:
+      "$ref": "#/TemplateKey"
+    version:
+      type: integer
+      minimum: 1
+    state:
+      type: string
+      enum:
+        - published
+        - archived
+    live:
+      type: boolean
+    definition:
+      "$ref": "#/TemplateDefinition"
+    checksum:
+      type: string
+      pattern: "^[0-9a-f]{64}$"
+      description: SHA-256 of the version content, lowercase hex.
+    variables:
+      "$ref": "#/TemplateVariables"
+    measures:
+      type: object
+      description: "Worst-case measures per channel and locale (length, bytes, SMS segments and encoding, email size)."
+    findings:
+      type: array
+      items:
+        "$ref": "#/GateFinding"
+    warnings_accepted:
+      type: boolean
+    warnings_accepted_by:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+    previous_version:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    diff:
+      oneOf:
+        - type: object
+        - type: "null"
+      description: Difference from the previous live version.
+    published_at:
+      "$ref": "#/Timestamp"
+    published_by:
+      type: string
+      maxLength: 256
+  additionalProperties: false
+TemplateVersionList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/TemplateVersion"
+TemplatePublishRequest:
+  type: object
+  description: "Publication of the draft. accept_warnings publishes despite warning findings and records them on the version; checksum, when given, must be the draft checksum that was reviewed."
+  properties:
+    accept_warnings:
+      type: boolean
+      default: false
+    checksum:
+      type: string
+      pattern: "^[0-9a-f]{64}$"
+    note:
+      type: string
+      maxLength: 500
+  additionalProperties: false
+TemplateTranslations:
+  type: object
+  required:
+    - object
+    - template_key
+    - source
+    - default_locale
+    - locales
+    - cells
+  properties:
+    object:
+      type: string
+      const: template_translations
+    template_key:
+      "$ref": "#/TemplateKey"
+    source:
+      type: string
+      enum:
+        - draft
+        - live
+    version:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    default_locale:
+      "$ref": "#/Locale"
+    locales:
+      type: array
+      items:
+        "$ref": "#/Locale"
+    cells:
+      type: array
+      items:
+        type: object
+        required:
+          - channel
+          - locale
+          - status
+        properties:
+          channel:
+            "$ref": "#/Channel"
+          locale:
+            "$ref": "#/Locale"
+          status:
+            type: string
+            enum:
+              - present
+              - missing
+              - machine_translated
+              - approved
+        additionalProperties: false
+  additionalProperties: false
+ProducerTemplatePublish:
+  type: object
+  description: "Producer template publication: created on first use, otherwise a new draft published at once."
+  required:
+    - name
+    - category
+    - definition
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    category:
+      "$ref": "#/CategoryKey"
+    definition:
+      "$ref": "#/TemplateDefinition"
+    accept_warnings:
+      type: boolean
+      default: false
+  additionalProperties: false
+LayoutDefinition:
+  type: object
+  description: "Email layout: MJML with one content slot, plus the plain text header and footer. The MJML is compiled at publication, never at send time."
+  required:
+    - mjml
+  properties:
+    mjml:
+      type: string
+      maxLength: 262144
+    text_header:
+      type: string
+      maxLength: 262144
+    text_footer:
+      type: string
+      maxLength: 262144
+  additionalProperties: false
+LayoutCreate:
+  type: object
+  required:
+    - key
+    - name
+    - definition
+  properties:
+    key:
+      "$ref": "#/TemplateKey"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    definition:
+      "$ref": "#/LayoutDefinition"
+  additionalProperties: false
+LayoutDraft:
+  type: object
+  required:
+    - definition
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    definition:
+      "$ref": "#/LayoutDefinition"
+  additionalProperties: false
+Layout:
+  type: object
+  required:
+    - object
+    - id
+    - key
+    - name
+    - owner
+    - state
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: layout
+    id:
+      "$ref": "#/Id_lay"
+    key:
+      "$ref": "#/TemplateKey"
+    name:
+      type: string
+      maxLength: 200
+    owner:
+      type: string
+      enum:
+        - tenant
+        - subtenant
+    subtenant:
+      oneOf:
+        - "$ref": "#/Id_stn"
+        - type: "null"
+    state:
+      type: string
+      enum:
+        - active
+        - archived
+    live_version:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    draft:
+      oneOf:
+        - "$ref": "#/LayoutDefinition"
+        - type: "null"
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+LayoutList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Layout"
+LayoutVersion:
+  type: object
+  description: "Published layout version; immutable."
+  required:
+    - object
+    - id
+    - layout_key
+    - version
+    - state
+    - definition
+    - checksum
+    - findings
+    - warnings_accepted
+    - published_at
+    - published_by
+  properties:
+    object:
+      type: string
+      const: layout_version
+    id:
+      "$ref": "#/Id_lyv"
+    layout_key:
+      "$ref": "#/TemplateKey"
+    version:
+      type: integer
+      minimum: 1
+    state:
+      type: string
+      enum:
+        - published
+        - archived
+    live:
+      type: boolean
+    definition:
+      "$ref": "#/LayoutDefinition"
+    checksum:
+      type: string
+      pattern: "^[0-9a-f]{64}$"
+    findings:
+      type: array
+      items:
+        "$ref": "#/GateFinding"
+    warnings_accepted:
+      type: boolean
+    previous_version:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    diff:
+      oneOf:
+        - type: object
+        - type: "null"
+    published_at:
+      "$ref": "#/Timestamp"
+    published_by:
+      type: string
+      maxLength: 256
+  additionalProperties: false
+LayoutVersionList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/LayoutVersion"
+LayoutPublishRequest:
+  "$ref": "#/TemplatePublishRequest"
+PartialDefinition:
+  type: object
+  description: "A named, versioned block a template includes by key. A partial cannot include another partial."
+  required:
+    - default_locale
+    - bodies
+  properties:
+    default_locale:
+      "$ref": "#/Locale"
+    bodies:
+      type: object
+      description: Liquid source per locale.
+      propertyNames:
+        "$ref": "#/Locale"
+      additionalProperties:
+        type: string
+        maxLength: 262144
+  additionalProperties: false
+PartialCreate:
+  type: object
+  required:
+    - key
+    - name
+    - definition
+  properties:
+    key:
+      "$ref": "#/TemplateKey"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    definition:
+      "$ref": "#/PartialDefinition"
+  additionalProperties: false
+PartialDraft:
+  type: object
+  required:
+    - definition
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    definition:
+      "$ref": "#/PartialDefinition"
+  additionalProperties: false
+Partial:
+  type: object
+  required:
+    - object
+    - id
+    - key
+    - name
+    - owner
+    - state
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: partial
+    id:
+      "$ref": "#/Id_prt"
+    key:
+      "$ref": "#/TemplateKey"
+    name:
+      type: string
+      maxLength: 200
+    owner:
+      type: string
+      enum:
+        - tenant
+        - subtenant
+    subtenant:
+      oneOf:
+        - "$ref": "#/Id_stn"
+        - type: "null"
+    state:
+      type: string
+      enum:
+        - active
+        - archived
+    live_version:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    draft:
+      oneOf:
+        - "$ref": "#/PartialDefinition"
+        - type: "null"
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+PartialList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Partial"
+PartialVersion:
+  type: object
+  description: "Published partial version; immutable."
+  required:
+    - object
+    - id
+    - partial_key
+    - version
+    - state
+    - definition
+    - checksum
+    - findings
+    - warnings_accepted
+    - published_at
+    - published_by
+  properties:
+    object:
+      type: string
+      const: partial_version
+    id:
+      "$ref": "#/Id_ptv"
+    partial_key:
+      "$ref": "#/TemplateKey"
+    version:
+      type: integer
+      minimum: 1
+    state:
+      type: string
+      enum:
+        - published
+        - archived
+    live:
+      type: boolean
+    definition:
+      "$ref": "#/PartialDefinition"
+    checksum:
+      type: string
+      pattern: "^[0-9a-f]{64}$"
+    findings:
+      type: array
+      items:
+        "$ref": "#/GateFinding"
+    warnings_accepted:
+      type: boolean
+    previous_version:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    diff:
+      oneOf:
+        - type: object
+        - type: "null"
+    published_at:
+      "$ref": "#/Timestamp"
+    published_by:
+      type: string
+      maxLength: 256
+  additionalProperties: false
+PartialVersionList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/PartialVersion"
+PartialPublishRequest:
+  "$ref": "#/TemplatePublishRequest"
+BrandField:
+  type: object
+  required:
+    - value
+    - source
+  properties:
+    value:
+      oneOf:
+        - type: string
+          maxLength: 2048
+        - type: "null"
+    source:
+      type: string
+      enum:
+        - subtenant
+        - tenant
+        - none
+  additionalProperties: false
+Brand:
+  type: object
+  required:
+    - object
+    - subtenant
+    - fields
+  properties:
+    object:
+      type: string
+      const: brand
+    subtenant:
+      oneOf:
+        - "$ref": "#/Id_stn"
+        - type: "null"
+    fields:
+      type: object
+      properties:
+        logo_url:
+          "$ref": "#/BrandField"
+        primary_color:
+          "$ref": "#/BrandField"
+        secondary_color:
+          "$ref": "#/BrandField"
+        sender_name:
+          "$ref": "#/BrandField"
+        footer:
+          "$ref": "#/BrandField"
+        legal_name:
+          "$ref": "#/BrandField"
+        mersis:
+          "$ref": "#/BrandField"
+        contact:
+          "$ref": "#/BrandField"
+        postal_address:
+          "$ref": "#/BrandField"
+      additionalProperties: false
+  additionalProperties: false
+BrandPatch:
+  type: object
+  description: "JSON Merge Patch of the brand fields; null clears a field at this level."
+  properties:
+    logo_url:
+      oneOf:
+        - type: string
+          format: uri
+          maxLength: 2048
+        - type: "null"
+    primary_color:
+      oneOf:
+        - type: string
+          pattern: "^#[0-9a-fA-F]{6}$"
+        - type: "null"
+    secondary_color:
+      oneOf:
+        - type: string
+          pattern: "^#[0-9a-fA-F]{6}$"
+        - type: "null"
+    sender_name:
+      oneOf:
+        - type: string
+          maxLength: 100
+        - type: "null"
+    footer:
+      oneOf:
+        - type: string
+          maxLength: 2000
+        - type: "null"
+    legal_name:
+      oneOf:
+        - type: string
+          maxLength: 200
+        - type: "null"
+    mersis:
+      oneOf:
+        - type: string
+          pattern: "^[0-9]{16}$"
+        - type: "null"
+    contact:
+      oneOf:
+        - type: string
+          maxLength: 500
+        - type: "null"
+    postal_address:
+      oneOf:
+        - type: string
+          maxLength: 500
+        - type: "null"
+  additionalProperties: false
+PreviewSample:
+  type: string
+  description: "Sample data source: the schema examples, the newest 20 accepted events of the workflow in the last 7 days masked at preview time (letters to X or x, digits to 0, lengths kept; events whose content is not kept are excluded), or boundary values (maxLength and empty strings, array and number bounds, Turkish letters, emoji, right-to-left text)."
+  enum:
+    - schema_examples
+    - masked_recent
+    - boundary
+PreviewVersion:
+  oneOf:
+    - type: string
+      enum:
+        - draft
+        - live
+    - type: integer
+      minimum: 1
+  description: The draft, the live version or a published version number.
+TemplatePreviewRequest:
+  type: object
+  required:
+    - workflow
+  properties:
+    workflow:
+      "$ref": "#/WorkflowKey"
+      description: Workflow whose event schema types the template's variables and supplies the samples.
+    version:
+      "$ref": "#/PreviewVersion"
+    sample:
+      "$ref": "#/PreviewSample"
+    data:
+      type: object
+      description: Explicit event data; replaces the sample source when given.
+    channels:
+      type: array
+      items:
+        "$ref": "#/Channel"
+      uniqueItems: true
+    locale:
+      "$ref": "#/Locale"
+  additionalProperties: false
+PreviewWarning:
+  type: object
+  required:
+    - code
+    - message
+  properties:
+    code:
+      type: string
+      pattern: "^[a-z][a-z0-9_]*$"
+      maxLength: 64
+      examples:
+        - missing_variable
+    variable:
+      type: string
+      maxLength: 256
+    message:
+      type: string
+      maxLength: 1000
+  additionalProperties: false
+SmsMeasure:
+  type: object
+  required:
+    - encoding
+    - encoding_unverified_provider
+    - segments
+    - characters
+  properties:
+    encoding:
+      "$ref": "#/SmsEncoding"
+    encoding_unverified_provider:
+      "$ref": "#/SmsEncoding"
+    segments:
+      type: integer
+      minimum: 0
+    characters:
+      type: integer
+      minimum: 0
+  additionalProperties: false
+ChannelRender:
+  type: object
+  required:
+    - channel
+    - locale
+    - warnings
+  properties:
+    channel:
+      "$ref": "#/Channel"
+    locale:
+      "$ref": "#/Locale"
+    locale_fallback:
+      type: boolean
+      description: True when the render fell back to the tenant default locale.
+    content:
+      oneOf:
+        - type: object
+        - type: "null"
+      description: "Rendered fields of the channel; raw HTML is returned for the sandboxed preview origin only."
+    failure_reason:
+      oneOf:
+        - type: string
+          enum:
+            - missing_variable
+            - render_timeout
+            - output_too_large
+            - schema_violation
+        - type: "null"
+    warnings:
+      type: array
+      items:
+        "$ref": "#/PreviewWarning"
+    measures:
+      type: object
+      properties:
+        characters:
+          type: integer
+          minimum: 0
+        bytes:
+          type: integer
+          minimum: 0
+        graphemes:
+          type: integer
+          minimum: 0
+    sms:
+      oneOf:
+        - "$ref": "#/SmsMeasure"
+        - type: "null"
+  additionalProperties: false
+TemplatePreview:
+  type: object
+  required:
+    - object
+    - template_key
+    - version
+    - sample
+    - renders
+  properties:
+    object:
+      type: string
+      const: template_preview
+    template_key:
+      "$ref": "#/TemplateKey"
+    version:
+      "$ref": "#/PreviewVersion"
+    sample:
+      oneOf:
+        - "$ref": "#/PreviewSample"
+        - type: string
+          const: data
+    renders:
+      type: array
+      items:
+        "$ref": "#/ChannelRender"
+  additionalProperties: false
+WorkflowPreviewRequest:
+  type: object
+  properties:
+    version:
+      "$ref": "#/PreviewVersion"
+    sample:
+      "$ref": "#/PreviewSample"
+    data:
+      type: object
+      description: Explicit event data; replaces the sample source when given.
+    to:
+      "$ref": "#/ExternalId"
+      description: "Subscriber whose preferences, consents and addresses decide each step; without it the decisions use a recipient with no preferences and every channel reachable."
+    locale:
+      "$ref": "#/Locale"
+  additionalProperties: false
+WorkflowPreviewStep:
+  type: object
+  required:
+    - step
+    - channel
+    - template
+    - would_send
+    - reason
+    - rule_id
+    - render
+  properties:
+    step:
+      type: string
+      pattern: "^[a-z][a-z0-9_]{0,63}$"
+    channel:
+      "$ref": "#/Channel"
+    template:
+      type: string
+      maxLength: 100
+    would_send:
+      type: boolean
+    reason:
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    rule_id:
+      oneOf:
+        - "$ref": "#/RuleId"
+        - type: "null"
+    render:
+      oneOf:
+        - "$ref": "#/ChannelRender"
+        - type: "null"
+  additionalProperties: false
+WorkflowPreview:
+  type: object
+  required:
+    - object
+    - workflow_key
+    - version
+    - sample
+    - steps
+  properties:
+    object:
+      type: string
+      const: workflow_preview
+    workflow_key:
+      "$ref": "#/WorkflowKey"
+    version:
+      "$ref": "#/PreviewVersion"
+    sample:
+      oneOf:
+        - "$ref": "#/PreviewSample"
+        - type: string
+          const: data
+    steps:
+      type: array
+      items:
+        "$ref": "#/WorkflowPreviewStep"
+  additionalProperties: false

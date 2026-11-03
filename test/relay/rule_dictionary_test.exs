@@ -20,6 +20,9 @@ defmodule Relay.RuleDictionaryTest do
                  tenant_timezone_window.deferred frequency.dropped frequency.deferred
                  frequency.digest frequency.inbox_only expiry.expires_at expiry.no_window)
 
+  @stage_five ~w(template.variant_missing template.locale_missing template.not_published
+                 template.archived)
+
   @existing ~w(killswitch.off killswitch.canary killswitch.paused_until killswitch.state_unknown
                killswitch.resume killswitch.paused_expired killswitch.bulk_cancel
                load_shed.l0_alarm load_shed.l1 load_shed.l2 load_shed.l3 admission.breaker_open
@@ -95,6 +98,16 @@ defmodule Relay.RuleDictionaryTest do
       ids = Map.keys(dictionary())
 
       for id <- @stage_four ++ @existing, do: assert(id in ids, id)
+    end
+
+    test "TP-51: the stage five template rules are present and none is a render failure" do
+      dictionary = dictionary()
+
+      for id <- @stage_five do
+        assert %{"kind" => "gate", "outcome" => "skip"} = dictionary[id], id
+      end
+
+      refute Enum.any?(Map.keys(dictionary), &String.starts_with?(&1, "template.render"))
     end
 
     test "DS-47 (3): every entry names its reason, kind, decision and both explanations" do

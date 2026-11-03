@@ -5,7 +5,7 @@ defmodule Relay.Api.Problem do
 
   alias Relay.Api.ErrorCatalog
 
-  @extensions ~w(errors limit actual limit_name required_scope granted_scopes policy quota)a
+  @extensions ~w(errors limit actual limit_name required_scope granted_scopes policy quota findings)a
   @role_extensions ~w(supported_versions required_role granted_roles step_up error)a
   @field_keys ~w(pointer code detail limit actual)a
 

@@ -389,6 +389,56 @@
       "subject_erasure": "row kept; the keyed target digest is never destroyed so an erased address is not mailed again on a later import",
       "table": "suppressions",
       "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "templates",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "template_versions",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "layouts",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "layout_versions",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "partials",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data",
+      "table": "partial_versions",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "no personal fields: version identifiers, the locale, the output digest and measures; row kept under the delivery_record retention",
+      "table": "delivery_render_plans",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [
+        "content_ct"
+      ],
+      "subject_erasure": "content is encrypted under the recipient's notification_content or commercial_message subject key, which is destroyed; the digest and the template version are kept. OTP, verification and retention none snapshots hold the digest only",
+      "table": "render_snapshots",
+      "tenant_close": "tenant keys destroyed; row kept"
     }
   ],
   "locations": [

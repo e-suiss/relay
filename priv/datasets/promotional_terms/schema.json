@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "promotional_terms",
+  "description": "Call to action phrases that mark promotional content. A transactional or operational template whose content matches a phrase fails the publication gate. Phrases are calls to action, not single words, so receipt lines such as a campaign discount amount do not match. Matching lowercases with the locale's rules, folds accents and matches the phrase at word boundaries. A phrase is never removed: it is marked deprecated.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_ref",
+    "phrases"
+  ],
+  "properties": {
+    "source_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "phrases": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "phrase",
+          "locale"
+        ],
+        "properties": {
+          "phrase": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 64,
+            "pattern": "^[a-zçğıöşü']+( [a-zçğıöşü']+)*$"
+          },
+          "locale": {
+            "type": "string",
+            "enum": [
+              "tr",
+              "en"
+            ]
+          },
+          "deprecated": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

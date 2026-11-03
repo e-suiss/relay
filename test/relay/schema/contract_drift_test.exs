@@ -96,7 +96,13 @@ defmodule Relay.Schema.ContractDriftTest do
     {"relay.consents", "consents_status_check", {"schemas", ["ConsentStatus"]}},
     {"relay.consents", "consents_consent_kind_check", {"schemas", ["ConsentKind"]}},
     {"relay.consents", "consents_recipient_type_check", {"schemas", ["LegalType"]}},
-    {"relay.suppressions", "suppressions_reason_check", {"schemas", ["SuppressionReason"]}}
+    {"relay.suppressions", "suppressions_reason_check", {"schemas", ["SuppressionReason"]}},
+    {"relay.templates", "templates_owner_check", {"schemas", ["TemplateOwner"]}},
+    {"relay.templates", "templates_template_type_check", {"schemas", ["TemplateType"]}},
+    {"relay.template_versions", "template_versions_sensitivity_check",
+     {"schemas", ["Sensitivity"]}},
+    {"relay.template_versions", "template_versions_sms_encoding_check",
+     {"schemas", ["SmsEncodingPolicy"]}}
   ]
 
   defp values(definition), do: ~r/'([^']*)'/ |> Regex.scan(definition) |> Enum.map(&List.last/1)

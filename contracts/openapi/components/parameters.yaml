@@ -290,3 +290,52 @@ SuppressionId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_sup"
+TemplateKey:
+  name: template_key
+  in: path
+  description: Template key.
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/TemplateKey"
+LayoutKey:
+  name: layout_key
+  in: path
+  description: Layout key.
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/TemplateKey"
+PartialKey:
+  name: partial_key
+  in: path
+  description: Partial key.
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/TemplateKey"
+TemplateVersion:
+  name: version
+  in: path
+  description: Published version number.
+  required: true
+  schema:
+    type: integer
+    minimum: 1
+TemplateSubtenant:
+  name: subtenant
+  in: query
+  description: "Subtenant whose own resource or effective settings are addressed; without it the tenant level is addressed. An API client bound to a subtenant always addresses its own subtenant."
+  required: false
+  schema:
+    "$ref": "./schemas.yaml#/Id_stn"
+  x-relay-choice: true
+  x-relay-choice-note: "The spec lets a subtenant define its own templates, layouts and brand; the query parameter that addresses the subtenant level is chosen by the contract."
+TranslationSource:
+  name: source
+  in: query
+  description: "Version the matrix is read from: the draft (default) or the live version."
+  required: false
+  schema:
+    type: string
+    enum:
+      - draft
+      - live
+    default: draft

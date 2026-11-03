@@ -4689,6 +4689,110 @@
   },
   {
     "acceptance": "pending",
+    "id": "TP-45",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "Allowed Solid tags and the complete filter set",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-46",
+    "section": "§11",
+    "status": "policy_default",
+    "title": "Sensitive term dictionary data set with Turkish and English content",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-47",
+    "section": "§11",
+    "status": "policy_default",
+    "title": "Masked recent event sample of twenty events from the last seven days",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-48",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "Template, layout and partial storage with immutable versions and a live pointer",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-49",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "Render in an unlinked process with a bounded heap",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-50",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "Pinned render plan at acceptance and the render content snapshot",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-51",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "Template rule identifiers of the rule dictionary",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-52",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "Producer templates and the four tenant overridable brand fields",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-53",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "Every SMS provider counts as unverified for the Turkish single shift until stage 6",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-54",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "Promotion leak detection with the promotional_terms call to action phrases",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-55",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "Mandatory legal_footer helper in commercial templates",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-56",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "Single CLDR backend and the installation's supported locale list",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "TP-57",
+    "section": "§11",
+    "status": "frozen_technical",
+    "title": "Conservative concatenated SMS limits and the email subject length warning",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "CH-1",
     "section": "§12",
     "status": "central",

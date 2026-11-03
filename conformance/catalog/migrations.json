@@ -94,5 +94,11 @@
   {"file": "20261110000600_seed_platform_security_categories.exs", "sha256": "d04155f2d3a22550d9c47be103682fe6526a30bc0d4bd0718900ec89205b0023"},
   {"file": "20261110000700_rebuild_reference_check_for_preferences.exs", "sha256": "75bbae16b80e5902b77ca35d10349765af859ce360482dfc686ca4bac64dec58"},
   {"file": "20261110000800_use_dictionary_cancel_rule_ids.exs", "sha256": "317ea3b7be518113c098aae9713dd396745129b267b6cf31d2bd9f1490336dd6"},
-  {"file": "20261111000000_create_delivery_decision_function.exs", "sha256": "ea8ac4c14558f32d88cac53d49e306493408dc2254d757c7bd4e2bed56e5c1cc"}
+  {"file": "20261111000000_create_delivery_decision_function.exs", "sha256": "ea8ac4c14558f32d88cac53d49e306493408dc2254d757c7bd4e2bed56e5c1cc"},
+  {"file": "20261112000000_create_template_tables.exs", "sha256": "828b82780665d7b300e534bfb7955a088351bcc8cc06a1d0e7e2c6031304eda7"},
+  {"file": "20261112000100_create_template_functions.exs", "sha256": "dca1f5d9a91443af50aea4f0919aa8c74c11f34673b9b3e2e64267b51b95a546"},
+  {"file": "20261112000200_create_layout_and_partial_functions.exs", "sha256": "987d89c9c44de51d8e5516bf0bfc7d73173edf19dad1dc27a02db13747920b66"},
+  {"file": "20261112000300_create_render_plan_functions.exs", "sha256": "f906a3805a4e182144eebef78f640ca9a8e0baa9f0df447d0e0a1ab2e33fe2d6"},
+  {"file": "20261112000400_register_template_term_datasets.exs", "sha256": "a7ad99f55b9c3545d708a62dede6063b2fb1619bc71fc98d31d26d5a8dd98306"},
+  {"file": "20261112000500_rebuild_reference_check_for_templates.exs", "sha256": "1b482b58b959a67a6a8509f88748e1f5cf02461e7ebfae14e0d83cdf8dd9ac91"}
 ]

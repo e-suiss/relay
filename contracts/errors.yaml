@@ -1002,3 +1002,383 @@ codes:
     description: "No subtenant with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404."
     type: "{base_url}/v1/errors/subtenant_not_found"
     choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: template_not_found
+    family: resource
+    status: 404
+    title: Template not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No template with this key exists in this tenant, or in the subtenant given. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/template_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: template_version_not_found
+    family: resource
+    status: 404
+    title: Template version not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The template has no published version with this number."
+    type: "{base_url}/v1/errors/template_version_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: layout_not_found
+    family: resource
+    status: 404
+    title: Layout not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No layout with this key exists in this tenant or its subtenant, or a template names a layout that does not exist or is archived."
+    type: "{base_url}/v1/errors/layout_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: layout_version_not_found
+    family: resource
+    status: 404
+    title: Layout version not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The layout has no published version with this number."
+    type: "{base_url}/v1/errors/layout_version_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: partial_not_found
+    family: resource
+    status: 404
+    title: Partial not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No partial with this key exists in this tenant or its subtenant, or a template names a partial that does not exist or is archived."
+    type: "{base_url}/v1/errors/partial_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: partial_version_not_found
+    family: resource
+    status: 404
+    title: Partial version not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The partial has no published version with this number."
+    type: "{base_url}/v1/errors/partial_version_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: template_archived
+    family: template
+    status: 409
+    title: Template is archived
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The template is archived and can no longer be changed, published or rolled back. A step naming it is skipped with rule_id template.archived."
+    type: "{base_url}/v1/errors/template_archived"
+    choice_note: "Code name and status chosen by the contract."
+  - code: layout_archived
+    family: template
+    status: 409
+    title: Layout is archived
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The layout is archived and can no longer be changed, published or rolled back."
+    type: "{base_url}/v1/errors/layout_archived"
+    choice_note: "Code name and status chosen by the contract."
+  - code: partial_archived
+    family: template
+    status: 409
+    title: Partial is archived
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The partial is archived and can no longer be changed, published or rolled back."
+    type: "{base_url}/v1/errors/partial_archived"
+    choice_note: "Code name and status chosen by the contract."
+  - code: layout_in_use
+    family: template
+    status: 409
+    title: Layout is in use
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "A live template version uses the layout; archive or republish those templates first."
+    type: "{base_url}/v1/errors/layout_in_use"
+    choice_note: "Code name and status chosen by the contract."
+  - code: partial_in_use
+    family: template
+    status: 409
+    title: Partial is in use
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "A live template version uses the partial; archive or republish those templates first."
+    type: "{base_url}/v1/errors/partial_in_use"
+    choice_note: "Code name and status chosen by the contract."
+  - code: template_protected
+    family: template
+    status: 409
+    title: Template is protected
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The template is owned by a producer product. Its text, translations, variables and sensitivity class belong to the producer; the tenant changes only the brand fields logo_url, primary_color, sender_name and footer."
+    type: "{base_url}/v1/errors/template_protected"
+    choice_note: "Code name and status chosen by the contract."
+  - code: template_producer_required
+    family: template
+    status: 403
+    title: Producer credentials required
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "Producer templates are published only with an API client bound to a platform product."
+    type: "{base_url}/v1/errors/template_producer_required"
+    choice_note: "Code name and status chosen by the contract."
+  - code: template_no_draft
+    family: template
+    status: 409
+    title: There is no draft to publish
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The resource has no draft; write a draft first. The code is shared by templates, layouts and partials."
+    type: "{base_url}/v1/errors/template_no_draft"
+    choice_note: "Code name and status chosen by the contract."
+  - code: template_draft_changed
+    family: template
+    status: 409
+    title: Draft changed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The draft changed after the checksum given with the publication was read. Review the current draft and publish again. The code is shared by templates, layouts and partials."
+    type: "{base_url}/v1/errors/template_draft_changed"
+    choice_note: "Code name and status chosen by the contract."
+  - code: template_gate_failed
+    family: template
+    status: 422
+    title: Publication gate failed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - findings
+    choice: true
+    description: "A hard publication check failed: parsing and static limits, variables against the schema, the plain text body, MJML compilation, the sensitivity class, push worst-case size, promotion in a transactional template or the legal footer. findings lists every result. A rollback whose revalidation fails is refused the same way. The code is shared by templates, layouts and partials."
+    type: "{base_url}/v1/errors/template_gate_failed"
+    choice_note: "Code name and status chosen by the contract."
+  - code: template_warnings_unacknowledged
+    family: template
+    status: 422
+    title: Publication warnings are not accepted
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - findings
+    choice: true
+    description: "The publication gate found warnings only. Publish again with accept_warnings to record them on the version. findings lists them. The code is shared by templates, layouts and partials."
+    type: "{base_url}/v1/errors/template_warnings_unacknowledged"
+    choice_note: "Code name and status chosen by the contract."
+  - code: template_version_duplicate
+    family: template
+    status: 409
+    title: Same content is already published
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The draft is identical to a published version (same checksum); roll back to that version instead. The code is shared by templates, layouts and partials."
+    type: "{base_url}/v1/errors/template_version_duplicate"
+    choice_note: "Code name and status chosen by the contract."
+  - code: template_version_archived
+    family: template
+    status: 409
+    title: Version is archived
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "An archived version cannot become live again. The code is shared by templates, layouts and partials."
+    type: "{base_url}/v1/errors/template_version_archived"
+    choice_note: "Code name and status chosen by the contract."
+  - code: template_version_immutable
+    family: template
+    status: 409
+    title: Published version cannot change
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "A published version is never changed; editing writes a new draft. The code is shared by templates, layouts and partials."
+    type: "{base_url}/v1/errors/template_version_immutable"
+    choice_note: "Code name and status chosen by the contract."
+  - code: template_class_mismatch
+    family: template
+    status: 422
+    title: Template class cannot change
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "After its first publication a template keeps its message class and type; its category can only change to a category of the same class."
+    type: "{base_url}/v1/errors/template_class_mismatch"
+    choice_note: "Code name and status chosen by the contract."
+  - code: template_translation_unapproved
+    family: template
+    status: 422
+    title: Machine translation is not approved
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "A machine translated cell is a draft until a person approves it; approve or rewrite it before publishing."
+    type: "{base_url}/v1/errors/template_translation_unapproved"
+    choice_note: "Code name and status chosen by the contract."
+  - code: template_sensitivity_unconfirmed
+    family: template
+    status: 422
+    title: Sensitivity class is not confirmed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The template has no sensitivity class, or the sensitive term dictionary matched its text or variable names and the class was not confirmed explicitly."
+    type: "{base_url}/v1/errors/template_sensitivity_unconfirmed"
+    choice_note: "Code name and status chosen by the contract."
+  - code: layout_not_published
+    family: template
+    status: 422
+    title: Layout has no live version
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The layout the template names has no live version; publish the layout first."
+    type: "{base_url}/v1/errors/layout_not_published"
+    choice_note: "Code name and status chosen by the contract."
+  - code: partial_not_published
+    family: template
+    status: 422
+    title: Partial has no live version
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "A partial the template names has no live version; publish the partial first."
+    type: "{base_url}/v1/errors/partial_not_published"
+    choice_note: "Code name and status chosen by the contract."
+  - code: locale_not_supported
+    family: template
+    status: 422
+    title: Locale is not supported
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The locale is not in the installation's supported locale list; template cells and default locales use only supported locales."
+    type: "{base_url}/v1/errors/locale_not_supported"
+    choice_note: "Code name and status chosen by the contract."
+  - code: preview_sample_unavailable
+    family: template
+    status: 422
+    title: Preview sample is not available
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The requested sample source has no data: the workflow schema has no examples, or no event of the workflow was accepted in the last 7 days. Choose another sample or send data."
+    type: "{base_url}/v1/errors/preview_sample_unavailable"
+    choice_note: "Code name and status chosen by the contract."

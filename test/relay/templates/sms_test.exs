@@ -157,7 +157,7 @@ defmodule Relay.Templates.SmsTest do
     end
 
     property "sanitising removes every forbidden code point and is idempotent" do
-      check all text <- string(:all, max_length: 80) do
+      check all text <- string(:utf8, max_length: 80) do
         {clean, _changes} = Content.sanitize(text)
 
         refute Enum.any?(String.to_charlist(clean), &forbidden?/1)

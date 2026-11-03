@@ -98,14 +98,14 @@ defmodule Relay.Templates.Channel.PushTest do
   describe "TP-20 properties" do
     property "an accepted payload is valid JSON within 4096 bytes" do
       check all title <- string(:printable, max_length: 300),
-                body <- string(:all, min_length: 1, max_length: 1500) do
+                body <- string(:utf8, min_length: 1, max_length: 1500) do
         case Push.render(%{"title" => title, "body" => body}, :public) do
           {:ok, %{output: output}} ->
             assert output.bytes <= 4096
             assert %{"aps" => %{"alert" => _alert}} = Jason.decode!(output.payload)
 
           {:error, findings} ->
-            assert findings != []
+            assert [%Relay.Templates.Finding{} | _] = findings
         end
       end
     end

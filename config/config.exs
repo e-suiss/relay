@@ -93,4 +93,6 @@ config :phoenix, :filter_parameters, {:keep, []}
 config :tzdata, :autoupdate, :disabled
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
+config :ex_cldr, default_backend: Relay.Templates.Cldr
+
 import_config "#{config_env()}.exs"

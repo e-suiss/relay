@@ -15,6 +15,7 @@ defmodule Relay.Application do
       Relay.Channels,
       Relay.Delivery,
       Relay.Connectors,
+      Relay.Templates,
       RelayWeb
     ]
 
@@ -32,6 +33,7 @@ defmodule Relay.Application do
     :logger.update_primary_config(%{metadata: %{role: Enum.join(roles, ",")}})
     observe_heap_size()
     log_vm_topology()
+    :ok = Relay.Templates.warm_up()
     Relay.Platform.attach_telemetry()
     attach_auto_replay()
 

@@ -1,0 +1,1 @@
+مرحبا {{ customer.name }} — {{ order.total | currency }} — {{ order.count | plural: zero: "لا شيء", one: "واحد", two: "اثنان", few: "# قليل", many: "# كثير", other: "# أخرى" }} — {{ order.placed_at | datetime: "short" }} — {{ order.ratio | percent }}

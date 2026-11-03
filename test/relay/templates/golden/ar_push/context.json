@@ -1,0 +1,14 @@
+{
+  "channel": "push",
+  "locale": "ar",
+  "time_zone": "Asia/Riyadh",
+  "data": {
+    "customer": {"name": "Ali"},
+    "order": {
+      "placed_at": "2026-03-01T18:45:00Z",
+      "total": {"amount": "350.5", "currency": "SAR"},
+      "count": 3,
+      "ratio": 0.5
+    }
+  }
+}

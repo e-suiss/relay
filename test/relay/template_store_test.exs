@@ -89,7 +89,7 @@ defmodule Relay.TemplateStoreTest do
   end
 
   describe "TP-48 TP-31 the template store" do
-    test "TP-48, TP-31: a template is created, drafted, published, rolled back and read back", ctx do
+    test "TP-48, TP-31: a template is drafted, published, rolled back and read back", ctx do
       {:ok, result} = Store.in_scope(ctx.scope, fn _ -> template_flow(ctx.actor) end)
 
       assert %{"live_version_no" => 1, "category" => "orders"} = result.template

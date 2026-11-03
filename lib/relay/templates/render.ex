@@ -203,11 +203,13 @@ defmodule Relay.Templates.Render do
     keys = for {key, value} <- cell, is_binary(value), key not in @meta_fields, do: key
 
     with {:ok, fields, state} <- fields(state, cell, Enum.sort(keys), :text) do
-      if Enum.all?(fields, fn {_key, value} -> String.trim(value) == "" end),
+      if Enum.all?(Map.values(fields), &blank?/1),
         do: violation("blank_output"),
         else: {:ok, fields, %{}, state}
     end
   end
+
+  defp blank?(value), do: String.trim(value) == ""
 
   defp email({:ok, %{output: out, changes: changes, findings: warnings}}, state) do
     output = %{
@@ -271,16 +273,12 @@ defmodule Relay.Templates.Render do
   defp layout_html(_content), do: violation("layout_compiled_html_missing")
 
   defp fields(state, cell, keys, escape) do
-    Enum.reduce_while(keys, {:ok, %{}, state}, fn key, {:ok, acc, state} ->
-      case cell[key] do
-        source when is_binary(source) ->
-          case part(state, key, source, escape) do
-            {:ok, value, state} -> {:cont, {:ok, Map.put(acc, key, value), state}}
-            error -> {:halt, error}
-          end
-
-        _absent ->
-          {:cont, {:ok, acc, state}}
+    keys
+    |> Enum.filter(&is_binary(cell[&1]))
+    |> Enum.reduce_while({:ok, %{}, state}, fn key, {:ok, acc, state} ->
+      case part(state, key, cell[key], escape) do
+        {:ok, value, state} -> {:cont, {:ok, Map.put(acc, key, value), state}}
+        error -> {:halt, error}
       end
     end)
   end

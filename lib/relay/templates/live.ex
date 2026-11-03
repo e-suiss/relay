@@ -13,8 +13,8 @@ defmodule Relay.Templates.Live do
     exports: []
 
   alias Relay.Scope
-  alias Relay.TemplateStore
   alias Relay.Templates.Live.Store
+  alias Relay.TemplateStore
 
   @channels Map.new(
               ~w(push web_push email sms voice whatsapp slack teams telegram discord in_app
@@ -234,7 +234,7 @@ defmodule Relay.Templates.Live do
 
     %{
       channel: channel,
-      cell: get_in(version, ["cells", delivery["channel"], locale]) || %{},
+      cell: cell(get_in(version, ["cells", delivery["channel"]]) || %{}, locale),
       locale: locale,
       time_zone: time_zone(delivery["timezone"], input.defaults["default_timezone"]),
       data: data,
@@ -250,6 +250,17 @@ defmodule Relay.Templates.Live do
       layout: if(channel == :email, do: input.layout)
     }
   end
+
+  # TP-26
+  defp cell(cells, locale) do
+    case Map.fetch(cells, locale) do
+      {:ok, cell} -> cell
+      :error -> Enum.find_value(cells, %{}, &same_locale(&1, locale))
+    end
+  end
+
+  defp same_locale({tag, cell}, locale),
+    do: if(Relay.Locale.new(tag) == {:ok, locale}, do: cell)
 
   defp time_zone(own, default) do
     Enum.find([own, default], "Etc/UTC", fn zone ->

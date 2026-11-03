@@ -45,7 +45,7 @@ defmodule Relay.Templates.Channel.Email do
     {subject, subject_changes} = header_field(fields, "subject")
     {preheader, preheader_changes} = header_field(fields, "preheader")
     {text, text_changes} = Sanitizer.utf8(string(fields, "text"), "text")
-    {html, html_changes} = html(string(fields, "html"), locale)
+    {html, html_changes} = clean_html(string(fields, "html"), locale)
 
     output = %{
       subject: subject,
@@ -118,7 +118,7 @@ defmodule Relay.Templates.Channel.Email do
     end
   end
 
-  defp html(html, locale) do
+  defp clean_html(html, locale) do
     {html, changes} = Sanitizer.utf8(html, "html")
     {html, more} = put_dir(html, locale)
     {html, changes ++ more}

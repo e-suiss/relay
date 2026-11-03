@@ -300,8 +300,7 @@ defmodule Relay.Templates.Filters do
       {:ok, encode(formatted, state)}
     else
       {:error, {_exception, message}} when is_binary(message) -> {:error, message}
-      {:error, message} when is_binary(message) -> {:error, message}
-      _other -> {:error, "cannot format the number"}
+      {:error, message} -> {:error, message}
     end
   end
 
@@ -420,10 +419,8 @@ defmodule Relay.Templates.Filters do
     end
   end
 
-  defp categories(rules) when is_list(rules),
+  defp categories(rules),
     do: Enum.map(rules, fn {category, _rule} -> Atom.to_string(category) end)
-
-  defp categories(_rules), do: []
 
   defp missing(list, cardinal, ordinal) when is_list(list),
     do: Enum.flat_map(list, &missing(&1, cardinal, ordinal))

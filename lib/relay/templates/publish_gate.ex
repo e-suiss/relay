@@ -16,6 +16,7 @@ defmodule Relay.Templates.PublishGate do
   alias Relay.Templates.Lint.LegalFooter
   alias Relay.Templates.Lint.Promotion
   alias Relay.Templates.Lint.Sensitive
+  alias Relay.Templates.Lint.Terms
   alias Relay.Templates.Locale
   alias Relay.Templates.Samples
   alias Relay.Templates.Sms.Content
@@ -479,7 +480,8 @@ defmodule Relay.Templates.PublishGate do
         texts = Enum.flat_map(group, & &1.texts)
         paths = group |> Enum.flat_map(& &1.paths) |> Enum.uniq()
         found = Sensitive.matches(texts, paths, entries, locale)
-        unconfirmed = Enum.reject(found, &(&1.term in approved))
+        confirmed = Enum.map(approved, &Terms.fold(&1, locale))
+        unconfirmed = Enum.reject(found, &(Terms.fold(&1.term, locale) in confirmed))
         term_finding(unconfirmed, locale) ++ lock_screen(group, entries, locale)
       end)
 

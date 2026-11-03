@@ -31,6 +31,7 @@ jobs:
             _build
             priv/plts
           key: mix-${{ runner.os }}-${{ hashFiles('.tool-versions', 'mix.lock') }}
+          restore-keys: mix-${{ runner.os }}-
       - run: docker compose -f deploy/compose.yaml config -q
       - run: docker run --rm --entrypoint promtool -v "$PWD/deploy/observability:/etc/prometheus:ro" prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e check config /etc/prometheus/prometheus.yaml
       - run: docker run --rm --entrypoint promtool -v "$PWD/deploy/observability:/etc/prometheus:ro" -w /etc/prometheus prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e test rules alerts.test.yaml

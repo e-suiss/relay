@@ -8,6 +8,8 @@ defmodule Relay.Templates.Filters do
   """
 
   alias Relay.Templates.Cldr, as: Backend
+  alias Relay.Templates.Cldr.Number.Cardinal
+  alias Relay.Templates.Cldr.Number.Ordinal
   alias Relay.Templates.Escape
 
   @type state :: %{
@@ -361,7 +363,7 @@ defmodule Relay.Templates.Filters do
     with :ok <- plural_keys(named),
          {:ok, count} <- numeric(input),
          {:ok, formatted} <- Backend.Number.to_string(count, locale: state.tag) do
-      category = Backend.Number.Cardinal.plural_rule(count, state.tag)
+      category = Cardinal.plural_rule(count, state.tag)
       message = if zero?(count), do: named["zero"], else: nil
       message = message || named[Map.fetch!(@categories, category)] || named["other"]
       {:ok, String.replace(message, "#", formatted)}
@@ -410,8 +412,8 @@ defmodule Relay.Templates.Filters do
   def icu_categories_missing(message, locale) when is_binary(message) and is_binary(locale) do
     with {:ok, tag} <- Backend.language_tag(locale),
          {:ok, parsed} <- Cldr.Message.V1.Parser.parse(message, false) do
-      cardinal = categories(Backend.Number.Cardinal.plural_rules_for(tag))
-      ordinal = categories(Backend.Number.Ordinal.plural_rules_for(tag))
+      cardinal = categories(Cardinal.plural_rules_for(tag))
+      ordinal = categories(Ordinal.plural_rules_for(tag))
       parsed |> missing(cardinal, ordinal) |> Enum.uniq() |> Enum.sort()
     else
       _ -> ["other"]

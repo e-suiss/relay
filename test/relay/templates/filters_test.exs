@@ -55,8 +55,8 @@ defmodule Relay.Templates.FiltersTest do
       assert render("[{{ s | strip }}][{{ s | lstrip }}][{{ s | rstrip }}]", data) ==
                "[Ali][Ali  ][  Ali]"
 
-      assert render("{{ q | replace: \"b\", \"x\" }}", data) == "a x&c"
-      assert render("{{ q | prepend: \"<\" | append: \">\" }}", data) == "<a b&c>"
+      assert render(~s({{ q | replace: "b", "x" }}), data) == "a x&c"
+      assert render(~s({{ q | prepend: "<" | append: ">" }}), data) == "<a b&c>"
       assert render("{{ q | url_encode }}", data) == "a+b%26c"
       assert render("{{ n | default: \"Değerli müşterimiz\" }}", data) == "Değerli müşterimiz"
       assert render("{{ e | default: \"-\" }}", data) == "-"
@@ -132,13 +132,13 @@ defmodule Relay.Templates.FiltersTest do
     end
 
     test "TP-27: plural uses CLDR categories and an explicit zero" do
-      source = "{{ n | plural: zero: \"Mesaj yok\", one: \"# mesaj\", other: \"# mesaj\" }}"
+      source = ~s({{ n | plural: zero: "Mesaj yok", one: "# mesaj", other: "# mesaj" }})
 
       assert render(source, %{"n" => 0}) == "Mesaj yok"
       assert render(source, %{"n" => 1}) == "1 mesaj"
       assert render(source, %{"n" => 12_000}) == "12.000 mesaj"
 
-      english = "{{ n | plural: one: \"# message\", other: \"# messages\" }}"
+      english = ~s({{ n | plural: one: "# message", other: "# messages" }})
       assert render(english, %{"n" => 0}, locale: "en") == "0 messages"
       assert render(english, %{"n" => 1}, locale: "en") == "1 message"
     end

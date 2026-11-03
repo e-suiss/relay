@@ -97,7 +97,7 @@ defmodule Relay.Templates.EngineTest do
       assert codes("{{ x | number: 11 }}") == ["filter_argument"]
       assert codes("{{ x | plural: one: \"#\" }}") == ["filter_argument"]
       assert codes("{{ x | plural: one: \"#\", other: n }}") == ["filter_argument"]
-      assert {:ok, _} = Engine.parse("{{ x | truncate: 5, \"…\" }}{{ x | date: \"long\" }}")
+      assert {:ok, _} = Engine.parse(~s({{ x | truncate: 5, "…" }}{{ x | date: "long" }}))
     end
 
     test "TP-24: raw needs the template's allow_raw flag" do

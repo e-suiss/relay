@@ -34,10 +34,18 @@ defmodule Relay.CLI.Args do
 
   @event [to: :keep, recipient: :keep, data: :string, data_file: :string, dedup_key: :string]
   @filters [workflow: :string, subscriber: :string, status: :string, interval: :integer]
+  @preview [
+    template: :string,
+    steps: :boolean,
+    channel: :keep,
+    locale: :string,
+    version: :string,
+    sample: :string
+  ]
 
   @commands %{
     "trigger" => {@event, 1, 1},
-    "preview" => {@event, 1, 1},
+    "preview" => {@event ++ @preview, 1, 1},
     "pull" => {[dir: :string], 0, :many},
     "push" => {[dir: :string, publish: :boolean, note: :string], 0, :many},
     "promote" => {[version: :integer, note: :string], 1, 1},
@@ -80,7 +88,8 @@ defmodule Relay.CLI.Args do
 
   Commands:
     trigger <workflow>          Send an event to a workflow
-    preview <workflow>          Dry-run an event in the test environment
+    preview <workflow>          Dry-run an event in the test environment; with --template
+                                render a template, with --steps preview the workflow steps
     pull [workflow...]          Write workflow definitions to files (--dir, default workflows)
     push [file...]              Write workflow files as drafts (--dir, --publish, --note)
     promote <workflow>          Publish the test version of a workflow in live (--version)
@@ -98,6 +107,9 @@ defmodule Relay.CLI.Args do
     --recipient <json>          Recipient object such as {"id":"u-1","email":"a@example.com"}
     --data <json>, --data-file <path>   Event data object
     --dedup-key <key>           Business deduplication key
+
+  Preview options: --template <key>, --steps, --channel <channel> (repeatable),
+  --locale <tag>, --version draft|live|<n>, --sample schema_examples|masked_recent|boundary
 
   Filters (logs, listen): --workflow <key>, --subscriber <id>, --status <status>,
   --interval <seconds> (polling interval, default 2)

@@ -102,7 +102,9 @@ defmodule Relay.CLI.Trigger do
     end
   end
 
-  defp data(opts) do
+  @doc "The event data of `--data` or `--data-file`, `nil` without either."
+  @spec data(keyword()) :: {:ok, map() | nil} | {:error, Failure.t()}
+  def data(opts) do
     case {opts[:data], opts[:data_file]} do
       {nil, nil} -> {:ok, nil}
       {text, nil} -> json_object(text, "--data")

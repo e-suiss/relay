@@ -387,6 +387,88 @@ defmodule Relay.CLITest do
       assert err =~ "preview_requires_test"
       assert requests() == []
     end
+
+    test "X-33, API-60: preview --template renders a template with local data and prints SMS numbers" do
+      render = %{
+        "channel" => "sms",
+        "locale" => "tr",
+        "content" => %{"body" => "Çağrı A-1"},
+        "failure_reason" => nil,
+        "warnings" => [%{"code" => "sms_ucs2_characters", "message" => "UCS-2"}],
+        "sms" => %{
+          "encoding" => "GSM7_TR",
+          "encoding_unverified_provider" => "UCS2",
+          "segments" => 1,
+          "characters" => 9
+        }
+      }
+
+      preview = %{
+        "object" => "template_preview",
+        "template_key" => "order-shipped",
+        "version" => "draft",
+        "sample" => "data",
+        "renders" => [render]
+      }
+
+      routes = %{{"POST", "/v1/templates/order-shipped/preview"} => {200, preview}}
+
+      argv = [
+        "preview",
+        "order-flow",
+        "--template",
+        "order-shipped",
+        "--channel",
+        "sms",
+        "--version",
+        "2",
+        "--data",
+        ~s({"order": "A-1"})
+      ]
+
+      live = env(%{"RELAY_ENVIRONMENT" => "live"})
+      assert {0, out, ""} = cli(argv, routes, env: live)
+      assert out =~ "preview of order-shipped (draft, data)"
+      assert out =~ "SMS GSM7_TR, 1 segment(s), 9 character(s); unverified provider: UCS2"
+      assert out =~ "warning: sms_ucs2_characters"
+
+      assert [%{body: body}] = api_requests()
+
+      assert body == %{
+               "workflow" => "order-flow",
+               "channels" => ["sms"],
+               "version" => 2,
+               "data" => %{"order" => "A-1"}
+             }
+
+      assert {2, _out, err} = cli(argv ++ ["--sample", "other"], routes)
+      assert err =~ "--sample"
+    end
+
+    test "X-33, API-60: preview --steps shows each step's decision" do
+      steps = %{
+        "object" => "workflow_preview",
+        "workflow_key" => "order-flow",
+        "version" => "live",
+        "sample" => "boundary",
+        "steps" => [
+          %{
+            "step" => "email_step",
+            "channel" => "email",
+            "template" => "order-shipped",
+            "would_send" => false,
+            "reason" => "template",
+            "rule_id" => "template.variant_missing",
+            "render" => nil
+          }
+        ]
+      }
+
+      routes = %{{"POST", "/v1/workflows/order-flow/preview"} => {200, steps}}
+      assert {0, out, ""} = cli(["preview", "order-flow", "--steps"], routes)
+      assert out =~ "email_step email order-shipped: skipped template.variant_missing"
+      assert [%{body: %{}}] = api_requests()
+    end
   end
 
   describe "kill switches" do

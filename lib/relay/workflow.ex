@@ -203,6 +203,12 @@ defmodule Relay.Workflow do
   @spec definition_digest(Definition.t()) :: <<_::256>>
   defdelegate definition_digest(definition), to: Definition, as: :digest
 
+  # TP-13
+  # TP-32
+  @doc "The active workflows whose published version sends the template key in a channel step, inside the caller's scoped transaction: each with its `key`, `version_no` and `event_schema`."
+  @spec using_template(String.t()) :: [map()]
+  defdelegate using_template(template_key), to: Store
+
   defp with_parts(workflow) do
     Map.merge(workflow, %{
       "draft" => Store.draft(workflow["id"]),

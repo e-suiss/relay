@@ -8,8 +8,14 @@ defmodule Relay.Templates do
   alias Relay.Templates.Cldr
   alias Relay.Templates.Context
   alias Relay.Templates.Engine
+  alias Relay.Templates.Finding
   alias Relay.Templates.Locale
+  alias Relay.Templates.Mjml
+  alias Relay.Templates.PublishGate
+  alias Relay.Templates.Render
+  alias Relay.Templates.Samples
   alias Relay.Templates.Sandbox
+  alias Relay.Templates.TermSets
   alias Relay.Templates.Variables
 
   # TP-43
@@ -61,4 +67,105 @@ defmodule Relay.Templates do
   @spec resolve_locale(Locale.candidates(), [String.t()]) ::
           {:ok, Locale.resolution()} | {:error, :locale_missing}
   def resolve_locale(candidates, cells), do: Locale.resolve(candidates, cells)
+
+  # TP-31
+  # TP-32
+  @doc "Runs the publication gate over a template definition; see `Relay.Templates.PublishGate.template/1`."
+  @spec publish_gate(PublishGate.input()) :: PublishGate.result()
+  def publish_gate(input), do: PublishGate.template(input)
+
+  # TP-35
+  @doc "Runs the publication gate over a layout definition; see `Relay.Templates.PublishGate.layout/2`."
+  @spec layout_gate(map(), keyword()) :: %{findings: [Finding.t()], compiled: String.t() | nil}
+  def layout_gate(definition, opts \\ []), do: PublishGate.layout(definition, opts)
+
+  # TP-35
+  @doc "Runs the publication gate over a partial definition; see `Relay.Templates.PublishGate.partial/2`."
+  @spec partial_gate(map(), keyword()) :: %{findings: [Finding.t()]}
+  def partial_gate(definition, opts \\ []), do: PublishGate.partial(definition, opts)
+
+  # TP-21
+  @doc "The sensitive terms that match a definition, by locale; see `Relay.Templates.PublishGate.sensitive_matches/2`."
+  @spec sensitive_matches(map(), [map()]) :: %{String.t() => [map()]}
+  defdelegate sensitive_matches(definition, entries), to: PublishGate
+
+  # TP-56
+  @doc "Whether a locale is valid and its language is supported by the CLDR backend."
+  @spec locale_supported?(term()) :: boolean()
+  def locale_supported?(locale) when is_binary(locale),
+    do: PublishGate.supported?(locale, Cldr.supported_locales())
+
+  def locale_supported?(_locale), do: false
+
+  # TP-9
+  @doc "The cells of a definition as `{channel_key, channel, locale, cell}`; see `Relay.Templates.PublishGate.cells/1`."
+  @spec cells(map()) :: [{String.t(), atom(), String.t(), map()}]
+  defdelegate cells(definition), to: PublishGate
+
+  # TP-8
+  @doc "Compiles MJML at publication or for a preview, never on the send path; see `Relay.Templates.Mjml.compile/2`. The options of `config :relay, Relay.Templates.Mjml` (`:executable`, `:sha256`, `:timeout`, `:max_output`) apply."
+  @spec compile_mjml(String.t()) :: {:ok, String.t()} | {:error, Relay.Error.t()}
+  def compile_mjml(source) do
+    options = Application.get_env(:relay, Mjml, [])
+    Mjml.compile(source, Keyword.take(options, [:executable, :sha256, :timeout, :max_output]))
+  end
+
+  # TP-38
+  # API-60
+  @doc "Parses and renders one cell for a channel; see `Relay.Templates.Render.parse/3` and `Relay.Templates.Render.cell/4`. Returns the parse findings when a field does not parse."
+  @spec render_cell(Context.channel(), map(), keyword()) ::
+          {:ok, Render.result()}
+          | {:error, Render.failure(), String.t() | nil}
+          | {:parse_error, [{String.t(), [Engine.finding()]}]}
+  def render_cell(channel, cell, opts) do
+    case Render.parse(channel, cell, Keyword.take(opts, [:allow_raw, :html])) do
+      {parsed, []} -> Render.cell(channel, cell, parsed, opts)
+      {_parsed, errors} -> {:parse_error, errors}
+    end
+  end
+
+  # TP-9
+  @doc "The channel of a cell key of the definition, or `nil`; see `Relay.Templates.Render.channel/1`."
+  @spec channel(String.t()) :: Context.channel() | nil
+  defdelegate channel(key), to: Render
+
+  @doc "The SMS encoding policy of a definition's `sms_encoding`; see `Relay.Templates.Render.policy/1`."
+  @spec sms_policy(String.t() | nil) :: atom()
+  def sms_policy(name), do: Render.policy(name)
+
+  @doc "The sensitivity class of a definition's `sensitivity`; see `Relay.Templates.Render.sensitivity/1`."
+  @spec sensitivity(String.t() | nil) :: :public | :personal | :sensitive | nil
+  defdelegate sensitivity(name), to: Render
+
+  # TP-14
+  @doc "The criticality declarations of an event schema; see `Relay.Templates.Variables.criticality/1`."
+  @spec criticality(map()) :: %{String.t() => Context.declaration()}
+  defdelegate criticality(schema), to: Variables
+
+  # TP-38
+  @doc "The schema's examples; see `Relay.Templates.Samples.examples/1`."
+  @spec examples(map()) :: [Samples.sample()]
+  defdelegate examples(schema), to: Samples
+
+  # TP-38
+  @doc "The automatic boundary samples of a schema; see `Relay.Templates.Samples.boundary/1`."
+  @spec boundary(map()) :: [Samples.sample()]
+  defdelegate boundary(schema), to: Samples
+
+  # TP-47
+  @doc "Masks a real event against its schema; see `Relay.Templates.Samples.mask/2`."
+  @spec mask(term(), map()) :: term()
+  defdelegate mask(event, schema), to: Samples
+
+  # TP-47
+  @doc "How many recent real events a preview samples, over how many days; see `Relay.Templates.Samples.real_event_window/0`."
+  @spec real_event_window() :: %{count: pos_integer(), days: pos_integer()}
+  defdelegate real_event_window(), to: Samples
+
+  # TP-46
+  # TP-54
+  @doc "The lint entries of a dictionary data set: the given content, or the newest bundled version when it is `nil`; see `Relay.Templates.TermSets`."
+  @spec term_entries(String.t(), map() | nil) :: [map()]
+  def term_entries(name, nil), do: name |> TermSets.bundled() |> TermSets.entries()
+  def term_entries(_name, content), do: TermSets.entries(content)
 end

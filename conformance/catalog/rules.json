@@ -8761,6 +8761,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "T-98",
+    "section": "§19",
+    "status": "frozen_technical",
+    "title": "The MJML compiler is the native/mjml_port Port program (mrml); the NIF list is empty",
+    "verify_stage": 5
+  },
+  {
+    "acceptance": "pending",
     "id": "OP-1",
     "section": "§20",
     "status": "frozen_technical",

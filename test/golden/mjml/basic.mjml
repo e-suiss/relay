@@ -1,0 +1,25 @@
+<mjml lang="en">
+  <mj-head>
+    <mj-title>Order confirmation</mj-title>
+    <mj-preview>Your order is confirmed</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Helvetica, Arial, sans-serif" />
+      <mj-text font-size="16px" color="#222222" line-height="24px" />
+      <mj-class name="muted" color="#777777" font-size="13px" />
+    </mj-attributes>
+    <mj-style inline="inline">.link { color: #0055cc; }</mj-style>
+    <mj-style>@media (max-width: 480px) { .wide { width: 100% !important; } }</mj-style>
+  </mj-head>
+  <mj-body background-color="#f4f4f4" width="600px">
+    <mj-section background-color="#ffffff" padding="24px">
+      <mj-column>
+        <mj-image src="https://example.com/logo.png" alt="Logo" width="120px" align="left" />
+        <mj-text font-size="22px" font-weight="bold">Thank you for your order</mj-text>
+        <mj-text>Your order has been received and is being prepared.</mj-text>
+        <mj-button href="https://example.com/orders/1" background-color="#0055cc" color="#ffffff">View order</mj-button>
+        <mj-divider border-color="#dddddd" border-width="1px" />
+        <mj-text mj-class="muted">You are receiving this message because you placed an order.</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

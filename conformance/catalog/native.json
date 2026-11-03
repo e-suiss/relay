@@ -1,4 +1,7 @@
 {
-  "nif": [{"crate": "mjml", "rule": "T-53"}],
-  "port": [{"crate": "pkcs11_port", "rule": "TN-63"}]
+  "nif": [],
+  "port": [
+    {"crate": "pkcs11_port", "rule": "TN-63"},
+    {"crate": "mjml_port", "rule": "T-98"}
+  ]
 }

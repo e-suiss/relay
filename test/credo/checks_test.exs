@@ -8,6 +8,7 @@ defmodule RelayDev.Credo.ChecksTest do
     LaneOutsideLane,
     LimitClock,
     MailboxRules,
+    MjmlOnSendPath,
     NoDirectClock,
     OffHeapMailbox,
     PersistentTerm,
@@ -259,6 +260,26 @@ defmodule RelayDev.Credo.ChecksTest do
       """
 
       assert [%{line_no: 2}] = issues(code, TenantProcesses)
+    end
+  end
+
+  describe "TP-8 T-98 MJML only at publish time" do
+    test "TP-8: send path code that references the MJML compiler is reported" do
+      code = """
+      defmodule Relay.Example do
+        alias Relay.Templates.Mjml
+        def a(source), do: Mjml.compile(source)
+        def b(source), do: Relay.Templates.Mjml.compile(source, timeout: 10)
+        def c, do: &Relay.Templates.Mjml.compile/1
+        def d(html), do: Relay.Templates.render(html)
+      end
+      """
+
+      assert [2, 3, 4, 5] =
+               code
+               |> issues(MjmlOnSendPath, "lib/relay/delivery/send.ex")
+               |> Enum.map(& &1.line_no)
+               |> Enum.sort()
     end
   end
 

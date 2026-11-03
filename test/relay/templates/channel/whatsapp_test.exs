@@ -18,12 +18,12 @@ defmodule Relay.Templates.Channel.WhatsappTest do
     end
 
     test "values over the component limit are cut at a grapheme boundary" do
-      value = String.duplicate("ğ", 59) <> "👨‍👩‍👧" <> "x"
+      value = String.duplicate("ğ", 59) <> "👨\u200D👩\u200D👧" <> "x"
 
       assert {cut, [%{rule: :truncated, action: :truncated, count: 1, detail: detail}]} =
                Whatsapp.clean(value, :header, "header/1")
 
-      assert cut == String.duplicate("ğ", 59) <> "👨‍👩‍👧"
+      assert cut == String.duplicate("ğ", 59) <> "👨\u200D👩\u200D👧"
       assert detail == %{graphemes: 61, limit: 60}
     end
 

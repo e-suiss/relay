@@ -74,12 +74,12 @@ defmodule Relay.Templates.Sms.EncodingTest do
     end
   end
 
-  describe "TP-18 CH-48 segment vectors" do
+  describe "TP-18 TP-57 CH-48 segment vectors" do
     test "pure GSM text: 160 characters are one segment, 161 are two" do
       assert segments(String.duplicate("a", 160), :gsm7) == 1
       assert segments(String.duplicate("a", 161), :gsm7) == 2
-      assert segments(String.duplicate("a", 306), :gsm7) == 2
-      assert segments(String.duplicate("a", 307), :gsm7) == 3
+      assert segments(String.duplicate("a", 304), :gsm7) == 2
+      assert segments(String.duplicate("a", 305), :gsm7) == 3
     end
 
     test "extension characters count double" do
@@ -90,28 +90,28 @@ defmodule Relay.Templates.Sms.EncodingTest do
     end
 
     test "an escape pair never straddles two segments" do
-      text = String.duplicate("a", 152) <> "€" <> String.duplicate("a", 152)
+      text = String.duplicate("a", 151) <> "€" <> String.duplicate("a", 151)
       assert segments(text, :gsm7) == 3
     end
 
-    test "GSM7_TR holds 155 septets in one segment and 149 per concatenated segment" do
+    test "GSM7_TR holds 155 septets in one segment and 148 per concatenated segment" do
       assert segments(String.duplicate("ş", 77) <> "a", :gsm7_tr) == 1
       assert segments(String.duplicate("ş", 78), :gsm7_tr) == 2
       assert segments(String.duplicate("a", 155), :gsm7_tr) == 1
-      assert segments(String.duplicate("a", 298), :gsm7_tr) == 2
-      assert segments(String.duplicate("a", 299), :gsm7_tr) == 3
+      assert segments(String.duplicate("a", 296), :gsm7_tr) == 2
+      assert segments(String.duplicate("a", 297), :gsm7_tr) == 3
     end
 
-    test "UCS-2 holds 70 units in one segment and 67 per concatenated segment" do
+    test "UCS-2 holds 70 units in one segment and 66 per concatenated segment" do
       assert segments(String.duplicate("ş", 70), :ucs2) == 1
       assert segments(String.duplicate("ş", 71), :ucs2) == 2
-      assert segments(String.duplicate("ş", 134), :ucs2) == 2
-      assert segments(String.duplicate("ş", 135), :ucs2) == 3
+      assert segments(String.duplicate("ş", 132), :ucs2) == 2
+      assert segments(String.duplicate("ş", 133), :ucs2) == 3
       assert segments(String.duplicate("😀", 35), :ucs2) == 1
     end
 
     test "a surrogate pair never straddles two segments" do
-      text = String.duplicate("a", 66) <> "😀" <> String.duplicate("a", 66)
+      text = String.duplicate("a", 65) <> "😀" <> String.duplicate("a", 65)
       assert segments(text, :ucs2) == 3
     end
 
@@ -127,17 +127,17 @@ defmodule Relay.Templates.Sms.EncodingTest do
 
     test "capacity" do
       assert Segments.capacity(:gsm7, 1) == 160
-      assert Segments.capacity(:gsm7, 2) == 306
-      assert Segments.capacity(:gsm7_tr, 3, 10) == 437
+      assert Segments.capacity(:gsm7, 2) == 304
+      assert Segments.capacity(:gsm7_tr, 3, 10) == 434
       assert Segments.capacity(:ucs2, 1, 100) == 0
     end
   end
 
   describe "TP-18 properties" do
-    property "default alphabet text follows the 160/153 formula" do
+    property "default alphabet text follows the 160/152 formula" do
       check all chars <- list_of(member_of(@basic), max_length: 700) do
         n = length(chars)
-        expected = if n <= 160, do: min(n, 1), else: div(n + 152, 153)
+        expected = if n <= 160, do: min(n, 1), else: div(n + 151, 152)
         assert segments(Enum.join(chars), :gsm7) == expected
       end
     end

@@ -30,6 +30,18 @@ defmodule Relay.Templates.Channel.EmailTest do
       assert [%{rule: :line_break, action: :replaced, count: 5, field: "subject"}] = changes
     end
 
+    test "TP-57: a subject over 78 characters is a warning" do
+      longest = fields(%{"subject" => String.duplicate("ş", 78)})
+      assert {:ok, %{findings: []}} = Email.render(longest)
+
+      assert {:ok, %{findings: [%{check: :email_subject_length, detail: detail} = finding]}} =
+               Email.render(fields(%{"subject" => String.duplicate("ş", 79)}))
+
+      assert finding.level == :warning
+
+      assert detail == %{characters: 79, limit: 78}
+    end
+
     test "a printable ASCII subject is not encoded" do
       assert Email.encode_subject("Your order shipped") == "Your order shipped"
     end

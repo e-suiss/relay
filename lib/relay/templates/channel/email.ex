@@ -2,7 +2,7 @@ defmodule Relay.Templates.Channel.Email do
   @moduledoc """
   E-mail output (TP-22, TP-29). A variant has four fields with string keys: `"subject"`, `"preheader"`, `"html"` and `"text"`; the plain text body is mandatory and separate.
 
-  Line breaks are removed from the subject and the preheader (each run becomes one space) and a non-ASCII subject is encoded as RFC 2047 `B` encoded-words. The rendered HTML is measured after variable injection: over 70 000 bytes is a warning, over 90 000 bytes a rejection. A missing `color-scheme` meta tag is a warning, AMP for Email is refused, and an RTL locale gets `dir="rtl"` on the `html` element. Every content change is recorded (INV-1).
+  Line breaks are removed from the subject and the preheader (each run becomes one space), a subject over 78 characters after render is a warning (TP-57) and a non-ASCII subject is encoded as RFC 2047 `B` encoded-words. The rendered HTML is measured after variable injection: over 70 000 bytes is a warning, over 90 000 bytes a rejection. A missing `color-scheme` meta tag is a warning, AMP for Email is refused, and an RTL locale gets `dir="rtl"` on the `html` element. Every content change is recorded (INV-1).
   """
 
   alias Relay.Templates.Direction
@@ -23,6 +23,7 @@ defmodule Relay.Templates.Channel.Email do
   @warn_bytes 70_000
   @max_bytes 90_000
   @word_bytes 45
+  @subject_characters 78
 
   @html_tag ~r/<html\b[^>]*>/i
   @dir_attribute ~r/\sdir\s*=/i
@@ -156,6 +157,7 @@ defmodule Relay.Templates.Channel.Email do
     Enum.filter(
       [
         String.trim(output.text) == "" && {:email_plain_text, :hard, "/text", %{}},
+        subject_length(output.subject),
         html_size(output.html_bytes),
         Regex.match?(@amp, html) && {:email_amp, :hard, "/html", %{}},
         !Regex.match?(@color_scheme, html) && {:email_color_scheme, :warning, "/html", %{}},
@@ -163,6 +165,18 @@ defmodule Relay.Templates.Channel.Email do
       ],
       &is_tuple/1
     )
+  end
+
+  # TP-57
+  defp subject_length(subject) do
+    case String.length(subject) do
+      length when length > @subject_characters ->
+        detail = %{characters: length, limit: @subject_characters}
+        {:email_subject_length, :warning, "/subject", detail}
+
+      _length ->
+        false
+    end
   end
 
   defp html_size(bytes) do

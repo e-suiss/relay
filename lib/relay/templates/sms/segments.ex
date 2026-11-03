@@ -1,14 +1,15 @@
 defmodule Relay.Templates.Sms.Segments do
   @moduledoc """
-  Conservative, provider-independent SMS segment math (TP-18, CH-48). A single message holds 160 septets in `:gsm7`, 155 in `:gsm7_tr` (the single shift header) and 70 units in `:ucs2`; a concatenated message holds 153, 149 and 67 per segment. The limits are the values of CH-48, which takes the smaller value where providers differ.
+  Conservative, provider-independent SMS segment math (TP-18, TP-57, CH-48). A single message holds 160 septets in `:gsm7`, 155 in `:gsm7_tr` (the single shift header) and 70 units in `:ucs2`; a concatenated message assumes the 16-bit reference concatenation header and holds 152, 148 and 66 per segment.
 
   Units are packed greedily and a two-unit character (a GSM escape pair or a UTF-16 surrogate pair) never straddles two segments, so a segment may end one unit short. Reserved units (the operator prefix of a TR SMS with a sender header, CH-48) are counted before the text.
   """
 
   alias Relay.Templates.Sms.Encoding
 
-  @limits %{gsm7: {160, 153}, gsm7_tr: {155, 149}, ucs2: {70, 67}}
+  @limits %{gsm7: {160, 152}, gsm7_tr: {155, 148}, ucs2: {70, 66}}
 
+  # TP-57
   # CH-48
   @doc "The `{single, per_segment}` unit limits of an encoding."
   @spec limits(Encoding.t()) :: {pos_integer(), pos_integer()}

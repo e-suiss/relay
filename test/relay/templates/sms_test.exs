@@ -98,7 +98,7 @@ defmodule Relay.Templates.SmsTest do
     end
 
     test "TP-19: control, zero-width and direction characters are removed and recorded" do
-      plan = Sms.plan("Ko\u0007d​: ‮1234\n")
+      plan = Sms.plan("Ko\u0007d\u200B: \u202E1234\n")
 
       assert plan.text == "Kod: 1234\n"
 
@@ -150,7 +150,7 @@ defmodule Relay.Templates.SmsTest do
     end
 
     test "a zero-width joiner sequence is removed as emoji graphemes after sanitising" do
-      {value, changes} = Content.clean_value("a👨‍👩‍👧b", :strip)
+      {value, changes} = Content.clean_value("a👨\u200D👩\u200D👧b", :strip)
 
       assert value == "ab"
       assert Enum.map(changes, & &1.rule) == [:zero_width, :emoji]

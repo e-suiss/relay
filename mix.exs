@@ -113,9 +113,14 @@ defmodule Relay.MixProject do
     [
       main: "readme",
       extras: ["README.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "LICENSE"],
-      source_ref: "v#{@version}"
+      source_ref: "v#{@version}",
+      filter_modules: &documented?/2
     ]
   end
+
+  # TP-56
+  defp documented?(module, _metadata),
+    do: not String.starts_with?(inspect(module), "Relay.Templates.Cldr.")
 
   defp dialyzer do
     [

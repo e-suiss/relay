@@ -97,6 +97,24 @@ defmodule Relay.Templates.Live.Store do
     end
   end
 
+  # TP-35
+  # TP-61
+  @doc "The keys and contents of partial versions by identifier: `%{key => content}`."
+  @spec partial_contents([Relay.Id.t()]) :: %{String.t() => map()}
+  def partial_contents([]), do: %{}
+
+  def partial_contents(version_ids) do
+    """
+    SELECT p.key, v.content FROM relay.partial_versions v
+    JOIN relay.partials p ON p.tenant_id = v.tenant_id AND p.environment = v.environment
+      AND p.id = v.partial_id
+    WHERE v.id = ANY ($1)
+    """
+    |> Repo.scoped_query!([version_ids])
+    |> maps()
+    |> Map.new(&{&1["key"], &1["content"]})
+  end
+
   # TP-40
   # OP-18
   @doc "Registers a recipient's subject key of a retention class; an active key of that class is returned instead (`:exists`)."

@@ -69,4 +69,9 @@ defmodule Relay.Templates do
           {:ok, Relay.Templates.Render.rendered()}
           | {:error, Relay.Templates.Render.reason(), map()}
   def render_cell(input), do: Relay.Templates.Render.run(input)
+
+  # TP-26
+  @doc "The truncation chain of a locale; see `Relay.Templates.Locale.chain/1`."
+  @spec locale_chain(String.t()) :: [String.t()]
+  def locale_chain(locale), do: Locale.chain(locale)
 end

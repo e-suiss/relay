@@ -2,7 +2,9 @@ defmodule Relay.Templates.Live do
   @moduledoc """
   Templates on the running send path (TP-50). At acceptance, inside the accepting transaction, `templates/2` resolves the live versions of an event's step templates once with sub-tenant inheritance, `choose/3` picks each delivery's cell (a channel without a variant is skipped with `template.variant_missing` and the route moves on, a recipient without a locale in the chain is skipped with `template.locale_missing`, a template without a live version with `template.not_published` or `template.archived`; WF-16, TP-11, TP-26, TP-51) and `pin/2` freezes the template, layout and partial versions and the locale with the delivery record (INV-48). The locale is the recipient's profile locale, else the tenant's `default_locale`; `Accept-Language` never counts on the send path and there is no system default (TP-25). A fallback to the tenant default is counted as `template_locale_missing` by channel.
 
-  On every run of the delivery job that the policy lattice lets send, `render/2` (the renderer step of `Relay.Delivery.Send`, configured as `config :relay, Relay.Delivery, renderer: Module`) renders the pinned versions only, never a newer one, with the event data, the brand fields (`Relay.TemplateStore.brand_resolve/2`, a producer template's text with the four tenant overrides) and the render helpers `legal_footer` and `unsubscribe_url`. The first successful render records its digest, measures and content snapshot, sealed under the recipient's subject key of the category's retention class, or the digest only for security subtypes and `retention: none` (TP-40); a later run renders again and compares the digest, and a difference fails the delivery with `schema_violation`. A render failure fails the delivery with its `failure_reason` and the `notification.render_failed` event, without retry (TP-41, INV-46). Every render emits `[:relay, :render, :stop]` with its duration and the bounded `channel` and `result` tags.
+  On every run of the delivery job that the policy lattice lets send, `render/2` (the renderer step of `Relay.Delivery.Send`, configured as `config :relay, Relay.Delivery, renderer: Module`) renders the pinned versions only, never a newer one, with the event data, the brand fields (`Relay.TemplateStore.brand_resolve/2`, a producer template's text with the four tenant overrides), each pinned partial rendered first as the trusted `partial.<key>` and the render helpers `legal_footer` and `unsubscribe_url`. A delivery is rendered once (TP-60): the render records its digest, measures and content snapshot, sealed under the recipient's subject key of the category's retention class, or the digest only for security subtypes and `retention: none` (TP-40), and a later job run finds the render record and does not render again. `verify/2` renders again and compares the digest with the recorded one, for content that is not stored and for the channel attempts; a difference fails the delivery with `schema_violation`.
+
+  `legal_footer` joins the brand's legal name, MERSIS number, contact and postal address and, for the `marketing` class, the commercial message mark in the cell's language (Turkish or English, English for every other language) (TP-55, TP-61). A render failure fails the delivery with its `failure_reason` and the `notification.render_failed` event, without retry (TP-41, INV-46). Every render emits `[:relay, :render, :stop]` with its duration and the bounded `channel` and `result` tags.
 
   `unsubscribe_url` is a stable placeholder until the preference links are issued; the channel adapter replaces it.
   """
@@ -34,6 +36,7 @@ defmodule Relay.Templates.Live do
   @unsubscribe "urn:relay:unsubscribe"
   @not_published "template.not_published"
   @legal ~w(legal_name mersis contact postal_address)
+  @marks %{"tr" => "Ticari elektronik iletidir.", "en" => "This is a commercial message."}
 
   @type templates :: %{required(:default_locale) => term(), optional(String.t()) => map()}
   @type plan :: map()
@@ -152,7 +155,15 @@ defmodule Relay.Templates.Live do
   # INV-48
   @doc "Renders the pinned plan of a delivery the lattice lets send and records the render or its failure: `:rendered`, `:failed` (the delivery failed with its `failure_reason`, no retry), `:done` (the delivery is gone or already closed) or `{:error, {:input_unavailable, input}}` when an input cannot be read, so the job retries."
   @spec render(Scope.t(), Relay.Id.t()) :: result()
-  def render(%Scope{} = scope, delivery_id) do
+  def render(%Scope{} = scope, delivery_id), do: render(scope, delivery_id, :once)
+
+  # TP-50
+  # TP-60
+  @doc "Renders the pinned plan of a rendered delivery again and compares its digest with the recorded one; a difference fails the delivery with `schema_violation`. Used where the content is not stored (security subtypes, `retention: none`) and by the channel attempts. Returns as `render/2`."
+  @spec verify(Scope.t(), Relay.Id.t()) :: result()
+  def verify(%Scope{} = scope, delivery_id), do: render(scope, delivery_id, :verify)
+
+  defp render(scope, delivery_id, mode) do
     started = Relay.Clock.monotonic_ms()
 
     case load(scope, delivery_id) do
@@ -161,6 +172,9 @@ defmodule Relay.Templates.Live do
 
       {:ok, {:no_plan, channel}} ->
         failed(scope, delivery_id, channel, started, {:schema_violation, cause("plan_missing")})
+
+      {:ok, %{plan: %{"render_digest" => digest}}} when is_binary(digest) and mode == :once ->
+        :rendered
 
       {:ok, input} ->
         run(scope, delivery_id, input, started)
@@ -176,12 +190,14 @@ defmodule Relay.Templates.Live do
            %{} = plan <- TemplateStore.plan(delivery_id) || {:no_plan, delivery["channel"]} do
         version = Store.template_version(plan["template_version_id"])
         layout = plan["layout_version_id"] && Store.layout_content(plan["layout_version_id"])
+        partials = Store.partial_contents(plan["partial_version_ids"] || [])
 
         %{
           delivery: delivery,
           plan: plan,
           version: version,
           layout: layout,
+          partials: partials,
           defaults: Store.defaults(delivery["subtenant_id"]),
           brand: TemplateStore.brand_resolve(delivery["subtenant_id"], version["id"]),
           policy: TemplateStore.render_policy(delivery_id)
@@ -240,7 +256,8 @@ defmodule Relay.Templates.Live do
       data: data,
       recipient: %{},
       brand: brand(input.brand),
-      helpers: helpers(input.brand),
+      helpers: helpers(input.brand, delivery["message_class"], locale),
+      partials: partials(input.partials, locale),
       event_schema: delivery["event_schema"],
       schema: schema(delivery["event_schema"]),
       sensitivity: Map.get(@sensitivities, version["sensitivity"], :personal),
@@ -268,6 +285,28 @@ defmodule Relay.Templates.Live do
     end)
   end
 
+  # TP-61
+  defp mark(locale) do
+    language = locale |> String.split("-") |> hd()
+    Map.get(@marks, language, @marks["en"])
+  end
+
+  # TP-35
+  # TP-61
+  defp partials(partials, locale) do
+    Map.new(partials, fn {key, content} -> {key, partial_source(content, locale)} end)
+  end
+
+  defp partial_source(%{"bodies" => bodies} = content, locale) when is_map(bodies) do
+    chain = Relay.Templates.locale_chain(locale) ++ [content["default_locale"]]
+    Enum.find_value(chain, &string(bodies[&1]))
+  end
+
+  defp partial_source(_content, _locale), do: nil
+
+  defp string(value) when is_binary(value), do: value
+  defp string(_value), do: nil
+
   defp schema(event_schema) when is_map(event_schema) do
     case Relay.Workflow.event_schema(event_schema) do
       {:ok, root} -> root
@@ -284,12 +323,13 @@ defmodule Relay.Templates.Live do
   end
 
   # TP-55
-  defp helpers(fields) do
+  # TP-61
+  defp helpers(fields, class, locale) do
     brand = brand(fields)
+    mark = if class == "marketing", do: [mark(locale)], else: []
 
     legal =
-      @legal
-      |> Enum.map(&brand[&1])
+      (Enum.map(@legal, &brand[&1]) ++ mark)
       |> Enum.filter(&(is_binary(&1) and String.trim(&1) != ""))
       |> Enum.join(" | ")
 

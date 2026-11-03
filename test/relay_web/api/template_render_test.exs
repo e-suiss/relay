@@ -377,7 +377,8 @@ defmodule RelayWeb.Api.TemplateRenderTest do
       assert [[_digest, nil, nil, "retention_none", _, _]] = snapshots(ctx.scope, quiet)
     end
 
-    test "TP-50: a retry renders again and matches the first digest", ctx do
+    test "TP-60: a rendered delivery is not rendered again; verify matches the first digest",
+         ctx do
       template!(ctx, %{"sms" => %{"body" => "Kargoda {{ order }}"}})
       workflow!(ctx, ["sms"])
       delivery = delivery!(ctx.token, subscriber!(ctx.token, %{"phone" => "+905551112233"}))
@@ -385,14 +386,15 @@ defmodule RelayWeb.Api.TemplateRenderTest do
       assert run!(ctx.scope, delivery) == {:snooze, 300}
       first = plan(ctx.scope, delivery).digest
       assert run!(ctx.scope, delivery) == {:snooze, 300}
+      assert %{digest: ^first, count: 1} = plan(ctx.scope, delivery)
 
+      assert Relay.Templates.Live.verify(ctx.scope, internal(delivery)) == :rendered
       assert %{digest: ^first, count: 2} = plan(ctx.scope, delivery)
       assert length(snapshots(ctx.scope, delivery)) == 1
       assert sql!(ctx.scope, @failure, [internal(delivery)]) == [[nil, nil, nil]]
     end
 
-    test "TP-50, TP-41: a digest that differs from the first render fails with schema_violation",
-         ctx do
+    test "TP-60, TP-41: a verified digest that differs fails with schema_violation", ctx do
       template!(ctx, %{"sms" => %{"body" => "{{ brand.sender_name }}: {{ order }}"}})
       workflow!(ctx, ["sms"])
       setting!(ctx.scope, nil, "brand.sender_name", "Acme")
@@ -400,6 +402,8 @@ defmodule RelayWeb.Api.TemplateRenderTest do
 
       assert run!(ctx.scope, delivery) == {:snooze, 300}
       setting!(ctx.scope, nil, "brand.sender_name", "Other")
+      assert run!(ctx.scope, delivery) == {:snooze, 300}
+      assert Relay.Templates.Live.verify(ctx.scope, internal(delivery)) == :failed
       assert run!(ctx.scope, delivery) == :ok
 
       failure = sql!(ctx.scope, @failure, [internal(delivery)])
@@ -469,6 +473,63 @@ defmodule RelayWeb.Api.TemplateRenderTest do
                sql!(ctx.scope, @render_failed, [internal(by_channel["sms"])])
     end
 
+    test "TP-61: a pinned partial renders first and is inserted unescaped as partial.<key>",
+         ctx do
+      :ok = F.category!(ctx.token, "orders")
+      {:ok, actor} = Relay.Actor.new(:system, "relay-test", "relay-test")
+      content = %{"default_locale" => "tr", "bodies" => %{"tr" => "<b>{{ order }}</b>"}}
+
+      attrs = %{
+        id: Relay.Id.generate(),
+        version_id: Relay.Id.generate(),
+        key: "footer",
+        name: "Footer",
+        content: content
+      }
+
+      gate = %{findings: [], accept_warnings: false}
+      at = %{key: "footer", subtenant_id: nil}
+
+      {:ok, {:published, _, 1, _}} =
+        Repo.in_scope(ctx.scope, fn _status ->
+          {:created, _, _, 1} = TemplateStore.asset_create(:partial, attrs, digest(), actor)
+          TemplateStore.asset_publish(:partial, at, gate, 1, digest(), actor)
+        end)
+
+      cell = email_cell("Kargo {{ order }}")
+      cell = %{cell | "html" => cell["html"] <> "{{ partial.footer }}"}
+      definition = F.template_definition(%{"email" => cell}, extra: [{"partials", ["footer"]}])
+      :ok = F.template!(ctx.scope, "order-shipped", "orders", definition: definition)
+      workflow!(ctx, ["email"])
+
+      accepted = send!(ctx.token, subscriber!(ctx.token), %{"data" => %{"order" => "<A-1>"}})
+      delivery = deliveries(ctx.token, accepted)["email"]
+      assert [_partial] = plan(ctx.scope, delivery).partials
+      assert run!(ctx.scope, delivery) == {:snooze, 300}
+
+      [row] = snapshots(ctx.scope, delivery)
+      {_plain, snapshot} = content(ctx.scope, recipient(accepted), row)
+      assert snapshot["output"]["html"] =~ "Kargo &lt;A-1&gt;<b>&lt;A-1&gt;</b>"
+    end
+
+    test "TP-61, TP-55: a marketing legal footer carries the commercial message mark", ctx do
+      :ok = F.category!(ctx.token, "news", "marketing")
+      setting!(ctx.scope, nil, "brand.legal_name", "Acme Ltd")
+      cells = %{"in_app" => %{"title" => "Kampanya", "body" => "Yeni {{ legal_footer }}"}}
+      definition = F.template_definition(cells)
+      :ok = F.template!(ctx.scope, "order-shipped", "news", definition: definition)
+      opts = [category: "news", message_class: "marketing", channels: ["in_app"]]
+      F.workflow!(ctx.scope, ctx.token, "newsletter", opts)
+
+      accepted = send!(ctx.token, subscriber!(ctx.token), %{"workflow" => "newsletter"})
+      delivery = deliveries(ctx.token, accepted)["in_app"]
+      assert run!(ctx.scope, delivery) == {:snooze, 300}
+
+      [row] = snapshots(ctx.scope, delivery)
+      {_plain, snapshot} = content(ctx.scope, recipient(accepted), row)
+      assert snapshot["output"]["body"] == "Yeni Acme Ltd | Ticari elektronik iletidir."
+    end
+
     test "INV-48: the pinned version renders after a newer version is published", ctx do
       template!(ctx, %{"sms" => %{"body" => "Eski {{ order }}"}})
       workflow!(ctx, ["sms"])
@@ -488,6 +549,8 @@ defmodule RelayWeb.Api.TemplateRenderTest do
       assert snapshot["output"]["text"] == "Eski A-1"
     end
   end
+
+  defp digest, do: TenantFixture.digest()
 
   defp email_cell(body) do
     %{

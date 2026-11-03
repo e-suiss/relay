@@ -2,7 +2,7 @@ defmodule Relay.Templates.Render do
   @moduledoc """
   The render of one pinned template cell for one channel on the send path (TP-50). Every part of the cell is parsed and rendered in the bounded sandbox (`Relay.Templates.Sandbox`) with a context built for the channel and the part's escaping mode, then handed to the channel's output module: SMS through `Relay.Templates.Sms.plan/2` with the template's encoding policy, push with the sensitivity class (a `sensitive` template shows only `lock_screen_body`), e-mail with subject, preheader, HTML and plain text, WhatsApp through the parameter cleaner, the inbox as structured fields and webhook as a JSON body. A channel without an output module of its own renders every text field of its cell as plain text.
 
-  E-mail HTML comes from the cell's `raw_html` source or, for an MJML cell, from the HTML compiled at publication (`compiled_html`); MJML is never compiled here (TP-8). A pinned e-mail layout wraps the rendered HTML through its compiled HTML, where the helper `content_for_layout` holds the template's HTML, and its `text_header` and `text_footer` around the plain text.
+  E-mail HTML comes from the cell's `raw_html` source or, for an MJML cell, from the HTML compiled at publication (`compiled_html`); MJML is never compiled here (TP-8). Each pinned partial is rendered first with the same context, which has no `partial` variable, so a partial cannot read another, and its output is inserted unescaped as `partial.<key>` (TP-61). A pinned e-mail layout wraps the rendered HTML through its compiled HTML, where the helper `content_for_layout` holds the template's HTML, and its `text_header` and `text_footer` around the plain text.
 
   The result is the output, its SHA-256 digest over the canonical JSON of the channel, locale and output, the canonical JSON itself (the content snapshot) and the measures (TP-49): characters, graphemes, bytes and blankness per part, the fallback variables, the sanitizer changes, warnings and the SMS encoding and segments. Measures carry no content. A failure is one of `:missing_variable`, `:render_timeout`, `:output_too_large` and `:schema_violation` with a detail of codes and names only (TP-41).
   """
@@ -35,6 +35,7 @@ defmodule Relay.Templates.Render do
           optional(:message_class) => String.t(),
           optional(:allow_raw) => boolean(),
           optional(:layout) => map() | nil,
+          optional(:partials) => %{String.t() => String.t() | nil},
           optional(:sandbox) => keyword()
         }
   @type rendered :: %{
@@ -49,6 +50,7 @@ defmodule Relay.Templates.Render do
   @meta_fields ~w(machine_translated translation_approved_by)
   @too_large ~w(push_payload_size push_characters email_html_size)a
   @slot "content_for_layout"
+  @partial "partial"
 
   # TP-7
   # TP-24
@@ -382,10 +384,48 @@ defmodule Relay.Templates.Render do
       escape: escape
     ]
 
-    case Context.new(input.channel, fields) do
+    with :ok <- partial_name(input.data),
+         {:ok, context} <- new_context(input.channel, fields) do
+      with_partials(context, input)
+    end
+  end
+
+  defp new_context(channel, fields) do
+    case Context.new(channel, fields) do
       {:ok, context} -> {:ok, context}
       {:error, {:schema_violation, _detail}} -> violation("context")
     end
+  end
+
+  # TP-61
+  defp partial_name(data) when is_map_key(data, @partial), do: violation("context")
+  defp partial_name(_data), do: :ok
+
+  # TP-35
+  # TP-61
+  defp with_partials(context, input) do
+    input
+    |> Map.get(:partials, %{})
+    |> Enum.sort()
+    |> Enum.reduce_while({:ok, %{}}, fn {key, source}, {:ok, acc} ->
+      case partial(context, input, source) do
+        {:ok, output} -> {:cont, {:ok, Map.put(acc, key, output)}}
+        error -> {:halt, error}
+      end
+    end)
+    |> case do
+      {:ok, rendered} when rendered == %{} -> {:ok, context}
+      {:ok, rendered} -> {:ok, %{context | vars: Map.put(context.vars, @partial, rendered)}}
+      error -> error
+    end
+  end
+
+  defp partial(_context, _input, nil), do: violation("partial_locale_missing")
+
+  defp partial(context, input, source) when is_binary(source) do
+    with {:ok, template} <- parse(source, Map.get(input, :allow_raw, false)),
+         {:ok, output, _measures} <- sandbox(template, context, input),
+         do: {:ok, output}
   end
 
   defp criticality(schema) when is_map(schema), do: Variables.criticality(schema)

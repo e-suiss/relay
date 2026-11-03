@@ -26,7 +26,7 @@ defmodule Relay.Templates.CellRender do
   @type parsed :: %{String.t() => {Context.part(), Engine.t()}}
   @type failure :: :missing_variable | :render_timeout | :output_too_large | :schema_violation
   @type result :: %{
-          content: map(),
+          content: map() | nil,
           measures: measures(),
           sms: map() | nil,
           findings: [Finding.t()]

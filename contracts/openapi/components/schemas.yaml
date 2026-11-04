@@ -392,8 +392,6 @@ ScopeName:
     - subscribers
     - config
     - kill_switch
-    - agents
-    - webhooks
 Metadata:
   type: object
   description: "Opaque key-value pairs returned in events and webhooks. At most 16 keys; values are strings of at most 512 characters. Do not put personal data here."

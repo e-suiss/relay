@@ -51,7 +51,7 @@ defmodule Relay.Access.Events do
     "user.reactivated" => :reactivated,
     "user.deleted" => :deleted
   }
-  @scopes ~w(publish read subscribers config kill_switch agents webhooks)
+  @scopes ~w(publish read subscribers config kill_switch)
   @channels ~w(push web_push email sms voice whatsapp slack teams telegram discord in_app webhook)
   @consent_statuses ~w(none pending active revoked expired)
   @consent_kinds ~w(explicit_opt_in soft_opt_in legitimate_interest none)

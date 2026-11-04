@@ -31,7 +31,7 @@ defmodule Relay.Access do
   alias Relay.AccessClaims
   alias Relay.Scope
 
-  @scopes ~w(publish read subscribers config kill_switch agents webhooks)
+  @scopes ~w(publish read subscribers config kill_switch)
   @client_cap Relay.Limits.fetch!(["api_clients_per_environment"])
   @unused_days Relay.Limits.fetch!(["unused_api_client_warning_days"])
 

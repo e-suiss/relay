@@ -1,6 +1,6 @@
 defmodule Relay.Api.Schema do
   @moduledoc """
-  JSON Schema 2020-12 validation of request bodies against the contract. The contract's schema documents are folded into one `$defs` table with their references rewritten (`./components/schemas.yaml#/Name` becomes `#/$defs/schemas.Name`), so a request or response schema builds into one self-contained root. Request roots are built once, on first use, and published together.
+  JSON Schema 2020-12 validation of request bodies against the contract. The contract's schema documents are folded into one `$defs` table with their references rewritten (`./components/schemas.yaml#/Name` becomes `#/$defs/schemas.Name`), so a request or response schema builds into one self-contained root. Request roots are built once, on first use, and published together. Properties of a stage later than the built one are left out (`Relay.Api.Contract.built/1`), so they stay unknown fields until their stage is built.
 
   Every error is reported, not only the first (API-37), as an RFC 6901 pointer and a field error subcode. A property that the schema does not declare is an unknown field (`not_allowed`): when any is found the problem is `unknown_field`, otherwise `validation_failed` (API-8).
   """
@@ -46,12 +46,13 @@ defmodule Relay.Api.Schema do
     end
   end
 
+  # E-81
   defs =
     for name <- @schema_files,
         {schema_name, schema} <- Contract.documents()[name],
         is_map(schema),
         into: %{} do
-      {name <> "." <> schema_name, rewrite.(rewrite, schema, name)}
+      {name <> "." <> schema_name, rewrite.(rewrite, Contract.built(schema), name)}
     end
 
   requests =
@@ -59,7 +60,7 @@ defmodule Relay.Api.Schema do
         {type, schema} <- op.request,
         is_map(schema),
         into: %{} do
-      {{op.id, type}, rewrite.(rewrite, schema, "server")}
+      {{op.id, type}, rewrite.(rewrite, Contract.built(schema), "server")}
     end
 
   responses =
@@ -68,7 +69,7 @@ defmodule Relay.Api.Schema do
         {type, schema} <- content,
         is_map(schema),
         into: %{} do
-      {{op.id, status, type}, rewrite.(rewrite, schema, "server")}
+      {{op.id, status, type}, rewrite.(rewrite, Contract.built(schema), "server")}
     end
 
   @defs defs

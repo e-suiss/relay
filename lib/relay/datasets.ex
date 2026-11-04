@@ -21,6 +21,7 @@ defmodule Relay.Datasets do
   alias Relay.Scope
 
   @installation_key {__MODULE__, :installation_tenant_id}
+  @region_key {__MODULE__, :installation_region}
 
   @type source :: :package | :operator
   @type publish_result :: :published | :exists | :dataset_not_found | :scope_not_allowed
@@ -33,6 +34,22 @@ defmodule Relay.Datasets do
   @doc "Returns the installation scope: the installation tenant's `live` environment."
   @spec installation_scope() :: Scope.t()
   def installation_scope, do: Scope.new!(installation_tenant_id(), :live)
+
+  # E-81
+  # INV-41
+  @doc "Returns the installation's data region (`tr`, `eu` or `us`), read once from the installation record."
+  @spec installation_region() :: String.t()
+  def installation_region do
+    case :persistent_term.get(@region_key, nil) do
+      nil ->
+        region = Store.installation_region()
+        :persistent_term.put(@region_key, region)
+        region
+
+      region ->
+        region
+    end
+  end
 
   defp installation_tenant_id do
     case :persistent_term.get(@installation_key, nil) do

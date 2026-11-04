@@ -137,7 +137,9 @@ defmodule Relay.Api.Contract do
         id: op["operationId"],
         family: family,
         security: security,
-        no_store: get_in(op, ["responses", "200", "headers", "Cache-Control"]) != nil,
+        no_store:
+          get_in(op, ["responses", "200", "headers", "Cache-Control", "description"]) ==
+            "no-store",
         method: String.upcase(method),
         path: path,
         endpoint: String.upcase(method) <> " " <> path,
@@ -171,6 +173,7 @@ defmodule Relay.Api.Contract do
 
   @operations Map.new(operations, &{&1.id, &1})
   @api_versions @documents["server"]["x-relay-api-versions"]
+  @built_stage @documents["server"]["info"]["x-relay-built-stage"]
 
   # API-1
   # API-2
@@ -196,6 +199,46 @@ defmodule Relay.Api.Contract do
   @doc "The contract's limits (`x-relay-limits`): the values of the limits page; see `Relay.Limits`."
   @spec limits() :: map()
   defdelegate limits(), to: Relay.Limits, as: :all
+
+  # E-81
+  @doc "The stage the server is built to (`info.x-relay-built-stage` of `server.yaml`)."
+  @spec built_stage() :: pos_integer()
+  def built_stage, do: @built_stage
+
+  # E-81
+  @doc "A schema as the built stage serves it: every property marked with an `x-relay-stage` above `built_stage/0` is removed, with its `required` entry, at every depth, so a request that sends it stays an unknown field."
+  @spec built(term()) :: term()
+  def built(%{} = schema) do
+    schema = Map.new(schema, fn {key, value} -> {key, built(value)} end)
+
+    case schema do
+      %{"properties" => %{} = properties} ->
+        later =
+          for {name, %{"x-relay-stage" => stage}} <- properties, stage > @built_stage, do: name
+
+        trim(schema, later)
+
+      _other ->
+        schema
+    end
+  end
+
+  def built(list) when is_list(list), do: Enum.map(list, &built/1)
+  def built(other), do: other
+
+  defp trim(schema, []), do: schema
+
+  defp trim(schema, later) do
+    schema
+    |> Map.update!("properties", &Map.drop(&1, later))
+    |> then(fn
+      %{"required" => required} = trimmed when is_list(required) ->
+        %{trimmed | "required" => required -- later}
+
+      trimmed ->
+        trimmed
+    end)
+  end
 
   # API-52
   @doc "The contract's dated API versions (`x-relay-api-versions`)."

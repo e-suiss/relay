@@ -38,6 +38,18 @@ defmodule RelayWeb.Router do
     get "/readyz", HealthController, :ready
   end
 
+  # E-81
+  # E-89
+  scope "/.well-known", RelayWeb.Api do
+    pipe_through :v1
+
+    get "/relay-configuration", DiscoveryController, :configuration,
+      private: %{relay_operation: "getRelayConfiguration"}
+
+    get "/relay-jwks.json", DiscoveryController, :jwks,
+      private: %{relay_operation: "getRelayJwks"}
+  end
+
   # API-6
   scope "/v1", RelayWeb.Api do
     pipe_through :v1

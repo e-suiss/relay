@@ -3,10 +3,12 @@ defmodule RelayWeb.Api.DiscoveryController do
 
   use RelayWeb, :api_controller
 
+  alias Relay.Api.Contract
   alias Relay.Api.Discovery
   alias RelayWeb.Api.Response
 
   @cache_control "public, max-age=300"
+  @parameter ~r/:([a-z_]+)/
 
   # E-81
   @spec configuration(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -27,6 +29,13 @@ defmodule RelayWeb.Api.DiscoveryController do
   end
 
   defp served do
-    for %{private: %{relay_operation: id}} <- RelayWeb.Router.__routes__(), do: id
+    routed =
+      MapSet.new(Phoenix.Router.routes(RelayWeb.Router), fn %{verb: verb, path: path} ->
+        {verb |> Atom.to_string() |> String.upcase(), Regex.replace(@parameter, path, "{\\1}")}
+      end)
+
+    for operation <- Contract.operations(),
+        MapSet.member?(routed, {operation.method, operation.path}),
+        do: operation.id
   end
 end

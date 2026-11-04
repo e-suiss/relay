@@ -339,3 +339,31 @@ TranslationSource:
       - draft
       - live
     default: draft
+WaitpointId:
+  name: waitpoint_id
+  in: path
+  description: "Waitpoint identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_wp"
+EscalationPolicyKey:
+  name: policy_key
+  in: path
+  description: "Escalation policy key."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/EscalationPolicyKey"
+AgentId:
+  name: agent_id
+  in: path
+  description: "Agent identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_agt"
+WebhookEndpointId:
+  name: webhook_endpoint_id
+  in: path
+  description: "Webhook endpoint identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_whe"

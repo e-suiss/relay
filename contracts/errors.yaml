@@ -1382,3 +1382,182 @@ codes:
     description: "The requested sample source has no data: the workflow schema has no examples, or no event of the workflow was accepted in the last 7 days. Choose another sample or send data."
     type: "{base_url}/v1/errors/preview_sample_unavailable"
     choice_note: "Code name and status chosen by the contract."
+  - code: link_scheme_not_allowed
+    family: request
+    status: 422
+    title: "Link scheme is not allowed"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: "A link href is not an absolute https URI. A mobile deep link uses a universal link or an app link."
+    type: "{base_url}/v1/errors/link_scheme_not_allowed"
+  - code: waitpoint_not_found
+    family: resource
+    status: 404
+    title: "Waitpoint not found"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No waitpoint with this identifier exists in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/waitpoint_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: waitpoint_closed
+    family: agent
+    status: 409
+    title: "Waitpoint is closed"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The waitpoint is resolved, expired or cancelled; a closed waitpoint does not change."
+    type: "{base_url}/v1/errors/waitpoint_closed"
+    choice_note: "Code name and status chosen by the contract."
+  - code: waitpoint_limit_reached
+    family: agent
+    status: 422
+    title: "Open waitpoint limit reached"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The tenant or the waiter has reached its limit of open waitpoints. Resolve or cancel waitpoints first."
+    type: "{base_url}/v1/errors/waitpoint_limit_reached"
+    choice_note: "Code name and status chosen by the contract."
+  - code: escalation_policy_not_found
+    family: resource
+    status: 404
+    title: "Escalation policy not found"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No escalation policy, or no such version, with this key exists in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/escalation_policy_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: escalation_policy_archived
+    family: agent
+    status: 422
+    title: "Escalation policy is archived"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The escalation policy is archived; it takes no new version and a new waitpoint cannot reference it."
+    type: "{base_url}/v1/errors/escalation_policy_archived"
+    choice_note: "Code name and status chosen by the contract."
+  - code: escalation_responder_outside_set
+    family: agent
+    status: 422
+    title: "Escalation responder is outside the responder set"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: "An escalation tier invites a responder that is not in the waitpoint's responders. Add the responder to responders or remove it from the tier."
+    type: "{base_url}/v1/errors/escalation_responder_outside_set"
+  - code: agent_not_found
+    family: resource
+    status: 404
+    title: "Agent not found"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No agent with this identifier exists in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/agent_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: ceiling_event_not_found
+    family: agent
+    status: 422
+    title: "Ceiling event not found"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "ceiling_event_id names no agent.ceiling_exceeded event of this agent."
+    type: "{base_url}/v1/errors/ceiling_event_not_found"
+    choice_note: "Code name and status chosen by the contract."
+  - code: ceiling_decision_conflict
+    family: agent
+    status: 409
+    title: "Ceiling decision conflicts"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: "A different decision was already recorded for this ceiling event. The first decision stands."
+    type: "{base_url}/v1/errors/ceiling_decision_conflict"
+  - code: webhook_endpoint_not_found
+    family: resource
+    status: 404
+    title: "Webhook endpoint not found"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No webhook endpoint with this identifier exists in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/webhook_endpoint_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: webhook_endpoint_archived
+    family: webhook
+    status: 422
+    title: "Webhook endpoint is archived"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The webhook endpoint is archived and does not change any more."
+    type: "{base_url}/v1/errors/webhook_endpoint_archived"
+    choice_note: "Code name and status chosen by the contract."
+  - code: webhook_endpoint_managed
+    family: webhook
+    status: 422
+    title: "Webhook endpoint is managed by a product"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The endpoint was opened for a Suiss product; the tenant may only narrow its event types within the product's default set. It cannot be archived, disabled or given its own key."
+    type: "{base_url}/v1/errors/webhook_endpoint_managed"
+    choice_note: "Code name and status chosen by the contract."

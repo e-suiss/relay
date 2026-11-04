@@ -392,6 +392,8 @@ ScopeName:
     - subscribers
     - config
     - kill_switch
+    - agents
+    - webhooks
 Metadata:
   type: object
   description: "Opaque key-value pairs returned in events and webhooks. At most 16 keys; values are strings of at most 512 characters. Do not put personal data here."
@@ -672,6 +674,30 @@ EventRequest:
       description: "Explicit send mode for this request. Accepted only in the test environment; a live client gets auth_environment_mismatch."
       x-relay-choice: true
       x-relay-choice-note: "The spec allows a per-request mode only in test but names no field; a body field is chosen."
+    interruption:
+      "$ref": "#/Interruption"
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The stage that accepts the field is chosen by the contract (push channel)."
+    links:
+      type: array
+      description: "Links of the notification, at most 10; rel is unique in the request."
+      items:
+        "$ref": "#/EventLink"
+      maxItems: 10
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The stage that accepts the field is chosen by the contract (push tap target)."
+    item:
+      "$ref": "#/ItemRef"
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: "The stage that accepts the field is chosen by the contract (notification and delivery events)."
+    correlation_id:
+      "$ref": "#/CorrelationId"
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: "The stage that accepts the field is chosen by the contract (outgoing event extensions)."
   additionalProperties: false
 BatchEventRequest:
   type: object
@@ -746,6 +772,30 @@ BatchEventRequest:
       description: "Explicit send mode for this request. Accepted only in the test environment; a live client gets auth_environment_mismatch."
       x-relay-choice: true
       x-relay-choice-note: "The spec allows a per-request mode only in test but names no field; a body field is chosen."
+    interruption:
+      "$ref": "#/Interruption"
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The stage that accepts the field is chosen by the contract (push channel)."
+    links:
+      type: array
+      description: "Links of the notification, at most 10; rel is unique in the request."
+      items:
+        "$ref": "#/EventLink"
+      maxItems: 10
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The stage that accepts the field is chosen by the contract (push tap target)."
+    item:
+      "$ref": "#/ItemRef"
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: "The stage that accepts the field is chosen by the contract (notification and delivery events)."
+    correlation_id:
+      "$ref": "#/CorrelationId"
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: "The stage that accepts the field is chosen by the contract (outgoing event extensions)."
   additionalProperties: false
 BatchRequest:
   type: object
@@ -4902,4 +4952,1086 @@ WorkflowPreview:
       type: array
       items:
         "$ref": "#/WorkflowPreviewStep"
+  additionalProperties: false
+Id_esp:
+  type: string
+  description: "Escalation policy identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^esp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - esp_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_whe:
+  type: string
+  description: "Webhook endpoint identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^whe_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - whe_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_acd:
+  type: string
+  description: "Agent ceiling decision identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^acd_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - acd_01j9zq3k4m5n6p7q8r9s0t1v2w
+Region:
+  type: string
+  description: "Data region of the installation."
+  enum:
+    - tr
+    - eu
+    - us
+Sha256Digest:
+  type: string
+  description: "SHA-256 digest: sha256: and 64 lowercase hexadecimal characters."
+  pattern: "^sha256:[0-9a-f]{64}$"
+CorrelationId:
+  type: string
+  description: "The sender's correlation identifier, 1 to 128 printable ASCII characters. Returned in outgoing events as the correlationid extension."
+  minLength: 1
+  maxLength: 128
+  pattern: "^[\\x20-\\x7E]+$"
+CorrelationKey:
+  type: string
+  description: "Exact correlation key of a waitpoint match: printable ASCII without spaces, 1 to 256 characters. Matched exactly, never by pattern."
+  pattern: "^[\\x21-\\x7E]{1,256}$"
+Interruption:
+  type: string
+  description: "Interruption level of the notification; the only accepted name of this field, no alias is accepted."
+  enum:
+    - passive
+    - active
+    - time-sensitive
+    - critical
+EventLink:
+  type: object
+  description: "A link of the notification."
+  required:
+    - rel
+    - href
+  properties:
+    rel:
+      type: string
+      description: "Link relation, unique in the request. Templates read the link as links.<rel>; primary is the target of a push tap and of the inbox item."
+      pattern: "^[a-z][a-z0-9_]{0,31}$"
+    href:
+      type: string
+      description: "Absolute https URI; another scheme is rejected with 422 link_scheme_not_allowed (a mobile deep link uses a universal or app link). Click tracking wraps the link."
+      format: uri
+      maxLength: 2048
+    title:
+      type: string
+      maxLength: 200
+  additionalProperties: false
+ItemRef:
+  type: object
+  description: "The sender's item reference. Relay does not interpret it; it is stored with the notification and returned in notification and delivery events and in the inbox item."
+  required:
+    - ref
+    - version
+    - digest
+  properties:
+    ref:
+      type: string
+      minLength: 1
+      maxLength: 256
+      pattern: "^[\\x20-\\x7E]+$"
+    version:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: "^[\\x20-\\x7E]+$"
+    digest:
+      "$ref": "#/Sha256Digest"
+  additionalProperties: false
+Capability:
+  type: string
+  description: "Capability URN; the suffix grows only with an incompatible change."
+  enum:
+    - "urn:esuiss:relay:events:1"
+    - "urn:esuiss:relay:waitpoint:1"
+    - "urn:esuiss:relay:escalation:1"
+    - "urn:esuiss:relay:agent_ceiling:1"
+    - "urn:esuiss:relay:webhook_endpoints:1"
+    - "urn:esuiss:relay:product_events:1"
+RelayConfiguration:
+  type: object
+  description: "Relay discovery document of the installation."
+  required:
+    - issuer
+    - api_base
+    - region
+    - access_issuer
+    - contract_version
+    - contract_versions_supported
+    - jwks_uri
+    - capabilities
+  properties:
+    issuer:
+      type: string
+      format: uri
+      description: "Base URL of the installation; the source of outgoing events."
+    api_base:
+      type: string
+      format: uri
+      description: "<issuer>/v1."
+    region:
+      "$ref": "#/Region"
+    access_issuer:
+      type: string
+      format: uri
+      description: "Issuer of the Access the installation is bound to."
+    contract_version:
+      "$ref": "#/ApiVersion"
+      description: "Latest dated API version."
+    contract_versions_supported:
+      type: array
+      items:
+        "$ref": "#/ApiVersion"
+      minItems: 1
+    jwks_uri:
+      type: string
+      format: uri
+      description: "<issuer>/.well-known/relay-jwks.json: the product event key set."
+    capabilities:
+      type: array
+      items:
+        "$ref": "#/Capability"
+      uniqueItems: true
+    events_endpoint:
+      type: string
+      format: uri
+      description: "Present with urn:esuiss:relay:events:1."
+    waitpoints_endpoint:
+      type: string
+      format: uri
+      description: "Present with urn:esuiss:relay:waitpoint:1."
+    escalation_policies_endpoint:
+      type: string
+      format: uri
+      description: "Present with urn:esuiss:relay:escalation:1."
+    agents_endpoint:
+      type: string
+      format: uri
+      description: "Present with urn:esuiss:relay:agent_ceiling:1."
+    webhook_endpoints_endpoint:
+      type: string
+      format: uri
+      description: "Present with urn:esuiss:relay:webhook_endpoints:1."
+  additionalProperties: false
+JsonWebKey:
+  type: object
+  description: "Public Ed25519 key of the product event signature."
+  required:
+    - kty
+    - crv
+    - kid
+    - use
+    - x
+  properties:
+    kty:
+      type: string
+      const: OKP
+    crv:
+      type: string
+      const: Ed25519
+    kid:
+      type: string
+      minLength: 1
+      maxLength: 128
+    use:
+      type: string
+      const: sig
+    x:
+      type: string
+      description: "Public key, base64url without padding."
+      pattern: "^[A-Za-z0-9_-]{43}$"
+  additionalProperties: false
+JsonWebKeySet:
+  type: object
+  description: "JSON Web Key Set (RFC 7517)."
+  required:
+    - keys
+  properties:
+    keys:
+      type: array
+      items:
+        "$ref": "#/JsonWebKey"
+  additionalProperties: false
+WaitpointKind:
+  type: string
+  enum:
+    - question
+    - review
+    - event
+WaitpointState:
+  type: string
+  enum:
+    - open
+    - stalled
+    - resolved
+    - expired
+    - cancelled
+WaitpointTag:
+  type: string
+  pattern: "^[a-z0-9][a-z0-9_.:-]{0,63}$"
+Waiter:
+  type: object
+  description: "Who waits: an agent or an API client. Result events and the early-response buffer live in the waiter's mailbox."
+  required:
+    - kind
+    - id
+  properties:
+    kind:
+      type: string
+      enum:
+        - agent
+        - api_client
+    id:
+      type: string
+      description: "agt_ for an agent, cli_ for an API client."
+      pattern: "^(agt|cli)_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "The spec names the waiter as an agent or an API client; the object shape is chosen by the contract."
+Responder:
+  type: object
+  description: "A responder of a waitpoint or an escalation tier."
+  required:
+    - kind
+    - id
+  properties:
+    kind:
+      type: string
+      enum:
+        - subscriber
+        - agent
+    id:
+      type: string
+      description: "The subscriber's external_id, or an agent's agt_ identifier."
+      maxLength: 256
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "The object shape of a responder reference is chosen by the contract."
+WaitpointMatch:
+  type: object
+  description: "First-stage exact match: event type and correlation key."
+  required:
+    - type
+    - correlation_key
+  properties:
+    type:
+      "$ref": "#/EventName"
+    correlation_key:
+      "$ref": "#/CorrelationKey"
+  additionalProperties: false
+EscalationTier:
+  type: object
+  description: "One escalation tier."
+  required:
+    - after
+  properties:
+    after:
+      "$ref": "#/Duration"
+      description: "Time after the previous tier, or after creation for the first tier; at least PT1M."
+    add_responders:
+      type: array
+      description: "Responders invited at this tier; each must be in the waitpoint's responders."
+      items:
+        "$ref": "#/Responder"
+      maxItems: 50
+    channels:
+      type: array
+      description: "Channel escalation of this tier."
+      items:
+        "$ref": "#/Channel"
+      uniqueItems: true
+    repeat:
+      type: integer
+      description: "Repeats of this tier at the same interval."
+      minimum: 0
+      maximum: 5
+      default: 0
+    skip_if_empty:
+      type: boolean
+      description: "A tier without a reachable responder is skipped and escalation_tier_skipped is recorded."
+      default: true
+  additionalProperties: false
+EscalationPolicyKey:
+  type: string
+  description: "Key of an escalation policy, unique in its environment."
+  pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+  minLength: 1
+  maxLength: 100
+EscalationPolicyDefinition:
+  type: object
+  description: "An escalation policy definition: 1 to 10 tiers."
+  required:
+    - tiers
+  properties:
+    tiers:
+      type: array
+      items:
+        "$ref": "#/EscalationTier"
+      minItems: 1
+      maxItems: 10
+  additionalProperties: false
+EscalationPolicyReference:
+  type: object
+  description: "Reference to a stored escalation policy."
+  required:
+    - key
+  properties:
+    key:
+      "$ref": "#/EscalationPolicyKey"
+    version:
+      type: integer
+      minimum: 1
+      description: "Without a version the latest version at creation is pinned."
+  additionalProperties: false
+WaitpointEscalation:
+  type: object
+  description: "The escalation policy version the waitpoint pinned."
+  required:
+    - version
+    - inline
+  properties:
+    key:
+      oneOf:
+        - "$ref": "#/EscalationPolicyKey"
+        - type: "null"
+    version:
+      type: integer
+      minimum: 1
+    inline:
+      type: boolean
+      description: "true for an inline definition stored as an anonymous version of this waitpoint; key is then null."
+  additionalProperties: false
+WaitpointCreate:
+  type: object
+  description: "Waitpoint creation request."
+  required:
+    - kind
+    - match
+    - expires_at
+  properties:
+    kind:
+      "$ref": "#/WaitpointKind"
+    waiter:
+      "$ref": "#/Waiter"
+      description: "Defaults to the calling API client."
+    match:
+      "$ref": "#/WaitpointMatch"
+    condition:
+      type: object
+      description: "Second-stage condition, at most 16 kB."
+    response_schema:
+      type: object
+      description: "JSON Schema the response value must follow, at most 64 kB."
+    responders:
+      type: array
+      items:
+        "$ref": "#/Responder"
+      maxItems: 50
+    expires_at:
+      "$ref": "#/Timestamp"
+      description: "Deadline, at most 30 days ahead."
+    heartbeat_interval:
+      "$ref": "#/Duration"
+      description: "Waiter heartbeat interval, PT1S to P1D; a missed heartbeat makes the waitpoint stalled."
+    surface_policy:
+      type: object
+      description: "Where the waitpoint is surfaced to responders, at most 16 kB."
+    default_response:
+      description: "Response value used when the waitpoint expires; it follows response_schema."
+    subject_digest:
+      "$ref": "#/Sha256Digest"
+    content:
+      type: object
+      description: "What responders see, encrypted at rest."
+    claim_text:
+      type: string
+      maxLength: 2000
+      description: "Claim the responder confirms, encrypted at rest."
+    deliver_to:
+      type: array
+      description: "Topics the waitpoint is delivered to."
+      items:
+        "$ref": "#/TopicTarget"
+      maxItems: 10
+    tags:
+      type: array
+      items:
+        "$ref": "#/WaitpointTag"
+      maxItems: 20
+      uniqueItems: true
+    correlation_id:
+      "$ref": "#/CorrelationId"
+    escalation_policy:
+      oneOf:
+        - "$ref": "#/EscalationPolicyReference"
+        - "$ref": "#/EscalationPolicyDefinition"
+  additionalProperties: false
+WaitpointResponder:
+  type: object
+  description: "Who responded; a human subscriber's external_id is its pairwise Access sub."
+  required:
+    - recipient_id
+    - kind
+  properties:
+    recipient_id:
+      "$ref": "#/RecipientId"
+    kind:
+      type: string
+      enum:
+        - subscriber
+        - agent
+    external_id:
+      "$ref": "#/ExternalId"
+  additionalProperties: false
+EvidenceLevel:
+  type: string
+  enum:
+    - channel_claim
+    - relay_session
+    - access_aas_ref
+WaitpointResponse:
+  type: object
+  description: "The response that resolved the waitpoint."
+  required:
+    - id
+    - responder
+    - evidence_level
+    - responded_at
+    - response_digest
+  properties:
+    id:
+      "$ref": "#/Id_wpr"
+    responder:
+      "$ref": "#/WaitpointResponder"
+    channel:
+      oneOf:
+        - "$ref": "#/Channel"
+        - type: "null"
+    evidence_level:
+      "$ref": "#/EvidenceLevel"
+    responded_at:
+      "$ref": "#/Timestamp"
+    value:
+      description: "The response value."
+    response_digest:
+      "$ref": "#/Sha256Digest"
+      description: "sha256 of the RFC 8785 (JCS) form of the value."
+  additionalProperties: false
+Waitpoint:
+  type: object
+  description: "A waitpoint."
+  required:
+    - object
+    - id
+    - kind
+    - waiter
+    - match
+    - expires_at
+    - state
+    - created_at
+    - state_changed_at
+  properties:
+    object:
+      type: string
+      const: waitpoint
+    id:
+      "$ref": "#/Id_wp"
+    kind:
+      "$ref": "#/WaitpointKind"
+    waiter:
+      "$ref": "#/Waiter"
+    match:
+      "$ref": "#/WaitpointMatch"
+    condition:
+      type: object
+      description: "Second-stage condition, at most 16 kB."
+    response_schema:
+      type: object
+      description: "JSON Schema the response value must follow, at most 64 kB."
+    responders:
+      type: array
+      items:
+        "$ref": "#/Responder"
+      maxItems: 50
+    expires_at:
+      "$ref": "#/Timestamp"
+      description: "Deadline, at most 30 days ahead."
+    heartbeat_interval:
+      "$ref": "#/Duration"
+      description: "Waiter heartbeat interval, PT1S to P1D; a missed heartbeat makes the waitpoint stalled."
+    surface_policy:
+      type: object
+      description: "Where the waitpoint is surfaced to responders, at most 16 kB."
+    default_response:
+      description: "Response value used when the waitpoint expires; it follows response_schema."
+    subject_digest:
+      "$ref": "#/Sha256Digest"
+    content:
+      type: object
+      description: "What responders see, encrypted at rest."
+    claim_text:
+      type: string
+      maxLength: 2000
+      description: "Claim the responder confirms, encrypted at rest."
+    deliver_to:
+      type: array
+      description: "Topics the waitpoint is delivered to."
+      items:
+        "$ref": "#/TopicTarget"
+      maxItems: 10
+    tags:
+      type: array
+      items:
+        "$ref": "#/WaitpointTag"
+      maxItems: 20
+      uniqueItems: true
+    correlation_id:
+      "$ref": "#/CorrelationId"
+    escalation_policy:
+      oneOf:
+        - "$ref": "#/WaitpointEscalation"
+        - type: "null"
+    state:
+      "$ref": "#/WaitpointState"
+    response:
+      oneOf:
+        - "$ref": "#/WaitpointResponse"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+    state_changed_at:
+      "$ref": "#/Timestamp"
+    heartbeat_due_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    cancel_reason:
+      oneOf:
+        - type: string
+          maxLength: 200
+        - type: "null"
+  additionalProperties: false
+WaitpointList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Waitpoint"
+  description: "A page of waitpoints."
+WaitpointCancel:
+  type: object
+  description: "Cancellation of a waitpoint."
+  required:
+    - reason
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 200
+  additionalProperties: false
+EscalationPolicyState:
+  type: string
+  enum:
+    - active
+    - archived
+EscalationPolicyWrite:
+  type: object
+  description: "A new version of an escalation policy."
+  required:
+    - tiers
+  properties:
+    tiers:
+      type: array
+      items:
+        "$ref": "#/EscalationTier"
+      minItems: 1
+      maxItems: 10
+    description:
+      type: string
+      maxLength: 500
+  additionalProperties: false
+EscalationPolicy:
+  type: object
+  description: "An escalation policy with its latest version."
+  required:
+    - object
+    - id
+    - key
+    - version
+    - state
+    - tiers
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: escalation_policy
+    id:
+      "$ref": "#/Id_esp"
+    key:
+      "$ref": "#/EscalationPolicyKey"
+    version:
+      type: integer
+      minimum: 1
+      description: "Latest version."
+    state:
+      "$ref": "#/EscalationPolicyState"
+    description:
+      oneOf:
+        - type: string
+          maxLength: 500
+        - type: "null"
+    tiers:
+      type: array
+      items:
+        "$ref": "#/EscalationTier"
+      minItems: 1
+      maxItems: 10
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+EscalationPolicyList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/EscalationPolicy"
+  description: "A page of escalation policies."
+EscalationPolicyVersion:
+  type: object
+  description: "An immutable escalation policy version."
+  required:
+    - object
+    - key
+    - version
+    - tiers
+    - created_at
+  properties:
+    object:
+      type: string
+      const: escalation_policy_version
+    key:
+      "$ref": "#/EscalationPolicyKey"
+    version:
+      type: integer
+      minimum: 1
+    description:
+      oneOf:
+        - type: string
+          maxLength: 500
+        - type: "null"
+    tiers:
+      type: array
+      items:
+        "$ref": "#/EscalationTier"
+      minItems: 1
+      maxItems: 10
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+EscalationPolicyVersionList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/EscalationPolicyVersion"
+  description: "A page of escalation policy versions."
+CeilingDecisionCreate:
+  type: object
+  description: "The owner's decision on held agent notifications."
+  required:
+    - decision
+    - ceiling_event_id
+    - decision_ref
+  properties:
+    decision:
+      type: string
+      enum:
+        - send_all
+        - cancel
+        - stop
+    ceiling_event_id:
+      type: string
+      description: "id of the agent.ceiling_exceeded event the decision answers."
+      minLength: 1
+      maxLength: 512
+    decision_ref:
+      type: string
+      description: "The owner's record of the decision (for Suiss, the Work record), 1 to 256 printable ASCII characters."
+      minLength: 1
+      maxLength: 256
+      pattern: "^[\\x20-\\x7E]+$"
+    note:
+      type: string
+      maxLength: 1000
+      x-relay-choice: true
+      x-relay-choice-note: "The bound of note is chosen by the contract."
+  additionalProperties: false
+AgentRunState:
+  type: string
+  enum:
+    - active
+    - stopped
+CeilingDecision:
+  type: object
+  description: "A recorded ceiling decision."
+  required:
+    - object
+    - id
+    - agent_id
+    - ceiling_event_id
+    - decision
+    - decision_ref
+    - applied_count
+    - agent_state
+    - decided_at
+  properties:
+    object:
+      type: string
+      const: ceiling_decision
+    id:
+      "$ref": "#/Id_acd"
+    agent_id:
+      "$ref": "#/Id_agt"
+    ceiling_event_id:
+      type: string
+      maxLength: 512
+    decision:
+      type: string
+      enum:
+        - send_all
+        - cancel
+        - stop
+    decision_ref:
+      type: string
+      description: "The owner's record of the decision (for Suiss, the Work record), 1 to 256 printable ASCII characters."
+      minLength: 1
+      maxLength: 256
+      pattern: "^[\\x20-\\x7E]+$"
+    note:
+      oneOf:
+        - type: string
+          maxLength: 1000
+        - type: "null"
+    applied_count:
+      type: integer
+      minimum: 0
+      description: "Held notifications the decision applied to."
+    agent_state:
+      "$ref": "#/AgentRunState"
+    decided_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+AgentResume:
+  type: object
+  description: "Lifting a stop decision."
+  required:
+    - decision_ref
+  properties:
+    decision_ref:
+      type: string
+      description: "The owner's record of the decision (for Suiss, the Work record), 1 to 256 printable ASCII characters."
+      minLength: 1
+      maxLength: 256
+      pattern: "^[\\x20-\\x7E]+$"
+    note:
+      type: string
+      maxLength: 1000
+  additionalProperties: false
+AgentState:
+  type: object
+  description: "The run state of an agent."
+  required:
+    - object
+    - agent_id
+    - state
+    - changed_at
+  properties:
+    object:
+      type: string
+      const: agent_state
+    agent_id:
+      "$ref": "#/Id_agt"
+    state:
+      "$ref": "#/AgentRunState"
+    decision_ref:
+      oneOf:
+        - type: string
+          description: "The owner's record of the decision (for Suiss, the Work record), 1 to 256 printable ASCII characters."
+          minLength: 1
+          maxLength: 256
+          pattern: "^[\\x20-\\x7E]+$"
+        - type: "null"
+    changed_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+WebhookEndpointUse:
+  type: string
+  description: "relay_events: Relay's own events (use A). destination: target of a webhook channel step (use B)."
+  enum:
+    - relay_events
+    - destination
+WebhookEndpointState:
+  type: string
+  enum:
+    - active
+    - disabled
+    - archived
+  x-relay-choice: true
+  x-relay-choice-note: "The state names are chosen by the contract; disabled is the automatic disable of webhook_endpoint.disabled."
+WebhookEventTypes:
+  type: array
+  description: "Subscribed event types; * is an explicit choice of every type, an empty selection receives nothing."
+  items:
+    oneOf:
+      - "$ref": "#/EventName"
+      - type: string
+        const: "*"
+  maxItems: 100
+  uniqueItems: true
+WebhookSnapshot:
+  type: array
+  description: "Snapshot whitelist: the payload fields added to the thin event. A change opens a new endpoint version."
+  items:
+    type: string
+    pattern: "^[a-z][a-z0-9_]{0,63}(\\.[a-z][a-z0-9_]{0,63}){0,3}$"
+  maxItems: 50
+  uniqueItems: true
+  x-relay-choice: true
+  x-relay-choice-note: "The shape of the snapshot whitelist is chosen by the contract."
+SignatureScheme:
+  type: string
+  description: "v1a Ed25519 (default) or v1 HMAC for compatibility."
+  enum:
+    - v1a
+    - v1
+WebhookEndpointCreate:
+  type: object
+  description: "Webhook endpoint creation request."
+  required:
+    - url
+    - use
+    - event_types
+  properties:
+    url:
+      type: string
+      description: "https URL of the endpoint."
+      format: uri
+      pattern: "^https://"
+      maxLength: 2048
+    use:
+      "$ref": "#/WebhookEndpointUse"
+    consumer:
+      type: string
+      description: "The tenant's customer reference; only for use destination."
+      minLength: 1
+      maxLength: 256
+      pattern: "^[\\x21-\\x7E]+$"
+    event_types:
+      "$ref": "#/WebhookEventTypes"
+    signature_scheme:
+      "$ref": "#/SignatureScheme"
+      default: v1a
+    snapshot:
+      "$ref": "#/WebhookSnapshot"
+    description:
+      type: string
+      maxLength: 500
+  additionalProperties: false
+WebhookEndpointPatch:
+  type: object
+  description: "Changes to a webhook endpoint; absent fields are left untouched."
+  properties:
+    url:
+      type: string
+      description: "https URL of the endpoint."
+      format: uri
+      pattern: "^https://"
+      maxLength: 2048
+    event_types:
+      "$ref": "#/WebhookEventTypes"
+    signature_scheme:
+      "$ref": "#/SignatureScheme"
+    snapshot:
+      "$ref": "#/WebhookSnapshot"
+    description:
+      oneOf:
+        - type: string
+          maxLength: 500
+        - type: "null"
+    state:
+      type: string
+      description: "active enables a disabled endpoint; disabled stops deliveries."
+      enum:
+        - active
+        - disabled
+  additionalProperties: false
+  minProperties: 1
+WebhookEndpoint:
+  type: object
+  description: "A webhook endpoint."
+  required:
+    - object
+    - id
+    - url
+    - use
+    - event_types
+    - signature_scheme
+    - state
+    - managed_by
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: webhook_endpoint
+    id:
+      "$ref": "#/Id_whe"
+    url:
+      type: string
+      format: uri
+    use:
+      "$ref": "#/WebhookEndpointUse"
+    consumer:
+      oneOf:
+        - type: string
+          description: "The tenant's customer reference; only for use destination."
+          minLength: 1
+          maxLength: 256
+          pattern: "^[\\x21-\\x7E]+$"
+        - type: "null"
+    event_types:
+      "$ref": "#/WebhookEventTypes"
+    signature_scheme:
+      "$ref": "#/SignatureScheme"
+    snapshot:
+      "$ref": "#/WebhookSnapshot"
+    description:
+      oneOf:
+        - type: string
+          maxLength: 500
+        - type: "null"
+    state:
+      "$ref": "#/WebhookEndpointState"
+    managed_by:
+      type: string
+      description: "product for an endpoint opened for a Suiss product client; the tenant sees it and may narrow its event types but cannot delete or close it."
+      enum:
+        - tenant
+        - product
+    product:
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+WebhookEndpointList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/WebhookEndpoint"
+  description: "A page of webhook endpoints."
+WebhookEndpointSecret:
+  type: object
+  description: "A webhook endpoint with the secret of its new signing key."
+  required:
+    - object
+    - id
+    - url
+    - use
+    - event_types
+    - signature_scheme
+    - state
+    - managed_by
+    - version
+    - created_at
+    - updated_at
+    - secret
+  properties:
+    object:
+      type: string
+      const: webhook_endpoint
+    id:
+      "$ref": "#/Id_whe"
+    url:
+      type: string
+      format: uri
+    use:
+      "$ref": "#/WebhookEndpointUse"
+    consumer:
+      oneOf:
+        - type: string
+          description: "The tenant's customer reference; only for use destination."
+          minLength: 1
+          maxLength: 256
+          pattern: "^[\\x21-\\x7E]+$"
+        - type: "null"
+    event_types:
+      "$ref": "#/WebhookEventTypes"
+    signature_scheme:
+      "$ref": "#/SignatureScheme"
+    snapshot:
+      "$ref": "#/WebhookSnapshot"
+    description:
+      oneOf:
+        - type: string
+          maxLength: 500
+        - type: "null"
+    state:
+      "$ref": "#/WebhookEndpointState"
+    managed_by:
+      type: string
+      description: "product for an endpoint opened for a Suiss product client; the tenant sees it and may narrow its event types but cannot delete or close it."
+      enum:
+        - tenant
+        - product
+    product:
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+    secret:
+      type: string
+      description: "Signing secret of the new key, returned only in this response."
+      minLength: 32
+      maxLength: 512
+      x-relay-choice: true
+      x-relay-choice-note: "Returning the secret once in the create and rotate responses is chosen by the contract."
+    previous_key_expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
   additionalProperties: false

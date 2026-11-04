@@ -16,6 +16,22 @@ channels:
         "$ref": "#/components/messages/webhook.notification.suppressed"
       webhook.notification.render_failed:
         "$ref": "#/components/messages/webhook.notification.render_failed"
+      webhook.notification.delivered:
+        "$ref": "#/components/messages/webhook.notification.delivered"
+      webhook.notification.failed:
+        "$ref": "#/components/messages/webhook.notification.failed"
+      webhook.notification.expired:
+        "$ref": "#/components/messages/webhook.notification.expired"
+      webhook.delivery.status_changed:
+        "$ref": "#/components/messages/webhook.delivery.status_changed"
+      webhook.notification.seen:
+        "$ref": "#/components/messages/webhook.notification.seen"
+      webhook.notification.read:
+        "$ref": "#/components/messages/webhook.notification.read"
+      webhook.notification.clicked:
+        "$ref": "#/components/messages/webhook.notification.clicked"
+      webhook.notification.archived:
+        "$ref": "#/components/messages/webhook.notification.archived"
       webhook.device.reassigned:
         "$ref": "#/components/messages/webhook.device.reassigned"
       webhook.device.unregistered:
@@ -315,6 +331,14 @@ operations:
     messages:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.notification.suppressed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.notification.render_failed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.notification.delivered"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.notification.failed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.notification.expired"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.delivery.status_changed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.notification.seen"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.notification.read"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.notification.clicked"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.notification.archived"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.device.reassigned"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.device.unregistered"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.address.disabled"
@@ -496,7 +520,7 @@ components:
           maxLength: 512
         source:
           type: string
-          description: "Producer source. For tenant-defined event types it is the tenant's value; Relay's internal tenant id is never included."
+          description: "Producer source. In use A it is the installation issuer of the discovery document; for tenant-defined event types (use B) it is the tenant's value. Relay's internal tenant id is never included."
           maxLength: 1024
         type:
           "$ref": "../openapi/components/schemas.yaml#/EventName"
@@ -521,6 +545,20 @@ components:
           pattern: "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
         environment:
           "$ref": "../openapi/components/schemas.yaml#/Environment"
+        accesstenant:
+          type: string
+          description: "Identifier of the Access tenant bound to the Relay tenant. Use A only."
+          maxLength: 256
+        accessorganization:
+          type: string
+          description: "Identifier of the Access organization bound to the subtenant, when there is one. Use A only."
+          maxLength: 256
+        correlationid:
+          type: string
+          description: "The sender's correlation_id; for waitpoint events the value of the creation request. Absent when none was given. Use A only."
+          minLength: 1
+          maxLength: 128
+          pattern: "^[\\x20-\\x7E]+$"
         data:
           type: object
       additionalProperties: false
@@ -749,6 +787,471 @@ components:
                   additionalProperties: false
       x-relay-surface: webhook
       x-relay-stage: 5
+    webhook.notification.delivered:
+      name: notification.delivered
+      title: notification.delivered
+      summary: "The first delivery of the notification reached delivered; sent once per notification."
+      contentType: "application/cloudevents+json"
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: notification.delivered
+                data:
+                  type: object
+                  required:
+                    - notification_id
+                    - recipient_id
+                    - workflow
+                    - delivery_id
+                    - channel
+                    - delivered_at
+                  properties:
+                    notification_id:
+                      type: string
+                      pattern: "^ntf_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    external_id:
+                      "$ref": "../openapi/components/schemas.yaml#/ExternalId"
+                    workflow:
+                      type: object
+                      required:
+                        - key
+                        - version
+                      properties:
+                        key:
+                          "$ref": "../openapi/components/schemas.yaml#/WorkflowKey"
+                        version:
+                          type: integer
+                          minimum: 1
+                      additionalProperties: false
+                    tenant:
+                      oneOf:
+                        - type: string
+                          pattern: "^stn_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                        - type: "null"
+                    delivery_id:
+                      type: string
+                      pattern: "^dlv_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    delivered_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    item:
+                      "$ref": "../openapi/components/schemas.yaml#/ItemRef"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 7
+    webhook.notification.failed:
+      name: notification.failed
+      title: notification.failed
+      summary: "Every delivery of the notification is terminal, none delivered and at least one failed; sent once."
+      contentType: "application/cloudevents+json"
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: notification.failed
+                data:
+                  type: object
+                  required:
+                    - notification_id
+                    - recipient_id
+                    - workflow
+                    - failed_at
+                  properties:
+                    notification_id:
+                      type: string
+                      pattern: "^ntf_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    external_id:
+                      "$ref": "../openapi/components/schemas.yaml#/ExternalId"
+                    workflow:
+                      type: object
+                      required:
+                        - key
+                        - version
+                      properties:
+                        key:
+                          "$ref": "../openapi/components/schemas.yaml#/WorkflowKey"
+                        version:
+                          type: integer
+                          minimum: 1
+                      additionalProperties: false
+                    tenant:
+                      oneOf:
+                        - type: string
+                          pattern: "^stn_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                        - type: "null"
+                    failed_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    item:
+                      "$ref": "../openapi/components/schemas.yaml#/ItemRef"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 7
+    webhook.notification.expired:
+      name: notification.expired
+      title: notification.expired
+      summary: "The notification ended expired."
+      contentType: "application/cloudevents+json"
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: notification.expired
+                data:
+                  type: object
+                  required:
+                    - notification_id
+                    - recipient_id
+                    - workflow
+                    - expired_at
+                  properties:
+                    notification_id:
+                      type: string
+                      pattern: "^ntf_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    external_id:
+                      "$ref": "../openapi/components/schemas.yaml#/ExternalId"
+                    workflow:
+                      type: object
+                      required:
+                        - key
+                        - version
+                      properties:
+                        key:
+                          "$ref": "../openapi/components/schemas.yaml#/WorkflowKey"
+                        version:
+                          type: integer
+                          minimum: 1
+                      additionalProperties: false
+                    tenant:
+                      oneOf:
+                        - type: string
+                          pattern: "^stn_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                        - type: "null"
+                    expired_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    item:
+                      "$ref": "../openapi/components/schemas.yaml#/ItemRef"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 7
+    webhook.delivery.status_changed:
+      name: delivery.status_changed
+      title: delivery.status_changed
+      summary: "The external status of a delivery changed; sent on every transition."
+      contentType: "application/cloudevents+json"
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: delivery.status_changed
+                data:
+                  type: object
+                  required:
+                    - delivery_id
+                    - notification_id
+                    - recipient_id
+                    - workflow
+                    - channel
+                    - status
+                    - previous_status
+                    - changed_at
+                  properties:
+                    delivery_id:
+                      type: string
+                      pattern: "^dlv_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    notification_id:
+                      type: string
+                      pattern: "^ntf_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    external_id:
+                      "$ref": "../openapi/components/schemas.yaml#/ExternalId"
+                    workflow:
+                      type: object
+                      required:
+                        - key
+                        - version
+                      properties:
+                        key:
+                          "$ref": "../openapi/components/schemas.yaml#/WorkflowKey"
+                        version:
+                          type: integer
+                          minimum: 1
+                      additionalProperties: false
+                    tenant:
+                      oneOf:
+                        - type: string
+                          pattern: "^stn_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                        - type: "null"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    status:
+                      "$ref": "../openapi/components/schemas.yaml#/DeliveryStatus"
+                    previous_status:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/DeliveryStatus"
+                        - type: "null"
+                    reason:
+                      type: string
+                      maxLength: 64
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                    failure:
+                      "$ref": "../openapi/components/schemas.yaml#/Failure"
+                    changed_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    item:
+                      "$ref": "../openapi/components/schemas.yaml#/ItemRef"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 7
+    webhook.notification.seen:
+      name: notification.seen
+      title: notification.seen
+      summary: "The notification was seen for the first time."
+      contentType: "application/cloudevents+json"
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: notification.seen
+                data:
+                  type: object
+                  required:
+                    - notification_id
+                    - recipient_id
+                    - workflow
+                    - seen_at
+                  properties:
+                    notification_id:
+                      type: string
+                      pattern: "^ntf_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    external_id:
+                      "$ref": "../openapi/components/schemas.yaml#/ExternalId"
+                    workflow:
+                      type: object
+                      required:
+                        - key
+                        - version
+                      properties:
+                        key:
+                          "$ref": "../openapi/components/schemas.yaml#/WorkflowKey"
+                        version:
+                          type: integer
+                          minimum: 1
+                      additionalProperties: false
+                    tenant:
+                      oneOf:
+                        - type: string
+                          pattern: "^stn_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                        - type: "null"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    seen_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    item:
+                      "$ref": "../openapi/components/schemas.yaml#/ItemRef"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 7
+    webhook.notification.read:
+      name: notification.read
+      title: notification.read
+      summary: "The notification was read for the first time."
+      contentType: "application/cloudevents+json"
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: notification.read
+                data:
+                  type: object
+                  required:
+                    - notification_id
+                    - recipient_id
+                    - workflow
+                    - read_at
+                  properties:
+                    notification_id:
+                      type: string
+                      pattern: "^ntf_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    external_id:
+                      "$ref": "../openapi/components/schemas.yaml#/ExternalId"
+                    workflow:
+                      type: object
+                      required:
+                        - key
+                        - version
+                      properties:
+                        key:
+                          "$ref": "../openapi/components/schemas.yaml#/WorkflowKey"
+                        version:
+                          type: integer
+                          minimum: 1
+                      additionalProperties: false
+                    tenant:
+                      oneOf:
+                        - type: string
+                          pattern: "^stn_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                        - type: "null"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    read_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    item:
+                      "$ref": "../openapi/components/schemas.yaml#/ItemRef"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 7
+    webhook.notification.clicked:
+      name: notification.clicked
+      title: notification.clicked
+      summary: "The first human click of a link of the notification, per link_rel; bot clicks produce no event and stay visible in the history."
+      contentType: "application/cloudevents+json"
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: notification.clicked
+                data:
+                  type: object
+                  required:
+                    - notification_id
+                    - recipient_id
+                    - workflow
+                    - link_rel
+                    - clicked_at
+                  properties:
+                    notification_id:
+                      type: string
+                      pattern: "^ntf_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    external_id:
+                      "$ref": "../openapi/components/schemas.yaml#/ExternalId"
+                    workflow:
+                      type: object
+                      required:
+                        - key
+                        - version
+                      properties:
+                        key:
+                          "$ref": "../openapi/components/schemas.yaml#/WorkflowKey"
+                        version:
+                          type: integer
+                          minimum: 1
+                      additionalProperties: false
+                    tenant:
+                      oneOf:
+                        - type: string
+                          pattern: "^stn_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                        - type: "null"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    link_rel:
+                      type: string
+                      pattern: "^[a-z][a-z0-9_]{0,31}$"
+                    clicked_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    item:
+                      "$ref": "../openapi/components/schemas.yaml#/ItemRef"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 7
+    webhook.notification.archived:
+      name: notification.archived
+      title: notification.archived
+      summary: "The notification was archived for the first time."
+      contentType: "application/cloudevents+json"
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: notification.archived
+                data:
+                  type: object
+                  required:
+                    - notification_id
+                    - recipient_id
+                    - workflow
+                    - archived_at
+                  properties:
+                    notification_id:
+                      type: string
+                      pattern: "^ntf_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    external_id:
+                      "$ref": "../openapi/components/schemas.yaml#/ExternalId"
+                    workflow:
+                      type: object
+                      required:
+                        - key
+                        - version
+                      properties:
+                        key:
+                          "$ref": "../openapi/components/schemas.yaml#/WorkflowKey"
+                        version:
+                          type: integer
+                          minimum: 1
+                      additionalProperties: false
+                    tenant:
+                      oneOf:
+                        - type: string
+                          pattern: "^stn_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                        - type: "null"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    archived_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    item:
+                      "$ref": "../openapi/components/schemas.yaml#/ItemRef"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 7
     webhook.device.reassigned:
       name: device.reassigned
       title: device.reassigned
@@ -1002,6 +1505,54 @@ components:
                     response_id:
                       type: string
                       pattern: "^wpr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    responder:
+                      type: object
+                      required:
+                        - recipient_id
+                        - kind
+                      properties:
+                        recipient_id:
+                          "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                        kind:
+                          type: string
+                          enum:
+                            - subscriber
+                            - agent
+                        external_id:
+                          "$ref": "../openapi/components/schemas.yaml#/ExternalId"
+                      additionalProperties: false
+                    channel:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Channel"
+                        - type: "null"
+                    evidence_level:
+                      "$ref": "../openapi/components/schemas.yaml#/EvidenceLevel"
+                    responded_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    subject_digest:
+                      "$ref": "../openapi/components/schemas.yaml#/Sha256Digest"
+                    response_digest:
+                      "$ref": "../openapi/components/schemas.yaml#/Sha256Digest"
+                    session:
+                      type: object
+                      description: "Present when evidence_level is relay_session; aal and auth_time are copied from the Access token exchanged for the subscriber token."
+                      required:
+                        - aal
+                        - auth_time
+                        - subscriber_token_digest
+                      properties:
+                        aal:
+                          type: string
+                          maxLength: 32
+                        auth_time:
+                          "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                        subscriber_token_digest:
+                          "$ref": "../openapi/components/schemas.yaml#/Sha256Digest"
+                      additionalProperties: false
+                    access_decision_ref:
+                      type: string
+                      description: "Present when evidence_level is access_aas_ref."
+                      maxLength: 256
                   additionalProperties: false
       x-relay-surface: webhook
       x-relay-stage: 12
@@ -4334,6 +4885,7 @@ x-relay-event-names:
   - dead_letter.replayed
   - delivery.cancelled
   - delivery.paused
+  - delivery.status_changed
   - device.reassigned
   - device.unregistered
   - event_type_mapping.changed
@@ -4357,8 +4909,15 @@ x-relay-event-names:
   - mailbox.epoch_bumped
   - mailbox.record_appended
   - mailbox.record_dead_lettered
+  - notification.archived
   - notification.cancelled
+  - notification.clicked
+  - notification.delivered
+  - notification.expired
+  - notification.failed
+  - notification.read
   - notification.render_failed
+  - notification.seen
   - notification.suppressed
   - operator_session.revoked
   - organization.created

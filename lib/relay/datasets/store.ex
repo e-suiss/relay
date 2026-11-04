@@ -40,6 +40,21 @@ defmodule Relay.Datasets.Store do
     id
   end
 
+  # E-81
+  # INV-41
+  @doc "Reads the installation's data region through the installation lookup escape hatch."
+  @spec installation_region() :: String.t()
+  def installation_region do
+    {:ok, %Postgrex.Result{rows: [[region]]}} =
+      Repo.unscoped_query(
+        :installation_lookup,
+        "SELECT region FROM relay.installation WHERE singleton",
+        []
+      )
+
+    region
+  end
+
   # OP-65 (1)
   @doc "Reads a data set definition: its JSON Schema, schema digest and allowed scopes."
   @spec dataset(String.t()) :: map() | nil

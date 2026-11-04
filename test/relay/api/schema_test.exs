@@ -1,6 +1,7 @@
 defmodule Relay.Api.SchemaTest do
   use ExUnit.Case, async: true
 
+  alias Relay.Api.Contract
   alias Relay.Api.Schema
 
   defp pointers(%Relay.Error{details: %{errors: errors}}),
@@ -67,10 +68,57 @@ defmodule Relay.Api.SchemaTest do
 
   describe "API-2 contract schemas" do
     test "API-2: every request schema of the server contract builds" do
-      for operation <- Relay.Api.Contract.operations(), {type, _schema} <- operation.request do
+      for operation <- Contract.operations(), {type, _schema} <- operation.request do
         assert Schema.request?(operation.id, type)
         assert :ok == valid_or_failed(Schema.validate_request(operation.id, type, %{}))
       end
+    end
+  end
+
+  describe "E-81 E-83 staged contract fields" do
+    test "E-81, E-83: a field of a later stage stays an unknown field until its stage is built" do
+      event = %{"workflow" => "welcome", "to" => [%{"id" => "u-1"}]}
+      links = [%{"rel" => "primary", "href" => "https://example.com/orders/1"}]
+
+      assert Contract.built_stage() < 6
+      assert :ok = Schema.validate_request("createEvent", "application/json", event)
+
+      linked = Map.put(event, "links", links)
+
+      assert {:error, %Relay.Error{code: :unknown_field} = error} =
+               Schema.validate_request("createEvent", "application/json", linked)
+
+      assert {"/links", "not_allowed"} in pointers(error)
+
+      batch = %{"events" => [Map.put(event, "correlation_id", "order-1")]}
+
+      assert {:error, %Relay.Error{code: :unknown_field} = error} =
+               Schema.validate_request("createEventBatch", "application/json", batch)
+
+      assert {"/events/0/correlation_id", "not_allowed"} in pointers(error)
+    end
+
+    test "E-81: a later property is removed with its required entry at every depth" do
+      stage = Contract.built_stage()
+
+      schema = %{
+        "type" => "object",
+        "required" => ["now", "later"],
+        "properties" => %{
+          "now" => %{"type" => "string", "x-relay-stage" => stage},
+          "later" => %{"type" => "string", "x-relay-stage" => stage + 1},
+          "nested" => %{
+            "type" => "object",
+            "properties" => %{"deep" => %{"type" => "integer", "x-relay-stage" => stage + 2}}
+          }
+        }
+      }
+
+      built = Contract.built(schema)
+
+      assert built["required"] == ["now"]
+      assert Enum.sort(Map.keys(built["properties"])) == ["nested", "now"]
+      assert built["properties"]["nested"]["properties"] == %{}
     end
   end
 

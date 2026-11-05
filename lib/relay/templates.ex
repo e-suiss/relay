@@ -15,8 +15,11 @@ defmodule Relay.Templates do
   alias Relay.Templates.PublishGate
   alias Relay.Templates.Samples
   alias Relay.Templates.Sandbox
+  alias Relay.Templates.Sms
   alias Relay.Templates.TermSets
   alias Relay.Templates.Variables
+
+  @sms_encodings [{"GSM7", :gsm7}, {"GSM7_TR", :gsm7_tr}, {"UCS2", :ucs2}]
 
   # TP-43
   @doc "Warms the CLDR backend at application start."
@@ -132,6 +135,21 @@ defmodule Relay.Templates do
   @doc "The SMS encoding policy of a definition's `sms_encoding`; see `Relay.Templates.CellRender.policy/1`."
   @spec sms_policy(String.t() | nil) :: atom()
   def sms_policy(name), do: CellRender.policy(name)
+
+  # CH-48
+  # CH-75
+  @doc "Measures a rendered SMS text for one provider in the cheapest of the allowed encodings (`\"GSM7\"`, `\"GSM7_TR\"`, `\"UCS2\"`) that carries it, after `reserved` units: `{:ok, %{encoding: name, segments: n, units: n}}`, or `:error` when none carries it; see `Relay.Templates.Sms.measure/3`."
+  @spec sms_measure(String.t(), [String.t()], non_neg_integer()) ::
+          {:ok, %{encoding: String.t(), segments: non_neg_integer(), units: non_neg_integer()}}
+          | :error
+  def sms_measure(text, allowed, reserved) do
+    encodings = for {name, atom} <- @sms_encodings, name in allowed, do: atom
+
+    case Sms.measure(text, encodings, reserved) do
+      {:ok, m} -> {:ok, %{encoding: m.name, segments: m.segments, units: m.units}}
+      :error -> :error
+    end
+  end
 
   @doc "The sensitivity class of a definition's `sensitivity`; see `Relay.Templates.CellRender.sensitivity/1`."
   @spec sensitivity(String.t() | nil) :: :public | :personal | :sensitive | nil

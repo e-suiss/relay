@@ -13,6 +13,8 @@ defmodule Relay.Channels.Adapter do
 
   `c:query/1` is required when the declared policy is `wait_and_query`: it asks the provider's status endpoint about the request's idempotency key and returns the outcome, `:not_received` when the provider has no such request, or `:unavailable`. `c:decode/1` turns the `response` of a test vector into the raw code the adapter would report, so the activation gate can check the adapter's own parsing against its vectors.
 
+  `c:reports/3` reads a provider's delivery report webhook: it verifies the raw body first with the adapter's declared inbound verification (`Relay.Channels.Inbound`, T-40), then turns each report into a `t:report/0`, whose result is `{:delivered, info}`, `{:rejected, raw}` with the provider code of the adapter's `errors.json`, or `:pending` for an intermediate state. The core normalizes a report with `Relay.Channels.normalize_report/4`; the adapter decides nothing about it.
+
   Registering an adapter means adding its module to `Relay.Channels.Registry` and its declaration directory to `priv/channels/<provider>/` (CH-71); until the declaration passes the activation gate the adapter is registered but receives no traffic (CH-2).
   """
 
@@ -42,6 +44,15 @@ defmodule Relay.Channels.Adapter do
           | {:not_sent, String.t()}
           | {:uncertain, String.t()}
 
+  @type report :: %{
+          required(:provider_message_id) => String.t() | nil,
+          required(:result) => {:delivered, map()} | {:rejected, raw()} | :pending,
+          required(:channel) => String.t(),
+          optional(:correlation) => String.t() | nil,
+          optional(:occurred_at) => DateTime.t() | nil,
+          optional(:detail) => map()
+        }
+
   @type query_result ::
           {:accepted, accepted()} | {:rejected, raw()} | :not_received | :unavailable
 
@@ -60,5 +71,9 @@ defmodule Relay.Channels.Adapter do
   @doc "Decodes the `response` of a test vector into the raw code the adapter reports."
   @callback decode(map()) :: raw()
 
-  @optional_callbacks query: 1, decode: 1
+  @doc "Verifies a delivery report webhook on its raw body and reads its reports. Options: `:key` (the verification secret), `:url` (the callback URL as configured), `:token` (a token carried in the URL) and `:now`."
+  @callback reports(binary(), [{String.t(), String.t()}], keyword()) ::
+              {:ok, [report()]} | {:error, atom()}
+
+  @optional_callbacks query: 1, decode: 1, reports: 3
 end

@@ -166,5 +166,25 @@
     "header": null,
     "authenticity": "verified",
     "source": "§12.11a (2) CH-72; §8.9 X-26"
+  },
+  "sms": {
+    "encodings": [
+      "GSM7",
+      "GSM7_TR",
+      "UCS2"
+    ],
+    "turkish_single_shift": "unverified",
+    "turkish_single_shift_evidence": null,
+    "btk_authorized": true,
+    "otp_product": false,
+    "sender_types": [
+      "alphanumeric",
+      "short_code",
+      "long_number",
+      "toll_free",
+      "ten_dlc"
+    ],
+    "segment_reserve": [],
+    "source": "§12.11a (2) CH-72; §12.11a (5) CH-75"
   }
 }

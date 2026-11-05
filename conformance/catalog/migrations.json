@@ -110,5 +110,7 @@
   {"file": "20261114000200_rebuild_reference_check_for_devices.exs", "sha256": "99c9b588aa6882eaac3898f3e3d82d5864694af4846c4af6620f8bb411a4ab9f"},
   {"file": "20261114990000_rebuild_reference_check_for_providers_and_devices.exs", "sha256": "191c02db870e06a20feb9b06dd8a5184817d8969fbc2f3a796684d2c58391ab2"},
   {"file": "20261115000100_register_email_datasets.exs", "sha256": "38462d23a48fc5ec2adc17afdae883f392f93ce1364d0f7aae6fc00d668cdc0c"},
-  {"file": "20261116000100_register_push_priority_map.exs", "sha256": "bbf88f09696aeafada65df3452727f9772f017b4c79c52ed65bc9cf58529e48c"}
+  {"file": "20261116000100_register_push_priority_map.exs", "sha256": "bbf88f09696aeafada65df3452727f9772f017b4c79c52ed65bc9cf58529e48c"},
+  {"file": "20261118000000_update_channel_event_evidence_schema.exs", "sha256": "0e38692d7c72a6b124257537423e13237ecbb384fea072403fd2df7ab60778a5"},
+  {"file": "20261118000100_add_sms_sender_registration.exs", "sha256": "91814262f018721623bb49c55d21d44e3d2fff013d1d27ac15ef29467b1a8370"}
 ]

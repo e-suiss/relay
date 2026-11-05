@@ -92,6 +92,17 @@ defmodule Relay.Templates.Sms do
     })
   end
 
+  # CH-48
+  # CH-75
+  @doc "Measures a rendered SMS text for one provider: the cheapest of the `allowed` encodings (`:gsm7`, `:gsm7_tr`, `:ucs2`) that carries the text, with its segments and units after `reserved` units; `:error` when none of them carries it."
+  @spec measure(String.t(), [Encoding.t()], non_neg_integer()) :: {:ok, measure()} | :error
+  def measure(text, allowed, reserved) when is_binary(text) and is_list(allowed) do
+    case Enum.find([:gsm7, :gsm7_tr, :ucs2], &(&1 in allowed and Encoding.fits?(text, &1))) do
+      nil -> :error
+      encoding -> {:ok, measure(text, encoding, reserved)}
+    end
+  end
+
   # TP-18
   # TP-32
   # CH-48

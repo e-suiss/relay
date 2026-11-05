@@ -1,0 +1,815 @@
+[
+  {
+    "name": "send:INVALID_SOURCE_ADDRESS",
+    "raw": {
+      "code": "send:INVALID_SOURCE_ADDRESS",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "INVALID_SOURCE_ADDRESS"
+    }
+  },
+  {
+    "name": "send:NUMERIC_SOURCE_ADDRESS_NOT_ALLOWED",
+    "raw": {
+      "code": "send:NUMERIC_SOURCE_ADDRESS_NOT_ALLOWED",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "NUMERIC_SOURCE_ADDRESS_NOT_ALLOWED"
+    }
+  },
+  {
+    "name": "send:MISSING_IYS_BRAND_CODE",
+    "raw": {
+      "code": "send:MISSING_IYS_BRAND_CODE",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "MISSING_IYS_BRAND_CODE"
+    }
+  },
+  {
+    "name": "send:MISSING_MESSAGE",
+    "raw": {
+      "code": "send:MISSING_MESSAGE",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "MISSING_MESSAGE"
+    }
+  },
+  {
+    "name": "send:MESSAGE_TOO_LONG",
+    "raw": {
+      "code": "send:MESSAGE_TOO_LONG",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "MESSAGE_TOO_LONG"
+    }
+  },
+  {
+    "name": "send:INVALID_PERIOD",
+    "raw": {
+      "code": "send:INVALID_PERIOD",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "INVALID_PERIOD"
+    }
+  },
+  {
+    "name": "send:INVALID_DELIVERY_TIME",
+    "raw": {
+      "code": "send:INVALID_DELIVERY_TIME",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "INVALID_DELIVERY_TIME"
+    }
+  },
+  {
+    "name": "send:INVALID_DATACODING",
+    "raw": {
+      "code": "send:INVALID_DATACODING",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "INVALID_DATACODING"
+    }
+  },
+  {
+    "name": "send:INVALID_IYS_RECIPIENT_TYPE",
+    "raw": {
+      "code": "send:INVALID_IYS_RECIPIENT_TYPE",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "INVALID_IYS_RECIPIENT_TYPE"
+    }
+  },
+  {
+    "name": "send:MISSING_DESTINATION_ADDRESS",
+    "raw": {
+      "code": "send:MISSING_DESTINATION_ADDRESS",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "MISSING_DESTINATION_ADDRESS"
+    }
+  },
+  {
+    "name": "send:INVALID_UTF8",
+    "raw": {
+      "code": "send:INVALID_UTF8",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "INVALID_UTF8"
+    }
+  },
+  {
+    "name": "send:INVALID_JSON",
+    "raw": {
+      "code": "send:INVALID_JSON",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "INVALID_JSON"
+    }
+  },
+  {
+    "name": "send:FORBIDDEN_MESSAGE",
+    "raw": {
+      "code": "send:FORBIDDEN_MESSAGE",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "FORBIDDEN_MESSAGE"
+    }
+  },
+  {
+    "name": "send:INVALID_DESTINATION_ADDRESS",
+    "raw": {
+      "code": "send:INVALID_DESTINATION_ADDRESS",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "INVALID_DESTINATION_ADDRESS"
+    }
+  },
+  {
+    "name": "send:INVALID_RECIPIENT",
+    "raw": {
+      "code": "send:INVALID_RECIPIENT",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "INVALID_RECIPIENT"
+    }
+  },
+  {
+    "name": "send:MUKERRER_RAPORLAMA",
+    "raw": {
+      "code": "send:MUKERRER_RAPORLAMA",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "MUKERRER_RAPORLAMA"
+    }
+  },
+  {
+    "name": "send:MISSING_CONSENT",
+    "raw": {
+      "code": "send:MISSING_CONSENT",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "MISSING_CONSENT"
+    }
+  },
+  {
+    "name": "send:MISSING_CONSENT_DATE",
+    "raw": {
+      "code": "send:MISSING_CONSENT_DATE",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "MISSING_CONSENT_DATE"
+    }
+  },
+  {
+    "name": "send:INVALID_CONSENT_DATE",
+    "raw": {
+      "code": "send:INVALID_CONSENT_DATE",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "INVALID_CONSENT_DATE"
+    }
+  },
+  {
+    "name": "send:INSUFFICIENT_CREDITS",
+    "raw": {
+      "code": "send:INSUFFICIENT_CREDITS",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "INSUFFICIENT_CREDITS"
+    }
+  },
+  {
+    "name": "send:MESSAGE_COUNT_LIMIT_EXCEEDED",
+    "raw": {
+      "code": "send:MESSAGE_COUNT_LIMIT_EXCEEDED",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "MESSAGE_COUNT_LIMIT_EXCEEDED"
+    }
+  },
+  {
+    "name": "http:401",
+    "raw": {
+      "code": "http:401",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": ""
+    }
+  },
+  {
+    "name": "http:413",
+    "raw": {
+      "code": "http:413",
+      "status": 413,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 413,
+      "body": ""
+    }
+  },
+  {
+    "name": "http:429",
+    "raw": {
+      "code": "http:429",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "body": ""
+    }
+  },
+  {
+    "name": "http:500",
+    "raw": {
+      "code": "http:500",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": ""
+    }
+  },
+  {
+    "name": "http:503",
+    "raw": {
+      "code": "http:503",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": ""
+    }
+  },
+  {
+    "name": "voice:400",
+    "raw": {
+      "code": "voice:400",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": "",
+      "channel": "voice"
+    }
+  },
+  {
+    "name": "voice:401",
+    "raw": {
+      "code": "voice:401",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": "",
+      "channel": "voice"
+    }
+  },
+  {
+    "name": "voice:403",
+    "raw": {
+      "code": "voice:403",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": "",
+      "channel": "voice"
+    }
+  },
+  {
+    "name": "dlr:NOT_DELIVERED",
+    "raw": {
+      "code": "dlr:NOT_DELIVERED",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": "NOT_DELIVERED"
+      }
+    }
+  },
+  {
+    "name": "dlr:EXPIRED",
+    "raw": {
+      "code": "dlr:EXPIRED",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "expired",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": "EXPIRED"
+      }
+    }
+  },
+  {
+    "name": "dlr:INVALID_DESTINATION_ADDRESS",
+    "raw": {
+      "code": "dlr:INVALID_DESTINATION_ADDRESS",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": "INVALID_DESTINATION_ADDRESS"
+      }
+    }
+  },
+  {
+    "name": "dlr:REJECTED",
+    "raw": {
+      "code": "dlr:REJECTED",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": "REJECTED"
+      }
+    }
+  },
+  {
+    "name": "dlr:DOUBLE_SEND_ERROR",
+    "raw": {
+      "code": "dlr:DOUBLE_SEND_ERROR",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": "DOUBLE_SEND_ERROR"
+      }
+    }
+  },
+  {
+    "name": "dlr:BLACKLISTED_DESTINATION_ADDRESS",
+    "raw": {
+      "code": "dlr:BLACKLISTED_DESTINATION_ADDRESS",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": "BLACKLISTED_DESTINATION_ADDRESS"
+      }
+    }
+  },
+  {
+    "name": "dlr:NOT_ALLOWED_BY_IYS",
+    "raw": {
+      "code": "dlr:NOT_ALLOWED_BY_IYS",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": "NOT_ALLOWED_BY_IYS"
+      }
+    }
+  },
+  {
+    "name": "dlr:ROUTE_NOT_AVAILABLE",
+    "raw": {
+      "code": "dlr:ROUTE_NOT_AVAILABLE",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": "ROUTE_NOT_AVAILABLE"
+      }
+    }
+  },
+  {
+    "name": "dlr:NETWORK_NOTCOVERED",
+    "raw": {
+      "code": "dlr:NETWORK_NOTCOVERED",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": "NETWORK_NOTCOVERED"
+      }
+    }
+  },
+  {
+    "name": "dlr:INTERNATIONAL_DENIED",
+    "raw": {
+      "code": "dlr:INTERNATIONAL_DENIED",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": "INTERNATIONAL_DENIED"
+      }
+    }
+  },
+  {
+    "name": "dlr:SEND_ERROR",
+    "raw": {
+      "code": "dlr:SEND_ERROR",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": "SEND_ERROR"
+      }
+    }
+  },
+  {
+    "name": "call:Cevapsız",
+    "raw": {
+      "code": "call:Cevapsız",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "channel": "voice",
+        "status": "Cevapsız"
+      }
+    }
+  },
+  {
+    "name": "call:Reddedildi",
+    "raw": {
+      "code": "call:Reddedildi",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "channel": "voice",
+        "status": "Reddedildi"
+      }
+    }
+  },
+  {
+    "name": "call:Hata",
+    "raw": {
+      "code": "call:Hata",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "channel": "voice",
+        "status": "Hata"
+      }
+    }
+  },
+  {
+    "name": "missing_tariff_unmapped",
+    "raw": {
+      "code": "dlr:MISSING_TARIFF",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": "MISSING_TARIFF"
+      }
+    }
+  }
+]

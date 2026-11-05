@@ -1,0 +1,378 @@
+[
+  {
+    "code": "20003",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "20404",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "20429",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21211",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21265",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21614",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21408",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21606",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21612",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21659",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21660",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21703",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21602",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21604",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21617",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21266",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21610",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "13223",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "13224",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21217",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21215",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "13227",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "21216",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "32203",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "http:500",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "http:503",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30001",
+    "class": "transient",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30002",
+    "class": "auth",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30003",
+    "class": "transient",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30004",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30005",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30006",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30007",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30008",
+    "class": "unknown",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30022",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30023",
+    "class": "quota",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30024",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30032",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30034",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30035",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30036",
+    "class": "transient",
+    "condition": null,
+    "event_code": "expired",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30044",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "30450",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "63038",
+    "class": "quota",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "call:busy",
+    "class": "transient",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "call:no-answer",
+    "class": "transient",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  },
+  {
+    "code": "call:failed",
+    "class": "transient",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  }
+]

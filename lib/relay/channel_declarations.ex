@@ -42,6 +42,7 @@ defmodule Relay.ChannelDeclarations do
           | :limits
           | :data_residency
           | :inbound_verification
+          | :sms_catalog
           | :semantics
   @type t :: %__MODULE__{
           version_id: Relay.Id.t() | nil,
@@ -226,7 +227,7 @@ defmodule Relay.ChannelDeclarations do
   # INV-13
   # C-44
   @doc """
-  The activation gate of a provider (DS-11, CH-2): `:ok` when its declaration is complete, otherwise the list of what is missing. Complete means: capability flags for every channel; a `provider_idempotency_policy` (INV-13), which names a status query when it waits and queries; a non-empty failure class mapping; a test vector for every provider code whose expectation matches the mapping; evidence rows for `accepted`, `rejected`, `uncertain` and every mapped event code on every channel; price units for every channel and the three limit lists; data residency with the transfer basis and, under standard contractual clauses, their notification date; an inbound verification method, compensating controls marked unverifiable and no method only when no channel takes inbound messages; and a delivery semantics row for every channel (DS-12).
+  The activation gate of a provider (DS-11, CH-2): `:ok` when its declaration is complete, otherwise the list of what is missing. Complete means: capability flags for every channel; a `provider_idempotency_policy` (INV-13), which names a status query when it waits and queries; a non-empty failure class mapping; a test vector for every provider code whose expectation matches the mapping; evidence rows for `accepted`, `rejected`, `uncertain` and every mapped event code on every channel; price units for every channel and the three limit lists; data residency with the transfer basis and, under standard contractual clauses, their notification date; an inbound verification method, compensating controls marked unverifiable and no method only when no channel takes inbound messages; on the SMS channel the provider catalogue, `turkish_single_shift` verified only with its device evidence (CH-48, CH-75); and a delivery semantics row for every channel (DS-12).
   """
   @spec gate(t(), String.t()) :: :ok | {:error, [missing(), ...]}
   def gate(%__MODULE__{} = s, provider) do
@@ -250,6 +251,7 @@ defmodule Relay.ChannelDeclarations do
       limits: limits?(declaration),
       data_residency: residency?(declaration),
       inbound_verification: inbound?(declaration),
+      sms_catalog: sms?(declaration),
       semantics: Enum.all?(channels(declaration), &Map.has_key?(s.semantics, &1))
     ]
 
@@ -331,6 +333,20 @@ defmodule Relay.ChannelDeclarations do
       _missing -> false
     end
   end
+
+  defp sms?(declaration) do
+    case {"sms" in channels(declaration), Map.get(declaration, "sms")} do
+      {false, _catalog} -> true
+      {true, %{"turkish_single_shift" => "unverified", "encodings" => [_ | _]}} -> true
+      {true, %{"turkish_single_shift" => "verified"} = sms} -> evidence?(sms)
+      {true, _missing} -> false
+    end
+  end
+
+  defp evidence?(%{"turkish_single_shift_evidence" => e, "encodings" => [_ | _]}),
+    do: is_binary(e) and e != ""
+
+  defp evidence?(_sms), do: false
 
   defp inbound_channel?(declaration) do
     capabilities = Map.get(declaration, "capabilities") || %{}

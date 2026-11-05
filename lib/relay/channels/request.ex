@@ -12,6 +12,8 @@ defmodule Relay.Channels.Request do
     * `ttl_s`: the channel time to live derived from the message's `expires_at` (`Relay.Channels.ttl_s/2`, CH-9), `nil` without `expires_at`.
     * `timeout_ms`: the call timeout, the shortest of the message, channel and provider layers (CH-9); the adapter never waits longer.
     * `message_class`, `test?` (the test plane) and `overrides` (the request's channel overrides, API-23).
+    * `encoding`: on SMS the explicit encoding of the send, `"GSM7"`, `"GSM7_TR"` or `"UCS2"` (CH-48); the adapter names it to the provider and never leaves it to the provider's detection.
+    * `product`: the provider product, `"otp"` for a `security` message on a provider with an OTP product, otherwise `"standard"` (CH-53).
   """
 
   @enforce_keys [
@@ -40,7 +42,9 @@ defmodule Relay.Channels.Request do
     ttl_s: nil,
     message_class: nil,
     test?: false,
-    overrides: %{}
+    overrides: %{},
+    encoding: nil,
+    product: "standard"
   ]
 
   @type target :: %{
@@ -65,6 +69,8 @@ defmodule Relay.Channels.Request do
           ttl_s: non_neg_integer() | nil,
           message_class: String.t() | nil,
           test?: boolean(),
-          overrides: map()
+          overrides: map(),
+          encoding: String.t() | nil,
+          product: String.t()
         }
 end

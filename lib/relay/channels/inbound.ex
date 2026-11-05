@@ -7,6 +7,8 @@ defmodule Relay.Channels.Inbound do
     * `slack/4`: Slack's `v0` signature over `v0:timestamp:body` (CH-62).
     * `ed25519/4`: an Ed25519 signature of the body, or of a timestamp header followed by the body.
     * `jwt/3`: a JWT signed with HS256, RS256 or ES256 whose `exp` and `nbf` hold at `now`; returns its claims.
+    * `hmac_sha1_url/4`: Twilio's `X-Twilio-Signature`, the Base64 HMAC-SHA1 of the full callback URL followed by the form parameters sorted by name, each name directly followed by its value.
+    * `url_token/2`: a compensating control, a shared token carried in the callback URL compared in constant time, for providers that sign nothing; its authenticity is declared `unverifiable`.
     * `secret_token/3`: a compensating control, a shared token in a header compared in constant time, such as Telegram's secret token; its authenticity is declared `unverifiable` (§12.1.2).
   """
 
@@ -203,6 +205,37 @@ defmodule Relay.Channels.Inbound do
         do: :ok,
         else: {:error, :bad_signature}
     end
+  end
+
+  # T-40
+  # TN-35
+  @doc "Verifies Twilio's `x-twilio-signature` over the callback `url` exactly as configured and the raw form-encoded body."
+  @spec hmac_sha1_url(key(), String.t(), binary(), headers()) ::
+          :ok | {:error, signature_reason()}
+  def hmac_sha1_url(key, url, body, headers) when is_binary(url) and is_binary(body) do
+    with {:ok, value} <- header(headers, "x-twilio-signature"),
+         {:ok, given} <- decode(value, :base64) do
+      signed =
+        body
+        |> URI.decode_query()
+        |> Enum.sort()
+        |> Enum.reduce(url, fn {name, param}, acc -> acc <> name <> param end)
+
+      mac = :crypto.mac(:hmac, :sha, Relay.Redacted.expose(key), signed)
+      if Relay.Crypto.secure_compare(mac, given), do: :ok, else: {:error, :bad_signature}
+    end
+  end
+
+  # CH-3
+  @doc "Checks a shared token carried in the callback URL in constant time: a compensating control whose authenticity is declared unverifiable."
+  @spec url_token(key(), String.t() | nil) :: :ok | {:error, signature_reason()}
+  def url_token(_key, nil), do: {:error, :missing_header}
+  def url_token(_key, ""), do: {:error, :missing_header}
+
+  def url_token(key, given) when is_binary(given) do
+    if Relay.Crypto.secure_compare(given, Relay.Redacted.expose(key)),
+      do: :ok,
+      else: {:error, :bad_signature}
   end
 
   defp header(headers, name) do

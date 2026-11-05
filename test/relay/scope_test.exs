@@ -57,7 +57,8 @@ defmodule Relay.ScopeTest do
                :operator_access,
                :cross_tenant_overview,
                :suspension_due_discovery,
-               :lane_capacity
+               :lane_capacity,
+               :device_sweep_discovery
              ]
     end
 

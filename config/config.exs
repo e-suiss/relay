@@ -50,7 +50,11 @@ config :relay, Oban,
   plugins: [
     {Oban.Lifeline, rescue_after: 7_200_000},
     Relay.Platform.Queue.Pruner,
-    {Oban.Plugins.Cron, crontab: [{"*/5 * * * *", Relay.Agents.WaitpointSweep}]}
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"*/5 * * * *", Relay.Agents.WaitpointSweep},
+       {"17 * * * *", Relay.Devices.Sweep}
+     ]}
   ]
 
 config :relay, Relay.Platform.VirtualClock, due: [{Relay.Agents, :run_due, []}]

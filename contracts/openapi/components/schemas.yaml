@@ -5041,14 +5041,11 @@ ItemRef:
   additionalProperties: false
 Capability:
   type: string
-  description: "Capability URN; the suffix grows only with an incompatible change."
-  enum:
-    - "urn:esuiss:relay:events:1"
-    - "urn:esuiss:relay:waitpoint:1"
-    - "urn:esuiss:relay:escalation:1"
-    - "urn:esuiss:relay:agent_ceiling:1"
-    - "urn:esuiss:relay:webhook_endpoints:1"
-    - "urn:esuiss:relay:product_events:1"
+  description: "Capability URN under the Suiss urn:suiss: prefix; the suffix grows only with an incompatible change. Defined capabilities: urn:suiss:relay:events:1, urn:suiss:relay:waitpoint:1, urn:suiss:relay:escalation:1, urn:suiss:relay:agent_ceiling:1, urn:suiss:relay:webhook_endpoints:1, urn:suiss:relay:product_events:1."
+  pattern: "^urn:suiss:relay:[a-z][a-z_]*:[1-9][0-9]*$"
+  maxLength: 128
+  examples:
+    - "urn:suiss:relay:events:1"
 RelayConfiguration:
   type: object
   description: "Relay discovery document of the installation."
@@ -5065,7 +5062,7 @@ RelayConfiguration:
     issuer:
       type: string
       format: uri
-      description: "Base URL of the installation; the source of outgoing events."
+      description: "Base URL of the installation without a trailing slash; the source of outgoing events. Equals byte for byte the suiss_relay value of the Access Suiss discovery document, and this document is found at <suiss_relay>/.well-known/relay-configuration."
     api_base:
       type: string
       format: uri
@@ -5096,23 +5093,23 @@ RelayConfiguration:
     events_endpoint:
       type: string
       format: uri
-      description: "Present with urn:esuiss:relay:events:1."
+      description: "Present with urn:suiss:relay:events:1."
     waitpoints_endpoint:
       type: string
       format: uri
-      description: "Present with urn:esuiss:relay:waitpoint:1."
+      description: "Present with urn:suiss:relay:waitpoint:1."
     escalation_policies_endpoint:
       type: string
       format: uri
-      description: "Present with urn:esuiss:relay:escalation:1."
+      description: "Present with urn:suiss:relay:escalation:1."
     agents_endpoint:
       type: string
       format: uri
-      description: "Present with urn:esuiss:relay:agent_ceiling:1."
+      description: "Present with urn:suiss:relay:agent_ceiling:1."
     webhook_endpoints_endpoint:
       type: string
       format: uri
-      description: "Present with urn:esuiss:relay:webhook_endpoints:1."
+      description: "Present with urn:suiss:relay:webhook_endpoints:1."
   additionalProperties: false
 JsonWebKey:
   type: object

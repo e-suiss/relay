@@ -27,6 +27,10 @@ contracts/
 - Every family lives in its own file and has its own authentication rule. The agent family is added in a later stage.
 - `connectors/outbox.sql` is the table a producer exposes to Relay's built-in ingest source: `id` orders the rows, `payload` holds one structured mode CloudEvent, and Relay writes `relay_claimed_until`, `relayed_at` and `relay_outcome`. The producer names the table and may add columns of its own. Relay checks the columns and types when it connects, reads and updates rows, and never deletes one.
 
+## Discovery
+
+`server.yaml` also describes the public discovery document, `GET /.well-known/relay-configuration`, and the product event key set, `GET /.well-known/relay-jwks.json`. A client finds the document from its Access issuer: `suiss_relay` in the Access Suiss discovery document is the Relay `issuer`, and the document lives at `<suiss_relay>/.well-known/relay-configuration`. Capability URNs use the `urn:suiss:relay:` prefix.
+
 ## Conventions
 
 - Every request schema sets `additionalProperties: false`: unknown fields are rejected with `422 unknown_field`, never ignored.

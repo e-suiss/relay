@@ -56,9 +56,9 @@ defmodule RelayWeb.Api.DiscoveryTest do
           else: refute(Map.has_key?(document, capability.field))
       end
 
-      assert "urn:esuiss:relay:events:1" in document["capabilities"]
+      assert "urn:suiss:relay:events:1" in document["capabilities"]
       assert document["events_endpoint"] == issuer <> "/v1/events"
-      refute "urn:esuiss:relay:waitpoint:1" in document["capabilities"]
+      refute "urn:suiss:relay:waitpoint:1" in document["capabilities"]
       refute Map.has_key?(document, "waitpoints_endpoint")
     end
 
@@ -95,7 +95,7 @@ defmodule RelayWeb.Api.DiscoveryTest do
 
     test "E-89: without a product event key the product event capability is not offered" do
       {_conn, document} = get_document("/.well-known/relay-configuration")
-      refute "urn:esuiss:relay:product_events:1" in document["capabilities"]
+      refute "urn:suiss:relay:product_events:1" in document["capabilities"]
     end
 
     test "E-89: a key of the set is an Ed25519 signing JWK" do

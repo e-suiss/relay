@@ -126,6 +126,12 @@ relay kill-switch engage --scope workflow --ref welcome --reason "bad copy" --tt
 
 Every command accepts `--json` and then prints one JSON object with an `exit_code` field. Exit codes are stable: `0` success, `1` unexpected error, `2` usage error, `3` authentication or authorization, `4` not found, `5` validation or conflict, `6` rate limit or quota, `7` server or connection, `8` live change not confirmed. A command that changes the live environment asks for confirmation, or takes `--yes`. Run `relay help` for every option, including profiles in `~/.config/relay/config.json`.
 
+## Discovery
+
+A client needs only its Access issuer. The Access Suiss discovery document (`<access issuer>/.well-known/suiss-configuration`) names the Relay installation in `suiss_relay`, and Relay's own discovery document is at `<suiss_relay>/.well-known/relay-configuration`. Its `issuer` is byte for byte the `suiss_relay` value (no trailing slash) and is the `source` of every event Relay sends.
+
+The document carries the API base, the data region, the bound Access issuer, the supported dated contract versions, the address of the product event key set (`jwks_uri`) and the capabilities served by this installation as `urn:suiss:relay:<capability>:<version>` URNs, each with its endpoint. A capability is listed only while all of its operations are served. Both documents are public and may be cached for five minutes.
+
 ## Ingest connectors
 
 Besides the HTTP API (native JSON events and CloudEvents on `POST /v1/events`), Relay can take events from a producer's own database. The built-in source is a **PostgreSQL outbox table**: your service writes one structured mode CloudEvent per row in the same transaction as its own change, and Relay relays the rows and records the outcome of each one. Relay never deletes a row. The table shape is a contract, [`contracts/connectors/outbox.sql`](contracts/connectors/outbox.sql); Relay checks it when it connects and does not read a table that differs.

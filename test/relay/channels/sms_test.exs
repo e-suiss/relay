@@ -34,6 +34,7 @@ defmodule Relay.Channels.SmsTest do
 
       assert {:ok, %{encoding: "UCS2", segments: 1}} =
                Sms.encoding(verimor, "Şifreniz 1234", "TR")
+
       assert {:ok, %{encoding: "GSM7", segments: 1}} = Sms.encoding(verimor, "Code 1234", "TR")
     end
 

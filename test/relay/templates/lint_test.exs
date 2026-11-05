@@ -166,7 +166,9 @@ defmodule Relay.Templates.LintTest do
                LegalFooter.check([voice], %{}, opts)
 
       assert LegalFooter.check([voice], %{"legal_name" => "Örnek A.Ş."}, opts) == []
-      assert LegalFooter.check([voice], @brand_tr, message_class: "marketing", country: "TR") == []
+
+      tr = [message_class: "marketing", country: "TR"]
+      assert LegalFooter.check([voice], @brand_tr, tr) == []
     end
   end
 

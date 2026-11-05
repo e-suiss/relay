@@ -253,6 +253,7 @@ defmodule Relay.Channels.SmsAdaptersTest do
 
       assert {:ok, outcome} =
                Relay.Channels.normalize_report(declarations(), "twilio", "sms", report)
+
       assert %{failure_class: "transient", event_code: "undelivered"} = outcome
 
       headers = [{"x-twilio-signature", signature}]
@@ -292,6 +293,7 @@ defmodule Relay.Channels.SmsAdaptersTest do
                Relay.Channels.normalize_report(declarations(), "twilio", "sms", delivered)
 
       pending = Twilio.report(%{"MessageSid" => "SM2", "MessageStatus" => "sent"})
+
       assert {:ok, nil} =
                Relay.Channels.normalize_report(declarations(), "twilio", "sms", pending)
     end

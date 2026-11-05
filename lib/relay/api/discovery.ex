@@ -8,19 +8,18 @@ defmodule Relay.Api.Discovery do
   alias Relay.Api.Contract
 
   @capabilities [
-    {"urn:esuiss:relay:events:1", "events_endpoint", "/v1/events",
+    {"urn:suiss:relay:events:1", "events_endpoint", "/v1/events",
      ~w(createEvent createEventBatch getEvent cancelEvent cancelEventsByKey)},
-    {"urn:esuiss:relay:waitpoint:1", "waitpoints_endpoint", "/v1/waitpoints",
+    {"urn:suiss:relay:waitpoint:1", "waitpoints_endpoint", "/v1/waitpoints",
      ~w(createWaitpoint getWaitpoint listWaitpoints cancelWaitpoint heartbeatWaitpoint)},
-    {"urn:esuiss:relay:escalation:1", "escalation_policies_endpoint", "/v1/escalation_policies",
+    {"urn:suiss:relay:escalation:1", "escalation_policies_endpoint", "/v1/escalation_policies",
      ~w(putEscalationPolicy getEscalationPolicy listEscalationPolicies listEscalationPolicyVersions archiveEscalationPolicy)},
-    {"urn:esuiss:relay:agent_ceiling:1", "agents_endpoint", "/v1/agents",
+    {"urn:suiss:relay:agent_ceiling:1", "agents_endpoint", "/v1/agents",
      ~w(createAgentCeilingDecision resumeAgent)},
-    {"urn:esuiss:relay:webhook_endpoints:1", "webhook_endpoints_endpoint",
-     "/v1/webhook_endpoints",
+    {"urn:suiss:relay:webhook_endpoints:1", "webhook_endpoints_endpoint", "/v1/webhook_endpoints",
      ~w(createWebhookEndpoint listWebhookEndpoints getWebhookEndpoint updateWebhookEndpoint archiveWebhookEndpoint rotateWebhookEndpointKey)}
   ]
-  @product_events "urn:esuiss:relay:product_events:1"
+  @product_events "urn:suiss:relay:product_events:1"
 
   for {_urn, _field, _path, ids} <- @capabilities, id <- ids, do: Contract.operation!(id)
 

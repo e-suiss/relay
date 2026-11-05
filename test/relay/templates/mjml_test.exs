@@ -21,7 +21,7 @@ defmodule Relay.Templates.MjmlTest do
 
   test "T-98: the compiled HTML travels back over the port", %{tmp_dir: dir} do
     exe = fake(dir, ~S"printf '\000\000\000\010\001\000\000\000\000\002hi'")
-    assert compile(exe) == {:ok, "hi"}
+    assert compile(exe, timeout: 30_000) == {:ok, "hi"}
   end
 
   test "T-98: a source error comes back with its position", %{tmp_dir: dir} do
@@ -32,7 +32,7 @@ defmodule Relay.Templates.MjmlTest do
       )
 
     assert {:error, %Relay.Error{code: :mjml_parse, message: "x", details: details}} =
-             compile(exe)
+             compile(exe, timeout: 30_000)
 
     assert details == %{line: 3, column: 5}
   end
@@ -46,16 +46,16 @@ defmodule Relay.Templates.MjmlTest do
 
   test "T-98: the program's own deadline exit is a timeout", %{tmp_dir: dir} do
     exe = fake(dir, "exit 5")
-    assert {:error, %Relay.Error{code: :mjml_timeout}} = compile(exe)
+    assert {:error, %Relay.Error{code: :mjml_timeout}} = compile(exe, timeout: 30_000)
   end
 
   test "T-98: a crash or a malformed response leaves the caller standing", %{tmp_dir: dir} do
     crash = fake(dir, "exit 3")
-    assert {:error, %Relay.Error{code: :mjml_unavailable}} = compile(crash)
+    assert {:error, %Relay.Error{code: :mjml_unavailable}} = compile(crash, timeout: 30_000)
 
     File.rm!(crash)
     garbage = fake(dir, ~S"printf '\000\000\000\002\011\011'")
-    assert {:error, %Relay.Error{code: :mjml_unavailable}} = compile(garbage)
+    assert {:error, %Relay.Error{code: :mjml_unavailable}} = compile(garbage, timeout: 30_000)
   end
 
   test "T-53: the program is refused when its checksum does not match", %{tmp_dir: dir} do

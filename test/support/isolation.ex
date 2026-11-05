@@ -34,6 +34,13 @@ defmodule RelayTest.Isolation do
     {"updateCategory", %{"name" => "Isolation"}},
     {"replaceCategorySubtenantSetting", %{"enabled" => false}},
     {"liftSuppression", %{"reason" => "isolation"}},
+    {"registerSubscriberDevice",
+     %{
+       "platform" => "fcm",
+       "token" => "fcm:isolation-device",
+       "app" => "com.example.isolation",
+       "permission" => "granted"
+     }},
     {"publishTemplate", %{}},
     {"previewTemplate", %{"workflow" => "iso-preview"}},
     {"publishLayout", %{}},
@@ -82,6 +89,7 @@ defmodule RelayTest.Isolation do
       "category_key" => &category!/1,
       "subtenant_id" => &subtenant!/1,
       "suppression_id" => &suppression!/1,
+      "device_id" => &device!/1,
       "template_key" => &template!/1,
       "layout_key" => &asset!(&1, "layouts"),
       "partial_key" => &asset!(&1, "partials")
@@ -236,13 +244,31 @@ defmodule RelayTest.Isolation do
     end
   end
 
-  @doc "Creates a subscriber in `scope` and returns its external identifier."
+  @doc "Creates a subscriber in `scope` and returns its external identifier; it is also the owner of the next `device!/1` of the scope."
   @spec subscriber!(Relay.Scope.t()) :: String.t()
   def subscriber!(scope) do
     id = "iso-" <> random()
     body = %{"external_id" => id, "email" => "s@example.com"}
     F.body(F.request(:post, "/v1/subscribers", owner(scope), body), 201)
+    Process.put({__MODULE__, :subscriber, scope.tenant_id, scope.environment}, id)
     id
+  end
+
+  @doc "Registers a device in `scope` for the subscriber `subscriber!/1` created last in the scope (a new one when there is none) and returns the device's identifier."
+  @spec device!(Relay.Scope.t()) :: String.t()
+  def device!(scope) do
+    key = {__MODULE__, :subscriber, scope.tenant_id, scope.environment}
+    subscriber = Process.get(key) || subscriber!(scope)
+
+    body = %{
+      "platform" => "fcm",
+      "token" => "fcm:iso-" <> random(),
+      "app" => "com.example.isolation",
+      "permission" => "granted"
+    }
+
+    path = "/v1/subscribers/#{subscriber}/devices"
+    F.body(F.request(:post, path, owner(scope), body), 201)["id"]
   end
 
   @doc "Creates a CloudEvents type mapping in `scope` and returns its identifier."

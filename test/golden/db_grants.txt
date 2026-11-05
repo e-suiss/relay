@@ -107,6 +107,11 @@ table relay.delivery_render_plans relay_archive SELECT
 table relay.delivery_render_plans relay_maint SELECT
 table relay.delivery_render_plans relay_owner INSERT,SELECT,UPDATE
 table relay.delivery_render_plans relay_report SELECT
+table relay.devices relay_app SELECT
+table relay.devices relay_archive SELECT
+table relay.devices relay_maint SELECT
+table relay.devices relay_owner INSERT,SELECT,UPDATE
+table relay.devices relay_report SELECT
 table relay.erasure_log relay_app SELECT
 table relay.erasure_log relay_archive SELECT
 table relay.erasure_log relay_maint SELECT

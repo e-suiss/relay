@@ -1,6 +1,6 @@
 defmodule Relay.Tenancy.SettingKeys do
   @moduledoc """
-  The catalog of setting keys (`relay.settings.key`). A setting write names a key from the catalog and a value that passes the key's check; `nil` clears the setting at that level. Stage 1 holds the keys the setting resolver falls back to the tenant defaults for: `default_timezone` and `default_locale`, checked and canonicalised like the tenant defaults (`Relay.Tenancy.Defaults`). `fairness.weight.l2` and `fairness.weight.l3` hold the tenant's DRR weight in a bulk lane, an integer from 1 to 100 (1 when unset); only the tenant-level value counts. `api.rate.burst` and `api.rate.sustained` hold the tenant's API rate limit tiers (API-50, API-77), an object with a positive integer `weight` and a positive integer `window_seconds` of at most 3600; an unset tier takes the contract default. `api.mtls_required` (`true` or `false`) makes the tenant's server API accept only certificate-bound tokens (RFC 8705; API-41, API-48). `send_mode`, `send_mode.channel.<channel>` and `send_mode.category.<category>.channel.<channel>` hold the tenant's send modes (OP-51): `live`, `shadow`, `dry_run` or `off`. The `brand.*` keys hold the brand fields templates render (TP-35, TP-48): `brand.logo_url` (an `https` URL of at most 2048 characters), `brand.primary_color` and `brand.secondary_color` (`#RRGGBB`), `brand.sender_name` (at most 100 characters), `brand.footer` (at most 2000), `brand.legal_name` (at most 200), `brand.mersis` (16 digits), `brand.contact` and `brand.postal_address` (at most 500); a sub-tenant inherits every brand field it does not set (TP-36).
+  The catalog of setting keys (`relay.settings.key`). A setting write names a key from the catalog and a value that passes the key's check; `nil` clears the setting at that level. Stage 1 holds the keys the setting resolver falls back to the tenant defaults for: `default_timezone` and `default_locale`, checked and canonicalised like the tenant defaults (`Relay.Tenancy.Defaults`). `fairness.weight.l2` and `fairness.weight.l3` hold the tenant's DRR weight in a bulk lane, an integer from 1 to 100 (1 when unset); only the tenant-level value counts. `api.rate.burst` and `api.rate.sustained` hold the tenant's API rate limit tiers (API-50, API-77), an object with a positive integer `weight` and a positive integer `window_seconds` of at most 3600; an unset tier takes the contract default. `api.mtls_required` (`true` or `false`) makes the tenant's server API accept only certificate-bound tokens (RFC 8705; API-41, API-48). `devices.max_active` lowers the subscriber's active device limit (CH-74): an integer from 1 to the contract's `devices.max_active_per_subscriber`; a tenant can never raise it. `send_mode`, `send_mode.channel.<channel>` and `send_mode.category.<category>.channel.<channel>` hold the tenant's send modes (OP-51): `live`, `shadow`, `dry_run` or `off`. The `brand.*` keys hold the brand fields templates render (TP-35, TP-48): `brand.logo_url` (an `https` URL of at most 2048 characters), `brand.primary_color` and `brand.secondary_color` (`#RRGGBB`), `brand.sender_name` (at most 100 characters), `brand.footer` (at most 2000), `brand.legal_name` (at most 200), `brand.mersis` (16 digits), `brand.contact` and `brand.postal_address` (at most 500); a sub-tenant inherits every brand field it does not set (TP-36).
   """
 
   alias Relay.Tenancy.Defaults
@@ -13,6 +13,7 @@ defmodule Relay.Tenancy.SettingKeys do
     "api.rate.burst" => :api_rate,
     "api.rate.sustained" => :api_rate,
     "api.mtls_required" => :boolean,
+    "devices.max_active" => :device_limit,
     "brand.logo_url" => {:brand, :url, 2048},
     "brand.primary_color" => {:brand, :color, 7},
     "brand.secondary_color" => {:brand, :color, 7},
@@ -24,6 +25,7 @@ defmodule Relay.Tenancy.SettingKeys do
     "brand.postal_address" => {:brand, :text, 500}
   }
 
+  @device_limit Relay.Limits.fetch!(["devices", "max_active_per_subscriber"])
   @send_modes ~w(live shadow dry_run off)
   @send_mode ~r/\Asend_mode(\.channel\.[a-z_]+|\.category\.[a-z][a-z0-9_]{0,63}\.channel\.[a-z_]+)?\z/
 
@@ -68,6 +70,16 @@ defmodule Relay.Tenancy.SettingKeys do
       {:ok, :fairness_weight} ->
         {:error,
          Relay.Error.new(:invalid_setting, "a fairness weight is an integer from 1 to 100")}
+
+      {:ok, :device_limit} when is_integer(value) and value >= 1 and value <= @device_limit ->
+        {:ok, value}
+
+      {:ok, :device_limit} ->
+        {:error,
+         Relay.Error.new(
+           :invalid_setting,
+           "the device limit is an integer from 1 to #{@device_limit}"
+         )}
 
       {:ok, kind} when kind in [:api_rate, :boolean] ->
         check(kind, value)

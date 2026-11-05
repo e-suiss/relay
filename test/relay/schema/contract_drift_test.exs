@@ -102,7 +102,12 @@ defmodule Relay.Schema.ContractDriftTest do
     {"relay.template_versions", "template_versions_sensitivity_check",
      {"schemas", ["Sensitivity"]}},
     {"relay.template_versions", "template_versions_sms_encoding_check",
-     {"schemas", ["SmsEncodingPolicy"]}}
+     {"schemas", ["SmsEncodingPolicy"]}},
+    {"relay.devices", "devices_platform_check", {"schemas", ["DevicePlatform"]}},
+    {"relay.devices", "devices_permission_check", {"schemas", ["DevicePermission"]}},
+    {"relay.devices", "devices_state_check", {"schemas", ["DeviceState"]}},
+    {"relay.devices", "devices_disabled_reason_check", {"schemas", ["DeviceDisabledReason"]}},
+    {"relay.devices", "devices_apns_environment_check", {"schemas", ["ApnsEnvironment"]}}
   ]
 
   defp values(definition), do: ~r/'([^']*)'/ |> Regex.scan(definition) |> Enum.map(&List.last/1)

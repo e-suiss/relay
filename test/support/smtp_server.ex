@@ -3,6 +3,8 @@ defmodule RelayTest.SmtpServer do
   An in-process SMTP server for adapter tests, with no network beyond the loopback interface. It serves one session on `127.0.0.1` in `:implicit` TLS, `:starttls` or `:plain` mode with a certificate made by `certificates/1`, answers with scripted replies and sends the session to its owner as `{:smtp_session, session}` when the client quits or the connection ends.
   """
 
+  use Boundary, top_level?: true, deps: [], exports: []
+
   @type session :: %{
           tls: boolean(),
           helo: String.t() | nil,

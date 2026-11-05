@@ -30,6 +30,7 @@ defmodule Relay.SecretFilesTest do
     "KEY_STORE_CURSOR_LABEL" => "cursor",
     "RELAY_HOST" => "relay.example.com",
     "RELAY_ACCESS_ISSUER" => "https://access.example.com",
+    "RELAY_ACCESS_CLIENT_ID" => "app_relay",
     "AUDIT_S3_ENDPOINT" => "https://s3.example.com",
     "AUDIT_S3_BUCKET" => "relay-audit",
     "AUDIT_S3_REGION" => "eu-central-1",

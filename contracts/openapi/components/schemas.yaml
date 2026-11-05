@@ -5054,6 +5054,7 @@ RelayConfiguration:
     - api_base
     - region
     - access_issuer
+    - access_client_id
     - contract_version
     - contract_versions_supported
     - jwks_uri
@@ -5073,6 +5074,11 @@ RelayConfiguration:
       type: string
       format: uri
       description: "Issuer of the Access the installation is bound to."
+    access_client_id:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: "client_id of Relay's own Access client registration. Every subscriber external_id and responder sub is the pairwise Access sub in this client's sector; resolve PartyRef to sub with Access subjects:resolve using this client_id."
     contract_version:
       "$ref": "#/ApiVersion"
       description: "Latest dated API version."

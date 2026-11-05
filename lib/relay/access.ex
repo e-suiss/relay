@@ -1,6 +1,6 @@
 defmodule Relay.Access do
   @moduledoc """
-  The link to Access, Suiss's identity and authority product (MD-1, E-1 … E-5, E-40, E-78). Relay always runs with Access and is never an authority source. The link is configured with one value, the Access `issuer` (`config :relay, Relay.Access, issuer: "https://…"`); endpoints, keys and capabilities come from discovery (`Relay.Access.Link`). Other contexts use only the functions of this module.
+  The link to Access, Suiss's identity and authority product (MD-1, E-1 … E-5, E-40, E-78). Relay always runs with Access and is never an authority source. The link is configured with the Access `issuer` and the `client_id` of Relay's own Access client registration (`config :relay, Relay.Access, issuer: "https://…", client_id: "…"`); endpoints, keys and capabilities come from discovery (`Relay.Access.Link`). Every subscriber's pairwise `sub` is in the sector of that client (E-90). Other contexts use only the functions of this module.
 
   * Server API credentials are Access client credentials tokens (API-41, API-48, API-71): `verify_server_token/2` checks them on every request and maps the API client trace to its tenant, environment, sub-tenant and API-75 scopes.
   * An ingest connector acts as an API client trace of its configuration (`connector_principal/2`, T-41), checked like a server token.
@@ -48,9 +48,14 @@ defmodule Relay.Access do
   def config, do: Application.get_env(:relay, __MODULE__, [])
 
   # E-78
-  @doc "The configured Access issuer, the link's only configuration value."
+  @doc "The configured Access issuer."
   @spec issuer() :: String.t() | nil
   def issuer, do: Keyword.get(config(), :issuer)
+
+  # E-90
+  @doc "The `client_id` of Relay's own Access client registration: the sector of every subscriber's pairwise `sub`."
+  @spec client_id() :: String.t() | nil
+  def client_id, do: Keyword.get(config(), :client_id)
 
   @doc "Supervised children: the link snapshot, the API client cache and the usage writer."
   @spec children() :: [module()]

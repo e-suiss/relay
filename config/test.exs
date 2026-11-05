@@ -54,6 +54,7 @@ config :relay, RelayWeb.Auth, verifier: RelayTest.Api.Verifier
 
 config :relay, Relay.Access,
   issuer: "https://access.test",
+  client_id: "app_relay_test",
   autoload: false,
   http: [plug: {RelayTest.FakeAccess, []}]
 

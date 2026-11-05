@@ -1,0 +1,61 @@
+{
+  "provider": "mailgun",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "email"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://documentation.mailgun.com/docs/mailgun/api-reference/send/mailgun/messages",
+    "https://documentation.mailgun.com/docs/mailgun/user-manual/events/webhooks"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "email": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": false,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "no_auto_retry",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": "v:relay_delivery_id",
+    "status_query": false,
+    "source": "§12.2.4 CH-10; https://documentation.mailgun.com/docs/mailgun/api-reference/send/mailgun/messages: no idempotency key"
+  },
+  "paid_channels": [],
+  "pricing": {
+    "currency": "USD",
+    "units": {
+      "email": "message"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [],
+    "sender": [],
+    "recipient": []
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "US"
+    ],
+    "transfer_basis": "explicit_consent",
+    "scc_notified_on": null,
+    "source": "Mailgun processes mail in the United States, or in the EU region on its EU host; the account carries the tenant's transfer basis"
+  },
+  "inbound_verification": {
+    "method": "hmac_sha256",
+    "header": null,
+    "authenticity": "unverifiable",
+    "source": "https://documentation.mailgun.com/docs/mailgun/user-manual/events/webhooks: the HMAC covers the timestamp and token, not the body"
+  }
+}

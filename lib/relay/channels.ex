@@ -186,6 +186,12 @@ defmodule Relay.Channels do
   defdelegate verify_ed25519(key, body, headers, opts), to: Inbound, as: :ed25519
 
   # T-40
+  @doc "Verifies an ECDSA P-256 signature of a raw body; see `Relay.Channels.Inbound.ecdsa/4`."
+  @spec verify_ecdsa(Inbound.key(), binary(), Inbound.headers(), keyword()) ::
+          :ok | {:error, Inbound.reason()}
+  defdelegate verify_ecdsa(key, body, headers, opts), to: Inbound, as: :ecdsa
+
+  # T-40
   @doc "Verifies a JWT and returns its claims; see `Relay.Channels.Inbound.jwt/3`."
   @spec verify_jwt(Inbound.key(), String.t(), keyword()) ::
           {:ok, map()} | {:error, :bad_signature | :stale_timestamp}

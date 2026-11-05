@@ -162,7 +162,10 @@ defmodule Relay.Channels.Email do
          do: {:ok, field <> "\r\n" <> message}
   end
 
-  defp mime(prepared) do
+  # CH-38
+  @doc "Writes a prepared e-mail as an unsigned MIME message with CRLF line endings, for a provider that signs it itself."
+  @spec mime(prepared()) :: {:ok, binary()} | {:error, Error.t()}
+  def mime(prepared) do
     {:ok, prepared |> swoosh() |> Swoosh.Adapters.SMTP.Helpers.body([]) |> Mime.crlf()}
   rescue
     _error -> invalid(:invalid_email_content, "the e-mail cannot be written as MIME")

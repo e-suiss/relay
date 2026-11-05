@@ -1,0 +1,62 @@
+{
+  "provider": "sendgrid",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "email"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send",
+    "https://www.twilio.com/docs/sendgrid/for-developers/tracking-events/event",
+    "https://www.twilio.com/docs/sendgrid/for-developers/tracking-events/getting-started-event-webhook-security-features"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "email": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": false,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "no_auto_retry",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": "personalizations.custom_args.relay_delivery_id",
+    "status_query": false,
+    "source": "§12.2.4 CH-10; https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send: no idempotency key"
+  },
+  "paid_channels": [],
+  "pricing": {
+    "currency": "USD",
+    "units": {
+      "email": "message"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [],
+    "sender": [],
+    "recipient": []
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "US"
+    ],
+    "transfer_basis": "explicit_consent",
+    "scc_notified_on": null,
+    "source": "SendGrid processes mail in the United States, or in the EU region on its EU host; the account carries the tenant's transfer basis"
+  },
+  "inbound_verification": {
+    "method": "ecdsa_p256",
+    "header": "x-twilio-email-event-webhook-signature",
+    "authenticity": "verified",
+    "source": "https://www.twilio.com/docs/sendgrid/for-developers/tracking-events/getting-started-event-webhook-security-features"
+  }
+}

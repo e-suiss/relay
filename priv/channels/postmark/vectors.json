@@ -1,0 +1,769 @@
+[
+  {
+    "name": "credential_invalid",
+    "raw": {
+      "code": "credential_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "credential_invalid"
+    }
+  },
+  {
+    "name": "configuration_invalid",
+    "raw": {
+      "code": "configuration_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "configuration_invalid"
+    }
+  },
+  {
+    "name": "sender_invalid",
+    "raw": {
+      "code": "sender_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "sender_invalid"
+    }
+  },
+  {
+    "name": "message_invalid",
+    "raw": {
+      "code": "message_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "message_invalid"
+    }
+  },
+  {
+    "name": "smtputf8_unsupported",
+    "raw": {
+      "code": "smtputf8_unsupported",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "smtputf8_unsupported"
+    }
+  },
+  {
+    "name": "http_400",
+    "raw": {
+      "code": "http_400",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_401",
+    "raw": {
+      "code": "http_401",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_403",
+    "raw": {
+      "code": "http_403",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_413",
+    "raw": {
+      "code": "http_413",
+      "status": 413,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 413,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_429",
+    "raw": {
+      "code": "http_429",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_5xx",
+    "raw": {
+      "code": "http_5xx",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": {}
+    }
+  },
+  {
+    "name": "postmark:10",
+    "raw": {
+      "code": "postmark:10",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "ErrorCode": 10
+      }
+    }
+  },
+  {
+    "name": "postmark:300",
+    "raw": {
+      "code": "postmark:300",
+      "status": 422,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "ErrorCode": 300,
+        "Message": "refused"
+      }
+    }
+  },
+  {
+    "name": "postmark:400",
+    "raw": {
+      "code": "postmark:400",
+      "status": 422,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "ErrorCode": 400,
+        "Message": "refused"
+      }
+    }
+  },
+  {
+    "name": "postmark:401",
+    "raw": {
+      "code": "postmark:401",
+      "status": 422,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "ErrorCode": 401,
+        "Message": "refused"
+      }
+    }
+  },
+  {
+    "name": "postmark:402",
+    "raw": {
+      "code": "postmark:402",
+      "status": 422,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "ErrorCode": 402,
+        "Message": "refused"
+      }
+    }
+  },
+  {
+    "name": "postmark:403",
+    "raw": {
+      "code": "postmark:403",
+      "status": 422,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "ErrorCode": 403,
+        "Message": "refused"
+      }
+    }
+  },
+  {
+    "name": "postmark:405",
+    "raw": {
+      "code": "postmark:405",
+      "status": 422,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "ErrorCode": 405,
+        "Message": "refused"
+      }
+    }
+  },
+  {
+    "name": "postmark:406",
+    "raw": {
+      "code": "postmark:406",
+      "status": 422,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "ErrorCode": 406,
+        "Message": "refused"
+      }
+    }
+  },
+  {
+    "name": "postmark:409",
+    "raw": {
+      "code": "postmark:409",
+      "status": 422,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "ErrorCode": 409,
+        "Message": "refused"
+      }
+    }
+  },
+  {
+    "name": "postmark:411",
+    "raw": {
+      "code": "postmark:411",
+      "status": 422,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "ErrorCode": 411,
+        "Message": "refused"
+      }
+    }
+  },
+  {
+    "name": "postmark:412",
+    "raw": {
+      "code": "postmark:412",
+      "status": 422,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "ErrorCode": 412,
+        "Message": "refused"
+      }
+    }
+  },
+  {
+    "name": "postmark:413",
+    "raw": {
+      "code": "postmark:413",
+      "status": 422,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "ErrorCode": 413,
+        "Message": "refused"
+      }
+    }
+  },
+  {
+    "name": "postmark:1235",
+    "raw": {
+      "code": "postmark:1235",
+      "status": 422,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 422,
+      "body": {
+        "ErrorCode": 1235,
+        "Message": "refused"
+      }
+    }
+  },
+  {
+    "name": "event:HardBounce",
+    "raw": {
+      "code": "event:HardBounce",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "bounced",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "RecordType": "Bounce",
+        "Type": "HardBounce",
+        "ID": 1,
+        "MessageID": "m-1",
+        "Email": "reader@example.com",
+        "Details": "",
+        "BouncedAt": "2026-11-05T10:00:00Z",
+        "Metadata": {
+          "relay_delivery_id": "019a5b2e-0000-7000-8000-000000000001"
+        }
+      }
+    }
+  },
+  {
+    "name": "event:BadEmailAddress",
+    "raw": {
+      "code": "event:BadEmailAddress",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "bounced",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "RecordType": "Bounce",
+        "Type": "BadEmailAddress",
+        "ID": 1,
+        "MessageID": "m-1",
+        "Email": "reader@example.com",
+        "Details": "",
+        "BouncedAt": "2026-11-05T10:00:00Z",
+        "Metadata": {
+          "relay_delivery_id": "019a5b2e-0000-7000-8000-000000000001"
+        }
+      }
+    }
+  },
+  {
+    "name": "event:ManuallyDeactivated",
+    "raw": {
+      "code": "event:ManuallyDeactivated",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "RecordType": "Bounce",
+        "Type": "ManuallyDeactivated",
+        "ID": 1,
+        "MessageID": "m-1",
+        "Email": "reader@example.com",
+        "Details": "",
+        "BouncedAt": "2026-11-05T10:00:00Z",
+        "Metadata": {
+          "relay_delivery_id": "019a5b2e-0000-7000-8000-000000000001"
+        }
+      }
+    }
+  },
+  {
+    "name": "event:SoftBounce",
+    "raw": {
+      "code": "event:SoftBounce",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "RecordType": "Bounce",
+        "Type": "SoftBounce",
+        "ID": 1,
+        "MessageID": "m-1",
+        "Email": "reader@example.com",
+        "Details": "",
+        "BouncedAt": "2026-11-05T10:00:00Z",
+        "Metadata": {
+          "relay_delivery_id": "019a5b2e-0000-7000-8000-000000000001"
+        }
+      }
+    }
+  },
+  {
+    "name": "event:DnsError",
+    "raw": {
+      "code": "event:DnsError",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "RecordType": "Bounce",
+        "Type": "DnsError",
+        "ID": 1,
+        "MessageID": "m-1",
+        "Email": "reader@example.com",
+        "Details": "",
+        "BouncedAt": "2026-11-05T10:00:00Z",
+        "Metadata": {
+          "relay_delivery_id": "019a5b2e-0000-7000-8000-000000000001"
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Blocked",
+    "raw": {
+      "code": "event:Blocked",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "RecordType": "Bounce",
+        "Type": "Blocked",
+        "ID": 1,
+        "MessageID": "m-1",
+        "Email": "reader@example.com",
+        "Details": "",
+        "BouncedAt": "2026-11-05T10:00:00Z",
+        "Metadata": {
+          "relay_delivery_id": "019a5b2e-0000-7000-8000-000000000001"
+        }
+      }
+    }
+  },
+  {
+    "name": "event:SpamNotification",
+    "raw": {
+      "code": "event:SpamNotification",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "RecordType": "Bounce",
+        "Type": "SpamNotification",
+        "ID": 1,
+        "MessageID": "m-1",
+        "Email": "reader@example.com",
+        "Details": "",
+        "BouncedAt": "2026-11-05T10:00:00Z",
+        "Metadata": {
+          "relay_delivery_id": "019a5b2e-0000-7000-8000-000000000001"
+        }
+      }
+    }
+  },
+  {
+    "name": "event:VirusNotification",
+    "raw": {
+      "code": "event:VirusNotification",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "RecordType": "Bounce",
+        "Type": "VirusNotification",
+        "ID": 1,
+        "MessageID": "m-1",
+        "Email": "reader@example.com",
+        "Details": "",
+        "BouncedAt": "2026-11-05T10:00:00Z",
+        "Metadata": {
+          "relay_delivery_id": "019a5b2e-0000-7000-8000-000000000001"
+        }
+      }
+    }
+  },
+  {
+    "name": "event:DMARCPolicy",
+    "raw": {
+      "code": "event:DMARCPolicy",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "RecordType": "Bounce",
+        "Type": "DMARCPolicy",
+        "ID": 1,
+        "MessageID": "m-1",
+        "Email": "reader@example.com",
+        "Details": "",
+        "BouncedAt": "2026-11-05T10:00:00Z",
+        "Metadata": {
+          "relay_delivery_id": "019a5b2e-0000-7000-8000-000000000001"
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Unknown",
+    "raw": {
+      "code": "event:Unknown",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "RecordType": "Bounce",
+        "Type": "Unknown",
+        "ID": 1,
+        "MessageID": "m-1",
+        "Email": "reader@example.com",
+        "Details": "",
+        "BouncedAt": "2026-11-05T10:00:00Z",
+        "Metadata": {
+          "relay_delivery_id": "019a5b2e-0000-7000-8000-000000000001"
+        }
+      }
+    }
+  },
+  {
+    "name": "event:SpamComplaint",
+    "raw": {
+      "code": "event:SpamComplaint",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "complained",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "RecordType": "SpamComplaint",
+        "ID": 2,
+        "MessageID": "m-1",
+        "Email": "reader@example.com"
+      }
+    }
+  }
+]

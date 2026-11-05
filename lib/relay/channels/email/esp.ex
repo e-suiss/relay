@@ -20,7 +20,13 @@ defmodule Relay.Channels.Email.Esp do
   # T-28
   @doc "Sends one provider HTTP request for `request`, with its timeout; the body is not decoded."
   @spec call(Request.t(), keyword()) :: answer()
-  def call(%Request{timeout_ms: timeout_ms}, opts) when is_list(opts) do
+  def call(%Request{timeout_ms: timeout_ms}, opts) when is_list(opts), do: http(timeout_ms, opts)
+
+  # CH-9
+  # T-26
+  @doc "Sends one provider HTTP request within `timeout_ms`; the body is not decoded."
+  @spec http(pos_integer(), keyword()) :: answer()
+  def http(timeout_ms, opts) when is_integer(timeout_ms) and is_list(opts) do
     opts =
       [
         receive_timeout: timeout_ms,
@@ -69,9 +75,14 @@ defmodule Relay.Channels.Email.Esp do
   # TN-26
   @doc "The provider credential of a request as a map of strings: the secret is a map or its JSON text."
   @spec credentials(Request.t()) :: {:ok, map()} | :error
-  def credentials(%Request{credentials: nil}), do: :error
+  def credentials(%Request{credentials: credentials}), do: credential_map(credentials)
 
-  def credentials(%Request{credentials: credentials}) do
+  # TN-26
+  @doc "A redacted provider credential as a map of strings: the secret is a map or its JSON text."
+  @spec credential_map(Relay.Redacted.t() | nil) :: {:ok, map()} | :error
+  def credential_map(nil), do: :error
+
+  def credential_map(credentials) do
     case Relay.Redacted.expose(credentials) do
       %{} = map ->
         {:ok, map}
@@ -143,6 +154,11 @@ defmodule Relay.Channels.Email.Esp do
     raw = %{code: code, status: response.status, retry_after_ms: retry_after_ms(response)}
     {:rejected, Map.put(raw, :detail, %{})}
   end
+
+  @doc "A rejection of a response by its HTTP status (`http_code/1`)."
+  @spec status_rejected(Req.Response.t()) :: {:rejected, Adapter.raw()}
+  def status_rejected(%Req.Response{status: status} = response),
+    do: rejected(response, http_code(status))
 
   @doc "The local refusal of a request before any provider call, with its raw code."
   @spec refused(String.t()) :: {:rejected, Adapter.raw()}

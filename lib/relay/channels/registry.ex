@@ -5,7 +5,14 @@ defmodule Relay.Channels.Registry do
 
   alias Relay.ChannelDeclarations
 
-  @adapters [Relay.Channels.Fake, Relay.Channels.Smtp]
+  @adapters [
+    Relay.Channels.Fake,
+    Relay.Channels.Smtp,
+    Relay.Channels.Ses,
+    Relay.Channels.Postmark,
+    Relay.Channels.Sendgrid,
+    Relay.Channels.Mailgun
+  ]
 
   @type missing :: ChannelDeclarations.missing() | :channels
   @type status :: %{

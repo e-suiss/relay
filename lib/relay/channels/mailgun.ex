@@ -40,7 +40,7 @@ defmodule Relay.Channels.Mailgun do
 
       case Esp.call(request, opts) do
         {:ok, %Req.Response{status: 200} = response} -> accepted(response)
-        {:ok, %Req.Response{} = response} -> Esp.rejected(response, Esp.http_code(response.status))
+        {:ok, %Req.Response{} = response} -> Esp.status_rejected(response)
         other -> other
       end
     end

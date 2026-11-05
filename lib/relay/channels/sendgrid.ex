@@ -4,7 +4,7 @@ defmodule Relay.Channels.Sendgrid do
 
   The delivery identifier travels as the custom argument `relay_delivery_id`, which every event carries. SendGrid has no idempotency key and no status query a send can be resolved by, so an uncertain call is not retried (CH-10). An accepted message's identifier is the `X-Message-Id` header; HTTP statuses are reported as `http_<status>`.
 
-  Events come from SendGrid's Event Webhook, signed with ECDSA P-256 over the timestamp and the raw body (`Relay.Channels.verify_ecdsa/5`). `events/1` parses a webhook body, a JSON array, into `Relay.Channels.Email.Event`s.
+  Events come from SendGrid's Event Webhook, signed with ECDSA P-256 over the timestamp and the raw body (`Relay.Channels.verify_ecdsa/4`). `events/1` parses a webhook body, a JSON array, into `Relay.Channels.Email.Event`s.
   """
 
   @behaviour Relay.Channels.Adapter
@@ -55,7 +55,7 @@ defmodule Relay.Channels.Sendgrid do
 
       case Esp.call(request, opts) do
         {:ok, %Req.Response{status: 202} = response} -> accepted(response)
-        {:ok, %Req.Response{} = response} -> Esp.rejected(response, Esp.http_code(response.status))
+        {:ok, %Req.Response{} = response} -> Esp.status_rejected(response)
         other -> other
       end
     end
@@ -144,7 +144,7 @@ defmodule Relay.Channels.Sendgrid do
   defp event(item) do
     name = text(item["event"]) || "unknown"
     type = Map.get(@types, name, :ignored)
-    code = if name in ["bounce", "blocked"], do: name <> ":" <> (text(item["type"]) || name), else: name
+    code = if name == "bounce", do: "bounce:" <> (text(item["type"]) || "bounce"), else: name
 
     %Event{
       provider: "sendgrid",

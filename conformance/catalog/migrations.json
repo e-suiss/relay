@@ -109,5 +109,6 @@
   {"file": "20261113000100_create_provider_tables.exs", "sha256": "9ef8ef07201df414087e881e61b383513fd66c75e4f7a828d8b30b602b67512d"},
   {"file": "20261113000200_create_provider_functions.exs", "sha256": "c02b93d457ddcbdfceef9aab6fd98154bef99c4cc41d5aa94d2a22e54293f6e3"},
   {"file": "20261113000300_rebuild_reference_check_for_providers.exs", "sha256": "cc89fa37cb50bc1ef956223a6862e1f6748b01ecba0119ffa3accba885bf0ae2"},
-  {"file": "20261114990000_rebuild_reference_check_for_providers_and_devices.exs", "sha256": "191c02db870e06a20feb9b06dd8a5184817d8969fbc2f3a796684d2c58391ab2"}
+  {"file": "20261114990000_rebuild_reference_check_for_providers_and_devices.exs", "sha256": "191c02db870e06a20feb9b06dd8a5184817d8969fbc2f3a796684d2c58391ab2"},
+  {"file": "20261117000100_update_channel_event_evidence_schema.exs", "sha256": "5cf2287b0393588118d3c1c5bbd80f0b666725eab7f6c606a8401ed8e3c74ab3"}
 ]

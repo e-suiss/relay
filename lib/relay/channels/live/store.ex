@@ -17,7 +17,7 @@ defmodule Relay.Channels.Live.Store do
     one(
       """
       SELECT d.tenant_id, d.environment, d.id, d.channel::text AS channel, d.target_kind,
-        d.recipient_id, d.provider, d.provider_account_id, d.traceparent,
+        d.recipient_id, d.provider, d.provider_account_id, d.traceparent, d.attempt_count,
         n.message_class::text AS message_class, n.expires_at, n.is_test, e.send_mode::text AS send_mode
       FROM relay.deliveries d
       JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment

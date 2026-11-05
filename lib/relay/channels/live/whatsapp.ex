@@ -11,7 +11,7 @@ defmodule Relay.Channels.Live.Whatsapp do
 
   `inbound/5` takes a verified webhook of a provider account (`X-Hub-Signature-256` over the raw body, CH-60) and applies each item:
 
-    * a message status is recorded once by its `wamid + status + timestamp` key as an inbound receipt and appended to the delivery's ledger with its whole `pricing` object; duplicates and out-of-order statuses are expected and the ledger moves only forward (`status_entry/3` is the one place a status becomes a ledger entry). A failed status with `131050` writes the recipient's marketing opt-out (PC-43), and `131026` soft disables the address (CH-11);
+    * a message status is recorded once by its `wamid + status + timestamp` key as an inbound receipt and appended to the delivery's ledger with its whole `pricing` object; duplicates and out-of-order statuses are expected and the ledger moves only forward (`status_event/2` is the one place a status becomes a provider event, recorded through `Relay.Channels.Live.Events.record/2`). A failed status with `131050` writes the recipient's marketing opt-out (PC-43), and `131026` soft disables the address (CH-11);
     * an inbound message opens the recipient's window again;
     * a template status, category or edit updates the template (CH-57, TP-23);
     * `account_update` is announced as `whatsapp_account.updated` with its `violation_type`;
@@ -21,6 +21,7 @@ defmodule Relay.Channels.Live.Whatsapp do
   Valkey holds the window, tier and availability values only as short-lived signals: a lost window is closed, a lost tier is the default tier and a lost availability is available.
   """
 
+  alias Relay.Channels.Live.Events
   alias Relay.Channels.Live.Store
 
   require Logger
@@ -191,17 +192,9 @@ defmodule Relay.Channels.Live.Whatsapp do
           [{String.t(), String.t()}]
         ) :: {:ok, non_neg_integer()} | {:error, atom()}
   def inbound(%Relay.Scope{} = scope, account, app_secret, body, headers) when is_binary(body) do
-    with {:ok, items} <- Relay.Channels.whatsapp_webhook(app_secret, body, headers),
-         {:ok, declarations} <- declarations() do
-      ctx = %{scope: scope, account: account, declarations: declarations, digest: digest(body)}
+    with {:ok, items} <- Relay.Channels.whatsapp_webhook(app_secret, body, headers) do
+      ctx = %{scope: scope, account: account, digest: digest(body)}
       {:ok, Enum.count(items, &(apply_item(ctx, &1) == :applied))}
-    end
-  end
-
-  defp declarations do
-    case Relay.Datasets.channel_declarations() do
-      {:ok, declarations} -> {:ok, declarations}
-      {:error, _reason} -> {:error, :declarations_unavailable}
     end
   end
 
@@ -292,9 +285,8 @@ defmodule Relay.Channels.Live.Whatsapp do
   defp status(ctx, event) do
     with {delivery_id, _attempt_no} <- event.correlation,
          {:ok, %{} = delivery} <- read_delivery(ctx.scope, delivery_id),
-         {:ok, {:recorded, receipt_id}} <- receipt(ctx, event.dedup_key) do
-      entry = status_entry(ctx.declarations, event, receipt_id)
-      _ = Relay.Delivery.append_ledger(ctx.scope, entry)
+         {:ok, {:recorded, receipt_id}} <- receipt(ctx, event.dedup_key),
+         {:ok, _recorded} <- Events.record(ctx.scope, status_event(event, receipt_id)) do
       failed(ctx, delivery, event)
       :applied
     else
@@ -317,63 +309,28 @@ defmodule Relay.Channels.Live.Whatsapp do
 
   # CH-60
   # DS-12
-  @doc "The ledger entry of a normalized WhatsApp status (`Relay.Channels.Whatsapp.Status.normalize/1`): `sent` raises the delivery to accepted, `delivered` and `read` to delivered, `failed` sets the failure with the class of its code; the whole `pricing` object is kept in the detail."
-  @spec status_entry(Relay.ChannelDeclarations.t(), map(), Relay.Id.t() | nil) :: struct()
-  def status_entry(declarations, event, receipt_id) do
-    {delivery_id, attempt_no} = event.correlation
+  @doc "The provider event of a normalized WhatsApp status (`Relay.Channels.Whatsapp.Status.normalize/1`) for `Relay.Channels.Live.Events.record/2`: its event code is the status, a failure carries the code of its first error, and the whole `pricing` object is the event's price."
+  @spec status_event(map(), Relay.Id.t() | nil) :: Events.event()
+  def status_event(event, receipt_id) do
+    {delivery_id, _attempt_no} = event.correlation
 
-    base = [
-      id: Relay.Id.generate(),
+    %{
       delivery_id: delivery_id,
-      attempt_no: attempt_no,
-      actor: :provider_webhook,
       provider: @provider,
+      channel: @channel,
+      event_code: event.event_code,
       occurred_at: event.occurred_at,
+      actor: :provider_webhook,
+      raw_code: event.raw_code,
       receipt_id: receipt_id,
-      raw_code: event.raw_code || event.event_code,
+      price: event.pricing,
       detail: detail(event)
-    ]
-
-    attrs =
-      case event.event_code do
-        "failed" ->
-          base ++
-            [
-              event_type: "attempt.failed",
-              failure_kind: :failed,
-              failure_class: class(declarations, event.raw_code),
-              after_delivered: :conflict
-            ]
-
-        "sent" ->
-          base ++ succeeded(:accepted, :stale)
-
-        "read" ->
-          base ++ succeeded(:delivered, :valid)
-
-        _delivered ->
-          base ++ succeeded(:delivered, :stale)
-      end
-
-    {:ok, entry} = Relay.Delivery.ledger_entry(attrs)
-    entry
-  end
-
-  defp succeeded(rank, after_delivered),
-    do: [event_type: "attempt.succeeded", delivery_rank: rank, after_delivered: after_delivered]
-
-  defp class(declarations, code) do
-    case Relay.ChannelDeclarations.mapping(declarations, @provider, code || "failed") do
-      {:ok, row} -> row["class"]
-      :unmapped -> "unknown"
-    end
+    }
   end
 
   defp detail(event) do
     %{
-      "status" => event.event_code,
       "wamid" => event.provider_message_id,
-      "pricing" => event.pricing,
       "conversation" => event.conversation,
       "errors" => Enum.map(event.errors, &Map.take(&1, ["code", "title"]))
     }
@@ -399,10 +356,6 @@ defmodule Relay.Channels.Live.Whatsapp do
       _other ->
         :ok
     end
-
-    if is_binary(code) and
-         Relay.ChannelDeclarations.mapping(ctx.declarations, @provider, code) == :unmapped,
-       do: Relay.Channels.report_unknown_code(ctx.scope, @provider, @channel, code)
 
     :ok
   end

@@ -1,0 +1,133 @@
+{
+  "provider": "fcm",
+  "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode",
+  "compiled_at": "2026-11-05",
+  "rules": [
+    {
+      "id": "fcm.error_code.UNSPECIFIED_ERROR",
+      "error_code": "UNSPECIFIED_ERROR",
+      "status": null,
+      "http_status": null,
+      "class": "unknown"
+    },
+    {
+      "id": "fcm.error_code.INVALID_ARGUMENT",
+      "error_code": "INVALID_ARGUMENT",
+      "status": null,
+      "http_status": null,
+      "class": "permanent_content"
+    },
+    {
+      "id": "fcm.error_code.UNREGISTERED",
+      "error_code": "UNREGISTERED",
+      "status": null,
+      "http_status": null,
+      "class": "permanent_target"
+    },
+    {
+      "id": "fcm.error_code.SENDER_ID_MISMATCH",
+      "error_code": "SENDER_ID_MISMATCH",
+      "status": null,
+      "http_status": null,
+      "class": "permanent_target"
+    },
+    {
+      "id": "fcm.error_code.QUOTA_EXCEEDED",
+      "error_code": "QUOTA_EXCEEDED",
+      "status": null,
+      "http_status": null,
+      "class": "quota"
+    },
+    {
+      "id": "fcm.error_code.UNAVAILABLE",
+      "error_code": "UNAVAILABLE",
+      "status": null,
+      "http_status": null,
+      "class": "transient"
+    },
+    {
+      "id": "fcm.error_code.INTERNAL",
+      "error_code": "INTERNAL",
+      "status": null,
+      "http_status": null,
+      "class": "transient"
+    },
+    {
+      "id": "fcm.error_code.THIRD_PARTY_AUTH_ERROR",
+      "error_code": "THIRD_PARTY_AUTH_ERROR",
+      "status": null,
+      "http_status": null,
+      "class": "auth"
+    },
+    {
+      "id": "fcm.status.INVALID_ARGUMENT",
+      "error_code": null,
+      "status": "INVALID_ARGUMENT",
+      "http_status": null,
+      "class": "permanent_content"
+    },
+    {
+      "id": "fcm.status.UNAUTHENTICATED",
+      "error_code": null,
+      "status": "UNAUTHENTICATED",
+      "http_status": null,
+      "class": "auth"
+    },
+    {
+      "id": "fcm.status.PERMISSION_DENIED",
+      "error_code": null,
+      "status": "PERMISSION_DENIED",
+      "http_status": null,
+      "class": "auth"
+    },
+    {
+      "id": "fcm.status.RESOURCE_EXHAUSTED",
+      "error_code": null,
+      "status": "RESOURCE_EXHAUSTED",
+      "http_status": null,
+      "class": "quota"
+    },
+    {
+      "id": "fcm.status.INTERNAL",
+      "error_code": null,
+      "status": "INTERNAL",
+      "http_status": null,
+      "class": "transient"
+    },
+    {
+      "id": "fcm.status.UNAVAILABLE",
+      "error_code": null,
+      "status": "UNAVAILABLE",
+      "http_status": null,
+      "class": "transient"
+    },
+    {
+      "id": "fcm.http.500",
+      "error_code": null,
+      "status": null,
+      "http_status": 500,
+      "class": "transient"
+    },
+    {
+      "id": "fcm.http.502",
+      "error_code": null,
+      "status": null,
+      "http_status": 502,
+      "class": "transient"
+    },
+    {
+      "id": "fcm.http.503",
+      "error_code": null,
+      "status": null,
+      "http_status": 503,
+      "class": "transient"
+    },
+    {
+      "id": "fcm.http.504",
+      "error_code": null,
+      "status": null,
+      "http_status": 504,
+      "class": "transient"
+    }
+  ]
+}

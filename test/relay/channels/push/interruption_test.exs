@@ -42,7 +42,7 @@ defmodule Relay.Channels.Push.InterruptionTest do
     system: nil
   }
 
-  defp input(class, requested, extra \\ %{}) do
+  defp input(class, requested, extra) do
     ceiling = Map.fetch!(@ceilings, class)
     base = %{message_class: class, requested: requested, default: ceiling, ceiling: ceiling}
     Map.merge(base, extra)

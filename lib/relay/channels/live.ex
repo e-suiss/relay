@@ -170,13 +170,16 @@ defmodule Relay.Channels.Live do
   defp read_target(ctx, account) do
     delivery = ctx.delivery
 
-    case delivery["target_kind"] do
-      _kind when delivery["channel"] in @messaging -> conversation(ctx.scope, delivery, account)
+    case target_kind(delivery) do
+      "messaging" -> conversation(ctx.scope, delivery, account)
       "address" -> address(ctx.scope, delivery, account)
       "device" -> device(ctx.scope, delivery, account)
       _endpoint -> fallback(account, :endpoint)
     end
   end
+
+  defp target_kind(%{"channel" => channel}) when channel in @messaging, do: "messaging"
+  defp target_kind(delivery), do: delivery["target_kind"]
 
   defp fallback(%{"provider" => "fake"}, kind), do: {:ok, wrap(""), kind, nil}
   defp fallback(_account, _kind), do: :unavailable
@@ -523,8 +526,8 @@ defmodule Relay.Channels.Live do
   defp cleanup(ctx, request, outcome) do
     delivery = ctx.delivery
 
-    case delivery["target_kind"] do
-      _kind when request.channel in @messaging ->
+    case target_kind(delivery) do
+      "messaging" ->
         recipient = delivery["recipient_id"]
         rule_id = "channel.address_disabled"
         _ = Relay.Messaging.disable_target(ctx.scope, recipient, request.channel, rule_id)

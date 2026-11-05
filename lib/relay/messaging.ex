@@ -293,7 +293,7 @@ defmodule Relay.Messaging do
 
   defp unseal(state, now) do
     case Install.unseal(state, now) do
-      {:ok, sealed} when sealed.channel in @oauth -> {:ok, sealed}
+      {:ok, %{channel: channel} = sealed} when channel in @oauth -> {:ok, sealed}
       _invalid -> {:error, state_invalid()}
     end
   end

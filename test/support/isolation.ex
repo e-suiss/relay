@@ -48,7 +48,9 @@ defmodule RelayTest.Isolation do
     {"publishPartial", %{}},
     {"replacePartialDraft",
      %{"definition" => %{"default_locale" => "tr", "bodies" => %{"tr" => "Merhaba"}}}},
-    {"previewWorkflow", %{}}
+    {"previewWorkflow", %{}},
+    {"replaceSubscriberMessagingTarget",
+     %{"provider_account_id" => "pva_01j9zq3k4m5n6p7q8r9s0t1v2w", "conversation" => "U1"}}
   ]
   @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
   @sms %{
@@ -92,7 +94,8 @@ defmodule RelayTest.Isolation do
       "device_id" => &device!/1,
       "template_key" => &template!/1,
       "layout_key" => &asset!(&1, "layouts"),
-      "partial_key" => &asset!(&1, "partials")
+      "partial_key" => &asset!(&1, "partials"),
+      "channel" => fn _scope -> "slack" end
     }
   end
 

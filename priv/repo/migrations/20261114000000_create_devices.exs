@@ -135,6 +135,9 @@ defmodule Relay.Repo.Migrations.CreateDevices do
     )
 
     execute("GRANT SELECT, INSERT, UPDATE ON relay.devices TO relay_owner")
-    execute("GRANT SELECT ON relay.devices TO relay_app, relay_maint, relay_archive, relay_report")
+
+    execute(
+      "GRANT SELECT ON relay.devices TO relay_app, relay_maint, relay_archive, relay_report"
+    )
   end
 end

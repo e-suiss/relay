@@ -138,14 +138,14 @@ defmodule Relay.Templates do
 
   # CH-48
   # CH-75
-  @doc "Measures a rendered SMS text for one provider in the cheapest of the allowed encodings (`\"GSM7\"`, `\"GSM7_TR\"`, `\"UCS2\"`) that carries it, after `reserved` units: `{:ok, %{encoding: name, segments: n, units: n}}`, or `:error` when none carries it; see `Relay.Templates.Sms.measure/3`."
+  @doc "Measures a rendered SMS text for one provider in the cheapest of the allowed encodings (`\"GSM7\"`, `\"GSM7_TR\"`, `\"UCS2\"`) that carries it, after `reserved` units: `{:ok, %{encoding: name, segments: n, units: n}}`, or `:error` when none carries it; see `Relay.Templates.Sms.provider_measure/3`."
   @spec sms_measure(String.t(), [String.t()], non_neg_integer()) ::
           {:ok, %{encoding: String.t(), segments: non_neg_integer(), units: non_neg_integer()}}
           | :error
   def sms_measure(text, allowed, reserved) do
     encodings = for {name, atom} <- @sms_encodings, name in allowed, do: atom
 
-    case Sms.measure(text, encodings, reserved) do
+    case Sms.provider_measure(text, encodings, reserved) do
       {:ok, m} -> {:ok, %{encoding: m.name, segments: m.segments, units: m.units}}
       :error -> :error
     end

@@ -222,7 +222,7 @@ defmodule Relay.Channels.Verimor do
   @spec call_report(map()) :: Adapter.report()
   def call_report(%{} = row) do
     status = to_string(row["status"])
-    answered? = String.normalize(status, :nfc) == String.normalize("Cevaplandı", :nfc)
+    answered? = :unicode.characters_to_nfc_binary(status) == "Cevaplandı"
     result = if answered?, do: {:delivered, %{}}, else: {:rejected, %{code: "call:" <> status}}
 
     %{

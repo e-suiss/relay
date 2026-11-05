@@ -338,15 +338,15 @@ defmodule Relay.ChannelDeclarations do
     case {"sms" in channels(declaration), Map.get(declaration, "sms")} do
       {false, _catalog} -> true
       {true, %{"turkish_single_shift" => "unverified", "encodings" => [_ | _]}} -> true
-      {true, %{"turkish_single_shift" => "verified"} = sms} -> evidence?(sms)
+      {true, %{"turkish_single_shift" => "verified"} = sms} -> shift_evidence?(sms)
       {true, _missing} -> false
     end
   end
 
-  defp evidence?(%{"turkish_single_shift_evidence" => e, "encodings" => [_ | _]}),
+  defp shift_evidence?(%{"turkish_single_shift_evidence" => e, "encodings" => [_ | _]}),
     do: is_binary(e) and e != ""
 
-  defp evidence?(_sms), do: false
+  defp shift_evidence?(_sms), do: false
 
   defp inbound_channel?(declaration) do
     capabilities = Map.get(declaration, "capabilities") || %{}

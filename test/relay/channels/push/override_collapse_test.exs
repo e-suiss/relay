@@ -8,10 +8,8 @@ defmodule Relay.Channels.Push.OverrideCollapseTest do
     test "CH-21: a raw apns.payload cannot change the interruption level" do
       policy = %{"aps" => %{"interruption-level" => "active", "alert" => %{"body" => "Hi"}}}
 
-      override = %{
-        aps: %{"interruption-level": "critical", sound: "ping.caf"},
-        "deep" => %{"x" => 1}
-      }
+      aps = %{"interruption-level": "critical", sound: "ping.caf"}
+      override = %{:aps => aps, "deep" => %{"x" => 1}}
 
       assert {payload, ["apns.payload.aps.interruption-level"]} =
                Override.apns_payload(policy, override)

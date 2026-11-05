@@ -102,6 +102,7 @@ defmodule Relay.MessagingTest do
       account = account!(scope, "slack")
 
       assert {:created, first} = put!(scope, recipient, "slack", account, "U1")
+
       assert {:ok, %{id: ^first, account_id: ^account, value: value}} =
                Messaging.target(scope, recipient, "slack")
 
@@ -116,6 +117,7 @@ defmodule Relay.MessagingTest do
                Messaging.disable_target(scope, recipient, "slack", "channel.address_disabled")
 
       assert :none = Messaging.target(scope, recipient, "slack")
+
       assert [%{"channel" => "slack", "rule_id" => "channel.address_disabled"}] =
                events(scope, "messaging_target.disabled")
     end

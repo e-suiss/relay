@@ -16,7 +16,7 @@ defmodule Relay.Channels.Live.Events do
     "expired" => :expired,
     "cancelled" => :cancelled
   }
-  @after %{"valid" => :valid, "stale" => :stale, "conflict" => :conflict}
+  @after_delivered %{"valid" => :valid, "stale" => :stale, "conflict" => :conflict}
 
   @type event :: %{
           required(:delivery_id) => Relay.Id.t(),
@@ -99,7 +99,7 @@ defmodule Relay.Channels.Live.Events do
         delivery_rank: Map.get(@ranks, row["sets_delivery"]),
         failure_kind: failure_kind,
         failure_class: if(failure_kind, do: class || "unknown"),
-        after_delivered: Map.get(@after, row["after_delivered"]),
+        after_delivered: Map.get(@after_delivered, row["after_delivered"]),
         detail: detail(event)
       )
 

@@ -348,15 +348,15 @@ defmodule Relay.Channels do
   @doc "Keeps the provider accounts that may send to `number`: for a `+90` number only BTK-authorized providers; see `Relay.Channels.Sms.btk_authorized?/1`."
   @spec tr_route([map()], String.t(), ChannelDeclarations.t()) :: [map()]
   def tr_route(accounts, number, %ChannelDeclarations{} = declarations) do
-    if Sms.turkish_number?(number) do
-      Enum.filter(accounts, fn account ->
-        case ChannelDeclarations.declaration(declarations, account["provider"]) do
-          {:ok, declaration} -> Sms.btk_authorized?(declaration)
-          {:error, :unknown_provider} -> false
-        end
-      end)
-    else
-      accounts
+    if Sms.turkish_number?(number),
+      do: Enum.filter(accounts, &btk_route?(declarations, &1)),
+      else: accounts
+  end
+
+  defp btk_route?(declarations, account) do
+    case ChannelDeclarations.declaration(declarations, account["provider"]) do
+      {:ok, declaration} -> Sms.btk_authorized?(declaration)
+      {:error, :unknown_provider} -> false
     end
   end
 

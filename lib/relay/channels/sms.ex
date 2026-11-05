@@ -143,7 +143,7 @@ defmodule Relay.Channels.Sms do
   defp text(_content), do: ""
 
   # CH-53
-  @doc "The provider product a class is sent with: `\"otp\"` for `security` when the provider declares an OTP product, `\"standard\"` otherwise."
+  @doc "The provider product a class is sent with: `otp` for `security` when the provider declares an OTP product, `standard` otherwise."
   @spec product(map(), String.t() | nil) :: String.t()
   def product(declaration, "security") do
     if match?(%{"otp_product" => true}, catalog(declaration)), do: "otp", else: "standard"
@@ -152,7 +152,7 @@ defmodule Relay.Channels.Sms do
   def product(_declaration, _class), do: "standard"
 
   # CH-53
-  @doc "The provider account traffic a class may use: `\"security\"` for the `security` class, `\"standard\"` for every other class; an OTP never shares an account or a credit pool with a campaign."
+  @doc "The provider account traffic a class may use: `security` for the `security` class, `standard` for every other class; an OTP never shares an account or a credit pool with a campaign."
   @spec traffic(String.t() | nil) :: String.t()
   def traffic("security"), do: "security"
   def traffic(_class), do: "standard"

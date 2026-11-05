@@ -3,6 +3,7 @@ defmodule Relay.Channels.SmsAdaptersTest do
 
   alias Relay.ChannelDeclarations
   alias Relay.Channels.Infobip
+  alias Relay.Channels.Live
   alias Relay.Channels.Netgsm
   alias Relay.Channels.Registry
   alias Relay.Channels.Request
@@ -278,12 +279,11 @@ defmodule Relay.Channels.SmsAdaptersTest do
                Twilio.reports(form, [{"x-twilio-signature", signature}], key: key, url: callback)
 
       scope = Relay.Scope.new!(Relay.Id.generate(), :live)
-      assert Relay.Channels.Live.record_report(scope, "twilio", report) == {:ok, :pending}
+      assert Live.record_report(scope, "twilio", report) == {:ok, :pending}
 
       unknown = %{report | result: {:delivered, %{}}, correlation: nil}
 
-      assert Relay.Channels.Live.record_report(scope, "twilio", unknown) ==
-               {:error, :delivery_not_found}
+      assert Live.record_report(scope, "twilio", unknown) == {:error, :delivery_not_found}
     end
 
     test "CH-10: a delivered report is the delivered event and a pending one has no outcome" do

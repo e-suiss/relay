@@ -132,6 +132,20 @@ A client needs only its Access issuer. The Access Suiss discovery document (`<ac
 
 The document carries the API base, the data region, the bound Access issuer, the supported dated contract versions, the address of the product event key set (`jwks_uri`) and the capabilities served by this installation as `urn:suiss:relay:<capability>:<version>` URNs, each with its endpoint. A capability is listed only while all of its operations are served. Both documents are public and may be cached for five minutes.
 
+## Channels without provider accounts
+
+A self-hosted Relay sends on three channels without any third-party account:
+
+- **Email over your own SMTP server.** The generic SMTP adapter talks to any mail server you run (Postfix, Exim, a relay host) with your own DKIM key.
+- **Web Push with VAPID.** Relay signs with a VAPID key pair from its own key store; browsers subscribe with the public key and Relay encrypts each message (RFC 8291) and posts it to the browser vendor's push service. No vendor account is needed.
+- **In-app inbox.** Real-time over WebSocket or SSE from Relay itself.
+
+Every other channel runs on the tenant's own credentials: APNs, FCM and HMS push, email service providers, SMS and voice operators, WhatsApp Cloud API, Slack, Microsoft Teams, Telegram and Discord. A provider account takes traffic only once it is verified, and credentials are write-only: they live in the secret backend and are never returned by the API.
+
+There is no push path to iOS devices other than Apple's APNs. An iOS app always needs an APNs key or certificate from the app's Apple developer account; a deployment that must keep all data in one country can still use Web Push, in-app and its own SMTP server, but iOS push notifications always pass through Apple.
+
+To try a channel without sending anything, use the test environment: every address in the simulated ranges (`<result>@sim.relay.test`, `+9905550000NN`, `sim:<result>`) produces a fixed result, and `GET /v1/test/simulated-results` lists them. The live environment refuses these addresses.
+
 ## Ingest connectors
 
 Besides the HTTP API (native JSON events and CloudEvents on `POST /v1/events`), Relay can take events from a producer's own database. The built-in source is a **PostgreSQL outbox table**: your service writes one structured mode CloudEvent per row in the same transaction as its own change, and Relay relays the rows and records the outcome of each one. Relay never deletes a row. The table shape is a contract, [`contracts/connectors/outbox.sql`](contracts/connectors/outbox.sql); Relay checks it when it connects and does not read a table that differs.

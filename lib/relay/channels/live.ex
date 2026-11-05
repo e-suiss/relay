@@ -460,7 +460,6 @@ defmodule Relay.Channels.Live do
     end
   end
 
-
   defp failure(ctx, request, outcome, retry) do
     account_id = request.account["id"]
 

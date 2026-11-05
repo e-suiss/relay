@@ -1,0 +1,433 @@
+[
+  {
+    "name": "ConversationBlockedByUser",
+    "raw": {
+      "code": "ConversationBlockedByUser",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "error": {
+          "code": "ConversationBlockedByUser",
+          "message": "ConversationBlockedByUser"
+        }
+      }
+    }
+  },
+  {
+    "name": "BotNotInConversationRoster",
+    "raw": {
+      "code": "BotNotInConversationRoster",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "error": {
+          "code": "BotNotInConversationRoster",
+          "message": "BotNotInConversationRoster"
+        }
+      }
+    }
+  },
+  {
+    "name": "ConversationNotFound",
+    "raw": {
+      "code": "ConversationNotFound",
+      "status": 404,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 404,
+      "body": {
+        "error": {
+          "code": "ConversationNotFound",
+          "message": "ConversationNotFound"
+        }
+      }
+    }
+  },
+  {
+    "name": "BotDisabledByAdmin",
+    "raw": {
+      "code": "BotDisabledByAdmin",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "error": {
+          "code": "BotDisabledByAdmin",
+          "message": "BotDisabledByAdmin"
+        }
+      }
+    }
+  },
+  {
+    "name": "MessageSizeTooBig",
+    "raw": {
+      "code": "MessageSizeTooBig",
+      "status": 413,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 413,
+      "body": {
+        "error": {
+          "code": "MessageSizeTooBig",
+          "message": "MessageSizeTooBig"
+        }
+      }
+    }
+  },
+  {
+    "name": "BadArgument",
+    "raw": {
+      "code": "BadArgument",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "code": "BadArgument",
+          "message": "BadArgument"
+        }
+      }
+    }
+  },
+  {
+    "name": "http_401",
+    "raw": {
+      "code": "http_401",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_403",
+    "raw": {
+      "code": "http_403",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_404",
+    "raw": {
+      "code": "http_404",
+      "status": 404,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 404,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_412",
+    "raw": {
+      "code": "http_412",
+      "status": 412,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 412,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_413",
+    "raw": {
+      "code": "http_413",
+      "status": 413,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 413,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_429",
+    "raw": {
+      "code": "http_429",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "body": {},
+      "headers": {
+        "retry-after": "3"
+      }
+    }
+  },
+  {
+    "name": "token_invalid_client",
+    "raw": {
+      "code": "token_invalid_client",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "error": "invalid_client"
+      },
+      "call": "token"
+    }
+  },
+  {
+    "name": "token_unauthorized_client",
+    "raw": {
+      "code": "token_unauthorized_client",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": "unauthorized_client"
+      },
+      "call": "token"
+    }
+  },
+  {
+    "name": "token_invalid_request",
+    "raw": {
+      "code": "token_invalid_request",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": "invalid_request"
+      },
+      "call": "token"
+    }
+  },
+  {
+    "name": "token_http_503",
+    "raw": {
+      "code": "token_http_503",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": {},
+      "call": "token"
+    }
+  },
+  {
+    "name": "target_invalid",
+    "raw": {
+      "code": "target_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "http_500",
+    "raw": {
+      "code": "http_500",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_502",
+    "raw": {
+      "code": "http_502",
+      "status": 502,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 502,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_503",
+    "raw": {
+      "code": "http_503",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_504",
+    "raw": {
+      "code": "http_504",
+      "status": 504,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 504,
+      "body": {}
+    }
+  },
+  {
+    "name": "credential_missing",
+    "raw": {
+      "code": "credential_missing",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  }
+]

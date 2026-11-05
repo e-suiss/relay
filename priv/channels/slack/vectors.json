@@ -1,0 +1,679 @@
+[
+  {
+    "name": "channel_not_found",
+    "raw": {
+      "code": "channel_not_found",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "channel_not_found"
+      }
+    }
+  },
+  {
+    "name": "not_in_channel",
+    "raw": {
+      "code": "not_in_channel",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "not_in_channel"
+      }
+    }
+  },
+  {
+    "name": "is_archived",
+    "raw": {
+      "code": "is_archived",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "is_archived"
+      }
+    }
+  },
+  {
+    "name": "user_not_found",
+    "raw": {
+      "code": "user_not_found",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "user_not_found"
+      }
+    }
+  },
+  {
+    "name": "cannot_dm_bot",
+    "raw": {
+      "code": "cannot_dm_bot",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "cannot_dm_bot"
+      }
+    }
+  },
+  {
+    "name": "msg_too_long",
+    "raw": {
+      "code": "msg_too_long",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "msg_too_long"
+      }
+    }
+  },
+  {
+    "name": "no_text",
+    "raw": {
+      "code": "no_text",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "no_text"
+      }
+    }
+  },
+  {
+    "name": "invalid_blocks",
+    "raw": {
+      "code": "invalid_blocks",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "invalid_blocks"
+      }
+    }
+  },
+  {
+    "name": "too_many_attachments",
+    "raw": {
+      "code": "too_many_attachments",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "too_many_attachments"
+      }
+    }
+  },
+  {
+    "name": "message_not_found",
+    "raw": {
+      "code": "message_not_found",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "message_not_found"
+      }
+    }
+  },
+  {
+    "name": "cant_update_message",
+    "raw": {
+      "code": "cant_update_message",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "cant_update_message"
+      }
+    }
+  },
+  {
+    "name": "edit_window_closed",
+    "raw": {
+      "code": "edit_window_closed",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "edit_window_closed"
+      }
+    }
+  },
+  {
+    "name": "restricted_action",
+    "raw": {
+      "code": "restricted_action",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "restricted_action"
+      }
+    }
+  },
+  {
+    "name": "restricted_action_read_only_channel",
+    "raw": {
+      "code": "restricted_action_read_only_channel",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "restricted_action_read_only_channel"
+      }
+    }
+  },
+  {
+    "name": "ekm_access_denied",
+    "raw": {
+      "code": "ekm_access_denied",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "ekm_access_denied"
+      }
+    }
+  },
+  {
+    "name": "team_access_not_granted",
+    "raw": {
+      "code": "team_access_not_granted",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "team_access_not_granted"
+      }
+    }
+  },
+  {
+    "name": "missing_scope",
+    "raw": {
+      "code": "missing_scope",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "missing_scope"
+      }
+    }
+  },
+  {
+    "name": "not_allowed_token_type",
+    "raw": {
+      "code": "not_allowed_token_type",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "not_allowed_token_type"
+      }
+    }
+  },
+  {
+    "name": "not_authed",
+    "raw": {
+      "code": "not_authed",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "not_authed"
+      }
+    }
+  },
+  {
+    "name": "invalid_auth",
+    "raw": {
+      "code": "invalid_auth",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "invalid_auth"
+      }
+    }
+  },
+  {
+    "name": "account_inactive",
+    "raw": {
+      "code": "account_inactive",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "account_inactive"
+      }
+    }
+  },
+  {
+    "name": "token_revoked",
+    "raw": {
+      "code": "token_revoked",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "token_revoked"
+      }
+    }
+  },
+  {
+    "name": "token_expired",
+    "raw": {
+      "code": "token_expired",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "token_expired"
+      }
+    }
+  },
+  {
+    "name": "fatal_error",
+    "raw": {
+      "code": "fatal_error",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "fatal_error"
+      }
+    }
+  },
+  {
+    "name": "internal_error",
+    "raw": {
+      "code": "internal_error",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "internal_error"
+      }
+    }
+  },
+  {
+    "name": "service_unavailable",
+    "raw": {
+      "code": "service_unavailable",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "service_unavailable"
+      }
+    }
+  },
+  {
+    "name": "request_timeout",
+    "raw": {
+      "code": "request_timeout",
+      "status": 200,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "timeout",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "error": "request_timeout"
+      }
+    }
+  },
+  {
+    "name": "ratelimited",
+    "raw": {
+      "code": "ratelimited",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "body": {
+        "ok": false,
+        "error": "ratelimited"
+      },
+      "headers": {
+        "retry-after": "30"
+      }
+    }
+  },
+  {
+    "name": "http_500",
+    "raw": {
+      "code": "http_500",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_502",
+    "raw": {
+      "code": "http_502",
+      "status": 502,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 502,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_503",
+    "raw": {
+      "code": "http_503",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_504",
+    "raw": {
+      "code": "http_504",
+      "status": 504,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 504,
+      "body": {}
+    }
+  },
+  {
+    "name": "credential_missing",
+    "raw": {
+      "code": "credential_missing",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  }
+]

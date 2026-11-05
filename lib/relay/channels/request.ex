@@ -12,6 +12,7 @@ defmodule Relay.Channels.Request do
     * `ttl_s`: the channel time to live derived from the message's `expires_at` (`Relay.Channels.ttl_s/2`, CH-9), `nil` without `expires_at`.
     * `timeout_ms`: the call timeout, the shortest of the message, channel and provider layers (CH-9); the adapter never waits longer.
     * `message_class`, `test?` (the test plane) and `overrides` (the request's channel overrides, API-23).
+    * `update`: on a channel that updates messages, the provider message reference of the earlier message about the same subject in the same conversation, which the adapter edits in place instead of posting a new one (CH-23), or `nil`.
   """
 
   @enforce_keys [
@@ -40,7 +41,8 @@ defmodule Relay.Channels.Request do
     ttl_s: nil,
     message_class: nil,
     test?: false,
-    overrides: %{}
+    overrides: %{},
+    update: nil
   ]
 
   @type target :: %{
@@ -65,6 +67,7 @@ defmodule Relay.Channels.Request do
           ttl_s: non_neg_integer() | nil,
           message_class: String.t() | nil,
           test?: boolean(),
-          overrides: map()
+          overrides: map(),
+          update: String.t() | nil
         }
 end

@@ -1,0 +1,87 @@
+{
+  "provider": "discord",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "discord"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://discord.com/developers/docs/resources/message#create-message (compiled 2026-11-05)",
+    "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)",
+    "https://discord.com/developers/docs/topics/rate-limits (compiled 2026-11-05)",
+    "https://discord.com/developers/docs/interactions/overview#setting-up-an-endpoint (compiled 2026-11-05)"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "discord": {
+      "delivery_receipts": false,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": false,
+      "update": true,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": true
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "retry_accepting_duplicate_risk",
+    "provider_key": true,
+    "key_field": "nonce",
+    "correlation_field": null,
+    "status_query": false,
+    "source": "§12.2.4 CH-10; nonce with enforce_nonce drops a repeated create; https://discord.com/developers/docs/resources/message#create-message (compiled 2026-11-05)"
+  },
+  "paid_channels": [],
+  "pricing": {
+    "currency": "USD",
+    "units": {
+      "discord": "message"
+    },
+    "prices": [
+      {
+        "channel": "discord",
+        "country": null,
+        "category": null,
+        "unit_price_micros": 0,
+        "tier_from": 0
+      }
+    ]
+  },
+  "limits": {
+    "account": [
+      {
+        "channel": "discord",
+        "unit": "request",
+        "limit": 50,
+        "per_ms": 1000,
+        "source": "global per bot; X-RateLimit headers; https://discord.com/developers/docs/topics/rate-limits (compiled 2026-11-05)"
+      }
+    ],
+    "sender": [],
+    "recipient": [
+      {
+        "channel": "discord",
+        "unit": "message",
+        "limit": 5,
+        "per_ms": 5000,
+        "source": "per channel bucket; X-RateLimit headers; https://discord.com/developers/docs/topics/rate-limits (compiled 2026-11-05)"
+      }
+    ]
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "US"
+    ],
+    "transfer_basis": "adequacy",
+    "scc_notified_on": null,
+    "source": "Discord processes in the US; EU-US Data Privacy Framework; https://discord.com/privacy (compiled 2026-11-05)"
+  },
+  "inbound_verification": {
+    "method": "ed25519",
+    "header": "X-Signature-Ed25519",
+    "authenticity": "verified",
+    "source": "https://discord.com/developers/docs/interactions/overview#setting-up-an-endpoint (compiled 2026-11-05)"
+  }
+}

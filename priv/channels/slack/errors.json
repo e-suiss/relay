@@ -1,0 +1,266 @@
+[
+  {
+    "code": "channel_not_found",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "not_in_channel",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "is_archived",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "user_not_found",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "cannot_dm_bot",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "msg_too_long",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "no_text",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "invalid_blocks",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "too_many_attachments",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "message_not_found",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.update (compiled 2026-11-05)"
+  },
+  {
+    "code": "cant_update_message",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.update (compiled 2026-11-05)"
+  },
+  {
+    "code": "edit_window_closed",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.update (compiled 2026-11-05)"
+  },
+  {
+    "code": "restricted_action",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "restricted_action_read_only_channel",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "ekm_access_denied",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "team_access_not_granted",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "missing_scope",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "not_allowed_token_type",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "not_authed",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "invalid_auth",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "account_inactive",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "token_revoked",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "token_expired",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "fatal_error",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "internal_error",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "service_unavailable",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "request_timeout",
+    "class": "transient",
+    "condition": "timeout",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "ratelimited",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/apis/web-api/rate-limits (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_500",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_502",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_503",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_504",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  {
+    "code": "credential_missing",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7 auth; https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  }
+]

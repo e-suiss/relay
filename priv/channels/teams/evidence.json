@@ -1,0 +1,58 @@
+[
+  {
+    "channel": "teams",
+    "event_code": "accepted",
+    "effect_kind": "evidence",
+    "sets_delivery": "accepted",
+    "sets_failure": "none",
+    "attempt_effect": "succeeded",
+    "after_delivered": "stale",
+    "projection_effect": "raise_delivery",
+    "side_effect": "none",
+    "scope": "attempt",
+    "decision_grade": "unreliable",
+    "source": "§12.10 CH-62; §12.11a (1) CH-71"
+  },
+  {
+    "channel": "teams",
+    "event_code": "rejected",
+    "effect_kind": "evidence",
+    "sets_delivery": "none",
+    "sets_failure": "failed",
+    "attempt_effect": "failed",
+    "after_delivered": "stale",
+    "projection_effect": "set_failure",
+    "side_effect": "none",
+    "scope": "attempt",
+    "decision_grade": "unreliable",
+    "source": "§12.10 CH-62; §12.11a (1) CH-71"
+  },
+  {
+    "channel": "teams",
+    "event_code": "uncertain",
+    "effect_kind": "operational_signal",
+    "sets_delivery": "none",
+    "sets_failure": "none",
+    "attempt_effect": "unknown",
+    "after_delivered": "stale",
+    "projection_effect": "none",
+    "side_effect": "none",
+    "scope": "attempt",
+    "decision_grade": "unreliable",
+    "source": "§12.10 CH-62; §12.11a (1) CH-71"
+  },
+  {
+    "channel": "teams",
+    "event_code": "interacted",
+    "effect_kind": "evidence",
+    "sets_delivery": "delivered",
+    "sets_failure": "none",
+    "attempt_effect": "none",
+    "after_delivered": "valid",
+    "projection_effect": "raise_delivery",
+    "side_effect": "none",
+    "scope": "delivery",
+    "decision_grade": "unreliable",
+    "source": "§12.10 CH-62; §12.11a (1) CH-71"
+  }
+]

@@ -5,7 +5,13 @@ defmodule Relay.Channels.Registry do
 
   alias Relay.ChannelDeclarations
 
-  @adapters [Relay.Channels.Fake]
+  @adapters [
+    Relay.Channels.Fake,
+    Relay.Channels.Slack,
+    Relay.Channels.Teams,
+    Relay.Channels.Telegram,
+    Relay.Channels.Discord
+  ]
 
   @type missing :: ChannelDeclarations.missing() | :channels
   @type status :: %{

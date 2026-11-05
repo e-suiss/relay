@@ -1,0 +1,95 @@
+{
+  "provider": "telegram",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "telegram"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)",
+    "https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this (compiled 2026-11-05)",
+    "https://core.telegram.org/bots/api#setwebhook (compiled 2026-11-05)"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "telegram": {
+      "delivery_receipts": false,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": false,
+      "update": true,
+      "recall": false,
+      "business_initiated": false,
+      "inbound": true
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "no_auto_retry",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": null,
+    "status_query": false,
+    "source": "§12.2.4 CH-10; sendMessage has no idempotency key or status query; https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  "paid_channels": [],
+  "pricing": {
+    "currency": "USD",
+    "units": {
+      "telegram": "message"
+    },
+    "prices": [
+      {
+        "channel": "telegram",
+        "country": null,
+        "category": null,
+        "unit_price_micros": 0,
+        "tier_from": 0
+      }
+    ]
+  },
+  "limits": {
+    "account": [
+      {
+        "channel": "telegram",
+        "unit": "message",
+        "limit": 30,
+        "per_ms": 1000,
+        "source": "about 30 messages per second per bot; https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this (compiled 2026-11-05)"
+      }
+    ],
+    "sender": [],
+    "recipient": [
+      {
+        "channel": "telegram",
+        "unit": "message",
+        "limit": 1,
+        "per_ms": 1000,
+        "source": "one message per second per chat; https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this (compiled 2026-11-05)"
+      },
+      {
+        "channel": "telegram",
+        "unit": "message",
+        "limit": 20,
+        "per_ms": 60000,
+        "source": "20 messages per minute per group; https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this (compiled 2026-11-05)"
+      }
+    ]
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "NL",
+      "SG",
+      "US"
+    ],
+    "transfer_basis": "derogation",
+    "scc_notified_on": null,
+    "source": "Telegram data centers; no adequacy or SCC basis published; https://telegram.org/privacy (compiled 2026-11-05)"
+  },
+  "inbound_verification": {
+    "method": "secret_token",
+    "header": "X-Telegram-Bot-Api-Secret-Token",
+    "authenticity": "unverifiable",
+    "source": "https://core.telegram.org/bots/api#setwebhook (compiled 2026-11-05)"
+  }
+}

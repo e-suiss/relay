@@ -9,6 +9,7 @@ defmodule Relay.Delivery.Ledger do
   @events ~w(delivery.queued delivery.skipped delivery.deferred delivery.cancelled
              delivery.paused delivery.resumed delivery.held delivery.expired
              delivery.dead_lettered delivery.replay_opened delivery.uncertain
+             provider.reported
              attempt.started attempt.succeeded attempt.failed attempt.unknown)
   @failure_kinds [:skipped, :failed, :bounced, :expired, :cancelled]
   @after_delivered [:valid, :stale, :conflict]

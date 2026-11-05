@@ -11,6 +11,9 @@ defmodule Relay.Channels do
   alias Relay.Channels.Adapter
   alias Relay.Channels.Ambiguity
   alias Relay.Channels.Breaker
+  alias Relay.Channels.Email.Bounce
+  alias Relay.Channels.Email.Event
+  alias Relay.Channels.Email.Intake
   alias Relay.Channels.Inbound
   alias Relay.Channels.Outcome
   alias Relay.Channels.Registry
@@ -184,6 +187,34 @@ defmodule Relay.Channels do
   @spec verify_ed25519(Inbound.key(), binary(), Inbound.headers(), keyword()) ::
           :ok | {:error, Inbound.reason()}
   defdelegate verify_ed25519(key, body, headers, opts), to: Inbound, as: :ed25519
+
+  # CH-39
+  # CH-40
+  # CH-8
+  @doc "Classifies a provider e-mail event against the declarations and the content of the `email_bounce_codes` data set, and plans what it leads to; see `Relay.Channels.Email.Event.classify/3` and `Relay.Channels.Email.Intake.plan/2`."
+  @spec email_event_plan(ChannelDeclarations.t(), Event.t(), map()) ::
+          {Bounce.t() | nil, [Intake.action()]}
+  def email_event_plan(%ChannelDeclarations{} = declarations, event, table) do
+    result = Event.classify(event, declarations, table)
+    {result, Intake.plan(event, result)}
+  end
+
+  # CH-40
+  @doc "Decides a soft bounce of an address; see `Relay.Channels.Email.Intake.soft_bounce/3`."
+  @spec email_soft_bounce([integer()], integer(), map()) ::
+          :count | {:suppress, integer()} | :no_duration
+  defdelegate email_soft_bounce(history, now_ms, params),
+    to: Intake,
+    as: :soft_bounce
+
+  # CH-47
+  @doc "Parses a verified e-mail webhook body of `provider` (`postmark`, `sendgrid`, `mailgun` or an SES message) into its events."
+  @spec email_events(String.t(), binary() | map() | list()) :: [Event.t()]
+  def email_events("postmark", body), do: Relay.Channels.Postmark.events(body)
+  def email_events("sendgrid", body), do: Relay.Channels.Sendgrid.events(body)
+  def email_events("mailgun", body), do: Relay.Channels.Mailgun.events(body)
+  def email_events("ses", body), do: Relay.Channels.Ses.events(body, nil)
+  def email_events(_provider, _body), do: []
 
   # T-40
   @doc "Verifies an ECDSA P-256 signature of a raw body; see `Relay.Channels.Inbound.ecdsa/4`."

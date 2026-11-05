@@ -16,7 +16,7 @@ defmodule Relay.Channels.Ses do
   alias Relay.Channels.Request
 
   @region ~r/\A[a-z]{2}(-[a-z]+)+-\d{1,2}\z/
-  @queue ~r{\Ahttps://sqs\.([a-z0-9\-]+)\.amazonaws\.com/\d{12}/[A-Za-z0-9_\-]{1,80}(\.fifo)?\z}
+  @queue ~r/\Ahttps:\/\/sqs\.([a-z0-9\-]+)\.amazonaws\.com\/\d{12}\/[A-Za-z0-9_\-]{1,80}(\.fifo)?\z/
   @receive_ms 25_000
 
   @impl Relay.Channels.Adapter

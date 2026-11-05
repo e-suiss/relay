@@ -434,7 +434,8 @@ defmodule RelayWeb.Api.DevicesTest do
 
       reader = mine!(ctx, "inbox:read")
       conn = F.request(:post, "/v1/subscriber/devices", reader.token, registration())
-      assert code(conn, 403) == "auth_insufficient_scope"
+      assert conn.status == 403
+      assert Jason.decode!(conn.resp_body)["code"] == "auth_insufficient_scope"
     end
   end
 end

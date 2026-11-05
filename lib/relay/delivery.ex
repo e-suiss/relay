@@ -14,6 +14,7 @@ defmodule Relay.Delivery do
   alias Relay.Delivery.Ledger
   alias Relay.Delivery.RetryBudget
   alias Relay.Delivery.RetryPolicy
+  alias Relay.Delivery.Send
   alias Relay.Delivery.Store
   alias Relay.Scope
 
@@ -25,7 +26,7 @@ defmodule Relay.Delivery do
   # T-15
   @doc "The job worker that sends a delivery; its arguments are the scope, `notification_id` and `delivery_id`."
   @spec send_worker() :: module()
-  def send_worker, do: Relay.Delivery.Send
+  def send_worker, do: Send
 
   # T-15
   # TN-40
@@ -35,7 +36,22 @@ defmodule Relay.Delivery do
     scope
     |> Scope.to_job_args()
     |> Map.put("delivery_id", Relay.Id.to_string(delivery_id))
-    |> Relay.Delivery.Send.new()
+    |> Send.new()
+  end
+
+  # T-26
+  # INV-13
+  @doc "The send job changeset of a planned retry (`fail_attempt/2`): at the plan's time and priority, carrying the attempt's provider idempotency key unchanged and the `extra` job arguments."
+  @spec retry_job(Scope.t(), Relay.Id.t(), map(), map()) :: Ecto.Changeset.t()
+  def retry_job(%Scope{} = scope, delivery_id, %{at: at, priority: priority} = plan, extra) do
+    scope
+    |> Scope.to_job_args()
+    |> Map.merge(extra)
+    |> Map.merge(%{
+      "delivery_id" => Relay.Id.to_string(delivery_id),
+      "provider_idempotency_key" => plan.provider_idempotency_key
+    })
+    |> Send.new(scheduled_at: at, priority: priority)
   end
 
   # C-32

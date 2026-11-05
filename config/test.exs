@@ -29,7 +29,7 @@ config :relay, Oban, testing: :manual
 
 config :relay, Relay.Platform.Outbox, dispatcher: false
 
-config :relay, Relay.Delivery, auto_replay: false
+config :relay, Relay.Delivery, auto_replay: false, channel: nil
 
 config :relay, Relay.Platform.Leadership, enabled: false
 

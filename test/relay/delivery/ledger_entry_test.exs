@@ -30,7 +30,7 @@ defmodule Relay.Delivery.LedgerEntryTest do
       assert Ledger.event_types() ==
                ~w(delivery.queued delivery.skipped delivery.deferred delivery.cancelled
                   delivery.paused delivery.resumed delivery.held delivery.expired
-                  delivery.dead_lettered delivery.replay_opened
+                  delivery.dead_lettered delivery.replay_opened delivery.uncertain
                   attempt.started attempt.succeeded attempt.failed attempt.unknown)
     end
 

@@ -63,6 +63,11 @@ table relay.category_subtenant_settings relay_archive SELECT
 table relay.category_subtenant_settings relay_maint SELECT
 table relay.category_subtenant_settings relay_owner INSERT,SELECT,UPDATE
 table relay.category_subtenant_settings relay_report SELECT
+table relay.channel_identities relay_app SELECT
+table relay.channel_identities relay_archive SELECT
+table relay.channel_identities relay_maint SELECT
+table relay.channel_identities relay_owner INSERT,SELECT,UPDATE
+table relay.channel_identities relay_report SELECT
 table relay.consents relay_app SELECT
 table relay.consents relay_archive SELECT
 table relay.consents relay_maint SELECT
@@ -230,6 +235,11 @@ table relay.preferences relay_archive SELECT
 table relay.preferences relay_maint SELECT
 table relay.preferences relay_owner INSERT,SELECT,UPDATE
 table relay.preferences relay_report SELECT
+table relay.provider_accounts relay_app SELECT
+table relay.provider_accounts relay_archive SELECT
+table relay.provider_accounts relay_maint SELECT
+table relay.provider_accounts relay_owner INSERT,SELECT,UPDATE
+table relay.provider_accounts relay_report SELECT
 table relay.quota_counters relay_app SELECT
 table relay.quota_counters relay_archive SELECT
 table relay.quota_counters relay_maint SELECT
@@ -271,6 +281,11 @@ table relay.role_assignments relay_owner INSERT,SELECT,UPDATE
 table relay.secret_refs relay_app SELECT
 table relay.secret_refs relay_maint SELECT
 table relay.secret_refs relay_owner INSERT,SELECT,UPDATE
+table relay.sender_identities relay_app SELECT
+table relay.sender_identities relay_archive SELECT
+table relay.sender_identities relay_maint SELECT
+table relay.sender_identities relay_owner INSERT,SELECT,UPDATE
+table relay.sender_identities relay_report SELECT
 table relay.settings relay_app SELECT
 table relay.settings relay_archive SELECT
 table relay.settings relay_maint SELECT

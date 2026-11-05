@@ -439,6 +439,24 @@
       "subject_erasure": "content is encrypted under the recipient's notification_content or commercial_message subject key, which is destroyed; the digest and the template version are kept. OTP, verification and retention none snapshots hold the digest only",
       "table": "render_snapshots",
       "tenant_close": "tenant keys destroyed; row kept"
+    },
+    {
+      "table": "provider_accounts",
+      "personal_columns": [],
+      "tenant_close": "row kept; the credential reference is retired with the tenant's secrets",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "sender_identities",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "channel_identities",
+      "personal_columns": [],
+      "tenant_close": "row kept; the secret reference is retired with the tenant's secrets",
+      "subject_erasure": "not subject data"
     }
   ],
   "locations": [

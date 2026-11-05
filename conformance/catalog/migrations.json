@@ -101,5 +101,8 @@
   {"file": "20261112000300_create_render_plan_functions.exs", "sha256": "f906a3805a4e182144eebef78f640ca9a8e0baa9f0df447d0e0a1ab2e33fe2d6"},
   {"file": "20261112000400_register_template_term_datasets.exs", "sha256": "a7ad99f55b9c3545d708a62dede6063b2fb1619bc71fc98d31d26d5a8dd98306"},
   {"file": "20261112000500_rebuild_reference_check_for_templates.exs", "sha256": "1b482b58b959a67a6a8509f88748e1f5cf02461e7ebfae14e0d83cdf8dd9ac91"},
-  {"file": "20261113000000_register_channel_event_evidence.exs", "sha256": "eb1e535a1f124219c193771711aac05c99538fd8a6185d2179ff9a674ad839eb"}
+  {"file": "20261113000000_register_channel_event_evidence.exs", "sha256": "eb1e535a1f124219c193771711aac05c99538fd8a6185d2179ff9a674ad839eb"},
+  {"file": "20261113000100_create_provider_tables.exs", "sha256": "9ef8ef07201df414087e881e61b383513fd66c75e4f7a828d8b30b602b67512d"},
+  {"file": "20261113000200_create_provider_functions.exs", "sha256": "c02b93d457ddcbdfceef9aab6fd98154bef99c4cc41d5aa94d2a22e54293f6e3"},
+  {"file": "20261113000300_rebuild_reference_check_for_providers.exs", "sha256": "cc89fa37cb50bc1ef956223a6862e1f6748b01ecba0119ffa3accba885bf0ae2"}
 ]

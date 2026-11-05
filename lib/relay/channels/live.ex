@@ -1,0 +1,518 @@
+defmodule Relay.Channels.Live do
+  @moduledoc """
+  The channel step of the delivery job (`Relay.Delivery.Send`, configured as `config :relay, Relay.Delivery, channel: Module`): it hands a rendered delivery to its provider and records the outcome.
+
+    1. The route. On the `test` plane and in `shadow` mode the fake provider answers (X-25, API-62, CH-72); the send mode is the event's own mode (test only), then the tenant's `send_mode.channel.<channel>` and `send_mode` settings, then the installation default. Otherwise only a verified provider account whose adapter is activated takes traffic (`Relay.Channels.routes/4`, CH-14, INV-43); without one the delivery is held with `channel.no_route` and the job comes back later. The circuit breakers pick the first account that may be called; a rejection moves to the next account and, when every one is open, the job waits without counting an attempt (CH-13, T-25).
+    2. The target. An address channel reads the recipient's active address; a device channel asks the device port (`config :relay, Relay.Channels.Live, devices: Module`, `targets/3` and `disable/3`). A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
+    3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50).
+    4. The attempt. It is opened with the provider idempotency key that stays the same across the logical send (INV-13, OP-6 (4)) and marked started in its own transaction before the call (INV-55, CH-10). The credential is read from the secret backend for this call only, so a rotation applies at the next call (TN-26). The call is bounded by the three timeout layers (CH-9).
+    5. The outcome is normalized into the eight failure classes (CH-7). A success finishes the attempt. A failure finishes it and plans its retry through the job queue only (T-26, INV-14); a permanent target failure soft disables the address or the device at once (CH-11); a code without a mapping raises `provider.unknown_code` and the alarm (CH-8). An uncertain outcome follows the provider's declared policy (T-28): the status query, a retry with the same key, or none; on a paid channel at most one retry and `delivery.uncertain`.
+  """
+
+  use Boundary,
+    top_level?: true,
+    deps: [
+      Relay,
+      Relay.Channels,
+      Relay.Delivery,
+      Relay.Datasets,
+      Relay.Ingest,
+      Relay.Secrets,
+      Relay.Tenancy
+    ],
+    exports: []
+
+  alias Relay.ChannelDeclarations
+  alias Relay.Channels.Live.Store
+  alias Relay.Scope
+
+  @hold_s 300
+  @call_ms 10_000
+  @ranks %{accepted: 1, delivered: 2}
+
+  @type result :: :ok | {:snooze, pos_integer()} | {:error, term()}
+
+  # T-15
+  # CH-2
+  # CH-14
+  # INV-43
+  @doc "Runs the channel step of a rendered delivery with the job's arguments; returns as an `Oban.Worker` `perform/1` does."
+  @spec deliver(Scope.t(), Relay.Id.t(), map()) :: result()
+  def deliver(%Scope{} = scope, delivery_id, args) when is_map(args) do
+    with {:ok, %{} = delivery} <- Store.in_scope(scope, fn _ -> Store.delivery(delivery_id) end),
+         {:ok, declarations} <- Relay.Datasets.channel_declarations(),
+         {:ok, parameters} <- Relay.Datasets.channel_parameters(),
+         {:ok, route} <- route(scope, delivery, declarations) do
+      ctx = %{
+        scope: scope,
+        delivery: delivery,
+        declarations: declarations,
+        parameters: parameters,
+        args: args
+      }
+
+      admit(ctx, route)
+    else
+      {:ok, nil} -> :ok
+      {:hold, rule_id} -> hold(scope, delivery_id, rule_id)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # X-25
+  # API-62
+  defp route(scope, delivery, declarations) do
+    if fake?(scope, delivery) do
+      {:ok, [%{"id" => nil, "provider" => "fake", "credential_ref_id" => nil}]}
+    else
+      policy = %{draw: :erlang.phash2(delivery["id"])}
+
+      case Relay.Channels.routes(scope, delivery["channel"], declarations, policy) do
+        {:ok, {[], _excluded}} -> {:hold, "channel.no_route"}
+        {:ok, {accounts, _excluded}} -> {:ok, accounts}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  defp fake?(%Scope{environment: :test}, _delivery), do: true
+
+  defp fake?(scope, delivery) do
+    channel = delivery["channel"]
+    keys = Relay.Ingest.send_mode_keys("", channel)
+
+    settings =
+      case Store.in_scope(scope, fn _ -> Store.settings(keys) end) do
+        {:ok, settings} -> settings
+        {:error, _reason} -> %{}
+      end
+
+    installation =
+      case Relay.Ingest.installation_send_mode() do
+        {:ok, mode} -> mode
+        {:error, _reason} -> nil
+      end
+
+    Relay.Ingest.send_mode(delivery["send_mode"], settings, "", channel, installation) == :shadow
+  end
+
+  # CH-13
+  # T-25
+  defp admit(ctx, accounts) do
+    found =
+      Enum.reduce_while(accounts, {:none, nil}, fn account, {_none, wait} ->
+        case check(ctx, account) do
+          {:go, ticket} -> {:halt, {:go, account, ticket}}
+          {:wait, ms} -> {:cont, {:none, min(ms, wait || ms)}}
+        end
+      end)
+
+    case found do
+      {:go, account, ticket} -> target(ctx, account, ticket)
+      {:none, wait} -> {:snooze, max(div(wait || 1000, 1000), 1)}
+    end
+  end
+
+  defp check(_ctx, %{"provider" => "fake"}), do: {:go, nil}
+
+  defp check(ctx, account) do
+    target = %{
+      tenant_id: ctx.scope.tenant_id,
+      environment: ctx.scope.environment,
+      channel: ctx.delivery["channel"],
+      provider: account["provider"],
+      provider_account_id: account["id"]
+    }
+
+    case Relay.Channels.check_breaker(ctx.parameters, target) do
+      {{:reject, :breaker_open, after_ms, _rule_id}, _ticket} -> {:wait, after_ms}
+      {_allowed, ticket} -> {:go, ticket}
+    end
+  end
+
+  # CH-28
+  # CH-72
+  defp target(ctx, account, ticket) do
+    case read_target(ctx, account) do
+      {:ok, value, kind} -> simulated(ctx, account, ticket, %{kind: kind, id: nil, value: value})
+      :unavailable -> hold(ctx.scope, ctx.delivery["id"], "channel.target_unavailable")
+    end
+  end
+
+  defp read_target(ctx, account) do
+    delivery = ctx.delivery
+
+    case delivery["target_kind"] do
+      "address" -> address(ctx.scope, delivery, account)
+      "device" -> device(ctx.scope, delivery, account)
+      _endpoint -> fallback(account, :endpoint)
+    end
+  end
+
+  defp fallback(%{"provider" => "fake"}, kind), do: {:ok, wrap(""), kind}
+  defp fallback(_account, _kind), do: :unavailable
+
+  defp address(scope, delivery, account) do
+    kind = if delivery["channel"] == "email", do: "email", else: "phone"
+    recipient_id = delivery["recipient_id"]
+
+    source = field(scope, recipient_id)
+
+    with {:ok, %{} = row} <- Store.in_scope(scope, fn _ -> Store.address(recipient_id, kind) end),
+         {:ok, value} <- Relay.Tenancy.decrypt_field(source, row["address_ct"]) do
+      {:ok, value, :address}
+    else
+      _unreadable -> fallback(account, :address)
+    end
+  end
+
+  defp field(scope, recipient_id) do
+    %{
+      tenant_id: scope.tenant_id,
+      environment: scope.environment,
+      subject_id: recipient_id,
+      retention_class: :recipient_profile,
+      table: "recipient_addresses",
+      column: "address_ct"
+    }
+  end
+
+  defp device(scope, delivery, account) do
+    case devices() do
+      nil ->
+        fallback(account, :device)
+
+      module ->
+        case module.targets(scope, delivery["recipient_id"], delivery["channel"]) do
+          {:ok, [%{value: value} | _]} -> {:ok, value, :device}
+          _none -> :unavailable
+        end
+    end
+  end
+
+  defp wrap(value), do: Relay.Redacted.wrap(value)
+
+  # CH-72
+  # X-25
+  defp simulated(ctx, account, ticket, target) do
+    value = Relay.Redacted.expose(target.value)
+
+    if account["provider"] != "fake" and ctx.scope.environment == :live and
+         Relay.Channels.simulated_address?(ctx.delivery["channel"], value) do
+      skip(ctx.scope, ctx.delivery["id"], "channel.invalid_recipient")
+    else
+      content(ctx, account, ticket, target)
+    end
+  end
+
+  # TP-50
+  defp content(ctx, account, ticket, target) do
+    case renderer().prepare(ctx.scope, ctx.delivery["id"]) do
+      {:rendered, content} -> attempt(ctx, account, ticket, target, content || %{})
+      :rendered -> attempt(ctx, account, ticket, target, %{})
+      {:error, reason} -> {:error, reason}
+      _failed_or_done -> :ok
+    end
+  end
+
+  # INV-13
+  # INV-55
+  # OP-6 (4)
+  defp attempt(ctx, account, ticket, target, content) do
+    %{scope: scope, delivery: delivery} = ctx
+    key = Map.get(ctx.args, "provider_idempotency_key") || default_key(delivery["id"])
+
+    open = %{
+      id: Relay.Id.generate(),
+      delivery_id: delivery["id"],
+      provider: account["provider"],
+      provider_account_id: account["id"],
+      provider_idempotency_key: key
+    }
+
+    with {:ok, {:opened, n}} <- Relay.Delivery.open_attempt(scope, open),
+         {:ok, :started} <- Relay.Delivery.start_attempt(scope, delivery["id"], n) do
+      channel = delivery["channel"]
+      _ = Relay.Delivery.count_attempt(scope, ctx.parameters, channel, account["id"], n)
+      call(ctx, account, ticket, request(ctx, account, target, content, key, n))
+    else
+      {:ok, {:attempt_active, _n}} -> {:snooze, @hold_s}
+      {:ok, _not_sendable} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp default_key(delivery_id), do: "dlv-" <> Relay.Id.to_string(delivery_id)
+
+  defp request(ctx, account, target, content, key, n) do
+    now = Relay.Clock.utc_now()
+    expires_at = ctx.delivery["expires_at"]
+
+    timeout =
+      case Relay.Channels.call_timeout_ms(expires_at, now, nil, @call_ms) do
+        {:ok, ms} -> ms
+        :expired -> 1
+      end
+
+    ttl =
+      case Relay.Channels.ttl_s(expires_at, now) do
+        :expired -> 0
+        ttl -> ttl
+      end
+
+    Relay.Channels.request(%{
+      scope: ctx.scope,
+      delivery_id: ctx.delivery["id"],
+      attempt_no: n,
+      channel: ctx.delivery["channel"],
+      provider: account["provider"],
+      idempotency_key: key,
+      target: target,
+      timeout_ms: timeout,
+      content: content,
+      credentials: credentials(ctx.scope, account),
+      account: account,
+      ttl_s: ttl,
+      message_class: ctx.delivery["message_class"],
+      test?: ctx.scope.environment == :test
+    })
+  end
+
+  # TN-26
+  defp credentials(_scope, %{"credential_ref_id" => nil}), do: nil
+
+  defp credentials(scope, %{"credential_ref_id" => ref_id}) do
+    case Relay.Secrets.fetch(scope, ref_id) do
+      {:ok, secret} -> secret
+      {:error, _error} -> nil
+    end
+  end
+
+  # CH-7
+  # T-25
+  defp call(ctx, account, ticket, request) do
+    started = Relay.Clock.monotonic_ms()
+
+    case Relay.Channels.activated_adapter(ctx.declarations, account["provider"]) do
+      {:ok, adapter} ->
+        result = adapter.deliver(request)
+        outcome = normalize(ctx, request, result)
+        record_breaker(ticket, outcome, Relay.Clock.monotonic_ms() - started)
+        follow(ctx, adapter, request, outcome)
+
+      {:error, _not_activated} ->
+        finish(ctx, request, failed("transient", "transport:adapter_not_activated"), :no_retry)
+    end
+  end
+
+  # DS-10
+  defp normalize(ctx, request, result) do
+    case Relay.Channels.normalize(ctx.declarations, request.provider, request.channel, result) do
+      {:ok, outcome} -> outcome
+      {:error, :unknown_event} -> failed("unknown", "evidence:missing")
+    end
+  end
+
+  defp failed(class, raw_code), do: Relay.Channels.failed_outcome(class, raw_code)
+
+  defp record_breaker(nil, _outcome, _latency_ms), do: :ok
+
+  defp record_breaker(ticket, %{state: :succeeded}, latency_ms),
+    do: Relay.Channels.record_breaker(ticket, :success, latency_ms)
+
+  defp record_breaker(ticket, outcome, latency_ms) do
+    failure = {:failure, outcome.failure_class, outcome.condition}
+    Relay.Channels.record_breaker(ticket, failure, latency_ms)
+  end
+
+  defp follow(ctx, adapter, request, %{state: :unknown} = outcome),
+    do: uncertain(ctx, adapter, request, outcome)
+
+  defp follow(ctx, _adapter, request, outcome), do: finish(ctx, request, outcome, :no_retry)
+
+  # T-28
+  # CH-10
+  # INV-9
+  defp uncertain(ctx, adapter, request, outcome) do
+    {:ok, declaration} = ChannelDeclarations.declaration(ctx.declarations, request.provider)
+    policy = Map.get(declaration, "provider_idempotency_policy") || %{}
+    paid? = ChannelDeclarations.paid?(declaration, request.channel)
+    retried? = Map.get(ctx.args, "uncertain_retry") == true
+
+    case Relay.Channels.uncertain(policy, paid?, retried?) do
+      :query -> query(ctx, adapter, request, outcome, {paid?, retried?})
+      {:retry, mark} -> marked(ctx, request, outcome, :retry, mark)
+      {:stop, mark} -> marked(ctx, request, outcome, :no_retry, mark)
+    end
+  end
+
+  defp query(ctx, adapter, request, outcome, {paid?, retried?}) do
+    answer =
+      if function_exported?(adapter, :query, 1), do: adapter.query(request), else: :unavailable
+
+    case Relay.Channels.after_query(answer, paid?, retried?) do
+      {:outcome, result} -> follow(ctx, adapter, request, normalize(ctx, request, result))
+      {:retry, mark} -> marked(ctx, request, outcome, :retry, mark)
+      {:stop, mark} -> marked(ctx, request, outcome, :no_retry, mark)
+    end
+  end
+
+  defp marked(ctx, request, outcome, retry, :uncertain) do
+    {:ok, entry} =
+      Relay.Delivery.ledger_entry(
+        id: Relay.Id.generate(),
+        delivery_id: request.delivery_id,
+        attempt_no: request.attempt_no,
+        actor: :relay,
+        event_type: "delivery.uncertain",
+        occurred_at: Relay.Clock.utc_now(),
+        provider: request.provider,
+        raw_code: outcome.raw_code
+      )
+
+    _ = Relay.Delivery.append_ledger(ctx.scope, entry)
+    finish(ctx, request, outcome, retry)
+  end
+
+  defp marked(ctx, request, outcome, retry, :none), do: finish(ctx, request, outcome, retry)
+
+  defp finish(ctx, request, %{state: :succeeded} = outcome, _retry) do
+    attrs = %{
+      delivery_id: request.delivery_id,
+      attempt_no: request.attempt_no,
+      state: :succeeded,
+      provider_message_id: outcome.provider_message_id,
+      event_id: Relay.Id.generate(),
+      occurred_at: Relay.Clock.utc_now(),
+      delivery_rank: Map.fetch!(@ranks, rank(outcome)),
+      traceparent: ctx.delivery["traceparent"]
+    }
+
+    case Relay.Delivery.finish_attempt(ctx.scope, attrs) do
+      {:ok, _result} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp finish(ctx, request, outcome, retry) do
+    if outcome.unknown_code? do
+      _ =
+        Relay.Channels.report_unknown_code(
+          ctx.scope,
+          request.provider,
+          request.channel,
+          outcome.raw_code
+        )
+    end
+
+    if Relay.Channels.class_actions(outcome.failure_class).target == :disable,
+      do: cleanup(ctx, request, outcome)
+
+    case Relay.Delivery.fail_attempt(ctx.scope, failure(ctx, request, outcome, retry)) do
+      {:ok, _plan} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp rank(%{delivery_rank: :delivered}), do: :delivered
+
+  defp rank(%{followups: followups}) do
+    if Enum.any?(followups, &(&1.event_code == "delivered" and &1.after_ms == 0)),
+      do: :delivered,
+      else: :accepted
+  end
+
+  defp failure(ctx, request, outcome, retry) do
+    account_id = request.account["id"]
+
+    budget =
+      case Relay.Delivery.retry_budget(ctx.scope, ctx.parameters, request.channel, account_id) do
+        {:ok, decision} -> decision
+        {:error, _reason} -> :allow
+      end
+
+    retried? =
+      Map.get(ctx.args, "uncertain_retry") == true or
+        (retry == :retry and outcome.state == :unknown)
+
+    extra = %{"uncertain_retry" => retried?}
+
+    %{
+      delivery_id: request.delivery_id,
+      attempt_no: request.attempt_no,
+      state: outcome.state,
+      failure_class: outcome.failure_class,
+      raw_code: outcome.raw_code,
+      event_id: Relay.Id.generate(),
+      occurred_at: Relay.Clock.utc_now(),
+      traceparent: ctx.delivery["traceparent"],
+      channel: request.channel,
+      provider: request.provider,
+      condition: outcome.condition,
+      message_class: ctx.delivery["message_class"],
+      retry_after_ms: outcome.retry_after_ms,
+      expires_at: ctx.delivery["expires_at"],
+      parameters: ctx.parameters,
+      budget: budget,
+      uncertain: retry,
+      job: &Relay.Delivery.retry_job(ctx.scope, request.delivery_id, &1, extra)
+    }
+  end
+
+  # CH-11
+  # INV-14
+  defp cleanup(ctx, request, outcome) do
+    delivery = ctx.delivery
+
+    case delivery["target_kind"] do
+      "address" ->
+        kind = if request.channel == "email", do: "email", else: "phone"
+        recipient = delivery["recipient_id"]
+        rule_id = "channel.address_disabled"
+        _ = Relay.Channels.disable_address(ctx.scope, recipient, kind, request.channel, rule_id)
+
+      "device" ->
+        with module when module != nil <- devices(),
+             do: module.disable(ctx.scope, request.target, outcome)
+
+      _endpoint ->
+        :ok
+    end
+
+    :ok
+  end
+
+  defp hold(scope, delivery_id, rule_id) do
+    until = DateTime.add(Relay.Clock.utc_now(), @hold_s, :second)
+    _ = Relay.Delivery.hold(scope, delivery_id, rule_id, until)
+    {:snooze, @hold_s}
+  end
+
+  defp skip(scope, delivery_id, rule_id) do
+    {:ok, entry} =
+      Relay.Delivery.ledger_entry(
+        id: Relay.Id.generate(),
+        delivery_id: delivery_id,
+        actor: :relay,
+        event_type: "delivery.skipped",
+        occurred_at: Relay.Clock.utc_now(),
+        failure_kind: :skipped,
+        failure_rule_id: rule_id
+      )
+
+    case Relay.Delivery.append_ledger(scope, entry) do
+      {:ok, _appended} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp renderer do
+    :relay
+    |> Application.get_env(Relay.Delivery, [])
+    |> Keyword.get(:renderer, Relay.Templates.Live)
+  end
+
+  defp devices do
+    :relay |> Application.get_env(__MODULE__, []) |> Keyword.get(:devices)
+  end
+end

@@ -1,5 +1,5 @@
 defmodule RelayTest.Keys do
-  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well; there are no other signing keys and no secret data objects; key generation succeeds for any label."
+  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well; there are no other signing keys; secret data objects are stored in the calling process; key generation succeeds for any label."
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
@@ -77,7 +77,24 @@ defmodule RelayTest.Keys do
     do: {:ok, :crypto.mac(:hmac, :sha256, secret(label), Redacted.expose(message))}
 
   @impl Relay.Keys
-  def read_secret(_label), do: not_found()
+  def read_secret(label) do
+    case Process.get({__MODULE__, :secret, label}) do
+      nil -> not_found()
+      value -> {:ok, Redacted.wrap(value)}
+    end
+  end
+
+  @impl Relay.Keys
+  def store_secret(label, value) do
+    case Process.get({__MODULE__, :secret, label}) do
+      nil ->
+        Process.put({__MODULE__, :secret, label}, Redacted.expose(value))
+        :ok
+
+      _stored ->
+        {:error, Relay.Error.new(:key_exists, "key store: key label already exists")}
+    end
+  end
 
   @impl Relay.Keys
   def generate_key(_kind, _label, _id), do: :ok

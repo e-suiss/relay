@@ -41,6 +41,17 @@ defmodule Relay.Keys.ProtocolTest do
                <<1, 0, 0, 0, 5, 6, 0, 0, 0, 4, "smtp">>
     end
 
+    test "TN-26: a secret store carries the label and the value, and succeeds with no fields" do
+      assert bin(Protocol.encode(7, {:store_secret, "slack", "xoxb"})) ==
+               <<1, 0, 0, 0, 7, 8, 0, 0, 0, 5, "slack", 0, 0, 0, 4, "xoxb">>
+
+      assert Protocol.kind({:store_secret, "slack", "xoxb"}) == :store_secret
+      assert Protocol.result(:store_secret, 0, []) == :ok
+
+      assert {:error, %Relay.Error{code: :key_exists}} =
+               Protocol.result(:store_secret, 7, ["secret label already exists"])
+    end
+
     test "TN-67 (1): key generation carries the key kind, the label and the object identifier" do
       assert bin(Protocol.encode(6, {:generate_key, :hmac_sha256, "bidx", <<9, 9>>})) ==
                <<1, 0, 0, 0, 6, 7, 2, 0, 0, 0, 4, "bidx", 0, 0, 0, 2, 9, 9>>

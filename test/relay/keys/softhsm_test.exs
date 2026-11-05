@@ -249,6 +249,16 @@ defmodule Relay.Keys.SoftHSMTest do
     assert {:error, %Relay.Error{code: :key_not_found}} = KeyPort.read_secret(keys, "absent")
   end
 
+  test "TN-26: a stored secret is read back and its label is not reused", %{keys: keys} do
+    label = "stored-#{System.unique_integer([:positive])}"
+    assert KeyPort.store_secret(keys, label, Redacted.wrap("xoxb-stored")) == :ok
+    assert {:ok, secret} = KeyPort.read_secret(keys, label)
+    assert Redacted.expose(secret) == "xoxb-stored"
+
+    assert {:error, %Relay.Error{code: :key_exists}} =
+             KeyPort.store_secret(keys, label, Redacted.wrap("other"))
+  end
+
   test "TN-63: a missing or mistyped key is not found", %{keys: keys} do
     assert {:error, %Relay.Error{code: :key_not_found}} =
              KeyPort.sign(keys, :es256, "absent", "m")

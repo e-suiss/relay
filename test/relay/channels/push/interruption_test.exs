@@ -153,7 +153,10 @@ defmodule Relay.Channels.Push.InterruptionTest do
 
     test "CH-66: the Grant is not asked without the opening and the declaration" do
       parent = self()
-      grant = fn -> send(parent, :asked) && :permit end
+      grant = fn ->
+        send(parent, :asked)
+        :permit
+      end
 
       for extra <- [%{critical_enabled: true}, %{critical_declared: true}, %{}] do
         assert %{level: :time_sensitive, reasons: [:critical_not_granted]} =

@@ -22,7 +22,7 @@ defmodule Relay.Channels.RoutingTest do
         "in_installation" => true,
         "processing_countries" => []
       },
-      Map.new(fields)
+      Map.new(fields, fn {key, value} -> {Atom.to_string(key), value} end)
     )
   end
 

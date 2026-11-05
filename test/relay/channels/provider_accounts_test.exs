@@ -99,7 +99,7 @@ defmodule Relay.Channels.ProviderAccountsTest do
       assert {:ok, :unchanged} = verify(scope, attrs.id, "verified")
       assert usable(scope) == [attrs.id]
 
-      assert {:ok, {:updated, 2}} = put(scope, %{attrs | provider: "other"})
+      assert {:ok, {:updated, 3}} = put(scope, %{attrs | provider: "other"})
       assert usable(scope) == []
     end
 

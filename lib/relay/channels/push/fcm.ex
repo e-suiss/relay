@@ -145,7 +145,7 @@ defmodule Relay.Channels.Push.Fcm do
   # CH-24
   @doc "The HTTP v1 send request of a `message` object for `project_id` with an OAuth access token."
   @spec request(String.t(), map(), Relay.Redacted.t()) :: request()
-  def request(project_id, %{} = message, %Relay.Redacted{} = access_token)
+  def request(project_id, %{} = message, access_token)
       when is_binary(project_id) and project_id != "" do
     %{
       method: :post,

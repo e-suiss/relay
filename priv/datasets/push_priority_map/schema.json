@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "push_priority_map",
+  "description": "The platform mapping of push priority: for each message class, its priority ceiling, its interruption level ceiling and, per fine-grained priority under the ceiling, the APNs priority, the default interruption level and the FCM priority; for the class, the APNs push type, the Web Push Urgency, the default Android channel importance, the HMS classification and importance and the fixed FCM collapse key. A cell is derived from platform documentation until it is measured on the platform test devices; a measured class records the measurement date. A tenant can only lower a priority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source_ref", "classes"],
+  "properties": {
+    "source_ref": {"type": "string", "minLength": 1, "maxLength": 512},
+    "classes": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {"$ref": "#/$defs/class"}
+    }
+  },
+  "$defs": {
+    "level": {"enum": ["passive", "active", "time-sensitive"]},
+    "priority": {"enum": ["low", "normal", "high"]},
+    "cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["apns_priority", "interruption_level", "fcm_priority"],
+      "properties": {
+        "apns_priority": {"enum": [1, 5, 10]},
+        "interruption_level": {"oneOf": [{"$ref": "#/$defs/level"}, {"type": "null"}]},
+        "fcm_priority": {"enum": ["normal", "high"]}
+      }
+    },
+    "class": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "message_class",
+        "priority_ceiling",
+        "interruption_ceiling",
+        "priorities",
+        "apns_push_type",
+        "web_push_urgency",
+        "android_importance",
+        "hms_classification",
+        "hms_importance",
+        "fcm_collapse_key",
+        "measured_at"
+      ],
+      "properties": {
+        "message_class": {
+          "enum": [
+            "security",
+            "action_required",
+            "transactional",
+            "operational",
+            "social",
+            "marketing",
+            "system"
+          ]
+        },
+        "priority_ceiling": {"$ref": "#/$defs/priority"},
+        "interruption_ceiling": {"oneOf": [{"$ref": "#/$defs/level"}, {"type": "null"}]},
+        "priorities": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["low"],
+          "properties": {
+            "low": {"$ref": "#/$defs/cell"},
+            "normal": {"$ref": "#/$defs/cell"},
+            "high": {"$ref": "#/$defs/cell"}
+          }
+        },
+        "apns_push_type": {"enum": ["alert", "background"]},
+        "web_push_urgency": {"enum": ["very-low", "low", "normal", "high", null]},
+        "android_importance": {"enum": ["MIN", "LOW", "DEFAULT", "HIGH", null]},
+        "hms_classification": {"enum": ["service_communication", "information_marketing", null]},
+        "hms_importance": {"enum": ["LOW", "NORMAL", null]},
+        "fcm_collapse_key": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]{1,63}$"},
+        "measured_at": {"oneOf": [{"type": "string", "format": "date"}, {"type": "null"}]}
+      }
+    }
+  }
+}

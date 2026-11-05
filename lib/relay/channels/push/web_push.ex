@@ -120,10 +120,10 @@ defmodule Relay.Channels.Push.WebPush do
     end
   end
 
-  defp ordered(fields), do: Jason.OrderedObject.new(fields)
-
   defp notification(_notification),
     do: {:error, Error.new(:push_payload_invalid, "a declarative push needs title and navigate")}
+
+  defp ordered(fields), do: Jason.OrderedObject.new(fields)
 
   defp badge(nil), do: []
   defp badge(count) when is_integer(count) and count >= 0, do: [{"app_badge", "#{count}"}]

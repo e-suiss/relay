@@ -33,6 +33,7 @@ defmodule Relay.Channels.Email.Dmarc do
   @spec discover(String.t(), module()) :: policy() | nil
   def discover(domain, resolver) do
     domain = domain |> String.trim_trailing(".") |> String.downcase(:ascii)
+
     found =
       Enum.flat_map(targets(domain), fn name ->
         case record(name, resolver) do

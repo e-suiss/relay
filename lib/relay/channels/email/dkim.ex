@@ -62,6 +62,7 @@ defmodule Relay.Channels.Email.Dkim do
   @spec dns_record({binary() | pos_integer(), binary() | pos_integer()}) :: [String.t()]
   def dns_record({modulus, exponent}) do
     key = {:RSAPublicKey, integer(modulus), integer(exponent)}
+
     {:SubjectPublicKeyInfo, der, :not_encrypted} =
       :public_key.pem_entry_encode(:SubjectPublicKeyInfo, key)
 

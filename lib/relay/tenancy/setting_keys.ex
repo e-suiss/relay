@@ -71,17 +71,7 @@ defmodule Relay.Tenancy.SettingKeys do
         {:error,
          Relay.Error.new(:invalid_setting, "a fairness weight is an integer from 1 to 100")}
 
-      {:ok, :device_limit} when is_integer(value) and value >= 1 and value <= @device_limit ->
-        {:ok, value}
-
-      {:ok, :device_limit} ->
-        {:error,
-         Relay.Error.new(
-           :invalid_setting,
-           "the device limit is an integer from 1 to #{@device_limit}"
-         )}
-
-      {:ok, kind} when kind in [:api_rate, :boolean] ->
+      {:ok, kind} when kind in [:api_rate, :boolean, :device_limit] ->
         check(kind, value)
 
       {:ok, field} ->
@@ -93,6 +83,16 @@ defmodule Relay.Tenancy.SettingKeys do
   end
 
   defp check(:api_rate, value), do: api_rate(value)
+
+  # CH-74
+  defp check(:device_limit, value)
+       when is_integer(value) and value >= 1 and value <= @device_limit,
+       do: {:ok, value}
+
+  defp check(:device_limit, _value) do
+    message = "the device limit is an integer from 1 to #{@device_limit}"
+    {:error, Relay.Error.new(:invalid_setting, message)}
+  end
 
   # API-41
   defp check(:boolean, value) when is_boolean(value), do: {:ok, value}

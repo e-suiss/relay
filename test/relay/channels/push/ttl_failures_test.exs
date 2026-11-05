@@ -7,7 +7,7 @@ defmodule Relay.Channels.Push.TtlFailuresTest do
   @now ~U[2026-11-05 00:00:00Z]
 
   defp vectors(provider) do
-    ["priv/channels", Atom.to_string(provider), "vectors.json"]
+    ["priv/push", Atom.to_string(provider), "vectors.json"]
     |> Path.join()
     |> File.read!()
     |> Jason.decode!()

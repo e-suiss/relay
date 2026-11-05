@@ -1,11 +1,11 @@
 defmodule Relay.Channels.Push.Failures do
   @moduledoc """
-  The failure mapping tables of the push providers (CH-7, CH-71): every APNs, FCM HTTP v1 and Web Push response code maps to one failure class, and retry, fallback, token disabling and breaker weight derive from that class alone. The tables are data under `priv/channels/<provider>/failures.json`, compiled from the providers' published documentation with the source and compilation date in the file; every rule has a test vector in `vectors.json` beside it.
+  The failure mapping tables of the push providers (CH-7, CH-71): every APNs, FCM HTTP v1 and Web Push response code maps to one failure class, and retry, fallback, token disabling and breaker weight derive from that class alone. The tables are data under `priv/push/<provider>/failures.json`, compiled from the providers' published documentation with the source and compilation date in the file; every rule has a test vector in `vectors.json` beside it. They are the source for the `errors.json` and `vectors.json` of the provider's adapter declaration under `priv/channels/<provider>/` (`Relay.ChannelDeclarations`).
 
   A code without a rule is `unknown`; it is never guessed (CH-8). APNs rules match the HTTP status and the `reason`, falling back to a status-only rule; FCM rules match the `FcmError` `errorCode` first, then the `google.rpc` status, then the HTTP status; Web Push rules match the HTTP status.
   """
 
-  @root Path.expand("../../../../priv/channels", __DIR__)
+  @root Path.expand("../../../../priv/push", __DIR__)
   @providers [:apns, :fcm, :web_push]
 
   @paths Map.new(@providers, &{&1, Path.join([@root, Atom.to_string(&1), "failures.json"])})

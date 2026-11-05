@@ -1,0 +1,128 @@
+[
+  {
+    "name": "hard_bounce",
+    "raw": {
+      "code": "hard_bounce",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "bounced",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "soft_bounce",
+    "raw": {
+      "code": "soft_bounce",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "unregistered",
+    "raw": {
+      "code": "unregistered",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": "unregistered",
+      "event_code": "unregistered",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "rate_limited",
+    "raw": {
+      "code": "rate_limited",
+      "status": null,
+      "retry_after_ms": 30000
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "transient_error",
+    "raw": {
+      "code": "transient_error",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "auth_error",
+    "raw": {
+      "code": "auth_error",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "sender_config_error",
+    "raw": {
+      "code": "sender_config_error",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "content_rejected",
+    "raw": {
+      "code": "content_rejected",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "unknown_code",
+    "raw": {
+      "code": "sim_unknown_code",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  }
+]

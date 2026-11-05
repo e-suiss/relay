@@ -182,14 +182,18 @@ defmodule Relay.Datasets do
   end
 
   # CH-69
+  # CH-71
   # DS-47 (2)
-  @doc "Checks the rules of a data set's content that its JSON Schema cannot express; `channel_parameters` and `rule_dictionary` have such rules."
+  @doc "Checks the rules of a data set's content that its JSON Schema cannot express; `channel_parameters`, `rule_dictionary` and `channel_event_evidence` have such rules."
   @spec consistent(String.t(), Schema.json()) :: :ok | {:error, Relay.Error.t()}
   def consistent("channel_parameters", content) when is_map(content),
     do: Relay.ChannelParameters.validate(content)
 
   def consistent("rule_dictionary", content) when is_map(content),
     do: Relay.RuleDictionary.validate(content)
+
+  def consistent("channel_event_evidence", content) when is_map(content),
+    do: Relay.ChannelDeclarations.validate(content)
 
   def consistent(_name, _content), do: :ok
 
@@ -204,6 +208,24 @@ defmodule Relay.Datasets do
 
       {:ok, nil} ->
         {:error, no_active("channel_parameters")}
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
+  # CH-2
+  # CH-71
+  # OP-65 (4)
+  @doc "Returns the active `channel_event_evidence` version as a `Relay.ChannelDeclarations` snapshot; an installation without an active version is an error."
+  @spec channel_declarations() :: {:ok, Relay.ChannelDeclarations.t()} | {:error, Relay.Error.t()}
+  def channel_declarations do
+    case active(installation_scope(), "channel_event_evidence") do
+      {:ok, %Version{} = version} ->
+        {:ok, Relay.ChannelDeclarations.new(version.content, version.id)}
+
+      {:ok, nil} ->
+        {:error, no_active("channel_event_evidence")}
 
       {:error, error} ->
         {:error, error}
@@ -296,7 +318,7 @@ defmodule Relay.Datasets do
 
   defp publish_versions(scope, dataset, actor) do
     Enum.reduce_while(dataset.versions, {:ok, [], nil}, fn v, {:ok, published, _last} ->
-      opts = [source: :package, source_ref: source_ref(dataset.name, v.no)]
+      opts = [source: :package, source_ref: source_ref(dataset.name, v.ref)]
 
       case publish(scope, dataset.name, v.content, actor, opts) do
         {:ok, {:published, id, _no}} -> {:cont, {:ok, published ++ [v.no], id}}
@@ -315,9 +337,9 @@ defmodule Relay.Datasets do
     end
   end
 
-  defp source_ref(name, no) do
+  defp source_ref(name, ref) do
     vsn = :relay |> Application.spec(:vsn) |> to_string()
-    "relay@#{vsn}:#{name}/v#{no}"
+    "relay@#{vsn}:#{name}/#{ref}"
   end
 
   defp package_error(name, message),

@@ -1,0 +1,110 @@
+[
+  {
+    "channel": "push",
+    "sent": "The provider (APNs, FCM, HMS, UnifiedPush) accepted the message.",
+    "delivered": "Only the displayed receipt of the mobile SDK (client_sdk); provider acceptance is never delivery.",
+    "engagement": "The displayed and clicked receipts of the SDK.",
+    "decision_signals": ["sdk_displayed", "sdk_clicked"],
+    "note": "Without an SDK receipt the delivery stays sent and is reported as accepted by the provider; push has no DLR window and never becomes unknown.",
+    "source": "§14.2.3 DS-12; §14.2.4 DS-13"
+  },
+  {
+    "channel": "web_push",
+    "sent": "The push service accepted the message (201).",
+    "delivered": "Only the displayed receipt of the web SDK (client_sdk); provider acceptance is never delivery.",
+    "engagement": "The displayed and clicked receipts of the SDK.",
+    "decision_signals": ["sdk_displayed", "sdk_clicked"],
+    "note": "Without an SDK receipt the delivery stays sent; there is no DLR window.",
+    "source": "§14.2.3 DS-12; §14.2.4 DS-13"
+  },
+  {
+    "channel": "email",
+    "sent": "The ESP or the connected MTA accepted the message.",
+    "delivered": "The provider's delivery event or a success DSN; a human click.",
+    "engagement": "Open (unreliable) and click, human and bot told apart.",
+    "decision_signals": ["clicked_human"],
+    "note": "An asynchronous bounce after delivery is valid.",
+    "source": "§14.2.3 DS-12"
+  },
+  {
+    "channel": "sms",
+    "sent": "The provider accepted the message.",
+    "delivered": "A DLR with the delivered state.",
+    "engagement": null,
+    "decision_signals": [],
+    "note": "A DLR can be hours late or never come (DS-18).",
+    "source": "§14.2.3 DS-12"
+  },
+  {
+    "channel": "voice",
+    "sent": "The provider started the call.",
+    "delivered": "The provider's answered or completed event.",
+    "engagement": "The keypad answer, where there is one.",
+    "decision_signals": [],
+    "note": "The details are in the provider rows.",
+    "source": "§14.2.3 DS-12"
+  },
+  {
+    "channel": "whatsapp",
+    "sent": "The provider accepted the message.",
+    "delivered": "The delivered event.",
+    "engagement": "Read (the recipient can turn it off; its absence is no information) and an interactive reply.",
+    "decision_signals": ["read"],
+    "note": "Read can arrive before delivered.",
+    "source": "§14.2.3 DS-12"
+  },
+  {
+    "channel": "slack",
+    "sent": "The platform accepted the message.",
+    "delivered": "None: the platform gives no delivery information.",
+    "engagement": "An interactive reply; a card button is never an approval.",
+    "decision_signals": [],
+    "note": "Delivery and read information are capability flags that are off.",
+    "source": "§12.10 CH-62"
+  },
+  {
+    "channel": "teams",
+    "sent": "The platform accepted the message.",
+    "delivered": "None: the platform gives no delivery information.",
+    "engagement": "An interactive reply; a card button is never an approval.",
+    "decision_signals": [],
+    "note": "Delivery and read information are capability flags that are off.",
+    "source": "§12.10 CH-62"
+  },
+  {
+    "channel": "telegram",
+    "sent": "The platform accepted the message.",
+    "delivered": "None: the platform gives no delivery information.",
+    "engagement": "An interactive reply; a card button is never an approval.",
+    "decision_signals": [],
+    "note": "Delivery and read information are capability flags that are off.",
+    "source": "§12.10 CH-62"
+  },
+  {
+    "channel": "discord",
+    "sent": "The platform accepted the message.",
+    "delivered": "None: the platform gives no delivery information.",
+    "engagement": "An interactive reply; a card button is never an approval.",
+    "decision_signals": [],
+    "note": "Delivery and read information are capability flags that are off.",
+    "source": "§12.10 CH-62"
+  },
+  {
+    "channel": "in_app",
+    "sent": null,
+    "delivered": "The commit of the inbox item's durable record.",
+    "engagement": "Seen, read, clicked and archived.",
+    "decision_signals": ["seen", "read", "clicked"],
+    "note": "Delivered means written to the durable inbox; seen is a separate axis.",
+    "source": "§14.2.3 DS-12"
+  },
+  {
+    "channel": "webhook",
+    "sent": null,
+    "delivered": "The target's success response.",
+    "engagement": null,
+    "decision_signals": [],
+    "note": "Delivery rules are in §16.",
+    "source": "§14.2.3 DS-12"
+  }
+]

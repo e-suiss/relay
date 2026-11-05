@@ -41,6 +41,7 @@ defmodule Relay do
       Jitter,
       Limits,
       ChannelParameters,
+      ChannelDeclarations,
       RuleDictionary,
       Release,
       Worker,

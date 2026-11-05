@@ -24,6 +24,8 @@ defmodule Relay.Channels.Live do
     exports: []
 
   alias Relay.ChannelDeclarations
+  alias Relay.Channels.Live.Events
+  alias Relay.Channels.Live.Followup
   alias Relay.Channels.Live.Store
   alias Relay.Scope
 
@@ -385,15 +387,58 @@ defmodule Relay.Channels.Live do
       provider_message_id: outcome.provider_message_id,
       event_id: Relay.Id.generate(),
       occurred_at: Relay.Clock.utc_now(),
-      delivery_rank: Map.fetch!(@ranks, rank(outcome)),
+      delivery_rank: Map.fetch!(@ranks, outcome.delivery_rank),
       traceparent: ctx.delivery["traceparent"]
     }
 
     case Relay.Delivery.finish_attempt(ctx.scope, attrs) do
-      {:ok, _result} -> :ok
+      {:ok, _result} -> followups(ctx, request, outcome.followups)
       {:error, reason} -> {:error, reason}
     end
   end
+
+  # CH-72
+  # DS-23
+  defp followups(ctx, request, followups) do
+    for %{event_code: code, after_ms: ms} <- followups do
+      event = %{
+        delivery_id: request.delivery_id,
+        provider: request.provider,
+        channel: request.channel,
+        event_code: code
+      }
+
+      followup(ctx.scope, event, ms)
+    end
+
+    :ok
+  end
+
+  defp followup(scope, event, 0), do: Events.record(scope, event)
+
+  defp followup(scope, event, ms) do
+    later = DateTime.add(Relay.Clock.business_now(scope), ms, :millisecond)
+    Oban.insert(Followup.job(scope, event, Relay.Clock.wall_time(scope, later)))
+  end
+
+  # DS-10
+  # CH-8
+  @doc "Records an event a provider reports after the call; see `Relay.Channels.Live.Events.record/2`. Webhook and receipt handlers call it after verifying the request."
+  @spec record_event(Scope.t(), Events.event()) ::
+          {:ok, Events.recorded()} | {:error, :unknown_event | :delivery_not_found | term()}
+  def record_event(%Scope{} = scope, event), do: Events.record(scope, event)
+
+  # INV-13
+  @doc "The delivery of a provider idempotency key that the channel step sent; an adapter correlates the provider's later events with it."
+  @spec delivery_of_key(String.t()) :: {:ok, Relay.Id.t()} | :error
+  def delivery_of_key("dlv-" <> id) do
+    case Relay.Id.parse(id) do
+      {:ok, delivery_id} -> {:ok, delivery_id}
+      {:error, _reason} -> :error
+    end
+  end
+
+  def delivery_of_key(_key), do: :error
 
   defp finish(ctx, request, outcome, retry) do
     if outcome.unknown_code? do
@@ -415,13 +460,6 @@ defmodule Relay.Channels.Live do
     end
   end
 
-  defp rank(%{delivery_rank: :delivered}), do: :delivered
-
-  defp rank(%{followups: followups}) do
-    if Enum.any?(followups, &(&1.event_code == "delivered" and &1.after_ms == 0)),
-      do: :delivered,
-      else: :accepted
-  end
 
   defp failure(ctx, request, outcome, retry) do
     account_id = request.account["id"]

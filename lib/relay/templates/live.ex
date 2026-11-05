@@ -166,9 +166,9 @@ defmodule Relay.Templates.Live do
   # TP-50
   # TP-60
   # CH-2
-  @doc "Renders the pinned plan of a rendered delivery again for its channel attempt, compares the digest as `verify/2` does and returns the rendered content as `{:rendered, content}`; otherwise returns as `render/2`."
+  @doc "Renders the pinned plan of a rendered delivery again for its channel attempt, compares the digest as `verify/2` does and returns the encoded rendered content as `{:rendered, content}`; otherwise returns as `render/2`."
   @spec prepare(Scope.t(), Relay.Id.t()) ::
-          {:rendered, map() | nil}
+          {:rendered, binary()}
           | :rendered
           | :failed
           | :done

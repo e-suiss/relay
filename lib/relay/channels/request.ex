@@ -5,7 +5,7 @@ defmodule Relay.Channels.Request do
     * `scope`, `delivery_id`, `attempt_no`: the attempt; `channel` and `provider` the route.
     * `idempotency_key`: the provider idempotency key, stable across the attempts of the logical send (INV-13, OP-6 (4)); an adapter sends it in the provider's key or correlation field.
     * `target`: `%{kind: :address | :device | :endpoint, id: id | nil, value: Relay.Redacted.t()}`, the address, token or endpoint the provider sends to.
-    * `content`: the rendered content of the delivery's channel cell.
+    * `content`: the rendered content of the delivery's channel cell, as the renderer encodes it.
     * `credentials`: the provider credential resolved from the secret backend for this call only, or `nil`; never cached by the adapter (TN-26).
     * `account`: the provider connection the route chose (`id`, `ownership`, `settings`), or `nil`.
     * `sender`: the verified sender identity of the route, or `nil`.
@@ -58,7 +58,7 @@ defmodule Relay.Channels.Request do
           idempotency_key: String.t(),
           target: target(),
           timeout_ms: pos_integer(),
-          content: map(),
+          content: map() | binary(),
           credentials: Relay.Redacted.t() | nil,
           account: map() | nil,
           sender: map() | nil,

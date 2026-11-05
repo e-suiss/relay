@@ -208,7 +208,7 @@ defmodule Relay.Channels.Live do
   # TP-50
   defp content(ctx, account, ticket, target) do
     case renderer().prepare(ctx.scope, ctx.delivery["id"]) do
-      {:rendered, content} -> attempt(ctx, account, ticket, target, content || %{})
+      {:rendered, content} -> attempt(ctx, account, ticket, target, content)
       :rendered -> attempt(ctx, account, ticket, target, %{})
       {:error, reason} -> {:error, reason}
       _failed_or_done -> :ok

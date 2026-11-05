@@ -74,17 +74,26 @@ defmodule Relay.Channels.Email.Spf do
   defp term(term, domain, resolver, state) do
     term = term |> String.replace(~r/\A[+\-~?]/, "") |> String.downcase(:ascii)
 
-    case mechanism(term) do
-      {:include, target} -> follow(target, resolver, state)
-      {:redirect, target} -> follow(target, resolver, state)
-      {:a, target} -> address(target || domain, resolver, counted(state))
-      {:mx, target} -> mx(target || domain, resolver, counted(state))
-      {:exists, target} -> address(target, resolver, counted(state))
-      :ptr -> state |> counted() |> add(:warnings, :spf_ptr)
-      :none -> state
-      :syntax -> add(state, :errors, :spf_syntax)
-    end
+    term |> mechanism() |> evaluate(domain, resolver, state)
   end
+
+  defp evaluate({kind, target}, _domain, resolver, state) when kind in [:include, :redirect],
+    do: follow(target, resolver, state)
+
+  defp evaluate({:a, target}, domain, resolver, state),
+    do: address(target || domain, resolver, counted(state))
+
+  defp evaluate({:mx, target}, domain, resolver, state),
+    do: mx(target || domain, resolver, counted(state))
+
+  defp evaluate({:exists, target}, _domain, resolver, state),
+    do: address(target, resolver, counted(state))
+
+  defp evaluate(:ptr, _domain, _resolver, state),
+    do: state |> counted() |> add(:warnings, :spf_ptr)
+
+  defp evaluate(:none, _domain, _resolver, state), do: state
+  defp evaluate(:syntax, _domain, _resolver, state), do: add(state, :errors, :spf_syntax)
 
   defp mechanism("include:" <> target), do: {:include, target}
   defp mechanism("redirect=" <> target), do: {:redirect, target}

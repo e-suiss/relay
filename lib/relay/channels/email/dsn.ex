@@ -145,10 +145,14 @@ defmodule Relay.Channels.Email.Dsn do
         part |> Mime.decoded() |> Mime.parse() |> Map.fetch!(:headers)
 
       nil ->
-        case Enum.find(leaves, fn {type, _part} -> type in @original_header_types end) do
-          {_type, part} -> part |> Mime.decoded() |> Mime.crlf() |> Mime.fields()
-          nil -> []
-        end
+        header_part(leaves)
+    end
+  end
+
+  defp header_part(leaves) do
+    case Enum.find(leaves, fn {type, _part} -> type in @original_header_types end) do
+      {_type, part} -> part |> Mime.decoded() |> Mime.crlf() |> Mime.fields()
+      nil -> []
     end
   end
 

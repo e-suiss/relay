@@ -373,21 +373,8 @@ defmodule Relay.Channels.Live.Whatsapp do
     end
   end
 
-  defp recipients(scope, digests) do
-    Store.in_scope(scope, fn _status ->
-      %Postgrex.Result{rows: rows} =
-        Relay.Repo.scoped_query!(
-          """
-          SELECT DISTINCT a.recipient_id FROM relay.recipient_addresses a
-          WHERE a.kind = 'phone' AND a.state = 'active'
-            AND (a.address_bidx = ANY ($1) OR a.address_bidx_next = ANY ($1))
-          """,
-          [digests]
-        )
-
-      Enum.map(rows, &hd/1)
-    end)
-  end
+  defp recipients(scope, digests),
+    do: Store.in_scope(scope, fn _status -> Store.phone_recipients(digests) end)
 
   # PC-43
   # CH-59
@@ -409,19 +396,7 @@ defmodule Relay.Channels.Live.Whatsapp do
     end
   end
 
-  defp marketing_categories do
-    %Postgrex.Result{rows: rows} =
-      Relay.Repo.scoped_query!(
-        """
-        SELECT c.key FROM relay.categories c
-        WHERE c.message_class = 'marketing' AND c.state = 'active'
-        ORDER BY c.key
-        """,
-        []
-      )
-
-    Enum.map(rows, &hd/1)
-  end
+  defp marketing_categories, do: Store.marketing_categories()
 
   defp member(scope, phone) when is_binary(phone) do
     case Relay.Subscribers.address_digests(scope, @channel, phone) do

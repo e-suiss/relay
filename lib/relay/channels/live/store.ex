@@ -54,6 +54,32 @@ defmodule Relay.Channels.Live.Store do
     )
   end
 
+  # PC-43
+  @doc "The recipients with an active phone address among the address blind indexes `digests`."
+  @spec phone_recipients([binary()]) :: [Relay.Id.t()]
+  def phone_recipients(digests) do
+    sql = """
+    SELECT DISTINCT a.recipient_id FROM relay.recipient_addresses a
+    WHERE a.kind = 'phone' AND a.state = 'active'
+      AND (a.address_bidx = ANY ($1) OR a.address_bidx_next = ANY ($1))
+    """
+
+    for row <- all(sql, [digests]), do: row["recipient_id"]
+  end
+
+  # PC-43
+  @doc "The keys of the active categories of the `marketing` class, in key order."
+  @spec marketing_categories() :: [String.t()]
+  def marketing_categories do
+    sql = """
+    SELECT c.key FROM relay.categories c
+    WHERE c.message_class = 'marketing' AND c.state = 'active'
+    ORDER BY c.key
+    """
+
+    for row <- all(sql, []), do: row["key"]
+  end
+
   defp one(sql, params), do: sql |> all(params) |> List.first()
 
   defp all(sql, params) do

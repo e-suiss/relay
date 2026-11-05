@@ -1,6 +1,8 @@
 defmodule Relay.Channels.WhatsappTemplatesTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Api.WhatsappTemplates
+  alias Relay.Channels.Live
   alias Relay.Datasets
   alias RelayTest.TenantFixture
 
@@ -72,7 +74,7 @@ defmodule Relay.Channels.WhatsappTemplatesTest do
     mac = Base.encode16(:crypto.mac(:hmac, :sha256, "app-secret", body), case: :lower)
     headers = [{"x-hub-signature-256", "sha256=" <> mac}]
     secret = Relay.Redacted.wrap("app-secret")
-    Relay.Channels.Live.whatsapp_inbound(scope, account, secret, body, headers)
+    Live.whatsapp_inbound(scope, account, secret, body, headers)
   end
 
   defp status(name, event, reason \\ nil) do
@@ -170,7 +172,7 @@ defmodule Relay.Channels.WhatsappTemplatesTest do
       assert [%{"new_category" => "marketing", "category" => "utility"}] =
                events(scope, "whatsapp_template.category_changed")
 
-      drift = Relay.Api.WhatsappTemplates.view(row)["category_drift"]
+      drift = WhatsappTemplates.view(row)["category_drift"]
       assert drift == %{"expected" => "utility", "actual" => "marketing", "cost_increase" => true}
     end
 
@@ -182,7 +184,7 @@ defmodule Relay.Channels.WhatsappTemplatesTest do
       headers = [{"x-hub-signature-256", "sha256=00"}]
 
       assert {:error, :bad_signature} =
-               Relay.Channels.Live.whatsapp_inbound(scope, account, secret, body, headers)
+               Live.whatsapp_inbound(scope, account, secret, body, headers)
     end
   end
 end

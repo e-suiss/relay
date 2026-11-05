@@ -77,18 +77,21 @@ defmodule Relay.Datasets.Package do
     do: error(name, "unexpected file #{hd(files)}")
 
   defp sources(root, name, files) do
-    with {:ok, numbers} <- version_numbers(name, files) do
-      Enum.reduce_while(numbers, {:ok, []}, fn no, {:ok, acc} ->
-        case json(Path.join(root, name), name, "v#{no}.json") do
-          {:ok, content} -> {:cont, {:ok, [{no, "v#{no}", content} | acc]}}
-          {:error, error} -> {:halt, {:error, error}}
-        end
-      end)
-      |> then(fn
-        {:ok, sources} -> {:ok, Enum.reverse(sources)}
-        error -> error
-      end)
-    end
+    with {:ok, numbers} <- version_numbers(name, files),
+         do: read_versions(Path.join(root, name), name, numbers)
+  end
+
+  defp read_versions(dir, name, numbers) do
+    Enum.reduce_while(numbers, {:ok, []}, fn no, {:ok, acc} ->
+      case json(dir, name, "v#{no}.json") do
+        {:ok, content} -> {:cont, {:ok, [{no, "v#{no}", content} | acc]}}
+        {:error, error} -> {:halt, {:error, error}}
+      end
+    end)
+    |> then(fn
+      {:ok, sources} -> {:ok, Enum.reverse(sources)}
+      error -> error
+    end)
   end
 
   defp version_numbers(name, files) do

@@ -116,14 +116,19 @@ defmodule Relay.ChannelDeclarations do
 
   defp lists(path, files) do
     Enum.reduce_while(@lists, {:ok, %{}}, fn list, {:ok, acc} ->
-      file = list <> ".json"
-
-      case if(file in files, do: json(path, file), else: {:ok, []}) do
-        {:ok, rows} when is_list(rows) -> {:cont, {:ok, Map.put(acc, list, rows)}}
-        {:ok, _other} -> {:halt, error("#{file} is not a list")}
+      case rows(path, files, list <> ".json") do
+        {:ok, rows} -> {:cont, {:ok, Map.put(acc, list, rows)}}
         {:error, error} -> {:halt, {:error, error}}
       end
     end)
+  end
+
+  defp rows(path, files, file) do
+    case if(file in files, do: json(path, file), else: {:ok, []}) do
+      {:ok, rows} when is_list(rows) -> {:ok, rows}
+      {:ok, _other} -> error("#{file} is not a list")
+      {:error, error} -> {:error, error}
+    end
   end
 
   # sobelow_skip ["Traversal.FileModule"]
@@ -226,28 +231,29 @@ defmodule Relay.ChannelDeclarations do
   @spec gate(t(), String.t()) :: :ok | {:error, [missing(), ...]}
   def gate(%__MODULE__{} = s, provider) do
     case declaration(s, provider) do
-      {:ok, declaration} ->
-        checks = [
-          capabilities: capabilities?(declaration),
-          provider_idempotency_policy: idempotency?(declaration),
-          error_map: list(declaration, "errors") != [],
-          test_vectors: vectors?(s, declaration),
-          evidence: evidence?(s, declaration),
-          pricing: pricing?(declaration),
-          limits: limits?(declaration),
-          data_residency: residency?(declaration),
-          inbound_verification: inbound?(declaration),
-          semantics: Enum.all?(channels(declaration), &Map.has_key?(s.semantics, &1))
-        ]
-
-        case for({check, false} <- checks, do: check) do
-          [] -> :ok
-          missing -> {:error, missing}
-        end
-
-      {:error, :unknown_provider} ->
-        {:error, [:declaration]}
+      {:ok, declaration} -> verdict(missing(s, declaration))
+      {:error, :unknown_provider} -> {:error, [:declaration]}
     end
+  end
+
+  defp verdict([]), do: :ok
+  defp verdict(missing), do: {:error, missing}
+
+  defp missing(s, declaration) do
+    checks = [
+      capabilities: capabilities?(declaration),
+      provider_idempotency_policy: idempotency?(declaration),
+      error_map: list(declaration, "errors") != [],
+      test_vectors: vectors?(s, declaration),
+      evidence: evidence?(s, declaration),
+      pricing: pricing?(declaration),
+      limits: limits?(declaration),
+      data_residency: residency?(declaration),
+      inbound_verification: inbound?(declaration),
+      semantics: Enum.all?(channels(declaration), &Map.has_key?(s.semantics, &1))
+    ]
+
+    for {check, false} <- checks, do: check
   end
 
   defp capabilities?(declaration) do

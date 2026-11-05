@@ -1,6 +1,6 @@
 defmodule Relay.Channels.Inbound do
   @moduledoc """
-  The common verifier of inbound provider webhooks (T-40, TN-35, CH-3), reused by every adapter. Verification runs on the raw request body, before it is parsed, with constant-time comparison; a signed timestamp must lie within the tolerance of `now` (300 seconds unless `:tolerance_s` says otherwise). Headers are the request's `{name, value}` pairs with lower-case names, as Plug gives them. Nothing here reads a clock: the caller passes `now`.
+  The common verifier of inbound provider webhooks (T-40, TN-35, CH-3), reused by every adapter. Verification runs on the raw request body, before it is parsed, with constant-time comparison; a signed timestamp must lie within 300 seconds of `now`. Headers are the request's `{name, value}` pairs with lower-case names, as Plug gives them. Nothing here reads a clock: the caller passes `now`.
 
     * `standard_webhooks/4`: Standard Webhooks, `webhook-id`, `webhook-timestamp` and `webhook-signature` over `id.timestamp.body`, `v1` HMAC-SHA256 with a `whsec_` secret or `v1a` Ed25519 with a `whpk_` public key.
     * `hmac/4`: an HMAC-SHA256 signature of the body in one header, hex or Base64, with an optional prefix, such as Meta's `X-Hub-Signature-256: sha256=<hex>` (CH-60).

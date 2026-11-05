@@ -1,5 +1,5 @@
 defmodule RelayTest.Keys do
-  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per label; there are no other signing keys and no secret data objects; key generation succeeds for any label."
+  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per `relay-dkim/` label (DKIM keys); there are no other signing keys and no secret data objects; key generation succeeds for any label."
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
@@ -21,7 +21,7 @@ defmodule RelayTest.Keys do
     {:ok, <<r::256, s::256>>}
   end
 
-  def sign(:rs256, label, message),
+  def sign(:rs256, "relay-dkim/" <> _rest = label, message),
     do: {:ok, :public_key.sign(message, :sha256, rs256(label))}
 
   def sign(_alg, _label, _message), do: not_found()
@@ -32,7 +32,7 @@ defmodule RelayTest.Keys do
     {:ok, public}
   end
 
-  def public_key(:rs256, label) do
+  def public_key(:rs256, "relay-dkim/" <> _rest = label) do
     key = rs256(label)
     {:ok, {:binary.encode_unsigned(elem(key, 2)), :binary.encode_unsigned(elem(key, 3))}}
   end

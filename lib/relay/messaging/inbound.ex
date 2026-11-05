@@ -10,6 +10,7 @@ defmodule Relay.Messaging.Inbound do
   A parsed event names what happened (`message`, `action`, `command`, `conversation` or `membership`), the workspace, the provider user, the conversation and, when the event refers to a message Relay sent, that message's provider reference. A card button and an inline reply are never an approval: an interaction is recorded as an event only, and an approval is given only on the Access approval surface (CH-62, INV-29, AG-32).
   """
 
+  alias Relay.Messaging.Install
   alias Relay.Redacted
 
   @type headers :: [{String.t(), String.t()}]
@@ -39,7 +40,7 @@ defmodule Relay.Messaging.Inbound do
   end
 
   def verify("telegram", secret, _raw, headers, _now) do
-    token = Relay.Messaging.Install.telegram_secret(%{secret: secret})
+    token = Install.telegram_secret(%{secret: secret})
     Relay.Channels.verify_secret_token(token, headers, "x-telegram-bot-api-secret-token")
   end
 
@@ -56,7 +57,7 @@ defmodule Relay.Messaging.Inbound do
 
   def verify(_channel, _secret, _raw, _headers, _now), do: {:error, :bad_signature}
 
-  defp field(secret, name), do: Relay.Messaging.Install.field(secret, name)
+  defp field(secret, name), do: Install.field(secret, name)
 
   # CH-62
   # WH-49

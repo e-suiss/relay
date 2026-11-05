@@ -95,19 +95,23 @@ defmodule Relay.Channels.Email.Event do
   @spec classify(t(), ChannelDeclarations.t(), map()) :: Bounce.t() | nil
   def classify(%__MODULE__{type: :delivered}, _declarations, _table), do: outcome(:delivered)
 
-  def classify(%__MODULE__{type: :complained} = event, _declarations, _table) do
-    result = Bounce.classify_feedback(%{feedback_type: "abuse"})
-    %{result | rule: "event:" <> event.code}
-  end
+  def classify(%__MODULE__{type: :complained} = event, _declarations, _table),
+    do: %{outcome(:complaint) | rule: "event:" <> event.code}
 
   def classify(%__MODULE__{type: type} = event, declarations, table)
       when type in [:bounced, :deferred, :rejected] do
     action = if type == :deferred, do: "delayed", else: "failed"
 
     recipient = %{
+      final_recipient: event.recipient,
+      original_recipient: nil,
       action: action,
       status: status(event.status),
-      diagnostic: event.diagnostic
+      status_text: event.status,
+      diagnostic_type: nil,
+      diagnostic: event.diagnostic,
+      remote_mta: nil,
+      will_retry_until: nil
     }
 
     case Bounce.classify(recipient, table) do
@@ -147,6 +151,7 @@ defmodule Relay.Channels.Email.Event do
 
   defp effects(:hard), do: {"permanent_target", "hard_bounce", :bounce}
   defp effects(:soft), do: {"transient", "soft_bounce", nil}
+  defp effects(:complaint), do: {"policy", "complaint", :complaint}
   defp effects(:sender_config), do: {"sender_config", nil, nil}
   defp effects(:policy), do: {"permanent_content", nil, :bounce}
   defp effects(:unknown), do: {"unknown", nil, nil}

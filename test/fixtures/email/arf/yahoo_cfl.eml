@@ -1,0 +1,41 @@
+From: feedbackloop@yahoo-inc.com
+To: fbl@sender.example
+Subject: Yahoo! - Abuse Message Report
+Date: Tue, 3 Nov 2026 08:14:55 +0000
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=feedback-report; boundary="----=_Part_CFL_0001"
+
+------=_Part_CFL_0001
+Content-Type: text/plain; charset=us-ascii
+
+This is an email abuse report for an email message received from IP 192.0.2.10.
+
+------=_Part_CFL_0001
+Content-Type: message/feedback-report
+
+Feedback-Type: abuse
+User-Agent: Yahoo!-Mail-Feedback/2.0
+Version: 0.1
+Original-Mail-From: <b-example@bounce.sender.example>
+Original-Rcpt-To: redacted@yahoo.com
+Received-Date: Tue, 3 Nov 2026 07:02:10 +0000
+Reported-Domain: sender.example
+Authentication-Results: mta1002.mail.bf1.yahoo.com  from=sender.example; domainkeys=neutral (no sig);  from=sender.example; dkim=pass (ok)
+
+------=_Part_CFL_0001
+Content-Type: message/rfc822
+
+Return-Path: <b-example@bounce.sender.example>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=sender.example; s=mkt2026a;
+ h=from:subject:list-unsubscribe:list-unsubscribe-post:feedback-id; bh=AAAA; b=AAAA
+From: Spring Offers <offers@sender.example>
+To: redacted@yahoo.com
+Subject: Spring offers
+Message-ID: <msg-1001@sender.example>
+Feedback-ID: spring2026:offers:tenant1:offers
+List-Unsubscribe: <https://relay.sender.example/u/opaque>, <mailto:u-opaque@sender.example>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+
+Spring offers inside.
+
+------=_Part_CFL_0001--

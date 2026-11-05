@@ -1,0 +1,44 @@
+From: dmarc-reports@receiver.example
+To: ruf@sender.example
+Subject: FW: DMARC failure report
+Date: Tue, 3 Nov 2026 10:00:00 +0000
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=feedback-report;
+     boundary="part1_13d.2e68ed54_boundary"
+
+--part1_13d.2e68ed54_boundary
+Content-Type: text/plain; charset="US-ASCII"
+Content-Transfer-Encoding: 7bit
+
+This is an authentication failure report for an email message received
+from IP 192.0.2.1 on Tue, 3 Nov 2026 09:58:00 +0000.
+
+--part1_13d.2e68ed54_boundary
+Content-Type: message/feedback-report
+
+Feedback-Type: auth-failure
+User-Agent: SomeGenerator/1.0
+Version: 1
+Original-Mail-From: <b-example@bounce.sender.example>
+Original-Rcpt-To: <user@receiver.example>
+Arrival-Date: Tue, 3 Nov 2026 09:58:00 +0000
+Source-IP: 192.0.2.1
+Authentication-Results: mail.receiver.example; dkim=fail
+     reason="signature mismatch" header.d=sender.example
+Auth-Failure: signature
+DKIM-Domain: sender.example
+DKIM-Identity: @sender.example
+DKIM-Selector: tx2026a
+Reported-Domain: sender.example
+
+--part1_13d.2e68ed54_boundary
+Content-Type: text/rfc822-headers
+
+Return-Path: <b-example@bounce.sender.example>
+From: Sender <security@sender.example>
+To: <user@receiver.example>
+Subject: Your sign-in code
+Message-ID: <msg-1003@sender.example>
+Feedback-ID: signin:security:tenant1:security
+
+--part1_13d.2e68ed54_boundary--

@@ -1,0 +1,26 @@
+From: Microsoft Outlook <MicrosoftExchange329e71ec88ae4615bbc36ab6ce41109e@tenant.example>
+To: b-example@bounce.sender.example
+Date: Mon, 2 Nov 2026 12:30:41 +0000
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status;
+	boundary="b9c8d7e6-5f4a-3b2c-1d0e-9f8a7b6c5d4e"
+Subject: Undeliverable: Account notice
+
+--b9c8d7e6-5f4a-3b2c-1d0e-9f8a7b6c5d4e
+Content-Type: text/plain; charset="us-ascii"
+
+Your message to nobody@tenant.example couldn't be delivered.
+The address wasn't found at the destination domain.
+
+--b9c8d7e6-5f4a-3b2c-1d0e-9f8a7b6c5d4e
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns;AM0PR01MB0001.eurprd01.prod.outlook.example
+Received-From-MTA: dns;smtp.sender.example
+
+Final-Recipient: rfc822;nobody@tenant.example
+Action: failed
+Status: 5.4.1
+Diagnostic-Code: smtp;550 5.4.1 Recipient address rejected: Access denied. AS(201806281) [AM0PEPF00000001.eurprd01.prod.outlook.example]
+
+--b9c8d7e6-5f4a-3b2c-1d0e-9f8a7b6c5d4e--

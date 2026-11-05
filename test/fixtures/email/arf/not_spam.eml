@@ -1,0 +1,28 @@
+From: fbl@receiver.example
+To: fbl@sender.example
+Subject: Feedback report
+Date: Tue, 3 Nov 2026 11:00:00 +0000
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=feedback-report; boundary="NOTSPAM"
+
+--NOTSPAM
+Content-Type: text/plain
+
+The recipient moved this message out of the spam folder.
+
+--NOTSPAM
+Content-Type: message/feedback-report
+
+Feedback-Type: not-spam
+User-Agent: ReceiverFBL/3.1
+Version: 1
+Original-Rcpt-To: <reader@receiver.example>
+
+--NOTSPAM
+Content-Type: text/rfc822-headers
+
+Return-Path: <b-example@bounce.sender.example>
+Message-ID: <msg-1004@sender.example>
+Feedback-ID: weekly:digest:tenant1:news
+
+--NOTSPAM--

@@ -1,0 +1,20 @@
+From: MAILER-DAEMON@mx.sender.example (Mail Delivery System)
+To: b-example@bounce.sender.example
+Subject: Undelivered Mail Returned to Sender
+Date: Mon,  2 Nov 2026 13:30:00 +0000 (UTC)
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status;
+	boundary="ODD.1730554200/mx.sender.example"
+
+--ODD.1730554200/mx.sender.example
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; mx.sender.example
+
+Final-Recipient: rfc822; reader@odd.example
+Action: failed
+Status: 5.9.42
+Remote-MTA: dns; mx.odd.example
+Diagnostic-Code: x-odd; 599 rejected for a reason this MTA does not explain
+
+--ODD.1730554200/mx.sender.example--

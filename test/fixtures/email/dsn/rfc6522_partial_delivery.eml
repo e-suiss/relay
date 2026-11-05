@@ -1,0 +1,35 @@
+From: MAILER-DAEMON@mx.sender.example (Mail Delivery System)
+To: b-example@bounce.sender.example
+Subject: Delivery report
+Date: Mon,  2 Nov 2026 15:00:00 +0000 (UTC)
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status;
+	boundary="PARTIAL.1730559600/mx.sender.example"
+
+This preamble is ignored by a reader of multipart/report (RFC 6522).
+
+--PARTIAL.1730559600/mx.sender.example
+Content-Type: text/plain; charset=us-ascii
+
+One recipient was delivered, one was not.
+
+--PARTIAL.1730559600/mx.sender.example
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; mx.sender.example
+Original-Envelope-Id: env-0042
+
+Final-Recipient: rfc822; first@team.example
+Action: delivered
+Status: 2.0.0
+Remote-MTA: dns; mx.team.example
+
+Final-Recipient: rfc822; second@team.example
+Action: failed
+Status: 5.2.1
+Remote-MTA: dns; mx.team.example
+Diagnostic-Code: smtp; 550 5.2.1 The email account that you tried to reach is disabled
+
+--PARTIAL.1730559600/mx.sender.example--
+
+This epilogue is ignored as well.

@@ -1,0 +1,19 @@
+From: postmaster@outlook.com
+To: b-example@bounce.sender.example
+Date: Mon, 2 Nov 2026 09:41:02 +0000
+Subject: Undeliverable: Spring offers
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status;
+	boundary="d1e2f3a4-0007-0008-0009-000a000b000c"
+
+--d1e2f3a4-0007-0008-0009-000a000b000c
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns;BN8NAM12FT002.mail.protection.outlook.example
+
+Final-Recipient: rfc822;reader@hotmail.com
+Action: failed
+Status: 5.7.515
+Diagnostic-Code: smtp;550 5.7.515 Access denied, sending domain sender.example does not meet the required authentication level. [BN8NAM12FT002.eop-nam12.prod.protection.outlook.example]
+
+--d1e2f3a4-0007-0008-0009-000a000b000c--

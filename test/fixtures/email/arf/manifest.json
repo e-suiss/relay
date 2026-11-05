@@ -1,0 +1,68 @@
+{
+  "note": "ARF vector corpus (CH-77). Each vector names its source; provider vectors follow the published feedback loop formats with personal data replaced by reserved example names (RFC 2606).",
+  "vectors": [
+    {
+      "file": "rfc5965_simple.eml",
+      "source": "RFC 5965 Appendix B.1, required fields only",
+      "feedback_type": "abuse",
+      "conformant": true,
+      "kind": "complaint",
+      "message_id": "8787KJKJ3K4J3K4J3K4J3.mail@example.net",
+      "feedback_id": null
+    },
+    {
+      "file": "rfc5965_full.eml",
+      "source": "RFC 5965 Appendix B.2, all fields",
+      "feedback_type": "abuse",
+      "conformant": true,
+      "kind": "complaint",
+      "message_id": "8787KJKJ3K4J3K4J3K4J3.mail@example.net",
+      "feedback_id": null
+    },
+    {
+      "file": "yahoo_cfl.eml",
+      "source": "Yahoo Complaint Feedback Loop report: ARF version 0.1, redacted recipient",
+      "feedback_type": "abuse",
+      "conformant": true,
+      "kind": "complaint",
+      "message_id": "<msg-1001@sender.example>",
+      "feedback_id": "spring2026:offers:tenant1:offers"
+    },
+    {
+      "file": "microsoft_jmrp.eml",
+      "source": "Microsoft Junk Mail Reporting Program report in ARF",
+      "feedback_type": "abuse",
+      "conformant": true,
+      "kind": "complaint",
+      "message_id": "<msg-1002@sender.example>",
+      "feedback_id": "weekly:digest:tenant1:news"
+    },
+    {
+      "file": "rfc6591_auth_failure.eml",
+      "source": "RFC 6591 authentication failure report, after its Appendix B example",
+      "feedback_type": "auth-failure",
+      "conformant": true,
+      "kind": "sender_config",
+      "message_id": "<msg-1003@sender.example>",
+      "feedback_id": "signin:security:tenant1:security"
+    },
+    {
+      "file": "not_spam.eml",
+      "source": "RFC 5965 not-spam feedback type",
+      "feedback_type": "not-spam",
+      "conformant": true,
+      "kind": "not_spam",
+      "message_id": "<msg-1004@sender.example>",
+      "feedback_id": "weekly:digest:tenant1:news"
+    },
+    {
+      "file": "missing_feedback_type.eml",
+      "source": "Synthetic: a feedback report part without Feedback-Type",
+      "feedback_type": null,
+      "conformant": false,
+      "kind": "unknown",
+      "message_id": null,
+      "feedback_id": null
+    }
+  ]
+}

@@ -102,59 +102,75 @@ defmodule RelayTest.SmtpServer do
   end
 
   defp command(socket, line, session, mode, opts, owner) do
-    case String.upcase(String.slice(line, 0, 4)) do
-      "EHLO" ->
-        ehlo(socket, session, mode, opts)
-        loop(socket, %{session | helo: String.slice(line, 5..-1//1)}, mode, opts, owner)
+    verb = String.upcase(String.slice(line, 0, 4))
 
-      "STAR" ->
-        reply(socket, "220 2.0.0 ready to start TLS")
-        {:tcp, tcp} = socket
-
-        case :ssl.handshake(tcp, Keyword.fetch!(opts, :tls), 10_000) do
-          {:ok, tls} -> loop({:ssl, tls}, %{session | tls: true}, mode, opts, owner)
-          {:error, _reason} -> send(owner, {:smtp_session, :handshake_failed})
-        end
-
-      "AUTH" ->
-        reply(socket, "235 2.7.0 authenticated")
-        loop(socket, %{session | auth: line}, mode, opts, owner)
-
-      "MAIL" ->
-        reply(socket, Keyword.get(opts, :mail, "250 2.1.0 ok"))
-        loop(socket, %{session | mail_from: String.slice(line, 10..-1//1)}, mode, opts, owner)
-
-      "RCPT" ->
-        reply(socket, Keyword.get(opts, :rcpt, "250 2.1.5 ok"))
-        to = String.slice(line, 8..-1//1)
-        loop(socket, %{session | rcpt_to: session.rcpt_to ++ [to]}, mode, opts, owner)
-
-      "DATA" ->
-        reply(socket, "354 go ahead")
-        data = data(socket, [])
-        session = %{session | data: data}
-
-        if Keyword.get(opts, :hang, false) do
-          send(owner, {:smtp_session, session})
-          Process.sleep(:infinity)
-        else
-          reply(socket, Keyword.get(opts, :data, "250 2.0.0 Ok: queued as Q1"))
-          loop(socket, session, mode, opts, owner)
-        end
-
-      "RSET" ->
-        reply(socket, "250 2.0.0 ok")
-        loop(socket, session, mode, opts, owner)
-
-      "QUIT" ->
-        reply(socket, "221 2.0.0 bye")
-        close(socket)
-        send(owner, {:smtp_session, session})
-
-      _other ->
-        reply(socket, "502 5.5.2 not implemented")
-        loop(socket, session, mode, opts, owner)
+    case handle(verb, line, socket, session, %{mode: mode, opts: opts, owner: owner}) do
+      {:loop, socket, session} -> loop(socket, session, mode, opts, owner)
+      :stop -> :ok
     end
+  end
+
+  defp handle("EHLO", line, socket, session, ctx) do
+    ehlo(socket, session, ctx.mode, ctx.opts)
+    {:loop, socket, %{session | helo: String.slice(line, 5..-1//1)}}
+  end
+
+  defp handle("STAR", _line, {:tcp, tcp} = socket, session, ctx) do
+    reply(socket, "220 2.0.0 ready to start TLS")
+
+    case :ssl.handshake(tcp, Keyword.fetch!(ctx.opts, :tls), 10_000) do
+      {:ok, tls} ->
+        {:loop, {:ssl, tls}, %{session | tls: true}}
+
+      {:error, _reason} ->
+        send(ctx.owner, {:smtp_session, :handshake_failed})
+        :stop
+    end
+  end
+
+  defp handle("AUTH", line, socket, session, _ctx) do
+    reply(socket, "235 2.7.0 authenticated")
+    {:loop, socket, %{session | auth: line}}
+  end
+
+  defp handle("MAIL", line, socket, session, ctx) do
+    reply(socket, Keyword.get(ctx.opts, :mail, "250 2.1.0 ok"))
+    {:loop, socket, %{session | mail_from: String.slice(line, 10..-1//1)}}
+  end
+
+  defp handle("RCPT", line, socket, session, ctx) do
+    reply(socket, Keyword.get(ctx.opts, :rcpt, "250 2.1.5 ok"))
+    {:loop, socket, %{session | rcpt_to: session.rcpt_to ++ [String.slice(line, 8..-1//1)]}}
+  end
+
+  defp handle("DATA", _line, socket, session, ctx) do
+    reply(socket, "354 go ahead")
+    session = %{session | data: data(socket, [])}
+
+    if Keyword.get(ctx.opts, :hang, false) do
+      send(ctx.owner, {:smtp_session, session})
+      Process.sleep(:infinity)
+    else
+      reply(socket, Keyword.get(ctx.opts, :data, "250 2.0.0 Ok: queued as Q1"))
+      {:loop, socket, session}
+    end
+  end
+
+  defp handle("RSET", _line, socket, session, _ctx) do
+    reply(socket, "250 2.0.0 ok")
+    {:loop, socket, session}
+  end
+
+  defp handle("QUIT", _line, socket, session, ctx) do
+    reply(socket, "221 2.0.0 bye")
+    close(socket)
+    send(ctx.owner, {:smtp_session, session})
+    :stop
+  end
+
+  defp handle(_verb, _line, socket, session, _ctx) do
+    reply(socket, "502 5.5.2 not implemented")
+    {:loop, socket, session}
   end
 
   defp ehlo(socket, session, mode, opts) do

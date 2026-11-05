@@ -94,7 +94,7 @@ defmodule Relay.Channels.Email do
          {:ok, parts} <- parts(content),
          {:ok, to} <- recipient(request),
          {:ok, return_path} <- Verp.encode(request.delivery_id, sender.return_path_domain, mac),
-         {:ok, headers} <- headers(request, class, content, sender, return_path),
+         {:ok, headers} <- headers(request, class, content, return_path),
          {:ok, smtputf8} <-
            Smtputf8.check([sender.from, to, return_path], Keyword.get(opts, :smtputf8, false)) do
       {:ok,
@@ -237,7 +237,7 @@ defmodule Relay.Channels.Email do
     end
   end
 
-  defp headers(request, class, content, sender, return_path) do
+  defp headers(request, class, content, return_path) do
     category = text(content, "category") || class
     campaign = text(content, "campaign") || category
 

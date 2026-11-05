@@ -5,10 +5,10 @@ defmodule Relay.Channels.Email.Dmarc do
   A valid record starts with `v=DMARC1`; a name with more than one valid record has none.
   """
 
-  @type record :: %{String.t() => String.t()}
+  @type tags :: %{String.t() => String.t()}
   @type policy :: %{
           name: String.t(),
-          record: record(),
+          record: tags(),
           policy: String.t() | nil,
           org_domain: String.t()
         }
@@ -123,7 +123,7 @@ defmodule Relay.Channels.Email.Dmarc do
   end
 
   @doc "The tags of a DMARC record, keys and the policy values lowercased."
-  @spec parse(String.t()) :: record()
+  @spec parse(String.t()) :: tags()
   def parse(record) do
     record
     |> String.split(";")

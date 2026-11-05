@@ -5476,7 +5476,7 @@
     "section": "§12",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": 6
+    "verify_stage": null
   },
   {
     "acceptance": "pending",
@@ -5484,7 +5484,7 @@
     "section": "§12",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": 6
+    "verify_stage": null
   },
   {
     "acceptance": "pending",
@@ -5492,7 +5492,7 @@
     "section": "§12",
     "status": "policy_default",
     "title": "",
-    "verify_stage": 6
+    "verify_stage": null
   },
   {
     "acceptance": "pending",
@@ -5500,7 +5500,7 @@
     "section": "§12",
     "status": "policy_default",
     "title": "",
-    "verify_stage": 6
+    "verify_stage": null
   },
   {
     "acceptance": "pending",
@@ -5508,7 +5508,7 @@
     "section": "§12",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": 6
+    "verify_stage": null
   },
   {
     "acceptance": "pending",
@@ -5516,7 +5516,7 @@
     "section": "§12",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": 6
+    "verify_stage": null
   },
   {
     "acceptance": "pending",
@@ -5524,7 +5524,7 @@
     "section": "§12",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": 6
+    "verify_stage": null
   },
   {
     "acceptance": "pending",
@@ -5532,7 +5532,7 @@
     "section": "§12",
     "status": "engineering_assumption",
     "title": "",
-    "verify_stage": 6
+    "verify_stage": null
   },
   {
     "acceptance": "pending",

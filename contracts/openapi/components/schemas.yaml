@@ -250,6 +250,12 @@ Id_sup:
   pattern: "^sup_[0-7][0-9a-hjkmnp-tv-z]{25}$"
   examples:
     - sup_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_dev:
+  type: string
+  description: "Device identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^dev_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - dev_01j9zq3k4m5n6p7q8r9s0t1v2w
 RecipientId:
   description: "Relay identifier of a recipient: sub_ for a subscriber, agt_ for an agent."
   oneOf:
@@ -6036,3 +6042,210 @@ WebhookEndpointSecret:
         - "$ref": "#/Timestamp"
         - type: "null"
   additionalProperties: false
+DevicePlatform:
+  type: string
+  description: "Push platform of a device: Apple Push Notification service, Firebase Cloud Messaging, Huawei Push Kit, a Web Push subscription or a UnifiedPush distributor."
+  enum:
+    - apns
+    - fcm
+    - hms
+    - web_push
+    - unified_push
+DevicePermission:
+  type: string
+  description: "The operating system's notification permission as the app reports it. Relay sends push only to granted devices, and to provisional ones for marketing and social messages; any other device is skipped with no_permission and the route moves on. The permission never changes a preference."
+  enum:
+    - granted
+    - denied
+    - provisional
+    - not_determined
+DeviceState:
+  type: string
+  description: "active: registered and seen recently. stale: not seen for the stale period, still a target. disabled: soft deleted, never a target again; a new registration of the same token creates a new device."
+  enum:
+    - active
+    - stale
+    - disabled
+DeviceDisabledReason:
+  type: string
+  description: "Why a device was disabled: unregistered (the push service reported the token invalid), logout (the app removed it), removed (the tenant removed it), replaced (the app registered a new token for it), inactive (not seen for the inactivity period), device_limit (the subscriber registered more than the active device limit), reassigned (another subscriber registered the token) or erased (the subscriber was erased)."
+  enum:
+    - unregistered
+    - logout
+    - removed
+    - replaced
+    - inactive
+    - device_limit
+    - reassigned
+    - erased
+ApnsEnvironment:
+  type: string
+  description: "The APNs environment the token was issued for. It is not the Relay environment (live or test)."
+  enum:
+    - production
+    - sandbox
+AndroidChannelImportance:
+  type: string
+  description: "Importance of an Android notification channel as the app reports it."
+  enum:
+    - none
+    - min
+    - low
+    - default
+    - high
+AndroidChannel:
+  type: object
+  description: "An Android notification channel the app created and its current importance."
+  required:
+    - id
+    - importance
+  properties:
+    id:
+      type: string
+      pattern: "^[A-Za-z0-9._-]{1,64}$"
+    importance:
+      "$ref": "#/AndroidChannelImportance"
+  additionalProperties: false
+DeviceAppId:
+  type: string
+  description: "The app the token belongs to: an iOS bundle id, an Android package name, a Firebase or HMS app id, or the tenant's name for a web app."
+  pattern: "^[A-Za-z0-9._:/-]{1,256}$"
+DeviceToken:
+  type: string
+  description: "The push token: an APNs device token, an FCM or HMS registration token, or the push service endpoint URL of a Web Push or UnifiedPush subscription. Relay stores it encrypted, finds it by a keyed digest and never returns it; logs and responses carry only its fingerprint."
+  minLength: 1
+  maxLength: 4096
+WebPushKeys:
+  type: object
+  description: "The keys of a Web Push or UnifiedPush subscription (RFC 8291), as the browser's PushSubscription returns them in base64url. Stored encrypted with the token and never returned."
+  required:
+    - p256dh
+    - auth
+  properties:
+    p256dh:
+      type: string
+      pattern: "^[A-Za-z0-9_-]{86,88}={0,2}$"
+    auth:
+      type: string
+      pattern: "^[A-Za-z0-9_-]{22,24}={0,2}$"
+  additionalProperties: false
+DeviceRegistration:
+  type: object
+  description: "Registers a push token for the subscriber, or refreshes it: the mobile SDK sends it on every app start. Registering a token the subscriber already has is idempotent and updates last_seen_at, the permission and the channels. A token registered by another subscriber is moved to this one and device.reassigned is emitted. previous_token names the token this one replaces (onNewToken, pushsubscriptionchange); that device is disabled. When the subscriber has more active devices than the limit, the least recently seen one is disabled with device_limit; a registration is never refused for the limit."
+  required:
+    - platform
+    - token
+    - app
+    - permission
+  properties:
+    platform:
+      "$ref": "#/DevicePlatform"
+    token:
+      "$ref": "#/DeviceToken"
+    keys:
+      "$ref": "#/WebPushKeys"
+      description: "Required for web_push and unified_push; not allowed for other platforms."
+    app:
+      "$ref": "#/DeviceAppId"
+    apns_environment:
+      "$ref": "#/ApnsEnvironment"
+      description: "Required for apns; not allowed for other platforms."
+    permission:
+      "$ref": "#/DevicePermission"
+    android_channels:
+      type: array
+      maxItems: 50
+      uniqueItems: true
+      items:
+        "$ref": "#/AndroidChannel"
+    locale:
+      "$ref": "#/Locale"
+    previous_token:
+      "$ref": "#/DeviceToken"
+  additionalProperties: false
+DeviceTokenRemoval:
+  type: object
+  description: "Names a device by its token, as the app or the tenant holds it."
+  required:
+    - token
+  properties:
+    token:
+      "$ref": "#/DeviceToken"
+  additionalProperties: false
+Device:
+  type: object
+  description: "A push target of a subscriber. The token is never returned; token_fingerprint is a short keyed digest of it that also appears in device events."
+  required:
+    - object
+    - id
+    - subscriber_id
+    - platform
+    - app
+    - token_fingerprint
+    - apns_environment
+    - permission
+    - android_channels
+    - locale
+    - state
+    - disabled_reason
+    - registered_at
+    - last_seen_at
+    - deleted_at
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: device
+    id:
+      "$ref": "#/Id_dev"
+    subscriber_id:
+      "$ref": "#/Id_sub"
+    platform:
+      "$ref": "#/DevicePlatform"
+    app:
+      "$ref": "#/DeviceAppId"
+    token_fingerprint:
+      type: string
+      pattern: "^[0-9a-f]{16}$"
+    apns_environment:
+      oneOf:
+        - "$ref": "#/ApnsEnvironment"
+        - type: "null"
+    permission:
+      "$ref": "#/DevicePermission"
+    android_channels:
+      type: array
+      items:
+        "$ref": "#/AndroidChannel"
+    locale:
+      oneOf:
+        - "$ref": "#/Locale"
+        - type: "null"
+    state:
+      "$ref": "#/DeviceState"
+    disabled_reason:
+      oneOf:
+        - "$ref": "#/DeviceDisabledReason"
+        - type: "null"
+    registered_at:
+      "$ref": "#/Timestamp"
+    last_seen_at:
+      "$ref": "#/Timestamp"
+    deleted_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+DeviceList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Device"

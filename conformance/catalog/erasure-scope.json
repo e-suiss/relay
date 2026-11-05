@@ -273,6 +273,16 @@
     },
     {
       "personal_columns": [
+        "token_bidx",
+        "token_bidx_next",
+        "token_ct"
+      ],
+      "subject_erasure": "recipient_profile data key destroyed, so token_ct is unreadable; the device is disabled with erased and its blind index columns set to null; row kept",
+      "table": "devices",
+      "tenant_close": "tenant keys destroyed; row kept"
+    },
+    {
+      "personal_columns": [
         "address_ct",
         "address_bidx",
         "address_bidx_next"

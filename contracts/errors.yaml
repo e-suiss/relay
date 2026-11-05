@@ -695,6 +695,20 @@ codes:
     description: No subscriber with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
     type: "{base_url}/v1/errors/subscriber_not_found"
     choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: device_not_found
+    family: resource
+    status: 404
+    title: Device not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No device with this identifier or token is visible for this subscriber, tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/device_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
   - code: event_type_mapping_not_found
     family: resource
     status: 404

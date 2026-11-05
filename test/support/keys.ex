@@ -21,8 +21,7 @@ defmodule RelayTest.Keys do
     {:ok, <<r::256, s::256>>}
   end
 
-  def sign(:rs256, label, message),
-    do: {:ok, :public_key.sign(message, :sha256, rs256(label))}
+  def sign(:rs256, label, message), do: {:ok, :public_key.sign(message, :sha256, rs256(label))}
 
   def sign(_alg, _label, _message), do: not_found()
 

@@ -19,8 +19,6 @@ defmodule Relay.Channels.Smtp do
   alias Relay.Channels.Request
   alias Relay.Error
 
-  require Logger
-
   @modes %{"implicit" => 465, "starttls" => 587}
   @refusals %{
     smtputf8_unsupported: "smtputf8_unsupported",

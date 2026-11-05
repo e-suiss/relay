@@ -209,7 +209,7 @@ defmodule Relay.Channels.DeclarationsTest do
       assert ChannelDeclarations.validate(content) == :ok
     end
 
-    test "CH-71: a provider directory holds only its declaration files and is named after its provider", %{
+    test "CH-71: a provider directory holds only declaration files named after it", %{
       tmp_dir: dir
     } do
       File.cp_r!(ChannelDeclarations.root(), dir)

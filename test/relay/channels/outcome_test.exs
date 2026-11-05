@@ -5,15 +5,14 @@ defmodule Relay.Channels.OutcomeTest do
   alias Relay.Channels.Ambiguity
   alias Relay.Channels.Outcome
 
-  setup_all do
+  defp declarations do
     {:ok, content} = ChannelDeclarations.compose()
-    %{declarations: ChannelDeclarations.new(content, nil)}
+    ChannelDeclarations.new(content, nil)
   end
 
   describe "CH-7 CH-8 normalization" do
-    test "CH-7: a mapped provider code takes the class, condition and event code of its mapping", %{
-      declarations: d
-    } do
+    test "CH-7: a mapped provider code takes the class, condition and event code of its mapping" do
+      d = declarations()
       raw = %{code: "rate_limited", status: 429, retry_after_ms: 30_000}
 
       assert {:ok, %Outcome{} = outcome} = Outcome.normalize(d, "fake", "sms", {:rejected, raw})
@@ -29,9 +28,8 @@ defmodule Relay.Channels.OutcomeTest do
                Outcome.normalize(d, "fake", "push", {:rejected, %{code: "unregistered"}})
     end
 
-    test "CH-8, INV-46: a code without a mapping is unknown with the raw code kept, never guessed", %{
-      declarations: d
-    } do
+    test "CH-8, INV-46: a code without a mapping is unknown with the raw code kept, never guessed" do
+      d = declarations()
       assert {:ok, outcome} = Outcome.normalize(d, "fake", "email", {:rejected, %{code: "X-42"}})
       assert outcome.failure_class == "unknown"
       assert outcome.unknown_code?
@@ -66,9 +64,9 @@ defmodule Relay.Channels.OutcomeTest do
                Outcome.normalize(d, "esp", "email", {:rejected, %{code: "suppressed"}})
     end
 
-    test "CH-10, T-28: no connection is a transient failure and no answer is uncertain", %{
-      declarations: d
-    } do
+    test "CH-10, T-28: no connection is a transient failure and no answer is uncertain" do
+      d = declarations()
+
       assert {:ok, %Outcome{state: :failed, failure_class: "transient", raw_code: raw}} =
                Outcome.normalize(d, "fake", "sms", {:not_sent, "econnrefused"})
 
@@ -78,9 +76,8 @@ defmodule Relay.Channels.OutcomeTest do
                Outcome.normalize(d, "fake", "sms", {:uncertain, "timeout"})
     end
 
-    test "CH-7, DS-13: an acceptance succeeds at the accepted rank unless the adapter says more", %{
-      declarations: d
-    } do
+    test "CH-7, DS-13: an acceptance succeeds at the accepted rank unless the adapter says more" do
+      d = declarations()
       accepted = {:accepted, %{provider_message_id: "m1"}}
 
       assert {:ok, %Outcome{state: :succeeded} = outcome} =
@@ -90,7 +87,9 @@ defmodule Relay.Channels.OutcomeTest do
       assert outcome.provider_message_id == "m1"
     end
 
-    test "DS-10: an outcome on a channel without the evidence row is refused", %{declarations: d} do
+    test "DS-10: an outcome on a channel without the evidence row is refused" do
+      d = declarations()
+
       assert {:error, :unknown_event} =
                Outcome.normalize(d, "fake", "in_app", {:accepted, %{}})
 

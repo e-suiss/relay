@@ -49,8 +49,10 @@ defmodule Relay.Channels.FakeTest do
       assert Simulated.result(:phone, "+990555000016") == "delivered"
       assert Simulated.result(:phone, "+905551112233") == "delivered"
       assert Simulated.result(:token, "sim:other") == "delivered"
+
       assert Relay.Channels.simulated_result("email", "Hard_Bounce@SIM.relay.test") ==
                "hard_bounce"
+
       assert Relay.Channels.simulated_result("sms", "+990555000004") == "hard_bounce"
       assert Relay.Channels.simulated_result("whatsapp", "sim:timeout") == "timeout"
     end

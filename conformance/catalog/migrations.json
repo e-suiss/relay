@@ -100,5 +100,6 @@
   {"file": "20261112000200_create_layout_and_partial_functions.exs", "sha256": "0de997b2a5289df6b35539675b4450af3b0e89d4daacc1eb66139284171c3252"},
   {"file": "20261112000300_create_render_plan_functions.exs", "sha256": "f906a3805a4e182144eebef78f640ca9a8e0baa9f0df447d0e0a1ab2e33fe2d6"},
   {"file": "20261112000400_register_template_term_datasets.exs", "sha256": "a7ad99f55b9c3545d708a62dede6063b2fb1619bc71fc98d31d26d5a8dd98306"},
-  {"file": "20261112000500_rebuild_reference_check_for_templates.exs", "sha256": "1b482b58b959a67a6a8509f88748e1f5cf02461e7ebfae14e0d83cdf8dd9ac91"}
+  {"file": "20261112000500_rebuild_reference_check_for_templates.exs", "sha256": "1b482b58b959a67a6a8509f88748e1f5cf02461e7ebfae14e0d83cdf8dd9ac91"},
+  {"file": "20261116000100_register_push_priority_map.exs", "sha256": "bbf88f09696aeafada65df3452727f9772f017b4c79c52ed65bc9cf58529e48c"}
 ]

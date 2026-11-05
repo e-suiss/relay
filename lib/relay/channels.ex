@@ -304,10 +304,12 @@ defmodule Relay.Channels do
   def report_unknown_code(scope, provider, channel, raw_code) do
     meta = %{provider: provider, channel: channel}
     :telemetry.execute([:relay, :channels, :unknown_code], %{count: 1}, meta)
+
     Logger.error("a provider code has no mapping; classified unknown",
       provider: provider,
       channel: channel
     )
+
     Store.in_scope(scope, fn _status -> Store.unknown_code(provider, channel, raw_code) end)
   end
 

@@ -154,6 +154,7 @@ defmodule Relay.Channels.ProviderAccountsTest do
 
     test "C-26: a channel identity needs a channel identity secret" do
       scope = scope()
+
       attrs = %{
         id: Relay.Id.generate(),
         channel: "push",

@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "email_bulk_sender_rules",
+  "description": "The sender rules of the large mailbox providers (CH-37), which the domain verification wizard and the reputation board check against. A provider row names the recipient domains it covers and its requirements: SPF and DKIM, a DMARC policy of at least `dmarc_min_policy` with alignment, RFC 8058 one-click unsubscribe, a complaint rate below `complaint_rate_max_bp` with a target below `complaint_rate_target_bp` (basis points of mail delivered to the inbox), and unsubscribes applied within `unsubscribe_within_days`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_ref",
+    "providers"
+  ],
+  "properties": {
+    "source_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "providers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "domains",
+          "requirements",
+          "source"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,31}$"
+          },
+          "domains": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)+$"
+            }
+          },
+          "requirements": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "spf",
+              "dkim",
+              "dmarc_min_policy",
+              "dmarc_alignment",
+              "one_click_unsubscribe",
+              "complaint_rate_max_bp",
+              "complaint_rate_target_bp",
+              "unsubscribe_within_days"
+            ],
+            "properties": {
+              "spf": {
+                "type": "boolean"
+              },
+              "dkim": {
+                "type": "boolean"
+              },
+              "dmarc_min_policy": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "quarantine",
+                  "reject"
+                ]
+              },
+              "dmarc_alignment": {
+                "type": "boolean"
+              },
+              "one_click_unsubscribe": {
+                "type": "boolean"
+              },
+              "complaint_rate_max_bp": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              },
+              "complaint_rate_target_bp": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              },
+              "unsubscribe_within_days": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 30
+              }
+            }
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        }
+      }
+    }
+  }
+}

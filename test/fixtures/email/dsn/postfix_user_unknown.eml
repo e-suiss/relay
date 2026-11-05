@@ -1,0 +1,59 @@
+Return-Path: <>
+Received: by mx.sender.example (Postfix)
+	id 4Xyz1Q2abcZ; Mon,  2 Nov 2026 10:15:02 +0000 (UTC)
+Date: Mon,  2 Nov 2026 10:15:02 +0000 (UTC)
+From: MAILER-DAEMON@mx.sender.example (Mail Delivery System)
+Subject: Undelivered Mail Returned to Sender
+To: b-example@bounce.sender.example
+Auto-Submitted: auto-replied
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status;
+	boundary="4Xyz1Q2abcZ.1730542502/mx.sender.example"
+Message-Id: <20261102101502.4Xyz1Q2abcZ@mx.sender.example>
+
+This is a MIME-encapsulated message.
+
+--4Xyz1Q2abcZ.1730542502/mx.sender.example
+Content-Description: Notification
+Content-Type: text/plain; charset=us-ascii
+
+This is the mail system at host mx.sender.example.
+
+I'm sorry to have to inform you that your message could not
+be delivered to one or more recipients. It's attached below.
+
+                   The mail system
+
+<nobody@recipient.example>: host mx.recipient.example[192.0.2.25] said: 550
+    5.1.1 <nobody@recipient.example>: Recipient address rejected: User unknown
+    in local recipient table (in reply to RCPT TO command)
+
+--4Xyz1Q2abcZ.1730542502/mx.sender.example
+Content-Description: Delivery report
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; mx.sender.example
+X-Postfix-Queue-ID: 4Xyz1Q2abcZ
+X-Postfix-Sender: rfc822; b-example@bounce.sender.example
+Arrival-Date: Mon,  2 Nov 2026 10:15:01 +0000 (UTC)
+
+Final-Recipient: rfc822; nobody@recipient.example
+Original-Recipient: rfc822;nobody@recipient.example
+Action: failed
+Status: 5.1.1
+Remote-MTA: dns; mx.recipient.example
+Diagnostic-Code: smtp; 550 5.1.1 <nobody@recipient.example>: Recipient address
+    rejected: User unknown in local recipient table
+
+--4Xyz1Q2abcZ.1730542502/mx.sender.example
+Content-Description: Undelivered Message Headers
+Content-Type: text/rfc822-headers
+
+Return-Path: <b-example@bounce.sender.example>
+From: Sender <news@sender.example>
+To: nobody@recipient.example
+Subject: Your weekly digest
+Message-ID: <msg-0001@sender.example>
+Feedback-ID: weekly:digest:tenant1:news
+
+--4Xyz1Q2abcZ.1730542502/mx.sender.example--

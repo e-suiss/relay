@@ -1,0 +1,11 @@
+From: MAILER-DAEMON@old-mta.example
+To: b-example@bounce.sender.example
+Subject: failure notice
+Date: 2 Nov 2026 14:00:00 -0000
+
+Hi. This is the qmail-send program at old-mta.example.
+I'm afraid I wasn't able to deliver your message to the following addresses.
+This is a permanent error; I've given up. Sorry it didn't work out.
+
+<someone@old-mta.example>:
+Sorry, no mailbox here by that name. (#5.1.1)

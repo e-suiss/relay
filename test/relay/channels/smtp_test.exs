@@ -138,7 +138,7 @@ defmodule Relay.Channels.SmtpTest do
       assert session.mail_from == nil
     end
 
-    test "CH-34, T-39: a certificate for another host fails in both modes", ctx do
+    test "CH-34, T-39: a certificate for another host fails in both modes", _ctx do
       other = SmtpServer.certificates("mx.other.example")
 
       for {server_mode, mode} <- [implicit: "implicit", starttls: "starttls"] do

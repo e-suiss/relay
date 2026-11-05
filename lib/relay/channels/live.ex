@@ -397,49 +397,6 @@ defmodule Relay.Channels.Live do
     end
   end
 
-  # CH-72
-  # DS-23
-  defp followups(ctx, request, followups) do
-    for %{event_code: code, after_ms: ms} <- followups do
-      event = %{
-        delivery_id: request.delivery_id,
-        provider: request.provider,
-        channel: request.channel,
-        event_code: code
-      }
-
-      followup(ctx.scope, event, ms)
-    end
-
-    :ok
-  end
-
-  defp followup(scope, event, 0), do: Events.record(scope, event)
-
-  defp followup(scope, event, ms) do
-    later = DateTime.add(Relay.Clock.business_now(scope), ms, :millisecond)
-    Oban.insert(Followup.job(scope, event, Relay.Clock.wall_time(scope, later)))
-  end
-
-  # DS-10
-  # CH-8
-  @doc "Records an event a provider reports after the call; see `Relay.Channels.Live.Events.record/2`. Webhook and receipt handlers call it after verifying the request."
-  @spec record_event(Scope.t(), Events.event()) ::
-          {:ok, Events.recorded()} | {:error, :unknown_event | :delivery_not_found | term()}
-  def record_event(%Scope{} = scope, event), do: Events.record(scope, event)
-
-  # INV-13
-  @doc "The delivery of a provider idempotency key that the channel step sent; an adapter correlates the provider's later events with it."
-  @spec delivery_of_key(String.t()) :: {:ok, Relay.Id.t()} | :error
-  def delivery_of_key("dlv-" <> id) do
-    case Relay.Id.parse(id) do
-      {:ok, delivery_id} -> {:ok, delivery_id}
-      {:error, _reason} -> :error
-    end
-  end
-
-  def delivery_of_key(_key), do: :error
-
   defp finish(ctx, request, outcome, retry) do
     if outcome.unknown_code? do
       _ =
@@ -551,4 +508,47 @@ defmodule Relay.Channels.Live do
     |> Application.get_env(Relay.Delivery, [])
     |> Keyword.get(:renderer, Relay.Templates.Live)
   end
+
+  # CH-72
+  # DS-23
+  defp followups(ctx, request, followups) do
+    for %{event_code: code, after_ms: ms} <- followups do
+      event = %{
+        delivery_id: request.delivery_id,
+        provider: request.provider,
+        channel: request.channel,
+        event_code: code
+      }
+
+      followup(ctx.scope, event, ms)
+    end
+
+    :ok
+  end
+
+  defp followup(scope, event, 0), do: Events.record(scope, event)
+
+  defp followup(scope, event, ms) do
+    later = DateTime.add(Relay.Clock.business_now(scope), ms, :millisecond)
+    Oban.insert(Followup.job(scope, event, Relay.Clock.wall_time(scope, later)))
+  end
+
+  # DS-10
+  # CH-8
+  @doc "Records an event a provider reports after the call; see `Relay.Channels.Live.Events.record/2`. Webhook and receipt handlers call it after verifying the request."
+  @spec record_event(Scope.t(), Events.event()) ::
+          {:ok, Events.recorded()} | {:error, :unknown_event | :delivery_not_found | term()}
+  def record_event(%Scope{} = scope, event), do: Events.record(scope, event)
+
+  # INV-13
+  @doc "The delivery of a provider idempotency key that the channel step sent; an adapter correlates the provider's later events with it."
+  @spec delivery_of_key(String.t()) :: {:ok, Relay.Id.t()} | :error
+  def delivery_of_key("dlv-" <> id) do
+    case Relay.Id.parse(id) do
+      {:ok, delivery_id} -> {:ok, delivery_id}
+      {:error, _reason} -> :error
+    end
+  end
+
+  def delivery_of_key(_key), do: :error
 end

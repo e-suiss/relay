@@ -153,6 +153,7 @@ defmodule Relay.Channels.Push.InterruptionTest do
 
     test "CH-66: the Grant is not asked without the opening and the declaration" do
       parent = self()
+
       grant = fn ->
         send(parent, :asked)
         :permit

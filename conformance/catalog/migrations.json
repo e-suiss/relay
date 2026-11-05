@@ -101,13 +101,14 @@
   {"file": "20261112000300_create_render_plan_functions.exs", "sha256": "f906a3805a4e182144eebef78f640ca9a8e0baa9f0df447d0e0a1ab2e33fe2d6"},
   {"file": "20261112000400_register_template_term_datasets.exs", "sha256": "a7ad99f55b9c3545d708a62dede6063b2fb1619bc71fc98d31d26d5a8dd98306"},
   {"file": "20261112000500_rebuild_reference_check_for_templates.exs", "sha256": "1b482b58b959a67a6a8509f88748e1f5cf02461e7ebfae14e0d83cdf8dd9ac91"},
-  {"file": "20261114000000_create_devices.exs", "sha256": "c71ca10b88ccd966e2792afdd158163bfecfba397f58e0496d90047fd3c5882d"},
-  {"file": "20261114000100_create_device_functions.exs", "sha256": "10d6c8b27c2ccd0b6d7d0a177430301bf6a788bef296098a05730b521f720262"},
-  {"file": "20261114000200_rebuild_reference_check_for_devices.exs", "sha256": "99c9b588aa6882eaac3898f3e3d82d5864694af4846c4af6620f8bb411a4ab9f"},
-  {"file": "20261115000100_register_email_datasets.exs", "sha256": "38462d23a48fc5ec2adc17afdae883f392f93ce1364d0f7aae6fc00d668cdc0c"},
   {"file": "20261113000000_register_channel_event_evidence.exs", "sha256": "eb1e535a1f124219c193771711aac05c99538fd8a6185d2179ff9a674ad839eb"},
   {"file": "20261113000100_create_provider_tables.exs", "sha256": "9ef8ef07201df414087e881e61b383513fd66c75e4f7a828d8b30b602b67512d"},
   {"file": "20261113000200_create_provider_functions.exs", "sha256": "c02b93d457ddcbdfceef9aab6fd98154bef99c4cc41d5aa94d2a22e54293f6e3"},
   {"file": "20261113000300_rebuild_reference_check_for_providers.exs", "sha256": "cc89fa37cb50bc1ef956223a6862e1f6748b01ecba0119ffa3accba885bf0ae2"},
-  {"file": "20261114990000_rebuild_reference_check_for_providers_and_devices.exs", "sha256": "191c02db870e06a20feb9b06dd8a5184817d8969fbc2f3a796684d2c58391ab2"}
+  {"file": "20261114000000_create_devices.exs", "sha256": "c71ca10b88ccd966e2792afdd158163bfecfba397f58e0496d90047fd3c5882d"},
+  {"file": "20261114000100_create_device_functions.exs", "sha256": "10d6c8b27c2ccd0b6d7d0a177430301bf6a788bef296098a05730b521f720262"},
+  {"file": "20261114000200_rebuild_reference_check_for_devices.exs", "sha256": "99c9b588aa6882eaac3898f3e3d82d5864694af4846c4af6620f8bb411a4ab9f"},
+  {"file": "20261114990000_rebuild_reference_check_for_providers_and_devices.exs", "sha256": "191c02db870e06a20feb9b06dd8a5184817d8969fbc2f3a796684d2c58391ab2"},
+  {"file": "20261115000100_register_email_datasets.exs", "sha256": "38462d23a48fc5ec2adc17afdae883f392f93ce1364d0f7aae6fc00d668cdc0c"},
+  {"file": "20261116000100_register_push_priority_map.exs", "sha256": "bbf88f09696aeafada65df3452727f9772f017b4c79c52ed65bc9cf58529e48c"}
 ]

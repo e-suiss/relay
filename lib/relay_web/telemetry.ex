@@ -175,6 +175,10 @@ defmodule RelayWeb.Telemetry do
       counter("relay.frequency_counter.unavailable.total",
         event_name: [:relay, :frequency_counter, :unavailable],
         description: "Frequency counter reads and writes that Valkey did not answer"
+      ),
+      counter("relay.push.signing_unavailable.total",
+        event_name: [:relay, :push, :signing_unavailable],
+        description: "Push provider tokens the key store could not sign"
       )
     ]
   end

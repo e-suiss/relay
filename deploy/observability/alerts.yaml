@@ -101,3 +101,10 @@ groups:
           decision: PC-50
         annotations:
           summary: "The frequency counter is unavailable and frequency caps fail open"
+      - alert: RelayPushSigningUnavailable
+        expr: increase(relay_push_signing_unavailable_total[5m]) > 0
+        labels:
+          severity: page
+          decision: TN-29
+        annotations:
+          summary: "The key store cannot sign push provider tokens; the last token has at most an hour of runway"

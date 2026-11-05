@@ -1,6 +1,6 @@
 defmodule Relay.Templates.Live do
   @moduledoc """
-  Templates on the running send path (TP-50). At acceptance, inside the accepting transaction, `templates/2` resolves the live versions of an event's step templates once with sub-tenant inheritance, `choose/3` picks each delivery's cell (a channel without a variant is skipped with `template.variant_missing` and the route moves on, a recipient without a locale in the chain is skipped with `template.locale_missing`, a template without a live version with `template.not_published` or `template.archived`; WF-16, TP-11, TP-26, TP-51) and `pin/2` freezes the template, layout and partial versions and the locale with the delivery record (INV-48). The locale is the recipient's profile locale, else the tenant's `default_locale`; `Accept-Language` never counts on the send path and there is no system default (TP-25). A fallback to the tenant default is counted as `template_locale_missing` by channel.
+  Templates on the running send path (TP-50). At acceptance, inside the accepting transaction, `templates/2` resolves the live versions of an event's step templates once with sub-tenant inheritance, `choose/3` picks each delivery's cell (a channel without a variant is skipped with `template.variant_missing` and the route moves on, a recipient without a locale in the chain is skipped with `template.locale_missing`, a template without a live version with `template.not_published` or `template.archived`; WF-16, TP-11, TP-26, TP-51) and `pin/2` freezes the template, layout and partial versions and the locale with the delivery record (INV-48). The locale is the recipient's profile locale, else the locale of its most recently seen device, else the tenant's `default_locale`; `Accept-Language` never counts on the send path and there is no system default (TP-25). A fallback to the tenant default is counted as `template_locale_missing` by channel.
 
   On every run of the delivery job that the policy lattice lets send, `render/2` (the renderer step of `Relay.Delivery.Send`, configured as `config :relay, Relay.Delivery, renderer: Module`) renders the pinned versions only, never a newer one, with the event data, the brand fields (`Relay.TemplateStore.brand_resolve/2`, a producer template's text with the four tenant overrides), each pinned partial rendered first as the trusted `partial.<key>` and the render helpers `legal_footer` and `unsubscribe_url`. A delivery is rendered once (TP-60): the render records its digest, measures and content snapshot, sealed under the recipient's subject key of the category's retention class, or the digest only for security subtypes and `retention: none` (TP-40), and a later job run finds the render record and does not render again. `verify/2` renders again and compares the digest with the recorded one, for content that is not stored and for the channel attempts; a difference fails the delivery with `schema_violation`.
 
@@ -76,7 +76,7 @@ defmodule Relay.Templates.Live do
   # TP-25
   # TP-26
   # TP-51
-  @doc "Chooses the cell of one delivery: `{:ok, plan}` to pin, or `{:skip, reason, rule_id, detail}` when the template cannot send on this channel to this recipient. `recipient` is the subscriber row with its profile `locale`."
+  @doc "Chooses the cell of one delivery: `{:ok, plan}` to pin, or `{:skip, reason, rule_id, detail}` when the template cannot send on this channel to this recipient. `recipient` is the subscriber row with its profile `locale` and the `device_locale` of its most recently seen device that carries one (TP-25)."
   @spec choose(templates(), %{template: String.t(), channel: String.t()}, map()) ::
           {:ok, plan()} | skip()
   def choose(templates, %{template: key, channel: channel}, recipient) do
@@ -104,7 +104,12 @@ defmodule Relay.Templates.Live do
   end
 
   defp locale(entry, channel, recipient, default_locale, detail) do
-    candidates = %{profile: recipient["locale"], tenant_default: default_locale, surface: :send}
+    candidates = %{
+      profile: recipient["locale"],
+      device: recipient["device_locale"],
+      tenant_default: default_locale,
+      surface: :send
+    }
 
     case Relay.Templates.resolve_locale(candidates, Map.fetch!(entry.locales, channel)) do
       {:ok, resolution} ->
@@ -119,7 +124,7 @@ defmodule Relay.Templates.Live do
          }}
 
       {:error, :locale_missing} ->
-        requested = recipient["locale"] || default_locale
+        requested = recipient["locale"] || recipient["device_locale"] || default_locale
         detail = if is_binary(requested), do: Map.put(detail, "locale", requested), else: detail
         {:skip, "template_locale_missing", "template.locale_missing", detail}
     end

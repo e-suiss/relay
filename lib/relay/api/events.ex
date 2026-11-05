@@ -458,10 +458,20 @@ defmodule Relay.Api.Events do
     end
   end
 
-  defp created(:created, p, id, recipient_id, mismatch?, ctx),
-    do: open_deliveries(p, id, Relay.Subscribers.row(recipient_id), mismatch?, ctx)
+  defp created(:created, p, id, recipient_id, mismatch?, ctx) do
+    row = device_locale(Relay.Subscribers.row(recipient_id), recipient_id)
+    open_deliveries(p, id, row, mismatch?, ctx)
+  end
 
   defp created(:duplicate, _p, _id, _recipient_id, _mismatch?, _ctx), do: {:ok, []}
+
+  # TP-25
+  defp device_locale(%{} = row, recipient_id) do
+    locale = Enum.find_value(Relay.Devices.current(recipient_id), & &1["locale"])
+    Map.put(row, "device_locale", locale)
+  end
+
+  defp device_locale(row, _recipient_id), do: row
 
   defp entry(recipient_id, external_id, notification_id, duplicate_of, decisions) do
     Views.accepted_notification(%{

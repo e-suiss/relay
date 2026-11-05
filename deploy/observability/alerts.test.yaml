@@ -170,3 +170,20 @@ tests:
       - eval_time: 15m
         alertname: RelayFrequencyCounterUnavailable
         exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'relay_push_signing_unavailable_total'
+        values: "0 0 0 1 2 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: RelayPushSigningUnavailable
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: RelayPushSigningUnavailable
+        exp_alerts:
+          - exp_labels: {severity: page, decision: TN-29}
+            exp_annotations:
+              summary: "The key store cannot sign push provider tokens; the last token has at most an hour of runway"
+      - eval_time: 15m
+        alertname: RelayPushSigningUnavailable
+        exp_alerts: []

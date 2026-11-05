@@ -1,6 +1,6 @@
 defmodule Relay.Operators.Admin do
   @moduledoc """
-  The management actions of operators, each written with its audit record in one transaction (TN-47, TN-48): role assignments (TN-21, TN-23), support delegations (TN-23), the cross-tenant overview (X-4), the audit log (TN-50), the audited reveal of personal data (X-5), send modes (OP-51), quota policies (API-51, TN-52) and the API version pin (API-52). The caller has authorized the action and, for a sensitive one, passed its step-up reference.
+  The management actions of operators, each written with its audit record in one transaction (TN-47, TN-48): role assignments (TN-21, TN-23), support delegations (TN-23), the cross-tenant overview (X-4), the audit log (TN-50), the audited reveal of personal data (X-5), send modes (OP-51), the `critical` interruption opening of a tenant (CH-20, TN-23), quota policies (API-51, TN-52) and the API version pin (API-52). The caller has authorized the action and, for a sensitive one, passed its step-up reference.
   """
 
   alias Relay.Actor
@@ -298,6 +298,45 @@ defmodule Relay.Operators.Admin do
     end)
     |> unwrap()
   end
+
+  # CH-20
+  # TN-23
+  @doc "Reads the `critical` opening of a tenant from its `live` environment: the stored `push.critical` setting row, or `nil`."
+  @spec critical_interruption(Relay.Id.t()) :: {:ok, map() | nil} | {:error, Relay.Error.t()}
+  def critical_interruption(tenant_id) do
+    tenant_id
+    |> Scope.new!(:live)
+    |> Store.in_scope(fn _status -> Store.push_critical() end)
+    |> tenant_result()
+  end
+
+  # CH-20
+  # TN-21
+  # TN-23
+  @doc """
+  Opens, changes or closes (`value` `nil`) the `critical` opening of a tenant, in its `live` environment and for both environments; audited as `push_critical.changed` with the installation operator and the step-up. `value` holds the `templates` declared critical in advance and the platform `entitlements` evidence. Returns the stored setting row.
+  """
+  @spec set_critical_interruption(Relay.Id.t(), map() | nil, String.t(), Actor.t(), String.t()) ::
+          {:ok, map() | nil} | {:error, Relay.Error.t()}
+  def set_critical_interruption(tenant_id, value, reason, %Actor{} = actor, step_up_ref) do
+    scope = Scope.new!(tenant_id, :live)
+    action = "push_critical.changed"
+    digest = Operators.record_digest(scope, action, actor, "setting", "push.critical", reason)
+
+    scope
+    |> Store.in_scope(fn _status ->
+      _result = Store.push_critical_set(value, reason, step_up_ref, digest, actor)
+      Store.push_critical()
+    end)
+    |> tenant_result()
+  end
+
+  defp tenant_result({:ok, row}), do: {:ok, row}
+
+  defp tenant_result({:error, %Relay.Error{code: :not_found}}),
+    do: {:error, Relay.Error.new(:tenant_not_found, "no such tenant")}
+
+  defp tenant_result({:error, error}), do: {:error, error}
 
   # API-51
   # TN-52

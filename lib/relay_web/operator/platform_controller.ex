@@ -281,6 +281,56 @@ defmodule RelayWeb.Operator.PlatformController do
     end)
   end
 
+  # CH-20
+  # TN-23
+  @spec critical(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def critical(conn, %{"tenant_id" => id}) do
+    with {:ok, tenant_id} <- path_id(id, "ten", :tenant_not_found),
+         {:ok, row} <- Admin.critical_interruption(tenant_id) do
+      reply(conn, 200, Json.critical_interruption(tenant_id, row))
+    else
+      {:error, error} -> problem(conn, error)
+    end
+  end
+
+  # CH-20
+  # TN-21
+  # TN-23
+  @spec set_critical(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def set_critical(conn, %{"tenant_id" => id}) do
+    body = conn.assigns.body
+
+    idempotent(conn, fn ->
+      with {:ok, tenant_id} <- path_id(id, "ten", :tenant_not_found),
+           {:ok, value} <- critical_value(body),
+           {:ok, row} <-
+             Admin.set_critical_interruption(
+               tenant_id,
+               value,
+               body["reason"],
+               actor(conn, installation: true),
+               step_up_ref(conn)
+             ) do
+        {:ok, {200, Json.critical_interruption(tenant_id, row)}}
+      end
+    end)
+  end
+
+  defp critical_value(%{"enabled" => false}), do: {:ok, nil}
+
+  defp critical_value(%{"enabled" => true} = body) do
+    case {body["templates"], body["entitlements"]} do
+      {[_ | _] = templates, [_ | _] = entitlements} ->
+        {:ok, %{"templates" => Enum.uniq(templates), "entitlements" => entitlements}}
+
+      {[_ | _], _none} ->
+        {:error, field("/entitlements", "required", "the platform entitlement evidence")}
+
+      _none ->
+        {:error, field("/templates", "required", "the templates declared critical")}
+    end
+  end
+
   # TN-10
   # TN-22
   @spec resume(Plug.Conn.t(), map()) :: Plug.Conn.t()

@@ -596,6 +596,33 @@ defmodule Relay.Operators.Store do
     )
   end
 
+  # CH-20
+  # TN-23
+  @doc "Sets (`value`) or clears (`nil`) the `push.critical` opening of the established `live` scope; audited as `push_critical.changed`. Returns the result and the time of the change."
+  @spec push_critical_set(map() | nil, String.t(), String.t(), digest(), Actor.t()) ::
+          {:opened | :changed | :closed | :unchanged, DateTime.t() | nil}
+  def push_critical_set(value, reason, step_up_ref, digest, %Actor{} = actor) do
+    [row] =
+      Repo.call!(
+        "relay_fn.push_critical_set",
+        [value, reason, step_up_ref, digest] ++ Actor.params(actor)
+      )
+
+    {Repo.code!(row["result"], [:opened, :changed, :closed, :unchanged]), row["updated_at"]}
+  end
+
+  # CH-20
+  @doc "Reads the `push.critical` setting row of the established scope (`value`, `updated_at`), or `nil`."
+  @spec push_critical() :: map() | nil
+  def push_critical do
+    """
+    SELECT tenant_id, environment, value, updated_at FROM relay.settings
+    WHERE subtenant_id IS NULL AND key = 'push.critical'
+    """
+    |> rows([])
+    |> List.first()
+  end
+
   # TN-50
   @doc "Reads the audit log of the established scope; the read itself is audited (`audit_log.read`)."
   @spec audit_query(map(), digest(), Actor.t()) :: [map()]

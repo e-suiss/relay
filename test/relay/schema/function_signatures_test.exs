@@ -217,7 +217,10 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.delivery_render_policy" => ~w(ok not_found),
     "relay_fn.delivery_render_record" =>
       ~w(recorded matched digest_mismatch content_not_allowed content_required key_invalid plan_not_found delivery_not_found already_terminal),
-    "relay_fn.delivery_render_fail" => ~w(failed already_terminal not_found)
+    "relay_fn.delivery_render_fail" => ~w(failed already_terminal not_found),
+    "relay_fn.device_register" =>
+      ~w(created updated reassigned recipient_not_found key_not_found),
+    "relay_fn.device_disable" => ~w(disabled already_disabled reregistered not_found)
   }
 
   defp functions do

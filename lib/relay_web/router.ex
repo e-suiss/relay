@@ -31,11 +31,33 @@ defmodule RelayWeb.Router do
     plug RelayWeb.Operator.Panel
   end
 
+  pipeline :links do
+    plug Plug.Parsers, parsers: [:urlencoded, :multipart], length: 8_192
+
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" =>
+        "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+      "cache-control" => "no-store",
+      "referrer-policy" => "no-referrer",
+      "x-robots-tag" => "noindex"
+    }
+  end
+
   scope "/", RelayWeb do
     pipe_through :api
 
     get "/livez", HealthController, :live
     get "/readyz", HealthController, :ready
+  end
+
+  # CH-76
+  # CH-44
+  # PC-35
+  scope "/links", RelayWeb do
+    pipe_through :links
+
+    get "/:token", LinkController, :show
+    post "/:token", LinkController, :create
   end
 
   # E-81
@@ -112,6 +134,18 @@ defmodule RelayWeb.Router do
 
     get "/subscribers/:subscriber_id/consents", PreferenceController, :consents,
       private: %{relay_operation: "listSubscriberConsents"}
+
+    get "/subscribers/:subscriber_id/devices", DeviceController, :index,
+      private: %{relay_operation: "listSubscriberDevices"}
+
+    post "/subscribers/:subscriber_id/devices", DeviceController, :create,
+      private: %{relay_operation: "registerSubscriberDevice"}
+
+    delete "/subscribers/:subscriber_id/devices/:device_id", DeviceController, :delete,
+      private: %{relay_operation: "deleteSubscriberDevice"}
+
+    delete "/devices/by-token", DeviceController, :delete_by_token,
+      private: %{relay_operation: "deleteDeviceByToken"}
 
     get "/categories", CategoryController, :index, private: %{relay_operation: "listCategories"}
 
@@ -308,6 +342,12 @@ defmodule RelayWeb.Router do
 
     patch "/subscriber/preferences", PreferenceController, :update_mine,
       private: %{relay_operation: "updateMyPreferences"}
+
+    post "/subscriber/devices", DeviceController, :create_mine,
+      private: %{relay_operation: "registerMyDevice"}
+
+    delete "/subscriber/devices/:device_id", DeviceController, :delete_mine,
+      private: %{relay_operation: "deleteMyDevice"}
   end
 
   # API-78

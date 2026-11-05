@@ -3,7 +3,7 @@ jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema"
 info:
   title: Relay Subscriber API
   version: "2026-11-01"
-  description: "Client family used by browsers, mobile apps and UI components with a Relay subscriber token. This file holds the token exchange and preferences; inbox and device registration are added in later stages. Clients never hold secret credentials and can never send events. JSON in UTF-8, snake_case fields, RFC 3339 UTC times, ISO 8601 durations, amounts and large integers as strings. Unknown fields are rejected with 422 unknown_field at every depth, including overrides; null clears a field and an absent field is left untouched. HTTPS only (TLS 1.2 or later, HSTS). Every response carries Request-Id and Relay-Version. Errors are RFC 9457 problem details whose type resolves to /v1/errors/{code} on the same region. The token exchange is an OAuth endpoint and takes no Idempotency-Key; later write endpoints require one (24 hours, fixed). Relay delivers at least once and, with durable idempotency, processes effectively once. Identifiers are opaque, prefixed and time ordered (x-relay-id-prefixes). Resources of other tenants and environments return 404. Health endpoints are not part of this API."
+  description: "Client family used by browsers, mobile apps and UI components with a Relay subscriber token. This file holds the token exchange, preferences and device registration; the inbox is added in a later stage. Clients never hold secret credentials and can never send events. JSON in UTF-8, snake_case fields, RFC 3339 UTC times, ISO 8601 durations, amounts and large integers as strings. Unknown fields are rejected with 422 unknown_field at every depth, including overrides; null clears a field and an absent field is left untouched. HTTPS only (TLS 1.2 or later, HSTS). Every response carries Request-Id and Relay-Version. Errors are RFC 9457 problem details whose type resolves to /v1/errors/{code} on the same region. The token exchange is an OAuth endpoint and takes no Idempotency-Key; later write endpoints require one (24 hours, fixed). Relay delivers at least once and, with durable idempotency, processes effectively once. Identifiers are opaque, prefixed and time ordered (x-relay-id-prefixes). Resources of other tenants and environments return 404. Health endpoints are not part of this API."
   license:
     name: Apache-2.0
     identifier: Apache-2.0
@@ -18,6 +18,8 @@ tags:
     description: Subscriber token issuance.
   - name: preferences
     description: "The subscriber's own preferences and profile (scope preferences)."
+  - name: devices
+    description: "The subscriber's own push devices (scope devices:write)."
 paths:
   "/v1/subscriber/token":
     post:
@@ -291,6 +293,229 @@ paths:
       x-relay-step-up: false
       x-relay-choice: true
       x-relay-choice-note: "Path, the combined body of preference writes and profile, and applying them atomically are chosen by the contract."
+  "/v1/subscriber/devices":
+    post:
+      operationId: registerMyDevice
+      tags:
+        - devices
+      summary: Register my device
+      description: "Registers or refreshes a push token for the token's subscriber. 201 for a new device, including a token moved from another subscriber (device.reassigned); 200 when the subscriber already had the token. The token is never returned. A Web Push or UnifiedPush token is the subscription endpoint and needs its keys; an APNs token needs apns_environment. The subscriber comes from the token; a token can never register a device for another subscriber."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/DeviceRegistration"
+      security:
+        - subscriber_bearer:
+            - "devices:write"
+      responses:
+        "200":
+          description: The subscriber already had this token; it was refreshed.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Device"
+        "201":
+          description: Registered.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Device"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - subscriber_not_found
+      x-relay-scopes:
+        - "devices:write"
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "Path chosen by the contract; the subscriber comes from the token, never from the request."
+  "/v1/subscriber/devices/{device_id}":
+    delete:
+      operationId: deleteMyDevice
+      tags:
+        - devices
+      summary: Remove my device
+      description: "Disables one of the token subscriber's own devices with logout and emits device.unregistered; the SDK calls it when the user signs out. The row is kept (soft delete) and preferences are untouched. Another subscriber's device is device_not_found."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/DeviceId"
+      security:
+        - subscriber_bearer:
+            - "devices:write"
+      responses:
+        "200":
+          description: The device, disabled.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Device"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - device_not_found
+      x-relay-scopes:
+        - "devices:write"
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "Path and the logout reason are chosen by the contract."
 components:
   securitySchemes:
     subscriber_bearer:

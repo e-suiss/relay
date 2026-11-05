@@ -1,6 +1,6 @@
 defmodule Relay.Subscribers.Store do
   @moduledoc """
-  Data access of subscribers: the lookup by blind index, the single write path `relay_fn.recipient_upsert`, the profile reads with their address states, and deletion requests. Every function except `in_scope/2` runs inside `Relay.Repo.in_scope/3`.
+  Data access of subscribers: the lookup by blind index, the single write path `relay_fn.recipient_upsert`, the profile reads with their address states and device summaries, and deletion requests. Every function except `in_scope/2` runs inside `Relay.Repo.in_scope/3`.
   """
 
   alias Relay.Actor
@@ -19,7 +19,19 @@ defmodule Relay.Subscribers.Store do
     (SELECT a.state FROM relay.recipient_addresses a
       WHERE a.tenant_id = r.tenant_id AND a.environment = r.environment
         AND a.recipient_id = r.id AND a.kind = 'phone' AND a.state IN ('active', 'disabled')
-      ORDER BY (a.state = 'active') DESC LIMIT 1) AS phone_state
+      ORDER BY (a.state = 'active') DESC LIMIT 1) AS phone_state,
+    (SELECT CASE WHEN bool_or(d.permission IN ('granted', 'provisional')) THEN 'permitted'
+        WHEN count(*) > 0 THEN 'no_permission' END
+      FROM relay.devices d
+      WHERE d.tenant_id = r.tenant_id AND d.environment = r.environment
+        AND d.recipient_id = r.id AND d.state <> 'disabled'
+        AND d.platform <> 'web_push') AS push_devices,
+    (SELECT CASE WHEN bool_or(d.permission IN ('granted', 'provisional')) THEN 'permitted'
+        WHEN count(*) > 0 THEN 'no_permission' END
+      FROM relay.devices d
+      WHERE d.tenant_id = r.tenant_id AND d.environment = r.environment
+        AND d.recipient_id = r.id AND d.state <> 'disabled'
+        AND d.platform = 'web_push') AS web_push_devices
   FROM relay.recipients r
   """
 

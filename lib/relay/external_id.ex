@@ -54,7 +54,8 @@ defmodule Relay.ExternalId do
     {"sdr", "recipient_deletion_requests"},
     {"ctg", "categories"},
     {"cns", "consents"},
-    {"sup", "suppressions"}
+    {"sup", "suppressions"},
+    {"dev", "devices"}
   ]
   @by_prefix Map.new(@tables)
 

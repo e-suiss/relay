@@ -23,6 +23,7 @@ defmodule Relay.Platform do
   alias Relay.Platform.SlidingSet
   alias Relay.Platform.Store
   alias Relay.Platform.Valkey
+  alias Relay.Platform.Valkey.Key
   alias Relay.Platform.VirtualClock
 
   # T-63 (6)
@@ -132,7 +133,7 @@ defmodule Relay.Platform do
   @doc "Builds a system signal topic from fixed segments; no tenant name can reach it."
   @spec system_signal_topic([String.t(), ...]) :: Signal.topic()
   def system_signal_topic(segments),
-    do: Relay.Platform.Valkey.Key.system_channel(["signal" | segments])
+    do: Key.system_channel(["signal" | segments])
 
   # INV-52
   # INV-53
@@ -314,6 +315,32 @@ defmodule Relay.Platform do
           {:ok, non_neg_integer()} | {:error, Relay.Error.t()}
   def sliding_set_add(scope, path, window_ms, member, opts \\ []),
     do: SlidingSet.add(scope, path, window_ms, member, opts)
+
+  # TN-17
+  # T-9 (7)
+  @doc "Stores a short-lived value of a scope on Valkey under the tenant key of `segments`, expiring after `ttl_ms`; Valkey holds no record of truth, so a lost value costs only what the caller assumes for a missing one."
+  @spec put_short_lived(Relay.Scope.t(), [String.t(), ...], String.t(), pos_integer()) ::
+          :ok | {:error, Relay.Error.t()}
+  def put_short_lived(%Relay.Scope{} = scope, segments, value, ttl_ms) do
+    with {:ok, key} <- short_lived_key(scope, segments, ttl_ms), do: Valkey.put(key, value)
+  end
+
+  # TN-17
+  @doc "Reads a short-lived value of a scope; a missing or expired value is `{:ok, nil}`."
+  @spec get_short_lived(Relay.Scope.t(), [String.t(), ...]) ::
+          {:ok, String.t() | nil} | {:error, Relay.Error.t()}
+  def get_short_lived(%Relay.Scope{} = scope, segments) do
+    with {:ok, key} <- short_lived_key(scope, segments, 1), do: Valkey.get(key)
+  end
+
+  defp short_lived_key(scope, segments, ttl_ms) do
+    Key.new(
+      Relay.Id.to_string(scope.tenant_id),
+      Relay.Environment.dump(scope.environment),
+      segments,
+      ttl_ms
+    )
+  end
 
   # T-20 (5)
   # T-91 (1)

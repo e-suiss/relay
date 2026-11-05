@@ -90,6 +90,7 @@ defmodule RelayTest.Isolation do
       "subtenant_id" => &subtenant!/1,
       "suppression_id" => &suppression!/1,
       "device_id" => &device!/1,
+      "whatsapp_template_id" => &whatsapp_template!/1,
       "template_key" => &template!/1,
       "layout_key" => &asset!(&1, "layouts"),
       "partial_key" => &asset!(&1, "partials")
@@ -313,6 +314,32 @@ defmodule RelayTest.Isolation do
   def suppression!(scope) do
     body = %{"channel" => "email", "address" => "iso-" <> random() <> "@example.com"}
     F.body(F.request(:post, "/v1/suppressions", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Registers a WhatsApp template on a new WhatsApp provider account in `scope` and returns the template's identifier."
+  @spec whatsapp_template!(Relay.Scope.t()) :: String.t()
+  def whatsapp_template!(scope) do
+    account_id = Relay.Id.generate()
+    template_id = Relay.Id.generate()
+    {:ok, actor} = Relay.Actor.new(:system, "relay-test", "relay-test")
+    digest = :crypto.strong_rand_bytes(32)
+
+    account =
+      [account_id, "whatsapp", "whatsapp_cloud", "shared", nil, "primary", 0, 0, false, ["US"]] ++
+        ["explicit_consent", nil, %{"phone_number_id" => "1"}, nil, digest] ++
+        Relay.Actor.params(actor)
+
+    template =
+      [template_id, account_id, "1", "iso_" <> random(), "en_US", "transactional", "utility"] ++
+        [[%{"type" => "BODY", "text" => "Hello {{1}}"}], digest]
+
+    {:ok, [%{"result" => "created"}]} =
+      Relay.Repo.in_scope(scope, fn _status ->
+        [%{"result" => "created"}] = Relay.Repo.call!("relay_fn.provider_account_put", account)
+        Relay.Repo.call!("relay_fn.whatsapp_template_register", template)
+      end)
+
+    Relay.ExternalId.encode("wtp", template_id)
   end
 
   @doc "Engages a tenant-scope kill switch in `scope` and returns its identifier."

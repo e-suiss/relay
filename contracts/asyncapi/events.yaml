@@ -38,6 +38,16 @@ channels:
         "$ref": "#/components/messages/webhook.device.unregistered"
       webhook.address.disabled:
         "$ref": "#/components/messages/webhook.address.disabled"
+      webhook.whatsapp_account.updated:
+        "$ref": "#/components/messages/webhook.whatsapp_account.updated"
+      webhook.whatsapp_number.paused:
+        "$ref": "#/components/messages/webhook.whatsapp_number.paused"
+      webhook.whatsapp_template.category_changed:
+        "$ref": "#/components/messages/webhook.whatsapp_template.category_changed"
+      webhook.whatsapp_template.status_changed:
+        "$ref": "#/components/messages/webhook.whatsapp_template.status_changed"
+      webhook.whatsapp_tier.threshold_reached:
+        "$ref": "#/components/messages/webhook.whatsapp_tier.threshold_reached"
       webhook.webhook.attempt_exhausted:
         "$ref": "#/components/messages/webhook.webhook.attempt_exhausted"
       webhook.webhook_endpoint.disabled:
@@ -356,6 +366,11 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.device.reassigned"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.device.unregistered"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.address.disabled"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_account.updated"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_number.paused"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_template.category_changed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_template.status_changed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_tier.threshold_reached"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook.attempt_exhausted"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.disabled"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.recovered"
@@ -1373,6 +1388,245 @@ components:
                   additionalProperties: false
       x-relay-surface: webhook
       x-relay-stage: 6
+    webhook.whatsapp_account.updated:
+      name: whatsapp_account.updated
+      title: whatsapp_account.updated
+      summary: "Meta reported a change of a WhatsApp Business Account (account_update), such as a policy violation with its violation_type."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: whatsapp_account.updated
+                data:
+                  type: object
+                  required:
+                    - provider_account_id
+                    - event
+                  properties:
+                    provider_account_id:
+                      type: string
+                      format: uuid
+                    waba_id:
+                      oneOf:
+                        - type: string
+                          maxLength: 32
+                        - type: "null"
+                    event:
+                      oneOf:
+                        - type: string
+                          maxLength: 64
+                        - type: "null"
+                    violation_type:
+                      oneOf:
+                        - type: string
+                          maxLength: 64
+                        - type: "null"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "CH-57 subscribes to account_update and names violation_type; the event name and the other fields are chosen by the contract."
+    webhook.whatsapp_number.paused:
+      name: whatsapp_number.paused
+      title: whatsapp_number.paused
+      summary: "A WhatsApp business number is briefly unusable (a throughput upgrade or maintenance); its jobs are deferred until the given time."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: whatsapp_number.paused
+                data:
+                  type: object
+                  required:
+                    - phone_number_id
+                    - reason
+                    - until
+                  properties:
+                    phone_number_id:
+                      type: string
+                      maxLength: 32
+                    reason:
+                      type: string
+                      enum:
+                        - throughput_upgrade
+                        - maintenance
+                    until:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "CH-61 models the throughput upgrade as an event; the event name and fields are chosen by the contract."
+    webhook.whatsapp_template.category_changed:
+      name: whatsapp_template.category_changed
+      title: whatsapp_template.category_changed
+      summary: "Meta changed the category of a WhatsApp template (template_category_update); the Relay message class is unchanged and the cost follows the new category."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: whatsapp_template.category_changed
+                data:
+                  type: object
+                  required:
+                    - whatsapp_template_id
+                    - name
+                    - language
+                    - message_class
+                    - category
+                    - previous_category
+                    - new_category
+                  properties:
+                    whatsapp_template_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_wtp"
+                    name:
+                      type: string
+                      maxLength: 512
+                    language:
+                      type: string
+                      maxLength: 35
+                    message_class:
+                      "$ref": "../openapi/components/schemas.yaml#/MessageClass"
+                    category:
+                      type: string
+                      enum:
+                        - authentication
+                        - utility
+                        - marketing
+                    previous_category:
+                      type: string
+                      enum:
+                        - authentication
+                        - utility
+                        - marketing
+                    new_category:
+                      type: string
+                      enum:
+                        - authentication
+                        - utility
+                        - marketing
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "CH-57 sends the category drift to the tenant; the event name and fields are chosen by the contract."
+    webhook.whatsapp_template.status_changed:
+      name: whatsapp_template.status_changed
+      title: whatsapp_template.status_changed
+      summary: "The Relay state of a WhatsApp template changed after a Meta status (APPROVED, REJECTED, PAUSED, DISABLED and the others); a rejection carries Meta's reason."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: whatsapp_template.status_changed
+                data:
+                  type: object
+                  required:
+                    - whatsapp_template_id
+                    - name
+                    - language
+                    - previous_status
+                    - status
+                  properties:
+                    whatsapp_template_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_wtp"
+                    name:
+                      type: string
+                      maxLength: 512
+                    language:
+                      type: string
+                      maxLength: 35
+                    previous_status:
+                      type: string
+                      enum:
+                        - pending_approval
+                        - approved
+                        - rejected
+                        - paused
+                        - disabled
+                    status:
+                      type: string
+                      enum:
+                        - pending_approval
+                        - approved
+                        - rejected
+                        - paused
+                        - disabled
+                    meta_status:
+                      oneOf:
+                        - type: string
+                          maxLength: 64
+                        - type: "null"
+                    rejection_reason:
+                      oneOf:
+                        - type: string
+                          maxLength: 512
+                        - type: "null"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The spec sends this event but names neither the event nor its fields."
+    webhook.whatsapp_tier.threshold_reached:
+      name: whatsapp_tier.threshold_reached
+      title: whatsapp_tier.threshold_reached
+      summary: "The unique recipients reached outside a customer service window in the last 24 hours reached the warning share (90 percent) of the business portfolio's messaging limit tier."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: whatsapp_tier.threshold_reached
+                data:
+                  type: object
+                  required:
+                    - portfolio
+                    - count
+                    - limit
+                    - warn_percent
+                  properties:
+                    portfolio:
+                      type: string
+                      maxLength: 32
+                    count:
+                      type: integer
+                      minimum: 0
+                    limit:
+                      type: integer
+                      minimum: 1
+                    warn_percent:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "CH-61 warns the tenant at 90 percent of the tier; the event name and fields are chosen by the contract."
     webhook.webhook.attempt_exhausted:
       name: webhook.attempt_exhausted
       title: webhook.attempt_exhausted
@@ -5141,6 +5395,11 @@ x-relay-event-names:
   - webhook.attempt_exhausted
   - webhook_endpoint.disabled
   - webhook_endpoint.recovered
+  - whatsapp_account.updated
+  - whatsapp_number.paused
+  - whatsapp_template.category_changed
+  - whatsapp_template.status_changed
+  - whatsapp_tier.threshold_reached
   - workflow.created
   - workflow.drafted
   - workflow.promoted

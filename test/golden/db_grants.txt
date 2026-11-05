@@ -386,6 +386,11 @@ table relay.waitpoints relay_report SELECT
 table relay.webhook_receipts relay_archive SELECT
 table relay.webhook_receipts relay_maint SELECT
 table relay.webhook_receipts relay_owner INSERT,SELECT,UPDATE
+table relay.whatsapp_templates relay_app SELECT
+table relay.whatsapp_templates relay_archive SELECT
+table relay.whatsapp_templates relay_maint SELECT
+table relay.whatsapp_templates relay_owner INSERT,SELECT,UPDATE
+table relay.whatsapp_templates relay_report SELECT
 table relay.workflow_versions relay_app SELECT
 table relay.workflow_versions relay_archive SELECT
 table relay.workflow_versions relay_maint SELECT

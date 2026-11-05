@@ -231,7 +231,13 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.recipient_address_disable" => ~w(disabled not_found),
     "relay_fn.device_register" =>
       ~w(created updated reassigned recipient_not_found key_not_found),
-    "relay_fn.device_disable" => ~w(disabled already_disabled reregistered not_found)
+    "relay_fn.device_disable" => ~w(disabled already_disabled reregistered not_found),
+    "relay_fn.whatsapp_template_register" =>
+      ~w(created exists content_conflict account_not_found),
+    "relay_fn.whatsapp_template_status" =>
+      ~w(changed recorded unchanged version_conflict not_found),
+    "relay_fn.whatsapp_template_category" => ~w(drifted aligned unchanged not_found),
+    "relay_fn.whatsapp_template_edit" => ~w(recorded unchanged not_found)
   }
 
   defp functions do

@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "whatsapp_messaging_limits",
+  "description": "The WhatsApp Cloud API limits (CH-61, CH-17, TP-23): the messaging limit tiers, counted as unique recipients reached outside a customer service window in a moving 24 hours at the business portfolio level, with the share at which the tenant is warned and the tier assumed while the portfolio's tier is unknown; the throughput of a business number; the pair limit of one business number and one user; the template management quota of the Graph API; the edit limits of an approved template; and how long a number is unusable during a throughput upgrade. A null tier limit is unlimited.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_ref",
+    "tiers",
+    "default_tier",
+    "warn_bp",
+    "window_ms",
+    "throughput",
+    "pair",
+    "template_api",
+    "template_edits",
+    "upgrade_unavailable_ms"
+  ],
+  "properties": {
+    "source_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "tiers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tier",
+          "limit"
+        ],
+        "properties": {
+          "tier": {
+            "type": "string",
+            "pattern": "^TIER_[0-9A-Z]{1,16}$"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "default_tier": {
+      "type": "string",
+      "pattern": "^TIER_[0-9A-Z]{1,16}$"
+    },
+    "warn_bp": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000
+    },
+    "window_ms": {
+      "type": "integer",
+      "minimum": 60000,
+      "maximum": 86400000
+    },
+    "throughput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default_mps",
+        "upgraded_mps",
+        "coexistence_mps"
+      ],
+      "properties": {
+        "default_mps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "upgraded_mps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "coexistence_mps": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "limit",
+        "per_ms",
+        "burst"
+      ],
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "per_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400000
+        },
+        "burst": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "template_api": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requests",
+        "active_requests",
+        "per_ms"
+      ],
+      "properties": {
+        "requests": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "active_requests": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "per_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400000
+        }
+      }
+    },
+    "template_edits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "per_24h",
+        "per_30d"
+      ],
+      "properties": {
+        "per_24h": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "per_30d": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "upgrade_unavailable_ms": {
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 3600000
+    }
+  }
+}

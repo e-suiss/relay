@@ -4,7 +4,7 @@ defmodule Relay.Channels.Live do
 
     1. The route. On the `test` plane and in `shadow` mode the fake provider answers (X-25, API-62, CH-72); the send mode is the event's own mode (test only), then the tenant's `send_mode.channel.<channel>` and `send_mode` settings, then the installation default. Otherwise only a verified provider account whose adapter is activated takes traffic (`Relay.Channels.routes/4`, CH-14, INV-43); without one the delivery is held with `channel.no_route` and the job comes back later. The circuit breakers pick the first account that may be called; a rejection moves to the next account and, when every one is open, the job waits without counting an attempt (CH-13, T-25).
     2. The target. An address channel reads the recipient's active address; a device channel reads the recipient's permitted devices from `Relay.Devices` (CH-28). A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
-    3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50).
+    3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50). On WhatsApp, `Relay.Channels.Live.Whatsapp.prepare/4` then applies the number's availability, the customer service window, the template's approval and the tier count (CH-57, CH-58, CH-61).
     4. The attempt. It is opened with the provider idempotency key that stays the same across the logical send (INV-13, OP-6 (4)) and marked started in its own transaction before the call (INV-55, CH-10). The credential is read from the secret backend for this call only, so a rotation applies at the next call (TN-26). The call is bounded by the three timeout layers (CH-9).
     5. The outcome is normalized into the eight failure classes (CH-7). A success finishes the attempt. A failure finishes it and plans its retry through the job queue only (T-26, INV-14); a permanent target failure soft disables the address or the device at once (CH-11); a code without a mapping raises `provider.unknown_code` and the alarm (CH-8). An uncertain outcome follows the provider's declared policy (T-28): the status query, a retry with the same key, or none; on a paid channel at most one retry and `delivery.uncertain`.
   """
@@ -18,13 +18,18 @@ defmodule Relay.Channels.Live do
       Relay.Datasets,
       Relay.Devices,
       Relay.Ingest,
+      Relay.Platform,
+      Relay.Preferences,
       Relay.Secrets,
-      Relay.Tenancy
+      Relay.Subscribers,
+      Relay.Tenancy,
+      Relay.Webhooks
     ],
     exports: []
 
   alias Relay.ChannelDeclarations
   alias Relay.Channels.Live.Store
+  alias Relay.Channels.Live.Whatsapp
   alias Relay.Scope
 
   @hold_s 300
@@ -59,6 +64,19 @@ defmodule Relay.Channels.Live do
       {:error, reason} -> {:error, reason}
     end
   end
+
+  # CH-60
+  @doc "Verifies and applies an inbound WhatsApp Cloud API webhook of a provider account; see `Relay.Channels.Live.Whatsapp.inbound/5`."
+  @spec whatsapp_inbound(
+          Scope.t(),
+          map(),
+          Relay.Redacted.t(),
+          binary(),
+          [{String.t(), String.t()}]
+        ) :: {:ok, non_neg_integer()} | {:error, atom()}
+  defdelegate whatsapp_inbound(scope, account, app_secret, body, headers),
+    to: Whatsapp,
+    as: :inbound
 
   # X-25
   # API-62
@@ -209,12 +227,38 @@ defmodule Relay.Channels.Live do
   # TP-50
   defp content(ctx, account, ticket, target) do
     case renderer().prepare(ctx.scope, ctx.delivery["id"]) do
-      {:rendered, content} -> attempt(ctx, account, ticket, target, content)
+      {:rendered, content} -> whatsapp(ctx, account, ticket, target, content)
       :rendered -> attempt(ctx, account, ticket, target, %{})
       {:error, reason} -> {:error, reason}
       _failed_or_done -> :ok
     end
   end
+
+  # CH-57
+  # CH-58
+  # CH-61
+  defp whatsapp(ctx, %{"provider" => "whatsapp_cloud"} = account, ticket, target, content) do
+    to = Relay.Redacted.expose(target.value)
+
+    case Whatsapp.prepare(ctx.scope, account, to, decoded(content)) do
+      {:ok, prepared} -> attempt(ctx, account, ticket, target, prepared)
+      {:skip, rule_id} -> skip(ctx.scope, ctx.delivery["id"], rule_id)
+      {:hold, rule_id, _seconds} -> hold(ctx.scope, ctx.delivery["id"], rule_id)
+    end
+  end
+
+  defp whatsapp(ctx, account, ticket, target, content),
+    do: attempt(ctx, account, ticket, target, content)
+
+  defp decoded(content) when is_binary(content) do
+    case Jason.decode(content) do
+      {:ok, %{} = map} -> map
+      _other -> %{}
+    end
+  end
+
+  defp decoded(content) when is_map(content), do: content
+  defp decoded(_content), do: %{}
 
   # INV-13
   # INV-55

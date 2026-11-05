@@ -55,7 +55,8 @@ defmodule Relay.ExternalId do
     {"ctg", "categories"},
     {"cns", "consents"},
     {"sup", "suppressions"},
-    {"dev", "devices"}
+    {"dev", "devices"},
+    {"wtp", "whatsapp_templates"}
   ]
   @by_prefix Map.new(@tables)
 

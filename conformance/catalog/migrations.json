@@ -109,5 +109,9 @@
   {"file": "20261113000100_create_provider_tables.exs", "sha256": "9ef8ef07201df414087e881e61b383513fd66c75e4f7a828d8b30b602b67512d"},
   {"file": "20261113000200_create_provider_functions.exs", "sha256": "c02b93d457ddcbdfceef9aab6fd98154bef99c4cc41d5aa94d2a22e54293f6e3"},
   {"file": "20261113000300_rebuild_reference_check_for_providers.exs", "sha256": "cc89fa37cb50bc1ef956223a6862e1f6748b01ecba0119ffa3accba885bf0ae2"},
-  {"file": "20261114990000_rebuild_reference_check_for_providers_and_devices.exs", "sha256": "191c02db870e06a20feb9b06dd8a5184817d8969fbc2f3a796684d2c58391ab2"}
+  {"file": "20261114990000_rebuild_reference_check_for_providers_and_devices.exs", "sha256": "191c02db870e06a20feb9b06dd8a5184817d8969fbc2f3a796684d2c58391ab2"},
+  {"file": "20261119000000_create_whatsapp_templates.exs", "sha256": "ace51c6e078ecff774c096d33d059ac7f652906f72535e2d30fd284f4eba1a93"},
+  {"file": "20261119000100_create_whatsapp_template_functions.exs", "sha256": "7829992c5d5c90c65b9d89d07ec02055255f09d86958c9c21c18b4c923089555"},
+  {"file": "20261119000200_rebuild_reference_check_for_whatsapp.exs", "sha256": "1ecb8084ded9934eb65b784760d76cca520ed1236240b706157faf5629302677"},
+  {"file": "20261119000300_register_whatsapp_datasets.exs", "sha256": "1fe8c230bd397b355af2a9182244081fefb28184b0e0a4009082b1a88f87f32a"}
 ]

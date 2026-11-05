@@ -147,6 +147,15 @@ defmodule RelayWeb.Router do
     delete "/devices/by-token", DeviceController, :delete_by_token,
       private: %{relay_operation: "deleteDeviceByToken"}
 
+    get "/whatsapp/templates", WhatsappTemplateController, :index,
+      private: %{relay_operation: "listWhatsappTemplates"}
+
+    post "/whatsapp/templates", WhatsappTemplateController, :create,
+      private: %{relay_operation: "registerWhatsappTemplate"}
+
+    get "/whatsapp/templates/:whatsapp_template_id", WhatsappTemplateController, :show,
+      private: %{relay_operation: "getWhatsappTemplate"}
+
     get "/categories", CategoryController, :index, private: %{relay_operation: "listCategories"}
 
     post "/categories", CategoryController, :create, private: %{relay_operation: "createCategory"}

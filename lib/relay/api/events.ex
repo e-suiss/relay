@@ -23,6 +23,7 @@ defmodule Relay.Api.Events do
            )
   @priorities %{"low" => :low, "normal" => :normal, "high" => :high}
   @no_readings %{global: nil, policy: nil}
+  @domestic "channels.domestic_only"
   @shards 16
 
   @type context :: %{
@@ -63,6 +64,8 @@ defmodule Relay.Api.Events do
              agent: Map.get(ctx, :agent, false)
            }),
          :ok <- event_data(workflow, request.data),
+         :ok <- simulated(scope, request.targets),
+         {:ok, providers} <- overrides(scope, workflow, request, tenant.settings),
          :ok <- platform(class),
          {:ok, recipients} <- recipients(scope, request.targets),
          {:ok, payload} <- payload(scope, request, cloudevent),
@@ -83,6 +86,7 @@ defmodule Relay.Api.Events do
          expires_at: expires_at(request, category, now),
          frequency: frequency(scope, category, recipients, request.steps),
          request: request,
+         providers: providers,
          recipients: recipients,
          payload: payload,
          settings: tenant.settings,
@@ -274,7 +278,9 @@ defmodule Relay.Api.Events do
   # OP-51
   defp tenant_settings(scope, workflow, steps) do
     category = workflow["definition"]["category"]
-    keys = Enum.uniq(Enum.flat_map(steps, &Relay.Ingest.send_mode_keys(category, &1.channel)))
+    modes = Enum.flat_map(steps, &Relay.Ingest.send_mode_keys(category, &1.channel))
+    providers = Enum.map(steps, &"overrides.#{&1.channel}.provider")
+    keys = Enum.uniq([@domestic | modes ++ providers])
 
     read = fn _status -> %{settings: Relay.Ingest.settings(keys)} end
 
@@ -284,6 +290,92 @@ defmodule Relay.Api.Events do
     else
       {:error, _reason} -> {:error, unavailable("the send mode could not be read")}
     end
+  end
+
+  # CH-72
+  # X-25
+  defp simulated(%Scope{environment: :live}, targets) do
+    found =
+      for {{:implicit, _id, details}, index} <- Enum.with_index(targets),
+          {field, channel} <- [{"email", "email"}, {"phone", "sms"}],
+          value = details[field],
+          is_binary(value),
+          Relay.Channels.simulated_address?(channel, value),
+          do: "/to/#{index}/#{field}"
+
+    case found do
+      [] ->
+        :ok
+
+      [pointer | _] ->
+        message = "a simulated address is accepted only in test (#{pointer})"
+        {:error, Relay.Error.new(:recipient_invalid, message)}
+    end
+  end
+
+  defp simulated(_scope, _targets), do: :ok
+
+  # API-23
+  # CH-6
+  # TN-58
+  defp overrides(scope, workflow, request, settings) do
+    definition = workflow["definition"]
+    tenant = tenant_overrides(settings)
+
+    providers =
+      for step <- request.steps,
+          provider = provider(request.overrides, definition, step, tenant),
+          into: %{},
+          do: {step.key, {step.channel, provider}}
+
+    pairs = providers |> Map.values() |> Enum.uniq()
+    from = get_in(request.overrides, ["email", "from"])
+    policy = %{domestic_country: settings[@domestic]}
+
+    with {:ok, :ok} <- check_overrides(scope, pairs, from, policy) do
+      {:ok, Map.new(providers, fn {key, {_channel, provider}} -> {key, provider} end)}
+    else
+      {:ok, {:not_configured, channel, :provider}} ->
+        message = "no verified provider account of the requested provider on #{channel}"
+        {:error, Relay.Error.new(:channel_not_configured, message)}
+
+      {:ok, {:not_configured, _channel, :from}} ->
+        message = "the sender address is not on a verified domain"
+        {:error, Relay.Error.new(:channel_not_configured, message)}
+
+      {:error, %Relay.Error{} = error} ->
+        {:error, error}
+
+      {:error, _reason} ->
+        {:error, unavailable("the provider routes could not be read")}
+    end
+  end
+
+  defp check_overrides(_scope, [], nil, _policy), do: {:ok, :ok}
+
+  defp check_overrides(scope, pairs, from, policy) do
+    case Relay.Datasets.channel_declarations() do
+      {:ok, declarations} ->
+        Relay.Channels.check_overrides(scope, pairs, from, declarations, policy)
+
+      {:error, _error} ->
+        {:error, unavailable("the channel declarations could not be read")}
+    end
+  end
+
+  defp provider(requested, definition, step, tenant) do
+    steps = Map.get(definition, "steps", [])
+    own = Enum.find_value(steps, &(is_map(&1) and &1["key"] == step.key and &1["overrides"]))
+    levels = [requested, own, definition["overrides"], tenant]
+    Relay.Channels.requested_provider(levels, step.channel)
+  end
+
+  defp tenant_overrides(settings) do
+    for {"overrides." <> rest, provider} <- settings,
+        is_binary(provider),
+        [channel, "provider"] <- [String.split(rest, ".")],
+        into: %{},
+        do: {channel, %{"provider" => provider}}
   end
 
   # API-25
@@ -700,6 +792,7 @@ defmodule Relay.Api.Events do
       decision_reason: nil,
       decision_rule_id: nil,
       deferred_until: nil,
+      provider: Map.get(p.providers, step.key),
       traceparent: p.traceparent
     }
 

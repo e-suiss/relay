@@ -122,4 +122,35 @@ defmodule Relay.Channels.Routing do
   @spec override_allowed?([account()], String.t()) :: boolean()
   def override_allowed?(routable, provider),
     do: Enum.any?(routable, &(&1["provider"] == provider))
+
+  # API-23
+  # C-25
+  @doc "Returns true when an `overrides.email.from` address lies on a verified sender identity: an approved, unsuspended `email_domain` equal to its domain or an `email_address` equal to it, compared without case."
+  @spec from_allowed?([map()], String.t()) :: boolean()
+  def from_allowed?(senders, from) do
+    address = String.downcase(from)
+
+    case String.split(address, "@") do
+      [_local, domain] -> Enum.any?(senders, &sender_covers?(&1, address, domain))
+      _other -> false
+    end
+  end
+
+  defp sender_covers?(%{"kind" => "email_address", "value" => value}, address, _domain),
+    do: String.downcase(value) == address
+
+  defp sender_covers?(%{"kind" => "email_domain", "value" => value}, _address, domain),
+    do: String.downcase(value) == domain
+
+  defp sender_covers?(_sender, _address, _domain), do: false
+
+  # API-23
+  @doc "The provider a step is narrowed to, by the one-way precedence request > step > workflow > tenant default; each level is a channel-keyed overrides map and the first that names `provider` for the channel wins."
+  @spec requested_provider([map() | nil], String.t()) :: String.t() | nil
+  def requested_provider(levels, channel) do
+    Enum.find_value(levels, fn
+      %{^channel => %{"provider" => provider}} when is_binary(provider) -> provider
+      _level -> nil
+    end)
+  end
 end

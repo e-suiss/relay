@@ -277,12 +277,60 @@ defmodule Relay.Channels do
           result({[Routing.account()], [Routing.excluded()]})
   def routes(scope, channel, %ChannelDeclarations{} = declarations, policy) do
     Store.in_scope(scope, fn _status ->
-      accounts = Store.accounts(channel)
-      ids = Enum.map(accounts, & &1["id"])
-      senders = Enum.group_by(Store.senders(ids), & &1["provider_account_id"])
-      activated? = &match?({:ok, _adapter}, Registry.activated(declarations, &1))
-      Routing.route(accounts, senders, activated?, declarations, policy)
+      {route, _senders} = route_here(channel, declarations, policy)
+      route
     end)
+  end
+
+  # API-23
+  # CH-14
+  # CH-6
+  @doc "Checks the channel overrides of a send request against the verified routes of the scope: `overrides.<channel>.provider` names a provider with a verified, routable account of that channel, and `overrides.email.from` lies on a verified sender domain or address of a routable email account. Returns the first failing channel and field."
+  @spec check_overrides(
+          Relay.Scope.t(),
+          [{String.t(), String.t()}],
+          String.t() | nil,
+          ChannelDeclarations.t(),
+          Routing.policy()
+        ) :: result(:ok | {:not_configured, String.t(), :provider | :from})
+  def check_overrides(scope, providers, from, %ChannelDeclarations{} = declarations, policy) do
+    Store.in_scope(scope, fn _status ->
+      missing =
+        Enum.find(providers, fn {channel, provider} ->
+          {{usable, _excluded}, _senders} =
+            route_here(channel, declarations, Map.put(policy, :provider, provider))
+
+          not Routing.override_allowed?(usable, provider)
+        end)
+
+      case {missing, from} do
+        {{channel, _provider}, _from} -> {:not_configured, channel, :provider}
+        {nil, nil} -> :ok
+        {nil, from} -> from_check(from, declarations, policy)
+      end
+    end)
+  end
+
+  defp from_check(from, declarations, policy) do
+    {{usable, _excluded}, senders} = route_here("email", declarations, policy)
+
+    ids = MapSet.new(usable, & &1["id"])
+    own = Enum.filter(senders, &MapSet.member?(ids, &1["provider_account_id"]))
+
+    if Routing.from_allowed?(own, from), do: :ok, else: {:not_configured, "email", :from}
+  end
+
+  # API-23
+  @doc "The provider a step is narrowed to; see `Relay.Channels.Routing.requested_provider/2`."
+  @spec requested_provider([map() | nil], String.t()) :: String.t() | nil
+  defdelegate requested_provider(levels, channel), to: Routing
+
+  defp route_here(channel, declarations, policy) do
+    accounts = Store.accounts(channel)
+    senders = Store.senders(Enum.map(accounts, & &1["id"]))
+    grouped = Enum.group_by(senders, & &1["provider_account_id"])
+    activated? = &match?({:ok, _adapter}, Registry.activated(declarations, &1))
+    {Routing.route(accounts, grouped, activated?, declarations, policy), senders}
   end
 
   # CH-11

@@ -11,19 +11,22 @@ defmodule Relay.Channels.Live.Store do
   def in_scope(scope, fun), do: Repo.in_scope(scope, fun)
 
   # T-15
-  @doc "Reads what the channel step needs of a delivery: its channel, target kind, recipient, class, `expires_at`, test flag and the requested send mode of its event; `nil` when there is no such delivery."
+  @doc "Reads what the channel step needs of a delivery: its channel, target kind, recipient, requested provider, class, `expires_at`, test flag, the requested send mode of its event and its workflow's category; `nil` when there is no such delivery."
   @spec delivery(Relay.Id.t()) :: map() | nil
   def delivery(delivery_id) do
     one(
       """
       SELECT d.tenant_id, d.environment, d.id, d.channel::text AS channel, d.target_kind,
         d.recipient_id, d.provider, d.provider_account_id, d.traceparent, d.attempt_count,
-        n.message_class::text AS message_class, n.expires_at, n.is_test, e.send_mode::text AS send_mode
+        n.message_class::text AS message_class, n.expires_at, n.is_test, e.send_mode::text AS send_mode,
+        v.definition->>'category' AS category
       FROM relay.deliveries d
       JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
         AND n.id = d.notification_id
       LEFT JOIN relay.events e ON e.tenant_id = n.tenant_id AND e.environment = n.environment
         AND e.id = n.event_id
+      LEFT JOIN relay.workflow_versions v ON v.tenant_id = e.tenant_id
+        AND v.environment = e.environment AND v.id = e.workflow_version_id
       WHERE d.id = $1
       """,
       [delivery_id]

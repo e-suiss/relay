@@ -21,7 +21,8 @@ defmodule Relay.Api do
       Relay.Templates,
       Relay.TemplateStore,
       Relay.Datasets,
-      Relay.Templates.Live
+      Relay.Templates.Live,
+      Relay.Channels
     ],
     exports: [
       Contract,

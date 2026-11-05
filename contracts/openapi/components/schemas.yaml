@@ -2730,6 +2730,59 @@ VirtualClock:
     business_now:
       "$ref": "#/Timestamp"
   additionalProperties: false
+SimulatedResult:
+  type: object
+  description: "One result of the fake provider with the addresses that produce it on each kind of target."
+  required:
+    - object
+    - result
+    - email
+    - phone
+    - token
+    - description
+  properties:
+    object:
+      type: string
+      const: simulated_result
+    result:
+      type: string
+      enum:
+        - delivered
+        - sent_only
+        - delayed_delivery
+        - hard_bounce
+        - soft_bounce
+        - complaint
+        - not_delivered
+        - unregistered
+        - rate_limited
+        - transient_error
+        - timeout
+        - auth_error
+        - sender_config_error
+        - content_rejected
+        - unknown_code
+    email:
+      type: string
+      description: "The email address <result>@sim.relay.test."
+    phone:
+      type: string
+      description: "The E.164 number +9905550000NN."
+      pattern: "^\\+9905550000[0-9]{2}$"
+    token:
+      type: string
+      description: "The push, Web Push, WhatsApp or messaging target sim:<result>."
+    description:
+      type: string
+  additionalProperties: false
+SimulatedResultList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/SimulatedResult"
 VirtualClockAdvance:
   type: object
   required:

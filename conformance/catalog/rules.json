@@ -2899,7 +2899,7 @@
     "acceptance": "pending",
     "id": "E-81",
     "section": "§7",
-    "status": "frozen_product",
+    "status": "frozen_technical",
     "title": "",
     "verify_stage": 5
   },
@@ -2907,7 +2907,7 @@
     "acceptance": "pending",
     "id": "E-82",
     "section": "§7",
-    "status": "frozen_product",
+    "status": "frozen_technical",
     "title": "",
     "verify_stage": 12
   },
@@ -2915,7 +2915,7 @@
     "acceptance": "pending",
     "id": "E-83",
     "section": "§7",
-    "status": "frozen_product",
+    "status": "frozen_technical",
     "title": "",
     "verify_stage": null
   },
@@ -2923,7 +2923,7 @@
     "acceptance": "pending",
     "id": "E-84",
     "section": "§7",
-    "status": "frozen_product",
+    "status": "frozen_technical",
     "title": "",
     "verify_stage": 7
   },
@@ -2931,7 +2931,7 @@
     "acceptance": "pending",
     "id": "E-85",
     "section": "§7",
-    "status": "frozen_product",
+    "status": "frozen_technical",
     "title": "",
     "verify_stage": 7
   },
@@ -2939,7 +2939,7 @@
     "acceptance": "pending",
     "id": "E-86",
     "section": "§7",
-    "status": "frozen_product",
+    "status": "frozen_technical",
     "title": "",
     "verify_stage": 12
   },
@@ -2947,7 +2947,7 @@
     "acceptance": "pending",
     "id": "E-87",
     "section": "§7",
-    "status": "frozen_product",
+    "status": "frozen_technical",
     "title": "",
     "verify_stage": 10
   },
@@ -2955,7 +2955,7 @@
     "acceptance": "pending",
     "id": "E-88",
     "section": "§7",
-    "status": "frozen_product",
+    "status": "frozen_technical",
     "title": "",
     "verify_stage": 10
   },
@@ -2963,9 +2963,17 @@
     "acceptance": "pending",
     "id": "E-89",
     "section": "§7",
-    "status": "frozen_product",
+    "status": "frozen_technical",
     "title": "",
     "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-90",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 5
   },
   {
     "acceptance": "pending",

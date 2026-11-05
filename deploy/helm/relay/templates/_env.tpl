@@ -23,6 +23,8 @@
   value: {{ .Values.host | quote }}
 - name: RELAY_ACCESS_ISSUER
   value: {{ required "access.issuer is required" .Values.access.issuer | quote }}
+- name: RELAY_ACCESS_CLIENT_ID
+  value: {{ required "access.clientId is required" .Values.access.clientId | quote }}
 - name: PORT
   value: "4000"
 - name: METRICS_PORT

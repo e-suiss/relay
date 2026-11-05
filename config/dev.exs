@@ -30,6 +30,7 @@ config :relay, Relay.NetworkGuard, enabled: true
 
 config :relay, Relay.Access,
   issuer: "https://access.localhost",
+  client_id: "app_relay_dev",
   http: [plug: {RelayDev.Access, []}]
 
 config :relay, Relay.Audit,

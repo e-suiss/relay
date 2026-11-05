@@ -324,9 +324,11 @@ defmodule Relay.Datasets.StoreTest do
                Datasets.load_package(Package.root(), TenantFixture.actor())
 
       assert activation in [:activated, :unchanged, :operator_pinned]
+      scope = Datasets.installation_scope()
+      :ok = Datasets.Cache.invalidate(Datasets.Cache, {scope, "retention_periods"})
 
       assert {:ok, %Version{content: %{"periods" => [_ | _]}}} =
-               Datasets.active(Datasets.installation_scope(), "retention_periods")
+               Datasets.active(scope, "retention_periods")
     end
 
     test "OP-71: the newest bundled retention periods version is the active one" do
@@ -335,6 +337,7 @@ defmodule Relay.Datasets.StoreTest do
 
       v2 = "priv/datasets/retention_periods/v2.json" |> File.read!() |> Jason.decode!()
       scope = Datasets.installation_scope()
+      :ok = Datasets.Cache.invalidate(Datasets.Cache, {scope, "retention_periods"})
 
       case activation do
         :activated ->

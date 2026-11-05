@@ -27,7 +27,7 @@ defmodule RelayWeb.Api.DiscoveryTest do
       assert get_resp_header(conn, "cache-control") == ["public, max-age=300"]
     end
 
-    test "E-81: issuer, API base, region, Access issuer and versions come from the installation" do
+    test "E-81, E-90: issuer, API base, region, Access link and versions are the installation's" do
       {_conn, document} = get_document("/.well-known/relay-configuration")
       issuer = String.trim_trailing(Response.base_url(), "/")
       versions = Contract.api_versions()
@@ -38,6 +38,7 @@ defmodule RelayWeb.Api.DiscoveryTest do
       assert document["region"] == Relay.Datasets.installation_region()
       assert document["region"] in ["tr", "eu", "us"]
       assert document["access_issuer"] == Relay.Access.issuer()
+      assert document["access_client_id"] == Relay.Access.client_id()
       assert document["contract_version"] == versions.latest
       assert document["contract_versions_supported"] == versions.supported
     end

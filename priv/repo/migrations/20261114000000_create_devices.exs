@@ -24,7 +24,9 @@ defmodule Relay.Repo.Migrations.CreateDevices do
       platform text NOT NULL
         CONSTRAINT devices_platform_check
           CHECK (platform IN ('apns', 'fcm', 'hms', 'web_push', 'unified_push')),
-      app text NOT NULL CONSTRAINT devices_app_check CHECK (app ~ '^[A-Za-z0-9._:/-]{1,256}$'),
+      app text NOT NULL
+        CONSTRAINT devices_app_check
+          CHECK (char_length(app) BETWEEN 1 AND 256 AND app ~ '^[A-Za-z0-9._:/-]+$'),
       token_ct bytea NOT NULL,
       token_key_id uuid NOT NULL,
       token_bidx bytea CONSTRAINT devices_token_bidx_check CHECK (octet_length(token_bidx) = 32),

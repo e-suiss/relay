@@ -1,0 +1,309 @@
+{
+  "provider": "fcm",
+  "vectors": [
+    {
+      "rule": "fcm.error_code.UNSPECIFIED_ERROR",
+      "response": {
+        "status": 500,
+        "body": {
+          "error": {
+            "code": 500,
+            "status": "INTERNAL",
+            "message": "vector",
+            "details": [
+              {
+                "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+                "errorCode": "UNSPECIFIED_ERROR"
+              }
+            ]
+          }
+        }
+      },
+      "class": "unknown"
+    },
+    {
+      "rule": "fcm.error_code.INVALID_ARGUMENT",
+      "response": {
+        "status": 400,
+        "body": {
+          "error": {
+            "code": 400,
+            "status": "INVALID_ARGUMENT",
+            "message": "vector",
+            "details": [
+              {
+                "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+                "errorCode": "INVALID_ARGUMENT"
+              }
+            ]
+          }
+        }
+      },
+      "class": "permanent_content"
+    },
+    {
+      "rule": "fcm.error_code.UNREGISTERED",
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "code": 404,
+            "status": "NOT_FOUND",
+            "message": "vector",
+            "details": [
+              {
+                "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+                "errorCode": "UNREGISTERED"
+              }
+            ]
+          }
+        }
+      },
+      "class": "permanent_target"
+    },
+    {
+      "rule": "fcm.error_code.SENDER_ID_MISMATCH",
+      "response": {
+        "status": 403,
+        "body": {
+          "error": {
+            "code": 403,
+            "status": "PERMISSION_DENIED",
+            "message": "vector",
+            "details": [
+              {
+                "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+                "errorCode": "SENDER_ID_MISMATCH"
+              }
+            ]
+          }
+        }
+      },
+      "class": "permanent_target"
+    },
+    {
+      "rule": "fcm.error_code.QUOTA_EXCEEDED",
+      "response": {
+        "status": 429,
+        "body": {
+          "error": {
+            "code": 429,
+            "status": "RESOURCE_EXHAUSTED",
+            "message": "vector",
+            "details": [
+              {
+                "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+                "errorCode": "QUOTA_EXCEEDED"
+              }
+            ]
+          }
+        }
+      },
+      "class": "quota"
+    },
+    {
+      "rule": "fcm.error_code.UNAVAILABLE",
+      "response": {
+        "status": 503,
+        "body": {
+          "error": {
+            "code": 503,
+            "status": "UNAVAILABLE",
+            "message": "vector",
+            "details": [
+              {
+                "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+                "errorCode": "UNAVAILABLE"
+              }
+            ]
+          }
+        }
+      },
+      "class": "transient"
+    },
+    {
+      "rule": "fcm.error_code.INTERNAL",
+      "response": {
+        "status": 500,
+        "body": {
+          "error": {
+            "code": 500,
+            "status": "INTERNAL",
+            "message": "vector",
+            "details": [
+              {
+                "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+                "errorCode": "INTERNAL"
+              }
+            ]
+          }
+        }
+      },
+      "class": "transient"
+    },
+    {
+      "rule": "fcm.error_code.THIRD_PARTY_AUTH_ERROR",
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "code": 401,
+            "status": "UNAUTHENTICATED",
+            "message": "vector",
+            "details": [
+              {
+                "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+                "errorCode": "THIRD_PARTY_AUTH_ERROR"
+              }
+            ]
+          }
+        }
+      },
+      "class": "auth"
+    },
+    {
+      "rule": "fcm.status.INVALID_ARGUMENT",
+      "response": {
+        "status": 400,
+        "body": {
+          "error": {
+            "code": 400,
+            "status": "INVALID_ARGUMENT",
+            "message": "vector"
+          }
+        }
+      },
+      "class": "permanent_content"
+    },
+    {
+      "rule": "fcm.status.UNAUTHENTICATED",
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "code": 401,
+            "status": "UNAUTHENTICATED",
+            "message": "vector"
+          }
+        }
+      },
+      "class": "auth"
+    },
+    {
+      "rule": "fcm.status.PERMISSION_DENIED",
+      "response": {
+        "status": 403,
+        "body": {
+          "error": {
+            "code": 403,
+            "status": "PERMISSION_DENIED",
+            "message": "vector"
+          }
+        }
+      },
+      "class": "auth"
+    },
+    {
+      "rule": "fcm.status.RESOURCE_EXHAUSTED",
+      "response": {
+        "status": 429,
+        "body": {
+          "error": {
+            "code": 429,
+            "status": "RESOURCE_EXHAUSTED",
+            "message": "vector"
+          }
+        }
+      },
+      "class": "quota"
+    },
+    {
+      "rule": "fcm.status.INTERNAL",
+      "response": {
+        "status": 500,
+        "body": {
+          "error": {
+            "code": 500,
+            "status": "INTERNAL",
+            "message": "vector"
+          }
+        }
+      },
+      "class": "transient"
+    },
+    {
+      "rule": "fcm.status.UNAVAILABLE",
+      "response": {
+        "status": 503,
+        "body": {
+          "error": {
+            "code": 503,
+            "status": "UNAVAILABLE",
+            "message": "vector"
+          }
+        }
+      },
+      "class": "transient"
+    },
+    {
+      "rule": "fcm.http.500",
+      "response": {
+        "status": 500,
+        "body": "<html>Bad Gateway</html>"
+      },
+      "class": "transient"
+    },
+    {
+      "rule": "fcm.http.502",
+      "response": {
+        "status": 502,
+        "body": "<html>Bad Gateway</html>"
+      },
+      "class": "transient"
+    },
+    {
+      "rule": "fcm.http.503",
+      "response": {
+        "status": 503,
+        "body": "<html>Bad Gateway</html>"
+      },
+      "class": "transient"
+    },
+    {
+      "rule": "fcm.http.504",
+      "response": {
+        "status": 504,
+        "body": "<html>Bad Gateway</html>"
+      },
+      "class": "transient"
+    },
+    {
+      "rule": null,
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "code": 404,
+            "status": "NOT_FOUND",
+            "message": "vector"
+          }
+        }
+      },
+      "class": "unknown"
+    },
+    {
+      "rule": null,
+      "response": {
+        "status": 400,
+        "body": {
+          "error": {
+            "code": 400,
+            "status": "FAILED_PRECONDITION",
+            "message": "vector"
+          }
+        }
+      },
+      "class": "unknown"
+    }
+  ]
+}

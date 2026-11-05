@@ -1,0 +1,229 @@
+{
+  "provider": "apns",
+  "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns",
+  "compiled_at": "2026-11-05",
+  "rules": [
+    {
+      "id": "apns.400.BadCollapseId",
+      "status": 400,
+      "reason": "BadCollapseId",
+      "class": "permanent_content"
+    },
+    {
+      "id": "apns.400.BadDeviceToken",
+      "status": 400,
+      "reason": "BadDeviceToken",
+      "class": "permanent_target"
+    },
+    {
+      "id": "apns.400.BadExpirationDate",
+      "status": 400,
+      "reason": "BadExpirationDate",
+      "class": "permanent_content"
+    },
+    {
+      "id": "apns.400.BadMessageId",
+      "status": 400,
+      "reason": "BadMessageId",
+      "class": "permanent_content"
+    },
+    {
+      "id": "apns.400.BadPriority",
+      "status": 400,
+      "reason": "BadPriority",
+      "class": "permanent_content"
+    },
+    {
+      "id": "apns.400.BadTopic",
+      "status": 400,
+      "reason": "BadTopic",
+      "class": "sender_config"
+    },
+    {
+      "id": "apns.400.DeviceTokenNotForTopic",
+      "status": 400,
+      "reason": "DeviceTokenNotForTopic",
+      "class": "permanent_target"
+    },
+    {
+      "id": "apns.400.DuplicateHeaders",
+      "status": 400,
+      "reason": "DuplicateHeaders",
+      "class": "permanent_content"
+    },
+    {
+      "id": "apns.400.IdleTimeout",
+      "status": 400,
+      "reason": "IdleTimeout",
+      "class": "transient"
+    },
+    {
+      "id": "apns.400.InvalidPushType",
+      "status": 400,
+      "reason": "InvalidPushType",
+      "class": "permanent_content"
+    },
+    {
+      "id": "apns.400.MissingDeviceToken",
+      "status": 400,
+      "reason": "MissingDeviceToken",
+      "class": "permanent_content"
+    },
+    {
+      "id": "apns.400.MissingTopic",
+      "status": 400,
+      "reason": "MissingTopic",
+      "class": "sender_config"
+    },
+    {
+      "id": "apns.400.PayloadEmpty",
+      "status": 400,
+      "reason": "PayloadEmpty",
+      "class": "permanent_content"
+    },
+    {
+      "id": "apns.400.TopicDisallowed",
+      "status": 400,
+      "reason": "TopicDisallowed",
+      "class": "sender_config"
+    },
+    {
+      "id": "apns.403.BadCertificate",
+      "status": 403,
+      "reason": "BadCertificate",
+      "class": "auth"
+    },
+    {
+      "id": "apns.403.BadCertificateEnvironment",
+      "status": 403,
+      "reason": "BadCertificateEnvironment",
+      "class": "auth"
+    },
+    {
+      "id": "apns.403.ExpiredProviderToken",
+      "status": 403,
+      "reason": "ExpiredProviderToken",
+      "class": "auth"
+    },
+    {
+      "id": "apns.403.Forbidden",
+      "status": 403,
+      "reason": "Forbidden",
+      "class": "auth"
+    },
+    {
+      "id": "apns.403.InvalidProviderToken",
+      "status": 403,
+      "reason": "InvalidProviderToken",
+      "class": "auth"
+    },
+    {
+      "id": "apns.403.MissingProviderToken",
+      "status": 403,
+      "reason": "MissingProviderToken",
+      "class": "auth"
+    },
+    {
+      "id": "apns.403.UnrelatedKeyIdInToken",
+      "status": 403,
+      "reason": "UnrelatedKeyIdInToken",
+      "class": "auth"
+    },
+    {
+      "id": "apns.403.BadEnvironmentKeyInToken",
+      "status": 403,
+      "reason": "BadEnvironmentKeyInToken",
+      "class": "auth"
+    },
+    {
+      "id": "apns.404.BadPath",
+      "status": 404,
+      "reason": "BadPath",
+      "class": "permanent_content"
+    },
+    {
+      "id": "apns.405.MethodNotAllowed",
+      "status": 405,
+      "reason": "MethodNotAllowed",
+      "class": "permanent_content"
+    },
+    {
+      "id": "apns.410.ExpiredToken",
+      "status": 410,
+      "reason": "ExpiredToken",
+      "class": "permanent_target"
+    },
+    {
+      "id": "apns.410.Unregistered",
+      "status": 410,
+      "reason": "Unregistered",
+      "class": "permanent_target"
+    },
+    {
+      "id": "apns.413.PayloadTooLarge",
+      "status": 413,
+      "reason": "PayloadTooLarge",
+      "class": "permanent_content"
+    },
+    {
+      "id": "apns.429.TooManyProviderTokenUpdates",
+      "status": 429,
+      "reason": "TooManyProviderTokenUpdates",
+      "class": "transient"
+    },
+    {
+      "id": "apns.429.TooManyRequests",
+      "status": 429,
+      "reason": "TooManyRequests",
+      "class": "transient"
+    },
+    {
+      "id": "apns.500.InternalServerError",
+      "status": 500,
+      "reason": "InternalServerError",
+      "class": "transient"
+    },
+    {
+      "id": "apns.503.ServiceUnavailable",
+      "status": 503,
+      "reason": "ServiceUnavailable",
+      "class": "transient"
+    },
+    {
+      "id": "apns.503.Shutdown",
+      "status": 503,
+      "reason": "Shutdown",
+      "class": "transient"
+    },
+    {
+      "id": "apns.429.any",
+      "status": 429,
+      "reason": null,
+      "class": "transient"
+    },
+    {
+      "id": "apns.500.any",
+      "status": 500,
+      "reason": null,
+      "class": "transient"
+    },
+    {
+      "id": "apns.502.any",
+      "status": 502,
+      "reason": null,
+      "class": "transient"
+    },
+    {
+      "id": "apns.503.any",
+      "status": 503,
+      "reason": null,
+      "class": "transient"
+    },
+    {
+      "id": "apns.504.any",
+      "status": 504,
+      "reason": null,
+      "class": "transient"
+    }
+  ]
+}

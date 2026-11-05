@@ -1,0 +1,119 @@
+{
+  "source_ref": "Relay spec §12.4.2, §12.4.5, §12.5.4; CH-19, CH-23, CH-27, CH-65, CH-78; cells derived from Apple, Firebase, Huawei and W3C Push API documentation, not yet measured",
+  "classes": [
+    {
+      "message_class": "security",
+      "priority_ceiling": "high",
+      "interruption_ceiling": "time-sensitive",
+      "priorities": {
+        "low": {"apns_priority": 5, "interruption_level": "time-sensitive", "fcm_priority": "normal"},
+        "normal": {"apns_priority": 10, "interruption_level": "time-sensitive", "fcm_priority": "high"},
+        "high": {"apns_priority": 10, "interruption_level": "time-sensitive", "fcm_priority": "high"}
+      },
+      "apns_push_type": "alert",
+      "web_push_urgency": "high",
+      "android_importance": "HIGH",
+      "hms_classification": "service_communication",
+      "hms_importance": "NORMAL",
+      "fcm_collapse_key": "relay.security",
+      "measured_at": null
+    },
+    {
+      "message_class": "action_required",
+      "priority_ceiling": "high",
+      "interruption_ceiling": "time-sensitive",
+      "priorities": {
+        "low": {"apns_priority": 5, "interruption_level": "time-sensitive", "fcm_priority": "normal"},
+        "normal": {"apns_priority": 10, "interruption_level": "time-sensitive", "fcm_priority": "high"},
+        "high": {"apns_priority": 10, "interruption_level": "time-sensitive", "fcm_priority": "high"}
+      },
+      "apns_push_type": "alert",
+      "web_push_urgency": "high",
+      "android_importance": "HIGH",
+      "hms_classification": "service_communication",
+      "hms_importance": "NORMAL",
+      "fcm_collapse_key": "relay.action_required",
+      "measured_at": null
+    },
+    {
+      "message_class": "transactional",
+      "priority_ceiling": "high",
+      "interruption_ceiling": "active",
+      "priorities": {
+        "low": {"apns_priority": 5, "interruption_level": "active", "fcm_priority": "normal"},
+        "normal": {"apns_priority": 10, "interruption_level": "active", "fcm_priority": "normal"},
+        "high": {"apns_priority": 10, "interruption_level": "active", "fcm_priority": "high"}
+      },
+      "apns_push_type": "alert",
+      "web_push_urgency": "normal",
+      "android_importance": "DEFAULT",
+      "hms_classification": "service_communication",
+      "hms_importance": "NORMAL",
+      "fcm_collapse_key": "relay.transactional",
+      "measured_at": null
+    },
+    {
+      "message_class": "operational",
+      "priority_ceiling": "normal",
+      "interruption_ceiling": "active",
+      "priorities": {
+        "low": {"apns_priority": 5, "interruption_level": "active", "fcm_priority": "normal"},
+        "normal": {"apns_priority": 10, "interruption_level": "active", "fcm_priority": "normal"}
+      },
+      "apns_push_type": "alert",
+      "web_push_urgency": "normal",
+      "android_importance": "DEFAULT",
+      "hms_classification": "service_communication",
+      "hms_importance": "NORMAL",
+      "fcm_collapse_key": "relay.operational",
+      "measured_at": null
+    },
+    {
+      "message_class": "social",
+      "priority_ceiling": "normal",
+      "interruption_ceiling": "active",
+      "priorities": {
+        "low": {"apns_priority": 5, "interruption_level": "passive", "fcm_priority": "normal"},
+        "normal": {"apns_priority": 5, "interruption_level": "active", "fcm_priority": "normal"}
+      },
+      "apns_push_type": "alert",
+      "web_push_urgency": "low",
+      "android_importance": "LOW",
+      "hms_classification": "information_marketing",
+      "hms_importance": "LOW",
+      "fcm_collapse_key": "relay.social",
+      "measured_at": null
+    },
+    {
+      "message_class": "marketing",
+      "priority_ceiling": "normal",
+      "interruption_ceiling": "passive",
+      "priorities": {
+        "low": {"apns_priority": 5, "interruption_level": "passive", "fcm_priority": "normal"},
+        "normal": {"apns_priority": 5, "interruption_level": "passive", "fcm_priority": "normal"}
+      },
+      "apns_push_type": "alert",
+      "web_push_urgency": "low",
+      "android_importance": "LOW",
+      "hms_classification": "information_marketing",
+      "hms_importance": "LOW",
+      "fcm_collapse_key": "relay.marketing",
+      "measured_at": null
+    },
+    {
+      "message_class": "system",
+      "priority_ceiling": "low",
+      "interruption_ceiling": null,
+      "priorities": {
+        "low": {"apns_priority": 5, "interruption_level": null, "fcm_priority": "normal"}
+      },
+      "apns_push_type": "background",
+      "web_push_urgency": null,
+      "android_importance": null,
+      "hms_classification": null,
+      "hms_importance": null,
+      "fcm_collapse_key": "relay.system",
+      "measured_at": null
+    }
+  ]
+}

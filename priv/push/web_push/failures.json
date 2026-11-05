@@ -1,0 +1,62 @@
+{
+  "provider": "web_push",
+  "source": "https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292",
+  "compiled_at": "2026-11-05",
+  "rules": [
+    {
+      "id": "web_push.400",
+      "status": 400,
+      "class": "permanent_content"
+    },
+    {
+      "id": "web_push.401",
+      "status": 401,
+      "class": "auth"
+    },
+    {
+      "id": "web_push.403",
+      "status": 403,
+      "class": "auth"
+    },
+    {
+      "id": "web_push.404",
+      "status": 404,
+      "class": "permanent_target"
+    },
+    {
+      "id": "web_push.410",
+      "status": 410,
+      "class": "permanent_target"
+    },
+    {
+      "id": "web_push.413",
+      "status": 413,
+      "class": "permanent_content"
+    },
+    {
+      "id": "web_push.429",
+      "status": 429,
+      "class": "transient"
+    },
+    {
+      "id": "web_push.500",
+      "status": 500,
+      "class": "transient"
+    },
+    {
+      "id": "web_push.502",
+      "status": 502,
+      "class": "transient"
+    },
+    {
+      "id": "web_push.503",
+      "status": 503,
+      "class": "transient"
+    },
+    {
+      "id": "web_push.504",
+      "status": 504,
+      "class": "transient"
+    }
+  ]
+}

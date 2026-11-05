@@ -1,0 +1,280 @@
+defmodule Relay.Channels.Email do
+  @moduledoc """
+  The outgoing e-mail of a delivery, built once for every e-mail adapter so the SMTP adapter and the ESP adapters carry the same sender, header fields, return path and signature (CH-34, CH-35, CH-38, CH-43, CH-44, CH-45, CH-76).
+
+    * The sender identity is the stream configuration of the provider account (`Relay.Channels.Email.Streams`): the request's `sender` when the route gives one, otherwise the account's `settings`, read by the message class and the content's optional `"category"`. The `system` class has no e-mail stream.
+    * The header fields are those of `Relay.Channels.Email.Headers`: `Feedback-ID` (`<campaign>:<category>:<tenant>:<sender>`) on every e-mail, and on a bulk one `List-Unsubscribe` and `List-Unsubscribe-Post` from the content's `"unsubscribe"` (`"https"` and `"mailto"`); a bulk e-mail without them is refused.
+    * The envelope sender is the VERP return path of the delivery under the stream's return path domain (`Relay.Channels.Email.Verp`), its tag computed inside the key store under the tenant environment's VERP key (`verp_key_label/1`).
+    * The subject, plain text and HTML are passed as the renderer wrote them: Relay wraps no link and adds no pixel, so a link the sender wrote, Access's `email_verification` link among them, reaches the recipient unchanged, and a `security` e-mail has no tracking and no redirect chain.
+    * An address that needs SMTPUTF8 is never refused: the message is marked for it, and a provider without support fails with the `permanent_content` error `smtputf8_unsupported`.
+    * `render/2` writes the message with Swoosh and signs it with DKIM (`Relay.Channels.Email.Dkim`) inside the key store under the key of the stream's domain and selector (`dkim_key_label/3`); every field Relay adds is inside `h=`.
+  """
+
+  alias Relay.Channels.Email.Dkim
+  alias Relay.Channels.Email.Headers
+  alias Relay.Channels.Email.Mime
+  alias Relay.Channels.Email.Smtputf8
+  alias Relay.Channels.Email.Streams
+  alias Relay.Channels.Email.Verp
+  alias Relay.Channels.Request
+  alias Relay.Error
+  alias Relay.Scope
+
+  @feedback_part ~r/\A[A-Za-z0-9._\-]{1,64}\z/
+
+  @type prepared :: %{
+          stream: String.t(),
+          from: String.t(),
+          from_name: String.t() | nil,
+          reply_to: String.t() | nil,
+          to: String.t(),
+          subject: String.t(),
+          text: String.t(),
+          html: String.t() | nil,
+          headers: [{String.t(), String.t()}],
+          dkim_headers: [String.t()],
+          return_path: String.t(),
+          message_id: String.t(),
+          date: DateTime.t(),
+          domain: String.t(),
+          selector: String.t(),
+          ip_pool: String.t() | nil,
+          queue: String.t() | nil,
+          smtputf8: boolean()
+        }
+
+  @type built :: %{prepared: prepared(), data: binary()}
+
+  # CH-36
+  # TN-63
+  @doc "The key store label of the DKIM key of a tenant environment's sending domain and selector."
+  @spec dkim_key_label(Scope.t(), String.t(), String.t()) :: Relay.Keys.label()
+  def dkim_key_label(%Scope{} = scope, domain, selector)
+      when is_binary(domain) and is_binary(selector) do
+    Enum.join(
+      [
+        "relay-dkim",
+        Relay.Id.to_string(scope.tenant_id),
+        Relay.Environment.dump(scope.environment),
+        String.downcase(domain, :ascii),
+        selector
+      ],
+      "/"
+    )
+  end
+
+  # CH-38
+  # TN-63
+  @doc "The key store label of the VERP key of a tenant environment."
+  @spec verp_key_label(Scope.t()) :: Relay.Keys.label()
+  def verp_key_label(%Scope{} = scope) do
+    Enum.join(
+      [
+        "relay-verp",
+        Relay.Id.to_string(scope.tenant_id),
+        Relay.Environment.dump(scope.environment)
+      ],
+      "/"
+    )
+  end
+
+  # CH-35
+  # CH-38
+  # CH-45
+  @doc """
+  Prepares the e-mail of a request: the sender identity of its stream, the recipient, the rendered parts unchanged, the header fields, the VERP return path and the `Message-ID`. `opts` takes `:smtputf8`, whether the provider supports SMTPUTF8 (default `false`), and `:mac`, the VERP key function (default: the tenant environment's VERP key in the key store).
+  """
+  @spec prepare(Request.t(), keyword()) :: {:ok, prepared()} | {:error, Error.t()}
+  def prepare(%Request{} = request, opts \\ []) do
+    content = content(request.content)
+    class = request.message_class || ""
+    mac = Keyword.get_lazy(opts, :mac, fn -> verp_mac(request.scope) end)
+
+    with {:ok, sender} <- sender(config(request), class, text(content, "category")),
+         {:ok, parts} <- parts(content),
+         {:ok, to} <- recipient(request),
+         {:ok, return_path} <- Verp.encode(request.delivery_id, sender.return_path_domain, mac),
+         {:ok, headers} <- headers(request, class, content, sender, return_path),
+         {:ok, smtputf8} <-
+           Smtputf8.check([sender.from, to, return_path], Keyword.get(opts, :smtputf8, false)) do
+      {:ok,
+       Map.merge(parts, %{
+         stream: sender.stream,
+         from: sender.from,
+         from_name: text(config(request), "from_name"),
+         reply_to: text(config(request), "reply_to"),
+         to: to,
+         headers: headers.headers,
+         dkim_headers: headers.dkim_headers,
+         return_path: return_path,
+         message_id: message_id(request.delivery_id, sender.domain),
+         date: Relay.Clock.utc_now(),
+         domain: sender.domain,
+         selector: sender.selector,
+         ip_pool: sender.ip_pool,
+         queue: sender.queue,
+         smtputf8: smtputf8
+       })}
+    end
+  end
+
+  defp verp_mac(scope), do: Verp.key_function(verp_key_label(scope))
+
+  defp message_id(delivery_id, domain),
+    do: "<" <> Relay.Id.to_string(delivery_id) <> "@" <> domain <> ">"
+
+  # CH-36
+  # CH-38
+  @doc "Prepares, renders and signs the e-mail of a request; see `prepare/2` and `render/2`. `opts` also takes `:signer`, the DKIM signer (default: the key of the stream's domain and selector in the key store)."
+  @spec build(Request.t(), keyword()) :: {:ok, built()} | {:error, Error.t()}
+  def build(%Request{} = request, opts \\ []) do
+    with {:ok, prepared} <- prepare(request, opts),
+         {:ok, signer} <- signer(request, prepared, opts),
+         {:ok, data} <- render(prepared, signer) do
+      {:ok, %{prepared: prepared, data: data}}
+    end
+  end
+
+  defp signer(request, prepared, opts) do
+    case Keyword.fetch(opts, :signer) do
+      {:ok, signer} ->
+        {:ok, signer}
+
+      :error ->
+        Dkim.key_signer(dkim_key_label(request.scope, prepared.domain, prepared.selector))
+    end
+  end
+
+  # CH-36
+  # CH-38
+  @doc "Writes a prepared e-mail as a MIME message with CRLF line endings and puts its `DKIM-Signature` field first, signed by `signer` over the fields Relay adds and the body."
+  @spec render(prepared(), Dkim.signer()) :: {:ok, binary()} | {:error, Error.t()}
+  def render(prepared, signer) when is_function(signer, 1) do
+    params = %{
+      domain: prepared.domain,
+      selector: prepared.selector,
+      timestamp: DateTime.to_unix(prepared.date),
+      required: prepared.dkim_headers
+    }
+
+    with {:ok, message} <- mime(prepared),
+         {:ok, field} <- Dkim.sign(message, params, signer),
+         do: {:ok, field <> "\r\n" <> message}
+  end
+
+  defp mime(prepared) do
+    {:ok, prepared |> swoosh() |> Swoosh.Adapters.SMTP.Helpers.body([]) |> Mime.crlf()}
+  rescue
+    _error -> invalid(:invalid_email_content, "the e-mail cannot be written as MIME")
+  end
+
+  defp swoosh(prepared) do
+    email =
+      Swoosh.Email.new()
+      |> Swoosh.Email.from({prepared.from_name || "", prepared.from})
+      |> Swoosh.Email.to(prepared.to)
+      |> Swoosh.Email.subject(prepared.subject)
+      |> Swoosh.Email.text_body(prepared.text)
+      |> Swoosh.Email.header("Date", date(prepared.date))
+      |> Swoosh.Email.header("Message-ID", prepared.message_id)
+
+    email = if prepared.html, do: Swoosh.Email.html_body(email, prepared.html), else: email
+
+    email = if prepared.reply_to, do: Swoosh.Email.reply_to(email, prepared.reply_to), else: email
+
+    Enum.reduce(prepared.headers, email, fn {name, value}, acc ->
+      Swoosh.Email.header(acc, name, value)
+    end)
+  end
+
+  defp date(%DateTime{} = date) do
+    date |> DateTime.shift_zone!("Etc/UTC") |> Calendar.strftime("%a, %d %b %Y %H:%M:%S +0000")
+  end
+
+  defp config(%Request{sender: %{"streams" => _} = sender}), do: sender
+
+  defp config(%Request{account: %{"settings" => %{"streams" => _} = settings}}), do: settings
+
+  defp config(_request), do: %{"streams" => %{}}
+
+  defp sender(config, class, category) do
+    with {:ok, stream} <- Streams.stream(class),
+         %{"streams" => %{^stream => %{}}} <- config,
+         {:ok, sender} <- Streams.sender(config, class, category),
+         fields = [sender.from, sender.domain, sender.selector, sender.return_path_domain],
+         true <- Enum.all?(fields, &(is_binary(&1) and &1 != "")) do
+      {:ok, sender}
+    else
+      {:error, %Error{}} = error -> error
+      _incomplete -> invalid(:invalid_email_streams, "the stream names its sender identity")
+    end
+  end
+
+  defp content(content) when is_binary(content) do
+    case Jason.decode(content) do
+      {:ok, %{} = decoded} -> decoded
+      _other -> %{}
+    end
+  end
+
+  defp content(%{} = content), do: content
+  defp content(_content), do: %{}
+
+  defp parts(content) do
+    case {text(content, "subject"), text(content, "text"), text(content, "html")} do
+      {subject, text, html} when is_binary(subject) and is_binary(text) ->
+        {:ok, %{subject: subject, text: text, html: html}}
+
+      _missing ->
+        invalid(:invalid_email_content, "an e-mail has a subject and a plain text body")
+    end
+  end
+
+  defp recipient(%Request{target: %{value: value}}) do
+    case Relay.Redacted.expose(value) do
+      address when is_binary(address) and address != "" -> {:ok, address}
+      _other -> invalid(:invalid_email_content, "an e-mail has a recipient address")
+    end
+  end
+
+  defp headers(request, class, content, sender, return_path) do
+    category = text(content, "category") || class
+    campaign = text(content, "campaign") || category
+
+    Headers.build(%{
+      class: class,
+      return_path: return_path,
+      feedback_id: %{
+        campaign: part(campaign),
+        category: part(category),
+        tenant: Relay.Id.to_string(request.scope.tenant_id),
+        sender: part(sender_ref(request))
+      },
+      unsubscribe: unsubscribe(content)
+    })
+  end
+
+  defp sender_ref(%Request{account: %{"id" => <<_::128>> = id}}), do: Relay.Id.to_string(id)
+  defp sender_ref(%Request{provider: provider}), do: provider
+
+  defp part(value) do
+    if Regex.match?(@feedback_part, value),
+      do: value,
+      else: value |> String.replace(~r/[^A-Za-z0-9._\-]/, "_") |> String.slice(0, 64)
+  end
+
+  defp unsubscribe(%{"unsubscribe" => %{"https" => https, "mailto" => mailto}})
+       when is_binary(https) and is_binary(mailto),
+       do: %{https: https, mailto: mailto}
+
+  defp unsubscribe(_content), do: nil
+
+  defp text(map, key) do
+    case Map.get(map, key) do
+      value when is_binary(value) and value != "" -> value
+      _other -> nil
+    end
+  end
+
+  defp invalid(code, message), do: {:error, Error.new(code, message)}
+end

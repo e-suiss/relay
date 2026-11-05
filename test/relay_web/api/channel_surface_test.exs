@@ -125,6 +125,7 @@ defmodule RelayWeb.Api.ChannelSurfaceTest do
 
     test "CH-72, X-25: the live plane refuses a simulated address at the API", ctx do
       to = [%{"id" => "user-" <> TenantFixture.random(), "email" => "hard_bounce@sim.relay.test"}]
+
       assert F.body(send_event(ctx.token, event(%{"to" => to})), 422)["code"] ==
                "recipient_invalid"
 

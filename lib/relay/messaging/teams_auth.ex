@@ -15,9 +15,8 @@ defmodule Relay.Messaging.TeamsAuth do
     with {:ok, kid} <- kid(token),
          {:ok, pem} <- key(kid, opts),
          {:ok, claims} <-
-           Relay.Channels.verify_jwt(Relay.Redacted.wrap(pem), token, algs: ["RS256"], now: now),
-         :ok <- claims(claims, app_id, service_url) do
-      :ok
+           Relay.Channels.verify_jwt(Relay.Redacted.wrap(pem), token, algs: ["RS256"], now: now) do
+      claims(claims, app_id, service_url)
     end
   end
 

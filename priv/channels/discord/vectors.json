@@ -247,7 +247,7 @@
       "status": 429,
       "body": {
         "message": "You are being rate limited.",
-        "retry_after": 1.5,
+        "retry_after": 2,
         "global": false
       },
       "headers": {

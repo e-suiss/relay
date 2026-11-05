@@ -133,6 +133,7 @@ defmodule Relay.Channels.Telegram do
   defp code(401, _decoded), do: "401_unauthorized"
   defp code(404, _decoded), do: "404_not_found"
   defp code(429, _decoded), do: "429_too_many_requests"
+
   defp code(error_code, _decoded) when is_integer(error_code) and error_code >= 500,
     do: Messaging.http_code(error_code)
 

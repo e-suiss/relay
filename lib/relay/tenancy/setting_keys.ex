@@ -85,9 +85,8 @@ defmodule Relay.Tenancy.SettingKeys do
   defp check(:api_rate, value), do: api_rate(value)
 
   # CH-74
-  defp check(:device_limit, value)
-       when is_integer(value) and value >= 1 and value <= @device_limit,
-       do: {:ok, value}
+  defp check(:device_limit, value) when is_integer(value) and value in 1..@device_limit//1,
+    do: {:ok, value}
 
   defp check(:device_limit, _value) do
     message = "the device limit is an integer from 1 to #{@device_limit}"

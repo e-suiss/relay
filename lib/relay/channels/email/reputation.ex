@@ -9,7 +9,7 @@ defmodule Relay.Channels.Email.Reputation do
   | warning | both rates under their warning thresholds | ok | — |
   | stopped | any | stopped | — |
 
-  A stopped circuit never closes by itself, however the rates fall: only `close/3`, an explicit tenant or operator action, closes it, clears the window and returns the audit record to write.
+  A stopped circuit never closes by itself, however the rates fall: only `close/3`, an explicit tenant or operator action, closes it, clears the window and returns the fields of the audit record the caller writes.
   """
 
   defstruct state: :ok, buckets: %{}, stopped_at: nil, stop_rates: nil
@@ -107,13 +107,12 @@ defmodule Relay.Channels.Email.Reputation do
   def admit(%__MODULE__{}), do: :allow
 
   # CH-41
-  @doc "Closes a stopped circuit by an explicit action: `action` carries `:actor_ref` and `:reason`. The window is cleared, and the audit record of the closing is returned."
+  @doc "Closes a stopped circuit by an explicit action: `action` carries `:actor_ref` and `:reason`. The window is cleared, and the fields of the closing's audit record are returned."
   @spec close(t(), %{actor_ref: String.t(), reason: String.t()}, integer()) ::
           {:ok, t(), map()} | {:error, :not_stopped}
   def close(%__MODULE__{state: :stopped} = circuit, %{actor_ref: actor_ref, reason: reason}, now)
       when is_binary(actor_ref) and actor_ref != "" and is_binary(reason) and reason != "" do
     audit = %{
-      action: "email_reputation.closed",
       actor_ref: actor_ref,
       reason: reason,
       stopped_at: circuit.stopped_at,

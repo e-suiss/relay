@@ -110,8 +110,7 @@ defmodule Relay.Channels.Email.ReputationTest do
       assert closed.state == :ok
       assert Reputation.rates(closed, 5000, params()).sent == 0
 
-      assert %{action: "email_reputation.closed", actor_ref: "operator:alice", closed_at: 5000} =
-               audit
+      assert %{actor_ref: "operator:alice", reason: "list cleaned", closed_at: 5000} = audit
 
       assert audit.stop_rates.bounces == 10
       assert Reputation.close(closed, action, 6000) == {:error, :not_stopped}

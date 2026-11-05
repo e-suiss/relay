@@ -218,6 +218,17 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.delivery_render_record" =>
       ~w(recorded matched digest_mismatch content_not_allowed content_required key_invalid plan_not_found delivery_not_found already_terminal),
     "relay_fn.delivery_render_fail" => ~w(failed already_terminal not_found),
+    "relay_fn.provider_account_put" =>
+      ~w(created updated unchanged not_found version_conflict credential_not_found tenant_inactive),
+    "relay_fn.provider_account_verify" => ~w(changed unchanged not_found),
+    "relay_fn.provider_account_rotate_credential" =>
+      ~w(rotated step_up_required not_tenant_owned credential_not_found not_found),
+    "relay_fn.provider_account_set_health" => ~w(updated unchanged not_found),
+    "relay_fn.sender_identity_put" =>
+      ~w(created updated unchanged account_not_found subtenant_not_found),
+    "relay_fn.sender_identity_suspend" => ~w(suspended resumed unchanged not_found),
+    "relay_fn.channel_identity_put" => ~w(created updated unchanged secret_not_found),
+    "relay_fn.recipient_address_disable" => ~w(disabled not_found),
     "relay_fn.device_register" =>
       ~w(created updated reassigned recipient_not_found key_not_found),
     "relay_fn.device_disable" => ~w(disabled already_disabled reregistered not_found)

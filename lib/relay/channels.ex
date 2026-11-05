@@ -14,8 +14,16 @@ defmodule Relay.Channels do
   alias Relay.Channels.Inbound
   alias Relay.Channels.Outcome
   alias Relay.Channels.Registry
+  alias Relay.Channels.Request
+  alias Relay.Channels.Routing
   alias Relay.Channels.Simulated
+  alias Relay.Channels.Store
   alias Relay.Channels.Timeouts
+
+  require Logger
+
+  @type digest :: <<_::256>>
+  @type result(value) :: {:ok, value} | {:error, term()}
 
   @doc "Supervised children: the owner of the circuit breaker table."
   @spec children() :: [Supervisor.child_spec()]
@@ -182,4 +190,146 @@ defmodule Relay.Channels do
   @spec verify_jwt(Inbound.key(), String.t(), keyword()) ::
           {:ok, map()} | {:error, :bad_signature | :stale_timestamp}
   defdelegate verify_jwt(key, token, opts), to: Inbound, as: :jwt
+
+  # C-45
+  # MD-4
+  @doc "Creates or changes a provider account in its own scoped transaction; see `Relay.Channels.Store.account_put/3`."
+  @spec put_account(Relay.Scope.t(), map(), digest(), Relay.Actor.t()) ::
+          result({atom(), pos_integer() | nil})
+  def put_account(scope, attrs, digest, actor),
+    do: Store.in_scope(scope, fn _status -> Store.account_put(attrs, digest, actor) end)
+
+  # CH-14
+  # INV-43
+  @doc "Sets the verification state of a provider account; only a verified account receives traffic."
+  @spec verify_account(
+          Relay.Scope.t(),
+          Relay.Id.t(),
+          String.t(),
+          String.t() | nil,
+          digest(),
+          Relay.Actor.t()
+        ) :: result(atom())
+  def verify_account(scope, id, state, rule_id, digest, actor) do
+    Store.in_scope(scope, fn _status ->
+      Store.account_verify(id, state, rule_id, digest, actor)
+    end)
+  end
+
+  # TN-26
+  # TN-21
+  @doc "Points a tenant-owned provider account at a rotated credential; the next provider call reads the new secret without a restart. It needs the step-up record of the change and is audited."
+  @spec rotate_credential(
+          Relay.Scope.t(),
+          Relay.Id.t(),
+          Relay.Id.t(),
+          String.t() | nil,
+          digest(),
+          Relay.Actor.t()
+        ) :: result(atom())
+  def rotate_credential(scope, id, credential_ref_id, step_up_ref, digest, actor) do
+    Store.in_scope(scope, fn _status ->
+      Store.account_rotate_credential(id, credential_ref_id, step_up_ref, digest, actor)
+    end)
+  end
+
+  # C-45
+  @doc "Records the health of a provider account."
+  @spec set_account_health(Relay.Scope.t(), Relay.Id.t(), String.t()) :: result(atom())
+  def set_account_health(scope, id, health),
+    do: Store.in_scope(scope, fn _status -> Store.account_set_health(id, health) end)
+
+  # C-25
+  @doc "Creates or changes a sender identity; see `Relay.Channels.Store.sender_identity_put/3`."
+  @spec put_sender_identity(Relay.Scope.t(), map(), digest(), Relay.Actor.t()) ::
+          result({atom(), pos_integer() | nil})
+  def put_sender_identity(scope, attrs, digest, actor),
+    do: Store.in_scope(scope, fn _status -> Store.sender_identity_put(attrs, digest, actor) end)
+
+  # TN-10
+  @doc "Suspends a sender identity apart from its tenant, with a rule, or resumes it."
+  @spec suspend_sender_identity(
+          Relay.Scope.t(),
+          Relay.Id.t(),
+          boolean(),
+          String.t() | nil,
+          digest(),
+          Relay.Actor.t()
+        ) :: result(atom())
+  def suspend_sender_identity(scope, id, suspended?, rule_id, digest, actor) do
+    Store.in_scope(scope, fn _status ->
+      Store.sender_identity_suspend(id, suspended?, rule_id, digest, actor)
+    end)
+  end
+
+  # C-26
+  @doc "Creates or changes a channel identity; see `Relay.Channels.Store.channel_identity_put/3`."
+  @spec put_channel_identity(Relay.Scope.t(), map(), digest(), Relay.Actor.t()) ::
+          result({atom(), pos_integer() | nil})
+  def put_channel_identity(scope, attrs, digest, actor),
+    do: Store.in_scope(scope, fn _status -> Store.channel_identity_put(attrs, digest, actor) end)
+
+  # CH-13
+  # CH-14
+  # INV-43
+  @doc "The provider route of a channel in a scope: the usable accounts in order and the excluded ones with their reason; see `Relay.Channels.Routing.route/5`."
+  @spec routes(Relay.Scope.t(), String.t(), ChannelDeclarations.t(), Routing.policy()) ::
+          result({[Routing.account()], [Routing.excluded()]})
+  def routes(scope, channel, %ChannelDeclarations{} = declarations, policy) do
+    Store.in_scope(scope, fn _status ->
+      accounts = Store.accounts(channel)
+      ids = Enum.map(accounts, & &1["id"])
+      senders = Enum.group_by(Store.senders(ids), & &1["provider_account_id"])
+      activated? = &match?({:ok, _adapter}, Registry.activated(declarations, &1))
+      Routing.route(accounts, senders, activated?, declarations, policy)
+    end)
+  end
+
+  # CH-11
+  # INV-14
+  @doc "Soft disables a recipient's active address of `kind` (`email` or `phone`) after a permanent target failure and announces `address.disabled`, in its own scoped transaction."
+  @spec disable_address(Relay.Scope.t(), Relay.Id.t(), String.t(), String.t(), String.t()) ::
+          result({:disabled | :not_found, Relay.Id.t() | nil})
+  def disable_address(scope, recipient_id, kind, channel, rule_id) do
+    Store.in_scope(scope, fn _status ->
+      Store.address_disable(recipient_id, kind, channel, rule_id)
+    end)
+  end
+
+  # CH-8
+  # INV-46
+  @doc "Reports a provider code without a mapping: the `provider.unknown_code` event, `[:relay, :channels, :unknown_code]` telemetry and an error log that alarms the operator; the code is classified `unknown`, never guessed."
+  @spec report_unknown_code(Relay.Scope.t(), String.t(), String.t(), String.t()) ::
+          result(:appended)
+  def report_unknown_code(scope, provider, channel, raw_code) do
+    meta = %{provider: provider, channel: channel}
+    :telemetry.execute([:relay, :channels, :unknown_code], %{count: 1}, meta)
+
+    Logger.error("a provider code has no mapping; classified unknown",
+      provider: provider,
+      channel: channel
+    )
+
+    Store.in_scope(scope, fn _status -> Store.unknown_code(provider, channel, raw_code) end)
+  end
+
+  # CH-2
+  @doc "Builds the request of one provider call; see `Relay.Channels.Request`."
+  @spec request(map()) :: Request.t()
+  def request(%{} = fields), do: struct!(Request, fields)
+
+  # CH-7
+  @doc "A failed outcome of a class with a raw code, for a call Relay could not make or classify; a `transient` one has the `server_error` condition."
+  @spec failed_outcome(String.t(), String.t()) :: Outcome.t()
+  def failed_outcome(class, raw_code) when is_binary(class) and is_binary(raw_code) do
+    condition = if class == "transient", do: "server_error"
+
+    %Outcome{
+      state: :failed,
+      event_code: "rejected",
+      failure_class: class,
+      condition: condition,
+      raw_code: raw_code
+    }
+  end
 end

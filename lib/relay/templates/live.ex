@@ -163,7 +163,26 @@ defmodule Relay.Templates.Live do
   @spec verify(Scope.t(), Relay.Id.t()) :: result()
   def verify(%Scope{} = scope, delivery_id), do: render(scope, delivery_id, :verify)
 
+  # TP-50
+  # TP-60
+  # CH-2
+  @doc "Renders the pinned plan of a rendered delivery again for its channel attempt, compares the digest as `verify/2` does and returns the encoded rendered content as `{:rendered, content}`; otherwise returns as `render/2`."
+  @spec prepare(Scope.t(), Relay.Id.t()) ::
+          {:rendered, binary()}
+          | :rendered
+          | :failed
+          | :done
+          | {:error, {:input_unavailable, atom()}}
+  def prepare(%Scope{} = scope, delivery_id), do: content(scope, delivery_id, :verify)
+
   defp render(scope, delivery_id, mode) do
+    case content(scope, delivery_id, mode) do
+      {:rendered, _content} -> :rendered
+      other -> other
+    end
+  end
+
+  defp content(scope, delivery_id, mode) do
     started = Relay.Clock.monotonic_ms()
 
     case load(scope, delivery_id) do
@@ -226,7 +245,7 @@ defmodule Relay.Templates.Live do
     case record(scope, delivery_id, input, rendered) do
       :recorded ->
         emit(channel, :ok, started)
-        :rendered
+        {:rendered, rendered.content}
 
       :digest_mismatch ->
         mismatch = {:schema_violation, cause("digest_mismatch")}

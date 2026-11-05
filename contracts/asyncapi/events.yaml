@@ -287,6 +287,20 @@ channels:
         "$ref": "#/components/messages/audit.partial.rolled_back"
       audit.partial.archived:
         "$ref": "#/components/messages/audit.partial.archived"
+      audit.provider_account.changed:
+        "$ref": "#/components/messages/audit.provider_account.changed"
+      audit.provider_account.verified:
+        "$ref": "#/components/messages/audit.provider_account.verified"
+      audit.provider_account.credential_rotated:
+        "$ref": "#/components/messages/audit.provider_account.credential_rotated"
+      audit.sender_identity.changed:
+        "$ref": "#/components/messages/audit.sender_identity.changed"
+      audit.sender_identity.suspended:
+        "$ref": "#/components/messages/audit.sender_identity.suspended"
+      audit.sender_identity.resumed:
+        "$ref": "#/components/messages/audit.sender_identity.resumed"
+      audit.channel_identity.changed:
+        "$ref": "#/components/messages/audit.channel_identity.changed"
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
@@ -474,6 +488,13 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.partial.published"
       - "$ref": "#/channels/auditLog/messages/audit.partial.rolled_back"
       - "$ref": "#/channels/auditLog/messages/audit.partial.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.provider_account.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.provider_account.verified"
+      - "$ref": "#/channels/auditLog/messages/audit.provider_account.credential_rotated"
+      - "$ref": "#/channels/auditLog/messages/audit.sender_identity.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.sender_identity.suspended"
+      - "$ref": "#/channels/auditLog/messages/audit.sender_identity.resumed"
+      - "$ref": "#/channels/auditLog/messages/audit.channel_identity.changed"
   receiveAccessInbound:
     action: receive
     channel:
@@ -4732,6 +4753,132 @@ components:
       x-relay-stage: 5
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.provider_account.changed:
+      name: provider_account.changed
+      title: provider_account.changed
+      summary: "A provider account was created or changed; a change of its provider, channel, ownership, credential or settings resets its verification."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: provider_account
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.provider_account.verified:
+      name: provider_account.verified
+      title: provider_account.verified
+      summary: "The verification state of a provider account changed; only a verified account receives traffic."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: provider_account
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.provider_account.credential_rotated:
+      name: provider_account.credential_rotated
+      title: provider_account.credential_rotated
+      summary: "The credential of a tenant-owned provider account was rotated after a step-up."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: provider_account
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.sender_identity.changed:
+      name: sender_identity.changed
+      title: sender_identity.changed
+      summary: "A sender identity was created or changed."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: sender_identity
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.sender_identity.suspended:
+      name: sender_identity.suspended
+      title: sender_identity.suspended
+      summary: "A sender identity was suspended apart from its tenant."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: sender_identity
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.sender_identity.resumed:
+      name: sender_identity.resumed
+      title: sender_identity.resumed
+      summary: "A suspended sender identity was resumed."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: sender_identity
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.channel_identity.changed:
+      name: channel_identity.changed
+      title: channel_identity.changed
+      summary: "A channel identity was created or changed."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: channel_identity
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     access.consent.updated:
       name: consent.updated
       title: consent.updated
@@ -4883,6 +5030,7 @@ x-relay-event-names:
   - category.lock_changed
   - category.updated
   - category_subtenant_setting.changed
+  - channel_identity.changed
   - consent.updated
   - cross_tenant.queried
   - dataset.activated
@@ -4936,6 +5084,9 @@ x-relay-event-names:
   - partition_policy.updated
   - pii.revealed
   - provider.unknown_code
+  - provider_account.changed
+  - provider_account.credential_rotated
+  - provider_account.verified
   - quota.reserve_opened
   - quota.threshold_reached
   - quota_policy.changed
@@ -4944,6 +5095,9 @@ x-relay-event-names:
   - secret_ref.registered
   - secret_ref.retired
   - send_mode.changed
+  - sender_identity.changed
+  - sender_identity.resumed
+  - sender_identity.suspended
   - setting.changed
   - stream.resync_required
   - subject.erased

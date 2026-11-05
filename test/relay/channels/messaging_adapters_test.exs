@@ -309,7 +309,7 @@ defmodule Relay.Channels.MessagingAdaptersTest do
       assert telegram["inbound_verification"]["authenticity"] == "unverifiable"
       assert telegram["capabilities"]["telegram"]["business_initiated"] == false
       {:ok, teams} = ChannelDeclarations.declaration(declarations, "teams")
-      assert [%{"api" => "Office 365 Connectors and incoming webhooks"}] = teams["deprecations"]
+      assert teams["deprecations"] == []
     end
   end
 end

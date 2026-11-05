@@ -29,6 +29,19 @@ defmodule Relay.Webhooks.Store do
     {Repo.code!(row["result"], [:recorded, :duplicate]), row["receipt_id"]}
   end
 
+  # WH-49
+  @doc "Reads a receipt: its provider, state, provider account and sealed body, or `nil`."
+  @spec receipt(Relay.Id.t()) :: map() | nil
+  def receipt(receipt_id) do
+    case Repo.scoped_query!(
+           "SELECT id, provider, provider_account_id, provider_event_id, state, body_ct, body_key_id FROM relay.webhook_receipts WHERE id = $1",
+           [receipt_id]
+         ) do
+      %Postgrex.Result{columns: columns, rows: [row]} -> columns |> Enum.zip(row) |> Map.new()
+      %Postgrex.Result{rows: []} -> nil
+    end
+  end
+
   @doc "Marks a receipt that produces no ledger event as processed or rejected."
   @spec receipt_mark(Relay.Id.t(), :processed | :rejected, String.t() | nil) ::
           :marked | :already_final | :not_found

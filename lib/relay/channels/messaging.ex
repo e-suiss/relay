@@ -142,13 +142,30 @@ defmodule Relay.Channels.Messaging do
     end
   end
 
-  @doc "The exposed credential of the request, or `nil`."
+  @doc "The exposed credential of the request, or `nil`: a bot token, or the JSON identity of a bot (`Relay.Channels.Teams`)."
   @spec credential(Request.t()) :: String.t() | nil
   def credential(%Request{credentials: nil}), do: nil
 
   def credential(%Request{credentials: credentials}) do
     case Relay.Redacted.expose(credentials) do
       value when is_binary(value) and value != "" -> value
+      _other -> nil
+    end
+  end
+
+  # TN-26
+  @doc "The bot token of the request's credential: the credential itself, or the `bot_token` of a channel identity's JSON secret; `nil` without one."
+  @spec token(Request.t()) :: String.t() | nil
+  def token(%Request{} = request) do
+    case credential(request) do
+      "{" <> _ = json -> json_token(json)
+      value -> value
+    end
+  end
+
+  defp json_token(json) do
+    case Jason.decode(json) do
+      {:ok, %{"bot_token" => token}} when is_binary(token) and token != "" -> token
       _other -> nil
     end
   end

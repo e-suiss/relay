@@ -1,0 +1,13 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/v3/conversations/[^/]+/activities"
+  },
+  "response": {
+    "status": 201,
+    "jsonBody": {
+      "id": "1700000000000"
+    }
+  }
+}

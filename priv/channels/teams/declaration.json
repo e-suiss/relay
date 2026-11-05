@@ -12,13 +12,7 @@
     "https://learn.microsoft.com/azure/bot-service/rest-api/bot-framework-rest-connector-authentication (compiled 2026-11-05)",
     "https://learn.microsoft.com/microsoftteams/platform/m365-apps/deprecation (compiled 2026-11-05)"
   ],
-  "deprecations": [
-    {
-      "api": "Office 365 Connectors and incoming webhooks",
-      "sunset_on": null,
-      "source": "Never used: CH-62 bot and conversationReference; CH-4; https://learn.microsoft.com/microsoftteams/platform/m365-apps/deprecation (compiled 2026-11-05)"
-    }
-  ],
+  "deprecations": [],
   "capabilities": {
     "teams": {
       "delivery_receipts": false,

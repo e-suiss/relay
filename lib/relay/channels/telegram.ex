@@ -44,7 +44,7 @@ defmodule Relay.Channels.Telegram do
   @doc "Delivers a request with extra HTTP client options; see `c:Relay.Channels.Adapter.deliver/1`."
   @spec deliver(Request.t(), keyword()) :: Relay.Channels.Adapter.result()
   def deliver(%Request{} = request, opts) do
-    case Messaging.credential(request) do
+    case Messaging.token(request) do
       nil -> {:rejected, %{code: "credential_missing", status: nil}}
       token -> send_message(request, token, opts)
     end

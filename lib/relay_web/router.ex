@@ -60,6 +60,13 @@ defmodule RelayWeb.Router do
     post "/:token", LinkController, :create
   end
 
+  # CH-62
+  # WH-49
+  scope "/inbound/v1", RelayWeb do
+    post "/:channel/:tenant/:environment/:identity", InboundController, :create,
+      private: %{relay_operation: "receiveMessagingInbound"}
+  end
+
   # E-81
   # E-89
   scope "/.well-known", RelayWeb.Api do
@@ -146,6 +153,21 @@ defmodule RelayWeb.Router do
 
     delete "/devices/by-token", DeviceController, :delete_by_token,
       private: %{relay_operation: "deleteDeviceByToken"}
+
+    put "/subscribers/:subscriber_id/messaging_targets/:channel", MessagingController, :put,
+      private: %{relay_operation: "replaceSubscriberMessagingTarget"}
+
+    delete "/subscribers/:subscriber_id/messaging_targets/:channel", MessagingController, :delete,
+      private: %{relay_operation: "deleteSubscriberMessagingTarget"}
+
+    post "/messaging_installations", MessagingController, :install,
+      private: %{relay_operation: "createMessagingInstallation"}
+
+    get "/messaging_installations/callback", MessagingController, :callback,
+      private: %{relay_operation: "completeMessagingInstallation"}
+
+    get "/channel_adapters", MessagingController, :adapters,
+      private: %{relay_operation: "listChannelAdapters"}
 
     get "/categories", CategoryController, :index, private: %{relay_operation: "listCategories"}
 

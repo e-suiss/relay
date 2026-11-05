@@ -50,6 +50,17 @@ defmodule Relay.Delivery.RetryPolicyTest do
 
     test "T-28: an uncertain attempt is not retried blindly" do
       assert RetryPolicy.next(input(state: :unknown)) == {:no_retry, "retry.uncertain"}
+
+      assert RetryPolicy.next(input(state: :unknown, uncertain: :no_retry)) ==
+               {:no_retry, "retry.uncertain"}
+    end
+
+    test "T-28, CH-10: an uncertain attempt the ambiguity decision allows follows its backoff row" do
+      uncertain = input(state: :unknown, condition: "timeout", uncertain: :retry)
+      failed = input(condition: "timeout")
+
+      assert {:retry, _at, 2, 2} = RetryPolicy.next(uncertain)
+      assert RetryPolicy.next(uncertain) == RetryPolicy.next(failed)
     end
 
     test "CH-70: a failure without a backoff row is exhausted without a retry" do

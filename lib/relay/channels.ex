@@ -1,11 +1,21 @@
 defmodule Relay.Channels do
   @moduledoc """
   Channel adapters, providers and failover, and the node-local circuit breakers of the providers. Other contexts use only the functions of this module.
+
+  Every adapter implements the common port `Relay.Channels.Adapter` and declares its capabilities, evidence rows, idempotency policy, failure class mapping with test vectors, price and limit data, data residency and inbound verification as versioned data (`Relay.ChannelDeclarations`, CH-2, CH-71); a registered adapter whose declaration is incomplete receives no traffic.
   """
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
+  alias Relay.ChannelDeclarations
+  alias Relay.Channels.Adapter
+  alias Relay.Channels.Ambiguity
   alias Relay.Channels.Breaker
+  alias Relay.Channels.Inbound
+  alias Relay.Channels.Outcome
+  alias Relay.Channels.Registry
+  alias Relay.Channels.Simulated
+  alias Relay.Channels.Timeouts
 
   @doc "Supervised children: the owner of the circuit breaker table."
   @spec children() :: [Supervisor.child_spec()]
@@ -27,17 +37,149 @@ defmodule Relay.Channels do
     do: Breaker.record(ticket, outcome, latency_ms, now)
 
   # T-26
+  # T-43
   # INV-13
   @doc """
-  Sends one provider HTTP request. The client never retries and never follows redirects, whatever the options say: the only retry authority is the job queue (T-26), and a retry is a new job that reuses the attempt's provider idempotency key.
+  Sends one provider HTTP request. The client never retries and never follows redirects, whatever the options say: the only retry authority is the job queue (T-26), and a retry is a new job that reuses the attempt's provider idempotency key. TLS certificate verification cannot be turned off (T-43): see `http_options/1`.
   """
   @spec http_request(keyword()) :: {:ok, Req.Response.t()} | {:error, Exception.t()}
   def http_request(opts) when is_list(opts) do
     :ok = Relay.NetworkGuard.check!(:http)
-
-    opts
-    |> Keyword.drop([:retry, :max_retries, :retry_delay, :retry_log_level, :redirect])
-    |> Keyword.merge(retry: false, redirect: false)
-    |> Req.request()
+    opts |> http_options() |> Req.request()
   end
+
+  # T-26
+  # T-43
+  @doc "The options a provider request is sent with: retries and redirects off, and any `:verify` or `:verify_fun` transport option removed, so the peer certificate is always verified."
+  @spec http_options(keyword()) :: keyword()
+  def http_options(opts) when is_list(opts) do
+    opts =
+      opts
+      |> Keyword.drop([:retry, :max_retries, :retry_delay, :retry_log_level, :redirect])
+      |> Keyword.merge(retry: false, redirect: false)
+
+    case Keyword.fetch(opts, :connect_options) do
+      {:ok, connect} -> Keyword.put(opts, :connect_options, verified(connect))
+      :error -> opts
+    end
+  end
+
+  defp verified(connect) do
+    case Keyword.fetch(connect, :transport_opts) do
+      {:ok, transport} ->
+        Keyword.put(connect, :transport_opts, Keyword.drop(transport, [:verify, :verify_fun]))
+
+      :error ->
+        connect
+    end
+  end
+
+  # CH-2
+  @doc "The registered adapter modules; see `Relay.Channels.Registry`."
+  @spec adapters() :: [module(), ...]
+  defdelegate adapters(), to: Registry
+
+  # CH-2
+  # C-44
+  @doc "The activation status of every registered adapter under a declarations snapshot; see `Relay.Channels.Registry.status/1`."
+  @spec adapter_status(ChannelDeclarations.t()) :: [Registry.status()]
+  defdelegate adapter_status(declarations), to: Registry, as: :status
+
+  # CH-2
+  # DS-11
+  @doc "The activated adapter of a provider; a registered adapter whose declaration does not pass the gate is `{:error, :not_activated}`."
+  @spec activated_adapter(ChannelDeclarations.t(), String.t()) ::
+          {:ok, module()} | {:error, :unknown_provider | :not_activated}
+  defdelegate activated_adapter(declarations, provider), to: Registry, as: :activated
+
+  # CH-7
+  # CH-8
+  # DS-10
+  @doc "Normalizes an adapter result; see `Relay.Channels.Outcome.normalize/4`."
+  @spec normalize(ChannelDeclarations.t(), String.t(), String.t(), Adapter.result()) ::
+          {:ok, Outcome.t()} | {:error, :unknown_event}
+  defdelegate normalize(declarations, provider, channel, result), to: Outcome
+
+  # CH-7
+  @doc "The actions of a failure class; see `Relay.Channels.Outcome.actions/1`."
+  @spec class_actions(String.t()) :: Outcome.actions()
+  defdelegate class_actions(class), to: Outcome, as: :actions
+
+  # T-28
+  # CH-10
+  @doc "Decides what follows an uncertain attempt; see `Relay.Channels.Ambiguity.decide/3`."
+  @spec uncertain(map(), boolean(), boolean()) :: Ambiguity.decision()
+  defdelegate uncertain(policy, paid?, retried?), to: Ambiguity, as: :decide
+
+  # T-28
+  @doc "Decides what follows the status query of an uncertain attempt; see `Relay.Channels.Ambiguity.after_query/3`."
+  @spec after_query(Ambiguity.query_result(), boolean(), boolean()) ::
+          {:outcome, Adapter.result()} | {:retry, Ambiguity.mark()} | {:stop, Ambiguity.mark()}
+  defdelegate after_query(result, paid?, retried?), to: Ambiguity
+
+  # CH-9
+  # WF-38
+  @doc "The channel time to live; see `Relay.Channels.Timeouts.ttl_s/2`."
+  @spec ttl_s(DateTime.t() | nil, DateTime.t()) :: pos_integer() | nil | :expired
+  defdelegate ttl_s(expires_at, now), to: Timeouts
+
+  # CH-9
+  # L-13
+  @doc "The timeout of a provider call; see `Relay.Channels.Timeouts.call_ms/4`."
+  @spec call_timeout_ms(DateTime.t() | nil, DateTime.t(), pos_integer() | nil, pos_integer()) ::
+          {:ok, pos_integer()} | :expired
+  defdelegate call_timeout_ms(expires_at, now, channel_ms, provider_ms),
+    to: Timeouts,
+    as: :call_ms
+
+  # CH-9
+  @doc "Parses a provider's `Retry-After`; see `Relay.Channels.Timeouts.retry_after_ms/2`."
+  @spec retry_after_ms(String.t() | nil, DateTime.t()) :: non_neg_integer() | nil
+  defdelegate retry_after_ms(value, now), to: Timeouts
+
+  # CH-72
+  # X-26
+  @doc "The simulated result table of the fake provider; see `Relay.Channels.Simulated.table/0`."
+  @spec simulated_results() :: [%{required(String.t()) => String.t()}, ...]
+  defdelegate simulated_results(), to: Simulated, as: :table
+
+  # CH-72
+  @doc "The simulated result of an address on a channel."
+  @spec simulated_result(String.t(), String.t()) :: Simulated.result()
+  def simulated_result(channel, address),
+    do: Simulated.result(Simulated.kind(channel), address)
+
+  # CH-72
+  # X-25
+  @doc "Returns true when an address on a channel lies in a simulated range, which the live plane refuses as `invalid_recipient`."
+  @spec simulated_address?(String.t(), String.t()) :: boolean()
+  def simulated_address?(channel, address),
+    do: Simulated.reserved?(Simulated.kind(channel), address)
+
+  # T-40
+  # TN-35
+  @doc "Verifies a Standard Webhooks request on its raw body; see `Relay.Channels.Inbound.standard_webhooks/4`."
+  @spec verify_standard_webhooks(Inbound.key(), binary(), Inbound.headers(), DateTime.t()) ::
+          :ok | {:error, Inbound.reason()}
+  defdelegate verify_standard_webhooks(key, body, headers, now),
+    to: Inbound,
+    as: :standard_webhooks
+
+  # T-40
+  @doc "Verifies an HMAC-SHA256 signature of a raw body; see `Relay.Channels.Inbound.hmac/4`."
+  @spec verify_hmac(Inbound.key(), binary(), Inbound.headers(), keyword()) ::
+          :ok | {:error, Inbound.signature_reason()}
+  defdelegate verify_hmac(key, body, headers, opts), to: Inbound, as: :hmac
+
+  # T-40
+  @doc "Verifies an Ed25519 signature of a raw body; see `Relay.Channels.Inbound.ed25519/4`."
+  @spec verify_ed25519(Inbound.key(), binary(), Inbound.headers(), keyword()) ::
+          :ok | {:error, Inbound.reason()}
+  defdelegate verify_ed25519(key, body, headers, opts), to: Inbound, as: :ed25519
+
+  # T-40
+  @doc "Verifies a JWT and returns its claims; see `Relay.Channels.Inbound.jwt/3`."
+  @spec verify_jwt(Inbound.key(), String.t(), keyword()) ::
+          {:ok, map()} | {:error, :bad_signature | :stale_timestamp}
+  defdelegate verify_jwt(key, token, opts), to: Inbound, as: :jwt
 end

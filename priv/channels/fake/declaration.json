@@ -1,0 +1,170 @@
+{
+  "provider": "fake",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "push",
+    "web_push",
+    "email",
+    "sms",
+    "voice",
+    "whatsapp",
+    "slack",
+    "teams",
+    "telegram",
+    "discord"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "§12.11a (2) CH-72; §8.9 X-26"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "push": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    },
+    "web_push": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    },
+    "email": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    },
+    "sms": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    },
+    "voice": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    },
+    "whatsapp": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    },
+    "slack": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    },
+    "teams": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    },
+    "telegram": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    },
+    "discord": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "wait_and_query",
+    "provider_key": true,
+    "key_field": "idempotency_key",
+    "correlation_field": null,
+    "status_query": true,
+    "source": "§12.11a (2) CH-72; §8.9 X-26"
+  },
+  "paid_channels": [
+    "sms",
+    "voice",
+    "whatsapp"
+  ],
+  "pricing": {
+    "currency": "EUR",
+    "units": {
+      "push": "message",
+      "web_push": "message",
+      "email": "message",
+      "sms": "segment",
+      "voice": "answered_call",
+      "whatsapp": "message",
+      "slack": "message",
+      "teams": "message",
+      "telegram": "message",
+      "discord": "message"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [],
+    "sender": [],
+    "recipient": []
+  },
+  "data_residency": {
+    "in_installation": true,
+    "processing_countries": [],
+    "transfer_basis": "none",
+    "scc_notified_on": null,
+    "source": "§12.11a (2) CH-72; §8.9 X-26"
+  },
+  "inbound_verification": {
+    "method": "none",
+    "header": null,
+    "authenticity": "verified",
+    "source": "§12.11a (2) CH-72; §8.9 X-26"
+  }
+}

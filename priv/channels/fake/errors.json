@@ -1,0 +1,66 @@
+[
+  {
+    "code": "hard_bounce",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "bounced",
+    "suppressed_success": false,
+    "source": "§12.11a (2) CH-72; §8.9 X-26"
+  },
+  {
+    "code": "soft_bounce",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.11a (2) CH-72; §8.9 X-26"
+  },
+  {
+    "code": "unregistered",
+    "class": "permanent_target",
+    "condition": "unregistered",
+    "event_code": "unregistered",
+    "suppressed_success": false,
+    "source": "§12.11a (2) CH-72; §8.9 X-26"
+  },
+  {
+    "code": "rate_limited",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.11a (2) CH-72; §8.9 X-26"
+  },
+  {
+    "code": "transient_error",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.11a (2) CH-72; §8.9 X-26"
+  },
+  {
+    "code": "auth_error",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.11a (2) CH-72; §8.9 X-26"
+  },
+  {
+    "code": "sender_config_error",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.11a (2) CH-72; §8.9 X-26"
+  },
+  {
+    "code": "content_rejected",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.11a (2) CH-72; §8.9 X-26"
+  }
+]

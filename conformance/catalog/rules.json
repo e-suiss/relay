@@ -5472,6 +5472,70 @@
   },
   {
     "acceptance": "pending",
+    "id": "CH-71",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-72",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-73",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-74",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-75",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-76",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-77",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-78",
+    "section": "§12",
+    "status": "engineering_assumption",
+    "title": "",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
     "id": "PC-1",
     "section": "§13",
     "status": "canonical_invariant",

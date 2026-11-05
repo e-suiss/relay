@@ -3,7 +3,7 @@ defmodule Relay.Delivery.RetryPolicy do
   What happens after a failed attempt, as a pure function of the failure, the `channel_parameters` snapshot, the database clock of the finishing transaction and the retry budget decision (T-26, CH-9, CH-12).
 
   - A permanent class is never retried (INV-14): `permanent_target`, `permanent_content` and `sender_config` go to the dead letters as `permanent`; `policy` fails the delivery with a rule and no dead letter.
-  - An attempt with an uncertain outcome is not retried blindly (T-28).
+  - An attempt with an uncertain outcome is not retried blindly (T-28): it is retried only when the channel's ambiguity decision allows it (`uncertain: :retry`, `Relay.Channels.Ambiguity`), with the attempt's provider idempotency key, through the backoff row of its class.
   - Otherwise the backoff row decides. Without a row no retry is planned and the delivery goes to the dead letters as `exhausted` (CH-70). After `max_attempts` attempts the delivery is `exhausted`.
   - The wait is full-jitter exponential backoff from the deterministic jitter (`Relay.Jitter.backoff/6`). A provider `Retry-After` is always honoured and never shortened by local backoff: the wait is the larger of the backoff and `Retry-After` plus 0–20 % (CH-9).
   - A retry whose deterministic start is at or after the message's `expires_at` is not planned; the delivery expires (CH-12).
@@ -27,7 +27,8 @@ defmodule Relay.Delivery.RetryPolicy do
           optional(:retry_after_ms) => non_neg_integer() | nil,
           optional(:expires_at) => DateTime.t() | nil,
           optional(:budget) => :allow | :deny,
-          optional(:rule_id) => String.t() | nil
+          optional(:rule_id) => String.t() | nil,
+          optional(:uncertain) => :retry | :no_retry
         }
 
   @type dlq_class :: :permanent | :exhausted | :budget_denied
@@ -51,7 +52,7 @@ defmodule Relay.Delivery.RetryPolicy do
     class = text(input.failure_class)
 
     cond do
-      Map.get(input, :state, :failed) == :unknown ->
+      Map.get(input, :state, :failed) == :unknown and Map.get(input, :uncertain) != :retry ->
         {:no_retry, "retry.uncertain"}
 
       class == "policy" ->

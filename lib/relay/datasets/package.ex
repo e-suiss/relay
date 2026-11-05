@@ -1,14 +1,20 @@
 defmodule Relay.Datasets.Package do
   @moduledoc """
-  The data set versions Relay ships. Each data set is a directory `priv/datasets/<name>/` holding its JSON Schema 2020-12 document `schema.json` and its versions `v1.json`, `v2.json`, …; nothing else may be in the directory. Reading validates every version against the schema and computes the digests, before anything reaches the database.
+  The data set versions Relay ships. Each data set is a directory `priv/datasets/<name>/` holding its JSON Schema 2020-12 document `schema.json` and its versions `v1.json`, `v2.json`, …; nothing else may be in the directory. A generated data set holds only its schema: `channel_event_evidence` has one version, composed from the adapter declarations under `priv/channels/` (`Relay.ChannelDeclarations.compose/1`, CH-71) and named by its content digest. Reading validates every version against the schema and computes the digests, before anything reaches the database.
   """
 
   alias Relay.Datasets.Schema
 
   @name ~r/\A[a-z][a-z0-9_]{2,63}\z/
   @version ~r/\Av([1-9][0-9]{0,8})\.json\z/
+  @generated ["channel_event_evidence"]
 
-  @type version :: %{no: pos_integer(), content: Schema.json(), digest: <<_::256>>}
+  @type version :: %{
+          no: pos_integer(),
+          ref: String.t(),
+          content: Schema.json(),
+          digest: <<_::256>>
+        }
   @type dataset :: %{
           name: String.t(),
           schema: map(),
@@ -31,7 +37,7 @@ defmodule Relay.Datasets.Package do
       end
 
     Enum.reduce_while(names, {:ok, []}, fn name, {:ok, acc} ->
-      case dataset(Path.join(root, name), name) do
+      case dataset(root, name) do
         {:ok, dataset} -> {:cont, {:ok, [dataset | acc]}}
         {:error, error} -> {:halt, {:error, error}}
       end
@@ -42,16 +48,46 @@ defmodule Relay.Datasets.Package do
     end)
   end
 
-  defp dataset(dir, name) do
+  defp dataset(root, name) do
+    dir = Path.join(root, name)
+
     with :ok <- check(Regex.match?(@name, name), name, "not a data set name"),
          {:ok, files} <- File.ls(dir),
-         {:ok, numbers} <- version_numbers(name, files -- ["schema.json"]),
+         {:ok, sources} <- sources(root, name, files -- ["schema.json"]),
          :ok <- check("schema.json" in files, name, "schema.json is missing"),
          {:ok, schema} <- json(dir, name, "schema.json"),
-         {:ok, root} <- with_name(Schema.build(schema), name),
+         {:ok, built} <- with_name(Schema.build(schema), name),
          {:ok, schema_digest} <- with_name(Schema.digest(schema), name),
-         {:ok, versions} <- versions(dir, name, root, numbers) do
+         {:ok, versions} <- versions(name, built, sources) do
       {:ok, %{name: name, schema: schema, schema_digest: schema_digest, versions: versions}}
+    end
+  end
+
+  # CH-71
+  defp sources(root, name, []) when name in @generated do
+    channels = Path.join(Path.dirname(root), "channels")
+
+    case Relay.ChannelDeclarations.compose(channels) do
+      {:ok, content} -> {:ok, [{1, nil, content}]}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  defp sources(_root, name, files) when name in @generated,
+    do: error(name, "unexpected file #{hd(files)}")
+
+  defp sources(root, name, files) do
+    with {:ok, numbers} <- version_numbers(name, files) do
+      Enum.reduce_while(numbers, {:ok, []}, fn no, {:ok, acc} ->
+        case json(Path.join(root, name), name, "v#{no}.json") do
+          {:ok, content} -> {:cont, {:ok, [{no, "v#{no}", content} | acc]}}
+          {:error, error} -> {:halt, {:error, error}}
+        end
+      end)
+      |> then(fn
+        {:ok, sources} -> {:ok, Enum.reverse(sources)}
+        error -> error
+      end)
     end
   end
 
@@ -71,13 +107,13 @@ defmodule Relay.Datasets.Package do
     end
   end
 
-  defp versions(dir, name, root, numbers) do
-    Enum.reduce_while(numbers, {:ok, []}, fn no, {:ok, acc} ->
-      with {:ok, content} <- json(dir, name, "v#{no}.json"),
-           :ok <- with_name(Schema.validate(root, content), name),
+  defp versions(name, root, sources) do
+    Enum.reduce_while(sources, {:ok, []}, fn {no, ref, content}, {:ok, acc} ->
+      with :ok <- with_name(Schema.validate(root, content), name),
            :ok <- with_name(Relay.Datasets.consistent(name, content), name),
            {:ok, digest} <- with_name(Schema.digest(content), name) do
-        {:cont, {:ok, [%{no: no, content: content, digest: digest} | acc]}}
+        version = %{no: no, ref: ref || digest_ref(digest), content: content, digest: digest}
+        {:cont, {:ok, [version | acc]}}
       else
         {:error, error} -> {:halt, {:error, error}}
       end
@@ -87,6 +123,9 @@ defmodule Relay.Datasets.Package do
       error -> error
     end)
   end
+
+  defp digest_ref(digest),
+    do: "sha256:" <> binary_part(Base.encode16(digest, case: :lower), 0, 16)
 
   # sobelow_skip ["Traversal.FileModule"]
   defp json(dir, name, file) do

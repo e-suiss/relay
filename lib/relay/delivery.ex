@@ -116,7 +116,7 @@ defmodule Relay.Delivery do
   @doc """
   Finishes a failed or uncertain attempt and carries out its retry plan in the same transaction (`Relay.Delivery.RetryPolicy.next/1`, with the transaction's database clock). A retry is a new job, never a retry inside the adapter or the HTTP client: `:job` builds its changeset from `%{at: at, priority: priority, attempt_no: next, provider_idempotency_key: key}`, where `key` is the failed attempt's key that the next attempt opens with unchanged (INV-13), and it is inserted in this transaction. A dead letter, an expiry or a policy failure closes the delivery; a failed replay marks its dead letter replayed before the new one is recorded.
 
-  `attrs` holds the `finish_attempt/2` fields (`state` is `:failed` or `:unknown`) and `:channel`, `:provider`, `:condition`, `:message_class`, `:retry_after_ms`, `:expires_at`, `:parameters` (a `Relay.ChannelParameters` snapshot), `:budget` (`:allow` or `:deny`, from `retry_budget/4`), `:rule_id` (of a policy failure) and `:job`. Returns the finish result, the plan and its outcome.
+  `attrs` holds the `finish_attempt/2` fields (`state` is `:failed` or `:unknown`) and `:channel`, `:provider`, `:condition`, `:message_class`, `:retry_after_ms`, `:expires_at`, `:parameters` (a `Relay.ChannelParameters` snapshot), `:budget` (`:allow` or `:deny`, from `retry_budget/4`), `:rule_id` (of a policy failure), `:uncertain` (`:retry` when the channel's ambiguity decision lets an uncertain attempt be retried, T-28) and `:job`. Returns the finish result, the plan and its outcome.
   """
   @spec fail_attempt(Scope.t(), map()) :: result({atom(), RetryPolicy.plan() | nil, term()})
   def fail_attempt(%Scope{} = scope, %{state: state} = attrs) when state in [:failed, :unknown] do
@@ -145,7 +145,8 @@ defmodule Relay.Delivery do
       :expires_at,
       :parameters,
       :budget,
-      :rule_id
+      :rule_id,
+      :uncertain
     ])
     |> Map.merge(%{
       tenant_id: scope.tenant_id,

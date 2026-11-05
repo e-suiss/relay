@@ -1,0 +1,29 @@
+Date: Mon,  2 Nov 2026 10:20:11 +0000 (UTC)
+From: MAILER-DAEMON@mx.sender.example (Mail Delivery System)
+Subject: Undelivered Mail Returned to Sender
+To: b-example@bounce.sender.example
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status;
+	boundary="5Abc2R3defY.1730542811/mx.sender.example"
+
+--5Abc2R3defY.1730542811/mx.sender.example
+Content-Description: Notification
+Content-Type: text/plain; charset=us-ascii
+
+<ghost@legacy.example>: host mail.legacy.example[192.0.2.40] said: 550 User
+    unknown (in reply to RCPT TO command)
+
+--5Abc2R3defY.1730542811/mx.sender.example
+Content-Description: Delivery report
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; mx.sender.example
+X-Postfix-Queue-ID: 5Abc2R3defY
+
+Final-Recipient: rfc822; ghost@legacy.example
+Action: failed
+Status: 5.0.0
+Remote-MTA: dns; mail.legacy.example
+Diagnostic-Code: smtp; 550 User unknown
+
+--5Abc2R3defY.1730542811/mx.sender.example--

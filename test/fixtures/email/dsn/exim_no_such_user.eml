@@ -1,0 +1,47 @@
+Return-path: <>
+Envelope-to: b-example@bounce.sender.example
+From: Mail Delivery System <Mailer-Daemon@relay.sender.example>
+To: b-example@bounce.sender.example
+Subject: Mail delivery failed: returning message to sender
+Message-Id: <E1tAbCd-000123-AB@relay.sender.example>
+Date: Mon, 02 Nov 2026 11:02:33 +0000
+Content-Type: multipart/report; report-type=delivery-status; boundary=1730545353-eximdsn-1804289383
+MIME-Version: 1.0
+
+--1730545353-eximdsn-1804289383
+Content-type: text/plain; charset=us-ascii
+
+This message was created automatically by mail delivery software.
+
+A message that you sent could not be delivered to one or more of its
+recipients. This is a permanent error. The following address(es) failed:
+
+  nobody@old.example
+    host mx.old.example [192.0.2.60]
+    SMTP error from remote mail server after RCPT TO:<nobody@old.example>:
+    550 No such user here
+
+--1730545353-eximdsn-1804289383
+Content-type: message/delivery-status
+
+Reporting-MTA: dns; relay.sender.example
+
+Action: failed
+Final-Recipient: rfc822;nobody@old.example
+Status: 5.0.0
+Remote-MTA: dns; mx.old.example
+Diagnostic-Code: smtp; 550 No such user here
+
+--1730545353-eximdsn-1804289383
+Content-type: message/rfc822
+
+Return-path: <b-example@bounce.sender.example>
+From: Sender <billing@sender.example>
+To: nobody@old.example
+Subject: Your invoice
+Message-ID: <msg-0002@sender.example>
+Feedback-ID: invoice:billing:tenant1:billing
+
+Your invoice is attached.
+
+--1730545353-eximdsn-1804289383--

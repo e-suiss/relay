@@ -6,6 +6,10 @@ description = "Published C2SP and golang.org/x/mod sumdb test vectors"
 paths = ['''^test/vectors/c2sp/''']
 
 [[allowlists]]
+description = "Published RFC 8463 DKIM test key and signed message"
+paths = ['''^test/fixtures/email/dkim/''']
+
+[[allowlists]]
 description = "Synthetic access key shape the push content check must refuse"
 condition = "AND"
 paths = ['''^test/relay/channels/push/content_test\.exs$''']

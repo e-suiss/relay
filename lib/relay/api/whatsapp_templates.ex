@@ -91,12 +91,15 @@ defmodule Relay.Api.WhatsappTemplates do
       components: body["components"]
     }
 
-    with {:ok, account_id} <- account_id(attrs.provider_account_id),
-         attrs = %{attrs | provider_account_id: account_id},
-         {:ok, row} <- Relay.Channels.whatsapp_template_row(attrs) do
-      {:ok, row}
-    else
-      {:error, :pointer, pointer} -> field(pointer, "invalid_format", "the value is not valid")
+    case account_id(attrs.provider_account_id) do
+      {:ok, account_id} -> row(%{attrs | provider_account_id: account_id})
+      :error -> field("/provider_account_id", "invalid_format", "the value is not valid")
+    end
+  end
+
+  defp row(attrs) do
+    case Relay.Channels.whatsapp_template_row(attrs) do
+      {:ok, row} -> {:ok, row}
       {:error, :unknown_class} -> field("/message_class", "unsupported_value", "unknown class")
       {:error, :invalid_content} -> field("/language", "invalid_format", "not a language")
     end
@@ -105,7 +108,7 @@ defmodule Relay.Api.WhatsappTemplates do
   defp account_id(value) do
     case Relay.Id.parse(value) do
       {:ok, id} -> {:ok, id}
-      {:error, _error} -> {:error, :pointer, "/provider_account_id"}
+      {:error, _error} -> :error
     end
   end
 

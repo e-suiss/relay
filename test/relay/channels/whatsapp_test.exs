@@ -315,6 +315,7 @@ defmodule Relay.Channels.WhatsappTest do
       assert Template.transition("approved", "FLAGGED") == "approved"
 
       assert Template.sendable?("approved")
+
       for status <- ~w(pending_approval rejected paused disabled),
           do: refute(Template.sendable?(status))
     end

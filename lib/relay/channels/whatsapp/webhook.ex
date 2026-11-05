@@ -162,8 +162,7 @@ defmodule Relay.Channels.Whatsapp.Webhook do
         is_binary(wa_id),
         choice in ["stop", "resume"],
         {:ok, at} <- [Status.timestamp(entry["timestamp"])] do
-      {:user_preference,
-       Map.merge(number, %{wa_id: wa_id, value: choice(choice), at: at})}
+      {:user_preference, Map.merge(number, %{wa_id: wa_id, value: choice(choice), at: at})}
     end
   end
 

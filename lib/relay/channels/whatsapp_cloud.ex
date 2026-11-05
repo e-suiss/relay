@@ -172,10 +172,10 @@ defmodule Relay.Channels.WhatsappCloud do
     |> Map.put("details", details(error["error_data"]))
   end
 
+  defp detail(_body), do: %{}
+
   defp details(%{"details" => value}), do: text(value)
   defp details(_data), do: nil
-
-  defp detail(_body), do: %{}
 
   defp text(value) when is_binary(value), do: String.slice(value, 0, 256)
   defp text(_value), do: nil

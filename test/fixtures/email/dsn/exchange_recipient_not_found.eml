@@ -1,0 +1,49 @@
+From: postmaster@corp.example
+To: b-example@bounce.sender.example
+Date: Mon, 2 Nov 2026 12:00:04 +0000
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status;
+	boundary="7e2b9c1a-4f3d-4e8a-9b2c-0d1e2f3a4b5c"
+X-MS-Exchange-Message-Is-Ndr:
+Content-Language: en-US
+Message-ID: <a1b2c3d4-0001@exch01.corp.example>
+Subject: Undeliverable: Your order has shipped
+Auto-Submitted: auto-replied
+
+--7e2b9c1a-4f3d-4e8a-9b2c-0d1e2f3a4b5c
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+
+Delivery has failed to these recipients or groups:
+
+former.employee@corp.example
+The email address you entered couldn't be found. Please check the recipie=
+nt's email address and try to resend the message.
+
+Diagnostic information for administrators:
+
+Generating server: exch01.corp.example
+
+--7e2b9c1a-4f3d-4e8a-9b2c-0d1e2f3a4b5c
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns;exch01.corp.example
+Received-From-MTA: dns;smtp.sender.example
+Arrival-Date: Mon, 2 Nov 2026 12:00:03 +0000
+
+Final-Recipient: rfc822;former.employee@corp.example
+Action: failed
+Status: 5.1.10
+Diagnostic-Code: smtp;550 5.1.10 RESOLVER.ADR.RecipientNotFound; Recipient not found by SMTP address lookup
+
+--7e2b9c1a-4f3d-4e8a-9b2c-0d1e2f3a4b5c
+Content-Type: text/rfc822-headers
+
+Return-Path: <b-example@bounce.sender.example>
+From: Shop <orders@sender.example>
+To: <former.employee@corp.example>
+Subject: Your order has shipped
+Message-ID: <msg-0003@sender.example>
+Feedback-ID: shipping:orders:tenant1:orders
+
+--7e2b9c1a-4f3d-4e8a-9b2c-0d1e2f3a4b5c--

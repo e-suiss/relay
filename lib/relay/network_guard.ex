@@ -1,6 +1,6 @@
 defmodule Relay.NetworkGuard do
   @moduledoc """
-  Guard against network calls inside a database transaction (INV-55, T-15 (6)). Every client of another service, Valkey, the key store (`Relay.Keys`) and HTTP clients, calls `check!/1` before it reaches the network. When the guard is enabled (`config :relay, Relay.NetworkGuard, enabled: true`, set in development and test) a call made while the calling process holds an open transaction on any repository raises `Relay.NetworkGuard.Error`; in production the check compiles to nothing.
+  Guard against network calls inside a database transaction (INV-55, T-15 (6)). Every client of another service, Valkey, the key store (`Relay.Keys`), HTTP clients and DNS lookups, calls `check!/1` before it reaches the network. When the guard is enabled (`config :relay, Relay.NetworkGuard, enabled: true`, set in development and test) a call made while the calling process holds an open transaction on any repository raises `Relay.NetworkGuard.Error`; in production the check compiles to nothing.
   """
 
   defmodule Error do
@@ -15,7 +15,7 @@ defmodule Relay.NetworkGuard do
   @enabled Application.compile_env(:relay, [__MODULE__, :enabled], false)
   @repos [Relay.Repo, Relay.QueueRepo, Relay.Platform.MaintRepo]
 
-  @type target :: :valkey | :keys | :http
+  @type target :: :valkey | :keys | :http | :dns
 
   @dialyzer {:nowarn_function, enabled?: 0}
   @doc "Returns true when the guard raises; false in production builds."

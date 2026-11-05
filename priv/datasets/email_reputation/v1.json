@@ -1,0 +1,15 @@
+{
+  "source_ref": "CH-41; CH-40; §12.6.6; §12.6.7",
+  "reputation": {
+    "window_ms": 21600000,
+    "buckets": 36,
+    "warn_bounce_bp": 200,
+    "warn_complaint_bp": 5,
+    "stop_bounce_bp": 400,
+    "stop_complaint_bp": 8
+  },
+  "soft_bounce": {
+    "window_ms": 259200000,
+    "count": 3
+  }
+}

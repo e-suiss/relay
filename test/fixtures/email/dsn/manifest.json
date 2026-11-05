@@ -1,0 +1,144 @@
+{
+  "note": "DSN vector corpus (CH-77). Each vector names its source; MTA dialect vectors are reconstructed from the published bounce formats of each MTA with personal data replaced by reserved example names (RFC 2606). A new dialect is added only together with its vector.",
+  "vectors": [
+    {
+      "file": "rfc3464_simple.eml",
+      "source": "RFC 3464 Appendix E, Simple DSN",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "4.0.0", "kind": "soft", "rule": "prefix:4"}]
+    },
+    {
+      "file": "rfc3464_multi_recipient.eml",
+      "source": "RFC 3464 Appendix E, Multi-Recipient DSN (the stray space before one boundary line in the RFC text is removed)",
+      "report": "dsn",
+      "recipients": [
+        {"action": "failed", "status": "5.0.0", "kind": "unknown", "rule": null},
+        {"action": "delayed", "status": "4.0.0", "kind": "delayed", "rule": null},
+        {"action": "failed", "status": "5.0.0", "kind": "hard", "rule": "dialect:postfix_user_unknown"}
+      ]
+    },
+    {
+      "file": "rfc3464_gateway.eml",
+      "source": "RFC 3464 Appendix E, DSN from gateway to foreign system",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.0.0", "kind": "unknown", "rule": null}]
+    },
+    {
+      "file": "rfc3464_delayed.eml",
+      "source": "RFC 3464 Appendix E, Delayed DSN (shortened human-readable part)",
+      "report": "dsn",
+      "recipients": [{"action": "delayed", "status": "4.0.0", "kind": "delayed", "rule": null}]
+    },
+    {
+      "file": "rfc6522_partial_delivery.eml",
+      "source": "RFC 6522 multipart/report structure with preamble and epilogue; RFC 3464 per-recipient groups",
+      "report": "dsn",
+      "recipients": [
+        {"action": "delivered", "status": "2.0.0", "kind": "delivered", "rule": null},
+        {"action": "failed", "status": "5.2.1", "kind": "hard", "rule": "code:5.2.1"}
+      ]
+    },
+    {
+      "file": "global_dsn.eml",
+      "source": "RFC 6533 message/global-delivery-status with an internationalized address",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.1.1", "kind": "hard", "rule": "code:5.1.1"}]
+    },
+    {
+      "file": "postfix_user_unknown.eml",
+      "source": "Postfix bounce(8) DSN dialect, text/rfc822-headers original",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.1.1", "kind": "hard", "rule": "code:5.1.1"}]
+    },
+    {
+      "file": "postfix_generic_user_unknown.eml",
+      "source": "Postfix relaying a remote 550 without an enhanced status code (Status 5.0.0)",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.0.0", "kind": "hard", "rule": "dialect:postfix_user_unknown"}]
+    },
+    {
+      "file": "exim_no_such_user.eml",
+      "source": "Exim DSN dialect (eximdsn boundary, recipient group starting with Action)",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.0.0", "kind": "hard", "rule": "dialect:exim_no_such_user"}]
+    },
+    {
+      "file": "exchange_recipient_not_found.eml",
+      "source": "Exchange Server NDR, RESOLVER.ADR.RecipientNotFound, quoted-printable notification",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.1.10", "kind": "hard", "rule": "code:5.1.10"}]
+    },
+    {
+      "file": "exchange_online_access_denied.eml",
+      "source": "Exchange Online directory based edge blocking NDR (550 5.4.1 Access denied)",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.4.1", "kind": "hard", "rule": "dialect:exchange_access_denied"}]
+    },
+    {
+      "file": "gmail_no_such_user.eml",
+      "source": "Gmail Delivery Status Notification (Failure), NoSuchUser",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.1.1", "kind": "hard", "rule": "code:5.1.1"}]
+    },
+    {
+      "file": "gmail_dmarc.eml",
+      "source": "Gmail DMARC refusal 550-5.7.26",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.7.26", "kind": "sender_config", "rule": "code:5.7.26"}]
+    },
+    {
+      "file": "gmail_rate_limited.eml",
+      "source": "Gmail 421-4.7.28 rate limiting, given up by the sending MTA",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "4.7.28", "kind": "soft", "rule": "prefix:4"}]
+    },
+    {
+      "file": "gmail_spam_policy.eml",
+      "source": "Gmail 550-5.7.1 likely unsolicited mail",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.7.1", "kind": "policy", "rule": "code:5.7.1"}]
+    },
+    {
+      "file": "yahoo_no_account.eml",
+      "source": "Yahoo failure notice, 554 delivery error: dd This user doesn't have a yahoo.com account",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.0.0", "kind": "hard", "rule": "dialect:yahoo_no_account"}]
+    },
+    {
+      "file": "outlook_mailbox_unavailable.eml",
+      "source": "Outlook.com 550 5.5.0 Requested action not taken: mailbox unavailable",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.5.0", "kind": "hard", "rule": "dialect:outlook_mailbox_unavailable"}]
+    },
+    {
+      "file": "outlook_authentication.eml",
+      "source": "Outlook.com 550 5.7.515 sending domain does not meet the required authentication level",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.7.515", "kind": "sender_config", "rule": "code:5.7.515"}]
+    },
+    {
+      "file": "mailbox_full.eml",
+      "source": "Postfix relaying 552 5.2.2 mailbox full",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.2.2", "kind": "soft", "rule": "code:5.2.2"}]
+    },
+    {
+      "file": "message_too_big.eml",
+      "source": "Postfix relaying 552 5.3.4 message size exceeds fixed maximum",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.3.4", "kind": "content", "rule": "code:5.3.4"}]
+    },
+    {
+      "file": "unknown_status.eml",
+      "source": "Synthetic: a status and diagnostic no row maps",
+      "report": "dsn",
+      "recipients": [{"action": "failed", "status": "5.9.42", "kind": "unknown", "rule": null}]
+    },
+    {
+      "file": "plain_text_bounce.eml",
+      "source": "qmail-send plain text failure notice without a delivery status part",
+      "report": "unknown",
+      "recipients": []
+    }
+  ]
+}

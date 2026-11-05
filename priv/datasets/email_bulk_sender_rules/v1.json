@@ -1,0 +1,65 @@
+{
+  "source_ref": "CH-37; §12.6.4",
+  "providers": [
+    {
+      "provider": "gmail",
+      "domains": ["gmail.com", "googlemail.com"],
+      "requirements": {
+        "spf": true,
+        "dkim": true,
+        "dmarc_min_policy": "none",
+        "dmarc_alignment": true,
+        "one_click_unsubscribe": true,
+        "complaint_rate_max_bp": 30,
+        "complaint_rate_target_bp": 10,
+        "unsubscribe_within_days": 2
+      },
+      "source": "Google email sender guidelines for bulk senders (2024); §12.6.4"
+    },
+    {
+      "provider": "yahoo",
+      "domains": ["yahoo.com", "ymail.com", "rocketmail.com", "aol.com"],
+      "requirements": {
+        "spf": true,
+        "dkim": true,
+        "dmarc_min_policy": "none",
+        "dmarc_alignment": true,
+        "one_click_unsubscribe": true,
+        "complaint_rate_max_bp": 30,
+        "complaint_rate_target_bp": 10,
+        "unsubscribe_within_days": 2
+      },
+      "source": "Yahoo Sender Hub best practices for bulk senders (2024); §12.6.4"
+    },
+    {
+      "provider": "microsoft",
+      "domains": ["outlook.com", "hotmail.com", "live.com", "msn.com"],
+      "requirements": {
+        "spf": true,
+        "dkim": true,
+        "dmarc_min_policy": "none",
+        "dmarc_alignment": true,
+        "one_click_unsubscribe": true,
+        "complaint_rate_max_bp": 30,
+        "complaint_rate_target_bp": 10,
+        "unsubscribe_within_days": 2
+      },
+      "source": "Microsoft requirements for high-volume senders to consumer mailboxes (2025); §12.6.4"
+    },
+    {
+      "provider": "icloud",
+      "domains": ["icloud.com", "me.com", "mac.com"],
+      "requirements": {
+        "spf": true,
+        "dkim": true,
+        "dmarc_min_policy": "none",
+        "dmarc_alignment": true,
+        "one_click_unsubscribe": true,
+        "complaint_rate_max_bp": 30,
+        "complaint_rate_target_bp": 10,
+        "unsubscribe_within_days": 2
+      },
+      "source": "Apple iCloud Mail postmaster guidance for senders; §12.6.4"
+    }
+  ]
+}

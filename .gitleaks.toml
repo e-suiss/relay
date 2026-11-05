@@ -4,3 +4,7 @@ useDefault = true
 [[allowlists]]
 description = "Published C2SP and golang.org/x/mod sumdb test vectors"
 paths = ['''^test/vectors/c2sp/''']
+
+[[allowlists]]
+description = "Published RFC 8463 DKIM test key and signed message"
+paths = ['''^test/fixtures/email/dkim/''']

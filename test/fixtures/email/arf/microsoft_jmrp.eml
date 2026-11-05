@@ -1,0 +1,38 @@
+From: staff@hotmail.com
+To: jmrp@sender.example
+Subject: complaint about message from 192.0.2.11
+Date: Tue, 3 Nov 2026 09:20:31 -0800
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=feedback-report;
+	boundary="JMRP_0001"
+
+--JMRP_0001
+Content-Type: text/plain
+
+This is an email abuse report for an email message received from IP 192.0.2.11 on Tue, 3 Nov 2026 09:01:02 -0800.
+
+--JMRP_0001
+Content-Type: message/feedback-report
+
+Feedback-Type: abuse
+User-Agent: Hotmail FBL
+Version: 1
+Original-Mail-From: <b-example@bounce.sender.example>
+Original-Rcpt-To: <reader@hotmail.com>
+Arrival-Date: Tue, 3 Nov 2026 09:01:02 -0800
+Source-IP: 192.0.2.11
+Incidents: 1
+
+--JMRP_0001
+Content-Type: message/rfc822
+
+Return-Path: <b-example@bounce.sender.example>
+From: Weekly News <news@sender.example>
+To: reader@hotmail.com
+Subject: This week
+Message-ID: <msg-1002@sender.example>
+Feedback-ID: weekly:digest:tenant1:news
+
+This week in news.
+
+--JMRP_0001--

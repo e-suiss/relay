@@ -31,11 +31,33 @@ defmodule RelayWeb.Router do
     plug RelayWeb.Operator.Panel
   end
 
+  pipeline :links do
+    plug Plug.Parsers, parsers: [:urlencoded, :multipart], length: 8_192
+
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" =>
+        "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+      "cache-control" => "no-store",
+      "referrer-policy" => "no-referrer",
+      "x-robots-tag" => "noindex"
+    }
+  end
+
   scope "/", RelayWeb do
     pipe_through :api
 
     get "/livez", HealthController, :live
     get "/readyz", HealthController, :ready
+  end
+
+  # CH-76
+  # CH-44
+  # PC-35
+  scope "/links", RelayWeb do
+    pipe_through :links
+
+    get "/:token", LinkController, :show
+    post "/:token", LinkController, :create
   end
 
   # E-81

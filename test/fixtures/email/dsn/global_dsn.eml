@@ -1,0 +1,20 @@
+From: MAILER-DAEMON@mx.sender.example (Mail Delivery System)
+To: b-example@bounce.sender.example
+Subject: Undelivered Mail Returned to Sender
+Date: Mon,  2 Nov 2026 14:30:00 +0000 (UTC)
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=global-delivery-status;
+	boundary="GLOBAL.1730557800/mx.sender.example"
+
+--GLOBAL.1730557800/mx.sender.example
+Content-Type: message/global-delivery-status
+
+Reporting-MTA: dns; mx.sender.example
+
+Final-Recipient: utf-8; yönetici@örnek.example
+Action: failed
+Status: 5.1.1
+Remote-MTA: dns; mx.xn--rnek-1sa.example
+Diagnostic-Code: smtp; 550 5.1.1 mailbox does not exist
+
+--GLOBAL.1730557800/mx.sender.example--

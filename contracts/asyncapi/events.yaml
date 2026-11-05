@@ -1294,6 +1294,8 @@ components:
                     - from_recipient_id
                     - to_recipient_id
                   properties:
+                    device_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_dev"
                     device_fingerprint:
                       type: string
                       maxLength: 128
@@ -1307,7 +1309,7 @@ components:
     webhook.device.unregistered:
       name: device.unregistered
       title: device.unregistered
-      summary: A device token was disabled after a permanent target failure.
+      summary: "A device token was disabled: a permanent target failure, a logout or removal, a replaced token, inactivity, the active device limit or erasure (disabled_reason)."
       contentType: application/cloudevents+json
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -1324,11 +1326,15 @@ components:
                     - device_fingerprint
                     - recipient_id
                   properties:
+                    device_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_dev"
                     device_fingerprint:
                       type: string
                       maxLength: 128
                     recipient_id:
                       "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    disabled_reason:
+                      "$ref": "../openapi/components/schemas.yaml#/DeviceDisabledReason"
                     rule_id:
                       "$ref": "../openapi/components/schemas.yaml#/RuleId"
                   additionalProperties: false

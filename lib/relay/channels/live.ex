@@ -3,7 +3,7 @@ defmodule Relay.Channels.Live do
   The channel step of the delivery job (`Relay.Delivery.Send`, configured as `config :relay, Relay.Delivery, channel: Module`): it hands a rendered delivery to its provider and records the outcome.
 
     1. The route. On the `test` plane and in `shadow` mode the fake provider answers (X-25, API-62, CH-72); the send mode is the event's own mode (test only), then the tenant's `send_mode.channel.<channel>` and `send_mode` settings, then the installation default. Otherwise only a verified provider account whose adapter is activated takes traffic (`Relay.Channels.routes/4`, CH-14, INV-43); without one the delivery is held with `channel.no_route` and the job comes back later. The circuit breakers pick the first account that may be called; a rejection moves to the next account and, when every one is open, the job waits without counting an attempt (CH-13, T-25).
-    2. The target. An address channel reads the recipient's active address; a device channel asks the device port (`config :relay, Relay.Channels.Live, devices: Module`, `targets/3` and `disable/3`). A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
+    2. The target. An address channel reads the recipient's active address; a device channel reads the recipient's permitted devices from `Relay.Devices` (CH-28). A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
     3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50).
     4. The attempt. It is opened with the provider idempotency key that stays the same across the logical send (INV-13, OP-6 (4)) and marked started in its own transaction before the call (INV-55, CH-10). The credential is read from the secret backend for this call only, so a rotation applies at the next call (TN-26). The call is bounded by the three timeout layers (CH-9).
     5. The outcome is normalized into the eight failure classes (CH-7). A success finishes the attempt. A failure finishes it and plans its retry through the job queue only (T-26, INV-14); a permanent target failure soft disables the address or the device at once (CH-11); a code without a mapping raises `provider.unknown_code` and the alarm (CH-8). An uncertain outcome follows the provider's declared policy (T-28): the status query, a retry with the same key, or none; on a paid channel at most one retry and `delivery.uncertain`.
@@ -16,6 +16,7 @@ defmodule Relay.Channels.Live do
       Relay.Channels,
       Relay.Delivery,
       Relay.Datasets,
+      Relay.Devices,
       Relay.Ingest,
       Relay.Secrets,
       Relay.Tenancy
@@ -134,8 +135,11 @@ defmodule Relay.Channels.Live do
   # CH-72
   defp target(ctx, account, ticket) do
     case read_target(ctx, account) do
-      {:ok, value, kind} -> simulated(ctx, account, ticket, %{kind: kind, id: nil, value: value})
-      :unavailable -> hold(ctx.scope, ctx.delivery["id"], "channel.target_unavailable")
+      {:ok, value, kind, id} ->
+        simulated(ctx, account, ticket, %{kind: kind, id: id, value: value})
+
+      :unavailable ->
+        hold(ctx.scope, ctx.delivery["id"], "channel.target_unavailable")
     end
   end
 
@@ -149,7 +153,7 @@ defmodule Relay.Channels.Live do
     end
   end
 
-  defp fallback(%{"provider" => "fake"}, kind), do: {:ok, wrap(""), kind}
+  defp fallback(%{"provider" => "fake"}, kind), do: {:ok, wrap(""), kind, nil}
   defp fallback(_account, _kind), do: :unavailable
 
   defp address(scope, delivery, account) do
@@ -160,7 +164,7 @@ defmodule Relay.Channels.Live do
 
     with {:ok, %{} = row} <- Store.in_scope(scope, fn _ -> Store.address(recipient_id, kind) end),
          {:ok, value} <- Relay.Tenancy.decrypt_field(source, row["address_ct"]) do
-      {:ok, value, :address}
+      {:ok, value, :address, row["id"]}
     else
       _unreadable -> fallback(account, :address)
     end
@@ -178,15 +182,12 @@ defmodule Relay.Channels.Live do
   end
 
   defp device(scope, delivery, account) do
-    case devices() do
-      nil ->
-        fallback(account, :device)
+    channel = if delivery["channel"] == "web_push", do: :web_push, else: :push
+    recipient_id = delivery["recipient_id"]
 
-      module ->
-        case module.targets(scope, delivery["recipient_id"], delivery["channel"]) do
-          {:ok, [%{value: value} | _]} -> {:ok, value, :device}
-          _none -> :unavailable
-        end
+    case Relay.Devices.targets(scope, recipient_id, channel, delivery["message_class"]) do
+      {:ok, [%{id: id, token: token} | _]} -> {:ok, token, :device, id}
+      _none -> fallback(account, :device)
     end
   end
 
@@ -472,8 +473,10 @@ defmodule Relay.Channels.Live do
         _ = Relay.Channels.disable_address(ctx.scope, recipient, kind, request.channel, rule_id)
 
       "device" ->
-        with module when module != nil <- devices(),
-             do: module.disable(ctx.scope, request.target, outcome)
+        with id when id != nil <- request.target.id do
+          ref = {:device, id}
+          Relay.Devices.disable(ctx.scope, ref, :unregistered, failed_at: outcome.timestamp)
+        end
 
       _endpoint ->
         :ok
@@ -510,9 +513,5 @@ defmodule Relay.Channels.Live do
     :relay
     |> Application.get_env(Relay.Delivery, [])
     |> Keyword.get(:renderer, Relay.Templates.Live)
-  end
-
-  defp devices do
-    :relay |> Application.get_env(__MODULE__, []) |> Keyword.get(:devices)
   end
 end

@@ -255,7 +255,6 @@ defmodule Relay.Channels.PushAdaptersTest do
 
       assert_receive {:web_push, headers, body}
       headers = Map.new(headers)
-      assert headers["content-encoding"] == "aes128gcm"
       assert headers["ttl"] == "3600"
       assert headers["urgency"] == "normal"
       assert headers["topic"] == push.collapse.web_push

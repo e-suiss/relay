@@ -2,7 +2,7 @@ defmodule RelayTest.H2Server do
   @moduledoc """
   An in-process HTTP/2 server for the push client tests: prior-knowledge cleartext HTTP/2 on a local port, nothing reaches the network. Every connection is a process; each complete request is sent to the test process as `{:h2_request, connection, stream_id, request}` with its lower-case headers and body, and answered by the handler: `{status, headers, body}`, or `:hold` to wait for `release/3`.
 
-  Options: `:max_concurrent_streams` (100) and `:settings_delay_ms` (0) shape the server's SETTINGS frame, `:pong` (true) whether pings are answered. SETTINGS is always the first frame the server sends: an answer due before the delay has passed sends it first.
+  Options: `:max_concurrent_streams` (100) and `:settings_delay_ms` (0) shape the server's SETTINGS frame, `:pong` (true) whether pings are answered. SETTINGS is always the first frame the server sends: without a delay it follows the client preface at once, and an answer or a GOAWAY due before the delay has passed sends it first.
   """
 
   use Boundary, top_level?: true, check: [out: false]
@@ -55,8 +55,6 @@ defmodule RelayTest.H2Server do
 
     {:ok, @preface} = :gen_tcp.recv(socket, byte_size(@preface), 5_000)
     send(test, {:h2_connected, self()})
-    delay = Keyword.get(opts, :settings_delay_ms, 0)
-    _ = Process.send_after(self(), :settings, delay)
     :ok = :inet.setopts(socket, active: :once)
 
     state = %{
@@ -72,7 +70,14 @@ defmodule RelayTest.H2Server do
       ack?: false
     }
 
-    loop(state)
+    case Keyword.get(opts, :settings_delay_ms, 0) do
+      0 ->
+        loop(settings(state))
+
+      delay ->
+        _ = Process.send_after(self(), :settings, delay)
+        loop(state)
+    end
   end
 
   defp settings(%{settings?: true} = state), do: state
@@ -100,6 +105,7 @@ defmodule RelayTest.H2Server do
         loop(respond(state, stream_id, response))
 
       {:goaway, last} ->
+        state = settings(state)
         :ok = :gen_tcp.send(state.socket, frame(7, 0, 0, <<0::1, last::31, 0::32>>))
         loop(state)
     end

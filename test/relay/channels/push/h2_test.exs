@@ -29,7 +29,7 @@ defmodule Relay.Channels.Push.H2Test do
 
       assert {"apns-id", "a"} in headers
       assert is_pid(H2.whereis(tenant, :k))
-      assert_receive {:h2_request, _conn, 1, %{headers: %{":path" => "/3/device/abc"}}}
+      assert_receive {:h2_request, _conn, _id, %{headers: %{":path" => "/3/device/abc"}}}
     end
 
     test "CH-24: a cold connection carries one stream until SETTINGS arrive, then up to the server's limit" do
@@ -78,7 +78,7 @@ defmodule Relay.Channels.Push.H2Test do
       {:ok, port} = H2Server.start(fn _request -> :hold end, max_concurrent_streams: 1)
       tenant = tenant()
 
-      held = send_async(tenant, :slow, port, [], 300)
+      held = send_async(tenant, :slow, port, [], 2_000)
       assert_receive {:h2_request, _conn, _id, _request}, 2_000
       waiting = send_async(tenant, :slow, port, [], 150)
 

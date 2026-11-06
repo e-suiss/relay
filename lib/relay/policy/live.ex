@@ -9,6 +9,7 @@ defmodule Relay.Policy.Live do
     top_level?: true,
     deps: [
       Relay,
+      Relay.Devices,
       Relay.Policy,
       Relay.Policy.FrequencyCounter,
       Relay.Policy.Lattice,

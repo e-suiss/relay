@@ -431,6 +431,12 @@ defmodule RelayWeb.Router do
     post "/tenants/:tenant_id/resume", PlatformController, :resume,
       private: %{relay_operation: "resumeTenant"}
 
+    get "/tenants/:tenant_id/critical_interruption", PlatformController, :critical,
+      private: %{relay_operation: "getCriticalInterruption"}
+
+    put "/tenants/:tenant_id/critical_interruption", PlatformController, :set_critical,
+      private: %{relay_operation: "setCriticalInterruption"}
+
     get "/queue_panel", PlatformController, :queue_panel,
       private: %{relay_operation: "getQueuePanel"}
 

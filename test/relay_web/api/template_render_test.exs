@@ -237,6 +237,27 @@ defmodule RelayWeb.Api.TemplateRenderTest do
       assert Map.keys(meta) == [:channel]
     end
 
+    test "TP-25: without a profile locale the device locale chooses the cell", ctx do
+      cells = %{"tr" => email_cell("Kargoda"), "en" => email_cell("Shipped")}
+      template!(ctx, %{"email" => cells})
+      workflow!(ctx, ["email"])
+      external_id = subscriber!(ctx.token)
+
+      device = %{
+        "platform" => "fcm",
+        "token" => "fcm:" <> TenantFixture.random() <> TenantFixture.random(),
+        "app" => "com.example.shop",
+        "permission" => "granted",
+        "locale" => "en-US"
+      }
+
+      path = "/v1/subscribers/#{external_id}/devices"
+      F.body(F.request(:post, path, ctx.token, device), 201)
+
+      delivery = delivery!(ctx.token, external_id)
+      assert %{locale: "en", fallback: false} = plan(ctx.scope, delivery)
+    end
+
     test "TP-26, TP-51: no cell in the locale chain skips with template.locale_missing", ctx do
       template!(ctx, %{"email" => %{"en" => email_cell("Shipped")}})
       workflow!(ctx, ["email"])
@@ -437,6 +458,15 @@ defmodule RelayWeb.Api.TemplateRenderTest do
       workflow!(ctx, ["sms", "push", "webhook", "email"], event_schema: schema)
       data = %{"order" => String.duplicate("x", 5_000), "items" => [1, 2]}
       external_id = subscriber!(ctx.token, %{"phone" => "+905551112233"})
+
+      device = %{
+        "platform" => "fcm",
+        "token" => "fcm:" <> TenantFixture.random() <> TenantFixture.random(),
+        "app" => "com.example.shop",
+        "permission" => "granted"
+      }
+
+      F.body(F.request(:post, "/v1/subscribers/#{external_id}/devices", ctx.token, device), 201)
       accepted = send!(ctx.token, external_id, %{"data" => data})
       by_channel = deliveries(ctx.token, accepted)
       ref = attach([:relay, :render, :stop])

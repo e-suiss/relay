@@ -18,6 +18,7 @@ defmodule Relay.Channels do
   alias Relay.Channels.Limits
   alias Relay.Channels.Outcome
   alias Relay.Channels.Pricing
+  alias Relay.Channels.Push.CriticalGrant
   alias Relay.Channels.Registry
   alias Relay.Channels.Request
   alias Relay.Channels.Routing
@@ -564,6 +565,20 @@ defmodule Relay.Channels do
     )
 
     Store.in_scope(scope, fn _status -> Store.unknown_code(provider, channel, raw_code) end)
+  end
+
+  # CH-66
+  @doc """
+  Asks Access for the recipient's Grant of critical interruption to a sender (`Relay.Channels.Push.CriticalGrant.decide/2`): `:permit` only on an explicit permit, otherwise `:deny` or `:unavailable`, and the caller delivers at the class ceiling with `critical_not_granted`. The implementation is `config :relay, Relay.Channels, critical_grant: module`, `Relay.Channels.Push.AccessGrant` by default.
+  """
+  @spec critical_grant(CriticalGrant.query()) :: CriticalGrant.decision()
+  def critical_grant(%{} = query) do
+    module =
+      :relay
+      |> Application.get_env(__MODULE__, [])
+      |> Keyword.get(:critical_grant, Relay.Channels.Push.AccessGrant)
+
+    CriticalGrant.decide(module, query)
   end
 
   # CH-2

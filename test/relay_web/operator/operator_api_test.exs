@@ -445,6 +445,45 @@ defmodule RelayWeb.Operator.OperatorApiTest do
       assert [_] = audit(tenant.live, "tenant.resumed")
     end
 
+    test "CH-20, TN-23: critical is opened and closed with step-up and audited" do
+      tenant = TenantFixture.tenant!()
+      operator = installation_operator("platform-" <> TenantFixture.random()) |> step_up()
+      tenant_path = "/v1/operator/tenants/" <> Relay.ExternalId.encode("ten", tenant.id)
+      path = tenant_path <> "/critical_interruption"
+
+      assert %{"enabled" => false, "templates" => [], "entitlements" => []} =
+               json(request(:get, path, as: operator), 200)
+
+      body = %{
+        "enabled" => true,
+        "templates" => ["flight-cancelled"],
+        "entitlements" => [%{"platform" => "apns", "reference" => "apple-critical-1"}],
+        "reason" => "entitlement shown"
+      }
+
+      opened = json(request(:put, path, body: body, as: operator), 200)
+      assert %{"enabled" => true, "templates" => ["flight-cancelled"]} = opened
+      assert [%{"platform" => "apns"}] = opened["entitlements"]
+      assert [_] = operator_audit(tenant.live, "push_critical.changed")
+
+      missing = request(:put, path, body: Map.delete(body, "entitlements"), as: operator)
+      assert json(missing, 422)["code"] == "validation_failed"
+
+      closed = %{"enabled" => false, "reason" => "entitlement revoked"}
+      assert %{"enabled" => false} = json(request(:put, path, body: closed, as: operator), 200)
+      assert %{"enabled" => false} = json(request(:get, path, as: operator), 200)
+    end
+
+    test "TN-21: opening critical without a step-up is refused" do
+      tenant = TenantFixture.tenant!()
+      operator = installation_operator("platform-" <> TenantFixture.random())
+      tenant_path = "/v1/operator/tenants/" <> Relay.ExternalId.encode("ten", tenant.id)
+      body = %{"enabled" => false, "reason" => "check"}
+
+      conn = request(:put, tenant_path <> "/critical_interruption", body: body, as: operator)
+      assert json(conn, 401)["code"] == "auth_step_up_required"
+    end
+
     test "TN-71: a suspension on other grounds needs seven days of notice" do
       tenant = TenantFixture.tenant!()
       operator = installation_operator("platform-" <> TenantFixture.random()) |> step_up()

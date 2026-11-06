@@ -117,5 +117,6 @@
   {"file": "20261120000100_create_messaging_tables.exs", "sha256": "ca71e88b5581a35af64009cf3618b6f76fec4b31c872585bb3c7c168cc77cfa1"},
   {"file": "20261120000200_create_messaging_functions.exs", "sha256": "de7203452fffbae444f3a59ffa94b0d896d558d1fdf52a22ce6550bf8c9e10b1"},
   {"file": "20261120000300_rebuild_reference_check_for_messaging.exs", "sha256": "a5ac486b8575288c748fc2da8f965ce9697786b02978178c7af0dbd77a4a7167"},
-  {"file": "20261121000100_create_usage_day_scopes.exs", "sha256": "401d5f8c941653190f201b068c25d54dc1dbbd7352519290b6e7d3935114d892"}
+  {"file": "20261121000100_create_usage_day_scopes.exs", "sha256": "401d5f8c941653190f201b068c25d54dc1dbbd7352519290b6e7d3935114d892"},
+  {"file": "20261122000100_create_push_critical_function.exs", "sha256": "45acbea495653e992779ba8d238db1e0ea49c8b03d6a044fea9f390aad84cce8"}
 ]

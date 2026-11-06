@@ -19,7 +19,7 @@ tags:
   - name: roles
     description: Built-in roles and role assignments.
   - name: platform
-    description: "Installation operator: platform kill switch, tenants, suspension, queue panel."
+    description: "Installation operator: platform kill switch, tenants, suspension, critical interruption opening, queue panel."
   - name: tenant-settings
     description: Send modes and API version pin.
   - name: support
@@ -1567,6 +1567,183 @@ paths:
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: always
+  "/v1/operator/tenants/{tenant_id}/critical_interruption":
+    get:
+      operationId: getCriticalInterruption
+      tags:
+        - platform
+      summary: Get a tenant's critical interruption opening
+      description: "Installation operator only. Whether the tenant may send push notifications at the critical interruption level, the templates it declared critical in advance and the platform entitlement evidence it presented. The opening lives in the tenant's live environment and applies to both environments."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/TenantId"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The opening.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/CriticalInterruption"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - tenant_not_found
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 6
+    put:
+      operationId: setCriticalInterruption
+      tags:
+        - platform
+      summary: Open, change or close a tenant's critical interruption
+      description: "Installation operator with step-up (CH-20). critical is closed by default. Opening it records the platform entitlement evidence the tenant presented (such as the Apple Critical Alerts entitlement) and the templates declared critical in advance; enabled false closes it. Every change is audited as push_critical.changed and every delivery at the critical level as push_critical.used. A critical delivery still needs the recipient's explicit Grant in Access at send time; without it the notification goes at the class ceiling."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/TenantId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/CriticalInterruptionWrite"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The opening after the change.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/CriticalInterruption"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - tenant_not_found
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+      x-relay-stage: 6
   "/v1/operator/send_modes":
     get:
       operationId: listSendModes
@@ -3589,6 +3766,86 @@ components:
               type: array
               items:
                 "$ref": "#/components/schemas/TenantOverview"
+    CriticalInterruption:
+      type: object
+      description: "A tenant's opening of the critical interruption level (CH-20, TN-23). Closed by default."
+      required:
+        - object
+        - tenant_id
+        - enabled
+        - templates
+        - entitlements
+        - updated_at
+      properties:
+        object:
+          type: string
+          const: critical_interruption
+        tenant_id:
+          "$ref": "./components/schemas.yaml#/Id_ten"
+        enabled:
+          type: boolean
+        templates:
+          type: array
+          description: Template keys declared critical in advance; empty when closed.
+          items:
+            "$ref": "./components/schemas.yaml#/TemplateKey"
+          maxItems: 50
+        entitlements:
+          type: array
+          description: The platform entitlement evidence the tenant presented; empty when closed.
+          items:
+            "$ref": "#/components/schemas/CriticalEntitlement"
+          maxItems: 3
+        updated_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+      additionalProperties: false
+    CriticalEntitlement:
+      type: object
+      description: "A reference to the platform permission the tenant holds, such as the Apple Critical Alerts entitlement request; a reference, never a file."
+      required:
+        - platform
+        - reference
+      properties:
+        platform:
+          type: string
+          enum:
+            - apns
+            - fcm
+            - hms
+        reference:
+          type: string
+          minLength: 1
+          maxLength: 500
+      additionalProperties: false
+    CriticalInterruptionWrite:
+      type: object
+      description: "enabled true opens or changes the opening and needs templates and entitlements; enabled false closes it."
+      required:
+        - enabled
+        - reason
+      properties:
+        enabled:
+          type: boolean
+        templates:
+          type: array
+          items:
+            "$ref": "./components/schemas.yaml#/TemplateKey"
+          minItems: 1
+          maxItems: 50
+        entitlements:
+          type: array
+          items:
+            "$ref": "#/components/schemas/CriticalEntitlement"
+          minItems: 1
+          maxItems: 3
+          uniqueItems: true
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      additionalProperties: false
     SendModeSetting:
       type: object
       required:

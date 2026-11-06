@@ -103,6 +103,8 @@ channels:
         "$ref": "#/components/messages/webhook.killswitch.auto_paused"
       operations.provider.unknown_code:
         "$ref": "#/components/messages/operations.provider.unknown_code"
+      operations.push_priority.threshold_reached:
+        "$ref": "#/components/messages/operations.push_priority.threshold_reached"
       webhook.quota.threshold_reached:
         "$ref": "#/components/messages/webhook.quota.threshold_reached"
       webhook.quota.reserve_opened:
@@ -309,6 +311,12 @@ channels:
         "$ref": "#/components/messages/audit.sender_identity.resumed"
       audit.channel_identity.changed:
         "$ref": "#/components/messages/audit.channel_identity.changed"
+      audit.push_critical.changed:
+        "$ref": "#/components/messages/audit.push_critical.changed"
+      audit.push_critical.used:
+        "$ref": "#/components/messages/audit.push_critical.used"
+      audit.push_priority.threshold_reached:
+        "$ref": "#/components/messages/audit.push_priority.threshold_reached"
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
@@ -399,6 +407,7 @@ operations:
       - "$ref": "#/channels/operations/messages/webhook.killswitch.released"
       - "$ref": "#/channels/operations/messages/webhook.killswitch.auto_paused"
       - "$ref": "#/channels/operations/messages/operations.provider.unknown_code"
+      - "$ref": "#/channels/operations/messages/operations.push_priority.threshold_reached"
       - "$ref": "#/channels/operations/messages/webhook.quota.threshold_reached"
       - "$ref": "#/channels/operations/messages/webhook.quota.reserve_opened"
   sendInboxRealtime:
@@ -507,6 +516,9 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.sender_identity.suspended"
       - "$ref": "#/channels/auditLog/messages/audit.sender_identity.resumed"
       - "$ref": "#/channels/auditLog/messages/audit.channel_identity.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.push_critical.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.push_critical.used"
+      - "$ref": "#/channels/auditLog/messages/audit.push_priority.threshold_reached"
   receiveAccessInbound:
     action: receive
     channel:
@@ -2290,6 +2302,53 @@ components:
                   additionalProperties: false
       x-relay-surface: operations
       x-relay-stage: 6
+    operations.push_priority.threshold_reached:
+      name: push_priority.threshold_reached
+      title: push_priority.threshold_reached
+      summary: "More than the policy share of a tenant's push sends in 24 hours went out at high priority (CH-22); the tenant is warned at most once per window and the warning is audited."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: push_priority.threshold_reached
+                data:
+                  type: object
+                  required:
+                    - window
+                    - high
+                    - total
+                    - ratio_bp
+                    - threshold_bp
+                  properties:
+                    window:
+                      type: string
+                      const: PT24H
+                    high:
+                      type: integer
+                      minimum: 0
+                    total:
+                      type: integer
+                      minimum: 1
+                    ratio_bp:
+                      type: integer
+                      minimum: 0
+                      maximum: 10000
+                    threshold_bp:
+                      type: integer
+                      minimum: 0
+                      maximum: 10000
+                  additionalProperties: false
+      x-relay-surface: operations
+      x-relay-stage: 6
+      x-relay-also:
+        - audit
+      x-relay-choice: true
+      x-relay-choice-note: "The spec warns the tenant over a high priority ratio but names neither the event nor the threshold; the threshold is a POLICY DEFAULT."
     webhook.quota.threshold_reached:
       name: quota.threshold_reached
       title: quota.threshold_reached
@@ -5053,6 +5112,60 @@ components:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.push_critical.changed:
+      name: push_critical.changed
+      title: push_critical.changed
+      summary: "The installation operator opened, changed or closed a tenant's critical interruption level (CH-20, TN-23)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: setting
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.push_critical.used:
+      name: push_critical.used
+      title: push_critical.used
+      summary: "A push notification was delivered at the critical interruption level (CH-20)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: delivery
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.push_priority.threshold_reached:
+      name: push_priority.threshold_reached
+      title: push_priority.threshold_reached
+      summary: "A tenant's share of high priority push sends crossed the warning threshold (CH-22)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: tenant
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     access.consent.updated:
       name: consent.updated
       title: consent.updated
@@ -5265,6 +5378,9 @@ x-relay-event-names:
   - provider_account.changed
   - provider_account.credential_rotated
   - provider_account.verified
+  - push_critical.changed
+  - push_critical.used
+  - push_priority.threshold_reached
   - quota.reserve_opened
   - quota.threshold_reached
   - quota_policy.changed

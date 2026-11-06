@@ -142,6 +142,7 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.tenant_suspension_activate" => ~w(effective not_due not_scheduled),
     "relay_fn.tenant_suspension_lift" => ~w(lifted cancelled not_found already_ended),
     "relay_fn.send_mode_set" => ~w(set cleared unchanged invalid_level),
+    "relay_fn.push_critical_set" => ~w(opened changed closed unchanged),
     "relay_fn.recipient_upsert" =>
       ~w(created updated unchanged exists recipient_not_found deletion_pending is_agent version_conflict tenant_inactive),
     "relay_fn.recipient_deletion_request" => ~w(requested already_requested not_found held),

@@ -125,6 +125,21 @@ defmodule RelayWeb.Operator.Json do
     }
   end
 
+  @doc "The `critical` interruption opening of a tenant from its stored setting row, or of none."
+  @spec critical_interruption(Relay.Id.t(), map() | nil) :: map()
+  def critical_interruption(tenant_id, row) do
+    value = (row && row["value"]) || %{}
+
+    %{
+      "object" => "critical_interruption",
+      "tenant_id" => id("ten", tenant_id),
+      "enabled" => is_list(value["templates"]),
+      "templates" => value["templates"] || [],
+      "entitlements" => value["entitlements"] || [],
+      "updated_at" => time(row && row["updated_at"])
+    }
+  end
+
   @doc "A tenant or subtenant suspension."
   @spec suspension(map()) :: map()
   def suspension(row) do

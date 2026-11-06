@@ -67,6 +67,18 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
     external_id
   end
 
+  defp device!(token, external_id, permission \\ "granted") do
+    body = %{
+      "platform" => "fcm",
+      "token" => "fcm:" <> TenantFixture.random() <> TenantFixture.random(),
+      "app" => "com.example.shop",
+      "permission" => permission
+    }
+
+    F.body(F.request(:post, "/v1/subscribers/#{external_id}/devices", token, body), 201)
+    external_id
+  end
+
   defp recipient_id(scope, external_id) do
     {:ok, %{"_id" => id}} = Relay.Subscribers.fetch(scope, external_id)
     id
@@ -344,7 +356,7 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
       workflow!(ctx.scope, ctx.token, "new-device", "alerts", "security", ["push"])
       category!(ctx.scope, "ops", "operational")
       workflow!(ctx.scope, ctx.token, "maintenance", "ops", "operational", ["push"])
-      external_id = subscriber!(ctx.token)
+      external_id = device!(ctx.token, subscriber!(ctx.token))
       quiet!(ctx.scope, external_id)
 
       alert = delivery!(ctx.token, "new-device", external_id)
@@ -357,6 +369,36 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
     end
   end
 
+  describe "CH-28 CH-29 device targets" do
+    test "CH-28: a push without a device or without a permitted device is skipped", ctx do
+      category!(ctx.scope, "ops", "operational")
+      workflow!(ctx.scope, ctx.token, "maintenance", "ops", "operational", ["push"])
+
+      none = delivery!(ctx.token, "maintenance", subscriber!(ctx.token))
+      assert %{"status" => "skipped", "rule_id" => "channel.no_address"} = none
+
+      denied = device!(ctx.token, subscriber!(ctx.token), "denied")
+      blocked = delivery!(ctx.token, "maintenance", denied)
+      assert %{"status" => "skipped", "rule_id" => "channel.no_permission"} = blocked
+
+      granted = device!(ctx.token, subscriber!(ctx.token))
+      assert %{"status" => "queued"} = delivery!(ctx.token, "maintenance", granted)
+    end
+
+    test "CH-29: a provisional device takes marketing and social pushes only", ctx do
+      category!(ctx.scope, "ops", "operational")
+      workflow!(ctx.scope, ctx.token, "maintenance", "ops", "operational", ["push"])
+      category!(ctx.scope, "friends", "social")
+      workflow!(ctx.scope, ctx.token, "friend-joined", "friends", "social", ["push"])
+      external_id = device!(ctx.token, subscriber!(ctx.token), "provisional")
+
+      blocked = delivery!(ctx.token, "maintenance", external_id)
+      assert %{"status" => "skipped", "rule_id" => "channel.no_permission"} = blocked
+
+      assert %{"status" => "queued"} = delivery!(ctx.token, "friend-joined", external_id)
+    end
+  end
+
   describe "PC-46 PC-58 (5) DS-27 deferral" do
     test "PC-8, DS-27: a quiet hours deferral is passed again at deferred_until on the virtual clock",
          ctx do
@@ -364,7 +406,7 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
       token = F.token(scope)
       category!(scope, "ops", "operational")
       workflow!(scope, token, "maintenance", "ops", "operational", ["push"])
-      external_id = subscriber!(token)
+      external_id = device!(token, subscriber!(token))
       ends = quiet!(scope, external_id)
 
       delivery = delivery!(token, "maintenance", external_id)
@@ -396,7 +438,7 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
     test "PC-46, PC-49: a deferral with no allowed instant before expires_at expires", ctx do
       category!(ctx.scope, "orders", "transactional")
       workflow!(ctx.scope, ctx.token, "order-out", "orders", "transactional", ["push"])
-      external_id = subscriber!(ctx.token)
+      external_id = device!(ctx.token, subscriber!(ctx.token))
       quiet!(ctx.scope, external_id)
       expires = DateTime.to_iso8601(DateTime.add(Relay.Clock.utc_now(), 1_800))
 

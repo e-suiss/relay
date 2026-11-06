@@ -282,6 +282,32 @@ defmodule Relay.ConfigTest do
       assert_raise Error, ~r/is required/, fn -> Env.fetch!("TEST_MISSING_VALUE") end
     end
 
+    test "E-91: trusted proxies parse from a comma-separated CIDR list, empty when unset" do
+      System.delete_env("TEST_PROXIES")
+      assert Env.cidrs!("TEST_PROXIES") == []
+      System.put_env("TEST_PROXIES", "")
+      assert Env.cidrs!("TEST_PROXIES") == []
+      System.put_env("TEST_PROXIES", "10.0.0.0/8, 192.0.2.7,2001:db8::/32 ,::1")
+      assert Env.cidrs!("TEST_PROXIES") == ["10.0.0.0/8", "192.0.2.7", "2001:db8::/32", "::1"]
+
+      for bad <- ["10.0.0.0/33", "10.0.0/8", "2001:db8::/129", "10.0.0.0/x", "proxy.internal"] do
+        System.put_env("TEST_PROXIES", "10.0.0.0/8," <> bad)
+        assert_raise Error, ~r/TEST_PROXIES names a malformed range/, fn ->
+          Env.cidrs!("TEST_PROXIES")
+        end
+      end
+    after
+      System.delete_env("TEST_PROXIES")
+    end
+
+    test "E-91: production and the chart carry RELAY_TRUSTED_PROXIES" do
+      assert "RELAY_TRUSTED_PROXIES" in Config.known_os_env_keys()
+      runtime = File.read!("config/runtime.exs")
+      assert runtime =~ ~s[Relay.Config.Env.cidrs!("RELAY_TRUSTED_PROXIES")]
+      env = File.read!("deploy/helm/relay/templates/_env.tpl")
+      assert env =~ ~s[- name: RELAY_TRUSTED_PROXIES\n  value: {{ join "," .Values.trustedProxies]
+    end
+
     test "T-3: roles parse from a comma-separated list and reject unknown roles" do
       System.put_env("TEST_ROLES", "api, worker")
       assert Env.roles!("TEST_ROLES") == [:api, :worker]

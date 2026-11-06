@@ -8,6 +8,7 @@ database:
   adminUrl: ecto://relay@postgres:5432/relay
 valkey:
   url: redis://valkey:6379
+trustedProxies: [10.0.0.0/8, "fd00::/8"]
 access:
   issuer: https://access.example.com
   clientId: app_relay

@@ -250,9 +250,9 @@ defmodule Relay.Access.ApiClientTest do
 
   defp thumbprint(der), do: Base.url_encode64(:crypto.hash(:sha256, der), padding: false)
 
-  defp client_cert_proxies(ranges) do
+  defp trusted_proxies(ranges) do
     previous = Application.get_env(:relay, RelayWeb.Api, [])
-    Application.put_env(:relay, RelayWeb.Api, Keyword.put(previous, :client_cert_proxies, ranges))
+    Application.put_env(:relay, RelayWeb.Api, Keyword.put(previous, :trusted_proxies, ranges))
     on_exit(fn -> Application.put_env(:relay, RelayWeb.Api, previous) end)
   end
 
@@ -276,7 +276,7 @@ defmodule Relay.Access.ApiClientTest do
 
     test "E-79 (4): a Client-Cert from a configured proxy binds the token", ctx do
       proxy = Api.ip()
-      client_cert_proxies([to_string(:inet.ntoa(proxy))])
+      trusted_proxies([to_string(:inet.ntoa(proxy))])
       chain = ctx.header <> ", :" <> Base.encode64(certificate()) <> ":"
 
       conn = clock(ctx.bound, from(proxy, [{"client-cert", ctx.header}]))
@@ -292,7 +292,7 @@ defmodule Relay.Access.ApiClientTest do
       other = Api.ip()
 
       for ranges <- [[], [to_string(:inet.ntoa(proxy))]] do
-        client_cert_proxies(ranges)
+        trusted_proxies(ranges)
         conn = clock(ctx.bound, from(other, [{"client-cert", ctx.header}]))
         assert conn.status == 401
         Api.assert_contract(conn)
@@ -302,7 +302,7 @@ defmodule Relay.Access.ApiClientTest do
 
     test "E-79 (4): a malformed Client-Cert or chain from a configured proxy is ignored", ctx do
       proxy = Api.ip()
-      client_cert_proxies([to_string(:inet.ntoa(proxy)) <> "/32"])
+      trusted_proxies([to_string(:inet.ntoa(proxy)) <> "/32"])
       bare = Base.encode64(ctx.der)
       junk = ":" <> Base.encode64(:crypto.strong_rand_bytes(300)) <> ":"
 

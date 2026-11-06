@@ -6541,3 +6541,273 @@ MessagingInboundRequest:
 MessagingInboundAnswer:
   type: object
   description: "What the provider expects in return, or an error name."
+
+Id_wtp:
+  type: string
+  description: "WhatsApp template identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^wtp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - wtp_01j9zq3k4m5n6p7q8r9s0t1v2w
+WhatsappTemplateStatus:
+  type: string
+  description: "Relay's lifecycle of a WhatsApp template: pending_approval until Meta approves it; only approved is sent. rejected carries Meta's reason; paused and disabled follow Meta's PAUSED and DISABLED (and deletion or archiving)."
+  enum:
+    - pending_approval
+    - approved
+    - rejected
+    - paused
+    - disabled
+WhatsappTemplateCategory:
+  type: string
+  description: "WhatsApp template category. Relay's class maps to a fixed category: security to authentication; transactional, operational and action_required to utility; marketing and social to marketing."
+  enum:
+    - authentication
+    - utility
+    - marketing
+WhatsappTemplateComponent:
+  type: object
+  description: A component of the Meta template as it is submitted to Meta; text placeholders are {{1}} or {{name}}.
+  required:
+    - type
+  properties:
+    type:
+      type: string
+      enum:
+        - HEADER
+        - BODY
+        - FOOTER
+        - BUTTONS
+    format:
+      type: string
+      maxLength: 32
+    text:
+      type: string
+      maxLength: 1024
+    buttons:
+      type: array
+      maxItems: 10
+      items:
+        type: object
+  additionalProperties: false
+WhatsappTemplateRegistration:
+  type: object
+  description: "Registers a Meta template of a WhatsApp provider account. Templates are immutable and named with their version (order_shipped_v3): new content is a new name, going back is going back to the older name."
+  required:
+    - provider_account_id
+    - waba_id
+    - name
+    - language
+    - message_class
+    - components
+  properties:
+    provider_account_id:
+      type: string
+      format: uuid
+      description: The WhatsApp provider account the template belongs to.
+    waba_id:
+      type: string
+      pattern: "^[0-9]{1,32}$"
+      description: The WhatsApp Business Account of the template.
+    name:
+      type: string
+      pattern: "^[a-z0-9_]{1,512}$"
+      description: The Meta template name.
+    language:
+      type: string
+      pattern: "^[a-z]{2,3}([_-][A-Za-z0-9]{2,8}){0,2}$"
+      description: "The template language, as a Meta code (en_US) or a locale (en-US)."
+    message_class:
+      "$ref": "#/MessageClass"
+    components:
+      type: array
+      minItems: 1
+      maxItems: 10
+      items:
+        "$ref": "#/WhatsappTemplateComponent"
+  additionalProperties: false
+WhatsappTemplate:
+  type: object
+  description: "A registered WhatsApp template with Relay's state next to Meta's status and category. preview is the text Meta approved, with its placeholders; category_drift is set when Meta's category differs from the class's category; edit_quota is what is left of Meta's edit limits."
+  required:
+    - object
+    - id
+    - provider_account_id
+    - waba_id
+    - name
+    - language
+    - message_class
+    - category
+    - meta_category
+    - status
+    - meta_status
+    - meta_template_id
+    - rejection_reason
+    - quality
+    - sendable
+    - components
+    - approved_components
+    - preview
+    - category_drift
+    - edit_quota
+    - status_changed_at
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: whatsapp_template
+    id:
+      "$ref": "#/Id_wtp"
+    provider_account_id:
+      type: string
+      format: uuid
+    waba_id:
+      type: string
+      maxLength: 32
+    name:
+      type: string
+      maxLength: 512
+    language:
+      type: string
+      maxLength: 35
+    message_class:
+      "$ref": "#/MessageClass"
+    category:
+      "$ref": "#/WhatsappTemplateCategory"
+    meta_category:
+      oneOf:
+        - "$ref": "#/WhatsappTemplateCategory"
+        - type: "null"
+    status:
+      "$ref": "#/WhatsappTemplateStatus"
+    meta_status:
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    meta_template_id:
+      oneOf:
+        - type: string
+          maxLength: 32
+        - type: "null"
+    rejection_reason:
+      oneOf:
+        - type: string
+          maxLength: 512
+        - type: "null"
+    quality:
+      oneOf:
+        - type: string
+          maxLength: 32
+        - type: "null"
+    sendable:
+      type: boolean
+      description: Only an approved template is sent.
+    components:
+      type: array
+      items:
+        "$ref": "#/WhatsappTemplateComponent"
+    approved_components:
+      oneOf:
+        - type: array
+          items:
+            "$ref": "#/WhatsappTemplateComponent"
+        - type: "null"
+    preview:
+      type: object
+      required:
+        - header
+        - body
+        - footer
+        - placeholders
+      properties:
+        header:
+          oneOf:
+            - type: string
+            - type: "null"
+        body:
+          oneOf:
+            - type: string
+            - type: "null"
+        footer:
+          oneOf:
+            - type: string
+            - type: "null"
+        placeholders:
+          type: array
+          items:
+            type: string
+      additionalProperties: false
+    category_drift:
+      oneOf:
+        - type: object
+          required:
+            - expected
+            - actual
+            - cost_increase
+          properties:
+            expected:
+              "$ref": "#/WhatsappTemplateCategory"
+            actual:
+              "$ref": "#/WhatsappTemplateCategory"
+            cost_increase:
+              type: boolean
+          additionalProperties: false
+        - type: "null"
+    edit_quota:
+      type: object
+      required:
+        - remaining
+        - next_at
+        - reason
+      properties:
+        remaining:
+          type: integer
+          minimum: 0
+        next_at:
+          oneOf:
+            - "$ref": "#/Timestamp"
+            - type: "null"
+        reason:
+          oneOf:
+            - type: string
+              enum:
+                - daily
+                - monthly
+            - type: "null"
+      additionalProperties: false
+    status_changed_at:
+      "$ref": "#/Timestamp"
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+WhatsappTemplateList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/WhatsappTemplate"
+WhatsappWebhookNotification:
+  type: object
+  description: "A WhatsApp Business Account notification as Meta sends it; Relay verifies X-Hub-Signature-256 over the raw body before it reads it. Changes Relay does not subscribe to are acknowledged and ignored."
+  required:
+    - object
+    - entry
+  properties:
+    object:
+      type: string
+      maxLength: 64
+    entry:
+      type: array
+      maxItems: 1000
+      items:
+        type: object
+  additionalProperties: false

@@ -59,7 +59,8 @@ defmodule Relay.ScopeTest do
                :suspension_due_discovery,
                :lane_capacity,
                :device_sweep_discovery,
-               :usage_day_discovery
+               :usage_day_discovery,
+               :provider_account_resolve
              ]
     end
 

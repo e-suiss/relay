@@ -28,6 +28,7 @@ defmodule Relay.Channels do
   alias Relay.Channels.Store
   alias Relay.Channels.Throttle
   alias Relay.Channels.Timeouts
+  alias Relay.Channels.Whatsapp
 
   require Logger
 
@@ -600,4 +601,241 @@ defmodule Relay.Channels do
       raw_code: raw_code
     }
   end
+
+  # CH-60
+  # TN-13 (4)
+  @doc "The active WhatsApp Cloud API provider account of an inbound webhook's path and the scope it belongs to; `:not_found` for an unknown, other or disabled account or an inactive tenant."
+  @spec whatsapp_inbound_account(Relay.Id.t()) :: {:ok, Relay.Scope.t(), map()} | :not_found
+  def whatsapp_inbound_account(id) do
+    case Store.account_resolve(id) do
+      %{"provider" => "whatsapp_cloud", "channel" => "whatsapp", "state" => "active"} = row ->
+        inbound_account(id, row)
+
+      _other ->
+        :not_found
+    end
+  end
+
+  defp inbound_account(id, %{"tenant_status" => "active"} = row) do
+    case Relay.Environment.cast(row["environment"]) do
+      {:ok, environment} ->
+        scope = Relay.Scope.new!(row["tenant_id"], environment)
+        {:ok, scope, %{"id" => id, "provider" => row["provider"], "settings" => row["settings"]}}
+
+      _invalid ->
+        :not_found
+    end
+  end
+
+  defp inbound_account(_id, _row), do: :not_found
+
+  # CH-60
+  # T-40
+  @doc "Verifies a WhatsApp Cloud API webhook on its raw body with the app secret and parses it into items; see `Relay.Channels.Whatsapp.Webhook`."
+  @spec whatsapp_webhook(Relay.Redacted.t(), binary(), Inbound.headers()) ::
+          {:ok, [Whatsapp.Webhook.item()]}
+          | {:error, :missing_header | :bad_signature | :invalid_body}
+  def whatsapp_webhook(app_secret, body, headers) do
+    with :ok <- Whatsapp.Webhook.verify(app_secret, body, headers),
+         do: Whatsapp.Webhook.parse(body)
+  end
+
+  @doc "Answers Meta's webhook subscription check; see `Relay.Channels.Whatsapp.Webhook.challenge/2`."
+  @spec whatsapp_challenge(map(), Relay.Redacted.t()) :: {:ok, String.t()} | :error
+  defdelegate whatsapp_challenge(params, verify_token), to: Whatsapp.Webhook, as: :challenge
+
+  # CH-58
+  @doc "Whether the customer service window of a recipient is open at `now`, from the time of the recipient's last inbound message; see `Relay.Channels.Whatsapp.Window`."
+  @spec whatsapp_window_open?(DateTime.t() | nil, DateTime.t()) :: boolean()
+  def whatsapp_window_open?(nil, _now), do: false
+
+  def whatsapp_window_open?(%DateTime{} = last, now),
+    do: Whatsapp.Window.open?(%{last_inbound_at: last}, now)
+
+  @doc "The length of the customer service window in milliseconds."
+  @spec whatsapp_window_ms() :: pos_integer()
+  defdelegate whatsapp_window_ms(), to: Whatsapp.Window, as: :window_ms
+
+  # CH-58
+  @doc "Chooses the message kind of a WhatsApp content in an open or closed window and returns the content with its `kind`; see `Relay.Channels.Whatsapp.Window.choose/2`."
+  @spec whatsapp_choose(boolean(), map()) ::
+          {:ok, map(), Whatsapp.Message.kind()} | {:error, :window_closed | :no_content}
+  def whatsapp_choose(open?, content) when is_map(content) do
+    with {:ok, kind} <- Whatsapp.Window.choose(open?, Whatsapp.Message.kinds(content)),
+         do: {:ok, Map.put(content, "kind", Atom.to_string(kind)), kind}
+  end
+
+  # CH-57
+  # TP-23
+  @doc "Whether the template a WhatsApp content names may be sent on a provider account: `:ok` only for a registered, approved template; otherwise the template's state or `:not_registered`."
+  @spec whatsapp_template_sendable(Relay.Scope.t(), Relay.Id.t(), map()) ::
+          :ok | {:error, String.t() | :not_registered | :invalid_content} | {:error, term()}
+  def whatsapp_template_sendable(scope, account_id, content) when is_map(content) do
+    with {:ok, language} <- Whatsapp.Message.language(content["language"]),
+         {:ok, row} <-
+           Whatsapp.Store.in_scope(scope, fn _status ->
+             Whatsapp.Store.find(account_id, content["template_name"], language)
+           end) do
+      case row do
+        nil -> {:error, :not_registered}
+        %{"status" => status} -> sendable(status)
+      end
+    end
+  end
+
+  defp sendable(status) do
+    if Whatsapp.Template.sendable?(status), do: :ok, else: {:error, status}
+  end
+
+  # CH-57
+  # TP-23
+  @doc "The row a WhatsApp template is registered with: its Meta name and language, its Relay class mapped to its fixed category, its components and their digest."
+  @spec whatsapp_template_row(map()) :: {:ok, map()} | {:error, :unknown_class | :invalid_content}
+  def whatsapp_template_row(attrs) do
+    with {:ok, category} <- Whatsapp.Template.category(attrs.message_class),
+         {:ok, language} <- Whatsapp.Message.language(attrs.language) do
+      {:ok,
+       Map.merge(attrs, %{
+         id: Relay.Id.generate(),
+         language: language,
+         category: category,
+         content_digest: Whatsapp.Template.digest(attrs.components)
+       })}
+    end
+  end
+
+  # CH-57
+  @doc "Registers a WhatsApp template row inside the caller's scoped transaction; it starts `pending_approval`. The same name and language with other content is `:content_conflict`."
+  @spec insert_whatsapp_template(map()) ::
+          {:created | :exists | :content_conflict | :account_not_found, Relay.Id.t() | nil}
+  defdelegate insert_whatsapp_template(row), to: Whatsapp.Store, as: :register
+
+  @doc "Reads a WhatsApp template inside the caller's scoped transaction, or `nil`."
+  @spec whatsapp_template(Relay.Id.t()) :: map() | nil
+  defdelegate whatsapp_template(id), to: Whatsapp.Store, as: :get
+
+  # API-56
+  @doc "Lists WhatsApp templates newest first from a decoded cursor in their own scoped transaction; at most `limit + 1` rows come back."
+  @spec whatsapp_templates(Relay.Scope.t(), map() | nil, pos_integer()) :: result([map()])
+  def whatsapp_templates(scope, cursor, limit),
+    do: Whatsapp.Store.in_scope(scope, fn _status -> Whatsapp.Store.list(cursor, limit) end)
+
+  @doc "Reads a WhatsApp template in its own scoped transaction, or `nil`."
+  @spec get_whatsapp_template(Relay.Scope.t(), Relay.Id.t()) :: result(map() | nil)
+  def get_whatsapp_template(scope, id),
+    do: Whatsapp.Store.in_scope(scope, fn _status -> Whatsapp.Store.get(id) end)
+
+  # TP-23
+  @doc "The view of a WhatsApp template row: the Meta-approved text with the cell's parameters in place and whether it diverges, and the edits left under `limits`."
+  @spec whatsapp_template_view(map(), [map()], map(), DateTime.t()) :: map()
+  def whatsapp_template_view(row, parameters, limits, now) do
+    approved = row["approved_components"] || []
+
+    %{
+      preview: Whatsapp.Template.preview(approved, parameters),
+      edit_quota: Whatsapp.Template.edit_quota(row["edits"] || [], limits, now),
+      drift: Whatsapp.Template.drift(row["category"], row["meta_category"]),
+      sendable: Whatsapp.Template.sendable?(row["status"])
+    }
+  end
+
+  # TP-23
+  # CH-57
+  @doc "Applies a template change of a WhatsApp webhook to the template of a provider account in its own scoped transaction: a Meta status moves the Relay state (`Relay.Channels.Whatsapp.Template.transition/2`), a category change is recorded and a drift announced, an edit is counted."
+  @spec whatsapp_template_change(Relay.Scope.t(), Relay.Id.t(), Whatsapp.Webhook.item()) ::
+          result(atom())
+  def whatsapp_template_change(scope, account_id, {:template_status, change}) do
+    Whatsapp.Store.in_scope(scope, fn _status ->
+      case Whatsapp.Store.find(account_id, change.name || "", change.language || "") do
+        nil ->
+          :not_found
+
+        row ->
+          {result, _id, _previous} =
+            Whatsapp.Store.status(%{
+              provider_account_id: account_id,
+              name: row["name"],
+              language: row["language"],
+              meta_template_id: change.template_id,
+              meta_status: change.event,
+              status: Whatsapp.Template.transition(row["status"], change.event),
+              reason: change.reason,
+              expected_version: row["version"]
+            })
+
+          result
+      end
+    end)
+  end
+
+  def whatsapp_template_change(scope, account_id, {:template_category, change}) do
+    Whatsapp.Store.in_scope(scope, fn _status ->
+      if change.new_category in Whatsapp.Template.categories() and is_binary(change.name) and
+           is_binary(change.language) do
+        account_id
+        |> Whatsapp.Store.category(change.name, change.language, change.new_category)
+        |> elem(0)
+      else
+        :ignored
+      end
+    end)
+  end
+
+  def whatsapp_template_change(scope, account_id, {:template_edit, change}) do
+    Whatsapp.Store.in_scope(scope, fn _status ->
+      if is_binary(change.name) and is_binary(change.language) do
+        components = if change.components == [], do: nil, else: change.components
+        at = Relay.Clock.utc_now()
+
+        account_id
+        |> Whatsapp.Store.edit(change.name, change.language, components, at)
+        |> elem(0)
+      else
+        :ignored
+      end
+    end)
+  end
+
+  def whatsapp_template_change(_scope, _account_id, _item), do: {:ok, :ignored}
+
+  # CH-57
+  # CH-61
+  @doc "Appends a WhatsApp tenant event in its own scoped transaction."
+  @spec whatsapp_event(Relay.Scope.t(), String.t(), String.t(), map()) :: result(:appended)
+  def whatsapp_event(scope, type, stream_key, data) do
+    Whatsapp.Store.in_scope(scope, fn _status -> Whatsapp.Store.event(type, stream_key, data) end)
+  end
+
+  # CH-59
+  @doc "The follow-up a WhatsApp error code calls for; see `Relay.Channels.Whatsapp.Errors.follow_up/1`."
+  @spec whatsapp_follow_up(String.t() | nil) :: Whatsapp.Errors.follow_up()
+  defdelegate whatsapp_follow_up(code), to: Whatsapp.Errors, as: :follow_up
+
+  # CH-61
+  @doc "The recipient limit of a tier; see `Relay.Channels.Whatsapp.Limits.tier_limit/2`."
+  @spec whatsapp_tier_limit(map(), String.t() | nil) :: Whatsapp.Limits.tier_limit()
+  defdelegate whatsapp_tier_limit(limits, tier), to: Whatsapp.Limits, as: :tier_limit
+
+  # CH-61
+  @doc "Whether a tier count crosses the warning share; see `Relay.Channels.Whatsapp.Limits.warn?/4`."
+  @spec whatsapp_tier_warn?(
+          map(),
+          non_neg_integer(),
+          non_neg_integer(),
+          Whatsapp.Limits.tier_limit()
+        ) :: boolean()
+  defdelegate whatsapp_tier_warn?(limits, before, after_count, limit),
+    to: Whatsapp.Limits,
+    as: :warn?
+
+  # CH-18
+  # CH-61
+  @doc "The bundled content of a WhatsApp data set, for an installation without an active version."
+  @spec whatsapp_bundled(String.t()) :: map()
+  defdelegate whatsapp_bundled(name), to: Whatsapp.Bundled, as: :content
+
+  # CH-60
+  @doc "The cost of a reported WhatsApp message from its `pricing` object and a rate card; see `Relay.Channels.Whatsapp.Pricing.cost/3`."
+  @spec whatsapp_cost(map(), map() | nil, String.t() | nil) :: Whatsapp.Pricing.cost()
+  defdelegate whatsapp_cost(card, pricing, country), to: Whatsapp.Pricing, as: :cost
 end

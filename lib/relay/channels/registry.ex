@@ -19,7 +19,8 @@ defmodule Relay.Channels.Registry do
     Relay.Channels.Slack,
     Relay.Channels.Teams,
     Relay.Channels.Telegram,
-    Relay.Channels.Discord
+    Relay.Channels.Discord,
+    Relay.Channels.WhatsappCloud
   ]
 
   @type missing :: ChannelDeclarations.missing() | :channels

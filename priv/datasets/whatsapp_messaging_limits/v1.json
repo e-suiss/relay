@@ -1,0 +1,48 @@
+{
+  "source_ref": "CH-61; CH-17; TP-23; Meta messaging limits, throughput and Cloud API rate limits (https://developers.facebook.com/docs/whatsapp/messaging-limits, /throughput, /cloud-api/overview), compiled 2026-11-05",
+  "tiers": [
+    {
+      "tier": "TIER_250",
+      "limit": 250
+    },
+    {
+      "tier": "TIER_2K",
+      "limit": 2000
+    },
+    {
+      "tier": "TIER_10K",
+      "limit": 10000
+    },
+    {
+      "tier": "TIER_100K",
+      "limit": 100000
+    },
+    {
+      "tier": "TIER_UNLIMITED",
+      "limit": null
+    }
+  ],
+  "default_tier": "TIER_250",
+  "warn_bp": 9000,
+  "window_ms": 86400000,
+  "throughput": {
+    "default_mps": 80,
+    "upgraded_mps": 1000,
+    "coexistence_mps": 20
+  },
+  "pair": {
+    "limit": 1,
+    "per_ms": 6000,
+    "burst": 45
+  },
+  "template_api": {
+    "requests": 200,
+    "active_requests": 5000,
+    "per_ms": 3600000
+  },
+  "template_edits": {
+    "per_24h": 1,
+    "per_30d": 10
+  },
+  "upgrade_unavailable_ms": 60000
+}

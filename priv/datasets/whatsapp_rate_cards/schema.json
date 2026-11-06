@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "whatsapp_rate_cards",
+  "description": "The WhatsApp rate card (CH-18, CH-58): the per-message price of each market and template category, in millionths of the currency unit. Meta changes the card only at the start of a calendar quarter, so a version names the quarter it applies from and is refreshed quarterly. A market is an ISO 3166-1 alpha-2 country, or null with its Meta market name for a regional or other rate. A price that is not in the card is unknown, never zero: a message inside the customer service window is not assumed free; its cost comes from this card and from the pricing object of its status webhook.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_ref",
+    "currency",
+    "effective_from",
+    "rates"
+  ],
+  "properties": {
+    "source_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "effective_from": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(01|04|07|10)-01$"
+    },
+    "rates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "country",
+          "market",
+          "category",
+          "unit_price_micros"
+        ],
+        "properties": {
+          "country": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z]{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "market": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "category": {
+            "enum": [
+              "marketing",
+              "utility",
+              "authentication",
+              "authentication_international",
+              "service"
+            ]
+          },
+          "unit_price_micros": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000000
+          }
+        }
+      }
+    }
+  }
+}

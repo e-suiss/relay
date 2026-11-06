@@ -1,0 +1,378 @@
+[
+  {
+    "code": "131026",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.9.3 CH-59; Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131050",
+    "class": "policy",
+    "condition": "opted_out",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.9.3 CH-59; Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131049",
+    "class": "policy",
+    "condition": "marketing_cap",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.9.3 CH-59; Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131047",
+    "class": "permanent_content",
+    "condition": "window_closed",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.9.3 CH-59; Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "130429",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.9.3 CH-59; Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131056",
+    "class": "transient",
+    "condition": "pair_rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.9.3 CH-59; Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "132015",
+    "class": "quota",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.9.3 CH-59; Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "135000",
+    "class": "quota",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.9.3 CH-59; Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131042",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.9.3 CH-59; Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "0",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "190",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "10",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131005",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "3",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "368",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131031",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131045",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "133010",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "4",
+    "class": "quota",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "80007",
+    "class": "quota",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131048",
+    "class": "quota",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131057",
+    "class": "quota",
+    "condition": "maintenance",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.9.5 CH-61; Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "100",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131008",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131009",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131051",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131053",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "132000",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "132001",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "132005",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "132007",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "132012",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "132016",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131021",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "130472",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131000",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "131016",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "1",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "2",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05"
+  },
+  {
+    "code": "http_429",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API (https://developers.facebook.com/docs/whatsapp/cloud-api), compiled 2026-11-05"
+  },
+  {
+    "code": "http_500",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API (https://developers.facebook.com/docs/whatsapp/cloud-api), compiled 2026-11-05"
+  },
+  {
+    "code": "http_502",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API (https://developers.facebook.com/docs/whatsapp/cloud-api), compiled 2026-11-05"
+  },
+  {
+    "code": "http_503",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API (https://developers.facebook.com/docs/whatsapp/cloud-api), compiled 2026-11-05"
+  },
+  {
+    "code": "http_504",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Meta WhatsApp Cloud API (https://developers.facebook.com/docs/whatsapp/cloud-api), compiled 2026-11-05"
+  },
+  {
+    "code": "credentials_missing",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.1.2 CH-2; TN-26"
+  },
+  {
+    "code": "sender_missing",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.1.2 CH-2; C-25"
+  },
+  {
+    "code": "content_invalid",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§11.5 TP-23"
+  }
+]

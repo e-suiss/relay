@@ -114,9 +114,15 @@
   {"file": "20261117000100_update_channel_event_evidence_schema_for_email.exs", "sha256": "79327c46a4e742f884023a53bdd95346727a551633d7b8f8bbf63340fa543505"},
   {"file": "20261118000000_update_channel_event_evidence_schema.exs", "sha256": "0e38692d7c72a6b124257537423e13237ecbb384fea072403fd2df7ab60778a5"},
   {"file": "20261118000100_add_sms_sender_registration.exs", "sha256": "91814262f018721623bb49c55d21d44e3d2fff013d1d27ac15ef29467b1a8370"},
+  {"file": "20261119000000_create_whatsapp_templates.exs", "sha256": "32cb4efae5396dbc358e52aa0a76326b5227ef8077eaabfa38df268cc31cf4fb"},
+  {"file": "20261119000100_create_whatsapp_template_functions.exs", "sha256": "7829992c5d5c90c65b9d89d07ec02055255f09d86958c9c21c18b4c923089555"},
+  {"file": "20261119000200_rebuild_reference_check_for_whatsapp.exs", "sha256": "1ecb8084ded9934eb65b784760d76cca520ed1236240b706157faf5629302677"},
+  {"file": "20261119000300_register_whatsapp_datasets.exs", "sha256": "1fe8c230bd397b355af2a9182244081fefb28184b0e0a4009082b1a88f87f32a"},
+  {"file": "20261119000400_create_provider_account_resolve.exs", "sha256": "446a0bdb97d76775df8bcaa711bf5b4412085b618f239cca5f24bba20915d490"},
   {"file": "20261120000100_create_messaging_tables.exs", "sha256": "ca71e88b5581a35af64009cf3618b6f76fec4b31c872585bb3c7c168cc77cfa1"},
   {"file": "20261120000200_create_messaging_functions.exs", "sha256": "de7203452fffbae444f3a59ffa94b0d896d558d1fdf52a22ce6550bf8c9e10b1"},
   {"file": "20261120000300_rebuild_reference_check_for_messaging.exs", "sha256": "a5ac486b8575288c748fc2da8f965ce9697786b02978178c7af0dbd77a4a7167"},
   {"file": "20261121000100_create_usage_day_scopes.exs", "sha256": "401d5f8c941653190f201b068c25d54dc1dbbd7352519290b6e7d3935114d892"},
-  {"file": "20261122000100_create_push_critical_function.exs", "sha256": "45acbea495653e992779ba8d238db1e0ea49c8b03d6a044fea9f390aad84cce8"}
+  {"file": "20261122000100_create_push_critical_function.exs", "sha256": "45acbea495653e992779ba8d238db1e0ea49c8b03d6a044fea9f390aad84cce8"},
+  {"file": "20261124000000_rebuild_reference_check_for_whatsapp_and_messaging.exs", "sha256": "413acdc9f9c0d09d57321df7fd2554a07317c6bc085ebf940ac7425bedbc91a7"}
 ]

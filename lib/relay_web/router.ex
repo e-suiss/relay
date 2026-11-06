@@ -169,6 +169,15 @@ defmodule RelayWeb.Router do
     get "/channel_adapters", MessagingController, :adapters,
       private: %{relay_operation: "listChannelAdapters"}
 
+    get "/whatsapp/templates", WhatsappTemplateController, :index,
+      private: %{relay_operation: "listWhatsappTemplates"}
+
+    post "/whatsapp/templates", WhatsappTemplateController, :create,
+      private: %{relay_operation: "registerWhatsappTemplate"}
+
+    get "/whatsapp/templates/:whatsapp_template_id", WhatsappTemplateController, :show,
+      private: %{relay_operation: "getWhatsappTemplate"}
+
     get "/categories", CategoryController, :index, private: %{relay_operation: "listCategories"}
 
     post "/categories", CategoryController, :create, private: %{relay_operation: "createCategory"}
@@ -355,6 +364,12 @@ defmodule RelayWeb.Router do
 
     get "/test/simulated-results", SimulatedResultController, :index,
       private: %{relay_operation: "listSimulatedResults"}
+
+    get "/inbound/whatsapp/:provider_account_id", WhatsappWebhookController, :verify,
+      private: %{relay_operation: "verifyWhatsappWebhook"}
+
+    post "/inbound/whatsapp/:provider_account_id", WhatsappWebhookController, :create,
+      private: %{relay_operation: "receiveWhatsappWebhook"}
 
     post "/access/events", AccessEventController, :create,
       private: %{relay_operation: "receiveAccessEvent"}

@@ -1,6 +1,6 @@
 defmodule Relay.Api do
   @moduledoc """
-  The core of the HTTP API edge: the contract read from `contracts/`, the error catalog and problem documents, API versions, request schema validation, signed pagination cursors, the API rate limit tiers and idempotent request execution, and the operations of the server API, which compose the contexts for each request: sending (`Events`, `CloudEvent`, `Cancels`), queries, subscribers and their devices, workflows, type mappings, kill switches, categories, preferences and consents, suppressions, and templates, layouts, partials, brand fields and previews; and the Relay discovery document. The web layer (`RelayWeb`) turns these into plugs and responses.
+  The core of the HTTP API edge: the contract read from `contracts/`, the error catalog and problem documents, API versions, request schema validation, signed pagination cursors, the API rate limit tiers and idempotent request execution, and the operations of the server API, which compose the contexts for each request: sending (`Events`, `CloudEvent`, `Cancels`), queries, subscribers and their devices, workflows, type mappings, kill switches, categories, preferences and consents, suppressions, templates, layouts, partials, brand fields and previews, and WhatsApp templates; and the Relay discovery document. The web layer (`RelayWeb`) turns these into plugs and responses.
   """
 
   use Boundary,
@@ -23,7 +23,9 @@ defmodule Relay.Api do
       Relay.Datasets,
       Relay.Templates.Live,
       Relay.Channels,
-      Relay.Messaging
+      Relay.Messaging,
+      Relay.Channels.Live,
+      Relay.Secrets
     ],
     exports: [
       Contract,
@@ -58,6 +60,8 @@ defmodule Relay.Api do
       TemplateAssets,
       Brand,
       Previews,
-      Discovery
+      Discovery,
+      WhatsappTemplates,
+      WhatsappWebhooks
     ]
 end

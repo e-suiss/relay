@@ -1631,3 +1631,32 @@ codes:
     description: "The state of the provider's redirect does not unseal or has expired (ten minutes). Start the installation again."
     type: "{base_url}/v1/errors/messaging_install_state_invalid"
     choice_note: "Code name and status chosen by the contract (CH-62)."
+
+  - code: provider_account_not_found
+    family: resource
+    status: 404
+    title: Provider account not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No active provider account of this provider has this identifier, or its tenant is not active.
+    type: "{base_url}/v1/errors/provider_account_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: whatsapp_template_not_found
+    family: resource
+    status: 404
+    title: WhatsApp template not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No WhatsApp template with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/whatsapp_template_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."

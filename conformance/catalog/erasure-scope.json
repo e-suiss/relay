@@ -479,6 +479,12 @@
       "personal_columns": [],
       "tenant_close": "row kept; the message reference carries no content",
       "subject_erasure": "the provider message references of the subject's targets are overwritten with erased; row kept"
+    },
+    {
+      "table": "whatsapp_templates",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
     }
   ],
   "locations": [

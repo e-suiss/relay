@@ -297,6 +297,21 @@ DeviceId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_dev"
+ProviderAccountId:
+  name: provider_account_id
+  in: path
+  description: Provider account identifier, as configured in the provider's webhook URL.
+  required: true
+  schema:
+    type: string
+    format: uuid
+WhatsappTemplateId:
+  name: whatsapp_template_id
+  in: path
+  description: WhatsApp template identifier.
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_wtp"
 SuppressionId:
   name: suppression_id
   in: path

@@ -117,6 +117,7 @@ DECLARE
     "relay_ops.lane_capacity": ["relay_api", "relay_worker"],
     "relay_ops.load_shed_record": ["relay_worker"],
     "relay_ops.load_shed_state": ["relay_app"],
+    "relay_ops.provider_account_resolve": ["relay_api", "relay_worker"],
     "relay_ops.operator_ensure": ["relay_app"],
     "relay_ops.operator_get": ["relay_app"],
     "relay_ops.operator_roles": ["relay_app"],

@@ -10198,53 +10198,33 @@ paths:
       tags:
         - access
       summary: Receive an Access event
-      description: "Access delivers its lifecycle events (tenant and organization mapping, API client and operator lifecycle) here with the shared Suiss webhook profile (webhook-id, webhook-timestamp, webhook-signature; v1a Ed25519 by default). The receipt is committed before 2xx; repeats of the same webhook-id are acknowledged and not processed again. Not a tenant API."
-      parameters:
-        - "$ref": "./components/parameters.yaml#/RelayVersion"
-        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      description: "Access pushes its lifecycle events (tenant and organization mapping, API client and operator lifecycle, consent) here as Security Event Tokens with the Shared Signals Framework push delivery (RFC 8417, RFC 8935), through Relay's platform product subscription. Not a tenant API and outside the /v1 request rules. The SET is a compact JWS of typ secevent+jwt signed by a key of the Access realm key set from discovery; iss must be the linked Access issuer, aud Relay's Access client_id, iat at most 305 seconds old and at most 60 seconds ahead, and events must hold exactly one member keyed urn:suiss:access:event:<type>. No secret is shared. The receipt is committed with its processing job before 202; a repeated jti is acknowledged and not processed again. A refusal is 400 with the RFC 8935 error body; 503 asks Access to deliver again."
       requestBody:
         required: true
         content:
-          "application/cloudevents+json":
+          "application/secevent+jwt":
             schema:
-              "$ref": "./components/schemas.yaml#/AccessEventDelivery"
-      security:
-        - suiss_webhook_signature: []
+              "$ref": "./components/schemas.yaml#/AccessSecurityEventToken"
+      security: []
       responses:
-        "204":
-          description: Received.
-          headers:
-            Request-Id:
-              "$ref": "./components/headers.yaml#/Request-Id"
+        "202":
+          description: "Accepted, or a repeated jti acknowledged again."
         "400":
-          "$ref": "./components/responses.yaml#/BadRequest"
-        "401":
-          "$ref": "./components/responses.yaml#/Unauthorized"
-        "413":
-          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+          description: "The SET is refused; err is an RFC 8935 error code."
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/AccessSetError"
         "415":
-          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
-        "422":
-          "$ref": "./components/responses.yaml#/UnprocessableContent"
-        "500":
-          "$ref": "./components/responses.yaml#/InternalError"
+          description: The body is not application/secevent+jwt.
         "503":
-          "$ref": "./components/responses.yaml#/ServiceUnavailable"
-      x-relay-errors:
-        - auth_missing_credentials
-        - auth_invalid_token
-        - malformed_request
-        - unsupported_media_type
-        - payload_too_large
-        - validation_failed
-        - internal_error
-        - service_unavailable
+          description: "No Access link or Relay client_id yet, or the receipt could not be committed; Access delivers again."
       x-relay-weight: 0
       x-relay-weight-note: "Installation-level inbound channel; not counted against tenant limits."
       x-relay-idempotency: derived
       x-relay-step-up: false
       x-relay-choice: true
-      x-relay-choice-note: "The spec has Access deliver events to Relay by webhook (suiss_event_subscriptions) but names no receiving path; the idempotency key is the webhook-id."
+      x-relay-choice-note: "E-94 has Access push SETs to Relay but names no receiving path; the path stays the earlier Access event path, the idempotency key is the jti, and the iat window is Work's (T-102)."
   "/.well-known/relay-configuration":
     get:
       operationId: getRelayConfiguration
@@ -14521,11 +14501,6 @@ components:
       name: X-Hub-Signature-256
       description: "Meta's webhook signature: sha256= and the hex HMAC-SHA256 of the raw body with the Meta app secret of the provider account, verified in constant time before the body is parsed."
       x-relay-choice: true
-    suiss_webhook_signature:
-      type: apiKey
-      in: header
-      name: webhook-signature
-      description: "Shared Suiss webhook profile: webhook-id, webhook-timestamp and webhook-signature (v1a Ed25519 by default, v1 HMAC only for compatibility), verified against the Access keys from discovery."
 x-relay-family:
   - send
   - management

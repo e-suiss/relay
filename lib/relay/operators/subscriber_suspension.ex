@@ -117,7 +117,7 @@ defmodule Relay.Operators.SubscriberSuspension do
 
   # TN-73
   # TN-20
-  @doc "Reflects an Access user lifecycle event on the subscribers whose `external_id` is the user's pairwise `sub`, in every tenant environment that is not closed: `:suspended` suspends them and `:reactivated` lifts their suspension. Called by `Relay.Operators.AccessSubscriberHandler` with the event's `webhook-id`."
+  @doc "Reflects an Access user lifecycle event on the subscribers whose `external_id` is the user's pairwise `sub`, in every tenant environment that is not closed: `:suspended` suspends them and `:reactivated` lifts their suspension. Called by `Relay.Operators.AccessSubscriberHandler` with the event's SET `jti`."
   @spec access_changed(:suspended | :reactivated, String.t(), String.t()) ::
           :ok | {:error, term()}
   def access_changed(kind, subject, event_ref)

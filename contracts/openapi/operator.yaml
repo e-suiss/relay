@@ -4220,11 +4220,6 @@ components:
           tokenUrl: "https://access.example.com/oauth2/token"
           scopes: {}
       x-relay-choice: true
-    suiss_webhook_signature:
-      type: apiKey
-      in: header
-      name: webhook-signature
-      description: "Shared Suiss webhook profile: webhook-id, webhook-timestamp and webhook-signature (v1a Ed25519 by default, v1 HMAC only for compatibility), verified against the Access keys from discovery."
   schemas:
     Operator:
       type: object

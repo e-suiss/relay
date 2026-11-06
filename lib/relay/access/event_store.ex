@@ -1,6 +1,6 @@
 defmodule Relay.Access.EventStore do
   @moduledoc """
-  Data access of the Access event receipts (`relay.access_event_receipts`, S-69). A receipt and the job that processes it commit in one transaction before the delivery is acknowledged; a repeated `webhook-id` is a duplicate and queues nothing. Receipts are installation records, reached through `relay_ops` escape hatches.
+  Data access of the Access event receipts (`relay.access_event_receipts`, S-69). A receipt and the job that processes it commit in one transaction before the delivery is acknowledged; a repeated event identifier (the SET `jti`, E-94) is a duplicate and queues nothing. Receipts are installation records, reached through `relay_ops` escape hatches.
   """
 
   alias Relay.Repo

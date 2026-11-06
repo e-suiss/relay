@@ -132,6 +132,10 @@ A client needs only its Access issuer. The Access Suiss discovery document (`<ac
 
 The document carries the API base, the data region, the bound Access issuer, the supported dated contract versions, the address of the product event key set (`jwks_uri`) and the capabilities served by this installation as `urn:suiss:relay:<capability>:<version>` URNs, each with its endpoint. A capability is listed only while all of its operations are served. Both documents are public and may be cached for five minutes.
 
+## Access events
+
+Access tells Relay about tenants, organizations, API clients, users and consents with the Shared Signals Framework: it pushes each event as a Security Event Token (RFC 8417, RFC 8935) to `POST /v1/access/events` with `Content-Type: application/secevent+jwt`. Relay is registered in Access as a platform product (`product = "relay"`) whose event receiver is that URL. The token is a JWS signed by the Access realm key from discovery; its `iss` must be the Access issuer, its `aud` Relay's Access `client_id` (`RELAY_ACCESS_CLIENT_ID`) and its `iat` recent. No secret is shared. Relay answers `202` once the event is recorded, `202` again for a `jti` it has already seen, and `400` with an RFC 8935 `{"err", "description"}` body when it refuses the token.
+
 ## Channels without provider accounts
 
 A self-hosted Relay sends on three channels without any third-party account:

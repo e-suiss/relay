@@ -346,7 +346,7 @@ channels:
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
-    description: Events Access delivers to Relay with the shared webhook profile.
+    description: "Events Access pushes to Relay as Security Event Tokens with the Shared Signals Framework push delivery (RFC 8417, RFC 8935), through Relay's platform product subscription: a compact JWS of typ secevent+jwt signed by a key of the Access realm key set, with no shared secret. Each message is the SET's claims; the event is the one member of events. Access's member names tenant, organization and client_id are read as access_tenant_id, access_organization_id and access_client_id, the access_tenant claim names the tenant when the member does not, and members Relay does not read are ignored."
     messages:
       access.tenant.created:
         "$ref": "#/components/messages/access.tenant.created"
@@ -646,6 +646,50 @@ components:
         data:
           type: object
       additionalProperties: false
+    AccessSecurityEventClaims:
+      type: object
+      description: "The claims of a Security Event Token Access pushes (RFC 8417, SSF 1.0): iss is the linked Access issuer, aud Relay's Access client_id, jti the event identifier and Relay's deduplication key."
+      required:
+        - iss
+        - aud
+        - iat
+        - jti
+        - events
+      properties:
+        iss:
+          type: string
+          format: uri
+        aud:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        iat:
+          type: integer
+          minimum: 0
+          description: NumericDate, seconds; at most 305 seconds old and at most 60 seconds ahead.
+        jti:
+          type: string
+          pattern: "^[A-Za-z0-9_-]{1,255}$"
+        sub_id:
+          type: object
+          required:
+            - format
+            - id
+          properties:
+            format:
+              type: string
+            id:
+              type: string
+        access_tenant:
+          type: string
+          description: "The Access tenant the event happened in, on a platform product subscription."
+          maxLength: 128
+        events:
+          type: object
+          minProperties: 1
+          maxProperties: 1
     RealtimeEnvelope:
       type: object
       description: "Realtime envelope {t, v, ts, d}; every message carries counters."
@@ -4327,49 +4371,54 @@ components:
       name: tenant.created
       title: tenant.created
       summary: "An Access tenant was created; Relay creates the mapped tenant (region must match the installation)."
-      contentType: application/cloudevents+json
+      contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
         schema:
           allOf:
-            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
             - type: object
+              required:
+                - events
               properties:
-                type:
-                  const: tenant.created
-                data:
+                events:
                   type: object
                   required:
-                    - access_tenant_id
-                    - region
-                    - default_timezone
-                    - default_locale
+                    - "urn:suiss:access:event:tenant.created"
                   properties:
-                    access_tenant_id:
-                      type: string
-                      maxLength: 128
-                    region:
-                      type: string
-                      enum:
-                        - tr
-                        - eu
-                        - us
-                    default_timezone:
-                      "$ref": "../openapi/components/schemas.yaml#/TimeZone"
-                    default_locale:
-                      "$ref": "../openapi/components/schemas.yaml#/Locale"
-                    sector:
-                      type: string
-                      maxLength: 32
-                    platform_product:
-                      type: string
-                      description: "Set when the Access tenant is a Suiss product's own tenant; Relay creates it as that product's isolated platform tenant."
-                      enum:
-                        - access
-                        - work
-                        - executor
-                        - one
-                        - pay
+                    "urn:suiss:access:event:tenant.created":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - region
+                        - default_timezone
+                        - default_locale
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        region:
+                          type: string
+                          enum:
+                            - tr
+                            - eu
+                            - us
+                        default_timezone:
+                          "$ref": "../openapi/components/schemas.yaml#/TimeZone"
+                        default_locale:
+                          "$ref": "../openapi/components/schemas.yaml#/Locale"
+                        sector:
+                          type: string
+                          maxLength: 32
+                        platform_product:
+                          type: string
+                          description: "Set when the Access tenant is a Suiss product's own tenant; Relay creates it as that product's isolated platform tenant."
+                          enum:
+                            - access
+                            - work
+                            - executor
+                            - one
+                            - pay
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4379,32 +4428,37 @@ components:
       name: organization.created
       title: organization.created
       summary: "An Access B2B organization was created; Relay creates the subtenant in both environments."
-      contentType: application/cloudevents+json
+      contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
         schema:
           allOf:
-            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
             - type: object
+              required:
+                - events
               properties:
-                type:
-                  const: organization.created
-                data:
+                events:
                   type: object
                   required:
-                    - access_tenant_id
-                    - access_organization_id
-                    - name
+                    - "urn:suiss:access:event:organization.created"
                   properties:
-                    access_tenant_id:
-                      type: string
-                      maxLength: 128
-                    access_organization_id:
-                      type: string
-                      maxLength: 128
-                    name:
-                      type: string
-                      maxLength: 200
+                    "urn:suiss:access:event:organization.created":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - access_organization_id
+                        - name
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        access_organization_id:
+                          type: string
+                          maxLength: 128
+                        name:
+                          type: string
+                          maxLength: 200
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4414,36 +4468,41 @@ components:
       name: organization.updated
       title: organization.updated
       summary: An Access organization changed (name or state).
-      contentType: application/cloudevents+json
+      contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
         schema:
           allOf:
-            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
             - type: object
+              required:
+                - events
               properties:
-                type:
-                  const: organization.updated
-                data:
+                events:
                   type: object
                   required:
-                    - access_tenant_id
-                    - access_organization_id
+                    - "urn:suiss:access:event:organization.updated"
                   properties:
-                    access_tenant_id:
-                      type: string
-                      maxLength: 128
-                    access_organization_id:
-                      type: string
-                      maxLength: 128
-                    name:
-                      type: string
-                      maxLength: 200
-                    state:
-                      type: string
-                      enum:
-                        - active
-                        - archived
+                    "urn:suiss:access:event:organization.updated":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - access_organization_id
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        access_organization_id:
+                          type: string
+                          maxLength: 128
+                        name:
+                          type: string
+                          maxLength: 200
+                        state:
+                          type: string
+                          enum:
+                            - active
+                            - archived
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4453,41 +4512,46 @@ components:
       name: api_client.created
       title: api_client.created
       summary: An API client was created in Access.
-      contentType: application/cloudevents+json
+      contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
         schema:
           allOf:
-            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
             - type: object
+              required:
+                - events
               properties:
-                type:
-                  const: api_client.created
-                data:
+                events:
                   type: object
                   required:
-                    - access_tenant_id
-                    - access_client_id
-                    - environment
-                    - scopes
+                    - "urn:suiss:access:event:api_client.created"
                   properties:
-                    access_tenant_id:
-                      type: string
-                      maxLength: 128
-                    access_client_id:
-                      type: string
-                      maxLength: 256
-                    environment:
-                      "$ref": "../openapi/components/schemas.yaml#/Environment"
-                    access_organization_id:
-                      oneOf:
-                        - type: string
+                    "urn:suiss:access:event:api_client.created":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - access_client_id
+                        - environment
+                        - scopes
+                      properties:
+                        access_tenant_id:
+                          type: string
                           maxLength: 128
-                        - type: "null"
-                    scopes:
-                      type: array
-                      items:
-                        "$ref": "../openapi/components/schemas.yaml#/ScopeName"
+                        access_client_id:
+                          type: string
+                          maxLength: 256
+                        environment:
+                          "$ref": "../openapi/components/schemas.yaml#/Environment"
+                        access_organization_id:
+                          oneOf:
+                            - type: string
+                              maxLength: 128
+                            - type: "null"
+                        scopes:
+                          type: array
+                          items:
+                            "$ref": "../openapi/components/schemas.yaml#/ScopeName"
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4497,33 +4561,38 @@ components:
       name: api_client.updated
       title: api_client.updated
       summary: "An API client's scopes changed in Access."
-      contentType: application/cloudevents+json
+      contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
         schema:
           allOf:
-            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
             - type: object
+              required:
+                - events
               properties:
-                type:
-                  const: api_client.updated
-                data:
+                events:
                   type: object
                   required:
-                    - access_tenant_id
-                    - access_client_id
-                    - scopes
+                    - "urn:suiss:access:event:api_client.updated"
                   properties:
-                    access_tenant_id:
-                      type: string
-                      maxLength: 128
-                    access_client_id:
-                      type: string
-                      maxLength: 256
-                    scopes:
-                      type: array
-                      items:
-                        "$ref": "../openapi/components/schemas.yaml#/ScopeName"
+                    "urn:suiss:access:event:api_client.updated":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - access_client_id
+                        - scopes
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        access_client_id:
+                          type: string
+                          maxLength: 256
+                        scopes:
+                          type: array
+                          items:
+                            "$ref": "../openapi/components/schemas.yaml#/ScopeName"
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4533,28 +4602,33 @@ components:
       name: api_client.suspended
       title: api_client.suspended
       summary: "An API client was suspended in Access; Relay rejects its tokens at once on every node."
-      contentType: application/cloudevents+json
+      contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
         schema:
           allOf:
-            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
             - type: object
+              required:
+                - events
               properties:
-                type:
-                  const: api_client.suspended
-                data:
+                events:
                   type: object
                   required:
-                    - access_tenant_id
-                    - access_client_id
+                    - "urn:suiss:access:event:api_client.suspended"
                   properties:
-                    access_tenant_id:
-                      type: string
-                      maxLength: 128
-                    access_client_id:
-                      type: string
-                      maxLength: 256
+                    "urn:suiss:access:event:api_client.suspended":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - access_client_id
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        access_client_id:
+                          type: string
+                          maxLength: 256
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4564,28 +4638,33 @@ components:
       name: api_client.reactivated
       title: api_client.reactivated
       summary: A suspended API client was reactivated in Access.
-      contentType: application/cloudevents+json
+      contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
         schema:
           allOf:
-            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
             - type: object
+              required:
+                - events
               properties:
-                type:
-                  const: api_client.reactivated
-                data:
+                events:
                   type: object
                   required:
-                    - access_tenant_id
-                    - access_client_id
+                    - "urn:suiss:access:event:api_client.reactivated"
                   properties:
-                    access_tenant_id:
-                      type: string
-                      maxLength: 128
-                    access_client_id:
-                      type: string
-                      maxLength: 256
+                    "urn:suiss:access:event:api_client.reactivated":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - access_client_id
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        access_client_id:
+                          type: string
+                          maxLength: 256
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4595,28 +4674,33 @@ components:
       name: api_client.revoked
       title: api_client.revoked
       summary: An API client was revoked in Access (terminal).
-      contentType: application/cloudevents+json
+      contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
         schema:
           allOf:
-            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
             - type: object
+              required:
+                - events
               properties:
-                type:
-                  const: api_client.revoked
-                data:
+                events:
                   type: object
                   required:
-                    - access_tenant_id
-                    - access_client_id
+                    - "urn:suiss:access:event:api_client.revoked"
                   properties:
-                    access_tenant_id:
-                      type: string
-                      maxLength: 128
-                    access_client_id:
-                      type: string
-                      maxLength: 256
+                    "urn:suiss:access:event:api_client.revoked":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - access_client_id
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        access_client_id:
+                          type: string
+                          maxLength: 256
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4626,25 +4710,30 @@ components:
       name: user.suspended
       title: user.suspended
       summary: "An Access user was suspended; the operator's Relay sessions are revoked and the subscribers whose external_id is the subject are suspended."
-      contentType: application/cloudevents+json
+      contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
         schema:
           allOf:
-            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
             - type: object
+              required:
+                - events
               properties:
-                type:
-                  const: user.suspended
-                data:
+                events:
                   type: object
                   required:
-                    - subject
+                    - "urn:suiss:access:event:user.suspended"
                   properties:
-                    subject:
-                      type: string
-                      description: Access subject for the Relay client.
-                      maxLength: 256
+                    "urn:suiss:access:event:user.suspended":
+                      type: object
+                      required:
+                        - subject
+                      properties:
+                        subject:
+                          type: string
+                          description: Access subject for the Relay client.
+                          maxLength: 256
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4654,24 +4743,29 @@ components:
       name: user.reactivated
       title: user.reactivated
       summary: "An Access user was reactivated; roles in Relay are unchanged and the suspension of the subscribers whose external_id is the subject is lifted."
-      contentType: application/cloudevents+json
+      contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
         schema:
           allOf:
-            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
             - type: object
+              required:
+                - events
               properties:
-                type:
-                  const: user.reactivated
-                data:
+                events:
                   type: object
                   required:
-                    - subject
+                    - "urn:suiss:access:event:user.reactivated"
                   properties:
-                    subject:
-                      type: string
-                      maxLength: 256
+                    "urn:suiss:access:event:user.reactivated":
+                      type: object
+                      required:
+                        - subject
+                      properties:
+                        subject:
+                          type: string
+                          maxLength: 256
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4681,24 +4775,29 @@ components:
       name: user.deleted
       title: user.deleted
       summary: "An Access user was deleted; the operator record becomes deleted and its roles are revoked."
-      contentType: application/cloudevents+json
+      contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
         schema:
           allOf:
-            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
             - type: object
+              required:
+                - events
               properties:
-                type:
-                  const: user.deleted
-                data:
+                events:
                   type: object
                   required:
-                    - subject
+                    - "urn:suiss:access:event:user.deleted"
                   properties:
-                    subject:
-                      type: string
-                      maxLength: 256
+                    "urn:suiss:access:event:user.deleted":
+                      type: object
+                      required:
+                        - subject
+                      properties:
+                        subject:
+                          type: string
+                          maxLength: 256
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -5374,79 +5473,84 @@ components:
       name: consent.updated
       title: consent.updated
       summary: "A commercial consent of an Access subject changed; Relay records it idempotently in its consent copy and ignores an older sequence."
-      contentType: application/cloudevents+json
+      contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
         schema:
           allOf:
-            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
             - type: object
+              required:
+                - events
               properties:
-                type:
-                  const: consent.updated
-                data:
+                events:
                   type: object
                   required:
-                    - sub
-                    - access_tenant_id
-                    - channel
-                    - status
-                    - source
-                    - occurred_at
-                    - sequence
+                    - "urn:suiss:access:event:consent.updated"
                   properties:
-                    sub:
-                      type: string
-                      description: Pairwise Access subject of the subscriber for the Relay client.
-                      maxLength: 256
-                    access_tenant_id:
-                      type: string
-                      description: Access tenant the consent belongs to.
-                      maxLength: 256
-                    access_organization_id:
-                      type: string
-                      description: "Access organization that is the brand of the consent; absent for the tenant itself."
-                      maxLength: 256
-                    channel:
-                      "$ref": "../openapi/components/schemas.yaml#/Channel"
-                    status:
-                      type: string
-                      enum:
-                        - NONE
-                        - PENDING
-                        - ACTIVE
-                        - REVOKED
-                        - EXPIRED
-                    consent_kind:
-                      "$ref": "../openapi/components/schemas.yaml#/ConsentKind"
-                    recipient_type:
-                      "$ref": "../openapi/components/schemas.yaml#/LegalType"
-                    source:
-                      type: string
-                      maxLength: 64
-                    occurred_at:
-                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
-                    text_version_digest:
-                      type: string
-                      description: Hex SHA-256 of the consent text version the subject saw.
-                      pattern: "^[0-9a-f]{64}$"
-                    evidence:
+                    "urn:suiss:access:event:consent.updated":
                       type: object
+                      required:
+                        - sub
+                        - access_tenant_id
+                        - channel
+                        - status
+                        - source
+                        - occurred_at
+                        - sequence
                       properties:
-                        ip:
+                        sub:
+                          type: string
+                          description: Pairwise Access subject of the subscriber for the Relay client.
+                          maxLength: 256
+                        access_tenant_id:
+                          type: string
+                          description: Access tenant the consent belongs to.
+                          maxLength: 256
+                        access_organization_id:
+                          type: string
+                          description: "Access organization that is the brand of the consent; absent for the tenant itself."
+                          maxLength: 256
+                        channel:
+                          "$ref": "../openapi/components/schemas.yaml#/Channel"
+                        status:
+                          type: string
+                          enum:
+                            - NONE
+                            - PENDING
+                            - ACTIVE
+                            - REVOKED
+                            - EXPIRED
+                        consent_kind:
+                          "$ref": "../openapi/components/schemas.yaml#/ConsentKind"
+                        recipient_type:
+                          "$ref": "../openapi/components/schemas.yaml#/LegalType"
+                        source:
                           type: string
                           maxLength: 64
-                        device:
+                        occurred_at:
+                          "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                        text_version_digest:
                           type: string
-                          maxLength: 512
-                      additionalProperties: false
-                    iys_transaction_id:
-                      type: string
-                      maxLength: 128
-                    sequence:
-                      type: integer
-                      minimum: 0
-                      description: Monotonic per subject; an event with an older sequence than the recorded one is ignored.
+                          description: Hex SHA-256 of the consent text version the subject saw.
+                          pattern: "^[0-9a-f]{64}$"
+                        evidence:
+                          type: object
+                          properties:
+                            ip:
+                              type: string
+                              maxLength: 64
+                            device:
+                              type: string
+                              maxLength: 512
+                          additionalProperties: false
+                        iys_transaction_id:
+                          type: string
+                          maxLength: 128
+                        sequence:
+                          type: integer
+                          minimum: 0
+                          description: Monotonic per subject; an event with an older sequence than the recorded one is ignored.
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 4

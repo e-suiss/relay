@@ -2822,42 +2822,30 @@ VirtualClockAdvance:
       "$ref": "#/Duration"
       description: Forward step, at most 366 days. The clock never moves back.
   additionalProperties: false
-AccessEventDelivery:
+AccessSecurityEventToken:
+  type: string
+  description: "A Security Event Token (RFC 8417) Access pushed: a compact JWS of typ secevent+jwt whose claims are iss, aud, iat, jti, sub_id, events with one member keyed urn:suiss:access:event:<type>, and access_tenant on a platform product subscription. Event types and their members are in the event catalog."
+  maxLength: 65536
+  pattern: "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\s*$"
+AccessSetError:
   type: object
-  description: Access event delivered to Relay with the shared Suiss webhook profile. Event types and data schemas are in the event catalog.
+  description: The RFC 8935 error body of a refused SET.
   required:
-    - specversion
-    - id
-    - source
-    - type
-    - time
-    - data
+    - err
+    - description
   properties:
-    specversion:
+    err:
       type: string
-      const: "1.0"
-    id:
-      type: string
-      minLength: 1
-      maxLength: 512
-    source:
-      type: string
-      maxLength: 1024
-    type:
-      "$ref": "#/EventName"
-    time:
-      "$ref": "#/Timestamp"
-    subject:
+      enum:
+        - invalid_request
+        - invalid_key
+        - invalid_issuer
+        - invalid_audience
+        - authentication_failed
+        - access_denied
+    description:
       type: string
       maxLength: 512
-    datacontenttype:
-      type: string
-      const: application/json
-    data:
-      type: object
-    traceparent:
-      type: string
-      pattern: "^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$"
   additionalProperties: false
 Role:
   type: object

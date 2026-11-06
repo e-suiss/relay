@@ -5,6 +5,8 @@ defmodule Relay.Channels.SmsTest do
   alias Relay.Channels.Sms
   alias Relay.Channels.SmsSender
 
+  @measure &Relay.Templates.sms_measure/3
+
   defp declarations do
     {:ok, content} = ChannelDeclarations.compose()
     ChannelDeclarations.new(content, nil)
@@ -16,6 +18,9 @@ defmodule Relay.Channels.SmsTest do
   end
 
   defp catalog(sms), do: %{"sms" => sms}
+
+  defp encoding(declaration, text, country),
+    do: Sms.encoding(declaration, text, country, @measure)
 
   describe "CH-48 CH-75 explicit encoding" do
     test "CH-75: every provider starts with an unverified Turkish single shift" do
@@ -32,10 +37,9 @@ defmodule Relay.Channels.SmsTest do
     test "CH-48: Turkish text goes as UCS2 to an unverified provider and GSM7 text stays GSM7" do
       verimor = declaration("verimor")
 
-      assert {:ok, %{encoding: "UCS2", segments: 1}} =
-               Sms.encoding(verimor, "Şifreniz 1234", "TR")
+      assert {:ok, %{encoding: "UCS2", segments: 1}} = encoding(verimor, "Şifreniz 1234", "TR")
 
-      assert {:ok, %{encoding: "GSM7", segments: 1}} = Sms.encoding(verimor, "Code 1234", "TR")
+      assert {:ok, %{encoding: "GSM7", segments: 1}} = encoding(verimor, "Code 1234", "TR")
     end
 
     test "CH-75: GSM7_TR is used only with device evidence of a verified single shift" do
@@ -48,15 +52,16 @@ defmodule Relay.Channels.SmsTest do
 
       proven = put_in(claimed, ["sms", "turkish_single_shift_evidence"], "handset 2026-11-05")
 
-      assert {:ok, %{encoding: "UCS2"}} = Sms.encoding(claimed, "ağ", nil)
-      assert {:ok, %{encoding: "GSM7_TR"}} = Sms.encoding(proven, "ağ", nil)
+      assert {:ok, %{encoding: "UCS2"}} = encoding(claimed, "ağ", nil)
+      assert {:ok, %{encoding: "GSM7_TR"}} = encoding(proven, "ağ", nil)
     end
 
     test "CH-48: a provider that cannot name an encoding carrying the text refuses the send" do
       netgsm = declaration("netgsm")
+      twilio = declaration("twilio")
 
-      assert {:error, "channel.sms_encoding_unsupported"} = Sms.encoding(netgsm, "ağ", "TR")
-      assert {:ok, %{encoding: "GSM7"}} = Sms.encoding(netgsm, "Kod 1234", "TR")
+      assert {:error, "channel.sms_encoding_unsupported"} = encoding(netgsm, "ağ", "TR")
+      assert {:ok, %{encoding: "GSM7"}} = encoding(netgsm, "Kod 1234", "TR")
     end
 
     test "CH-75: the provider × country reserve enters the segment count, 0 when undeclared" do
@@ -70,8 +75,8 @@ defmodule Relay.Channels.SmsTest do
 
       assert Sms.reserved(catalog(sms), "TR") == 5
       assert Sms.reserved(catalog(sms), "DE") == 0
-      assert {:ok, %{segments: 2, reserved: 5}} = Sms.encoding(catalog(sms), text, "TR")
-      assert {:ok, %{segments: 1, reserved: 0}} = Sms.encoding(catalog(sms), text, "DE")
+      assert {:ok, %{segments: 2, reserved: 5}} = encoding(catalog(sms), text, "TR")
+      assert {:ok, %{segments: 1, reserved: 0}} = encoding(catalog(sms), text, "DE")
     end
   end
 
@@ -141,15 +146,15 @@ defmodule Relay.Channels.SmsTest do
       netgsm = declaration("netgsm")
 
       assert {:ok, %{encoding: "GSM7", product: "otp", sender: ^sender}} =
-               Sms.preflight(netgsm, sender, "security", number, content)
+               Sms.preflight(netgsm, sender, "security", number, content, @measure)
 
       unregistered = Map.put(sender, "registration", %{})
 
       assert {:skip, "channel.sender_iys_missing"} =
-               Sms.preflight(netgsm, unregistered, "security", number, content)
+               Sms.preflight(netgsm, unregistered, "security", number, content, @measure)
 
       assert {:skip, "channel.tr_route_unauthorized"} =
-               Sms.preflight(declaration("twilio"), sender, "security", number, content)
+               Sms.preflight(twilio, sender, "security", number, content, @measure)
     end
 
     test "CH-50: a stored row becomes the identity the rules read" do

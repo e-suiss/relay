@@ -5,7 +5,7 @@ defmodule Relay.Channels do
   Every adapter implements the common port `Relay.Channels.Adapter` and declares its capabilities, evidence rows, idempotency policy, failure class mapping with test vectors, price and limit data, data residency and inbound verification as versioned data (`Relay.ChannelDeclarations`, CH-2, CH-71); a registered adapter whose declaration is incomplete receives no traffic.
   """
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Templates], exports: []
+  use Boundary, top_level?: true, deps: [Relay], exports: []
 
   alias Relay.ChannelDeclarations
   alias Relay.Channels.Adapter
@@ -300,7 +300,7 @@ defmodule Relay.Channels do
   # CH-53
   # CH-48
   @doc """
-  The provider-dependent checks of an SMS or voice send on the chosen account, before the attempt opens: the account's approved sender identity; on SMS its rules for the message class (`Relay.Channels.SmsSender.check/2`), the TR route (`Relay.Channels.Sms.route/3`), the explicit encoding with its segments (`Relay.Channels.Sms.encoding/3`) and the provider product (`Relay.Channels.Sms.product/2`). Returns the request fields to add, or `{:skip, rule_id}`; other channels pass unchanged.
+  The provider-dependent checks of an SMS or voice send on the chosen account, before the attempt opens: the account's approved sender identity; on SMS its rules for the message class (`Relay.Channels.SmsSender.check/2`), the TR route (`Relay.Channels.Sms.route/3`), the explicit encoding with its segments, measured with `measure` (`Relay.Channels.Sms.encoding/4`) and the provider product (`Relay.Channels.Sms.product/2`). Returns the request fields to add, or `{:skip, rule_id}`; other channels pass unchanged.
   """
   @spec sms_preflight(
           Relay.Scope.t(),
@@ -308,19 +308,22 @@ defmodule Relay.Channels do
           map(),
           map(),
           String.t(),
-          map() | binary()
+          map() | binary(),
+          Sms.measurer()
         ) :: {:ok, map()} | {:skip, String.t()}
-  def sms_preflight(scope, declarations, account, delivery, number, content) do
+  def sms_preflight(scope, declarations, account, delivery, number, content, measure) do
     if delivery["channel"] in ["sms", "voice"],
-      do: preflight(scope, declarations, account, delivery, number, content),
+      do: preflight(scope, declarations, account, delivery, {number, content, measure}),
       else: {:ok, %{}}
   end
 
-  defp preflight(scope, declarations, account, delivery, number, content) do
+  defp preflight(scope, declarations, account, delivery, {number, content, measure}) do
     with {:ok, sender} <- account_sender(scope, account),
          {:ok, declaration} <- declaration(declarations, account["provider"]) do
+      class = delivery["message_class"]
+
       if delivery["channel"] == "sms",
-        do: Sms.preflight(declaration, sender, delivery["message_class"], number, content),
+        do: Sms.preflight(declaration, sender, class, number, content, measure),
         else: {:ok, %{sender: sender}}
     end
   end

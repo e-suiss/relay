@@ -103,8 +103,8 @@ defmodule Relay.Channels.Netgsm do
     end
   end
 
-  def decode(%{"status" => status, "body" => body} = response) do
-    product = get_in(response, ["body", "product"])
+  def decode(%{"status" => status, "body" => body}) do
+    product = if is_map(body), do: body["product"]
     raw(status, body, product, nil)
   end
 

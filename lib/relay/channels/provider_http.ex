@@ -22,7 +22,7 @@ defmodule Relay.Channels.ProviderHttp do
 
     opts =
       opts
-      |> Keyword.merge(receive_timeout: timeout_ms, pool_timeout: min(timeout_ms, @connect_ms))
+      |> Keyword.put(:receive_timeout, timeout_ms)
       |> Keyword.put(:connect_options, timeout: min(timeout_ms, @connect_ms))
       |> Keyword.merge(extra)
 
@@ -36,8 +36,8 @@ defmodule Relay.Channels.ProviderHttp do
       {:error, %Req.TransportError{reason: reason}} ->
         {:uncertain, name(reason)}
 
-      {:error, _exception} ->
-        {:uncertain, "error"}
+      {:error, %{__struct__: module}} ->
+        {:uncertain, module |> Module.split() |> List.last()}
     end
   end
 

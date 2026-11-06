@@ -4,7 +4,7 @@ defmodule Relay.Channels.Live do
 
     1. The route. On the `test` plane and in `shadow` mode the fake provider answers (X-25, API-62, CH-72); the send mode is the event's own mode (test only), then the tenant's `send_mode.channel.<channel>` and `send_mode` settings, then the installation default. Otherwise only a verified provider account whose adapter is activated takes traffic (`Relay.Channels.routes/4`, CH-14, INV-43); without one the delivery is held with `channel.no_route` and the job comes back later. The circuit breakers pick the first account that may be called; a rejection moves to the next account and, when every one is open, the job waits without counting an attempt (CH-13, T-25).
     2. The target. An address channel reads the recipient's active address; a device channel reads the recipient's permitted devices from `Relay.Devices` (CH-28). A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
-    3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50). On SMS and voice the route keeps only the accounts of the message class's traffic, `security` or `standard`, so an OTP never shares an account or a credit pool with a campaign (CH-53), and a `+90` number only the BTK-authorized providers, or the delivery is skipped with `channel.tr_route_unauthorized` (CH-51). Before the attempt `Relay.Channels.sms_preflight/6` checks the sender identity's rules for the class (CH-50), the TR route and the explicit encoding (CH-48), and names the provider product (CH-53); a broken rule skips the delivery with its `rule_id`.
+    3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50). On SMS and voice the route keeps only the accounts of the message class's traffic, `security` or `standard`, so an OTP never shares an account or a credit pool with a campaign (CH-53), and a `+90` number only the BTK-authorized providers, or the delivery is skipped with `channel.tr_route_unauthorized` (CH-51). Before the attempt `Relay.Channels.sms_preflight/7`, with the renderer's SMS measurement, checks the sender identity's rules for the class (CH-50), the TR route and the explicit encoding (CH-48), and names the provider product (CH-53); a broken rule skips the delivery with its `rule_id`.
     4. The attempt. It is opened with the provider idempotency key that stays the same across the logical send (INV-13, OP-6 (4)) and marked started in its own transaction before the call (INV-55, CH-10). The credential is read from the secret backend for this call only, so a rotation applies at the next call (TN-26). The call is bounded by the three timeout layers (CH-9).
     5. The outcome is normalized into the eight failure classes (CH-7). A success finishes the attempt. A failure finishes it and plans its retry through the job queue only (T-26, INV-14); a permanent target failure soft disables the address or the device at once (CH-11); a code without a mapping raises `provider.unknown_code` and the alarm (CH-8). An uncertain outcome follows the provider's declared policy (T-28): the status query, a retry with the same key, or none; on a paid channel at most one retry and `delivery.uncertain`.
   """
@@ -19,6 +19,7 @@ defmodule Relay.Channels.Live do
       Relay.Devices,
       Relay.Ingest,
       Relay.Secrets,
+      Relay.Templates,
       Relay.Tenancy
     ],
     exports: []
@@ -258,10 +259,17 @@ defmodule Relay.Channels.Live do
     number = Relay.Redacted.expose(target.value)
     %{scope: scope, declarations: declarations, delivery: delivery} = ctx
 
-    case Relay.Channels.sms_preflight(scope, declarations, account, delivery, number, content) do
+    measure = &Relay.Templates.sms_measure/3
+    found = {number, content, measure}
+
+    case sms_preflight(scope, declarations, account, delivery, found) do
       {:ok, extra} -> attempt(Map.put(ctx, :extra, extra), account, ticket, target, content)
       {:skip, rule_id} -> skip(ctx.scope, ctx.delivery["id"], rule_id)
     end
+  end
+
+  defp sms_preflight(scope, declarations, account, delivery, {number, content, measure}) do
+    Relay.Channels.sms_preflight(scope, declarations, account, delivery, number, content, measure)
   end
 
   # INV-13

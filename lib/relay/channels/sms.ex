@@ -12,6 +12,7 @@ defmodule Relay.Channels.Sms do
   @encodings ~w(GSM7 GSM7_TR UCS2)
   @url ~r{(?:\bhttps?://|\bwww\.)[^\s]+|\b[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)*\.(?:com|net|org|info|biz|io|co|me|ly|gl|link|app|shop|site|online|tr)(?:/[^\s]*)?\b}iu
 
+  @type measurer :: (String.t(), [String.t()], non_neg_integer() -> {:ok, map()} | :error)
   @type measure :: %{
           encoding: String.t(),
           segments: non_neg_integer(),
@@ -63,12 +64,13 @@ defmodule Relay.Channels.Sms do
   # CH-48
   # CH-75
   # TP-18
-  @doc "The explicit encoding of a send and its segment count on a provider, for a destination country; `{:error, \"channel.sms_encoding_unsupported\"}` when the provider can name no encoding that carries the text."
-  @spec encoding(map(), String.t(), String.t() | nil) :: {:ok, measure()} | {:error, String.t()}
-  def encoding(declaration, text, country) when is_binary(text) do
+  @doc "The explicit encoding of a send and its segment count on a provider, for a destination country, measured with `measure` (the renderer's SMS measurement, `Relay.Templates.sms_measure/3`, given by the caller); `{:error, rule_id}` with `channel.sms_encoding_unsupported` when the provider can name no encoding that carries the text."
+  @spec encoding(map(), String.t(), String.t() | nil, measurer()) ::
+          {:ok, measure()} | {:error, String.t()}
+  def encoding(declaration, text, country, measure) when is_binary(text) do
     reserved = reserved(declaration, country)
 
-    case Relay.Templates.sms_measure(text, allowed(declaration), reserved) do
+    case measure.(text, allowed(declaration), reserved) do
       {:ok, measure} -> {:ok, Map.put(measure, :reserved, reserved)}
       :error -> {:error, "channel.sms_encoding_unsupported"}
     end
@@ -122,17 +124,17 @@ defmodule Relay.Channels.Sms do
   # CH-51
   # CH-53
   @doc "The checks of an SMS send on a provider, in order: the sender identity's rules for the class, the TR route and the explicit encoding; the request fields (`sender`, `encoding`, `product`) or `{:skip, rule_id}`."
-  @spec preflight(map(), map(), String.t() | nil, String.t(), map() | binary()) ::
+  @spec preflight(map(), map(), String.t() | nil, String.t(), map() | binary(), measurer()) ::
           {:ok, map()} | {:skip, String.t()}
-  def preflight(declaration, sender, message_class, number, content) do
+  def preflight(declaration, sender, message_class, number, content, measure) do
     text = text(content)
     identity = SmsSender.identity(sender)
 
     with :ok <- SmsSender.check(identity, message_class),
          :ok <- route(declaration, number, text),
-         {:ok, measure} <- encoding(declaration, text, country(number)) do
+         {:ok, measured} <- encoding(declaration, text, country(number), measure) do
       product = product(declaration, message_class)
-      {:ok, %{sender: sender, encoding: measure.encoding, product: product}}
+      {:ok, %{sender: sender, encoding: measured.encoding, product: product}}
     else
       {:error, rule_id} -> {:skip, rule_id}
     end

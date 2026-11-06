@@ -58,7 +58,6 @@ defmodule Relay.Channels.SmsTest do
 
     test "CH-48: a provider that cannot name an encoding carrying the text refuses the send" do
       netgsm = declaration("netgsm")
-      twilio = declaration("twilio")
 
       assert {:error, "channel.sms_encoding_unsupported"} = encoding(netgsm, "ağ", "TR")
       assert {:ok, %{encoding: "GSM7"}} = encoding(netgsm, "Kod 1234", "TR")
@@ -144,6 +143,7 @@ defmodule Relay.Channels.SmsTest do
       content = %{"body" => "Kod 1234"}
       number = "+905551112233"
       netgsm = declaration("netgsm")
+      twilio = declaration("twilio")
 
       assert {:ok, %{encoding: "GSM7", product: "otp", sender: ^sender}} =
                Sms.preflight(netgsm, sender, "security", number, content, @measure)

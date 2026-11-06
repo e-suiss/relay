@@ -1,12 +1,21 @@
 defmodule RelayWeb.Api.MessagingTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Datasets
   alias RelayTest.Api
   alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
 
+  defp forget do
+    for name <- ["channel_event_evidence", "channel_parameters"],
+        do: :ok = Datasets.Cache.invalidate(Datasets.Cache, {Datasets.installation_scope(), name})
+  end
+
   setup do
+    forget()
+    {:ok, _report} = Datasets.load_package(TenantFixture.actor())
+    on_exit(&forget/0)
     :ok = FakeAccess.install!()
     tenant = TenantFixture.tenant!()
     scope = tenant.test
@@ -64,8 +73,8 @@ defmodule RelayWeb.Api.MessagingTest do
       account = account!(ctx.scope, "slack")
       teams = %{"provider_account_id" => account, "conversation" => "U1"}
 
-      refused = F.body(F.request(:put, path(ctx.external_id, "telegram"), ctx.token, teams), 404)
-      assert refused["code"] == "provider_account_not_found"
+      refused = F.body(F.request(:put, path(ctx.external_id, "telegram"), ctx.token, teams), 422)
+      assert [%{"pointer" => "/provider_account_id"}] = refused["errors"]
 
       bad = %{"provider_account_id" => account, "conversation" => "has space"}
       invalid = F.body(F.request(:put, path(ctx.external_id, "slack"), ctx.token, bad), 422)

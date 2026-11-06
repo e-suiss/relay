@@ -6,7 +6,8 @@ defmodule Relay.Repo.Migrations.CreateMessagingFunctions do
      ~w(relay_app)},
     {"relay_fn.messaging_target_disable(uuid, text, text)", "relay_owner", ~w(relay_app)},
     {"relay_fn.messaging_message_put(uuid, uuid, bytea, text, uuid)", "relay_owner",
-     ~w(relay_app)}
+     ~w(relay_app)},
+    {"relay_fn.webhook_receipt_read(uuid)", "relay_owner", ~w(relay_app)}
   ]
 
   # CH-62
@@ -176,6 +177,21 @@ defmodule Relay.Repo.Migrations.CreateMessagingFunctions do
             delivery_id = EXCLUDED.delivery_id, updated_at = now();
         RETURN 'recorded';
       END
+      $fn$
+      """,
+      ~S"""
+      CREATE FUNCTION relay_fn.webhook_receipt_read(p_id uuid)
+        RETURNS TABLE (id uuid, provider text, provider_account_id uuid, provider_event_id text,
+          state text, duplicate_count bigint, body_ct bytea, body_key_id uuid)
+      LANGUAGE sql STABLE SECURITY DEFINER
+      SET search_path = pg_catalog, pg_temp
+      SET TimeZone = 'UTC'
+      AS $fn$
+        SELECT w.id, w.provider, w.provider_account_id, w.provider_event_id, w.state,
+          w.duplicate_count, w.body_ct, w.body_key_id
+        FROM relay.webhook_receipts w
+        WHERE w.tenant_id = relay_private.ctx_tenant_id()
+          AND w.environment = relay_private.ctx_environment() AND w.id = p_id
       $fn$
       """,
       ~S"""

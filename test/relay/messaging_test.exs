@@ -3,17 +3,31 @@ defmodule Relay.MessagingTest do
 
   alias Relay.Messaging
   alias Relay.Messaging.Install
+  alias Relay.Datasets
   alias Relay.Repo
+  alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
 
   @outbox "SELECT payload FROM relay.outbox_events WHERE event_type = $1 ORDER BY created_at, id"
-  @receipts "SELECT id, duplicate_count, state FROM relay.webhook_receipts WHERE provider = $1"
   @account "SELECT provider, credential_ref_id, verification_state, settings FROM relay.provider_accounts WHERE id = $1"
   @base "https://relay.example.com"
 
+  defp forget do
+    for name <- ["channel_event_evidence", "channel_parameters"],
+        do: :ok = Datasets.Cache.invalidate(Datasets.Cache, {Datasets.installation_scope(), name})
+  end
+
   setup do
+    forget()
+    {:ok, _report} = Datasets.load_package(TenantFixture.actor())
+    on_exit(&forget/0)
     tenant = TenantFixture.tenant!()
     %{scope: tenant.live}
+  end
+
+  defp receipt!(scope, id) do
+    {:ok, receipt} = Repo.in_scope(scope, fn _status -> Relay.Webhooks.receipt(id) end)
+    receipt
   end
 
   defp sql!(scope, sql, params) do
@@ -247,13 +261,15 @@ defmodule Relay.MessagingTest do
 
       assert {:ok, 200, %{}} = Messaging.accept(request)
       assert {:ok, 200, %{}} = Messaging.accept(request)
-      [[receipt, 1, "received"]] = sql!(scope, @receipts, ["telegram"])
+      [[text]] = F.jobs("Relay.Messaging.InboundWorker", scope, "receipt_id")
+      {:ok, receipt} = Relay.Id.parse(text)
+      assert %{"state" => "received", "duplicate_count" => 1} = receipt!(scope, receipt)
 
       bad = %{request | headers: [{"x-telegram-bot-api-secret-token", "wrong"}]}
       assert {:error, :unauthorized} = Messaging.accept(bad)
 
       assert :ok = Messaging.process(scope, receipt, identity)
-      [[^receipt, 1, "processed"]] = sql!(scope, @receipts, ["telegram"])
+      assert %{"state" => "processed"} = receipt!(scope, receipt)
 
       assert [event] = events(scope, "messaging_interaction.received")
       assert %{"channel" => "telegram", "kind" => "action", "action" => "approve"} = event

@@ -62,7 +62,7 @@ defmodule Relay.Api.Messaging do
       {:created, id} -> {:ok, {201, [], target(id)}}
       {:replaced, id} -> {:ok, {200, [], target(id)}}
       {:recipient_not_found, _id} -> {:error, subscriber_not_found()}
-      {:account_not_found, _id} -> {:error, account_not_found()}
+      {:account_not_found, _id} -> {:error, field("/provider_account_id", "not_found")}
       {:key_not_found, _id} -> {:error, unavailable()}
     end
   end
@@ -198,11 +198,6 @@ defmodule Relay.Api.Messaging do
 
   defp subscriber_not_found,
     do: Relay.Error.new(:subscriber_not_found, "no subscriber has this id")
-
-  defp account_not_found do
-    message = "no provider account of this channel has this id"
-    Relay.Error.new(:provider_account_not_found, message)
-  end
 
   @doc "The error of a conversation that is not found."
   @spec target_not_found() :: Relay.Error.t()

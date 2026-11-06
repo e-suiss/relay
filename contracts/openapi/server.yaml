@@ -9795,7 +9795,6 @@ paths:
         - validation_failed
         - unknown_field
         - subscriber_not_found
-        - provider_account_not_found
       x-relay-scopes:
         - subscribers
       x-relay-role: tenant_operator

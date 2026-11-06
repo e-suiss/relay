@@ -737,20 +737,6 @@ codes:
     description: "No active channel identity of this channel has this identifier in this tenant and environment."
     type: "{base_url}/v1/errors/channel_identity_not_found"
     choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
-  - code: provider_account_not_found
-    family: resource
-    status: 404
-    title: Provider account not found
-    retryable: false
-    retry_after:
-      kind: none
-      seconds: null
-      max_seconds: null
-    extensions: []
-    choice: true
-    description: "No active provider account of this channel has this identifier in this tenant and environment."
-    type: "{base_url}/v1/errors/provider_account_not_found"
-    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
   - code: event_type_mapping_not_found
     family: resource
     status: 404

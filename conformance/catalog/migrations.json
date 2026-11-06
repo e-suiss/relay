@@ -124,5 +124,6 @@
   {"file": "20261120000300_rebuild_reference_check_for_messaging.exs", "sha256": "a5ac486b8575288c748fc2da8f965ce9697786b02978178c7af0dbd77a4a7167"},
   {"file": "20261121000100_create_usage_day_scopes.exs", "sha256": "401d5f8c941653190f201b068c25d54dc1dbbd7352519290b6e7d3935114d892"},
   {"file": "20261122000100_create_push_critical_function.exs", "sha256": "45acbea495653e992779ba8d238db1e0ea49c8b03d6a044fea9f390aad84cce8"},
-  {"file": "20261124000000_rebuild_reference_check_for_whatsapp_and_messaging.exs", "sha256": "413acdc9f9c0d09d57321df7fd2554a07317c6bc085ebf940ac7425bedbc91a7"}
+  {"file": "20261124000000_rebuild_reference_check_for_whatsapp_and_messaging.exs", "sha256": "413acdc9f9c0d09d57321df7fd2554a07317c6bc085ebf940ac7425bedbc91a7"},
+  {"file": "20261126000000_add_event_interruption_and_links.exs", "sha256": "3e548859974b7f0a6e8988d7f609af07ab63261b04e2660eb0938de90dd2e4dc"}
 ]

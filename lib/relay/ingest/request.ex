@@ -8,6 +8,7 @@ defmodule Relay.Ingest.Request do
   * Raw provider blocks cannot set policy fields (`422 policy_field_not_overridable`, API-23). The provider and `overrides.email.from` are checked against the verified routes by the send operation (`403 channel_not_configured`).
   * A per-request `send_mode` is accepted only in the test environment (`403 auth_environment_mismatch`, API-62, API-76).
   * A recipient is a plain identifier (it must exist), an object with only `id` (an inbox-only subscriber) or an object with contact details (an explicit upsert, API-21); a topic is refused until topics exist.
+  * The sender's `interruption` is kept as sent; the push policy lowers it at send time (CH-65, CH-84). Every `links` `href` is an absolute `https` URI (`422 link_scheme_not_allowed`) and every `rel` is unique in the request (E-83).
   """
 
   @data_bytes Relay.Limits.fetch!(["event", "max_data_bytes"])
@@ -31,6 +32,7 @@ defmodule Relay.Ingest.Request do
   # API-24
   # API-26
   # API-62
+  # E-83
   @doc "Checks a decoded send request against its workflow version (`message_class`, `steps`), the `environment`, `now` and whether the credential is an agent's (`agent`, PC-57 (7)); returns the normalised request or the first failing rule's error."
   @spec check(map(), map()) :: {:ok, map()} | {:error, Relay.Error.t()}
   def check(
@@ -39,6 +41,7 @@ defmodule Relay.Ingest.Request do
       ) do
     with :ok <- send_mode(body, environment),
          :ok <- policy_fields(body),
+         :ok <- link_schemes(Map.get(body, "links", [])),
          {:ok, times} <- times(body, now) do
       {priority, warnings} = priority(Map.get(body, "priority", "normal"), class)
       narrowed = narrow(steps, Map.get(body, "channels"))
@@ -46,7 +49,8 @@ defmodule Relay.Ingest.Request do
       errors =
         data_errors(body) ++
           class_errors(body, class, times) ++
-          retention_errors(body, class, narrowed) ++ target_errors(Map.get(body, "to", []))
+          retention_errors(body, class, narrowed) ++
+          target_errors(Map.get(body, "to", [])) ++ rel_errors(Map.get(body, "links", []))
 
       if errors == [] do
         {:ok,
@@ -66,6 +70,8 @@ defmodule Relay.Ingest.Request do
            data: Map.get(body, "data", %{}),
            send_mode: Map.get(body, "send_mode"),
            overrides: Map.get(body, "overrides", %{}),
+           interruption: Map.get(body, "interruption"),
+           links: Map.get(body, "links"),
            steps: Enum.map(narrowed, &subtype_rule(&1, Map.get(body, "security_subtype")))
          })}
       else
@@ -111,6 +117,48 @@ defmodule Relay.Ingest.Request do
            errors: errors
          })}
     end
+  end
+
+  # E-83
+  defp link_schemes(links) do
+    found =
+      for {%{"href" => href}, index} <- Enum.with_index(links),
+          not https?(href),
+          do: field("/links/#{index}/href", "unsupported_value", "an absolute https URI")
+
+    case found do
+      [] ->
+        :ok
+
+      errors ->
+        {:error,
+         Relay.Error.new(:link_scheme_not_allowed, "a link is not an absolute https URI", %{
+           errors: errors
+         })}
+    end
+  end
+
+  defp https?(href) when is_binary(href) do
+    case URI.parse(href) do
+      %URI{scheme: "https", host: host} when is_binary(host) and host != "" -> true
+      _other -> false
+    end
+  end
+
+  defp https?(_href), do: false
+
+  # E-83
+  defp rel_errors(links) do
+    links
+    |> Enum.with_index()
+    |> Enum.reduce({MapSet.new(), []}, fn {link, index}, {seen, errors} ->
+      rel = link["rel"]
+
+      if MapSet.member?(seen, rel),
+        do: {seen, errors ++ [field("/links/#{index}/rel", "conflict", "rel is unique")]},
+        else: {MapSet.put(seen, rel), errors}
+    end)
+    |> elem(1)
   end
 
   defp times(body, now) do

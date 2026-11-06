@@ -240,6 +240,7 @@ defmodule Relay.Api.Events do
          {:ok, data_ct} <- seal(scope, key_id, "data_ct", request.data, key),
          {:ok, metadata_ct} <- seal(scope, key_id, "metadata_ct", request.metadata, key),
          {:ok, actor_ct} <- seal(scope, key_id, "actor_ct", request.actor, key),
+         {:ok, links_ct} <- seal(scope, key_id, "links_ct", request.links, key),
          ce = ce_attributes(cloudevent),
          {:ok, ce_ct} <- seal(scope, key_id, "ce_attributes_ct", ce, key) do
       {:ok,
@@ -248,6 +249,7 @@ defmodule Relay.Api.Events do
          data_ct: data_ct,
          metadata_ct: metadata_ct,
          actor_ct: actor_ct,
+         links_ct: links_ct,
          ce_attributes_ct: ce_ct,
          plain_size: byte_size(Jason.encode!(request.data))
        }}
@@ -488,6 +490,7 @@ defmodule Relay.Api.Events do
       expires_at: r.expires_at,
       retention_none: r.retention_none,
       send_mode: r.send_mode,
+      interruption: r.interruption,
       is_test: false,
       recipient_count: length(p.recipients),
       traceparent: p.traceparent

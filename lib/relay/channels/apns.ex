@@ -109,10 +109,21 @@ defmodule Relay.Channels.Apns do
   defp thread(%{collapse: %{topic: topic}}), do: %{"thread-id" => topic}
   defp thread(_push), do: %{}
 
+  # E-83
   defp data(request, push) do
     topic = if push.collapse, do: %{"topic" => push.collapse.topic}, else: %{}
-    %{"relay" => Map.put(topic, "id", Common.content_id(request))}
+    relay = topic |> Map.put("id", Common.content_id(request)) |> link(request, push)
+    %{"relay" => relay}
   end
+
+  defp link(relay, request, %{content_free: false}) do
+    case Common.link(request) do
+      nil -> relay
+      url -> Map.put(relay, "url", url)
+    end
+  end
+
+  defp link(relay, _request, _push), do: relay
 
   defp content_free(request, %{content_free: true} = push, :alert) do
     %{

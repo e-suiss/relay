@@ -1,8 +1,18 @@
+defmodule Relay.Delivery.UsageTest.Unpriced do
+  @moduledoc false
+
+  def usage_pricing do
+    {:ok, fn _provider, _channel, _country, _category, _volume -> :unpriced end}
+  end
+end
+
 defmodule Relay.Delivery.UsageTest do
   use Relay.DataCase, async: false
 
   alias Relay.Delivery.Usage.Store
   alias RelayTest.DeliveryFixture
+
+  def usage_pricing, do: {:error, :prices_unavailable}
 
   defp today, do: Relay.Clock.utc_now() |> DateTime.to_date()
 
@@ -63,10 +73,23 @@ defmodule Relay.Delivery.UsageTest do
       assert {:ok, []} = Relay.Delivery.usage_rows(scope, Date.add(today(), -1))
     end
 
+    test "OP-38: no day is written while the prices cannot be read" do
+      previous = Application.get_env(:relay, Relay.Delivery, [])
+      on_exit(fn -> Application.put_env(:relay, Relay.Delivery, previous) end)
+      Application.put_env(:relay, Relay.Delivery, Keyword.put(previous, :pricing, __MODULE__))
+
+      assert {:error, :prices_unavailable} = Relay.Delivery.close_usage_day(today())
+    end
+
     test "C-88: a day that has not closed is not written" do
       %{scope: scope, delivery_id: id} = DeliveryFixture.sendable!()
       n = DeliveryFixture.started_attempt!(scope, id)
       DeliveryFixture.finish(scope, id, n, :succeeded)
+
+      previous = Application.get_env(:relay, Relay.Delivery, [])
+      on_exit(fn -> Application.put_env(:relay, Relay.Delivery, previous) end)
+      unpriced = Keyword.put(previous, :pricing, Relay.Delivery.UsageTest.Unpriced)
+      Application.put_env(:relay, Relay.Delivery, unpriced)
 
       counts = Relay.Delivery.close_usage_day(today())
 

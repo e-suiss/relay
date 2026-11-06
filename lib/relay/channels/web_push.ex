@@ -96,12 +96,16 @@ defmodule Relay.Channels.WebPush do
     data =
       if push.content_free,
         do: Map.put(base, "neutral", Content.neutral(push.locale, push.lock_screen_body)),
-        else: Map.merge(base, Common.fields(request))
+        else: base |> Map.merge(Common.fields(request)) |> link(Common.link(request))
 
     data = Map.merge(data, topic)
 
     with :ok <- Content.check(data), do: WebPush.classic(data)
   end
+
+  # E-83
+  defp link(data, nil), do: data
+  defp link(data, url), do: Map.put(data, "relay_url", url)
 
   # TN-31
   defp authorization(request, vapid?) do

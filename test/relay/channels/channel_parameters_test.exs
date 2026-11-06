@@ -21,16 +21,22 @@ defmodule Relay.Channels.ChannelParametersTest do
 
   defp row(rows, fields), do: Enum.find(rows, &Enum.all?(fields, fn {k, v} -> &1[k] == v end))
 
+  defp retry(p, channel, class, condition) do
+    provider = if channel == "whatsapp", do: "whatsapp_cloud", else: channel
+    {:ok, row, _id} = ChannelParameters.backoff(p, channel, provider, class, condition, nil)
+    Map.take(row, ~w(mode base_ms cap_ms default_retry_after_ms max_attempts))
+  end
+
   describe "CH-69 data set" do
     test "CH-69: every bundled version matches the schema and the consistency rules" do
-      for no <- [1, 2] do
+      for no <- [1, 2, 3] do
         assert :ok = Schema.validate(schema(), content(no))
         assert :ok = ChannelParameters.validate(content(no))
       end
 
       assert {:ok, datasets} = Package.read(Package.root())
 
-      assert %{versions: [%{no: 1}, %{no: 2}]} =
+      assert %{versions: [%{no: 1}, %{no: 2}, %{no: 3}]} =
                Enum.find(datasets, &(&1.name == "channel_parameters"))
     end
 
@@ -154,6 +160,52 @@ defmodule Relay.Channels.ChannelParametersTest do
       assert weights[{"quota", nil}] == {500, "tenant_provider"}
       assert weights[{"permanent_target", nil}] == {0, "provider"}
       assert Enum.all?(v1["credit_leases"], &(&1["allowed"] == false))
+    end
+  end
+
+  describe "CH-85 messaging and WhatsApp rows" do
+    setup do: %{p: DeliveryFixture.parameters(3)}
+
+    test "CH-85: a messaging rate limit follows Retry-After, 2 s by default up to 60 s",
+         %{p: p} do
+      for channel <- ~w(slack teams telegram discord) do
+        assert retry(p, channel, "transient", "rate_limited") == %{
+                 "mode" => "retry_after",
+                 "base_ms" => 2000,
+                 "cap_ms" => 60_000,
+                 "default_retry_after_ms" => 2000,
+                 "max_attempts" => 8
+               }
+
+        for condition <- ~w(server_error timeout) do
+          assert retry(p, channel, "transient", condition) == %{
+                   "mode" => "exponential",
+                   "base_ms" => 30_000,
+                   "cap_ms" => 600_000,
+                   "default_retry_after_ms" => nil,
+                   "max_attempts" => 6
+                 }
+        end
+      end
+    end
+
+    test "CH-85: WhatsApp server errors back off exponentially and quota follows Retry-After",
+         %{p: p} do
+      for condition <- ~w(server_error timeout) do
+        assert %{"base_ms" => 30_000, "cap_ms" => 600_000, "max_attempts" => 6} =
+                 retry(p, "whatsapp", "transient", condition)
+      end
+
+      assert retry(p, "whatsapp", "quota", nil) == %{
+               "mode" => "retry_after",
+               "base_ms" => 60_000,
+               "cap_ms" => 1_800_000,
+               "default_retry_after_ms" => 60_000,
+               "max_attempts" => 4
+             }
+
+      assert %{"base_ms" => 60_000, "max_attempts" => 4} =
+               retry(p, "whatsapp", "transient", "pair_rate_limited")
     end
   end
 

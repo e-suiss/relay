@@ -1,4 +1,4 @@
-defmodule Relay.Delivery.Usage do
+defmodule Relay.Delivery.Usage.Store do
   @moduledoc """
   The daily usage records (C-88, OP-38, INV-49). When a UTC day has closed, the provider attempts that finished in it are counted per `(channel, provider, outcome, is_test)` of every scope and written as immutable `usage_records` rows through `relay_fn.usage_record_append`: `quantity` is the number of deliveries, `attempt_count` the number of attempts; an attempt that succeeded or stayed uncertain is `accepted`, a failed one `failed`. Test sends are their own rows (`is_test`), so billing and product metrics never mix them with live traffic.
 
@@ -43,13 +43,15 @@ defmodule Relay.Delivery.Usage do
   defp close_scope(day, {tenant_id, environment}, acc) do
     with {:ok, scope} <- Relay.Scope.new(tenant_id, environment),
          {:ok, results} <- Repo.in_scope(scope, fn _status -> write(day) end) do
-      Enum.reduce(results, %{acc | scopes: acc.scopes + 1}, fn result, acc ->
-        if result == :conflict, do: alarm(scope, day)
-        Map.update!(acc, result, &(&1 + 1))
-      end)
+      Enum.reduce(results, %{acc | scopes: acc.scopes + 1}, &count(scope, day, &1, &2))
     else
       _unavailable -> acc
     end
+  end
+
+  defp count(scope, day, result, acc) do
+    if result == :conflict, do: alarm(scope, day)
+    Map.update!(acc, result, &(&1 + 1))
   end
 
   defp write(day) do

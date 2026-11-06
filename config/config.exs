@@ -55,7 +55,8 @@ config :relay, Oban,
     {Oban.Plugins.Cron,
      crontab: [
        {"*/5 * * * *", Relay.Agents.WaitpointSweep},
-       {"17 * * * *", Relay.Devices.Sweep}
+       {"17 * * * *", Relay.Devices.Sweep},
+       {"20 0 * * *", Relay.Delivery.UsageDay}
      ]}
   ]
 

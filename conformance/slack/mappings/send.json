@@ -1,0 +1,15 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/api/chat.postMessage"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "ok": true,
+      "channel": "D0000000001",
+      "ts": "1700000000.000100"
+    }
+  }
+}

@@ -60,6 +60,13 @@ defmodule RelayWeb.Router do
     post "/:token", LinkController, :create
   end
 
+  # CH-62
+  # WH-49
+  scope "/inbound/v1", RelayWeb do
+    post "/:channel/:tenant/:environment/:identity", InboundController, :create,
+      private: %{relay_operation: "receiveMessagingInbound"}
+  end
+
   # E-81
   # E-89
   scope "/.well-known", RelayWeb.Api do
@@ -146,6 +153,30 @@ defmodule RelayWeb.Router do
 
     delete "/devices/by-token", DeviceController, :delete_by_token,
       private: %{relay_operation: "deleteDeviceByToken"}
+
+    put "/subscribers/:subscriber_id/messaging_targets/:channel", MessagingController, :put,
+      private: %{relay_operation: "replaceSubscriberMessagingTarget"}
+
+    delete "/subscribers/:subscriber_id/messaging_targets/:channel", MessagingController, :delete,
+      private: %{relay_operation: "deleteSubscriberMessagingTarget"}
+
+    post "/messaging_installations", MessagingController, :install,
+      private: %{relay_operation: "createMessagingInstallation"}
+
+    get "/messaging_installations/callback", MessagingController, :callback,
+      private: %{relay_operation: "completeMessagingInstallation"}
+
+    get "/channel_adapters", MessagingController, :adapters,
+      private: %{relay_operation: "listChannelAdapters"}
+
+    get "/whatsapp/templates", WhatsappTemplateController, :index,
+      private: %{relay_operation: "listWhatsappTemplates"}
+
+    post "/whatsapp/templates", WhatsappTemplateController, :create,
+      private: %{relay_operation: "registerWhatsappTemplate"}
+
+    get "/whatsapp/templates/:whatsapp_template_id", WhatsappTemplateController, :show,
+      private: %{relay_operation: "getWhatsappTemplate"}
 
     get "/categories", CategoryController, :index, private: %{relay_operation: "listCategories"}
 
@@ -331,6 +362,15 @@ defmodule RelayWeb.Router do
     post "/virtual_clock/advance", VirtualClockController, :advance,
       private: %{relay_operation: "advanceVirtualClock"}
 
+    get "/test/simulated-results", SimulatedResultController, :index,
+      private: %{relay_operation: "listSimulatedResults"}
+
+    get "/inbound/whatsapp/:provider_account_id", WhatsappWebhookController, :verify,
+      private: %{relay_operation: "verifyWhatsappWebhook"}
+
+    post "/inbound/whatsapp/:provider_account_id", WhatsappWebhookController, :create,
+      private: %{relay_operation: "receiveWhatsappWebhook"}
+
     post "/access/events", AccessEventController, :create,
       private: %{relay_operation: "receiveAccessEvent"}
 
@@ -405,6 +445,12 @@ defmodule RelayWeb.Router do
 
     post "/tenants/:tenant_id/resume", PlatformController, :resume,
       private: %{relay_operation: "resumeTenant"}
+
+    get "/tenants/:tenant_id/critical_interruption", PlatformController, :critical,
+      private: %{relay_operation: "getCriticalInterruption"}
+
+    put "/tenants/:tenant_id/critical_interruption", PlatformController, :set_critical,
+      private: %{relay_operation: "setCriticalInterruption"}
 
     get "/queue_panel", PlatformController, :queue_panel,
       private: %{relay_operation: "getQueuePanel"}

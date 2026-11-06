@@ -2,7 +2,7 @@ defmodule Relay.Templates.CellRender do
   @moduledoc """
   Renders one cell of a template definition (one channel in one locale) with given data, the way the publication gate and the preview do (TP-32, TP-38, API-60).
 
-  A cell is the JSON object of a channel variant (`SmsCell`, `PushCell`, `EmailCell`, `WhatsappCell`, `InboxCell`, `WebhookCell` of the contract). `fields/2` lists its Liquid sources by JSON Pointer; `parse/3` parses them with the template's `allow_raw` flag and, for an MJML email, the HTML compiled at publication in place of the MJML source (TP-8). `cell/4` renders every field in its own bounded process with a context built for the channel and the field's part (`Relay.Templates.Sandbox`), then assembles the channel output: the SMS plan with its encoding and segments on a planned and an unverified provider (TP-18, TP-53), the push payload (TP-20, TP-21), the email fields (TP-22), the cleaned WhatsApp parameters (TP-23), the structured inbox payload and the webhook JSON body. A missing required variable, a time-out or an oversized output is a failure, never a cut output (TP-41).
+  A cell is the JSON object of a channel variant (`SmsCell`, `PushCell`, `EmailCell`, `WhatsappCell`, `InboxCell`, `WebhookCell`, `VoiceCell` of the contract). `fields/2` lists its Liquid sources by JSON Pointer; `parse/3` parses them with the template's `allow_raw` flag and, for an MJML email, the HTML compiled at publication in place of the MJML source (TP-8). `cell/4` renders every field in its own bounded process with a context built for the channel and the field's part (`Relay.Templates.Sandbox`), then assembles the channel output: the SMS plan with its encoding and segments on a planned and an unverified provider (TP-18, TP-53), the push payload (TP-20, TP-21), the email fields (TP-22), the cleaned WhatsApp parameters (TP-23), the structured inbox payload, the webhook JSON body and the voice text read in the cell's language (CH-56). A missing required variable, a time-out or an oversized output is a failure, never a cut output (TP-41).
   """
 
   alias Relay.Templates.Channel.Email
@@ -39,7 +39,8 @@ defmodule Relay.Templates.CellRender do
     "email" => :email,
     "whatsapp" => :whatsapp,
     "in_app" => :in_app,
-    "webhook" => :webhook
+    "webhook" => :webhook,
+    "voice" => :voice
   }
   @push_fields ~w(title subtitle body lock_screen_body in_app_body)
   @email_fields [
@@ -118,6 +119,7 @@ defmodule Relay.Templates.CellRender do
   end
 
   def fields(:webhook, cell), do: present([{"/body", :payload, cell["body"]}])
+  def fields(:voice, cell), do: present([{"/body", :body, cell["body"]}])
   def fields(_channel, _cell), do: []
 
   defp push_part("title"), do: :title
@@ -336,6 +338,13 @@ defmodule Relay.Templates.CellRender do
       {:error, findings} ->
         {:ok, %{content: nil, measures: measures(""), sms: nil, findings: findings}}
     end
+  end
+
+  # CH-56
+  defp assemble(:voice, _cell, rendered, opts) do
+    {text, _changes} = Sms.Content.sanitize(Map.get(rendered, "/body", ""), "body")
+    content = %{"body" => String.trim(text), "language" => Keyword.get(opts, :locale)}
+    {:ok, %{content: content, measures: measures(content["body"]), sms: nil, findings: []}}
   end
 
   defp assemble(:webhook, _cell, rendered, opts) do

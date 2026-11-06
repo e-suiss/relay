@@ -142,6 +142,7 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.tenant_suspension_activate" => ~w(effective not_due not_scheduled),
     "relay_fn.tenant_suspension_lift" => ~w(lifted cancelled not_found already_ended),
     "relay_fn.send_mode_set" => ~w(set cleared unchanged invalid_level),
+    "relay_fn.push_critical_set" => ~w(opened changed closed unchanged),
     "relay_fn.recipient_upsert" =>
       ~w(created updated unchanged exists recipient_not_found deletion_pending is_agent version_conflict tenant_inactive),
     "relay_fn.recipient_deletion_request" => ~w(requested already_requested not_found held),
@@ -229,9 +230,21 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.sender_identity_suspend" => ~w(suspended resumed unchanged not_found),
     "relay_fn.channel_identity_put" => ~w(created updated unchanged secret_not_found),
     "relay_fn.recipient_address_disable" => ~w(disabled not_found),
+    "relay_fn.sender_identity_register" => ~w(updated unchanged not_found not_sms),
+    "relay_fn.provider_account_set_traffic" => ~w(updated unchanged not_found),
     "relay_fn.device_register" =>
       ~w(created updated reassigned recipient_not_found key_not_found),
-    "relay_fn.device_disable" => ~w(disabled already_disabled reregistered not_found)
+    "relay_fn.device_disable" => ~w(disabled already_disabled reregistered not_found),
+    "relay_fn.messaging_target_put" =>
+      ~w(created replaced recipient_not_found account_not_found key_not_found),
+    "relay_fn.messaging_target_disable" => ~w(disabled not_found),
+    "relay_fn.messaging_message_put" => ~w(recorded target_not_found),
+    "relay_fn.whatsapp_template_register" =>
+      ~w(created exists content_conflict account_not_found),
+    "relay_fn.whatsapp_template_status" =>
+      ~w(changed recorded unchanged version_conflict not_found),
+    "relay_fn.whatsapp_template_category" => ~w(drifted aligned unchanged not_found),
+    "relay_fn.whatsapp_template_edit" => ~w(recorded unchanged not_found)
   }
 
   defp functions do

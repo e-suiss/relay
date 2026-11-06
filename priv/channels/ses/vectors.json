@@ -1,0 +1,1007 @@
+[
+  {
+    "name": "credential_invalid",
+    "raw": {
+      "code": "credential_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "credential_invalid"
+    }
+  },
+  {
+    "name": "configuration_invalid",
+    "raw": {
+      "code": "configuration_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "configuration_invalid"
+    }
+  },
+  {
+    "name": "sender_invalid",
+    "raw": {
+      "code": "sender_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "sender_invalid"
+    }
+  },
+  {
+    "name": "message_invalid",
+    "raw": {
+      "code": "message_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "message_invalid"
+    }
+  },
+  {
+    "name": "smtputf8_unsupported",
+    "raw": {
+      "code": "smtputf8_unsupported",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "smtputf8_unsupported"
+    }
+  },
+  {
+    "name": "http_400",
+    "raw": {
+      "code": "http_400",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "headers": {},
+      "body": {}
+    }
+  },
+  {
+    "name": "http_401",
+    "raw": {
+      "code": "http_401",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "headers": {},
+      "body": {}
+    }
+  },
+  {
+    "name": "http_403",
+    "raw": {
+      "code": "http_403",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "headers": {},
+      "body": {}
+    }
+  },
+  {
+    "name": "http_413",
+    "raw": {
+      "code": "http_413",
+      "status": 413,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 413,
+      "headers": {},
+      "body": {}
+    }
+  },
+  {
+    "name": "http_429",
+    "raw": {
+      "code": "http_429",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "headers": {},
+      "body": {}
+    }
+  },
+  {
+    "name": "http_5xx",
+    "raw": {
+      "code": "http_5xx",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "headers": {},
+      "body": {}
+    }
+  },
+  {
+    "name": "ses:MessageRejected",
+    "raw": {
+      "code": "ses:MessageRejected",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "headers": {
+        "x-amzn-errortype": "MessageRejected:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:BadRequestException",
+    "raw": {
+      "code": "ses:BadRequestException",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "headers": {
+        "x-amzn-errortype": "BadRequestException:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:MailFromDomainNotVerifiedException",
+    "raw": {
+      "code": "ses:MailFromDomainNotVerifiedException",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "headers": {
+        "x-amzn-errortype": "MailFromDomainNotVerifiedException:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:AccountSuspendedException",
+    "raw": {
+      "code": "ses:AccountSuspendedException",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "headers": {
+        "x-amzn-errortype": "AccountSuspendedException:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:SendingPausedException",
+    "raw": {
+      "code": "ses:SendingPausedException",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "headers": {
+        "x-amzn-errortype": "SendingPausedException:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:NotFoundException",
+    "raw": {
+      "code": "ses:NotFoundException",
+      "status": 404,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 404,
+      "headers": {
+        "x-amzn-errortype": "NotFoundException:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:LimitExceededException",
+    "raw": {
+      "code": "ses:LimitExceededException",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "headers": {
+        "x-amzn-errortype": "LimitExceededException:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:TooManyRequestsException",
+    "raw": {
+      "code": "ses:TooManyRequestsException",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "headers": {
+        "x-amzn-errortype": "TooManyRequestsException:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:ThrottlingException",
+    "raw": {
+      "code": "ses:ThrottlingException",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "headers": {
+        "x-amzn-errortype": "ThrottlingException:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:AccessDeniedException",
+    "raw": {
+      "code": "ses:AccessDeniedException",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "headers": {
+        "x-amzn-errortype": "AccessDeniedException:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:UnrecognizedClientException",
+    "raw": {
+      "code": "ses:UnrecognizedClientException",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "headers": {
+        "x-amzn-errortype": "UnrecognizedClientException:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:InvalidSignatureException",
+    "raw": {
+      "code": "ses:InvalidSignatureException",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "headers": {
+        "x-amzn-errortype": "InvalidSignatureException:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:ExpiredTokenException",
+    "raw": {
+      "code": "ses:ExpiredTokenException",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "headers": {
+        "x-amzn-errortype": "ExpiredTokenException:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:InternalFailure",
+    "raw": {
+      "code": "ses:InternalFailure",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "headers": {
+        "x-amzn-errortype": "InternalFailure:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "ses:ServiceUnavailable",
+    "raw": {
+      "code": "ses:ServiceUnavailable",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "headers": {
+        "x-amzn-errortype": "ServiceUnavailable:http://internal.amazon.com/coral/com.amazonaws.ses/"
+      },
+      "body": {
+        "message": "refused"
+      }
+    }
+  },
+  {
+    "name": "event:Permanent/General",
+    "raw": {
+      "code": "event:Permanent/General",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "bounced",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "eventType": "Bounce",
+        "mail": {
+          "messageId": "ses-1",
+          "tags": {
+            "relay_delivery_id": [
+              "019a5b2e-0000-7000-8000-000000000001"
+            ]
+          }
+        },
+        "bounce": {
+          "bounceType": "Permanent",
+          "bounceSubType": "General",
+          "timestamp": "2026-11-05T10:00:00.000Z",
+          "bouncedRecipients": [
+            {
+              "emailAddress": "reader@example.com"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Permanent/NoEmail",
+    "raw": {
+      "code": "event:Permanent/NoEmail",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "bounced",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "eventType": "Bounce",
+        "mail": {
+          "messageId": "ses-1",
+          "tags": {
+            "relay_delivery_id": [
+              "019a5b2e-0000-7000-8000-000000000001"
+            ]
+          }
+        },
+        "bounce": {
+          "bounceType": "Permanent",
+          "bounceSubType": "NoEmail",
+          "timestamp": "2026-11-05T10:00:00.000Z",
+          "bouncedRecipients": [
+            {
+              "emailAddress": "reader@example.com"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Permanent/Suppressed",
+    "raw": {
+      "code": "event:Permanent/Suppressed",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "bounced",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "eventType": "Bounce",
+        "mail": {
+          "messageId": "ses-1",
+          "tags": {
+            "relay_delivery_id": [
+              "019a5b2e-0000-7000-8000-000000000001"
+            ]
+          }
+        },
+        "bounce": {
+          "bounceType": "Permanent",
+          "bounceSubType": "Suppressed",
+          "timestamp": "2026-11-05T10:00:00.000Z",
+          "bouncedRecipients": [
+            {
+              "emailAddress": "reader@example.com"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Permanent/OnAccountSuppressionList",
+    "raw": {
+      "code": "event:Permanent/OnAccountSuppressionList",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "eventType": "Bounce",
+        "mail": {
+          "messageId": "ses-1",
+          "tags": {
+            "relay_delivery_id": [
+              "019a5b2e-0000-7000-8000-000000000001"
+            ]
+          }
+        },
+        "bounce": {
+          "bounceType": "Permanent",
+          "bounceSubType": "OnAccountSuppressionList",
+          "timestamp": "2026-11-05T10:00:00.000Z",
+          "bouncedRecipients": [
+            {
+              "emailAddress": "reader@example.com"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Permanent/UnsubscribedRecipient",
+    "raw": {
+      "code": "event:Permanent/UnsubscribedRecipient",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "eventType": "Bounce",
+        "mail": {
+          "messageId": "ses-1",
+          "tags": {
+            "relay_delivery_id": [
+              "019a5b2e-0000-7000-8000-000000000001"
+            ]
+          }
+        },
+        "bounce": {
+          "bounceType": "Permanent",
+          "bounceSubType": "UnsubscribedRecipient",
+          "timestamp": "2026-11-05T10:00:00.000Z",
+          "bouncedRecipients": [
+            {
+              "emailAddress": "reader@example.com"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Transient/General",
+    "raw": {
+      "code": "event:Transient/General",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "eventType": "Bounce",
+        "mail": {
+          "messageId": "ses-1",
+          "tags": {
+            "relay_delivery_id": [
+              "019a5b2e-0000-7000-8000-000000000001"
+            ]
+          }
+        },
+        "bounce": {
+          "bounceType": "Transient",
+          "bounceSubType": "General",
+          "timestamp": "2026-11-05T10:00:00.000Z",
+          "bouncedRecipients": [
+            {
+              "emailAddress": "reader@example.com"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Transient/MailboxFull",
+    "raw": {
+      "code": "event:Transient/MailboxFull",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "eventType": "Bounce",
+        "mail": {
+          "messageId": "ses-1",
+          "tags": {
+            "relay_delivery_id": [
+              "019a5b2e-0000-7000-8000-000000000001"
+            ]
+          }
+        },
+        "bounce": {
+          "bounceType": "Transient",
+          "bounceSubType": "MailboxFull",
+          "timestamp": "2026-11-05T10:00:00.000Z",
+          "bouncedRecipients": [
+            {
+              "emailAddress": "reader@example.com"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Transient/MessageTooLarge",
+    "raw": {
+      "code": "event:Transient/MessageTooLarge",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "eventType": "Bounce",
+        "mail": {
+          "messageId": "ses-1",
+          "tags": {
+            "relay_delivery_id": [
+              "019a5b2e-0000-7000-8000-000000000001"
+            ]
+          }
+        },
+        "bounce": {
+          "bounceType": "Transient",
+          "bounceSubType": "MessageTooLarge",
+          "timestamp": "2026-11-05T10:00:00.000Z",
+          "bouncedRecipients": [
+            {
+              "emailAddress": "reader@example.com"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Transient/ContentRejected",
+    "raw": {
+      "code": "event:Transient/ContentRejected",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "eventType": "Bounce",
+        "mail": {
+          "messageId": "ses-1",
+          "tags": {
+            "relay_delivery_id": [
+              "019a5b2e-0000-7000-8000-000000000001"
+            ]
+          }
+        },
+        "bounce": {
+          "bounceType": "Transient",
+          "bounceSubType": "ContentRejected",
+          "timestamp": "2026-11-05T10:00:00.000Z",
+          "bouncedRecipients": [
+            {
+              "emailAddress": "reader@example.com"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Transient/AttachmentRejected",
+    "raw": {
+      "code": "event:Transient/AttachmentRejected",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "eventType": "Bounce",
+        "mail": {
+          "messageId": "ses-1",
+          "tags": {
+            "relay_delivery_id": [
+              "019a5b2e-0000-7000-8000-000000000001"
+            ]
+          }
+        },
+        "bounce": {
+          "bounceType": "Transient",
+          "bounceSubType": "AttachmentRejected",
+          "timestamp": "2026-11-05T10:00:00.000Z",
+          "bouncedRecipients": [
+            {
+              "emailAddress": "reader@example.com"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Undetermined/Undetermined",
+    "raw": {
+      "code": "event:Undetermined/Undetermined",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "eventType": "Bounce",
+        "mail": {
+          "messageId": "ses-1",
+          "tags": {
+            "relay_delivery_id": [
+              "019a5b2e-0000-7000-8000-000000000001"
+            ]
+          }
+        },
+        "bounce": {
+          "bounceType": "Undetermined",
+          "bounceSubType": "Undetermined",
+          "timestamp": "2026-11-05T10:00:00.000Z",
+          "bouncedRecipients": [
+            {
+              "emailAddress": "reader@example.com"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Complaint",
+    "raw": {
+      "code": "event:Complaint",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "complained",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "eventType": "Complaint",
+        "mail": {
+          "messageId": "ses-1"
+        },
+        "complaint": {
+          "complainedRecipients": [
+            {
+              "emailAddress": "reader@example.com"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "event:Reject",
+    "raw": {
+      "code": "event:Reject",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "eventType": "Reject",
+        "mail": {
+          "messageId": "ses-1"
+        },
+        "reject": {
+          "reason": "Bad content"
+        }
+      }
+    }
+  }
+]

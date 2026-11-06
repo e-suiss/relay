@@ -92,4 +92,33 @@ defmodule Relay.Channels.RoutingTest do
       assert {[^a, ^b], []} = route([a, b], %{draw: 4})
     end
   end
+
+  describe "API-23 override levels" do
+    test "API-23: the sender address lies on a verified domain or is a verified address" do
+      senders = [
+        %{"kind" => "email_domain", "value" => "Mail.Example.com"},
+        %{"kind" => "email_address", "value" => "ops@other.example"}
+      ]
+
+      assert Routing.from_allowed?(senders, "news@mail.example.com")
+      assert Routing.from_allowed?(senders, "OPS@other.example")
+      refute Routing.from_allowed?(senders, "news@sub.mail.example.com")
+      refute Routing.from_allowed?(senders, "billing@other.example")
+      refute Routing.from_allowed?([], "news@mail.example.com")
+    end
+
+    test "API-23: the request wins over the step, the workflow and the tenant default" do
+      levels = [
+        %{"sms" => %{"provider" => "netgsm"}},
+        %{"email" => %{"provider" => "ses"}},
+        %{"email" => %{"provider" => "smtp"}, "sms" => %{"provider" => "twilio"}},
+        %{"push" => %{"provider" => "fcm"}}
+      ]
+
+      assert Routing.requested_provider(levels, "sms") == "netgsm"
+      assert Routing.requested_provider(levels, "email") == "ses"
+      assert Routing.requested_provider(levels, "push") == "fcm"
+      assert Routing.requested_provider([nil, %{}, nil, %{}], "email") == nil
+    end
+  end
 end

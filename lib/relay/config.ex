@@ -30,6 +30,7 @@ defmodule Relay.Config do
     Relay.Platform.MaintRepo,
     Relay.Platform.Leadership,
     Relay.Delivery,
+    Relay.Channels,
     Relay.Audit,
     Relay.NetworkGuard,
     Relay.Config.SecretFiles,
@@ -45,6 +46,7 @@ defmodule Relay.Config do
     Relay.Connectors,
     Relay.Templates.Sandbox,
     Relay.Templates.Mjml,
+    Relay.Channels.Email.Esp,
     Oban
   ]
   @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.Platform.MaintRepo]

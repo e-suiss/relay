@@ -11,10 +11,14 @@ defmodule Relay.Channels do
   alias Relay.Channels.Adapter
   alias Relay.Channels.Ambiguity
   alias Relay.Channels.Breaker
+  alias Relay.Channels.Email.Bounce
+  alias Relay.Channels.Email.Event
+  alias Relay.Channels.Email.Intake
   alias Relay.Channels.Inbound
   alias Relay.Channels.Limits
   alias Relay.Channels.Outcome
   alias Relay.Channels.Pricing
+  alias Relay.Channels.Push.CriticalGrant
   alias Relay.Channels.Push.Policy
   alias Relay.Channels.Push.Priority
   alias Relay.Channels.Push.Tokens
@@ -22,9 +26,12 @@ defmodule Relay.Channels do
   alias Relay.Channels.Request
   alias Relay.Channels.Routing
   alias Relay.Channels.Simulated
+  alias Relay.Channels.Sms
+  alias Relay.Channels.SmsSender
   alias Relay.Channels.Store
   alias Relay.Channels.Throttle
   alias Relay.Channels.Timeouts
+  alias Relay.Channels.Whatsapp
 
   require Logger
 
@@ -139,6 +146,16 @@ defmodule Relay.Channels do
   defdelegate normalize(declarations, provider, channel, result), to: Outcome
 
   # CH-7
+  # CH-8
+  # DS-10
+  @doc "Normalizes a delivery report an adapter read; see `Relay.Channels.Outcome.report/4`."
+  @spec normalize_report(ChannelDeclarations.t(), String.t(), String.t(), Adapter.report()) ::
+          {:ok, Outcome.t() | nil} | {:error, :unknown_event}
+  defdelegate normalize_report(declarations, provider, channel, report),
+    to: Outcome,
+    as: :report
+
+  # CH-7
   @doc "The actions of a failure class; see `Relay.Channels.Outcome.actions/1`."
   @spec class_actions(String.t()) :: Outcome.actions()
   defdelegate class_actions(class), to: Outcome, as: :actions
@@ -232,10 +249,69 @@ defmodule Relay.Channels do
   defdelegate verify_hmac(key, body, headers, opts), to: Inbound, as: :hmac
 
   # T-40
+  @doc "Verifies Twilio's callback signature; see `Relay.Channels.Inbound.hmac_sha1_url/4`."
+  @spec verify_twilio(Inbound.key(), String.t(), binary(), Inbound.headers()) ::
+          :ok | {:error, Inbound.signature_reason()}
+  defdelegate verify_twilio(key, url, body, headers), to: Inbound, as: :hmac_sha1_url
+
+  # CH-3
+  @doc "Checks a token carried in a callback URL; see `Relay.Channels.Inbound.url_token/2`."
+  @spec verify_url_token(Inbound.key(), String.t() | nil) ::
+          :ok | {:error, Inbound.signature_reason()}
+  defdelegate verify_url_token(key, given), to: Inbound, as: :url_token
+
+  # T-40
   @doc "Verifies an Ed25519 signature of a raw body; see `Relay.Channels.Inbound.ed25519/4`."
   @spec verify_ed25519(Inbound.key(), binary(), Inbound.headers(), keyword()) ::
           :ok | {:error, Inbound.reason()}
   defdelegate verify_ed25519(key, body, headers, opts), to: Inbound, as: :ed25519
+
+  # CH-39
+  # CH-40
+  # CH-8
+  @doc "Classifies a provider e-mail event against the declarations and the content of the `email_bounce_codes` data set, and plans what it leads to; see `Relay.Channels.Email.Event.classify/3` and `Relay.Channels.Email.Intake.plan/2`."
+  @spec email_event_plan(ChannelDeclarations.t(), Event.t(), map()) ::
+          {Bounce.t() | nil, [Intake.action()]}
+  def email_event_plan(%ChannelDeclarations{} = declarations, event, table) do
+    result = Event.classify(event, declarations, table)
+    {result, Intake.plan(event, result)}
+  end
+
+  # CH-40
+  @doc "Decides a soft bounce of an address; see `Relay.Channels.Email.Intake.soft_bounce/3`."
+  @spec email_soft_bounce([integer()], integer(), map()) ::
+          :count | {:suppress, integer()} | :no_duration
+  defdelegate email_soft_bounce(history, now_ms, params),
+    to: Intake,
+    as: :soft_bounce
+
+  # CH-47
+  @doc "Parses a verified e-mail webhook body of `provider` (`postmark`, `sendgrid`, `mailgun` or an SES message) into its events."
+  @spec email_events(String.t(), binary() | map() | list()) :: [Event.t()]
+  def email_events("postmark", body), do: Relay.Channels.Postmark.events(body)
+  def email_events("sendgrid", body), do: Relay.Channels.Sendgrid.events(body)
+  def email_events("mailgun", body), do: Relay.Channels.Mailgun.events(body)
+  def email_events("ses", body), do: Relay.Channels.Ses.events(body, nil)
+  def email_events(_provider, _body), do: []
+
+  # T-40
+  @doc "Verifies an ECDSA P-256 signature of a raw body; see `Relay.Channels.Inbound.ecdsa/4`."
+  @spec verify_ecdsa(Inbound.key(), binary(), Inbound.headers(), keyword()) ::
+          :ok | {:error, Inbound.reason()}
+  defdelegate verify_ecdsa(key, body, headers, opts), to: Inbound, as: :ecdsa
+
+  # T-40
+  # CH-62
+  @doc "Verifies Slack's `v0` request signature of a raw body; see `Relay.Channels.Inbound.slack/4`."
+  @spec verify_slack(Inbound.key(), binary(), Inbound.headers(), DateTime.t()) ::
+          :ok | {:error, Inbound.reason()}
+  defdelegate verify_slack(key, body, headers, now), to: Inbound, as: :slack
+
+  # CH-62
+  @doc "Checks a shared secret token in a header; see `Relay.Channels.Inbound.secret_token/3`."
+  @spec verify_secret_token(Inbound.key(), Inbound.headers(), String.t()) ::
+          :ok | {:error, Inbound.signature_reason()}
+  defdelegate verify_secret_token(key, headers, header), to: Inbound, as: :secret_token
 
   # T-40
   @doc "Verifies a JWT and returns its claims; see `Relay.Channels.Inbound.jwt/3`."
@@ -285,6 +361,112 @@ defmodule Relay.Channels do
     end)
   end
 
+  # CH-50
+  @doc "Records the SMS type and registration of an SMS sender identity after its rules hold (`Relay.Channels.SmsSender.validate/1`): `{:error, rule_id}` names the broken rule. The registration keeps `iys_brand_code`, `us_brand_id`, `us_campaign_id`, `us_use_case`, `tfv_state` and `brn`."
+  @spec register_sms_sender(Relay.Scope.t(), Relay.Id.t(), map(), digest(), Relay.Actor.t()) ::
+          result(atom()) | {:error, {:invalid, String.t()}}
+  def register_sms_sender(scope, id, %{} = registration, digest, actor) do
+    type = registration["sender_type"]
+    fields = Map.take(registration, SmsSender.registration_fields())
+
+    result =
+      Store.in_scope(scope, fn _status ->
+        with {:ok, row} <- Store.sender(id),
+             :ok <- SmsSender.validate(SmsSender.identity(row, type, fields)) do
+          Store.sender_identity_register(id, type, fields, digest, actor)
+        end
+      end)
+
+    case result do
+      {:ok, {:error, rule_id}} when is_binary(rule_id) -> {:error, {:invalid, rule_id}}
+      {:ok, {:error, :not_found}} -> {:ok, :not_found}
+      other -> other
+    end
+  end
+
+  # CH-53
+  @doc "Sets the traffic of a provider account, `security` or `standard`; an OTP never shares an account or a credit pool with a campaign."
+  @spec set_account_traffic(
+          Relay.Scope.t(),
+          Relay.Id.t(),
+          String.t(),
+          digest(),
+          Relay.Actor.t()
+        ) :: result(atom())
+  def set_account_traffic(scope, id, traffic, digest, actor) do
+    Store.in_scope(scope, fn _status ->
+      Store.account_set_traffic(id, traffic, digest, actor)
+    end)
+  end
+
+  # CH-50
+  # CH-51
+  # CH-53
+  # CH-48
+  @doc """
+  The provider-dependent checks of an SMS or voice send on the chosen account, before the attempt opens: the account's approved sender identity; on SMS its rules for the message class (`Relay.Channels.SmsSender.check/2`), the TR route (`Relay.Channels.Sms.route/3`), the explicit encoding with its segments, measured with `measure` (`Relay.Channels.Sms.encoding/4`) and the provider product (`Relay.Channels.Sms.product/2`). Returns the request fields to add, or `{:skip, rule_id}`; other channels pass unchanged.
+  """
+  @spec sms_preflight(
+          Relay.Scope.t(),
+          ChannelDeclarations.t(),
+          map(),
+          map(),
+          String.t(),
+          map() | binary(),
+          Sms.measurer()
+        ) :: {:ok, map()} | {:skip, String.t()}
+  def sms_preflight(scope, declarations, account, delivery, number, content, measure) do
+    if delivery["channel"] in ["sms", "voice"],
+      do: preflight(scope, declarations, account, delivery, {number, content, measure}),
+      else: {:ok, %{}}
+  end
+
+  defp preflight(scope, declarations, account, delivery, {number, content, measure}) do
+    with {:ok, sender} <- account_sender(scope, account),
+         {:ok, declaration} <- declaration(declarations, account["provider"]) do
+      class = delivery["message_class"]
+
+      if delivery["channel"] == "sms",
+        do: Sms.preflight(declaration, sender, class, number, content, measure),
+        else: {:ok, %{sender: sender}}
+    end
+  end
+
+  defp account_sender(scope, account) do
+    case Store.in_scope(scope, fn _status -> Store.senders([account["id"]]) end) do
+      {:ok, [sender | _]} -> {:ok, sender}
+      _none -> {:skip, "channel.sender_unapproved"}
+    end
+  end
+
+  defp declaration(declarations, provider) do
+    case ChannelDeclarations.declaration(declarations, provider) do
+      {:ok, declaration} -> {:ok, declaration}
+      {:error, :unknown_provider} -> {:skip, "channel.sms_encoding_unsupported"}
+    end
+  end
+
+  # CH-53
+  @doc "Keeps the provider accounts of a message class's traffic; see `Relay.Channels.Sms.traffic/2`."
+  @spec sms_traffic([map()], String.t() | nil) :: [map()]
+  def sms_traffic(accounts, message_class), do: Sms.traffic(accounts, message_class)
+
+  # CH-51
+  @doc "Keeps the provider accounts that may send to `number`: for a `+90` number only BTK-authorized providers; see `Relay.Channels.Sms.btk_authorized?/1`."
+  @spec tr_route([map()], String.t(), ChannelDeclarations.t()) :: [map()]
+  def tr_route(accounts, number, %ChannelDeclarations{} = declarations) do
+    if Sms.turkish_number?(number),
+      do: Enum.filter(accounts, &btk_route?(declarations, &1)),
+      else: accounts
+  end
+
+  defp btk_route?(declarations, account) do
+    case ChannelDeclarations.declaration(declarations, account["provider"]) do
+      {:ok, declaration} -> Sms.btk_authorized?(declaration)
+      {:error, :unknown_provider} -> false
+    end
+  end
+
   # C-45
   @doc "Records the health of a provider account."
   @spec set_account_health(Relay.Scope.t(), Relay.Id.t(), String.t()) :: result(atom())
@@ -329,12 +511,60 @@ defmodule Relay.Channels do
           result({[Routing.account()], [Routing.excluded()]})
   def routes(scope, channel, %ChannelDeclarations{} = declarations, policy) do
     Store.in_scope(scope, fn _status ->
-      accounts = Store.accounts(channel)
-      ids = Enum.map(accounts, & &1["id"])
-      senders = Enum.group_by(Store.senders(ids), & &1["provider_account_id"])
-      activated? = &match?({:ok, _adapter}, Registry.activated(declarations, &1))
-      Routing.route(accounts, senders, activated?, declarations, policy)
+      {route, _senders} = route_here(channel, declarations, policy)
+      route
     end)
+  end
+
+  # API-23
+  # CH-14
+  # CH-6
+  @doc "Checks the channel overrides of a send request against the verified routes of the scope: `overrides.<channel>.provider` names a provider with a verified, routable account of that channel, and `overrides.email.from` lies on a verified sender domain or address of a routable email account. Returns the first failing channel and field."
+  @spec check_overrides(
+          Relay.Scope.t(),
+          [{String.t(), String.t()}],
+          String.t() | nil,
+          ChannelDeclarations.t(),
+          Routing.policy()
+        ) :: result(:ok | {:not_configured, String.t(), :provider | :from})
+  def check_overrides(scope, providers, from, %ChannelDeclarations{} = declarations, policy) do
+    Store.in_scope(scope, fn _status ->
+      missing =
+        Enum.find(providers, fn {channel, provider} ->
+          {{usable, _excluded}, _senders} =
+            route_here(channel, declarations, Map.put(policy, :provider, provider))
+
+          not Routing.override_allowed?(usable, provider)
+        end)
+
+      case {missing, from} do
+        {{channel, _provider}, _from} -> {:not_configured, channel, :provider}
+        {nil, nil} -> :ok
+        {nil, from} -> from_check(from, declarations, policy)
+      end
+    end)
+  end
+
+  defp from_check(from, declarations, policy) do
+    {{usable, _excluded}, senders} = route_here("email", declarations, policy)
+
+    ids = MapSet.new(usable, & &1["id"])
+    own = Enum.filter(senders, &MapSet.member?(ids, &1["provider_account_id"]))
+
+    if Routing.from_allowed?(own, from), do: :ok, else: {:not_configured, "email", :from}
+  end
+
+  # API-23
+  @doc "The provider a step is narrowed to; see `Relay.Channels.Routing.requested_provider/2`."
+  @spec requested_provider([map() | nil], String.t()) :: String.t() | nil
+  defdelegate requested_provider(levels, channel), to: Routing
+
+  defp route_here(channel, declarations, policy) do
+    accounts = Store.accounts(channel)
+    senders = Store.senders(Enum.map(accounts, & &1["id"]))
+    grouped = Enum.group_by(senders, & &1["provider_account_id"])
+    activated? = &match?({:ok, _adapter}, Registry.activated(declarations, &1))
+    {Routing.route(accounts, grouped, activated?, declarations, policy), senders}
   end
 
   # CH-11
@@ -365,6 +595,20 @@ defmodule Relay.Channels do
     Store.in_scope(scope, fn _status -> Store.unknown_code(provider, channel, raw_code) end)
   end
 
+  # CH-66
+  @doc """
+  Asks Access for the recipient's Grant of critical interruption to a sender (`Relay.Channels.Push.CriticalGrant.decide/2`): `:permit` only on an explicit permit, otherwise `:deny` or `:unavailable`, and the caller delivers at the class ceiling with `critical_not_granted`. The implementation is `config :relay, Relay.Channels, critical_grant: module`, `Relay.Channels.Push.AccessGrant` by default.
+  """
+  @spec critical_grant(CriticalGrant.query()) :: CriticalGrant.decision()
+  def critical_grant(%{} = query) do
+    module =
+      :relay
+      |> Application.get_env(__MODULE__, [])
+      |> Keyword.get(:critical_grant, Relay.Channels.Push.AccessGrant)
+
+    CriticalGrant.decide(module, query)
+  end
+
   # CH-2
   @doc "Builds the request of one provider call; see `Relay.Channels.Request`."
   @spec request(map()) :: Request.t()
@@ -384,4 +628,241 @@ defmodule Relay.Channels do
       raw_code: raw_code
     }
   end
+
+  # CH-60
+  # TN-13 (4)
+  @doc "The active WhatsApp Cloud API provider account of an inbound webhook's path and the scope it belongs to; `:not_found` for an unknown, other or disabled account or an inactive tenant."
+  @spec whatsapp_inbound_account(Relay.Id.t()) :: {:ok, Relay.Scope.t(), map()} | :not_found
+  def whatsapp_inbound_account(id) do
+    case Store.account_resolve(id) do
+      %{"provider" => "whatsapp_cloud", "channel" => "whatsapp", "state" => "active"} = row ->
+        inbound_account(id, row)
+
+      _other ->
+        :not_found
+    end
+  end
+
+  defp inbound_account(id, %{"tenant_status" => "active"} = row) do
+    case Relay.Environment.cast(row["environment"]) do
+      {:ok, environment} ->
+        scope = Relay.Scope.new!(row["tenant_id"], environment)
+        {:ok, scope, %{"id" => id, "provider" => row["provider"], "settings" => row["settings"]}}
+
+      _invalid ->
+        :not_found
+    end
+  end
+
+  defp inbound_account(_id, _row), do: :not_found
+
+  # CH-60
+  # T-40
+  @doc "Verifies a WhatsApp Cloud API webhook on its raw body with the app secret and parses it into items; see `Relay.Channels.Whatsapp.Webhook`."
+  @spec whatsapp_webhook(Relay.Redacted.t(), binary(), Inbound.headers()) ::
+          {:ok, [Whatsapp.Webhook.item()]}
+          | {:error, :missing_header | :bad_signature | :invalid_body}
+  def whatsapp_webhook(app_secret, body, headers) do
+    with :ok <- Whatsapp.Webhook.verify(app_secret, body, headers),
+         do: Whatsapp.Webhook.parse(body)
+  end
+
+  @doc "Answers Meta's webhook subscription check; see `Relay.Channels.Whatsapp.Webhook.challenge/2`."
+  @spec whatsapp_challenge(map(), Relay.Redacted.t()) :: {:ok, String.t()} | :error
+  defdelegate whatsapp_challenge(params, verify_token), to: Whatsapp.Webhook, as: :challenge
+
+  # CH-58
+  @doc "Whether the customer service window of a recipient is open at `now`, from the time of the recipient's last inbound message; see `Relay.Channels.Whatsapp.Window`."
+  @spec whatsapp_window_open?(DateTime.t() | nil, DateTime.t()) :: boolean()
+  def whatsapp_window_open?(nil, _now), do: false
+
+  def whatsapp_window_open?(%DateTime{} = last, now),
+    do: Whatsapp.Window.open?(%{last_inbound_at: last}, now)
+
+  @doc "The length of the customer service window in milliseconds."
+  @spec whatsapp_window_ms() :: pos_integer()
+  defdelegate whatsapp_window_ms(), to: Whatsapp.Window, as: :window_ms
+
+  # CH-58
+  @doc "Chooses the message kind of a WhatsApp content in an open or closed window and returns the content with its `kind`; see `Relay.Channels.Whatsapp.Window.choose/2`."
+  @spec whatsapp_choose(boolean(), map()) ::
+          {:ok, map(), Whatsapp.Message.kind()} | {:error, :window_closed | :no_content}
+  def whatsapp_choose(open?, content) when is_map(content) do
+    with {:ok, kind} <- Whatsapp.Window.choose(open?, Whatsapp.Message.kinds(content)),
+         do: {:ok, Map.put(content, "kind", Atom.to_string(kind)), kind}
+  end
+
+  # CH-57
+  # TP-23
+  @doc "Whether the template a WhatsApp content names may be sent on a provider account: `:ok` only for a registered, approved template; otherwise the template's state or `:not_registered`."
+  @spec whatsapp_template_sendable(Relay.Scope.t(), Relay.Id.t(), map()) ::
+          :ok | {:error, String.t() | :not_registered | :invalid_content} | {:error, term()}
+  def whatsapp_template_sendable(scope, account_id, content) when is_map(content) do
+    with {:ok, language} <- Whatsapp.Message.language(content["language"]),
+         {:ok, row} <-
+           Whatsapp.Store.in_scope(scope, fn _status ->
+             Whatsapp.Store.find(account_id, content["template_name"], language)
+           end) do
+      case row do
+        nil -> {:error, :not_registered}
+        %{"status" => status} -> sendable(status)
+      end
+    end
+  end
+
+  defp sendable(status) do
+    if Whatsapp.Template.sendable?(status), do: :ok, else: {:error, status}
+  end
+
+  # CH-57
+  # TP-23
+  @doc "The row a WhatsApp template is registered with: its Meta name and language, its Relay class mapped to its fixed category, its components and their digest."
+  @spec whatsapp_template_row(map()) :: {:ok, map()} | {:error, :unknown_class | :invalid_content}
+  def whatsapp_template_row(attrs) do
+    with {:ok, category} <- Whatsapp.Template.category(attrs.message_class),
+         {:ok, language} <- Whatsapp.Message.language(attrs.language) do
+      {:ok,
+       Map.merge(attrs, %{
+         id: Relay.Id.generate(),
+         language: language,
+         category: category,
+         content_digest: Whatsapp.Template.digest(attrs.components)
+       })}
+    end
+  end
+
+  # CH-57
+  @doc "Registers a WhatsApp template row inside the caller's scoped transaction; it starts `pending_approval`. The same name and language with other content is `:content_conflict`."
+  @spec insert_whatsapp_template(map()) ::
+          {:created | :exists | :content_conflict | :account_not_found, Relay.Id.t() | nil}
+  defdelegate insert_whatsapp_template(row), to: Whatsapp.Store, as: :register
+
+  @doc "Reads a WhatsApp template inside the caller's scoped transaction, or `nil`."
+  @spec whatsapp_template(Relay.Id.t()) :: map() | nil
+  defdelegate whatsapp_template(id), to: Whatsapp.Store, as: :get
+
+  # API-56
+  @doc "Lists WhatsApp templates newest first from a decoded cursor in their own scoped transaction; at most `limit + 1` rows come back."
+  @spec whatsapp_templates(Relay.Scope.t(), map() | nil, pos_integer()) :: result([map()])
+  def whatsapp_templates(scope, cursor, limit),
+    do: Whatsapp.Store.in_scope(scope, fn _status -> Whatsapp.Store.list(cursor, limit) end)
+
+  @doc "Reads a WhatsApp template in its own scoped transaction, or `nil`."
+  @spec get_whatsapp_template(Relay.Scope.t(), Relay.Id.t()) :: result(map() | nil)
+  def get_whatsapp_template(scope, id),
+    do: Whatsapp.Store.in_scope(scope, fn _status -> Whatsapp.Store.get(id) end)
+
+  # TP-23
+  @doc "The view of a WhatsApp template row: the Meta-approved text with the cell's parameters in place and whether it diverges, and the edits left under `limits`."
+  @spec whatsapp_template_view(map(), [map()], map(), DateTime.t()) :: map()
+  def whatsapp_template_view(row, parameters, limits, now) do
+    approved = row["approved_components"] || []
+
+    %{
+      preview: Whatsapp.Template.preview(approved, parameters),
+      edit_quota: Whatsapp.Template.edit_quota(row["edits"] || [], limits, now),
+      drift: Whatsapp.Template.drift(row["category"], row["meta_category"]),
+      sendable: Whatsapp.Template.sendable?(row["status"])
+    }
+  end
+
+  # TP-23
+  # CH-57
+  @doc "Applies a template change of a WhatsApp webhook to the template of a provider account in its own scoped transaction: a Meta status moves the Relay state (`Relay.Channels.Whatsapp.Template.transition/2`), a category change is recorded and a drift announced, an edit is counted."
+  @spec whatsapp_template_change(Relay.Scope.t(), Relay.Id.t(), Whatsapp.Webhook.item()) ::
+          result(atom())
+  def whatsapp_template_change(scope, account_id, {:template_status, change}) do
+    Whatsapp.Store.in_scope(scope, fn _status ->
+      case Whatsapp.Store.find(account_id, change.name || "", change.language || "") do
+        nil ->
+          :not_found
+
+        row ->
+          {result, _id, _previous} =
+            Whatsapp.Store.status(%{
+              provider_account_id: account_id,
+              name: row["name"],
+              language: row["language"],
+              meta_template_id: change.template_id,
+              meta_status: change.event,
+              status: Whatsapp.Template.transition(row["status"], change.event),
+              reason: change.reason,
+              expected_version: row["version"]
+            })
+
+          result
+      end
+    end)
+  end
+
+  def whatsapp_template_change(scope, account_id, {:template_category, change}) do
+    Whatsapp.Store.in_scope(scope, fn _status ->
+      if change.new_category in Whatsapp.Template.categories() and is_binary(change.name) and
+           is_binary(change.language) do
+        account_id
+        |> Whatsapp.Store.category(change.name, change.language, change.new_category)
+        |> elem(0)
+      else
+        :ignored
+      end
+    end)
+  end
+
+  def whatsapp_template_change(scope, account_id, {:template_edit, change}) do
+    Whatsapp.Store.in_scope(scope, fn _status ->
+      if is_binary(change.name) and is_binary(change.language) do
+        components = if change.components == [], do: nil, else: change.components
+        at = Relay.Clock.utc_now()
+
+        account_id
+        |> Whatsapp.Store.edit(change.name, change.language, components, at)
+        |> elem(0)
+      else
+        :ignored
+      end
+    end)
+  end
+
+  def whatsapp_template_change(_scope, _account_id, _item), do: {:ok, :ignored}
+
+  # CH-57
+  # CH-61
+  @doc "Appends a WhatsApp tenant event in its own scoped transaction."
+  @spec whatsapp_event(Relay.Scope.t(), String.t(), String.t(), map()) :: result(:appended)
+  def whatsapp_event(scope, type, stream_key, data) do
+    Whatsapp.Store.in_scope(scope, fn _status -> Whatsapp.Store.event(type, stream_key, data) end)
+  end
+
+  # CH-59
+  @doc "The follow-up a WhatsApp error code calls for; see `Relay.Channels.Whatsapp.Errors.follow_up/1`."
+  @spec whatsapp_follow_up(String.t() | nil) :: Whatsapp.Errors.follow_up()
+  defdelegate whatsapp_follow_up(code), to: Whatsapp.Errors, as: :follow_up
+
+  # CH-61
+  @doc "The recipient limit of a tier; see `Relay.Channels.Whatsapp.Limits.tier_limit/2`."
+  @spec whatsapp_tier_limit(map(), String.t() | nil) :: Whatsapp.Limits.tier_limit()
+  defdelegate whatsapp_tier_limit(limits, tier), to: Whatsapp.Limits, as: :tier_limit
+
+  # CH-61
+  @doc "Whether a tier count crosses the warning share; see `Relay.Channels.Whatsapp.Limits.warn?/4`."
+  @spec whatsapp_tier_warn?(
+          map(),
+          non_neg_integer(),
+          non_neg_integer(),
+          Whatsapp.Limits.tier_limit()
+        ) :: boolean()
+  defdelegate whatsapp_tier_warn?(limits, before, after_count, limit),
+    to: Whatsapp.Limits,
+    as: :warn?
+
+  # CH-18
+  # CH-61
+  @doc "The bundled content of a WhatsApp data set, for an installation without an active version."
+  @spec whatsapp_bundled(String.t()) :: map()
+  defdelegate whatsapp_bundled(name), to: Whatsapp.Bundled, as: :content
+
+  # CH-60
+  @doc "The cost of a reported WhatsApp message from its `pricing` object and a rate card; see `Relay.Channels.Whatsapp.Pricing.cost/3`."
+  @spec whatsapp_cost(map(), map() | nil, String.t() | nil) :: Whatsapp.Pricing.cost()
+  defdelegate whatsapp_cost(card, pricing, country), to: Whatsapp.Pricing, as: :cost
 end

@@ -709,6 +709,34 @@ codes:
     description: No device with this identifier or token is visible for this subscriber, tenant and environment. Resources of other tenants and environments also return 404.
     type: "{base_url}/v1/errors/device_not_found"
     choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: messaging_target_not_found
+    family: resource
+    status: 404
+    title: Messaging conversation not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The subscriber has no active conversation on this messaging channel in this tenant and environment."
+    type: "{base_url}/v1/errors/messaging_target_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: channel_identity_not_found
+    family: resource
+    status: 404
+    title: Channel identity not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No active channel identity of this channel has this identifier in this tenant and environment."
+    type: "{base_url}/v1/errors/channel_identity_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
   - code: event_type_mapping_not_found
     family: resource
     status: 404
@@ -1575,3 +1603,60 @@ codes:
     description: "The endpoint was opened for a Suiss product; the tenant may only narrow its event types within the product's default set. It cannot be archived, disabled or given its own key."
     type: "{base_url}/v1/errors/webhook_endpoint_managed"
     choice_note: "Code name and status chosen by the contract."
+  - code: messaging_install_failed
+    family: channel
+    status: 422
+    title: Messaging installation failed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The provider refused the installation: the OAuth code was not accepted or the webhook could not be registered. Start the installation again."
+    type: "{base_url}/v1/errors/messaging_install_failed"
+    choice_note: "Code name and status chosen by the contract (CH-62)."
+  - code: messaging_install_state_invalid
+    family: channel
+    status: 400
+    title: Messaging installation state is not valid
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The state of the provider's redirect does not unseal or has expired (ten minutes). Start the installation again."
+    type: "{base_url}/v1/errors/messaging_install_state_invalid"
+    choice_note: "Code name and status chosen by the contract (CH-62)."
+
+  - code: provider_account_not_found
+    family: resource
+    status: 404
+    title: Provider account not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No active provider account of this provider has this identifier, or its tenant is not active.
+    type: "{base_url}/v1/errors/provider_account_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: whatsapp_template_not_found
+    family: resource
+    status: 404
+    title: WhatsApp template not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: No WhatsApp template with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
+    type: "{base_url}/v1/errors/whatsapp_template_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."

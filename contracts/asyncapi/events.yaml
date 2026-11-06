@@ -38,6 +38,14 @@ channels:
         "$ref": "#/components/messages/webhook.device.unregistered"
       webhook.address.disabled:
         "$ref": "#/components/messages/webhook.address.disabled"
+      webhook.messaging_target.disabled:
+        "$ref": "#/components/messages/webhook.messaging_target.disabled"
+      webhook.messaging_interaction.received:
+        "$ref": "#/components/messages/webhook.messaging_interaction.received"
+      webhook.messaging_installation.completed:
+        "$ref": "#/components/messages/webhook.messaging_installation.completed"
+      webhook.channel_adapter.deprecated:
+        "$ref": "#/components/messages/webhook.channel_adapter.deprecated"
       webhook.webhook.attempt_exhausted:
         "$ref": "#/components/messages/webhook.webhook.attempt_exhausted"
       webhook.webhook_endpoint.disabled:
@@ -74,6 +82,16 @@ channels:
         "$ref": "#/components/messages/webhook.quota.threshold_reached"
       webhook.quota.reserve_opened:
         "$ref": "#/components/messages/webhook.quota.reserve_opened"
+      webhook.whatsapp_account.updated:
+        "$ref": "#/components/messages/webhook.whatsapp_account.updated"
+      webhook.whatsapp_number.paused:
+        "$ref": "#/components/messages/webhook.whatsapp_number.paused"
+      webhook.whatsapp_template.category_changed:
+        "$ref": "#/components/messages/webhook.whatsapp_template.category_changed"
+      webhook.whatsapp_template.status_changed:
+        "$ref": "#/components/messages/webhook.whatsapp_template.status_changed"
+      webhook.whatsapp_tier.threshold_reached:
+        "$ref": "#/components/messages/webhook.whatsapp_tier.threshold_reached"
   operations:
     address: null
     title: operations
@@ -95,6 +113,8 @@ channels:
         "$ref": "#/components/messages/webhook.killswitch.auto_paused"
       operations.provider.unknown_code:
         "$ref": "#/components/messages/operations.provider.unknown_code"
+      operations.push_priority.threshold_reached:
+        "$ref": "#/components/messages/operations.push_priority.threshold_reached"
       webhook.quota.threshold_reached:
         "$ref": "#/components/messages/webhook.quota.threshold_reached"
       webhook.quota.reserve_opened:
@@ -301,6 +321,12 @@ channels:
         "$ref": "#/components/messages/audit.sender_identity.resumed"
       audit.channel_identity.changed:
         "$ref": "#/components/messages/audit.channel_identity.changed"
+      audit.push_critical.changed:
+        "$ref": "#/components/messages/audit.push_critical.changed"
+      audit.push_critical.used:
+        "$ref": "#/components/messages/audit.push_critical.used"
+      audit.push_priority.threshold_reached:
+        "$ref": "#/components/messages/audit.push_priority.threshold_reached"
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
@@ -356,6 +382,10 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.device.reassigned"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.device.unregistered"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.address.disabled"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.messaging_target.disabled"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.messaging_interaction.received"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.messaging_installation.completed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.channel_adapter.deprecated"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook.attempt_exhausted"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.disabled"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.recovered"
@@ -374,6 +404,11 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.killswitch.auto_paused"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.quota.threshold_reached"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.quota.reserve_opened"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_account.updated"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_number.paused"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_template.category_changed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_template.status_changed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_tier.threshold_reached"
   sendOperations:
     action: send
     channel:
@@ -387,6 +422,7 @@ operations:
       - "$ref": "#/channels/operations/messages/webhook.killswitch.released"
       - "$ref": "#/channels/operations/messages/webhook.killswitch.auto_paused"
       - "$ref": "#/channels/operations/messages/operations.provider.unknown_code"
+      - "$ref": "#/channels/operations/messages/operations.push_priority.threshold_reached"
       - "$ref": "#/channels/operations/messages/webhook.quota.threshold_reached"
       - "$ref": "#/channels/operations/messages/webhook.quota.reserve_opened"
   sendInboxRealtime:
@@ -495,6 +531,9 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.sender_identity.suspended"
       - "$ref": "#/channels/auditLog/messages/audit.sender_identity.resumed"
       - "$ref": "#/channels/auditLog/messages/audit.channel_identity.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.push_critical.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.push_critical.used"
+      - "$ref": "#/channels/auditLog/messages/audit.push_priority.threshold_reached"
   receiveAccessInbound:
     action: receive
     channel:
@@ -1373,6 +1412,168 @@ components:
                   additionalProperties: false
       x-relay-surface: webhook
       x-relay-stage: 6
+    webhook.messaging_target.disabled:
+      name: messaging_target.disabled
+      title: messaging_target.disabled
+      summary: "A subscriber's messaging conversation was disabled after a permanent target failure, removed or replaced."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: messaging_target.disabled
+                data:
+                  type: object
+                  required:
+                    - target_id
+                    - recipient_id
+                    - channel
+                  properties:
+                    target_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_mtg"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/MessagingChannel"
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+    webhook.messaging_interaction.received:
+      name: messaging_interaction.received
+      title: messaging_interaction.received
+      summary: "A messaging provider reported an interaction: a message, a card button, a command, a conversation or installation update or a membership change. It is recorded as an event only and is never an approval."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: messaging_interaction.received
+                data:
+                  type: object
+                  required:
+                    - channel
+                    - kind
+                    - provider_event_id
+                  properties:
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/MessagingChannel"
+                    kind:
+                      type: string
+                      enum:
+                        - message
+                        - action
+                        - command
+                        - conversation
+                        - membership
+                    provider_event_id:
+                      type: string
+                      maxLength: 512
+                    provider_account_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_pva"
+                    delivery_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_dlv"
+                    provider_user_id:
+                      type: string
+                      maxLength: 256
+                    conversation_id:
+                      type: string
+                      maxLength: 512
+                    action:
+                      type: string
+                      maxLength: 256
+                    text:
+                      type: string
+                      maxLength: 4000
+                    conversation_reference:
+                      "$ref": "../openapi/components/schemas.yaml#/TeamsConversationReference"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The spec records inbound interactions without naming the event; the name and payload are chosen by the contract (CH-62)."
+    webhook.messaging_installation.completed:
+      name: messaging_installation.completed
+      title: messaging_installation.completed
+      summary: "A channel identity was installed in a workspace; the workspace is a verified provider account of the channel."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: messaging_installation.completed
+                data:
+                  type: object
+                  required:
+                    - channel
+                    - provider_account_id
+                    - workspace_id
+                  properties:
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/MessagingChannel"
+                    provider_account_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_pva"
+                    workspace_id:
+                      type: string
+                      maxLength: 128
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The name and payload are chosen by the contract (CH-62)."
+    webhook.channel_adapter.deprecated:
+      name: channel_adapter.deprecated
+      title: channel_adapter.deprecated
+      summary: "An adapter the tenant uses calls a provider API that the provider deprecated (CH-4)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: channel_adapter.deprecated
+                data:
+                  type: object
+                  required:
+                    - provider
+                    - adapter_version
+                    - api
+                  properties:
+                    provider:
+                      type: string
+                      pattern: "^[a-z][a-z0-9_]{1,31}$"
+                    adapter_version:
+                      type: string
+                      maxLength: 16
+                    api:
+                      type: string
+                      maxLength: 128
+                    sunset_on:
+                      oneOf:
+                        - type: string
+                          format: date
+                        - type: "null"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The spec asks for a tenant warning when a provider API is deprecated (CH-4) but names no event; the name and payload are chosen by the contract."
     webhook.webhook.attempt_exhausted:
       name: webhook.attempt_exhausted
       title: webhook.attempt_exhausted
@@ -2116,6 +2317,53 @@ components:
                   additionalProperties: false
       x-relay-surface: operations
       x-relay-stage: 6
+    operations.push_priority.threshold_reached:
+      name: push_priority.threshold_reached
+      title: push_priority.threshold_reached
+      summary: "More than the policy share of a tenant's push sends in 24 hours went out at high priority (CH-22); the tenant is warned at most once per window and the warning is audited."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: push_priority.threshold_reached
+                data:
+                  type: object
+                  required:
+                    - window
+                    - high
+                    - total
+                    - ratio_bp
+                    - threshold_bp
+                  properties:
+                    window:
+                      type: string
+                      const: PT24H
+                    high:
+                      type: integer
+                      minimum: 0
+                    total:
+                      type: integer
+                      minimum: 1
+                    ratio_bp:
+                      type: integer
+                      minimum: 0
+                      maximum: 10000
+                    threshold_bp:
+                      type: integer
+                      minimum: 0
+                      maximum: 10000
+                  additionalProperties: false
+      x-relay-surface: operations
+      x-relay-stage: 6
+      x-relay-also:
+        - audit
+      x-relay-choice: true
+      x-relay-choice-note: "The spec warns the tenant over a high priority ratio but names neither the event nor the threshold; the threshold is a POLICY DEFAULT."
     webhook.quota.threshold_reached:
       name: quota.threshold_reached
       title: quota.threshold_reached
@@ -4879,6 +5127,60 @@ components:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.push_critical.changed:
+      name: push_critical.changed
+      title: push_critical.changed
+      summary: "The installation operator opened, changed or closed a tenant's critical interruption level (CH-20, TN-23)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: setting
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.push_critical.used:
+      name: push_critical.used
+      title: push_critical.used
+      summary: "A push notification was delivered at the critical interruption level (CH-20)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: delivery
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.push_priority.threshold_reached:
+      name: push_priority.threshold_reached
+      title: push_priority.threshold_reached
+      summary: "A tenant's share of high priority push sends crossed the warning threshold (CH-22)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: tenant
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     access.consent.updated:
       name: consent.updated
       title: consent.updated
@@ -5013,6 +5315,245 @@ components:
       x-relay-stage: 3
       x-relay-choice: true
       x-relay-choice-note: "The product decisions require the status of a blocked Access security delivery to return to Access as information but name no event; the name delivery.paused and this payload (delivery status and audit references only) are chosen by the contract."
+    webhook.whatsapp_account.updated:
+      name: whatsapp_account.updated
+      title: whatsapp_account.updated
+      summary: "Meta reported a change of a WhatsApp Business Account (account_update), such as a policy violation with its violation_type."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: whatsapp_account.updated
+                data:
+                  type: object
+                  required:
+                    - provider_account_id
+                    - event
+                  properties:
+                    provider_account_id:
+                      type: string
+                      format: uuid
+                    waba_id:
+                      oneOf:
+                        - type: string
+                          maxLength: 32
+                        - type: "null"
+                    event:
+                      oneOf:
+                        - type: string
+                          maxLength: 64
+                        - type: "null"
+                    violation_type:
+                      oneOf:
+                        - type: string
+                          maxLength: 64
+                        - type: "null"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "CH-57 subscribes to account_update and names violation_type; the event name and the other fields are chosen by the contract."
+    webhook.whatsapp_number.paused:
+      name: whatsapp_number.paused
+      title: whatsapp_number.paused
+      summary: "A WhatsApp business number is briefly unusable (a throughput upgrade or maintenance); its jobs are deferred until the given time."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: whatsapp_number.paused
+                data:
+                  type: object
+                  required:
+                    - phone_number_id
+                    - reason
+                    - until
+                  properties:
+                    phone_number_id:
+                      type: string
+                      maxLength: 32
+                    reason:
+                      type: string
+                      enum:
+                        - throughput_upgrade
+                        - maintenance
+                    until:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "CH-61 models the throughput upgrade as an event; the event name and fields are chosen by the contract."
+    webhook.whatsapp_template.category_changed:
+      name: whatsapp_template.category_changed
+      title: whatsapp_template.category_changed
+      summary: "Meta changed the category of a WhatsApp template (template_category_update); the Relay message class is unchanged and the cost follows the new category."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: whatsapp_template.category_changed
+                data:
+                  type: object
+                  required:
+                    - whatsapp_template_id
+                    - name
+                    - language
+                    - message_class
+                    - category
+                    - previous_category
+                    - new_category
+                  properties:
+                    whatsapp_template_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_wtp"
+                    name:
+                      type: string
+                      maxLength: 512
+                    language:
+                      type: string
+                      maxLength: 35
+                    message_class:
+                      "$ref": "../openapi/components/schemas.yaml#/MessageClass"
+                    category:
+                      type: string
+                      enum:
+                        - authentication
+                        - utility
+                        - marketing
+                    previous_category:
+                      type: string
+                      enum:
+                        - authentication
+                        - utility
+                        - marketing
+                    new_category:
+                      type: string
+                      enum:
+                        - authentication
+                        - utility
+                        - marketing
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "CH-57 sends the category drift to the tenant; the event name and fields are chosen by the contract."
+    webhook.whatsapp_template.status_changed:
+      name: whatsapp_template.status_changed
+      title: whatsapp_template.status_changed
+      summary: "The Relay state of a WhatsApp template changed after a Meta status (APPROVED, REJECTED, PAUSED, DISABLED and the others); a rejection carries Meta's reason."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: whatsapp_template.status_changed
+                data:
+                  type: object
+                  required:
+                    - whatsapp_template_id
+                    - name
+                    - language
+                    - previous_status
+                    - status
+                  properties:
+                    whatsapp_template_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_wtp"
+                    name:
+                      type: string
+                      maxLength: 512
+                    language:
+                      type: string
+                      maxLength: 35
+                    previous_status:
+                      type: string
+                      enum:
+                        - pending_approval
+                        - approved
+                        - rejected
+                        - paused
+                        - disabled
+                    status:
+                      type: string
+                      enum:
+                        - pending_approval
+                        - approved
+                        - rejected
+                        - paused
+                        - disabled
+                    meta_status:
+                      oneOf:
+                        - type: string
+                          maxLength: 64
+                        - type: "null"
+                    rejection_reason:
+                      oneOf:
+                        - type: string
+                          maxLength: 512
+                        - type: "null"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The spec sends this event but names neither the event nor its fields."
+    webhook.whatsapp_tier.threshold_reached:
+      name: whatsapp_tier.threshold_reached
+      title: whatsapp_tier.threshold_reached
+      summary: "The unique recipients reached outside a customer service window in the last 24 hours reached the warning share (90 percent) of the business portfolio's messaging limit tier."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: whatsapp_tier.threshold_reached
+                data:
+                  type: object
+                  required:
+                    - portfolio
+                    - count
+                    - limit
+                    - warn_percent
+                  properties:
+                    portfolio:
+                      type: string
+                      maxLength: 32
+                    count:
+                      type: integer
+                      minimum: 0
+                    limit:
+                      type: integer
+                      minimum: 1
+                    warn_percent:
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "CH-61 warns the tenant at 90 percent of the tier; the event name and fields are chosen by the contract."
 x-relay-event-names:
   - address.disabled
   - agent.ceiling_exceeded
@@ -5030,6 +5571,7 @@ x-relay-event-names:
   - category.lock_changed
   - category.updated
   - category_subtenant_setting.changed
+  - channel_adapter.deprecated
   - channel_identity.changed
   - consent.updated
   - cross_tenant.queried
@@ -5063,6 +5605,9 @@ x-relay-event-names:
   - mailbox.epoch_bumped
   - mailbox.record_appended
   - mailbox.record_dead_lettered
+  - messaging_installation.completed
+  - messaging_interaction.received
+  - messaging_target.disabled
   - notification.archived
   - notification.cancelled
   - notification.clicked
@@ -5087,6 +5632,9 @@ x-relay-event-names:
   - provider_account.changed
   - provider_account.credential_rotated
   - provider_account.verified
+  - push_critical.changed
+  - push_critical.used
+  - push_priority.threshold_reached
   - quota.reserve_opened
   - quota.threshold_reached
   - quota_policy.changed
@@ -5146,3 +5694,8 @@ x-relay-event-names:
   - workflow.promoted
   - workflow.publication_requested
   - workflow.published
+  - whatsapp_account.updated
+  - whatsapp_number.paused
+  - whatsapp_template.category_changed
+  - whatsapp_template.status_changed
+  - whatsapp_tier.threshold_reached

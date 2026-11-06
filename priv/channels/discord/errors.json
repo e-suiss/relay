@@ -1,0 +1,138 @@
+[
+  {
+    "code": "10003",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "10013",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "50007",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "10008",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "50035",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "50006",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "40005",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "50001",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "50013",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "20016",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_401",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_429",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/rate-limits (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_500",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_502",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_503",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_504",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://discord.com/developers/docs/topics/opcodes-and-status-codes#json (compiled 2026-11-05)"
+  },
+  {
+    "code": "credential_missing",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7 auth; https://discord.com/developers/docs/resources/message#create-message (compiled 2026-11-05)"
+  }
+]

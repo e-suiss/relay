@@ -1,0 +1,598 @@
+[
+  {
+    "name": "send:20",
+    "raw": {
+      "code": "send:20",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "20"
+      }
+    }
+  },
+  {
+    "name": "send:30",
+    "raw": {
+      "code": "send:30",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "30"
+      }
+    }
+  },
+  {
+    "name": "send:40",
+    "raw": {
+      "code": "send:40",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "40"
+      }
+    }
+  },
+  {
+    "name": "send:50",
+    "raw": {
+      "code": "send:50",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "50"
+      }
+    }
+  },
+  {
+    "name": "send:51",
+    "raw": {
+      "code": "send:51",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "51"
+      }
+    }
+  },
+  {
+    "name": "send:70",
+    "raw": {
+      "code": "send:70",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "70"
+      }
+    }
+  },
+  {
+    "name": "send:80",
+    "raw": {
+      "code": "send:80",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "80"
+      }
+    }
+  },
+  {
+    "name": "send:85",
+    "raw": {
+      "code": "send:85",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "85"
+      }
+    }
+  },
+  {
+    "name": "send:100",
+    "raw": {
+      "code": "send:100",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "100"
+      }
+    }
+  },
+  {
+    "name": "send:101",
+    "raw": {
+      "code": "send:101",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "101"
+      }
+    }
+  },
+  {
+    "name": "otp:20",
+    "raw": {
+      "code": "otp:20",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "20",
+        "product": "otp"
+      }
+    }
+  },
+  {
+    "name": "otp:30",
+    "raw": {
+      "code": "otp:30",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "30",
+        "product": "otp"
+      }
+    }
+  },
+  {
+    "name": "otp:40",
+    "raw": {
+      "code": "otp:40",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "40",
+        "product": "otp"
+      }
+    }
+  },
+  {
+    "name": "otp:41",
+    "raw": {
+      "code": "otp:41",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "41",
+        "product": "otp"
+      }
+    }
+  },
+  {
+    "name": "otp:60",
+    "raw": {
+      "code": "otp:60",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "60",
+        "product": "otp"
+      }
+    }
+  },
+  {
+    "name": "otp:70",
+    "raw": {
+      "code": "otp:70",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "70",
+        "product": "otp"
+      }
+    }
+  },
+  {
+    "name": "otp:100",
+    "raw": {
+      "code": "otp:100",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "100",
+        "product": "otp"
+      }
+    }
+  },
+  {
+    "name": "otp:101",
+    "raw": {
+      "code": "otp:101",
+      "status": 406,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "101",
+        "product": "otp"
+      }
+    }
+  },
+  {
+    "name": "http:500",
+    "raw": {
+      "code": "http:500",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": ""
+    }
+  },
+  {
+    "name": "http:503",
+    "raw": {
+      "code": "http:503",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": ""
+    }
+  },
+  {
+    "name": "dlr:2",
+    "raw": {
+      "code": "dlr:2",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "expired",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": 2
+      }
+    }
+  },
+  {
+    "name": "dlr:3",
+    "raw": {
+      "code": "dlr:3",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": 3
+      }
+    }
+  },
+  {
+    "name": "dlr:4",
+    "raw": {
+      "code": "dlr:4",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": 4
+      }
+    }
+  },
+  {
+    "name": "dlr:11",
+    "raw": {
+      "code": "dlr:11",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": 11
+      }
+    }
+  },
+  {
+    "name": "dlr:12",
+    "raw": {
+      "code": "dlr:12",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": 12
+      }
+    }
+  },
+  {
+    "name": "dlr:14",
+    "raw": {
+      "code": "dlr:14",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": 14
+      }
+    }
+  },
+  {
+    "name": "dlr:15",
+    "raw": {
+      "code": "dlr:15",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": 15
+      }
+    }
+  },
+  {
+    "name": "dlr:16",
+    "raw": {
+      "code": "dlr:16",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": 16
+      }
+    }
+  },
+  {
+    "name": "otp_number_check_unmapped",
+    "raw": {
+      "code": "otp:50",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 406,
+      "body": {
+        "code": "50",
+        "product": "otp"
+      }
+    }
+  },
+  {
+    "name": "duplicate_report_unmapped",
+    "raw": {
+      "code": "dlr:13",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": 13
+      }
+    }
+  }
+]

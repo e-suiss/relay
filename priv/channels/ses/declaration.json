@@ -1,0 +1,63 @@
+{
+  "provider": "ses",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "email"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html",
+    "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html",
+    "https://docs.aws.amazon.com/sns/latest/dg/sns-verify-signature-of-message.html",
+    "§12.6.1 CH-47"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "email": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": false,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "no_auto_retry",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": "EmailTags.relay_delivery_id",
+    "status_query": false,
+    "source": "§12.2.4 CH-10; https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html: no idempotency key"
+  },
+  "paid_channels": [],
+  "pricing": {
+    "currency": "USD",
+    "units": {
+      "email": "message"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [],
+    "sender": [],
+    "recipient": []
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "US"
+    ],
+    "transfer_basis": "explicit_consent",
+    "scc_notified_on": null,
+    "source": "SES processes mail in the account's AWS region; the account carries the region's country and the tenant's transfer basis"
+  },
+  "inbound_verification": {
+    "method": "sns_signature",
+    "header": null,
+    "authenticity": "verified",
+    "source": "https://docs.aws.amazon.com/sns/latest/dg/sns-verify-signature-of-message.html; events are read from the tenant's SQS queue (CH-47)"
+  }
+}

@@ -1,8 +1,10 @@
 defmodule Relay.Policy.Live.Inputs do
   @moduledoc """
-  Builds the input snapshot of one lattice evaluation from the database in one read path, inside the caller's scoped transaction (PC-58 (1)): the category with its sub-tenant setting applied (PC-57 (2)), the recipient's preference values at each level, the profile, the consent copy of the delivery's brand and channel (PC-59 (1)), the address state and its suppression (PC-59 (2)), the tenant's zone and the tenant and sub-tenant suspension. The frequency readings come later, outside the transaction (`Relay.Policy.FrequencyCounter`).
+  Builds the input snapshot of one lattice evaluation from the database in one read path, inside the caller's scoped transaction (PC-58 (1)): the category with its sub-tenant setting applied (PC-57 (2)), the recipient's preference values at each level, the profile, the consent copy of the delivery's brand and channel (PC-59 (1)), the address state and its suppression (PC-59 (2)), on a push channel the recipient's devices (CH-28), the tenant's zone and the tenant and sub-tenant suspension. The frequency readings come later, outside the transaction (`Relay.Policy.FrequencyCounter`).
 
   A workflow whose category has no row yet is evaluated with the workflow's class and the class defaults. The suppression target digest is the address's blind index (`address` purpose) under the current and the next key. The release jitter spread is WF-58's PT15M.
+
+  On `push` and `web_push` the target is read from the recipient's devices that are not disabled (`Relay.Devices`), the same rule the channel step uses: no device on the channel is an absent target (`channel.no_address`), devices of which none is permitted for the class are a denied permission (`channel.no_permission`), and otherwise the permission is granted and the platform is the one of the most recently seen permitted device (`apns` is `ios`, `web_push` is `web`, the others `android`).
   """
 
   alias Relay.Policy.Live.Store
@@ -36,6 +38,7 @@ defmodule Relay.Policy.Live.Inputs do
   }
   @switches %{"on" => :on, "off" => :off}
   @address_kinds %{email: "email", sms: "phone", voice: "phone", whatsapp: "phone"}
+  @device_channels [:push, :web_push]
   @days %{"mon" => 1, "tue" => 2, "wed" => 3, "thu" => 4, "fri" => 5, "sat" => 6, "sun" => 7}
   @jitter_spread_ms 900_000
 
@@ -135,7 +138,8 @@ defmodule Relay.Policy.Live.Inputs do
   def snapshot(base) do
     %{category: category, channel: channel, recipient_id: recipient_id} = base
     channel_name = Atom.to_string(channel)
-    {target, suppression} = target(recipient_id, channel, channel_name)
+    class = base.notification.message_class
+    {target, suppression} = target(recipient_id, channel, channel_name, class)
 
     Relay.Policy.snapshot!(
       now: base.now,
@@ -255,17 +259,47 @@ defmodule Relay.Policy.Live.Inputs do
   # PC-8
   # PC-59 (2)
   # CH-40
-  defp target(recipient_id, channel, channel_name) do
+  defp target(recipient_id, channel, channel_name, class) do
     case Map.fetch(@address_kinds, channel) do
       {:ok, kind} ->
         row = Store.address(recipient_id, kind)
         target = %{address: address(row), permission: :unknown, platform: nil}
         {target, suppression(row, channel_name)}
 
+      :error when channel in @device_channels ->
+        {device(recipient_id, channel, class), nil}
+
       :error ->
         {%{address: :present, permission: :unknown, platform: nil}, nil}
     end
   end
+
+  # CH-28
+  # CH-29
+  # PC-16
+  defp device(recipient_id, channel, class) do
+    devices =
+      recipient_id
+      |> Relay.Devices.current()
+      |> Enum.filter(&(Relay.Devices.channel(&1["platform"]) == channel))
+
+    permitted = Enum.filter(devices, &Relay.Devices.permitted?(&1["permission"], class))
+
+    case {devices, permitted} do
+      {[], _none} ->
+        %{address: :absent, permission: :unknown, platform: nil}
+
+      {[first | _], []} ->
+        %{address: :present, permission: :denied, platform: platform(first)}
+
+      {_devices, [first | _]} ->
+        %{address: :present, permission: :granted, platform: platform(first)}
+    end
+  end
+
+  defp platform(%{"platform" => "apns"}), do: :ios
+  defp platform(%{"platform" => "web_push"}), do: :web
+  defp platform(%{"platform" => _android}), do: :android
 
   defp address(%{"state" => "active"}), do: :present
   defp address(%{"state" => "disabled"}), do: :disabled

@@ -1,0 +1,1005 @@
+[
+  {
+    "name": "20003",
+    "raw": {
+      "code": "20003",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "code": 20003,
+        "status": 401,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "20404",
+    "raw": {
+      "code": "20404",
+      "status": 404,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 404,
+      "body": {
+        "code": 20404,
+        "status": 404,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "20429",
+    "raw": {
+      "code": "20429",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "body": {
+        "code": 20429,
+        "status": 429,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21211",
+    "raw": {
+      "code": "21211",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21211,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21265",
+    "raw": {
+      "code": "21265",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21265,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21614",
+    "raw": {
+      "code": "21614",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21614,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21408",
+    "raw": {
+      "code": "21408",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21408,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21606",
+    "raw": {
+      "code": "21606",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21606,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21612",
+    "raw": {
+      "code": "21612",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21612,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21659",
+    "raw": {
+      "code": "21659",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21659,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21660",
+    "raw": {
+      "code": "21660",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21660,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21703",
+    "raw": {
+      "code": "21703",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21703,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21602",
+    "raw": {
+      "code": "21602",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21602,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21604",
+    "raw": {
+      "code": "21604",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21604,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21617",
+    "raw": {
+      "code": "21617",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21617,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21266",
+    "raw": {
+      "code": "21266",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21266,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21610",
+    "raw": {
+      "code": "21610",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21610,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "13223",
+    "raw": {
+      "code": "13223",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 13223,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "13224",
+    "raw": {
+      "code": "13224",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 13224,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21217",
+    "raw": {
+      "code": "21217",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21217,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21215",
+    "raw": {
+      "code": "21215",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21215,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "13227",
+    "raw": {
+      "code": "13227",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 13227,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "21216",
+    "raw": {
+      "code": "21216",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 21216,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "32203",
+    "raw": {
+      "code": "32203",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 32203,
+        "status": 400,
+        "message": "m"
+      }
+    }
+  },
+  {
+    "name": "http:500",
+    "raw": {
+      "code": "http:500",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": ""
+    }
+  },
+  {
+    "name": "http:503",
+    "raw": {
+      "code": "http:503",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": ""
+    }
+  },
+  {
+    "name": "30001",
+    "raw": {
+      "code": "30001",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30001"
+      }
+    }
+  },
+  {
+    "name": "30002",
+    "raw": {
+      "code": "30002",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30002"
+      }
+    }
+  },
+  {
+    "name": "30003",
+    "raw": {
+      "code": "30003",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30003"
+      }
+    }
+  },
+  {
+    "name": "30004",
+    "raw": {
+      "code": "30004",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30004"
+      }
+    }
+  },
+  {
+    "name": "30005",
+    "raw": {
+      "code": "30005",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30005"
+      }
+    }
+  },
+  {
+    "name": "30006",
+    "raw": {
+      "code": "30006",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30006"
+      }
+    }
+  },
+  {
+    "name": "30007",
+    "raw": {
+      "code": "30007",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30007"
+      }
+    }
+  },
+  {
+    "name": "30008",
+    "raw": {
+      "code": "30008",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30008"
+      }
+    }
+  },
+  {
+    "name": "30022",
+    "raw": {
+      "code": "30022",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30022"
+      }
+    }
+  },
+  {
+    "name": "30023",
+    "raw": {
+      "code": "30023",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30023"
+      }
+    }
+  },
+  {
+    "name": "30024",
+    "raw": {
+      "code": "30024",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30024"
+      }
+    }
+  },
+  {
+    "name": "30032",
+    "raw": {
+      "code": "30032",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30032"
+      }
+    }
+  },
+  {
+    "name": "30034",
+    "raw": {
+      "code": "30034",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30034"
+      }
+    }
+  },
+  {
+    "name": "30035",
+    "raw": {
+      "code": "30035",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30035"
+      }
+    }
+  },
+  {
+    "name": "30036",
+    "raw": {
+      "code": "30036",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "expired",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30036"
+      }
+    }
+  },
+  {
+    "name": "30044",
+    "raw": {
+      "code": "30044",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30044"
+      }
+    }
+  },
+  {
+    "name": "30450",
+    "raw": {
+      "code": "30450",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "30450"
+      }
+    }
+  },
+  {
+    "name": "63038",
+    "raw": {
+      "code": "63038",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "undelivered",
+        "ErrorCode": "63038"
+      }
+    }
+  },
+  {
+    "name": "call:busy",
+    "raw": {
+      "code": "call:busy",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "CallSid": "CA1",
+        "CallStatus": "busy"
+      }
+    }
+  },
+  {
+    "name": "call:no-answer",
+    "raw": {
+      "code": "call:no-answer",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "CallSid": "CA1",
+        "CallStatus": "no-answer"
+      }
+    }
+  },
+  {
+    "name": "call:failed",
+    "raw": {
+      "code": "call:failed",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "CallSid": "CA1",
+        "CallStatus": "failed"
+      }
+    }
+  },
+  {
+    "name": "failed_without_code_unmapped",
+    "raw": {
+      "code": "status:failed",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "MessageStatus": "failed"
+      }
+    }
+  }
+]

@@ -1,0 +1,282 @@
+[
+  {
+    "code": "credential_invalid",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7; TN-26"
+  },
+  {
+    "code": "configuration_invalid",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.1 CH-34"
+  },
+  {
+    "code": "sender_invalid",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.2 CH-35"
+  },
+  {
+    "code": "message_invalid",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.4 CH-38"
+  },
+  {
+    "code": "smtputf8_unsupported",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.11 CH-45"
+  },
+  {
+    "code": "http_400",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: request refused"
+  },
+  {
+    "code": "http_401",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: 401"
+  },
+  {
+    "code": "http_403",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: forbidden"
+  },
+  {
+    "code": "http_413",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: 413 payload too large"
+  },
+  {
+    "code": "http_429",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: 429"
+  },
+  {
+    "code": "http_5xx",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: 5xx"
+  },
+  {
+    "code": "postmark:10",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/overview#error-codes 10 bad or missing server token"
+  },
+  {
+    "code": "postmark:300",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/overview#error-codes 300 invalid email request"
+  },
+  {
+    "code": "postmark:400",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/overview#error-codes 400 sender signature not found"
+  },
+  {
+    "code": "postmark:401",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/overview#error-codes 401 sender signature not confirmed"
+  },
+  {
+    "code": "postmark:402",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/overview#error-codes 402 invalid JSON"
+  },
+  {
+    "code": "postmark:403",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/overview#error-codes 403 incompatible JSON"
+  },
+  {
+    "code": "postmark:405",
+    "class": "quota",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/overview#error-codes 405 not allowed to send, out of credits"
+  },
+  {
+    "code": "postmark:406",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/overview#error-codes 406 inactive recipient"
+  },
+  {
+    "code": "postmark:409",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/overview#error-codes 409 JSON required"
+  },
+  {
+    "code": "postmark:411",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/overview#error-codes 411 forbidden attachment type"
+  },
+  {
+    "code": "postmark:412",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/overview#error-codes 412 account is pending"
+  },
+  {
+    "code": "postmark:413",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/overview#error-codes 413 account may not send"
+  },
+  {
+    "code": "postmark:1235",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/overview#error-codes 1235 message stream not found"
+  },
+  {
+    "code": "event:HardBounce",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "bounced",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/bounce-api#bounce-types HardBounce"
+  },
+  {
+    "code": "event:BadEmailAddress",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "bounced",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/bounce-api#bounce-types BadEmailAddress"
+  },
+  {
+    "code": "event:ManuallyDeactivated",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/bounce-api#bounce-types ManuallyDeactivated"
+  },
+  {
+    "code": "event:SoftBounce",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/bounce-api#bounce-types SoftBounce"
+  },
+  {
+    "code": "event:DnsError",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/bounce-api#bounce-types DnsError"
+  },
+  {
+    "code": "event:Blocked",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/bounce-api#bounce-types Blocked"
+  },
+  {
+    "code": "event:SpamNotification",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/bounce-api#bounce-types SpamNotification"
+  },
+  {
+    "code": "event:VirusNotification",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/bounce-api#bounce-types VirusNotification"
+  },
+  {
+    "code": "event:DMARCPolicy",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/bounce-api#bounce-types DMARCPolicy; §12.6.5 CH-39"
+  },
+  {
+    "code": "event:Unknown",
+    "class": "unknown",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/bounce-api#bounce-types Unknown; §12.2.2 CH-8"
+  },
+  {
+    "code": "event:SpamComplaint",
+    "class": "policy",
+    "condition": null,
+    "event_code": "complained",
+    "suppressed_success": false,
+    "source": "https://postmarkapp.com/developer/api/bounce-api#bounce-types SpamComplaint; §12.6.6 CH-40"
+  }
+]

@@ -1,0 +1,1290 @@
+[
+  {
+    "name": "code_131026",
+    "raw": {
+      "code": "131026",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131026) Message undeliverable",
+          "type": "OAuthException",
+          "code": 131026,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Message undeliverable"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131050",
+    "raw": {
+      "code": "131050",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": "opted_out",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131050) User has stopped marketing messages",
+          "type": "OAuthException",
+          "code": 131050,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "User has stopped marketing messages"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131049",
+    "raw": {
+      "code": "131049",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": "marketing_cap",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131049) Message not delivered to maintain healthy ecosystem engagement",
+          "type": "OAuthException",
+          "code": 131049,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Message not delivered to maintain healthy ecosystem engagement"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131047",
+    "raw": {
+      "code": "131047",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": "window_closed",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131047) Re-engagement message: more than 24 hours since the customer last replied",
+          "type": "OAuthException",
+          "code": 131047,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Re-engagement message: more than 24 hours since the customer last replied"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_130429",
+    "raw": {
+      "code": "130429",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#130429) Rate limit hit: throughput reached",
+          "type": "OAuthException",
+          "code": 130429,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Rate limit hit: throughput reached"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131056",
+    "raw": {
+      "code": "131056",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "pair_rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131056) Pair rate limit hit",
+          "type": "OAuthException",
+          "code": 131056,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Pair rate limit hit"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_132015",
+    "raw": {
+      "code": "132015",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#132015) Template is paused (pacing)",
+          "type": "OAuthException",
+          "code": 132015,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Template is paused (pacing)"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_135000",
+    "raw": {
+      "code": "135000",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#135000) Generic user error (portfolio pacing)",
+          "type": "OAuthException",
+          "code": 135000,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Generic user error (portfolio pacing)"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131042",
+    "raw": {
+      "code": "131042",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131042) Business eligibility payment issue",
+          "type": "OAuthException",
+          "code": 131042,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Business eligibility payment issue"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_0",
+    "raw": {
+      "code": "0",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "error": {
+          "message": "(#0) AuthException",
+          "type": "OAuthException",
+          "code": 0,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "AuthException"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_190",
+    "raw": {
+      "code": "190",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "error": {
+          "message": "(#190) Access token has expired",
+          "type": "OAuthException",
+          "code": 190,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Access token has expired"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_10",
+    "raw": {
+      "code": "10",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "error": {
+          "message": "(#10) Permission denied",
+          "type": "OAuthException",
+          "code": 10,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Permission denied"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131005",
+    "raw": {
+      "code": "131005",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "error": {
+          "message": "(#131005) Access denied",
+          "type": "OAuthException",
+          "code": 131005,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Access denied"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_3",
+    "raw": {
+      "code": "3",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#3) Capability or permissions issue",
+          "type": "OAuthException",
+          "code": 3,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Capability or permissions issue"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_368",
+    "raw": {
+      "code": "368",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#368) Temporarily blocked for policies violations",
+          "type": "OAuthException",
+          "code": 368,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Temporarily blocked for policies violations"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131031",
+    "raw": {
+      "code": "131031",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131031) Account has been locked",
+          "type": "OAuthException",
+          "code": 131031,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Account has been locked"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131045",
+    "raw": {
+      "code": "131045",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131045) Incorrect certificate: phone number not registered",
+          "type": "OAuthException",
+          "code": 131045,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Incorrect certificate: phone number not registered"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_133010",
+    "raw": {
+      "code": "133010",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#133010) Phone number not registered",
+          "type": "OAuthException",
+          "code": 133010,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Phone number not registered"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_4",
+    "raw": {
+      "code": "4",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#4) API too many calls (application rate limit)",
+          "type": "OAuthException",
+          "code": 4,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "API too many calls (application rate limit)"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_80007",
+    "raw": {
+      "code": "80007",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#80007) Rate limit issues (business account)",
+          "type": "OAuthException",
+          "code": 80007,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Rate limit issues (business account)"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131048",
+    "raw": {
+      "code": "131048",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131048) Spam rate limit hit",
+          "type": "OAuthException",
+          "code": 131048,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Spam rate limit hit"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131057",
+    "raw": {
+      "code": "131057",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": "maintenance",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131057) Account in maintenance mode (throughput upgrade)",
+          "type": "OAuthException",
+          "code": 131057,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Account in maintenance mode (throughput upgrade)"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_100",
+    "raw": {
+      "code": "100",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#100) Invalid parameter",
+          "type": "OAuthException",
+          "code": 100,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Invalid parameter"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131008",
+    "raw": {
+      "code": "131008",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131008) Required parameter is missing",
+          "type": "OAuthException",
+          "code": 131008,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Required parameter is missing"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131009",
+    "raw": {
+      "code": "131009",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131009) Parameter value is not valid",
+          "type": "OAuthException",
+          "code": 131009,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Parameter value is not valid"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131051",
+    "raw": {
+      "code": "131051",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131051) Unsupported message type",
+          "type": "OAuthException",
+          "code": 131051,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Unsupported message type"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131053",
+    "raw": {
+      "code": "131053",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131053) Media upload error",
+          "type": "OAuthException",
+          "code": 131053,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Media upload error"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_132000",
+    "raw": {
+      "code": "132000",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#132000) Template parameter count mismatch",
+          "type": "OAuthException",
+          "code": 132000,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Template parameter count mismatch"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_132001",
+    "raw": {
+      "code": "132001",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#132001) Template does not exist",
+          "type": "OAuthException",
+          "code": 132001,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Template does not exist"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_132005",
+    "raw": {
+      "code": "132005",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#132005) Template hydrated text too long",
+          "type": "OAuthException",
+          "code": 132005,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Template hydrated text too long"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_132007",
+    "raw": {
+      "code": "132007",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#132007) Template format character policy violated",
+          "type": "OAuthException",
+          "code": 132007,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Template format character policy violated"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_132012",
+    "raw": {
+      "code": "132012",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#132012) Template parameter format mismatch",
+          "type": "OAuthException",
+          "code": 132012,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Template parameter format mismatch"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_132016",
+    "raw": {
+      "code": "132016",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#132016) Template is disabled",
+          "type": "OAuthException",
+          "code": 132016,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Template is disabled"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131021",
+    "raw": {
+      "code": "131021",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#131021) Recipient cannot be sender",
+          "type": "OAuthException",
+          "code": 131021,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Recipient cannot be sender"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_130472",
+    "raw": {
+      "code": "130472",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#130472) User's number is part of an experiment",
+          "type": "OAuthException",
+          "code": 130472,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "User's number is part of an experiment"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131000",
+    "raw": {
+      "code": "131000",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": {
+        "error": {
+          "message": "(#131000) Something went wrong",
+          "type": "OAuthException",
+          "code": 131000,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Something went wrong"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_131016",
+    "raw": {
+      "code": "131016",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": {
+        "error": {
+          "message": "(#131016) Service unavailable",
+          "type": "OAuthException",
+          "code": 131016,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "Service unavailable"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_1",
+    "raw": {
+      "code": "1",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": {
+        "error": {
+          "message": "(#1) API unknown",
+          "type": "OAuthException",
+          "code": 1,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "API unknown"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_2",
+    "raw": {
+      "code": "2",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": {
+        "error": {
+          "message": "(#2) API service temporarily unavailable",
+          "type": "OAuthException",
+          "code": 2,
+          "error_data": {
+            "messaging_product": "whatsapp",
+            "details": "API service temporarily unavailable"
+          },
+          "fbtrace_id": "Az8or2yhqkZfEZ-_4Qn_Bam"
+        }
+      }
+    }
+  },
+  {
+    "name": "code_http_429",
+    "raw": {
+      "code": "http_429",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "body": "upstream unavailable"
+    }
+  },
+  {
+    "name": "code_http_500",
+    "raw": {
+      "code": "http_500",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": "upstream unavailable"
+    }
+  },
+  {
+    "name": "code_http_502",
+    "raw": {
+      "code": "http_502",
+      "status": 502,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 502,
+      "body": "upstream unavailable"
+    }
+  },
+  {
+    "name": "code_http_503",
+    "raw": {
+      "code": "http_503",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": "upstream unavailable"
+    }
+  },
+  {
+    "name": "code_http_504",
+    "raw": {
+      "code": "http_504",
+      "status": 504,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 504,
+      "body": "upstream unavailable"
+    }
+  },
+  {
+    "name": "code_credentials_missing",
+    "raw": {
+      "code": "credentials_missing",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "code_sender_missing",
+    "raw": {
+      "code": "sender_missing",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "code_content_invalid",
+    "raw": {
+      "code": "content_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "unknown_code",
+    "raw": {
+      "code": "999999",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#999999) Unmapped",
+          "type": "OAuthException",
+          "code": 999999,
+          "fbtrace_id": "A1"
+        }
+      }
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  }
+]

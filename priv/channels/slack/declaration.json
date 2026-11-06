@@ -1,0 +1,87 @@
+{
+  "provider": "slack",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "slack"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)",
+    "https://docs.slack.dev/reference/methods/chat.update (compiled 2026-11-05)",
+    "https://docs.slack.dev/apis/web-api/rate-limits (compiled 2026-11-05)",
+    "https://docs.slack.dev/authentication/verifying-requests-from-slack (compiled 2026-11-05)"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "slack": {
+      "delivery_receipts": false,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": false,
+      "update": true,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": true
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "no_auto_retry",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": null,
+    "status_query": false,
+    "source": "§12.2.4 CH-10; chat.postMessage has no idempotency key or status query by key; https://docs.slack.dev/reference/methods/chat.postMessage (compiled 2026-11-05)"
+  },
+  "paid_channels": [],
+  "pricing": {
+    "currency": "USD",
+    "units": {
+      "slack": "message"
+    },
+    "prices": [
+      {
+        "channel": "slack",
+        "country": null,
+        "category": null,
+        "unit_price_micros": 0,
+        "tier_from": 0
+      }
+    ]
+  },
+  "limits": {
+    "account": [
+      {
+        "channel": "slack",
+        "unit": "request",
+        "limit": 50,
+        "per_ms": 60000,
+        "source": "chat.update Tier 3; https://docs.slack.dev/apis/web-api/rate-limits (compiled 2026-11-05)"
+      }
+    ],
+    "sender": [],
+    "recipient": [
+      {
+        "channel": "slack",
+        "unit": "message",
+        "limit": 1,
+        "per_ms": 1000,
+        "source": "chat.postMessage: 1 message per second per channel; https://docs.slack.dev/apis/web-api/rate-limits (compiled 2026-11-05)"
+      }
+    ]
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "US"
+    ],
+    "transfer_basis": "adequacy",
+    "scc_notified_on": null,
+    "source": "Slack default data region US; EU-US Data Privacy Framework; https://slack.com/trust/compliance/data-residency (compiled 2026-11-05)"
+  },
+  "inbound_verification": {
+    "method": "hmac_sha256",
+    "header": "X-Slack-Signature",
+    "authenticity": "verified",
+    "source": "https://docs.slack.dev/authentication/verifying-requests-from-slack (compiled 2026-11-05)"
+  }
+}

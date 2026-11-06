@@ -11,7 +11,7 @@ defmodule Relay.Channels.Live.Store do
   def in_scope(scope, fun), do: Repo.in_scope(scope, fun)
 
   # T-15
-  @doc "Reads what the channel step needs of a delivery: its channel, target kind, recipient, class, `expires_at`, test flag, the requested send mode and priority of its event, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity and the category key; `nil` when there is no such delivery."
+  @doc "Reads what the channel step needs of a delivery: its channel, target kind, recipient, requested provider, class, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity and the category key; `nil` when there is no such delivery."
   @spec delivery(Relay.Id.t()) :: map() | nil
   def delivery(delivery_id) do
     one(
@@ -20,7 +20,7 @@ defmodule Relay.Channels.Live.Store do
         d.recipient_id, d.provider, d.provider_account_id, d.traceparent, d.attempt_count,
         n.message_class::text AS message_class, n.expires_at, n.is_test, e.send_mode::text AS send_mode,
         e.priority, n.subject_type, n.subject_id, p.locale, t.key AS template_key,
-        v.sensitivity, c.key AS category_key
+        v.sensitivity, c.key AS category_key, wv.definition->>'category' AS category
       FROM relay.deliveries d
       JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
         AND n.id = d.notification_id
@@ -34,6 +34,8 @@ defmodule Relay.Channels.Live.Store do
         AND t.id = p.template_id
       LEFT JOIN relay.categories c ON c.tenant_id = t.tenant_id AND c.environment = t.environment
         AND c.id = t.category_id
+      LEFT JOIN relay.workflow_versions wv ON wv.tenant_id = e.tenant_id
+        AND wv.environment = e.environment AND wv.id = e.workflow_version_id
       WHERE d.id = $1
       """,
       [delivery_id]
@@ -62,6 +64,32 @@ defmodule Relay.Channels.Live.Store do
       "SELECT tenant_id, environment, id, address_ct, address_key_id FROM relay.recipient_addresses WHERE recipient_id = $1 AND kind = $2 AND state = 'active'",
       [recipient_id, kind]
     )
+  end
+
+  # PC-43
+  @doc "The recipients with an active phone address among the address blind indexes `digests`."
+  @spec phone_recipients([binary()]) :: [Relay.Id.t()]
+  def phone_recipients(digests) do
+    sql = """
+    SELECT DISTINCT a.recipient_id FROM relay.recipient_addresses a
+    WHERE a.kind = 'phone' AND a.state = 'active'
+      AND (a.address_bidx = ANY ($1) OR a.address_bidx_next = ANY ($1))
+    """
+
+    for row <- all(sql, [digests]), do: row["recipient_id"]
+  end
+
+  # PC-43
+  @doc "The keys of the active categories of the `marketing` class, in key order."
+  @spec marketing_categories() :: [String.t()]
+  def marketing_categories do
+    sql = """
+    SELECT c.key FROM relay.categories c
+    WHERE c.message_class = 'marketing' AND c.state = 'active'
+    ORDER BY c.key
+    """
+
+    for row <- all(sql, []), do: row["key"]
   end
 
   defp one(sql, params), do: sql |> all(params) |> List.first()

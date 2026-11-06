@@ -1,0 +1,459 @@
+[
+  {
+    "name": "403_bot_blocked",
+    "raw": {
+      "code": "403_bot_blocked",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "ok": false,
+        "error_code": 403,
+        "description": "Forbidden: bot was blocked by the user"
+      }
+    }
+  },
+  {
+    "name": "403_user_deactivated",
+    "raw": {
+      "code": "403_user_deactivated",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "ok": false,
+        "error_code": 403,
+        "description": "Forbidden: user is deactivated"
+      }
+    }
+  },
+  {
+    "name": "403_bot_kicked",
+    "raw": {
+      "code": "403_bot_kicked",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "ok": false,
+        "error_code": 403,
+        "description": "Forbidden: bot was kicked from the group chat"
+      }
+    }
+  },
+  {
+    "name": "403_cant_initiate",
+    "raw": {
+      "code": "403_cant_initiate",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "ok": false,
+        "error_code": 403,
+        "description": "Forbidden: bot can't initiate conversation with a user"
+      }
+    }
+  },
+  {
+    "name": "403_not_member",
+    "raw": {
+      "code": "403_not_member",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "ok": false,
+        "error_code": 403,
+        "description": "Forbidden: bot is not a member of the channel chat"
+      }
+    }
+  },
+  {
+    "name": "400_chat_not_found",
+    "raw": {
+      "code": "400_chat_not_found",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "ok": false,
+        "error_code": 400,
+        "description": "Bad Request: chat not found"
+      }
+    }
+  },
+  {
+    "name": "400_chat_upgraded",
+    "raw": {
+      "code": "400_chat_upgraded",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "ok": false,
+        "error_code": 400,
+        "description": "Bad Request: group chat was upgraded to a supergroup chat"
+      }
+    }
+  },
+  {
+    "name": "400_message_too_long",
+    "raw": {
+      "code": "400_message_too_long",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "ok": false,
+        "error_code": 400,
+        "description": "Bad Request: message is too long"
+      }
+    }
+  },
+  {
+    "name": "400_cant_parse_entities",
+    "raw": {
+      "code": "400_cant_parse_entities",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "ok": false,
+        "error_code": 400,
+        "description": "Bad Request: can't parse entities: unsupported start tag"
+      }
+    }
+  },
+  {
+    "name": "400_message_text_empty",
+    "raw": {
+      "code": "400_message_text_empty",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "ok": false,
+        "error_code": 400,
+        "description": "Bad Request: message text is empty"
+      }
+    }
+  },
+  {
+    "name": "400_message_to_edit_not_found",
+    "raw": {
+      "code": "400_message_to_edit_not_found",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "ok": false,
+        "error_code": 400,
+        "description": "Bad Request: message to edit not found"
+      }
+    }
+  },
+  {
+    "name": "400_message_cant_be_edited",
+    "raw": {
+      "code": "400_message_cant_be_edited",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "ok": false,
+        "error_code": 400,
+        "description": "Bad Request: message can't be edited"
+      }
+    }
+  },
+  {
+    "name": "400_message_not_modified",
+    "raw": {
+      "code": "400_message_not_modified",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "ok": false,
+        "error_code": 400,
+        "description": "Bad Request: message is not modified"
+      }
+    }
+  },
+  {
+    "name": "401_unauthorized",
+    "raw": {
+      "code": "401_unauthorized",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "ok": false,
+        "error_code": 401,
+        "description": "Unauthorized"
+      }
+    }
+  },
+  {
+    "name": "404_not_found",
+    "raw": {
+      "code": "404_not_found",
+      "status": 404,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 404,
+      "body": {
+        "ok": false,
+        "error_code": 404,
+        "description": "Not Found"
+      }
+    }
+  },
+  {
+    "name": "429_too_many_requests",
+    "raw": {
+      "code": "429_too_many_requests",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "body": {
+        "ok": false,
+        "error_code": 429,
+        "description": "Too Many Requests: retry after 5",
+        "parameters": {
+          "retry_after": 5
+        }
+      }
+    }
+  },
+  {
+    "name": "http_500",
+    "raw": {
+      "code": "http_500",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": {
+        "ok": false,
+        "error_code": 500,
+        "description": "Internal Server Error"
+      }
+    }
+  },
+  {
+    "name": "http_502",
+    "raw": {
+      "code": "http_502",
+      "status": 502,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 502,
+      "body": {
+        "ok": false,
+        "error_code": 502,
+        "description": "Internal Server Error"
+      }
+    }
+  },
+  {
+    "name": "http_503",
+    "raw": {
+      "code": "http_503",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": {
+        "ok": false,
+        "error_code": 503,
+        "description": "Internal Server Error"
+      }
+    }
+  },
+  {
+    "name": "http_504",
+    "raw": {
+      "code": "http_504",
+      "status": 504,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 504,
+      "body": {
+        "ok": false,
+        "error_code": 504,
+        "description": "Internal Server Error"
+      }
+    }
+  },
+  {
+    "name": "credential_missing",
+    "raw": {
+      "code": "credential_missing",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  }
+]

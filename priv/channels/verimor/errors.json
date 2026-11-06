@@ -1,0 +1,346 @@
+[
+  {
+    "code": "send:INVALID_SOURCE_ADDRESS",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:NUMERIC_SOURCE_ADDRESS_NOT_ALLOWED",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:MISSING_IYS_BRAND_CODE",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:MISSING_MESSAGE",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:MESSAGE_TOO_LONG",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:INVALID_PERIOD",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:INVALID_DELIVERY_TIME",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:INVALID_DATACODING",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:INVALID_IYS_RECIPIENT_TYPE",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:MISSING_DESTINATION_ADDRESS",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:INVALID_UTF8",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:INVALID_JSON",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:FORBIDDEN_MESSAGE",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:INVALID_DESTINATION_ADDRESS",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:INVALID_RECIPIENT",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:MUKERRER_RAPORLAMA",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:MISSING_CONSENT",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:MISSING_CONSENT_DATE",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:INVALID_CONSENT_DATE",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:INSUFFICIENT_CREDITS",
+    "class": "quota",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "send:MESSAGE_COUNT_LIMIT_EXCEEDED",
+    "class": "quota",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "http:401",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "http:413",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "http:429",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "http:500",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "http:503",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "voice:400",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "voice:401",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "voice:403",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:NOT_DELIVERED",
+    "class": "transient",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:EXPIRED",
+    "class": "transient",
+    "condition": null,
+    "event_code": "expired",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:INVALID_DESTINATION_ADDRESS",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:REJECTED",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:DOUBLE_SEND_ERROR",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:BLACKLISTED_DESTINATION_ADDRESS",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:NOT_ALLOWED_BY_IYS",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:ROUTE_NOT_AVAILABLE",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:NETWORK_NOTCOVERED",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:INTERNATIONAL_DENIED",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:SEND_ERROR",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "call:Cevapsız",
+    "class": "transient",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "call:Reddedildi",
+    "class": "transient",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  {
+    "code": "call:Hata",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  }
+]

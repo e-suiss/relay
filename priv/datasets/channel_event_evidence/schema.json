@@ -260,6 +260,100 @@
       "pattern": "^[a-z][a-z0-9_]{1,31}$",
       "type": "string"
     },
+    "sms_catalog": {
+      "additionalProperties": false,
+      "description": "The SMS provider catalogue (CH-48, CH-51, CH-53, CH-75): the encodings the adapter names on every send, the Turkish single shift state with its device evidence, the BTK authorization of the route, the OTP product, the sender identity types and the per-country units the provider reserves before the text.",
+      "properties": {
+        "btk_authorized": {
+          "type": "boolean"
+        },
+        "encodings": {
+          "items": {
+            "enum": [
+              "GSM7",
+              "GSM7_TR",
+              "UCS2"
+            ]
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "otp_product": {
+          "type": "boolean"
+        },
+        "segment_reserve": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "country": {
+                "$ref": "#/$defs/country"
+              },
+              "septets": {
+                "maximum": 40,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "source": {
+                "$ref": "#/$defs/source"
+              }
+            },
+            "required": [
+              "country",
+              "septets",
+              "source"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "sender_types": {
+          "items": {
+            "enum": [
+              "alphanumeric",
+              "short_code",
+              "long_number",
+              "toll_free",
+              "ten_dlc"
+            ]
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "turkish_single_shift": {
+          "enum": [
+            "verified",
+            "unverified"
+          ]
+        },
+        "turkish_single_shift_evidence": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "encodings",
+        "turkish_single_shift",
+        "turkish_single_shift_evidence",
+        "btk_authorized",
+        "otp_product",
+        "sender_types",
+        "segment_reserve",
+        "source"
+      ],
+      "type": "object"
+    },
     "source": {
       "maxLength": 512,
       "minLength": 1,
@@ -505,9 +599,12 @@
                   "standard_webhooks",
                   "hmac_sha256",
                   "ed25519",
+                  "ecdsa_p256",
                   "jwt",
+                  "hmac_sha1_url",
                   "secret_token",
                   "basic_ip_allowlist",
+                  "sns_signature",
                   "none"
                 ]
               },
@@ -696,6 +793,9 @@
               "source"
             ],
             "type": "object"
+          },
+          "sms": {
+            "$ref": "#/$defs/sms_catalog"
           },
           "sources": {
             "items": {

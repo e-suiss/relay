@@ -1,0 +1,19 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/bot[^/]+/sendMessage"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "ok": true,
+      "result": {
+        "message_id": 1,
+        "chat": {
+          "id": 1000001
+        }
+      }
+    }
+  }
+}

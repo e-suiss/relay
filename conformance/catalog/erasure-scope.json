@@ -467,6 +467,24 @@
       "personal_columns": [],
       "tenant_close": "row kept; the secret reference is retired with the tenant's secrets",
       "subject_erasure": "not subject data"
+    },
+    {
+      "table": "messaging_targets",
+      "personal_columns": ["target_ct"],
+      "tenant_close": "tenant keys destroyed; row kept",
+      "subject_erasure": "recipient_profile data key destroyed, so target_ct is unreadable; the target is disabled with messaging.target_erased; row kept"
+    },
+    {
+      "table": "messaging_messages",
+      "personal_columns": [],
+      "tenant_close": "row kept; the message reference carries no content",
+      "subject_erasure": "the provider message references of the subject's targets are overwritten with erased; row kept"
+    },
+    {
+      "table": "whatsapp_templates",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
     }
   ],
   "locations": [

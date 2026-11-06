@@ -13,6 +13,9 @@ defmodule Relay.Channels.Request do
     * `timeout_ms`: the call timeout, the shortest of the message, channel and provider layers (CH-9); the adapter never waits longer.
     * `message_class`, `test?` (the test plane) and `overrides` (the request's channel overrides, API-23).
     * `push`: the push policy the channel step decided (`Relay.Channels.Push.Policy`), `nil` on the other channels.
+    * `encoding`: on SMS the explicit encoding of the send, `"GSM7"`, `"GSM7_TR"` or `"UCS2"` (CH-48); the adapter names it to the provider and never leaves it to the provider's detection.
+    * `product`: the provider product, `"otp"` for a `security` message on a provider with an OTP product, otherwise `"standard"` (CH-53).
+    * `update`: on a channel that updates messages, the provider message reference of the earlier message about the same subject in the same conversation, which the adapter edits in place instead of posting a new one (CH-23), or `nil`.
   """
 
   @enforce_keys [
@@ -42,7 +45,10 @@ defmodule Relay.Channels.Request do
     message_class: nil,
     test?: false,
     overrides: %{},
-    push: nil
+    push: nil,
+    encoding: nil,
+    product: "standard",
+    update: nil
   ]
 
   @type target :: %{
@@ -69,6 +75,9 @@ defmodule Relay.Channels.Request do
           message_class: String.t() | nil,
           test?: boolean(),
           overrides: map(),
-          push: map() | nil
+          push: map() | nil,
+          encoding: String.t() | nil,
+          product: String.t(),
+          update: String.t() | nil
         }
 end

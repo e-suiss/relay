@@ -1,0 +1,170 @@
+[
+  {
+    "code": "403_bot_blocked",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "403_user_deactivated",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "403_bot_kicked",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "403_cant_initiate",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "403_not_member",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "400_chat_not_found",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "400_chat_upgraded",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "400_message_too_long",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "400_cant_parse_entities",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "400_message_text_empty",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "400_message_to_edit_not_found",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "400_message_cant_be_edited",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "400_message_not_modified",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "401_unauthorized",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "404_not_found",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "429_too_many_requests",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_500",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_502",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_503",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_504",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  },
+  {
+    "code": "credential_missing",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7 auth; https://core.telegram.org/bots/api#making-requests (compiled 2026-11-05)"
+  }
+]

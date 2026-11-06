@@ -31,6 +31,8 @@ config :relay, Relay.Platform.Outbox, dispatcher: false
 
 config :relay, Relay.Delivery, auto_replay: false, channel: nil
 
+config :relay, Relay.Channels, http: [plug: {Req.Test, Relay.Channels.ProviderHttp}]
+
 config :relay, Relay.Platform.Leadership, enabled: false
 
 config :relay, Relay.Platform.LoadShed, watcher: false
@@ -65,3 +67,5 @@ config :relay, Relay.Operators.Access, adapter: RelayTest.Operators.Access, step
 config :relay, Relay.Operators, bootstrap_subject: "bootstrap-operator", authzen: :when_offered
 
 config :relay, Relay.Templates.Sandbox, timeout_ms: 1_000, email_timeout_ms: 1_000
+
+config :relay, Relay.Channels.Email.Esp, req_options: [plug: {Req.Test, Relay.Channels.Email.Esp}]

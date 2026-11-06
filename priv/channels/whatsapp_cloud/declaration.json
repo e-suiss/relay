@@ -1,0 +1,88 @@
+{
+  "provider": "whatsapp_cloud",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "whatsapp"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "§12.9 CH-57, CH-58, CH-59, CH-60, CH-61; Meta WhatsApp Cloud API (https://developers.facebook.com/docs/whatsapp/cloud-api), compiled 2026-11-05",
+    "Meta WhatsApp Cloud API error codes (https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes), compiled 2026-11-05",
+    "Meta Cloud API throughput and rate limits (https://developers.facebook.com/docs/whatsapp/throughput, /cloud-api/overview), compiled 2026-11-05"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "whatsapp": {
+      "delivery_receipts": true,
+      "read_receipts": true,
+      "collapse": false,
+      "ttl": false,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": true
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "no_auto_retry",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": "biz_opaque_callback_data",
+    "status_query": false,
+    "source": "§12.9.4 CH-60: the send endpoint has no idempotency key; Relay correlates with biz_opaque_callback_data and deduplicates the status webhooks itself"
+  },
+  "paid_channels": [
+    "whatsapp"
+  ],
+  "pricing": {
+    "currency": "USD",
+    "units": {
+      "whatsapp": "message"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [
+      {
+        "channel": "whatsapp",
+        "unit": "request",
+        "limit": 200,
+        "per_ms": 3600000,
+        "source": "Template management requests per app and business account per hour; Meta Cloud API throughput and rate limits (https://developers.facebook.com/docs/whatsapp/throughput, /cloud-api/overview), compiled 2026-11-05"
+      }
+    ],
+    "sender": [
+      {
+        "channel": "whatsapp",
+        "unit": "message",
+        "limit": 80,
+        "per_ms": 1000,
+        "source": "Default throughput of a business number; Meta Cloud API throughput and rate limits (https://developers.facebook.com/docs/whatsapp/throughput, /cloud-api/overview), compiled 2026-11-05"
+      }
+    ],
+    "recipient": [
+      {
+        "channel": "whatsapp",
+        "unit": "message",
+        "limit": 1,
+        "per_ms": 6000,
+        "source": "Pair rate limit of a business number and a user; Meta Cloud API throughput and rate limits (https://developers.facebook.com/docs/whatsapp/throughput, /cloud-api/overview), compiled 2026-11-05"
+      }
+    ]
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "US"
+    ],
+    "transfer_basis": "explicit_consent",
+    "scc_notified_on": null,
+    "source": "§12.1.4 CH-6; the Cloud API is hosted by Meta; Meta WhatsApp Cloud API (https://developers.facebook.com/docs/whatsapp/cloud-api), compiled 2026-11-05"
+  },
+  "inbound_verification": {
+    "method": "hmac_sha256",
+    "header": "x-hub-signature-256",
+    "authenticity": "verified",
+    "source": "§12.9.4 CH-60; Meta WhatsApp Cloud API (https://developers.facebook.com/docs/whatsapp/cloud-api), compiled 2026-11-05"
+  }
+}

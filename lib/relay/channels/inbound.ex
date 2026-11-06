@@ -6,7 +6,10 @@ defmodule Relay.Channels.Inbound do
     * `hmac/4`: an HMAC-SHA256 signature of the body in one header, hex or Base64, with an optional prefix, such as Meta's `X-Hub-Signature-256: sha256=<hex>` (CH-60).
     * `slack/4`: Slack's `v0` signature over `v0:timestamp:body` (CH-62).
     * `ed25519/4`: an Ed25519 signature of the body, or of a timestamp header followed by the body.
+    * `ecdsa/4`: an ECDSA P-256 signature of the body, or of a timestamp header followed by the body, such as SendGrid's signed Event Webhook.
     * `jwt/3`: a JWT signed with HS256, RS256 or ES256 whose `exp` and `nbf` hold at `now`; returns its claims.
+    * `hmac_sha1_url/4`: Twilio's `X-Twilio-Signature`, the Base64 HMAC-SHA1 of the full callback URL followed by the form parameters sorted by name, each name directly followed by its value.
+    * `url_token/2`: a compensating control, a shared token carried in the callback URL compared in constant time, for providers that sign nothing; its authenticity is declared `unverifiable`.
     * `secret_token/3`: a compensating control, a shared token in a header compared in constant time, such as Telegram's secret token; its authenticity is declared `unverifiable` (§12.1.2).
   """
 
@@ -112,6 +115,56 @@ defmodule Relay.Channels.Inbound do
     end
   end
 
+  # T-40
+  @doc "Verifies an ECDSA P-256 SHA-256 signature, DER and Base64 in `header`, with the provider's public key as Base64 DER `SubjectPublicKeyInfo` or PEM, such as SendGrid's signed Event Webhook. Options: `:header` (required) and `:timestamp_header`, whose value is signed before the body; with `:now` it must also be fresh."
+  @spec ecdsa(key(), binary(), headers(), keyword()) :: :ok | {:error, reason()}
+  def ecdsa(key, body, headers, opts) when is_binary(body) do
+    with {:ok, value} <- header(headers, Keyword.fetch!(opts, :header)),
+         {:ok, signature} <- decode(value, :base64),
+         {:ok, prefix} <- ecdsa_timestamp(headers, opts),
+         {:ok, public} <- ec_key(Relay.Redacted.expose(key)) do
+      if ecdsa?(prefix <> body, signature, public), do: :ok, else: {:error, :bad_signature}
+    end
+  end
+
+  defp ecdsa_timestamp(headers, opts) do
+    case {Keyword.get(opts, :timestamp_header), Keyword.get(opts, :now)} do
+      {nil, _now} -> {:ok, ""}
+      {name, nil} -> header(headers, name)
+      {_name, _now} -> signed_timestamp(headers, opts)
+    end
+  end
+
+  defp ec_key("-----BEGIN" <> _rest = pem) do
+    case public_key(pem) do
+      {:ok, {{:ECPoint, _point}, _params} = key} -> {:ok, key}
+      _other -> {:error, :bad_signature}
+    end
+  end
+
+  defp ec_key(encoded) when is_binary(encoded) do
+    with {:ok, der} <- Base.decode64(String.trim(encoded)),
+         {:ok, {{:ECPoint, _point}, _params} = key} <- spki(der) do
+      {:ok, key}
+    else
+      _invalid -> {:error, :bad_signature}
+    end
+  end
+
+  defp ec_key(_key), do: {:error, :bad_signature}
+
+  defp spki(der) do
+    {:ok, :public_key.pem_entry_decode({:SubjectPublicKeyInfo, der, :not_encrypted})}
+  rescue
+    _invalid -> :error
+  end
+
+  defp ecdsa?(payload, signature, public) do
+    :public_key.verify(payload, :sha256, signature, public)
+  rescue
+    _invalid -> false
+  end
+
   defp ed25519?(<<_::256>> = public, payload, <<_::512>> = signature),
     do: :crypto.verify(:eddsa, :none, payload, signature, [public, :ed25519])
 
@@ -203,6 +256,37 @@ defmodule Relay.Channels.Inbound do
         do: :ok,
         else: {:error, :bad_signature}
     end
+  end
+
+  # T-40
+  # TN-35
+  @doc "Verifies Twilio's `x-twilio-signature` over the callback `url` exactly as configured and the raw form-encoded body."
+  @spec hmac_sha1_url(key(), String.t(), binary(), headers()) ::
+          :ok | {:error, signature_reason()}
+  def hmac_sha1_url(key, url, body, headers) when is_binary(url) and is_binary(body) do
+    with {:ok, value} <- header(headers, "x-twilio-signature"),
+         {:ok, given} <- decode(value, :base64) do
+      signed =
+        body
+        |> URI.decode_query()
+        |> Enum.sort()
+        |> Enum.reduce(url, fn {name, param}, acc -> acc <> name <> param end)
+
+      mac = :crypto.mac(:hmac, :sha, Relay.Redacted.expose(key), signed)
+      if Relay.Crypto.secure_compare(mac, given), do: :ok, else: {:error, :bad_signature}
+    end
+  end
+
+  # CH-3
+  @doc "Checks a shared token carried in the callback URL in constant time: a compensating control whose authenticity is declared unverifiable."
+  @spec url_token(key(), String.t() | nil) :: :ok | {:error, signature_reason()}
+  def url_token(_key, nil), do: {:error, :missing_header}
+  def url_token(_key, ""), do: {:error, :missing_header}
+
+  def url_token(key, given) when is_binary(given) do
+    if Relay.Crypto.secure_compare(given, Relay.Redacted.expose(key)),
+      do: :ok,
+      else: {:error, :bad_signature}
   end
 
   defp header(headers, name) do

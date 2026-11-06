@@ -1,0 +1,130 @@
+[
+  {
+    "code": "credential_invalid",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7; TN-26"
+  },
+  {
+    "code": "configuration_invalid",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.1 CH-34"
+  },
+  {
+    "code": "sender_invalid",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.2 CH-35"
+  },
+  {
+    "code": "message_invalid",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.4 CH-38"
+  },
+  {
+    "code": "smtputf8_unsupported",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.11 CH-45"
+  },
+  {
+    "code": "http_400",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: request refused"
+  },
+  {
+    "code": "http_401",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: 401"
+  },
+  {
+    "code": "http_403",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: forbidden"
+  },
+  {
+    "code": "http_413",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: 413 payload too large"
+  },
+  {
+    "code": "http_429",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: 429"
+  },
+  {
+    "code": "http_5xx",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: 5xx"
+  },
+  {
+    "code": "http_402",
+    "class": "quota",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://documentation.mailgun.com/docs/mailgun/api-reference/send/mailgun/messages 402 request failed, plan"
+  },
+  {
+    "code": "http_404",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://documentation.mailgun.com/docs/mailgun/api-reference/send/mailgun/messages 404 domain not found"
+  },
+  {
+    "code": "event:failed:permanent",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "bounced",
+    "suppressed_success": false,
+    "source": "https://documentation.mailgun.com/docs/mailgun/user-manual/events/webhooks failed, severity permanent"
+  },
+  {
+    "code": "event:complained",
+    "class": "policy",
+    "condition": null,
+    "event_code": "complained",
+    "suppressed_success": false,
+    "source": "https://documentation.mailgun.com/docs/mailgun/user-manual/events/webhooks complained; §12.6.6 CH-40"
+  },
+  {
+    "code": "event:rejected",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://documentation.mailgun.com/docs/mailgun/user-manual/events/webhooks rejected: not accepted by Mailgun"
+  }
+]

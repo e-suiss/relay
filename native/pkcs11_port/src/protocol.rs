@@ -79,6 +79,10 @@ pub enum Op {
         label: Vec<u8>,
         id: Vec<u8>,
     },
+    StoreSecret {
+        label: Vec<u8>,
+        value: Zeroizing<Vec<u8>>,
+    },
 }
 
 /// Response status codes.
@@ -169,6 +173,7 @@ pub fn decode(frame: &[u8]) -> Result<(u32, Op), DecodeError> {
         5 => decode_hmac(&mut reader),
         6 => decode_read_secret(&mut reader),
         7 => decode_generate_key(&mut reader),
+        8 => decode_store_secret(&mut reader),
         _ => None,
     };
 
@@ -236,6 +241,15 @@ fn decode_generate_key(reader: &mut Reader<'_>) -> Option<Op> {
         return None;
     }
     Some(Op::GenerateKey { kind, label, id })
+}
+
+fn decode_store_secret(reader: &mut Reader<'_>) -> Option<Op> {
+    let label = reader.field()?.to_vec();
+    let value = Zeroizing::new(reader.field()?.to_vec());
+    if label.is_empty() || value.is_empty() {
+        return None;
+    }
+    Some(Op::StoreSecret { label, value })
 }
 
 /// Encodes a response frame body. The buffer is zeroized when dropped.
@@ -376,6 +390,31 @@ mod tests {
         ] {
             assert_eq!(
                 decode(&request(16, 7, &body)).unwrap_err().status,
+                Status::BadRequest
+            );
+        }
+    }
+
+    #[test]
+    fn tn_26_decodes_store_secret() {
+        let body = [field(b"slack-t1"), field(b"xoxb-1")].concat();
+        assert_eq!(
+            decode(&request(17, 8, &body)),
+            Ok((
+                17,
+                Op::StoreSecret {
+                    label: b"slack-t1".to_vec(),
+                    value: Zeroizing::new(b"xoxb-1".to_vec())
+                }
+            ))
+        );
+        for body in [
+            [field(b""), field(b"xoxb-1")].concat(),
+            [field(b"slack-t1"), field(b"")].concat(),
+            [field(b"slack-t1")].concat(),
+        ] {
+            assert_eq!(
+                decode(&request(18, 8, &body)).unwrap_err().status,
                 Status::BadRequest
             );
         }

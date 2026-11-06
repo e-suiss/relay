@@ -1,0 +1,284 @@
+[
+  {
+    "name": "credential_invalid",
+    "raw": {
+      "code": "credential_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "credential_invalid"
+    }
+  },
+  {
+    "name": "configuration_invalid",
+    "raw": {
+      "code": "configuration_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "configuration_invalid"
+    }
+  },
+  {
+    "name": "sender_invalid",
+    "raw": {
+      "code": "sender_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "sender_invalid"
+    }
+  },
+  {
+    "name": "message_invalid",
+    "raw": {
+      "code": "message_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "message_invalid"
+    }
+  },
+  {
+    "name": "smtputf8_unsupported",
+    "raw": {
+      "code": "smtputf8_unsupported",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "smtputf8_unsupported"
+    }
+  },
+  {
+    "name": "http_400",
+    "raw": {
+      "code": "http_400",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400
+    }
+  },
+  {
+    "name": "http_401",
+    "raw": {
+      "code": "http_401",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401
+    }
+  },
+  {
+    "name": "http_403",
+    "raw": {
+      "code": "http_403",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403
+    }
+  },
+  {
+    "name": "http_413",
+    "raw": {
+      "code": "http_413",
+      "status": 413,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 413
+    }
+  },
+  {
+    "name": "http_429",
+    "raw": {
+      "code": "http_429",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429
+    }
+  },
+  {
+    "name": "http_5xx",
+    "raw": {
+      "code": "http_5xx",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500
+    }
+  },
+  {
+    "name": "http_402",
+    "raw": {
+      "code": "http_402",
+      "status": 402,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 402
+    }
+  },
+  {
+    "name": "http_404",
+    "raw": {
+      "code": "http_404",
+      "status": 404,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 404
+    }
+  },
+  {
+    "name": "event:failed:permanent",
+    "raw": {
+      "code": "event:failed:permanent",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "bounced",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "event": "failed",
+        "severity": "permanent",
+        "recipient": "reader@example.com"
+      }
+    }
+  },
+  {
+    "name": "event:complained",
+    "raw": {
+      "code": "event:complained",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "complained",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "event": "complained",
+        "recipient": "reader@example.com"
+      }
+    }
+  },
+  {
+    "name": "event:rejected",
+    "raw": {
+      "code": "event:rejected",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "event": {
+        "event": "rejected",
+        "recipient": "reader@example.com"
+      }
+    }
+  }
+]

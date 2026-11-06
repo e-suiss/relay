@@ -107,7 +107,13 @@ defmodule Relay.Schema.ContractDriftTest do
     {"relay.devices", "devices_permission_check", {"schemas", ["DevicePermission"]}},
     {"relay.devices", "devices_state_check", {"schemas", ["DeviceState"]}},
     {"relay.devices", "devices_disabled_reason_check", {"schemas", ["DeviceDisabledReason"]}},
-    {"relay.devices", "devices_apns_environment_check", {"schemas", ["ApnsEnvironment"]}}
+    {"relay.devices", "devices_apns_environment_check", {"schemas", ["ApnsEnvironment"]}},
+    {"relay.whatsapp_templates", "whatsapp_templates_status_check",
+     {"schemas", ["WhatsappTemplateStatus"]}},
+    {"relay.whatsapp_templates", "whatsapp_templates_category_check",
+     {"schemas", ["WhatsappTemplateCategory"]}},
+    {"relay.whatsapp_templates", "whatsapp_templates_meta_category_check",
+     {"schemas", ["WhatsappTemplateCategory"]}}
   ]
 
   defp values(definition), do: ~r/'([^']*)'/ |> Regex.scan(definition) |> Enum.map(&List.last/1)

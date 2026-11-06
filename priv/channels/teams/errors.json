@@ -1,0 +1,178 @@
+[
+  {
+    "code": "ConversationBlockedByUser",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "BotNotInConversationRoster",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "ConversationNotFound",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "BotDisabledByAdmin",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "MessageSizeTooBig",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "BadArgument",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_401",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_403",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_404",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_412",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_413",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_429",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/how-to/rate-limit (compiled 2026-11-05)"
+  },
+  {
+    "code": "token_invalid_client",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/azure/bot-service/rest-api/bot-framework-rest-connector-authentication (compiled 2026-11-05)"
+  },
+  {
+    "code": "token_unauthorized_client",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/azure/bot-service/rest-api/bot-framework-rest-connector-authentication (compiled 2026-11-05)"
+  },
+  {
+    "code": "token_invalid_request",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/azure/bot-service/rest-api/bot-framework-rest-connector-authentication (compiled 2026-11-05)"
+  },
+  {
+    "code": "token_http_503",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/azure/bot-service/rest-api/bot-framework-rest-connector-authentication (compiled 2026-11-05)"
+  },
+  {
+    "code": "target_invalid",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.10 CH-62; https://learn.microsoft.com/microsoftteams/platform/bots/how-to/conversations/send-proactive-messages (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_500",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_502",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_503",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "http_504",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)"
+  },
+  {
+    "code": "credential_missing",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7 auth; https://learn.microsoft.com/azure/bot-service/rest-api/bot-framework-rest-connector-authentication (compiled 2026-11-05)"
+  }
+]

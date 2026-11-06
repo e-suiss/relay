@@ -56,6 +56,7 @@ defmodule Relay.Config do
     "RELAY_REGION",
     "RELAY_ACCESS_ISSUER",
     "RELAY_ACCESS_CLIENT_ID",
+    "RELAY_TRUSTED_PROXIES",
     "RELAY_CONNECTORS_FILE"
   ]
   @audit_keys [:log_host, :checkpoint_key, :publishers]

@@ -2,7 +2,7 @@ defmodule Relay.Access.Link do
   @moduledoc """
   The node's view of the Access link (E-40, E-78). PostgreSQL holds the durable cache (`relay.access_link`); this process owns an ETS table with the snapshot every request reads: the link state, the usable Access keys and the endpoints of discovery. A node starts without waiting for Access (E-5, E-75): before the first successful fetch the state is `:pending` and token verification answers `service_unavailable`.
 
-  `refresh/1` fetches the discovery documents and the key set, outside any transaction, writes the result through `relay_ops.access_link_store` and signals `relay:s:signal:access_link`; every node re-reads the row on the signal, on a re-read tick and every 30 seconds. A failed fetch keeps the last key set: the state becomes `:stale`, verification goes on and the state is visible in telemetry and the log. A link whose Access names another region is `:region_mismatch` and holds no keys (INV-41, TN-57). An unknown `kid` asks for an early refresh, at most once every 30 seconds (S-68).
+  `refresh/1` fetches the discovery documents (the OpenID document for the key set and the token endpoint, the Suiss configuration for the region, the management API and the event subscriptions; E-92) and the key set, outside any transaction, writes the result through `relay_ops.access_link_store` and signals `relay:s:signal:access_link`; every node re-reads the row on the signal, on a re-read tick and every 30 seconds. A failed fetch keeps the last key set: the state becomes `:stale`, verification goes on and the state is visible in telemetry and the log. A link whose Access names another region is `:region_mismatch` and holds no keys (INV-41, TN-57). An unknown `kid` asks for an early refresh, at most once every 30 seconds (S-68).
 
   With `config :relay, Relay.Access, autoload: false` the process neither reads the row nor subscribes by itself.
 
@@ -76,6 +76,7 @@ defmodule Relay.Access.Link do
   # E-40
   # E-75
   # E-78
+  # E-92
   # INV-41
   # INV-55
   @doc "Fetches the discovery documents and the key set of the configured issuer, records the result, signals the other nodes and reloads this one. Options: `:http`, extra `Req` options."
@@ -105,13 +106,15 @@ defmodule Relay.Access.Link do
   defp fetch(issuer, http) do
     with {:ok, document, raw} <- Http.get_json(Discovery.openid_url(issuer), http),
          {:ok, parsed} <- Discovery.parse(document, issuer),
+         {:ok, suiss_document, suiss_raw} <- Http.get_json(Discovery.suiss_url(issuer), http),
+         {:ok, suiss} <- Discovery.parse_suiss(suiss_document, issuer),
          {:ok, jwks, jwks_raw} <- Http.get_json(parsed.jwks_uri, http),
          {:ok, _keys, public} <- Jose.public_keys(jwks) do
       {:ok,
        %{
          document: document,
-         digest: :crypto.hash(:sha256, raw),
-         parsed: parsed,
+         digest: :crypto.hash(:sha256, [<<byte_size(raw)::64>>, raw, suiss_raw]),
+         suiss: suiss,
          jwks: public,
          jwks_digest: :crypto.hash(:sha256, jwks_raw),
          authzen: authzen(issuer, http)
@@ -134,9 +137,9 @@ defmodule Relay.Access.Link do
       jwks: fetched.jwks,
       discovery_digest: fetched.digest,
       jwks_digest: fetched.jwks_digest,
-      region: fetched.parsed.region,
-      management_api: fetched.parsed.management_api,
-      event_subscriptions: fetched.parsed.event_subscriptions
+      region: fetched.suiss.region,
+      management_api: fetched.suiss.management_api,
+      event_subscriptions: fetched.suiss.event_subscriptions
     }
   end
 

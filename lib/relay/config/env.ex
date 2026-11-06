@@ -1,6 +1,6 @@
 defmodule Relay.Config.Env do
   @moduledoc """
-  Readers for environment variables used by `config/runtime.exs`. Every reader fails at startup when a value is missing or malformed; none supplies a default.
+  Readers for environment variables used by `config/runtime.exs`. Every reader fails at startup when a value is missing or malformed; none supplies a default, except the trusted proxy list of `cidrs!/1`, which is empty when unset (E-91).
   """
 
   alias Relay.Config.Error
@@ -76,6 +76,40 @@ defmodule Relay.Config.Env do
         raise Error, "#{name} must be a redis:// or rediss:// URL"
     end
   end
+
+  # E-91
+  @doc "Parses an optional comma-separated list of CIDR ranges (`10.0.0.0/8`, `2001:db8::/32` or a single address); unset or empty is the empty list, and a malformed range stops the node."
+  @spec cidrs!(String.t()) :: [String.t()]
+  def cidrs!(name) do
+    name
+    |> System.get_env("")
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.map(&cidr!(&1, name))
+  end
+
+  defp cidr!(range, name) do
+    if cidr?(range), do: range, else: raise(Error, "#{name} names a malformed range: #{range}")
+  end
+
+  defp cidr?(range) do
+    case String.split(range, "/", parts: 2) do
+      [address] -> address(address) != nil
+      [address, bits] -> prefix?(address(address), Integer.parse(bits))
+    end
+  end
+
+  defp address(text) do
+    case :inet.parse_strict_address(String.to_charlist(text)) do
+      {:ok, ip} -> ip
+      {:error, _reason} -> nil
+    end
+  end
+
+  defp prefix?(ip, {bits, ""}) when tuple_size(ip) == 4, do: bits in 0..32
+  defp prefix?(ip, {bits, ""}) when tuple_size(ip) == 8, do: bits in 0..128
+  defp prefix?(_ip, _bits), do: false
 
   # T-3
   @doc "Parses a required comma-separated role list."

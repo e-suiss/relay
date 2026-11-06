@@ -4,23 +4,29 @@ defmodule Relay.Channels.Apns do
 
   The request carries the push policy of the channel step only (`Relay.Channels.Push.Policy`): `apns-priority`, the push type, the interruption level, `apns-collapse-id`, `apns-expiration` from the message's `expires_at`, and the content-free form with neutral text; a raw `apns.payload` or `apns.headers` override cannot change a policy field and its ignored paths are reported (CH-21). `apns-id` is the delivery identifier. APNs gives no delivery receipt: acceptance is never delivery (CH-32).
 
-  The account settings: `team_id`, `key_id`, `key_label` (the key store label of the `.p8` key), `bundle_id` and optionally `token_refresh_s` (1200 to 3600). The installation configuration `config :relay, Relay.Channels.Apns, origins: %{"production" => origin, "sandbox" => origin}, connection: opts` replaces the APNs hosts and the connection options.
+  The account settings: `team_id`, `key_id`, `key_label` (the key store label of the `.p8` key), `bundle_id` and optionally `token_refresh_s` (1200 to 3600).
+
+  The settings check signs a new provider token in the key store and sends a background push for the bundle to a well-formed device token no device holds, on the production host: APNs checks the token and the topic before the device, so `BadDeviceToken` says the team, key and bundle hold and nothing is delivered; `403` (`InvalidProviderToken`, `ExpiredProviderToken`) is a credential mismatch and a refused topic a `bundle_id` mismatch (CH-14, CH-52). The installation configuration `config :relay, Relay.Channels.Apns, origins: %{"production" => origin, "sandbox" => origin}, connection: opts` replaces the APNs hosts and the connection options.
   """
 
   @behaviour Relay.Channels.Adapter
 
   alias Relay.Channels.Push.Apns
+  alias Relay.Channels.Push.Apns.Token
   alias Relay.Channels.Push.Common
   alias Relay.Channels.Push.Failures
   alias Relay.Channels.Push.H2
   alias Relay.Channels.Push.Ttl
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
 
   @origins %{
     "production" => {:https, "api.push.apple.com", 443},
     "sandbox" => {:https, "api.sandbox.push.apple.com", 443}
   }
   @settings ~w(team_id key_id key_label bundle_id)
+  @check_device String.duplicate("0", 64)
+  @topic_refused ~w(BadTopic TopicDisallowed MissingTopic)
 
   @impl Relay.Channels.Adapter
   def provider, do: "apns"
@@ -49,6 +55,66 @@ defmodule Relay.Channels.Apns do
   # DS-11
   @impl Relay.Channels.Adapter
   def decode(response), do: %{code: Failures.code(:apns, response)}
+
+  # CH-14
+  # CH-52
+  # TN-29
+  @impl Relay.Channels.Adapter
+  def check_settings(%{account: account, timeout_ms: timeout_ms}) do
+    settings = Map.get(account, "settings") || %{}
+
+    with :ok <- SettingsCheck.required(settings, @settings) do
+      now = DateTime.to_unix(Relay.Clock.utc_now())
+      token = Token.new(settings["team_id"], settings["key_id"], settings["key_label"])
+
+      case Token.current(token, now) do
+        {:ok, jwt, _state} -> probe(account, settings, jwt, timeout_ms)
+        {:error, error, _state} -> SettingsCheck.key_store(error, "key_label")
+      end
+    end
+  end
+
+  defp probe(account, settings, jwt, timeout_ms) do
+    origins = Common.config(__MODULE__, :origins, @origins)
+    origin = Map.get(origins, "production")
+
+    key =
+      {account["environment"], "apns", origin, settings["team_id"], settings["key_id"], :check}
+
+    h2 = %{
+      method: "POST",
+      path: "/3/device/" <> @check_device,
+      headers: [
+        {"authorization", "bearer " <> jwt},
+        {"apns-topic", settings["bundle_id"]},
+        {"apns-push-type", "background"},
+        {"apns-priority", "5"},
+        {"content-type", "application/json"}
+      ],
+      body: ~s({"aps":{"content-available":1}})
+    }
+
+    opts = Common.config(__MODULE__, :connection, [])
+
+    case H2.request(account["tenant_id"], key, origin, nil, h2, timeout_ms, opts) do
+      {:ok, response} -> checked(response, settings["bundle_id"])
+      {_transport, reason} -> {:error, reason}
+    end
+  end
+
+  defp checked(%{status: status, body: body}, bundle) do
+    code = Failures.code(:apns, %{"status" => status, "body" => body})
+
+    case {status, code} do
+      {200, _code} -> :ok
+      {400, "400/BadDeviceToken"} -> :ok
+      {400, "400/" <> reason} when reason in @topic_refused -> topic(bundle, reason)
+      {403, _code} -> SettingsCheck.credentials(code)
+      {_status, _code} -> {:error, code}
+    end
+  end
+
+  defp topic(bundle, reason), do: SettingsCheck.mismatch("bundle_id", bundle, reason)
 
   defp origin(request) do
     origins = Common.config(__MODULE__, :origins, @origins)

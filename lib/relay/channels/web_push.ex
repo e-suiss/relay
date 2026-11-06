@@ -5,6 +5,8 @@ defmodule Relay.Channels.WebPush do
   The push carries the push policy of the channel step only (`Relay.Channels.Push.Policy`): `TTL` from the message's `expires_at`, `Urgency` from the interruption level, never above the class urgency (CH-65 (3)), and `Topic` from the subject (CH-23). There is no silent Web Push: a `system` message is refused (CH-26). A content-free push carries the opaque identifier and neutral text only (CH-33, CH-67). A raw `web_push.payload` override is merged deeply into the classic payload and cannot change the opaque identifier or the topic; its ignored paths are reported as `override_ignored`, and a content-free push drops it (CH-21). Acceptance (201) is never delivery (CH-32).
 
   The account settings: `vapid_subject` (`mailto:` or `https:`) and `vapid_keys`, by web application the list of its VAPID keys newest first, each with its key store `label` and base64url `public_key` (C-26, TN-31).
+
+  The settings check calls no push service, since a push service knows no account: it checks the identity in the key store, every listed key being held there with the listed public key and signing a token that the public key verifies (CH-14, CH-52). The test send of CH-14 is an operator's test send to a subscribed browser.
   """
 
   @behaviour Relay.Channels.Adapter
@@ -20,6 +22,7 @@ defmodule Relay.Channels.WebPush do
   alias Relay.Channels.Push.WebPush
   alias Relay.Channels.Push.WebPush.Vapid
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
 
   @renew_before 3_600
 
@@ -37,6 +40,67 @@ defmodule Relay.Channels.WebPush do
   # DS-11
   @impl Relay.Channels.Adapter
   def decode(response), do: %{code: Failures.code(:web_push, response)}
+
+  # CH-14
+  # CH-52
+  @impl Relay.Channels.Adapter
+  def check_settings(%{account: account}), do: check_vapid(account, true)
+
+  # CH-14
+  # CH-52
+  # TN-31
+  @doc "Checks the VAPID identity of a Web Push or UnifiedPush account in the key store: every listed key of every web application is held there with its listed public key and signs a token that key verifies. `required?` says whether the account must carry an identity."
+  @spec check_vapid(map(), boolean()) :: Relay.Channels.Adapter.check_result()
+  def check_vapid(account, required?) do
+    settings = Map.get(account, "settings") || %{}
+
+    case settings do
+      %{"vapid_keys" => %{} = apps} when map_size(apps) > 0 ->
+        apps |> Map.keys() |> Enum.sort() |> Enum.find_value(:ok, &check_app(settings, &1))
+
+      _none when required? ->
+        SettingsCheck.mismatch("vapid_keys", "set", nil)
+
+      _none ->
+        :ok
+    end
+  end
+
+  defp check_app(settings, app) do
+    case identity(settings, app) do
+      {:ok, identity} -> Enum.find_value(identity.keys, &check_key(identity, &1))
+      _invalid -> SettingsCheck.mismatch("vapid_keys", "valid", app)
+    end
+  end
+
+  defp check_key(identity, key) do
+    with {:ok, public} <- Relay.Keys.public_key(:es256, key.label),
+         true <- public == key.public_key || :public_differs,
+         {:ok, token} <- sign_check(identity, key),
+         true <- verified?(token, public) || :signature_invalid do
+      nil
+    else
+      :public_differs -> SettingsCheck.mismatch("vapid_public_key", key.label, "differs")
+      :signature_invalid -> SettingsCheck.mismatch("vapid_key", key.label, "signature_invalid")
+      {:error, %Relay.Error{} = error} -> SettingsCheck.key_store(error, "vapid_key")
+    end
+  end
+
+  defp sign_check(identity, key),
+    do: Jwt.sign(:es256, key.label, [{"typ", "JWT"}], [{"sub", identity.subject}])
+
+  defp verified?(token, public) do
+    [header, claims, signature] = String.split(token, ".")
+
+    case Jwt.decode64(signature) do
+      {:ok, <<r::256, s::256>>} ->
+        der = :public_key.der_encode(:"ECDSA-Sig-Value", {:"ECDSA-Sig-Value", r, s})
+        :crypto.verify(:ecdsa, :sha256, header <> "." <> claims, der, [public, :secp256r1])
+
+      _other ->
+        false
+    end
+  end
 
   # CH-26
   # TN-31

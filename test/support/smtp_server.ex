@@ -30,7 +30,7 @@ defmodule RelayTest.SmtpServer do
   end
 
   @doc """
-  Starts a server and returns its port. Options: `:mode` (`:implicit`, `:starttls` or `:plain`), `:tls` (the server options of `certificates/1`), `:starttls` (whether `STARTTLS` is offered, default true outside `:plain`), `:auth` (whether `AUTH PLAIN` is offered), `:greeting`, `:mail`, `:rcpt` and `:data` (the replies), `:hang` (no reply after the end of data), and `:owner`, the process that receives the session.
+  Starts a server and returns its port. Options: `:mode` (`:implicit`, `:starttls` or `:plain`), `:tls` (the server options of `certificates/1`), `:starttls` (whether `STARTTLS` is offered, default true outside `:plain`), `:auth` (whether `AUTH PLAIN` is offered), `:auth_reply`, `:greeting`, `:mail`, `:rcpt` and `:data` (the replies), `:hang` (no reply after the end of data), and `:owner`, the process that receives the session.
   """
   @spec start(keyword()) :: {:ok, :inet.port_number()}
   def start(opts) do
@@ -130,8 +130,8 @@ defmodule RelayTest.SmtpServer do
     end
   end
 
-  defp handle("AUTH", line, socket, session, _ctx) do
-    reply(socket, "235 2.7.0 authenticated")
+  defp handle("AUTH", line, socket, session, ctx) do
+    reply(socket, Keyword.get(ctx.opts, :auth_reply, "235 2.7.0 authenticated"))
     {:loop, socket, %{session | auth: line}}
   end
 

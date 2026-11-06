@@ -144,6 +144,40 @@ defmodule RelayWeb.Api.ChannelManagementTest do
       path = "/v1/provider_accounts/" <> pva(account!(ctx.other))
       assert F.body(F.request(:get, path, ctx.token), 404)["code"] == "provider_account_not_found"
     end
+
+    test "CH-14, CH-52: asking for a verification marks the account pending and queues its check",
+         ctx do
+      id = account!(ctx.scope)
+      path = "/v1/provider_accounts/" <> pva(id) <> "/verify"
+
+      body = F.body(F.request(:post, path, ctx.token), 202)
+      assert %{"id" => listed, "verification_state" => "pending", "version" => 2} = body
+      assert listed == pva(id)
+
+      assert [[Relay.Id.to_string(id)]] ==
+               F.jobs("Relay.Channels.Live.SettingsCheck", ctx.scope, "provider_account_id")
+
+      missing = "/v1/provider_accounts/" <> pva(Relay.Id.generate()) <> "/verify"
+      not_found = F.body(F.request(:post, missing, ctx.token), 404)
+      assert not_found["code"] == "provider_account_not_found"
+    end
+
+    test "CH-14: a verified account stays verified and an archived one is refused", ctx do
+      id = account!(ctx.scope)
+      actor = TenantFixture.actor()
+      verified = Relay.Channels.verify_account(ctx.scope, id, "verified", nil, digest(), actor)
+      assert verified == {:ok, :changed}
+      path = "/v1/provider_accounts/" <> pva(id) <> "/verify"
+
+      body = F.body(F.request(:post, path, ctx.token), 202)
+      assert %{"verification_state" => "verified", "version" => 2} = body
+
+      {:ok, {:archived, _version}} =
+        Relay.Channels.archive_account(ctx.scope, id, digest(), actor)
+
+      refused = F.body(F.request(:post, path, ctx.token), 409)
+      assert refused["code"] == "provider_account_archived"
+    end
   end
 
   describe "C-25 sender identities on the server API" do

@@ -187,6 +187,9 @@ defmodule RelayWeb.Router do
     patch "/provider_accounts/:provider_account_id", ChannelController, :update_account,
       private: %{relay_operation: "updateProviderAccount"}
 
+    post "/provider_accounts/:provider_account_id/verify", ChannelController, :verify_account,
+      private: %{relay_operation: "verifyProviderAccount"}
+
     get "/sender_identities", ChannelController, :senders,
       private: %{relay_operation: "listSenderIdentities"}
 

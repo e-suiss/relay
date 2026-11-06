@@ -7,16 +7,21 @@ defmodule Relay.Channels.Teams do
     * A message about a subject that already has an activity in the conversation updates that activity (CH-23); an activity Teams no longer knows is posted again. The provider message reference is the activity ID.
 
   Teams gives no delivery or read information; `Action.Execute`, messages and installation updates arrive at the bot's messaging endpoint and are recorded as events only. The raw code of a failure is the Bot Framework `error.code`, `http_<status>` without one, and `token_<error>` for a failed token request.
+
+  The settings check takes a Bot Framework access token with the bot's identity and sends nothing to Teams: a token endpoint that refuses the client (`invalid_client`, `unauthorized_client`, `401`) is a credential mismatch (CH-14, CH-52).
   """
 
   @behaviour Relay.Channels.Adapter
 
   alias Relay.Channels.Messaging
+  alias Relay.Channels.ProviderHttp
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
 
   @login "https://login.microsoftonline.com/"
   @scope "https://api.botframework.com/.default"
   @hosts ~r/(\A|\.)(botframework\.com|trafficmanager\.net|botframework\.azure\.us)\z/
+  @refused ~w(invalid_client unauthorized_client invalid_request invalid_grant)
 
   @impl Relay.Channels.Adapter
   def provider, do: "teams"
@@ -39,15 +44,62 @@ defmodule Relay.Channels.Teams do
     end
   end
 
-  defp identity(request) do
-    with value when is_binary(value) <- Messaging.credential(request),
-         {:ok, %{"app_id" => id, "app_password" => password} = identity}
-         when is_binary(id) and is_binary(password) <- Jason.decode(value) do
-      {:ok, %{id: id, password: password, tenant: Map.get(identity, "tenant_id")}}
-    else
-      _missing -> {:rejected, %{code: "credential_missing", status: nil}}
+  # CH-14
+  # CH-52
+  @impl Relay.Channels.Adapter
+  def check_settings(%{credentials: credentials, timeout_ms: timeout_ms}) do
+    value = if credentials, do: Relay.Redacted.expose(credentials)
+
+    case parse_identity(value) do
+      {:ok, identity} ->
+        http = token_request(identity)
+
+        case ProviderHttp.call(http, timeout_ms) do
+          {:ok, %Req.Response{status: 400, body: body}} -> token_refused(body)
+          answer -> SettingsCheck.read(answer, &token_checked/1)
+        end
+
+      :error ->
+        SettingsCheck.credentials(nil)
     end
   end
+
+  defp token_checked(%Req.Response{status: 200, body: body}) do
+    case Messaging.json(body) do
+      %{"access_token" => token} when is_binary(token) -> :ok
+      _other -> {:error, "token_unexpected_response"}
+    end
+  end
+
+  defp token_checked(%Req.Response{status: status}),
+    do: {:error, "token_" <> Messaging.http_code(status)}
+
+  defp token_refused(body) do
+    case Messaging.json(body) do
+      %{"error" => error} when error in @refused -> SettingsCheck.credentials("token_" <> error)
+      _other -> {:error, "token_http_400"}
+    end
+  end
+
+  defp identity(request) do
+    case parse_identity(Messaging.credential(request)) do
+      {:ok, identity} -> {:ok, identity}
+      :error -> {:rejected, %{code: "credential_missing", status: nil}}
+    end
+  end
+
+  defp parse_identity(%{"app_id" => id, "app_password" => password} = identity)
+       when is_binary(id) and is_binary(password),
+       do: {:ok, %{id: id, password: password, tenant: Map.get(identity, "tenant_id")}}
+
+  defp parse_identity(value) when is_binary(value) do
+    case Jason.decode(value) do
+      {:ok, %{} = identity} -> parse_identity(identity)
+      _invalid -> :error
+    end
+  end
+
+  defp parse_identity(_value), do: :error
 
   # CH-62
   @doc "Parses a stored conversation reference; only an `https` service URL of a Bot Framework host is accepted."
@@ -71,10 +123,10 @@ defmodule Relay.Channels.Teams do
     end
   end
 
-  defp token(request, identity, opts) do
+  defp token_request(identity) do
     tenant = if is_binary(identity.tenant), do: identity.tenant, else: "botframework.com"
 
-    http = [
+    [
       method: :post,
       url: @login <> URI.encode(tenant) <> "/oauth2/v2.0/token",
       form: [
@@ -84,6 +136,10 @@ defmodule Relay.Channels.Teams do
         scope: @scope
       ]
     ]
+  end
+
+  defp token(request, identity, opts) do
+    http = token_request(identity)
 
     case Messaging.send(request, Keyword.merge(http, opts)) do
       {:ok, %{status: 200, body: body}} -> access_token(body)

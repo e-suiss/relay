@@ -34,6 +34,12 @@ defmodule RelayWeb.Api.ChannelController do
   def update_account(conn, params),
     do: update(conn, :account, params, &ChannelManagement.update_account/5)
 
+  # CH-14
+  # CH-52
+  @spec verify_account(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def verify_account(conn, params),
+    do: act(conn, :account, params, &ChannelManagement.verify_account/3)
+
   # C-25
   # API-56
   @spec senders(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -110,16 +116,16 @@ defmodule RelayWeb.Api.ChannelController do
     end
   end
 
-  defp archive(conn, kind, params) do
+  defp archive(conn, kind, params),
+    do: act(conn, kind, params, &ChannelManagement.archive(&1, kind, &2, &3))
+
+  defp act(conn, kind, params, action) do
     scope = conn.assigns.scope
     actor = Work.actor(conn)
 
     case path_id(kind, params) do
-      {:ok, id} ->
-        Work.idempotent(conn, fn _status -> ChannelManagement.archive(scope, kind, id, actor) end)
-
-      {:error, error} ->
-        Response.problem(conn, error)
+      {:ok, id} -> Work.idempotent(conn, fn _status -> action.(scope, id, actor) end)
+      {:error, error} -> Response.problem(conn, error)
     end
   end
 

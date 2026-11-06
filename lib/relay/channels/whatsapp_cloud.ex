@@ -39,15 +39,15 @@ defmodule Relay.Channels.WhatsappCloud do
     end
   end
 
-  defp token(%Relay.Redacted{} = credentials) do
+  defp token(nil), do: rejected("credentials_missing")
+
+  defp token(credentials) do
     case Relay.Redacted.expose(credentials) do
       value when is_binary(value) and value != "" -> {:ok, value}
       %{"access_token" => value} when is_binary(value) and value != "" -> {:ok, value}
       _other -> rejected("credentials_missing")
     end
   end
-
-  defp token(_credentials), do: rejected("credentials_missing")
 
   defp phone_number_id(%{"settings" => %{"phone_number_id" => id}}) when is_binary(id) do
     if Regex.match?(@phone_number_id, id), do: {:ok, id}, else: rejected("sender_missing")

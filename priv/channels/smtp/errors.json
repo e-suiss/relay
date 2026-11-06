@@ -1,0 +1,746 @@
+[
+  {
+    "code": "smtputf8_unsupported",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.11 CH-45"
+  },
+  {
+    "code": "message_invalid",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.4 CH-38"
+  },
+  {
+    "code": "sender_invalid",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.2 CH-35"
+  },
+  {
+    "code": "signing_key_invalid",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.3 CH-36"
+  },
+  {
+    "code": "configuration_invalid",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.1 CH-34"
+  },
+  {
+    "code": "tls_failed",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.1 CH-34 T-39"
+  },
+  {
+    "code": "tls_unavailable",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.1 CH-34 T-39"
+  },
+  {
+    "code": "auth_unavailable",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.1 CH-34"
+  },
+  {
+    "code": "auth_failed",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7"
+  },
+  {
+    "code": "smtp_4xx",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: SMTP 4xx"
+  },
+  {
+    "code": "smtp_5xx",
+    "class": "unknown",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.2 CH-8: a permanent reply without a status code is not guessed"
+  },
+  {
+    "code": "5.1.1",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "bounced",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.1.1 bad destination mailbox address; §12.6.5"
+  },
+  {
+    "code": "5.1.2",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "bounced",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.1.2 bad destination system address"
+  },
+  {
+    "code": "5.1.3",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "bounced",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.1.3 bad destination mailbox address syntax"
+  },
+  {
+    "code": "5.1.6",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "bounced",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.1.6 destination mailbox has moved, no forwarding address"
+  },
+  {
+    "code": "5.1.10",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "bounced",
+    "suppressed_success": false,
+    "source": "RFC 7505 X.1.10 recipient address has null MX; §12.6.5"
+  },
+  {
+    "code": "5.2.1",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "bounced",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.2.1 mailbox disabled, not accepting messages; §12.6.5"
+  },
+  {
+    "code": "5.1.7",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.1.7 bad sender's mailbox address syntax"
+  },
+  {
+    "code": "5.1.8",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.1.8 bad sender's system address"
+  },
+  {
+    "code": "5.2.2",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.2.2 mailbox full; §12.6.5"
+  },
+  {
+    "code": "5.2.3",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.2.3 message length exceeds administrative limit"
+  },
+  {
+    "code": "5.3.4",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.3.4 message too big for system"
+  },
+  {
+    "code": "5.7.1",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.7.1 delivery not authorized, message refused; spam filter refusals"
+  },
+  {
+    "code": "5.7.20",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 7372 X.7.20 no passing DKIM signature found"
+  },
+  {
+    "code": "5.7.21",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 7372 X.7.21 no acceptable DKIM signature found"
+  },
+  {
+    "code": "5.7.22",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 7372 X.7.22 no valid author-matched DKIM signature found"
+  },
+  {
+    "code": "5.7.23",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 7372 X.7.23 SPF validation failed"
+  },
+  {
+    "code": "5.7.24",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 7372 X.7.24 SPF validation error"
+  },
+  {
+    "code": "5.7.25",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 7372 X.7.25 reverse DNS validation failed"
+  },
+  {
+    "code": "5.7.26",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 7372 X.7.26 multiple authentication checks failed; Gmail DMARC refusal; §12.2.1"
+  },
+  {
+    "code": "5.7.27",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 7505 X.7.27 sender address has null MX; §12.2.1"
+  },
+  {
+    "code": "5.7.30",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 and §12.6.5 SPF or DKIM refusal"
+  },
+  {
+    "code": "5.7.515",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "Microsoft consumer mailboxes: the sending domain does not meet the required authentication level; §12.2.1"
+  },
+  {
+    "code": "4.0.0",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.1.0",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.1.1",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.1.2",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.1.3",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.1.4",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.1.5",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.1.6",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.1.7",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.1.8",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.2.0",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.2.1",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.2.2",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.2.3",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.2.4",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.3.0",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.3.1",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.3.2",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.3.3",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.3.4",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.3.5",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.4.0",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.4.1",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.4.2",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.4.3",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.4.4",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.4.5",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.4.6",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.4.7",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.5.0",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.5.1",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.5.2",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.5.3",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.5.4",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.5.5",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.6.0",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.6.1",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.6.2",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.6.3",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.6.4",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.7.0",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.7.1",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.7.2",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.7.3",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.7.4",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.7.5",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.7.6",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "4.7.7",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 class 4 persistent transient failure; email_bounce_codes prefix 4"
+  },
+  {
+    "code": "5.6.0",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.6 message content or media status; email_bounce_codes prefix 5.6"
+  },
+  {
+    "code": "5.6.1",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.6 message content or media status; email_bounce_codes prefix 5.6"
+  },
+  {
+    "code": "5.6.2",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.6 message content or media status; email_bounce_codes prefix 5.6"
+  },
+  {
+    "code": "5.6.3",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.6 message content or media status; email_bounce_codes prefix 5.6"
+  },
+  {
+    "code": "5.6.4",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.6 message content or media status; email_bounce_codes prefix 5.6"
+  },
+  {
+    "code": "5.7.0",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.7 security or policy status; email_bounce_codes prefix 5.7"
+  },
+  {
+    "code": "5.7.2",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.7 security or policy status; email_bounce_codes prefix 5.7"
+  },
+  {
+    "code": "5.7.3",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.7 security or policy status; email_bounce_codes prefix 5.7"
+  },
+  {
+    "code": "5.7.4",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.7 security or policy status; email_bounce_codes prefix 5.7"
+  },
+  {
+    "code": "5.7.5",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.7 security or policy status; email_bounce_codes prefix 5.7"
+  },
+  {
+    "code": "5.7.6",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.7 security or policy status; email_bounce_codes prefix 5.7"
+  },
+  {
+    "code": "5.7.7",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "RFC 3463 X.7 security or policy status; email_bounce_codes prefix 5.7"
+  }
+]

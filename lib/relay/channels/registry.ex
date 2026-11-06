@@ -5,7 +5,7 @@ defmodule Relay.Channels.Registry do
 
   alias Relay.ChannelDeclarations
 
-  @adapters [Relay.Channels.Fake, Relay.Channels.WhatsappCloud]
+  @adapters [Relay.Channels.Fake, Relay.Channels.Smtp, Relay.Channels.WhatsappCloud]
 
   @type missing :: ChannelDeclarations.missing() | :channels
   @type status :: %{

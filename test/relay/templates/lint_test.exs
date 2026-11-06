@@ -157,6 +157,19 @@ defmodule Relay.Templates.LintTest do
       opts = [message_class: "transactional"]
       assert LegalFooter.check([variant(%{helpers: []})], %{}, opts) == []
     end
+
+    test "CH-56: a commercial voice variant names its sender by the trade name in every country" do
+      opts = [message_class: "marketing", country: "DE"]
+      voice = variant(%{channel: :voice})
+
+      assert [%{check: :voice_trade_name, level: :hard, channel: :voice}] =
+               LegalFooter.check([voice], %{}, opts)
+
+      assert LegalFooter.check([voice], %{"legal_name" => "Örnek A.Ş."}, opts) == []
+
+      tr = [message_class: "marketing", country: "TR"]
+      assert LegalFooter.check([voice], @brand_tr, tr) == []
+    end
   end
 
   describe "TP-34 accessibility" do

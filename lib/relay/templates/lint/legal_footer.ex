@@ -5,6 +5,8 @@ defmodule Relay.Templates.Lint.LegalFooter do
   A variant is `%{channel: atom, locale: String.t(), helpers: [String.t()], opt_out: String.t() | nil}`: `helpers` are the render helpers the parsed template uses and `opt_out` is the resolved opt-out instruction of that channel (the SMS opt-out short code text, the e-mail `unsubscribe_url`). Brand fields are a map with string keys and without the `brand.` prefix.
 
   Required per country: `TR` needs `legal_name`, `mersis` or `contact` and the opt-out instruction, while the helper itself appends the commercial message mark from Relay's system text (TP-60); `US` needs `postal_address`. Other countries need the helper only.
+
+  A commercial voice variant names its sender by the trade name, not by an SMS header (CH-56): in every country it needs the brand's `legal_name`, the `voice_trade_name` hard finding otherwise.
   """
 
   alias Relay.Templates.Finding
@@ -57,6 +59,8 @@ defmodule Relay.Templates.Lint.LegalFooter do
         do: [],
         else: [Finding.new(:legal_footer_missing, :hard, fields)]
 
+    helper = helper ++ trade_name(variant, brand, fields)
+
     case missing(brand, variant, country) do
       [] ->
         helper
@@ -66,6 +70,15 @@ defmodule Relay.Templates.Lint.LegalFooter do
         helper ++ [Finding.new(:legal_footer_fields, :hard, [detail: detail] ++ fields)]
     end
   end
+
+  # CH-56
+  defp trade_name(%{channel: :voice}, brand, fields) do
+    if blank?(brand["legal_name"]),
+      do: [Finding.new(:voice_trade_name, :hard, fields)],
+      else: []
+  end
+
+  defp trade_name(_variant, _brand, _fields), do: []
 
   defp blank?(value) when is_binary(value), do: String.trim(value) == ""
   defp blank?(_value), do: true

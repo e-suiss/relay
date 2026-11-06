@@ -1,0 +1,603 @@
+[
+  {
+    "name": "status:UNDELIVERABLE_REJECTED_OPERATOR",
+    "raw": {
+      "code": "status:UNDELIVERABLE_REJECTED_OPERATOR",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "UNDELIVERABLE_REJECTED_OPERATOR"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:UNDELIVERABLE_NOT_DELIVERED",
+    "raw": {
+      "code": "status:UNDELIVERABLE_NOT_DELIVERED",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "UNDELIVERABLE_NOT_DELIVERED"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:UNDELIVERABLE_NOT_SENT",
+    "raw": {
+      "code": "status:UNDELIVERABLE_NOT_SENT",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "UNDELIVERABLE_NOT_SENT"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:UNDELIVERABLE_REJECTED_PLATFORM",
+    "raw": {
+      "code": "status:UNDELIVERABLE_REJECTED_PLATFORM",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "UNDELIVERABLE_REJECTED_PLATFORM"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:EXPIRED_EXPIRED",
+    "raw": {
+      "code": "status:EXPIRED_EXPIRED",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": null,
+      "event_code": "expired",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "EXPIRED_EXPIRED"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_NETWORK",
+    "raw": {
+      "code": "status:REJECTED_NETWORK",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_NETWORK"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_PREFIX_MISSING",
+    "raw": {
+      "code": "status:REJECTED_PREFIX_MISSING",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_PREFIX_MISSING"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_DND",
+    "raw": {
+      "code": "status:REJECTED_DND",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_DND"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_SOURCE",
+    "raw": {
+      "code": "status:REJECTED_SOURCE",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_SOURCE"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_NOT_ENOUGH_CREDITS",
+    "raw": {
+      "code": "status:REJECTED_NOT_ENOUGH_CREDITS",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_NOT_ENOUGH_CREDITS"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_SENDER",
+    "raw": {
+      "code": "status:REJECTED_SENDER",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_SENDER"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_DESTINATION_BLOCKLISTED",
+    "raw": {
+      "code": "status:REJECTED_DESTINATION_BLOCKLISTED",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_DESTINATION_BLOCKLISTED"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_PREPAID_PACKAGE_EXPIRED",
+    "raw": {
+      "code": "status:REJECTED_PREPAID_PACKAGE_EXPIRED",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_PREPAID_PACKAGE_EXPIRED"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_DESTINATION_NOT_REGISTERED",
+    "raw": {
+      "code": "status:REJECTED_DESTINATION_NOT_REGISTERED",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_DESTINATION_NOT_REGISTERED"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_ROUTE_NOT_AVAILABLE",
+    "raw": {
+      "code": "status:REJECTED_ROUTE_NOT_AVAILABLE",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_ROUTE_NOT_AVAILABLE"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_FLOODING_FILTER",
+    "raw": {
+      "code": "status:REJECTED_FLOODING_FILTER",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_FLOODING_FILTER"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_SYSTEM_ERROR",
+    "raw": {
+      "code": "status:REJECTED_SYSTEM_ERROR",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_SYSTEM_ERROR"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_INVALID_UDH",
+    "raw": {
+      "code": "status:REJECTED_INVALID_UDH",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_INVALID_UDH"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_MESSAGE_TOO_LONG",
+    "raw": {
+      "code": "status:REJECTED_MESSAGE_TOO_LONG",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_MESSAGE_TOO_LONG"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:MISSING_TO",
+    "raw": {
+      "code": "status:MISSING_TO",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "MISSING_TO"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:REJECTED_DESTINATION",
+    "raw": {
+      "code": "status:REJECTED_DESTINATION",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_DESTINATION"
+        }
+      }
+    }
+  },
+  {
+    "name": "status:SIGNALS_BLOCKED",
+    "raw": {
+      "code": "status:SIGNALS_BLOCKED",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "policy",
+      "condition": null,
+      "event_code": "undelivered",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "SIGNALS_BLOCKED"
+        }
+      }
+    }
+  },
+  {
+    "name": "http:400",
+    "raw": {
+      "code": "http:400",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "errorCode": "E400"
+      }
+    }
+  },
+  {
+    "name": "http:401",
+    "raw": {
+      "code": "http:401",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "errorCode": "E401"
+      }
+    }
+  },
+  {
+    "name": "http:403",
+    "raw": {
+      "code": "http:403",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "errorCode": "E403"
+      }
+    }
+  },
+  {
+    "name": "http:429",
+    "raw": {
+      "code": "http:429",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "body": {
+        "errorCode": "E429"
+      }
+    }
+  },
+  {
+    "name": "http:500",
+    "raw": {
+      "code": "http:500",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": {
+        "errorCode": "E500"
+      }
+    }
+  },
+  {
+    "name": "http:503",
+    "raw": {
+      "code": "http:503",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": ""
+    }
+  },
+  {
+    "name": "duplicate_message_id_unmapped",
+    "raw": {
+      "code": "status:REJECTED_DUPLICATE_MESSAGE_ID",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "report": {
+        "status": {
+          "name": "REJECTED_DUPLICATE_MESSAGE_ID"
+        }
+      }
+    }
+  }
+]

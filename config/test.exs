@@ -31,6 +31,8 @@ config :relay, Relay.Platform.Outbox, dispatcher: false
 
 config :relay, Relay.Delivery, auto_replay: false, channel: nil
 
+config :relay, Relay.Channels, http: [plug: {Req.Test, Relay.Channels.ProviderHttp}]
+
 config :relay, Relay.Platform.Leadership, enabled: false
 
 config :relay, Relay.Platform.LoadShed, watcher: false

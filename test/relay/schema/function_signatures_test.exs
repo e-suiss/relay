@@ -229,6 +229,8 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.sender_identity_suspend" => ~w(suspended resumed unchanged not_found),
     "relay_fn.channel_identity_put" => ~w(created updated unchanged secret_not_found),
     "relay_fn.recipient_address_disable" => ~w(disabled not_found),
+    "relay_fn.sender_identity_register" => ~w(updated unchanged not_found not_sms),
+    "relay_fn.provider_account_set_traffic" => ~w(updated unchanged not_found),
     "relay_fn.device_register" =>
       ~w(created updated reassigned recipient_not_found key_not_found),
     "relay_fn.device_disable" => ~w(disabled already_disabled reregistered not_found)

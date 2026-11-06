@@ -9,7 +9,7 @@ defmodule Relay.Channels.Store do
   @type id :: Relay.Id.t()
   @type digest :: <<_::256>>
 
-  @account_columns "tenant_id, environment, id, channel, provider, ownership, credential_ref_id, role, priority, weight, state, verification_state, verified_at, verification_rule_id, in_installation, processing_countries, transfer_basis, scc_notified_on, health, settings, version"
+  @account_columns "tenant_id, environment, id, channel, provider, ownership, credential_ref_id, role, priority, weight, state, verification_state, verified_at, verification_rule_id, in_installation, processing_countries, transfer_basis, scc_notified_on, health, settings, traffic, version"
 
   # TN-13 (2)
   @doc "Runs work in a transaction scoped to `scope`; see `Relay.Repo.in_scope/3`."
@@ -150,6 +150,47 @@ defmodule Relay.Channels.Store do
     Repo.code!(row["sender_identity_suspend"], [:suspended, :resumed, :unchanged, :not_found])
   end
 
+  # CH-50
+  @doc "A sender identity by its identifier."
+  @spec sender(id()) :: {:ok, map()} | {:error, :not_found}
+  def sender(id) do
+    rows =
+      all(
+        "SELECT id, provider_account_id, channel, kind, value, country, approval_state, suspended_at, sms_type, registration FROM relay.sender_identities WHERE id = $1",
+        [id]
+      )
+
+    case rows do
+      [row] -> {:ok, row}
+      [] -> {:error, :not_found}
+    end
+  end
+
+  # CH-50
+  @doc "Records the SMS type and the registration (İYS brand, 10DLC, toll-free) of an SMS sender identity."
+  @spec sender_identity_register(id(), String.t(), map(), digest(), Actor.t()) ::
+          :updated | :unchanged | :not_found | :not_sms
+  def sender_identity_register(id, sms_type, registration, digest, %Actor{} = actor) do
+    [row] =
+      Repo.call!(
+        "relay_fn.sender_identity_register",
+        [id, sms_type, registration, digest] ++ Actor.params(actor)
+      )
+
+    Repo.code!(row["sender_identity_register"], [:updated, :unchanged, :not_found, :not_sms])
+  end
+
+  # CH-53
+  @doc "Sets the traffic of a provider account: `security` for OTP traffic only, `standard` for every other class."
+  @spec account_set_traffic(id(), String.t(), digest(), Actor.t()) ::
+          :updated | :unchanged | :not_found
+  def account_set_traffic(id, traffic, digest, %Actor{} = actor) do
+    params = [id, traffic, digest] ++ Actor.params(actor)
+    [row] = Repo.call!("relay_fn.provider_account_set_traffic", params)
+
+    Repo.code!(row["provider_account_set_traffic"], [:updated, :unchanged, :not_found])
+  end
+
   # C-26
   @doc "Creates or changes a channel identity; its secret lives in the secret backend."
   @spec channel_identity_put(map(), digest(), Actor.t()) ::
@@ -182,7 +223,7 @@ defmodule Relay.Channels.Store do
   @spec senders([id()]) :: [map()]
   def senders(account_ids) do
     all(
-      "SELECT tenant_id, environment, id, provider_account_id, subtenant_id, channel, kind, value, country FROM relay.sender_identities WHERE provider_account_id = ANY($1::uuid[]) AND approval_state = 'approved' AND suspended_at IS NULL ORDER BY id",
+      "SELECT tenant_id, environment, id, provider_account_id, subtenant_id, channel, kind, value, country, sms_type, registration FROM relay.sender_identities WHERE provider_account_id = ANY($1::uuid[]) AND approval_state = 'approved' AND suspended_at IS NULL ORDER BY id",
       [account_ids]
     )
   end

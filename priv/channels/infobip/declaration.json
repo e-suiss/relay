@@ -1,0 +1,83 @@
+{
+  "provider": "infobip",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "sms"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "sms": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "wait_and_query",
+    "provider_key": true,
+    "key_field": "messages[].destinations[].messageId",
+    "correlation_field": "messages[].webhooks.callbackData",
+    "status_query": true,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05; GET /sms/3/logs?messageId= (48 hours); a reused messageId is REJECTED_DUPLICATE_MESSAGE_ID"
+  },
+  "paid_channels": [
+    "sms"
+  ],
+  "pricing": {
+    "currency": "EUR",
+    "units": {
+      "sms": "segment"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [],
+    "sender": [],
+    "recipient": []
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "DE",
+      "SE"
+    ],
+    "transfer_basis": "scc",
+    "scc_notified_on": null,
+    "source": "https://www.infobip.com/docs/developer-resources/infrastructure/regions-and-data-centers; EU region; the standard contractual clause notification date is not recorded"
+  },
+  "inbound_verification": {
+    "method": "hmac_sha256",
+    "header": "x-hub-signature",
+    "authenticity": "verified",
+    "source": "https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; HMAC over the raw body"
+  },
+  "sms": {
+    "encodings": [
+      "GSM7",
+      "GSM7_TR",
+      "UCS2"
+    ],
+    "turkish_single_shift": "unverified",
+    "turkish_single_shift_evidence": null,
+    "btk_authorized": false,
+    "otp_product": false,
+    "sender_types": [
+      "alphanumeric",
+      "long_number",
+      "short_code",
+      "toll_free",
+      "ten_dlc"
+    ],
+    "segment_reserve": [],
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05; language.languageCode TR with singleShift; https://www.infobip.com/docs/sms/language"
+  }
+}

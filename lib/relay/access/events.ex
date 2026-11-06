@@ -1,6 +1,6 @@
 defmodule Relay.Access.Events do
   @moduledoc """
-  Access lifecycle events (`POST /v1/access/events`, S-110). A delivery is verified with the shared Suiss webhook profile under the keys of the link, its CloudEvents `id` must equal `webhook-id`, and its receipt commits with the job that processes it before the delivery is acknowledged; a repeated `webhook-id` is acknowledged and not processed again (S-69). Only the fields Relay needs cross the boundary: the receipt keeps the event's mapping fields and nothing else, and an event type Relay does not consume keeps none (E-70).
+  Access lifecycle events (`POST /v1/access/events`, S-110), pushed by Access as Security Event Tokens (E-94, `Relay.Access.SecurityEvent`): a SET is verified under the keys of the link, its `jti` is the event identifier, and its receipt commits with the job that processes it before the delivery is acknowledged; a repeated `jti` is acknowledged and not processed again (S-69). A key the link does not hold refreshes the keys once. Only the fields Relay needs cross the boundary: the receipt keeps the event's mapping fields and nothing else, and an event type Relay does not consume keeps none (E-70); a type that is not an event name of Relay's form is acknowledged and not recorded.
 
   `process/1` (the `Relay.Access.EventConsumer` job) applies a receipt by its type:
 
@@ -20,7 +20,7 @@ defmodule Relay.Access.Events do
   alias Relay.Access.EventConsumer
   alias Relay.Access.EventStore
   alias Relay.Access.Link
-  alias Relay.Access.Webhook
+  alias Relay.Access.SecurityEvent
   alias Relay.Scope
 
   @mapping %{
@@ -59,59 +59,66 @@ defmodule Relay.Access.Events do
   @consent_source ~r/\A[a-z][a-z0-9_]{0,63}\z/
   @requeue_after ~w(tenant.created organization.created organization.updated api_client.created)
   @batch 100
+  @event_name ~r/\A[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+\z/
 
   @type outcome :: :processed | {:deferred, String.t()} | {:rejected, String.t()}
 
-  # E-36
+  # E-94
   # E-70
   # E-78
-  @doc "Receives a delivery: `request` carries the webhook headers, the raw body and the decoded envelope."
-  @spec accept(map()) :: :ok | {:error, Relay.Error.t()}
-  def accept(request) do
-    now = DateTime.to_unix(Relay.Clock.utc_now())
+  @doc "Receives a Security Event Token Access pushed; a refusal carries its RFC 8935 error code."
+  @spec accept(binary()) :: :ok | {:error, SecurityEvent.refusal()} | {:error, Relay.Error.t()}
+  def accept(token) when is_binary(token) do
+    with {:ok, event} <- verified(token) do
+      record(token, event)
+    end
+  end
 
-    with {:ok, keys} <- keys(),
-         :ok <- Webhook.verify(request, keys, now),
-         :ok <- same_id(request) do
-      record(request)
+  defp verified(token) do
+    with {:error, :unknown_key} <- verify(token) do
+      _ = Link.refresh_keys()
+
+      case verify(token) do
+        {:error, :unknown_key} -> SecurityEvent.refuse("invalid_key", "the SET key is not known")
+        result -> result
+      end
     end
   end
 
   # INV-41
   # TN-57
-  defp keys do
-    case Link.current() do
-      %{state: state, keys: [_ | _] = keys} when state in [:ok, :stale] -> {:ok, keys}
-      _other -> {:error, Relay.Error.new(:service_unavailable, "no Access link")}
+  # E-90
+  defp verify(token) do
+    case {Link.current(), Relay.Access.client_id()} do
+      {%{state: state, keys: [_ | _] = keys, issuer: issuer}, audience}
+      when state in [:ok, :stale] and is_binary(audience) ->
+        now = DateTime.to_unix(Relay.Clock.utc_now())
+        SecurityEvent.verify(token, keys, %{issuer: issuer, audience: audience, now: now})
+
+      _other ->
+        {:error, Relay.Error.new(:service_unavailable, "no Access link")}
     end
   end
 
-  defp same_id(%{webhook_id: id, envelope: %{"id" => id}}), do: :ok
-
-  defp same_id(_request) do
-    {:error,
-     Relay.Error.new(:validation_failed, "the event id must equal webhook-id", %{
-       errors: [%{pointer: "/id", code: "conflict"}]
-     })}
-  end
-
-  defp record(%{envelope: envelope} = request) do
-    type = envelope["type"]
-
-    with {:ok, payload} <- sealed(type, minimal(type, envelope["data"])) do
-      store(request, envelope, type, payload)
+  defp record(token, %{jti: jti, type: type, data: data}) do
+    if Regex.match?(@event_name, type) and byte_size(type) <= 128 do
+      with {:ok, payload} <- sealed(type, minimal(type, data)) do
+        store(token, jti, type, payload)
+      end
+    else
+      :ok
     end
   end
 
-  defp store(request, envelope, type, payload) do
+  defp store(token, jti, type, payload) do
     attrs = %{
       id: Relay.Id.generate(),
-      webhook_id: request.webhook_id,
+      webhook_id: jti,
       event_type: type,
       access_tenant_id: text(payload["access_tenant_id"], 128),
       payload: payload,
-      body_digest: :crypto.hash(:sha256, request.raw_body),
-      traceparent: envelope["traceparent"]
+      body_digest: :crypto.hash(:sha256, token),
+      traceparent: nil
     }
 
     case EventStore.record(attrs, &job/1) do

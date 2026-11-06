@@ -3,7 +3,7 @@ defmodule Relay.Access.EventsTest do
 
   alias Relay.Access.ClientStore
   alias Relay.Access.Events
-  alias RelayTest.Api
+  alias Relay.Api.Schema
   alias RelayTest.FakeAccess
   alias RelayTest.TenantFixture
   alias RelayWeb.Auth.Access
@@ -25,11 +25,19 @@ defmodule Relay.Access.EventsTest do
   end
 
   defp deliver!(type, data) do
-    envelope = FakeAccess.event(type, data)
-    conn = FakeAccess.deliver(envelope)
-    assert conn.status == 204
-    Api.assert_contract(conn)
-    envelope["id"]
+    claims = FakeAccess.event(type, data)
+    conn = FakeAccess.deliver(claims)
+    assert conn.status == 202
+    assert conn.resp_body == ""
+    claims["jti"]
+  end
+
+  defp refused(conn) do
+    assert conn.status == 400
+    body = Jason.decode!(conn.resp_body)
+    schema = Schema.response_schema("receiveAccessEvent", "400", "application/json")
+    assert :ok == Schema.validate(Schema.build(schema), body)
+    body["err"]
   end
 
   defp receipt_of(webhook_id) do
@@ -59,48 +67,40 @@ defmodule Relay.Access.EventsTest do
     count
   end
 
-  describe "E-36 intake" do
-    test "E-36: a signed delivery is recorded with its job before 204 and a repeat is not queued again" do
-      envelope = FakeAccess.event("user.reactivated", %{"subject" => "pairwise-1"})
-      body = Jason.encode!(envelope)
-      headers = FakeAccess.webhook_headers(envelope["id"], body)
+  describe "E-94 intake" do
+    test "E-94, S-69: a signed SET is recorded with its job before 202 and a repeat is not queued again" do
+      token = FakeAccess.set(FakeAccess.event("user.reactivated", %{"subject" => "pairwise-1"}))
 
-      assert FakeAccess.deliver(envelope, headers: headers).status == 204
+      assert FakeAccess.deliver(token).status == 202
       assert jobs() == 1
-      conn = FakeAccess.deliver(envelope, headers: headers)
-      assert conn.status == 204
-      Api.assert_contract(conn)
+      assert FakeAccess.deliver(token).status == 202
       assert jobs() == 1
     end
 
-    test "E-36: an unsigned, forged or stale delivery is 401 and records nothing" do
-      envelope = FakeAccess.event("user.reactivated", %{"subject" => "pairwise-1"})
-      body = Jason.encode!(envelope)
-      [id, timestamp, _signature] = FakeAccess.webhook_headers(envelope["id"], body)
-      stale = FakeAccess.webhook_headers(envelope["id"], body, timestamp: 1_700_000_000)
-      forged = [id, timestamp, {"webhook-signature", "v1a," <> Base.encode64(<<0::512>>)}]
+    test "E-94: a forged, stale, foreign or misaddressed SET is refused with its RFC 8935 code and records nothing" do
+      claims = FakeAccess.event("user.reactivated", %{"subject" => "pairwise-1"})
+      [header, payload, _signature] = String.split(FakeAccess.set(claims), ".")
+      forged = header <> "." <> payload <> "." <> Base.url_encode64(<<0::512>>, padding: false)
 
-      for {headers, code} <- [
-            {[id, timestamp], "auth_missing_credentials"},
-            {forged, "auth_invalid_token"},
-            {stale, "auth_invalid_token"}
+      for {token, err} <- [
+            {forged, "authentication_failed"},
+            {FakeAccess.set(%{claims | "iat" => 1_700_000_000}), "invalid_request"},
+            {FakeAccess.set(%{claims | "iss" => "https://other.test"}), "invalid_issuer"},
+            {FakeAccess.set(%{claims | "aud" => "app_other"}), "invalid_audience"},
+            {FakeAccess.set(claims, %{"typ" => "JWT"}), "invalid_request"},
+            {"not a set", "invalid_request"}
           ] do
-        conn = FakeAccess.deliver(envelope, headers: headers)
-        assert conn.status == 401
-        Api.assert_contract(conn)
-        assert Jason.decode!(conn.resp_body)["code"] == code
+        assert refused(FakeAccess.deliver(token)) == err
       end
 
+      assert FakeAccess.deliver(claims, content_type: "application/json").status == 415
       assert jobs() == 0
     end
 
-    test "E-36: the CloudEvents id must equal webhook-id" do
-      envelope = FakeAccess.event("user.reactivated", %{"subject" => "pairwise-1"})
-      headers = FakeAccess.webhook_headers("evt_other_id", Jason.encode!(envelope))
-      conn = FakeAccess.deliver(envelope, headers: headers)
+    test "E-94: a SET of an Access event type that is not an event name of Relay's form is acknowledged and not recorded" do
+      claims = FakeAccess.event("authority-revoked", %{"domain" => "d"})
 
-      assert conn.status == 422
-      Api.assert_contract(conn)
+      assert FakeAccess.deliver(claims).status == 202
       assert jobs() == 0
     end
 
@@ -136,6 +136,18 @@ defmodule Relay.Access.EventsTest do
       elsewhere = %{tenant_data("acc_" <> FakeAccess.random()) | "region" => region}
       other = deliver!("tenant.created", elsewhere)
       assert %{"state" => "rejected", "reason" => "region_mismatch"} = receipt_of(other)
+    end
+
+    test "E-94, E-80: Access's member names and the access_tenant claim map onto the same event" do
+      tenant = TenantFixture.tenant!()
+      access_tenant = tenant.attrs.access_tenant_id
+      member = %{"organization" => "org_8", "name" => "Brand"}
+      event = FakeAccess.event("organization.created", member)
+      claims = Map.put(event, "access_tenant", access_tenant)
+
+      assert FakeAccess.deliver(claims).status == 202
+      assert receipt_of(claims["jti"])["state"] == "processed"
+      assert {:ok, %{name: "Brand"}} = subtenant(tenant.live, "org_8")
     end
 
     test "TN-6, C-12: organization events map to one sub-tenant in both environments and archive it" do

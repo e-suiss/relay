@@ -8,7 +8,7 @@ defmodule RelayWeb.Auth do
   * `Relay-Tenant` and `Relay-Environment` belong to operator sessions; with an API client credential they are `422 validation_failed`.
   * A subscriber operation accepts only a Relay subscriber token (`RelayWeb.Auth.Subscriber`); its principal names the subscriber, and the token of a suspended subscriber is `403 auth_subscriber_suspended`.
 
-  The verifier (`RelayWeb.Auth.Access` in production) receives the operation, the client address and the request's client certificate (`RelayWeb.Api.Transport.client_certificate/2`: the connection's own, or the RFC 9440 `Client-Cert` of a configured proxy). An operation authenticated with the shared Suiss webhook profile (`:webhook`) needs its `webhook-id`, `webhook-timestamp` and `webhook-signature` headers here; its controller verifies the signature over the raw body. A provider webhook (`:provider_webhook`, Meta's `X-Hub-Signature-256`) needs its signature header here; its controller verifies it over the raw body with the provider account's secret.
+  The verifier (`RelayWeb.Auth.Access` in production) receives the operation, the client address and the request's client certificate (`RelayWeb.Api.Transport.client_certificate/2`: the connection's own, or the RFC 9440 `Client-Cert` of a configured proxy). A provider webhook (`:provider_webhook`, Meta's `X-Hub-Signature-256`) needs its signature header here; its controller verifies it over the raw body with the provider account's secret.
   """
 
   @behaviour Plug
@@ -23,7 +23,6 @@ defmodule RelayWeb.Auth do
   @bearer ~r/\A[Bb]earer +([A-Za-z0-9\-._~+\/]+=*)\z/
   @counted [:auth_invalid_token, :auth_malformed_credentials]
   @operator_headers ["relay-tenant", "relay-environment"]
-  @webhook_headers ["webhook-id", "webhook-timestamp", "webhook-signature"]
 
   @doc "Verifies a bearer token for the operation in `context` (`%{operation: operation, ip: address, certificate: der | nil}`)."
   @callback verify(token :: String.t(), context :: map()) ::
@@ -50,12 +49,6 @@ defmodule RelayWeb.Auth do
   @spec authenticate(Plug.Conn.t(), Relay.Api.Contract.operation()) ::
           {:ok, Plug.Conn.t()} | {:error, Plug.Conn.t(), Relay.Error.t()}
   def authenticate(conn, %{public: true}), do: {:ok, assign(conn, :principal, nil)}
-
-  def authenticate(conn, %{security: :webhook}) do
-    if Enum.all?(@webhook_headers, &(get_req_header(conn, &1) != [])),
-      do: {:ok, assign(conn, :principal, nil)},
-      else: {:error, conn, Relay.Error.new(:auth_missing_credentials, "the webhook is unsigned")}
-  end
 
   def authenticate(conn, %{security: :provider_webhook}) do
     if get_req_header(conn, "x-hub-signature-256") != [],

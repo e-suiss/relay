@@ -2,7 +2,6 @@ defmodule Relay.Access.ConsentEventsTest do
   use Relay.DataCase, async: false
 
   alias Relay.Access.ClientStore
-  alias RelayTest.Api
   alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
@@ -29,11 +28,9 @@ defmodule Relay.Access.ConsentEventsTest do
   end
 
   defp deliver!(type, data, id \\ "evt_" <> FakeAccess.random()) do
-    envelope = FakeAccess.event(type, data, id)
-    conn = FakeAccess.deliver(envelope)
-    assert conn.status == 204
-    Api.assert_contract(conn)
-    envelope["id"]
+    claims = FakeAccess.event(type, data, id)
+    assert FakeAccess.deliver(claims).status == 202
+    claims["jti"]
   end
 
   defp receipt_of(webhook_id) do
@@ -99,7 +96,7 @@ defmodule Relay.Access.ConsentEventsTest do
       assert rows(ctx) == [["revoked", "access", 2, false, false]]
     end
 
-    test "E-80, E-36: a repeated delivery or sequence and an older sequence change nothing",
+    test "E-80, E-94: a repeated delivery or sequence and an older sequence change nothing",
          ctx do
       first = deliver!("consent.updated", consent(ctx, %{}))
       assert receipt_of(first)["state"] == "processed"

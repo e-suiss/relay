@@ -182,7 +182,7 @@ defmodule RelayTest.FakeAccess do
       "iat" => System.system_time(:second),
       "jti" => jti,
       "sub_id" => %{"format" => "opaque", "id" => jti},
-      "events" => %{"urn:suiss:access:event:" <> type => data}
+      "events" => %{("urn:suiss:access:event:" <> type) => data}
     }
   end
 

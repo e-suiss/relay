@@ -239,6 +239,7 @@ defmodule Relay.Access.TokenTest do
              }
 
       listed = set_claims(%{"aud" => ["other", "app_relay"], "iat" => now - 300})
+
       assert {:ok, _event} =
                SecurityEvent.verify(set(listed, private), keys, set_expectation(now))
     end

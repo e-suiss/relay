@@ -1,0 +1,8 @@
+{
+  "source_ref": "E-95; POLICY DEFAULT installation time zone and locale by region",
+  "regions": [
+    {"region": "tr", "time_zone": "Europe/Istanbul", "locale": "tr"},
+    {"region": "eu", "time_zone": "Europe/Berlin", "locale": "en"},
+    {"region": "us", "time_zone": "America/New_York", "locale": "en"}
+  ]
+}

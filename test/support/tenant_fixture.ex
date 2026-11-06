@@ -81,6 +81,28 @@ defmodule RelayTest.TenantFixture do
     :ok
   end
 
+  @doc "Activates the packaged `region_defaults` version 1 in the sandbox."
+  @spec region_defaults!() :: :ok
+  def region_defaults! do
+    scope = Relay.Datasets.installation_scope()
+
+    content =
+      [:code.priv_dir(:relay), "datasets", "region_defaults", "v1.json"]
+      |> Path.join()
+      |> File.read!()
+      |> Jason.decode!()
+
+    {:ok, {result, id, _no}} =
+      Relay.Datasets.publish(scope, "region_defaults", content, actor(), source_ref: "test")
+
+    true = result in [:published, :exists]
+
+    {:ok, activation} = Relay.Datasets.activate(scope, "region_defaults", id, :operator, actor())
+
+    true = activation in [:activated, :already_active]
+    :ok
+  end
+
   @doc "Activates the packaged `suspension_policy` version 1 in the sandbox."
   @spec suspension_policy!() :: :ok
   def suspension_policy! do

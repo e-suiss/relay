@@ -27,6 +27,11 @@ table relay.api_client_generation relay_app SELECT
 table relay.api_client_generation relay_archive SELECT
 table relay.api_client_generation relay_maint SELECT
 table relay.api_client_generation relay_owner SELECT,UPDATE
+table relay.api_client_registrations relay_app SELECT
+table relay.api_client_registrations relay_archive SELECT
+table relay.api_client_registrations relay_maint SELECT
+table relay.api_client_registrations relay_owner INSERT,SELECT,UPDATE
+table relay.api_client_registrations relay_report SELECT
 table relay.api_clients relay_app SELECT
 table relay.api_clients relay_archive SELECT
 table relay.api_clients relay_maint SELECT

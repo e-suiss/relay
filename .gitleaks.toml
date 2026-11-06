@@ -14,3 +14,9 @@ description = "Synthetic access key shape the push content check must refuse"
 condition = "AND"
 paths = ['''^test/relay/channels/push/content_test\.exs$''']
 regexes = ['''^AKIAABCDEFGHIJKLMNOP$''']
+
+[[allowlists]]
+description = "Synthetic Access organization UUID of an earlier event test revision"
+condition = "AND"
+paths = ['''^test/relay/access/events_test\.exs$''']
+regexes = ['''^0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b11$''']

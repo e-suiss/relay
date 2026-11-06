@@ -589,6 +589,12 @@ defmodule RelayWeb.Router do
 
     get "/api_clients/:api_client_id", SupportController, :api_client,
       private: %{relay_operation: "getApiClient"}
+
+    get "/pending_api_clients", SupportController, :pending_api_clients,
+      private: %{relay_operation: "listPendingApiClients"}
+
+    post "/pending_api_clients/assign", SupportController, :assign_api_client,
+      private: %{relay_operation: "assignApiClient"}
   end
 
   # X-7

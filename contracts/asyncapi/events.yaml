@@ -5689,13 +5689,13 @@ x-relay-event-names:
   - webhook.attempt_exhausted
   - webhook_endpoint.disabled
   - webhook_endpoint.recovered
-  - workflow.created
-  - workflow.drafted
-  - workflow.promoted
-  - workflow.publication_requested
-  - workflow.published
   - whatsapp_account.updated
   - whatsapp_number.paused
   - whatsapp_template.category_changed
   - whatsapp_template.status_changed
   - whatsapp_tier.threshold_reached
+  - workflow.created
+  - workflow.drafted
+  - workflow.promoted
+  - workflow.publication_requested
+  - workflow.published

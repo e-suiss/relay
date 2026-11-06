@@ -2,7 +2,7 @@ defmodule RelayTest.H2Server do
   @moduledoc """
   An in-process HTTP/2 server for the push client tests: prior-knowledge cleartext HTTP/2 on a local port, nothing reaches the network. Every connection is a process; each complete request is sent to the test process as `{:h2_request, connection, stream_id, request}` with its lower-case headers and body, and answered by the handler: `{status, headers, body}`, or `:hold` to wait for `release/3`.
 
-  Options: `:max_concurrent_streams` (100) and `:settings_delay_ms` (0) shape the server's SETTINGS frame, `:pong` (true) whether pings are answered.
+  Options: `:max_concurrent_streams` (100) and `:settings_delay_ms` (0) shape the server's SETTINGS frame, `:pong` (true) whether pings are answered. SETTINGS is always the first frame the server sends: an answer due before the delay has passed sends it first.
   """
 
   use Boundary, top_level?: true, check: [out: false]
@@ -74,6 +74,8 @@ defmodule RelayTest.H2Server do
 
     loop(state)
   end
+
+  defp settings(%{settings?: true} = state), do: state
 
   defp settings(state) do
     max = Keyword.get(state.opts, :max_concurrent_streams, 100)
@@ -179,6 +181,7 @@ defmodule RelayTest.H2Server do
   end
 
   defp respond(state, id, {status, headers, body}) do
+    state = settings(state)
     fields = [{":status", Integer.to_string(status)} | headers]
     {hbf, encode} = HPAX.encode(:no_store, fields, state.encode)
     hbf = IO.iodata_to_binary(hbf)

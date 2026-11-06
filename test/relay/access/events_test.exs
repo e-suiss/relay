@@ -20,6 +20,7 @@ defmodule Relay.Access.EventsTest do
 
   setup do
     :ok = FakeAccess.install!()
+    :ok = TenantFixture.region_defaults!()
     :ok
   end
 
@@ -45,13 +46,31 @@ defmodule Relay.Access.EventsTest do
     |> Enum.find(&(&1["webhook_id"] == webhook_id))
   end
 
-  defp tenant_data(access_tenant_id) do
+  defp tenant_member(access_tenant_id),
+    do: %{"tenant" => access_tenant_id, "placement" => "pool-default", "at" => 1_790_000_000_000}
+
+  defp client_member(access_tenant_id, client_id) do
     %{
-      "access_tenant_id" => access_tenant_id,
-      "region" => FakeAccess.installation_region(),
-      "default_timezone" => "Europe/Istanbul",
-      "default_locale" => "tr-TR"
+      "tenant" => access_tenant_id,
+      "realm" => "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b10",
+      "client_id" => client_id,
+      "exercise" => String.duplicate("A", 43),
+      "at" => 1_790_000_000_000
     }
+  end
+
+  defp region_defaults do
+    "priv/datasets/region_defaults/v1.json"
+    |> File.read!()
+    |> Jason.decode!()
+    |> Map.fetch!("regions")
+    |> Enum.find(&(&1["region"] == FakeAccess.installation_region()))
+  end
+
+  defp actor, do: TenantFixture.actor()
+
+  defp assign!(scope, client_id, scopes) do
+    assert {:ok, ^client_id} = Relay.Access.assign_api_client(scope, client_id, scopes, actor())
   end
 
   defp subtenant(scope, organization),
@@ -115,10 +134,10 @@ defmodule Relay.Access.EventsTest do
     end
   end
 
-  describe "TN-1 TN-6 mapping" do
-    test "TN-1, TN-2, X-35, INV-41: tenant.created creates the mapped tenant; missing defaults or another region are rejected" do
+  describe "TN-1 E-95 tenants and organizations" do
+    test "TN-1, TN-2, E-95: tenant.created opens the tenant in the installation region with that region's defaults" do
       access_tenant = "acc_" <> FakeAccess.random()
-      id = deliver!("tenant.created", tenant_data(access_tenant))
+      id = deliver!("tenant.created", tenant_member(access_tenant))
 
       assert receipt_of(id)["state"] == "processed"
       assert %{id: tenant_id, status: "active", platform: nil} = ClientStore.tenant(access_tenant)
@@ -126,77 +145,104 @@ defmodule Relay.Access.EventsTest do
       assert {:ok, purposes} = Relay.Tenancy.active_key_purposes(scope)
       assert :blind_index in purposes
 
-      no_locale = Map.delete(tenant_data("acc_" <> FakeAccess.random()), "default_locale")
-      missing = deliver!("tenant.created", no_locale)
-      assert %{"state" => "rejected", "reason" => "defaults_missing"} = receipt_of(missing)
+      defaults = region_defaults()
+      assert {:ok, tenant} = Relay.Tenancy.tenant(scope)
+      assert tenant["region"] == FakeAccess.installation_region()
+      assert tenant["default_timezone"] == defaults["time_zone"]
+      assert tenant["default_locale"] == defaults["locale"]
 
-      region = Enum.find(["tr", "eu", "us"], &(&1 != FakeAccess.installation_region()))
-      elsewhere = %{tenant_data("acc_" <> FakeAccess.random()) | "region" => region}
-      other = deliver!("tenant.created", elsewhere)
-      assert %{"state" => "rejected", "reason" => "region_mismatch"} = receipt_of(other)
+      assert receipt_of(deliver!("tenant.created", tenant_member(access_tenant)))["state"] ==
+               "processed"
+
+      missing = deliver!("tenant.created", %{"placement" => "pool-default"})
+      assert %{"state" => "rejected", "reason" => "tenant_missing"} = receipt_of(missing)
     end
 
-    test "E-94, E-80: Access's member names and the access_tenant claim map onto the same event" do
+    test "E-95, E-70: the receipt keeps the placement and drops what Relay does not consume" do
+      access_tenant = "acc_" <> FakeAccess.random()
+      member = Map.put(tenant_member(access_tenant), "owner", "user-1")
+      receipt = receipt_of(deliver!("tenant.created", member))
+
+      assert receipt["payload"] == %{
+               "access_tenant_id" => access_tenant,
+               "placement" => "pool-default"
+             }
+    end
+
+    test "E-94, E-80, E-95: an organization event with Access's member names is recorded and not applied" do
       tenant = TenantFixture.tenant!()
       access_tenant = tenant.attrs.access_tenant_id
-      member = %{"organization" => "org_8", "name" => "Brand"}
+      member = %{"organization" => "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b11", "at" => 1}
       event = FakeAccess.event("organization.created", member)
       claims = Map.put(event, "access_tenant", access_tenant)
 
       assert FakeAccess.deliver(claims).status == 202
-      assert receipt_of(claims["jti"])["state"] == "processed"
-      assert {:ok, %{name: "Brand"}} = subtenant(tenant.live, "org_8")
-    end
+      receipt = receipt_of(claims["jti"])
+      assert %{"state" => "processed", "reason" => "not_applied"} = receipt
 
-    test "TN-6, C-12: organization events map to one sub-tenant in both environments and archive it" do
-      tenant = TenantFixture.tenant!()
-      access_tenant = tenant.attrs.access_tenant_id
-      organization = %{"access_tenant_id" => access_tenant, "access_organization_id" => "org_7"}
+      assert receipt["payload"] == %{
+               "access_tenant_id" => access_tenant,
+               "access_organization_id" => "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b11"
+             }
 
-      created = deliver!("organization.created", Map.put(organization, "name", "Shop"))
-      assert receipt_of(created)["state"] == "processed"
+      updated =
+        deliver!("organization.updated", %{
+          "tenant" => access_tenant,
+          "organization" => "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b11",
+          "at" => 2
+        })
 
-      [live, test] =
-        for scope <- [tenant.live, tenant.test] do
-          {:ok, subtenant} = subtenant(scope, "org_7")
-          subtenant
-        end
-
-      assert live.id == test.id
-      assert live.name == "Shop" and live.state == "active"
-
-      archived = deliver!("organization.updated", Map.put(organization, "state", "archived"))
-      assert receipt_of(archived)["state"] == "processed"
+      assert %{"state" => "processed", "reason" => "not_applied"} = receipt_of(updated)
 
       for scope <- [tenant.live, tenant.test] do
-        assert {:ok, %{state: "archived"}} = subtenant(scope, "org_7")
+        assert {:ok, nil} = subtenant(scope, "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b11")
       end
     end
   end
 
-  describe "API-44 TN-24 API clients" do
-    test "API-44, TN-24, TN-36: api_client events write the trace and a revocation is rejected at once" do
+  describe "API-44 E-99 API clients" do
+    test "E-99: api_client.created registers a pending client whose tokens are refused until it is assigned" do
       tenant = TenantFixture.tenant!()
       access_tenant = tenant.attrs.access_tenant_id
-      client = %{"access_tenant_id" => access_tenant, "access_client_id" => "app_events"}
 
-      live = Map.merge(client, %{"environment" => "live", "scopes" => ["publish"]})
-      created = deliver!("api_client.created", live)
-
+      created = deliver!("api_client.created", client_member(access_tenant, "app_events"))
       assert receipt_of(created)["state"] == "processed"
+
+      assert {:ok, [%{access_client_id: "app_events"}]} =
+               Relay.Access.pending_api_clients(tenant.id)
+
       token = FakeAccess.server_token(access_tenant, "app_events", "publish read")
+      assert {:error, %Relay.Error{code: :auth_client_pending}} = verify(token)
+
+      again = deliver!("api_client.created", client_member(access_tenant, "app_events"))
+      assert receipt_of(again)["state"] == "processed"
+
+      assign!(tenant.live, "app_events", ["publish"])
       assert {:ok, %{scope: scope, scopes: ["publish"]}} = verify(token)
       assert scope == tenant.live
+      assert {:ok, []} = Relay.Access.pending_api_clients(tenant.id)
+    end
 
-      updated = deliver!("api_client.updated", Map.put(client, "scopes", ["publish", "read"]))
-      assert receipt_of(updated)["state"] == "processed"
+    test "API-44, TN-24, TN-36, E-99: api_client.updated changes nothing and a revocation is rejected at once" do
+      tenant = TenantFixture.tenant!()
+      access_tenant = tenant.attrs.access_tenant_id
+      member = client_member(access_tenant, "app_status")
+
+      assert receipt_of(deliver!("api_client.created", member))["state"] == "processed"
+      assign!(tenant.test, "app_status", ["publish", "read"])
+      token = FakeAccess.server_token(access_tenant, "app_status", "publish read")
+      assert {:ok, %{scope: scope, scopes: ["publish", "read"]}} = verify(token)
+      assert scope == tenant.test
+
+      updated = deliver!("api_client.updated", member)
+      assert %{"state" => "processed", "reason" => "not_applied"} = receipt_of(updated)
       assert {:ok, %{scopes: ["publish", "read"]}} = verify(token)
 
-      revoked = deliver!("api_client.revoked", client)
+      revoked = deliver!("api_client.revoked", member)
       assert receipt_of(revoked)["state"] == "processed"
       assert {:error, %Relay.Error{code: :auth_revoked_client}} = verify(token)
 
-      again = deliver!("api_client.reactivated", client)
+      again = deliver!("api_client.reactivated", member)
       assert receipt_of(again)["state"] == "processed"
       assert {:error, %Relay.Error{code: :auth_revoked_client}} = verify(token)
     end
@@ -204,72 +250,71 @@ defmodule Relay.Access.EventsTest do
     test "E-97: api_client.disabled suspends the client and api_client.reactivated opens it again" do
       tenant = TenantFixture.tenant!()
       access_tenant = tenant.attrs.access_tenant_id
-      client = %{"access_tenant_id" => access_tenant, "access_client_id" => "app_retired"}
-      live = Map.merge(client, %{"environment" => "live", "scopes" => ["publish"]})
-      assert receipt_of(deliver!("api_client.created", live))["state"] == "processed"
+      member = client_member(access_tenant, "app_retired")
 
+      assert receipt_of(deliver!("api_client.created", member))["state"] == "processed"
+      assign!(tenant.live, "app_retired", ["publish"])
       token = FakeAccess.server_token(access_tenant, "app_retired", "publish")
       assert {:ok, %{scopes: ["publish"]}} = verify(token)
-
-      member = %{
-        "tenant" => access_tenant,
-        "realm" => "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b10",
-        "client_id" => "app_retired",
-        "exercise" => String.duplicate("A", 43),
-        "at" => 1_790_000_000_000
-      }
 
       disabled = deliver!("api_client.disabled", member)
       assert receipt_of(disabled)["state"] == "processed"
       assert {:error, %Relay.Error{code: :auth_revoked_client}} = verify(token)
 
-      again = deliver!("api_client.reactivated", client)
+      again = deliver!("api_client.reactivated", member)
       assert receipt_of(again)["state"] == "processed"
       assert {:ok, %{scopes: ["publish"]}} = verify(token)
     end
 
-    test "API-44: an event for a tenant or sub-tenant that does not exist yet waits and applies once it does" do
-      access_tenant = "acc_" <> FakeAccess.random()
+    test "E-99, E-97: a status event of a pending client waits and applies once the client is assigned" do
+      tenant = TenantFixture.tenant!()
+      access_tenant = tenant.attrs.access_tenant_id
+      member = client_member(access_tenant, "app_early")
 
-      client = %{
-        "access_tenant_id" => access_tenant,
-        "access_client_id" => "app_waiting",
-        "environment" => "test",
-        "access_organization_id" => "org_9",
-        "scopes" => ["read"]
-      }
+      assert receipt_of(deliver!("api_client.created", member))["state"] == "processed"
+      disabled = deliver!("api_client.disabled", member)
+      assert %{"state" => "deferred", "reason" => "unknown_client"} = receipt_of(disabled)
 
-      waiting = deliver!("api_client.created", client)
-      assert %{"state" => "deferred", "reason" => "unknown_tenant"} = receipt_of(waiting)
-
-      deliver!("tenant.created", tenant_data(access_tenant))
-      assert %{"state" => "deferred", "reason" => "subtenant_not_found"} = receipt_of(waiting)
-
-      organization = %{
-        "access_tenant_id" => access_tenant,
-        "access_organization_id" => "org_9",
-        "name" => "B2B"
-      }
-
-      deliver!("organization.created", organization)
-      assert receipt_of(waiting)["state"] == "processed"
-
-      token = FakeAccess.server_token(access_tenant, "app_waiting", "read")
-      assert {:ok, %{subtenant_id: <<_::128>>, scopes: ["read"]}} = verify(token)
+      assign!(tenant.live, "app_early", ["read"])
+      assert receipt_of(disabled)["state"] == "processed"
+      token = FakeAccess.server_token(access_tenant, "app_early", "read")
+      assert {:error, %Relay.Error{code: :auth_revoked_client}} = verify(token)
     end
 
-    test "API-75: an api_client event with scopes outside API-75 is rejected" do
+    test "E-99: a client assigned to one environment cannot be assigned to the other" do
       tenant = TenantFixture.tenant!()
+      access_tenant = tenant.attrs.access_tenant_id
+      deliver!("api_client.created", client_member(access_tenant, "app_once"))
+      FakeAccess.drain!()
 
-      client = %{
-        "access_tenant_id" => tenant.attrs.access_tenant_id,
-        "access_client_id" => "app_admin",
-        "environment" => "live",
-        "scopes" => ["admin"]
-      }
+      assign!(tenant.live, "app_once", ["publish"])
+      assign!(tenant.live, "app_once", ["publish", "config"])
 
-      assert %{"state" => "rejected", "reason" => "invalid_scopes"} =
-               receipt_of(deliver!("api_client.created", client))
+      assert {:error, %Relay.Error{code: :resource_conflict}} =
+               Relay.Access.assign_api_client(tenant.test, "app_once", ["read"], actor())
+
+      assert {:error, %Relay.Error{code: :api_client_not_found}} =
+               Relay.Access.assign_api_client(tenant.live, "app_unknown", ["read"], actor())
+
+      token = FakeAccess.server_token(access_tenant, "app_once", "publish config")
+      assert {:ok, %{scope: scope, scopes: scopes}} = verify(token)
+      assert scope == tenant.live
+      assert Enum.sort(scopes) == ["config", "publish"]
+    end
+
+    test "API-44, E-99: an api_client event for a tenant that does not exist yet waits and applies once it does" do
+      access_tenant = "acc_" <> FakeAccess.random()
+
+      waiting = deliver!("api_client.created", client_member(access_tenant, "app_waiting"))
+      assert %{"state" => "deferred", "reason" => "unknown_tenant"} = receipt_of(waiting)
+
+      deliver!("tenant.created", tenant_member(access_tenant))
+      assert receipt_of(waiting)["state"] == "processed"
+
+      %{id: tenant_id} = ClientStore.tenant(access_tenant)
+
+      assert {:ok, [%{access_client_id: "app_waiting"}]} =
+               Relay.Access.pending_api_clients(tenant_id)
     end
   end
 

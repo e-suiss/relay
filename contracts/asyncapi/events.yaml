@@ -203,6 +203,10 @@ channels:
         "$ref": "#/components/messages/audit.api_client.created"
       audit.api_client.updated:
         "$ref": "#/components/messages/audit.api_client.updated"
+      audit.api_client.registered:
+        "$ref": "#/components/messages/audit.api_client.registered"
+      audit.api_client.assigned:
+        "$ref": "#/components/messages/audit.api_client.assigned"
       audit.api_client.suspended:
         "$ref": "#/components/messages/audit.api_client.suspended"
       audit.api_client.reactivated:
@@ -490,6 +494,8 @@ operations:
       - "$ref": "#/channels/auditLog/messages/webhook.killswitch.auto_paused"
       - "$ref": "#/channels/auditLog/messages/audit.api_client.created"
       - "$ref": "#/channels/auditLog/messages/audit.api_client.updated"
+      - "$ref": "#/channels/auditLog/messages/audit.api_client.registered"
+      - "$ref": "#/channels/auditLog/messages/audit.api_client.assigned"
       - "$ref": "#/channels/auditLog/messages/audit.api_client.suspended"
       - "$ref": "#/channels/auditLog/messages/audit.api_client.reactivated"
       - "$ref": "#/channels/auditLog/messages/audit.api_client.revoked"
@@ -3812,6 +3818,42 @@ components:
       x-relay-stage: 3
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.api_client.registered:
+      name: api_client.registered
+      title: api_client.registered
+      summary: "An API client Access created was registered as pending, with no environment and no scopes (E-99)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: api_client
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.api_client.assigned:
+      name: api_client.assigned
+      title: api_client.assigned
+      summary: "A tenant administrator assigned a pending API client to an environment; the reason names the environment (E-99)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: api_client
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.api_client.updated:
       name: api_client.updated
       title: api_client.updated
@@ -4373,7 +4415,7 @@ components:
     access.tenant.created:
       name: tenant.created
       title: tenant.created
-      summary: "An Access tenant was created; Relay creates the mapped tenant (region must match the installation)."
+      summary: "An Access tenant was created; Relay opens the mapped tenant in the installation's region with that region's default time zone and locale (E-95)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -4392,27 +4434,16 @@ components:
                     "urn:suiss:access:event:tenant.created":
                       type: object
                       required:
-                        - access_tenant_id
-                        - region
-                        - default_timezone
-                        - default_locale
+                        - tenant
+                        - placement
                       properties:
-                        access_tenant_id:
+                        tenant:
                           type: string
                           maxLength: 128
-                        region:
+                        placement:
                           type: string
-                          enum:
-                            - tr
-                            - eu
-                            - us
-                        default_timezone:
-                          "$ref": "../openapi/components/schemas.yaml#/TimeZone"
-                        default_locale:
-                          "$ref": "../openapi/components/schemas.yaml#/Locale"
-                        sector:
-                          type: string
-                          maxLength: 32
+                          description: "The Access placement of the tenant, a pool inside the installation's region; Relay opens the tenant in that region with the region's installation default time zone and locale (E-95)."
+                          pattern: "^[a-z0-9][a-z0-9-]{0,62}$"
                         platform_product:
                           type: string
                           description: "Set when the Access tenant is a Suiss product's own tenant; Relay creates it as that product's isolated platform tenant."
@@ -4422,6 +4453,9 @@ components:
                             - executor
                             - one
                             - pay
+                        at:
+                          type: integer
+                          minimum: 0
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4430,7 +4464,7 @@ components:
     access.organization.created:
       name: organization.created
       title: organization.created
-      summary: "An Access B2B organization was created; Relay creates the subtenant in both environments."
+      summary: "An Access organization was created; Relay records and acknowledges it but creates no subtenant until Access carries organization names and states (E-95)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -4449,19 +4483,18 @@ components:
                     "urn:suiss:access:event:organization.created":
                       type: object
                       required:
-                        - access_tenant_id
-                        - access_organization_id
-                        - name
+                        - tenant
+                        - organization
                       properties:
-                        access_tenant_id:
+                        tenant:
                           type: string
                           maxLength: 128
-                        access_organization_id:
+                        organization:
                           type: string
                           maxLength: 128
-                        name:
-                          type: string
-                          maxLength: 200
+                        at:
+                          type: integer
+                          minimum: 0
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4470,7 +4503,7 @@ components:
     access.organization.updated:
       name: organization.updated
       title: organization.updated
-      summary: An Access organization changed (name or state).
+      summary: "An Access organization changed; Relay records and acknowledges it without applying it (E-95)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -4489,23 +4522,18 @@ components:
                     "urn:suiss:access:event:organization.updated":
                       type: object
                       required:
-                        - access_tenant_id
-                        - access_organization_id
+                        - tenant
+                        - organization
                       properties:
-                        access_tenant_id:
+                        tenant:
                           type: string
                           maxLength: 128
-                        access_organization_id:
+                        organization:
                           type: string
                           maxLength: 128
-                        name:
-                          type: string
-                          maxLength: 200
-                        state:
-                          type: string
-                          enum:
-                            - active
-                            - archived
+                        at:
+                          type: integer
+                          minimum: 0
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4514,7 +4542,7 @@ components:
     access.api_client.created:
       name: api_client.created
       title: api_client.created
-      summary: An API client was created in Access.
+      summary: "An API client was created in Access; Relay registers it as pending, with no environment and no scopes, until a tenant administrator assigns them (E-99)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -4533,28 +4561,24 @@ components:
                     "urn:suiss:access:event:api_client.created":
                       type: object
                       required:
-                        - access_tenant_id
-                        - access_client_id
-                        - environment
-                        - scopes
+                        - tenant
+                        - client_id
                       properties:
-                        access_tenant_id:
+                        tenant:
                           type: string
                           maxLength: 128
-                        access_client_id:
+                        realm:
                           type: string
-                          maxLength: 256
-                        environment:
-                          "$ref": "../openapi/components/schemas.yaml#/Environment"
-                        access_organization_id:
-                          oneOf:
-                            - type: string
-                              maxLength: 128
-                            - type: "null"
-                        scopes:
-                          type: array
-                          items:
-                            "$ref": "../openapi/components/schemas.yaml#/ScopeName"
+                        client_id:
+                          type: string
+                          maxLength: 255
+                        exercise:
+                          type: string
+                        platform_product:
+                          type: string
+                        at:
+                          type: integer
+                          minimum: 0
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4563,7 +4587,7 @@ components:
     access.api_client.updated:
       name: api_client.updated
       title: api_client.updated
-      summary: "An API client's scopes changed in Access."
+      summary: "An API client changed in Access; nothing Relay keeps changes, so Relay records and acknowledges it (E-99)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -4582,20 +4606,24 @@ components:
                     "urn:suiss:access:event:api_client.updated":
                       type: object
                       required:
-                        - access_tenant_id
-                        - access_client_id
-                        - scopes
+                        - tenant
+                        - client_id
                       properties:
-                        access_tenant_id:
+                        tenant:
                           type: string
                           maxLength: 128
-                        access_client_id:
+                        realm:
                           type: string
-                          maxLength: 256
-                        scopes:
-                          type: array
-                          items:
-                            "$ref": "../openapi/components/schemas.yaml#/ScopeName"
+                        client_id:
+                          type: string
+                          maxLength: 255
+                        exercise:
+                          type: string
+                        platform_product:
+                          type: string
+                        at:
+                          type: integer
+                          minimum: 0
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -5896,9 +5924,11 @@ components:
 x-relay-event-names:
   - address.disabled
   - agent.ceiling_exceeded
+  - api_client.assigned
   - api_client.created
   - api_client.disabled
   - api_client.reactivated
+  - api_client.registered
   - api_client.revoked
   - api_client.suspended
   - api_client.updated

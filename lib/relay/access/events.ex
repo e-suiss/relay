@@ -4,16 +4,14 @@ defmodule Relay.Access.Events do
 
   `process/1` (the `Relay.Access.EventConsumer` job) applies a receipt by its type:
 
-  * `tenant.created` creates the mapped tenant with its keys; the default time zone and locale are mandatory (TN-2, X-35) and another region is refused (INV-41). An Access tenant that Access marks with a `platform_product` (a Suiss product such as `access` itself) becomes that product's platform tenant (C-18, E-9, TN-9): an ordinary, isolated tenant with no data privilege; an unknown product is refused.
-  * `organization.created` and `organization.updated` create, rename or archive the mapped sub-tenant in both environments under one identifier (TN-6, C-12).
-  * `api_client.created`, `api_client.updated`, `api_client.suspended`, `api_client.reactivated` and `api_client.revoked` write the API client trace and announce the new generation to every node (API-44, TN-24). `api_client.disabled`, which Access emits when it retires a client, suspends it (E-97).
+  * `tenant.created` creates the mapped tenant with its keys (TN-1). Access carries the tenant's `placement` and no time zone or locale (E-95): the region is the one its placement maps to, which is always the installation's own region (INV-41), and the default time zone and locale (TN-2, X-35) are that region's installation defaults from the active `region_defaults` data set; without an active version the job retries. An Access tenant that Access marks with a `platform_product` (a Suiss product such as `access` itself) becomes that product's platform tenant (C-18, E-9, TN-9): an ordinary, isolated tenant with no data privilege; an unknown product is refused.
+  * `organization.created` and `organization.updated` are recorded and acknowledged but not applied, `processed` with reason `not_applied`: Access holds no organization name or state yet, so no sub-tenant is created from them (E-95).
+  * `api_client.created` registers the client in its tenant's `live` scope as pending, with no environment and no scopes, until a tenant administrator assigns them (E-99, `Relay.Access.Assignment`); a client Relay already knows is left as it is. `api_client.updated` carries nothing Relay keeps and is `processed` with reason `not_applied`. `api_client.suspended`, `api_client.reactivated` and `api_client.revoked` change the API client trace's status and announce the new generation to every node (API-44, TN-24); `api_client.disabled`, which Access emits when it retires a client, suspends it (E-97). A status event of a client that is still pending waits as `deferred` with reason `unknown_client` and is queued again once the client is assigned.
   * `user.suspended`, `user.reactivated` and `user.deleted` go to the configured user event handlers (`config :relay, Relay.Access, user_handlers: [module]`, `Relay.Access.UserHandler`); without one the receipt waits as `deferred` with reason `no_handler`.
   * `consent.updated` goes, in each environment of the mapped tenant, to the configured consent handler (`config :relay, Relay.Access, consent_handler: module`, `Relay.Access.ConsentHandler`) with its status and source in lowercase, the evidence it sealed for that environment when the event was received (the receipt keeps only that ciphertext and never the evidence in clear) and its brand: the sub-tenant mapped from the event's organization, or the tenant itself without one (E-80). A consent that cannot be read is `rejected`; without a handler, or while its organization is not mapped yet, it waits as `deferred`.
 
   A receipt whose tenant, sub-tenant or client does not exist yet is `deferred` and queued again when a later event of the same Access tenant is applied; anything else that cannot apply is `rejected` with a reason.
   """
-
-  require Logger
 
   alias Relay.Access.Clients
   alias Relay.Access.ClientStore
@@ -24,13 +22,11 @@ defmodule Relay.Access.Events do
   alias Relay.Scope
 
   @mapping %{
-    "tenant.created" =>
-      ~w(access_tenant_id region default_timezone default_locale sector platform_product),
-    "organization.created" => ~w(access_tenant_id access_organization_id name),
-    "organization.updated" => ~w(access_tenant_id access_organization_id name state),
-    "api_client.created" =>
-      ~w(access_tenant_id access_client_id environment access_organization_id scopes),
-    "api_client.updated" => ~w(access_tenant_id access_client_id scopes),
+    "tenant.created" => ~w(access_tenant_id placement platform_product),
+    "organization.created" => ~w(access_tenant_id access_organization_id),
+    "organization.updated" => ~w(access_tenant_id access_organization_id),
+    "api_client.created" => ~w(access_tenant_id access_client_id),
+    "api_client.updated" => ~w(access_tenant_id access_client_id),
     "api_client.suspended" => ~w(access_tenant_id access_client_id),
     "api_client.disabled" => ~w(access_tenant_id access_client_id),
     "api_client.reactivated" => ~w(access_tenant_id access_client_id),
@@ -53,17 +49,17 @@ defmodule Relay.Access.Events do
     "user.reactivated" => :reactivated,
     "user.deleted" => :deleted
   }
-  @scopes ~w(publish read subscribers config kill_switch)
   @channels ~w(push web_push email sms voice whatsapp slack teams telegram discord in_app webhook)
   @consent_statuses ~w(none pending active revoked expired)
   @consent_kinds ~w(explicit_opt_in soft_opt_in legitimate_interest none)
   @recipient_types ~w(individual merchant)
   @consent_source ~r/\A[a-z][a-z0-9_]{0,63}\z/
-  @requeue_after ~w(tenant.created organization.created organization.updated api_client.created)
+  @requeue_after ~w(tenant.created api_client.created)
+  @region_defaults "region_defaults"
   @batch 100
   @event_name ~r/\A[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+\z/
 
-  @type outcome :: :processed | {:deferred, String.t()} | {:rejected, String.t()}
+  @type outcome :: :processed | {:processed | :deferred | :rejected, String.t()}
 
   # E-94
   # E-70
@@ -192,7 +188,7 @@ defmodule Relay.Access.Events do
         if receipt.event_type in @requeue_after, do: requeue(receipt.access_tenant_id, nil)
         :ok
 
-      {state, reason} when state in [:deferred, :rejected] ->
+      {state, reason} when state in [:processed, :deferred, :rejected] ->
         _ = EventStore.mark(receipt.id, state, reason)
         :ok
 
@@ -213,14 +209,12 @@ defmodule Relay.Access.Events do
 
   defp handle("tenant.created", payload, receipt), do: tenant_created(payload, receipt)
 
-  defp handle("organization." <> _ = type, payload, receipt),
-    do: with_tenant(payload, &organization(type, payload, receipt, &1))
+  defp handle("organization." <> _type, _payload, _receipt), do: {:processed, "not_applied"}
 
   defp handle("api_client.created", payload, receipt),
     do: with_tenant(payload, &client_created(payload, receipt, &1))
 
-  defp handle("api_client.updated", payload, receipt),
-    do: with_client(payload, &client_updated(payload, receipt, &1))
+  defp handle("api_client.updated", _payload, _receipt), do: {:processed, "not_applied"}
 
   defp handle("api_client." <> _ = type, payload, receipt) when is_map_key(@statuses, type),
     do: with_client(payload, &client_status(type, payload, receipt, &1))
@@ -237,18 +231,16 @@ defmodule Relay.Access.Events do
   # TN-2
   # X-35
   # INV-41
+  # E-95
   defp tenant_created(payload, receipt) do
-    with {:ok, region} <- Relay.Region.cast(payload["region"]),
-         tenant when is_binary(tenant) <- text(payload["access_tenant_id"], 128),
-         timezone when is_binary(timezone) <- payload["default_timezone"],
-         locale when is_binary(locale) <- payload["default_locale"] do
-      id = Relay.Id.generate()
-
+    with tenant when is_binary(tenant) <- text(payload["access_tenant_id"], 128),
+         {:ok, region} <- placement_region(payload["placement"]),
+         {:ok, timezone, locale} <- region_defaults(region) do
       attrs = %{
-        id: id,
+        id: Relay.Id.generate(),
         access_tenant_id: tenant,
         region: region,
-        sector: payload["sector"] || "general",
+        sector: "general",
         default_timezone: timezone,
         default_locale: locale,
         record_digest: digest(receipt, "tenant")
@@ -256,8 +248,30 @@ defmodule Relay.Access.Events do
 
       provision(attrs, payload["platform_product"], receipt)
     else
-      {:error, %Relay.Error{code: :invalid_region}} -> {:rejected, "region_mismatch"}
-      _missing -> {:rejected, "defaults_missing"}
+      nil -> {:rejected, "tenant_missing"}
+      {:rejected, reason} -> {:rejected, reason}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  # E-95
+  # INV-41
+  defp placement_region(_placement), do: Relay.Region.cast(Relay.Datasets.installation_region())
+
+  # E-95
+  # OP-65 (3)
+  defp region_defaults(region) do
+    case Relay.Datasets.active(Relay.Datasets.installation_scope(), @region_defaults) do
+      {:ok, %{content: %{"regions" => regions}}} -> defaults_of(regions, region)
+      {:ok, nil} -> {:error, Relay.Error.new(:service_unavailable, "no region defaults")}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  defp defaults_of(regions, region) do
+    case Enum.find(regions, &(&1["region"] == Relay.Region.dump(region))) do
+      %{"time_zone" => timezone, "locale" => locale} -> {:ok, timezone, locale}
+      nil -> {:rejected, "defaults_missing"}
     end
   end
 
@@ -291,130 +305,31 @@ defmodule Relay.Access.Events do
     end
   end
 
-  # TN-6
-  # C-12
-  defp organization(type, payload, receipt, tenant_id) do
-    organization_id = payload["access_organization_id"]
-    scopes = Enum.map(Relay.Environment.all(), &Scope.new!(tenant_id, &1))
-
-    with {:ok, existing} <- existing_subtenant(scopes, organization_id) do
-      if type == "organization.updated" and payload["state"] == "archived",
-        do: archive(scopes, existing, receipt),
-        else: upsert_subtenant(scopes, existing, payload, receipt)
-    end
-  end
-
-  defp existing_subtenant(scopes, organization_id) do
-    Enum.reduce_while(scopes, {:ok, nil}, fn scope, acc ->
-      case subtenant_in(scope, organization_id) do
-        {:ok, nil} -> {:cont, acc}
-        {:ok, subtenant} -> {:halt, {:ok, subtenant}}
-        {:error, error} -> {:halt, {:error, error}}
-      end
-    end)
-  end
-
   defp subtenant_in(scope, organization_id),
     do: ClientStore.in_scope(scope, fn _status -> ClientStore.subtenant(organization_id) end)
 
-  defp upsert_subtenant(scopes, existing, payload, receipt) do
-    case payload["name"] || (existing && existing.name) do
-      name when is_binary(name) ->
-        attrs = %{
-          id: (existing && existing.id) || Relay.Id.generate(),
-          access_organization_id: payload["access_organization_id"],
-          name: name,
-          record_digest: digest(receipt, "subtenant")
-        }
-
-        each(scopes, &Relay.Tenancy.upsert_subtenant(&1, attrs, actor(receipt)))
-
-      _missing ->
-        {:rejected, "name_missing"}
-    end
-  end
-
-  defp archive(_scopes, nil, _receipt), do: :processed
-
-  defp archive(scopes, existing, receipt) do
-    digest = digest(receipt, "subtenant")
-    each(scopes, &Relay.Tenancy.archive_subtenant(&1, existing.id, digest, actor(receipt)))
-  end
-
-  defp each(scopes, fun) do
-    Enum.reduce_while(scopes, :processed, fn scope, acc ->
-      case fun.(scope) do
-        {:ok, _result} -> {:cont, acc}
-        {:error, error} -> {:halt, {:error, error}}
-      end
-    end)
-  end
-
-  # API-42
   # API-44
   # TN-24
+  # E-99
   defp client_created(payload, receipt, tenant_id) do
-    with {:ok, environment} <- Relay.Environment.cast(payload["environment"]),
-         {:ok, scopes} <- scopes(payload["scopes"]),
-         scope = Scope.new!(tenant_id, environment),
-         {:ok, subtenant_id} <- client_subtenant(scope, payload["access_organization_id"]) do
-      attrs = %{
-        id: Relay.Id.generate(),
-        access_client_id: to_string(payload["access_client_id"]),
-        subtenant_id: subtenant_id,
-        scopes: scopes,
-        access_event_ref: receipt.webhook_id
-      }
-
-      upsert_client(scope, attrs, receipt)
+    with client when is_binary(client) <- text(payload["access_client_id"], 256),
+         [] <- ClientStore.resolve(to_string(payload["access_tenant_id"]), client) do
+      register(Scope.new!(tenant_id, :live), client, receipt)
     else
-      {:error, %Relay.Error{code: :invalid_environment}} -> {:rejected, "invalid_environment"}
-      {:error, %Relay.Error{} = error} -> {:error, error}
-      other -> other
+      nil -> {:rejected, "client_missing"}
+      [_known | _more] -> :processed
     end
   end
 
-  defp client_subtenant(_scope, nil), do: {:ok, nil}
-
-  defp client_subtenant(scope, organization_id) do
-    case subtenant_in(scope, organization_id) do
-      {:ok, %{id: id}} -> {:ok, id}
-      {:ok, nil} -> {:deferred, "subtenant_not_found"}
-      {:error, error} -> {:error, error}
-    end
-  end
-
-  defp scopes(scopes) when is_list(scopes) do
-    if scopes != [] and Enum.all?(scopes, &(&1 in @scopes)),
-      do: {:ok, Enum.uniq(scopes)},
-      else: {:rejected, "invalid_scopes"}
-  end
-
-  defp scopes(_scopes), do: {:rejected, "invalid_scopes"}
-
-  defp upsert_client(scope, attrs, receipt) do
+  defp register(scope, client, receipt) do
+    id = Relay.Id.generate()
     digest = digest(receipt, "api_client")
-    work = fn _status -> ClientStore.upsert(attrs, digest, actor(receipt)) end
+    actor = actor(receipt)
+    work = fn _status -> ClientStore.register(id, client, receipt.webhook_id, digest, actor) end
 
     case ClientStore.in_scope(scope, work) do
-      {:ok, {result, _id, generation}} when result in [:created, :updated] ->
-        announce(generation)
-
-      {:ok, {result, _id, _generation}} when result in [:unchanged, :revoked_terminal] ->
-        :processed
-
-      {:ok, {:subtenant_not_found, _id, _generation}} ->
-        {:deferred, "subtenant_not_found"}
-
-      {:ok, {:subtenant_changed, _id, _generation}} ->
-        Logger.error("Access names another sub-tenant for an API client; not applied",
-          access_client_id: attrs.access_client_id
-        )
-
-        {:rejected, "subtenant_changed"}
-
-      {:error, error} ->
-        {:error, error}
+      {:ok, {result, _id}} when result in [:created, :exists] -> :processed
+      {:error, error} -> {:error, error}
     end
   end
 
@@ -422,22 +337,9 @@ defmodule Relay.Access.Events do
     access_tenant_id = to_string(payload["access_tenant_id"])
 
     case ClientStore.resolve(access_tenant_id, to_string(payload["access_client_id"])) do
+      [%{status: "pending"}] -> {:deferred, "unknown_client"}
       [resolved] -> fun.(resolved)
       _none -> {:deferred, "unknown_client"}
-    end
-  end
-
-  defp client_updated(payload, receipt, resolved) do
-    with {:ok, scopes} <- scopes(payload["scopes"]) do
-      attrs = %{
-        id: Relay.Id.generate(),
-        access_client_id: to_string(payload["access_client_id"]),
-        subtenant_id: resolved.subtenant_id,
-        scopes: scopes,
-        access_event_ref: receipt.webhook_id
-      }
-
-      upsert_client(scope(resolved), attrs, receipt)
     end
   end
 

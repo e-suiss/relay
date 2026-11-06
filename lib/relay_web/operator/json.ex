@@ -257,6 +257,17 @@ defmodule RelayWeb.Operator.Json do
     }
   end
 
+  # E-99
+  @doc "An API client Access registered that waits for its environment and scopes."
+  @spec pending_api_client(map()) :: map()
+  def pending_api_client(client) do
+    %{
+      "object" => "pending_api_client",
+      "access_client_id" => client.access_client_id,
+      "created_at" => time(client.created_at)
+    }
+  end
+
   # API-52
   @doc "The API version pin of a tenant."
   @spec api_version(map()) :: map()

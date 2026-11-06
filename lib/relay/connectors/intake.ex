@@ -25,6 +25,7 @@ defmodule Relay.Connectors.Intake do
   @hold [
     :auth_invalid_token,
     :auth_revoked_client,
+    :auth_client_pending,
     :auth_tenant_suspended,
     :auth_insufficient_scope,
     :auth_environment_mismatch

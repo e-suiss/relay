@@ -3009,7 +3009,23 @@
   },
   {
     "acceptance": "pending",
+    "id": "E-95",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "E-97",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-99",
     "section": "§7",
     "status": "frozen_technical",
     "title": "",

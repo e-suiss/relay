@@ -19,6 +19,12 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "api_client_registrations",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
       "table": "settings",
       "personal_columns": [],
       "tenant_close": "row kept",

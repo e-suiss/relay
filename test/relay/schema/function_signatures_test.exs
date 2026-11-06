@@ -127,6 +127,8 @@ defmodule Relay.Schema.FunctionSignaturesTest do
       ~w(created updated unchanged revoked_terminal subtenant_not_found subtenant_changed),
     "relay_fn.api_client_set_status" => ~w(changed unchanged invalid_transition not_found),
     "relay_fn.api_client_touch" => ~w(touched throttled not_found),
+    "relay_fn.api_client_register" => ~w(created exists),
+    "relay_fn.api_client_assign" => ~w(assigned already_assigned environment_conflict not_found),
     "relay_ops.operator_sign_in" => ~w(signed_in created operator_suspended operator_deleted),
     "relay_ops.operator_ensure" => ~w(created exists),
     "relay_ops.operator_session_step_up" => ~w(recorded session_inactive),

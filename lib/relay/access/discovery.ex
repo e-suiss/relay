@@ -1,6 +1,6 @@
 defmodule Relay.Access.Discovery do
   @moduledoc """
-  The Access discovery documents (E-78, E-92), all under the configured issuer: the OpenID Provider Configuration (`/.well-known/openid-configuration`, OIDC Discovery and RFC 8414), which names the key set (`jwks_uri`) and the token endpoint; the Suiss configuration (`/.well-known/suiss-configuration`, Access OP-149 item 3), which names the Suiss members `suiss_region`, `suiss_relay`, `suiss_management_api` and `suiss_event_subscriptions` (an object whose `ssf_configuration` is the address of the event transmitter metadata); and the AuthZEN configuration (`/.well-known/authzen-configuration`). The `issuer` of the OpenID and Suiss documents must equal the configured issuer byte for byte, and every URL they name must use HTTPS.
+  The Access discovery documents (E-78, E-92), all under the configured issuer: the OpenID Provider Configuration (`/.well-known/openid-configuration`, OIDC Discovery and RFC 8414), which names the key set (`jwks_uri`) and the token endpoint; the Suiss configuration (`/.well-known/suiss-configuration`, Access OP-149 item 3), which names the Suiss members `suiss_region`, `suiss_relay`, `suiss_management_api` and `suiss_event_subscriptions` (an object whose `ssf_configuration` is the address of the event transmitter metadata), and whose `endpoints.tenant_snapshot` is the address template of the tenant snapshot; and the AuthZEN configuration (`/.well-known/authzen-configuration`). The `issuer` of the OpenID and Suiss documents must equal the configured issuer byte for byte, and every URL they name must use HTTPS.
   """
 
   @type document :: %{
@@ -13,7 +13,8 @@ defmodule Relay.Access.Discovery do
           region: String.t() | nil,
           relay: String.t() | nil,
           management_api: String.t() | nil,
-          event_subscriptions: String.t() | nil
+          event_subscriptions: String.t() | nil,
+          tenant_snapshot: String.t() | nil
         }
 
   # E-78
@@ -50,12 +51,14 @@ defmodule Relay.Access.Discovery do
   def parse(_document, _issuer), do: invalid("the discovery document lacks issuer or jwks_uri")
 
   # E-92
+  # E-96
   # INV-41
-  @doc "Reads the Suiss members of a Suiss configuration."
+  @doc "Reads the Suiss members of a Suiss configuration, and the address template of the tenant snapshot (`endpoints.tenant_snapshot`, Access OP-149 item 4), which must hold `{tenant}`."
   @spec parse_suiss(map(), String.t()) :: {:ok, suiss()} | {:error, Relay.Error.t()}
   def parse_suiss(%{"issuer" => issuer} = document, issuer) do
     events = event_subscriptions(document["suiss_event_subscriptions"])
-    urls = [document["suiss_relay"], document["suiss_management_api"], events]
+    snapshot = tenant_snapshot(document["endpoints"])
+    urls = [document["suiss_relay"], document["suiss_management_api"], events, snapshot]
 
     if Enum.all?(urls, &optional_https?/1) do
       {:ok,
@@ -63,7 +66,8 @@ defmodule Relay.Access.Discovery do
          region: text(document["suiss_region"]),
          relay: document["suiss_relay"],
          management_api: document["suiss_management_api"],
-         event_subscriptions: events
+         event_subscriptions: events,
+         tenant_snapshot: snapshot
        }}
     else
       invalid("the Suiss configuration names an address that is not HTTPS")
@@ -74,6 +78,13 @@ defmodule Relay.Access.Discovery do
     do: invalid("the Suiss configuration names another issuer")
 
   def parse_suiss(_document, _issuer), do: invalid("the Suiss configuration lacks issuer")
+
+  defp tenant_snapshot(%{"tenant_snapshot" => url}) when is_binary(url) do
+    if String.contains?(url, "{tenant}"), do: url, else: :invalid
+  end
+
+  defp tenant_snapshot(%{"tenant_snapshot" => _url}), do: :invalid
+  defp tenant_snapshot(_endpoints), do: nil
 
   defp event_subscriptions(nil), do: nil
   defp event_subscriptions(%{"ssf_configuration" => url}) when is_binary(url), do: url

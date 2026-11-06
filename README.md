@@ -150,9 +150,15 @@ Relay does not terminate TLS. Run it behind a reverse proxy or load balancer and
 
 Relay has no API keys of its own. A backend calls the server API with a short-lived Access access token of an API client registered in Access, obtained with the OAuth 2.0 client credentials grant and `resource` set to Relay's Access `client_id` (`access_client_id` in Relay's discovery document). The token is sender-constrained with DPoP (RFC 9449): every request carries it as `Authorization: DPoP <token>` together with a `DPoP` header holding a fresh proof signed by the token's key, naming the request's method and URL and the token's hash. A proof is accepted once; there is no bearer token.
 
+A Suiss product's token is issued by the Access issuer itself. A tenant's API client gets its token from the tenant's own realm, so its `iss` is that realm: Relay accepts it only when the tenant snapshot Access serves for the token's `access_tenant` lists that realm, and verifies it with the key set named by the realm's own `/.well-known/openid-configuration`. Realms and keys are cached for a few minutes and read again when a token names a realm or key Relay has not seen.
+
 The token only says who is calling. The tenant, the environment (`test` or `live`), an optional subtenant and the scopes come from Relay's record of the API client. Enterprise tenants can additionally bind tokens to a client certificate (RFC 8705).
 
 Apps never send Access tokens to the inbox, preference or realtime endpoints. They exchange the signed-in user's DPoP-bound Access token, with a proof, for a short-lived Relay subscriber token at `POST /v1/subscriber/token` (RFC 8693) and use that as a Bearer token.
+
+Operators sign in to the console through Access OpenID Connect. Command line access to the operator API uses the same kind of DPoP-bound Access token, addressed to Relay's `client_id`; there is no separate operator audience.
+
+Relay's own calls to Access are signed by its Access client key, the P-256 key `access-client` in Relay's key store (`deploy/hsm-keys.sh` creates it). Register its public key with Relay's client in Access (`[[products]] client_key`); `bin/relay eval 'Relay.Access.Client.print_client_key()'` prints it as a JWK. Product routes such as the tenant snapshot take a fresh RFC 7523 client assertion as `Authorization: Bearer`: `iss` and `sub` are Relay's `client_id`, `aud` is the Access issuer, and it expires within a minute. The token endpoint and AuthZEN decisions are DPoP-bound: Relay authenticates its client credentials grant with the same assertion as `private_key_jwt`, signs every DPoP proof with the same key, and sends a request once more when Access asks for a `DPoP-Nonce`.
 
 ## Channels without provider accounts
 

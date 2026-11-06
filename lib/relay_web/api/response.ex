@@ -156,7 +156,26 @@ defmodule RelayWeb.Api.Response do
   defp challenge(%{assigns: %{operation: %{id: @token_exchange}}}, error, body),
     do: dpop_challenge(error, body)
 
+  # E-98
+  defp challenge(%{assigns: %{operation: %{family: :operator}}} = conn, error, body) do
+    if dpop_credential?(conn), do: operator_dpop(error, body), else: challenge(body)
+  end
+
   defp challenge(_conn, _error, body), do: challenge(body)
+
+  defp dpop_credential?(conn) do
+    case get_req_header(conn, "authorization") do
+      [value] -> Regex.match?(~r/\ADPoP /i, value)
+      _none_or_many -> false
+    end
+  end
+
+  # TN-21
+  defp operator_dpop(_error, %{"code" => "auth_step_up_required", "step_up" => step_up}) do
+    ~s(DPoP realm="relay", error="insufficient_user_authentication", acr_values="#{step_up.acr_values}", max_age=#{step_up.max_age}, algs="#{@dpop_algs}")
+  end
+
+  defp operator_dpop(error, body), do: dpop_challenge(error, body)
 
   defp dpop_challenge(%Relay.Error{details: %{challenge: "invalid_dpop_proof"}}, _body),
     do: ~s(DPoP realm="relay", error="invalid_dpop_proof", algs="#{@dpop_algs}")

@@ -1,6 +1,6 @@
 defmodule RelayWeb.Operator.Pipeline do
   @moduledoc """
-  The request rules of every `/v1/operator` operation, in order: the operation's contract, HTTPS, `Relay-Version` and `Relay-Beta`, the operator's authentication (the `relay_operator_session` cookie of a panel session, or the CLI's Access access token as `Authorization: Bearer`), CSRF for cookie-authenticated mutating requests (`Relay-Csrf-Token`), the tenant context (`Relay-Tenant`, `Relay-Environment`), the operation's role (`Relay.Operators.Authz`), the step-up of an operation that always needs one, the body and its schema, and the idempotency key. Each step passes or answers with a problem.
+  The request rules of every `/v1/operator` operation, in order: the operation's contract, HTTPS, `Relay-Version` and `Relay-Beta`, the operator's authentication (the `relay_operator_session` cookie of a panel session, or the CLI's DPoP-bound Access access token as `Authorization: DPoP` with its `DPoP` proof, E-98), CSRF for cookie-authenticated mutating requests (`Relay-Csrf-Token`), the tenant context (`Relay-Tenant`, `Relay-Environment`), the operation's role (`Relay.Operators.Authz`), the step-up of an operation that always needs one, the body and its schema, and the idempotency key. Each step passes or answers with a problem.
 
   Assigns: `:operation`, `:operator_session`, `:operator_scope` (the selected tenant scope, `nil` outside one), `:delegation_id`, `:scope` (the scope idempotency records are kept in), `:step_up_refs`, `:body`, `:raw_body` and `:idempotency_key`.
   """
@@ -20,7 +20,7 @@ defmodule RelayWeb.Operator.Pipeline do
   alias RelayWeb.Api.Transport
 
   @cookie "relay_operator_session"
-  @bearer ~r/\A[Bb]earer +([A-Za-z0-9\-._~+\/]+=*)\z/
+  @dpop ~r/\ADPoP +([A-Za-z0-9\-._~+\/]+=*)\z/i
   @mutating ["POST", "PUT", "PATCH", "DELETE"]
   @body_bytes 1_048_576
 
@@ -124,7 +124,7 @@ defmodule RelayWeb.Operator.Pipeline do
   defp authenticate(conn) do
     result =
       case get_req_header(conn, "authorization") do
-        [value] -> bearer(value)
+        [value] -> access_token(conn, value)
         [] -> cookie_session(conn.req_cookies[@cookie])
         _many -> {:error, malformed()}
       end
@@ -135,10 +135,23 @@ defmodule RelayWeb.Operator.Pipeline do
     end
   end
 
-  defp bearer(value) do
-    case Regex.run(@bearer, value) do
-      [_, token] -> Operators.resolve_bearer(token)
+  # E-98
+  defp access_token(conn, value) do
+    with [_, token] <- Regex.run(@dpop, value),
+         {:ok, proof} <- proof(conn) do
+      opts = [proof: proof, method: conn.method, url: Transport.request_url(conn)]
+      Operators.resolve_access_token(token, opts)
+    else
       nil -> {:error, malformed()}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  defp proof(conn) do
+    case get_req_header(conn, "dpop") do
+      [proof] -> {:ok, proof}
+      [] -> {:error, Relay.Error.new(:auth_missing_credentials, "send a DPoP proof")}
+      _many -> {:error, Relay.Error.new(:auth_malformed_credentials, "send one DPoP proof")}
     end
   end
 

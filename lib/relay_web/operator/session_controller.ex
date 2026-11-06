@@ -186,8 +186,8 @@ defmodule RelayWeb.Operator.SessionController do
 
   defp credential(conn) do
     case get_req_header(conn, "authorization") do
-      ["Bearer " <> token] -> token
-      ["bearer " <> token] -> token
+      ["DPoP " <> token] -> token
+      ["dpop " <> token] -> token
       _ -> conn.req_cookies[Pipeline.cookie()] || ""
     end
   end

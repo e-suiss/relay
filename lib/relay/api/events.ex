@@ -332,9 +332,10 @@ defmodule Relay.Api.Events do
     from = get_in(request.overrides, ["email", "from"])
     policy = %{domestic_country: settings[@domestic]}
 
-    with {:ok, :ok} <- check_overrides(scope, pairs, from, policy) do
-      {:ok, Map.new(providers, fn {key, {_channel, provider}} -> {key, provider} end)}
-    else
+    case check_overrides(scope, pairs, from, policy) do
+      {:ok, :ok} ->
+        {:ok, Map.new(providers, fn {key, {_channel, provider}} -> {key, provider} end)}
+
       {:ok, {:not_configured, channel, :provider}} ->
         message = "no verified provider account of the requested provider on #{channel}"
         {:error, Relay.Error.new(:channel_not_configured, message)}

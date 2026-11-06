@@ -43,7 +43,9 @@ defmodule Relay.Access.PairingTest do
   defp run(scope, fake, opts \\ []),
     do: Pairing.run(scope, [http: [plug: {FakePairing, fake}]] ++ opts)
 
-  defp signals(report, kind), do: for({^kind, meta} <- report.signals, do: meta)
+  defp signals(report, kind) do
+    for {^kind, meta} <- report.signals, do: meta
+  end
 
   defp states(tenant), do: Enum.map(Store.realms(tenant), &{&1.realm, &1.state, &1.failed_runs})
 
@@ -184,6 +186,7 @@ defmodule Relay.Access.PairingTest do
       }
 
       answer = %{"tenant" => "tnt_1", "targets" => [wire], "event_stream" => @realm_b}
+
       assert {:ok, %{event_stream: @realm_b, targets: [%{status: :paired}]}} =
                Target.parse(answer, "tnt_1")
 

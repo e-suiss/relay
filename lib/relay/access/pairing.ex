@@ -130,8 +130,7 @@ defmodule Relay.Access.Pairing do
           {:ok, %{challenges: c, pairing: p, streams: s}}
 
         _missing ->
-          {:error,
-           Relay.Error.new(:access_discovery_invalid, "Access names no pairing routes")}
+          {:error, Relay.Error.new(:access_discovery_invalid, "Access names no pairing routes")}
       end
     end
   end

@@ -12,6 +12,7 @@ defmodule Relay.Access.Pairing.Job do
   @spec args(Pairing.scope()) :: map()
   def args(:due), do: %{"scope" => "due"}
   def args(:all), do: %{"scope" => "all"}
+
   def args({:tenant, tenant}) when is_binary(tenant),
     do: %{"scope" => "tenant", "tenant" => tenant}
 
@@ -23,7 +24,9 @@ defmodule Relay.Access.Pairing.Job do
   end
 
   defp scope(%{"scope" => "all"}), do: :all
+
   defp scope(%{"scope" => "tenant", "tenant" => tenant}) when is_binary(tenant),
     do: {:tenant, tenant}
+
   defp scope(_due), do: :due
 end

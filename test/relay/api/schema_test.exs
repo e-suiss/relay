@@ -78,17 +78,18 @@ defmodule Relay.Api.SchemaTest do
   describe "E-81 E-83 staged contract fields" do
     test "E-81, E-83: a field of a later stage stays an unknown field until its stage is built" do
       event = %{"workflow" => "welcome", "to" => [%{"id" => "u-1"}]}
-      links = [%{"rel" => "primary", "href" => "https://example.com/orders/1"}]
 
-      assert Contract.built_stage() < 6
+      assert Contract.built_stage() == 6
       assert :ok = Schema.validate_request("createEvent", "application/json", event)
 
-      linked = Map.put(event, "links", links)
+      digest = "sha256:" <> String.duplicate("0", 64)
+      item = %{"ref" => "order-1", "version" => "1", "digest" => digest}
+      later = Map.put(event, "item", item)
 
       assert {:error, %Relay.Error{code: :unknown_field} = error} =
-               Schema.validate_request("createEvent", "application/json", linked)
+               Schema.validate_request("createEvent", "application/json", later)
 
-      assert {"/links", "not_allowed"} in pointers(error)
+      assert {"/item", "not_allowed"} in pointers(error)
 
       batch = %{"events" => [Map.put(event, "correlation_id", "order-1")]}
 
@@ -96,6 +97,28 @@ defmodule Relay.Api.SchemaTest do
                Schema.validate_request("createEventBatch", "application/json", batch)
 
       assert {"/events/0/correlation_id", "not_allowed"} in pointers(error)
+    end
+
+    test "E-83, CH-65: interruption and links are accepted on single and batch events" do
+      link = %{"rel" => "primary", "href" => "https://example.com/orders/1", "title" => "Order"}
+      links = [link]
+
+      event = %{
+        "workflow" => "welcome",
+        "to" => [%{"id" => "u-1"}],
+        "interruption" => "time-sensitive",
+        "links" => links
+      }
+
+      assert :ok = Schema.validate_request("createEvent", "application/json", event)
+
+      batch = %{"events" => [event]}
+      assert :ok = Schema.validate_request("createEventBatch", "application/json", batch)
+
+      alias_body = Map.put(event, "interruption", "time_sensitive")
+
+      assert {:error, %Relay.Error{code: :validation_failed}} =
+               Schema.validate_request("createEvent", "application/json", alias_body)
     end
 
     test "E-81: a later property is removed with its required entry at every depth" do

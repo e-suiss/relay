@@ -39,15 +39,37 @@ defmodule Relay.Channels.Push.Common do
   @spec device(Request.t()) :: map()
   def device(%Request{target: target}), do: Map.get(target, :device) || %{}
 
-  @doc "The rendered push fields: `title`, `subtitle` and `body`; the body of a `sensitive` template is its neutral lock screen text."
+  @doc "The rendered push fields: `title`, `subtitle` and `body`; the body of a `sensitive` template is its neutral lock screen text. The content is the renderer's canonical JSON, whose `output` holds the fields, or a map of fields."
   @spec fields(Request.t()) :: %{String.t() => String.t()}
-  def fields(%Request{content: %{} = content}) do
-    content
+  def fields(%Request{} = request) do
+    request
+    |> content()
     |> Map.take(["title", "subtitle", "body"])
     |> Map.reject(fn {_key, value} -> not is_binary(value) or value == "" end)
   end
 
-  def fields(%Request{}), do: %{}
+  # E-83
+  @doc "The tap target of the push: the `href` of the event's `primary` link, as the renderer placed it in the content's `url`, or `nil`."
+  @spec link(Request.t()) :: String.t() | nil
+  def link(%Request{} = request) do
+    case content(request)["url"] do
+      url when is_binary(url) and url != "" -> url
+      _none -> nil
+    end
+  end
+
+  defp content(%Request{content: %{"output" => %{} = output}}), do: output
+  defp content(%Request{content: %{} = content}), do: content
+
+  defp content(%Request{content: content}) when is_binary(content) do
+    case Jason.decode(content) do
+      {:ok, %{"output" => %{} = output}} -> output
+      {:ok, %{} = fields} -> fields
+      _invalid -> %{}
+    end
+  end
+
+  defp content(%Request{}), do: %{}
 
   @doc "The raw provider overrides of a block (`apns`, `fcm`, `hms`), or `nil` (API-23)."
   @spec override(Request.t(), String.t(), String.t()) :: map() | nil

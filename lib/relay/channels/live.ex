@@ -4,7 +4,7 @@ defmodule Relay.Channels.Live do
 
     1. The route. On the `test` plane and in `shadow` mode the fake provider answers (X-25, API-62, CH-72); the send mode is the event's own mode (test only), then the tenant's `send_mode.category.<category>.channel.<channel>`, `send_mode.channel.<channel>` and `send_mode` settings for the workflow's category, then the installation default. The route is narrowed to the provider the delivery was accepted with (API-23) and, under the tenant's `channels.domestic_only` policy, to accounts processing data in that country (CH-6, TN-58). Otherwise only a verified provider account whose adapter is activated takes traffic (`Relay.Channels.routes/4`, CH-14, INV-43); without one the delivery is held with `channel.no_route` and the job comes back later. The circuit breakers pick the first account that may be called; a rejection moves to the next account and, when every one is open, the job waits without counting an attempt (CH-13, T-25).
     2. The target. An address channel reads the recipient's active address; a device channel reads the recipient's permitted devices from `Relay.Devices` and takes the most recently seen one of the route's provider platform (CH-28); a recipient whose devices are all without permission is skipped with `channel.no_permission`, one without a device with `channel.no_address`. A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
-    3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50). On `push` and `web_push` the push policy is decided from the active `push_priority_map` before the attempt opens (`Relay.Channels.push_policy/2`: platform priority, interruption level, collapse keys, content-free mode and lock screen text; CH-19, CH-23, CH-33, CH-65, CH-67) and handed to the adapter; its recorded reasons (`priority_clamped`, `interruption_clamped`, `critical_not_granted`, `interruption_platform_lowered`, `override_ignored`) are emitted as `[:relay, :push, :policy]`. On SMS and voice the route keeps only the accounts of the message class's traffic, `security` or `standard`, so an OTP never shares an account or a credit pool with a campaign (CH-53), and a `+90` number only the BTK-authorized providers, or the delivery is skipped with `channel.tr_route_unauthorized` (CH-51). Before the attempt `Relay.Channels.sms_preflight/7`, with the renderer's SMS measurement, checks the sender identity's rules for the class (CH-50), the TR route and the explicit encoding (CH-48), and names the provider product (CH-53); a broken rule skips the delivery with its `rule_id`. On WhatsApp, `Relay.Channels.Live.Whatsapp.prepare/4` then applies the number's availability, the customer service window, the template's approval and the tier count (CH-57, CH-58, CH-61).
+    3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50). On `push` and `web_push` the push policy is decided from the active `push_priority_map` before the attempt opens (`Relay.Channels.push_policy/2`: platform priority, interruption level, collapse keys, content-free mode and lock screen text; CH-19, CH-23, CH-33, CH-65, CH-67) and handed to the adapter; its recorded reasons (`priority_clamped`, `interruption_clamped`, `critical_not_granted`, `interruption_platform_lowered`, `override_ignored`) are emitted as `[:relay, :push, :policy]`. The requested level is the event's `interruption`; for `critical` the tenant's opening, the template's declaration and the platform entitlement of the route's provider are read, and the recipient's Grant is asked only when the first two hold (`Relay.Channels.critical_grant/1`, CH-84). When the provider accepts a push it is counted for the high priority monitor and a `critical` one is audited (`Relay.PushPolicy`, CH-20, CH-22). On SMS and voice the route keeps only the accounts of the message class's traffic, `security` or `standard`, so an OTP never shares an account or a credit pool with a campaign (CH-53), and a `+90` number only the BTK-authorized providers, or the delivery is skipped with `channel.tr_route_unauthorized` (CH-51). Before the attempt `Relay.Channels.sms_preflight/7`, with the renderer's SMS measurement, checks the sender identity's rules for the class (CH-50), the TR route and the explicit encoding (CH-48), and names the provider product (CH-53); a broken rule skips the delivery with its `rule_id`. On WhatsApp, `Relay.Channels.Live.Whatsapp.prepare/4` then applies the number's availability, the customer service window, the template's approval and the tier count (CH-57, CH-58, CH-61).
     4. The provider limits (CH-17): the account, sender and recipient layers of the provider's declared limits, stricter than the provider's and in the channel's unit, each a GCRA decision (`Relay.Channels.Limits`); a denial snoozes the job for its `retry_after` without opening an attempt. A shared account's quota carries the lane ceiling (T-33, TN-53), and a 429 lowers the account's rate until successes raise it again (AIMD, `Relay.Channels.Throttle`); the provider's `Retry-After` still plans the retry.
     5. The attempt. It is opened with the provider idempotency key that stays the same across the logical send (INV-13, OP-6 (4)) and marked started in its own transaction before the call (INV-55, CH-10). The credential is read from the secret backend for this call only, so a rotation applies at the next call (TN-26). The call is bounded by the three timeout layers (CH-9).
     6. The outcome is normalized into the eight failure classes (CH-7). A success finishes the attempt. A failure finishes it and plans its retry through the job queue only (T-26, INV-14); a permanent target failure soft disables the address or the device at once (CH-11); a code without a mapping raises `provider.unknown_code` and the alarm (CH-8). An uncertain outcome follows the provider's declared policy (T-28): the status query, a retry with the same key, or none; on a paid channel at most one retry and `delivery.uncertain`.
@@ -22,6 +22,7 @@ defmodule Relay.Channels.Live do
       Relay.Messaging,
       Relay.Platform,
       Relay.Preferences,
+      Relay.PushPolicy,
       Relay.Secrets,
       Relay.Subscribers,
       Relay.Templates,
@@ -43,6 +44,7 @@ defmodule Relay.Channels.Live do
   @classes ~w(security transactional action_required operational system social marketing)a
   @call_ms 10_000
   @ranks %{accepted: 1, delivered: 2}
+  @closed %{enabled: false, declared: false, grant: :unavailable, entitled: false}
 
   @type result :: :ok | {:snooze, pos_integer()} | {:error, term()}
 
@@ -397,7 +399,7 @@ defmodule Relay.Channels.Live do
   defp push_policy(%{delivery: %{"channel" => channel}} = ctx, account, content)
        when channel in ["push", "web_push"] do
     case {priority_table(), account["provider"]} do
-      {{:ok, table}, _provider} -> Relay.Channels.push_policy(table, facts(ctx, content))
+      {{:ok, table}, _provider} -> Relay.Channels.push_policy(table, facts(ctx, account, content))
       {{:error, _reason}, "fake"} -> {:ok, nil}
       {{:error, reason}, _provider} -> {:error, reason}
     end
@@ -416,17 +418,18 @@ defmodule Relay.Channels.Live do
     end
   end
 
-  defp facts(ctx, content) do
+  # CH-84
+  defp facts(ctx, account, content) do
     delivery = ctx.delivery
     sensitive = delivery["sensitivity"] == "sensitive"
-    content = if is_map(content), do: content, else: %{}
+    content = output(content)
 
     %{
       tenant_id: ctx.scope.tenant_id,
       delivery_id: Relay.Id.to_string(delivery["id"]),
       message_class: delivery["message_class"],
       priority: delivery["priority"],
-      interruption: nil,
+      interruption: delivery["interruption"],
       subject_type: delivery["subject_type"],
       subject_id: delivery["subject_id"],
       sensitivity: delivery["sensitivity"],
@@ -435,8 +438,55 @@ defmodule Relay.Channels.Live do
       locale: delivery["locale"],
       lock_screen_body: if(sensitive, do: content["body"]),
       expires_at: delivery["expires_at"],
-      now: Relay.Clock.utc_now()
+      now: Relay.Clock.utc_now(),
+      critical: critical(ctx, account)
     }
+  end
+
+  defp output(content) do
+    case decoded(content) do
+      %{"output" => %{} = output} -> output
+      other -> other
+    end
+  end
+
+  # CH-20
+  # CH-66
+  # CH-84
+  defp critical(%{delivery: %{"interruption" => "critical"} = delivery} = ctx, account) do
+    case Relay.PushPolicy.critical_opening(ctx.scope) do
+      {:ok, opening} ->
+        %{
+          enabled: opening.enabled,
+          declared: Relay.PushPolicy.critical_template?(opening, delivery["template_key"]),
+          grant: fn -> grant(ctx.scope, delivery) end,
+          entitled: Enum.any?(opening.entitlements, &(&1.platform == account["provider"]))
+        }
+
+      {:error, _reason} ->
+        @closed
+    end
+  end
+
+  defp critical(_ctx, _account), do: @closed
+
+  # CH-66
+  # CH-84
+  # E-90
+  defp grant(scope, delivery) do
+    recipient_id = delivery["recipient_id"]
+
+    with sender when is_binary(sender) <- delivery["sender_ref"],
+         {:ok, sub} when is_binary(sub) <- Relay.Subscribers.external_id(scope, recipient_id) do
+      Relay.Channels.critical_grant(%{
+        tenant_id: scope.tenant_id,
+        recipient_ref: sub,
+        sender_ref: sender,
+        template_ref: delivery["template_key"]
+      })
+    else
+      _unknown -> :unavailable
+    end
   end
 
   # CH-48
@@ -639,6 +689,7 @@ defmodule Relay.Channels.Live do
         outcome = normalize(ctx, request, result)
         record_breaker(ticket, outcome, Relay.Clock.monotonic_ms() - started)
         report_policy(request, outcome)
+        count_push(ctx, request, outcome)
         throttle(account, outcome)
         follow(ctx, adapter, request, outcome)
 
@@ -670,6 +721,23 @@ defmodule Relay.Channels.Live do
   end
 
   defp report_policy(_request, _outcome), do: :ok
+
+  # CH-20
+  # CH-22
+  # CH-84
+  defp count_push(ctx, %{push: %{} = push} = request, %{state: :succeeded}) do
+    high? = push.mapping.apns_priority == 10 or push.mapping.fcm_priority == :high
+    _ = Relay.PushPolicy.record_priority(request.scope, high?)
+
+    if push.level == :critical do
+      record = %{delivery_id: request.delivery_id, template_key: ctx.delivery["template_key"]}
+      _ = Relay.PushPolicy.record_critical_use(request.scope, record)
+    end
+
+    :ok
+  end
+
+  defp count_push(_ctx, _request, _outcome), do: :ok
 
   # DS-10
   defp normalize(ctx, request, result) do

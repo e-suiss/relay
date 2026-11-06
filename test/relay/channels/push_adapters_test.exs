@@ -18,6 +18,7 @@ defmodule Relay.Channels.PushAdaptersTest do
     "key_label" => "apns-team-key",
     "bundle_id" => "com.example.app"
   }
+  @href "https://example.com/orders/1"
   @audience "//iam.googleapis.com/projects/1/locations/global/workloadIdentityPools/p/providers/q"
 
   defp put_config(adapter, config) do
@@ -108,6 +109,19 @@ defmodule Relay.Channels.PushAdaptersTest do
       assert payload["aps"]["alert"]["title"] == "Order shipped"
       assert payload["aps"]["interruption-level"] == "active"
       assert payload["relay"]["id"] == request.push.content_id
+    end
+
+    test "E-83: the renderer's encoded content is read and the primary link is the tap target" do
+      apns({200, [], ""})
+      output = %{"title" => "Order shipped", "body" => "On its way", "url" => @href}
+      content = Jason.encode!(%{"channel" => "push", "locale" => "en", "output" => output})
+
+      assert {:accepted, _info} = Apns.deliver(apns_request(%{content: content}))
+      assert_receive {:h2_request, _conn, _id, %{body: body}}
+
+      payload = Jason.decode!(body)
+      assert payload["aps"]["alert"] == %{"title" => "Order shipped", "body" => "On its way"}
+      assert payload["relay"]["url"] == @href
     end
 
     test "CH-11, CH-7: a 410 is reported raw with the time the token became invalid" do
@@ -303,6 +317,17 @@ defmodule Relay.Channels.PushAdaptersTest do
       android = Jason.decode!(body)["message"]["android"]
       assert android["urgency"] == "HIGH"
       assert android["notification"]["importance"] == "NORMAL"
+    end
+
+    test "E-83: the primary link travels in the data as relay_url" do
+      hms(self(), %{"code" => "80000000", "msg" => "Success", "requestId" => "r2"})
+      content = %{"title" => "Order shipped", "body" => "On its way", "url" => @href}
+      request = %{hms_request(PushFixture.policy()) | content: content}
+
+      assert {:accepted, _info} = Hms.deliver(request)
+      assert_receive {:hms, _path, _headers, body}
+      data = Jason.decode!(Jason.decode!(body)["message"]["data"])
+      assert data["relay_url"] == @href
     end
 
     test "CH-7: an HMS result code is reported raw" do

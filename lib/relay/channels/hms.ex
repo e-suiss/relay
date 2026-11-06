@@ -98,10 +98,21 @@ defmodule Relay.Channels.Hms do
     base = %{"relay_id" => Common.content_id(request)}
     base = if push.collapse, do: Map.put(base, "relay_topic", push.collapse.topic), else: base
 
-    if push.content_free and push.message_class != :system,
-      do: Map.put(base, "neutral", Content.neutral(push.locale, push.lock_screen_body)),
-      else: base
+    cond do
+      push.content_free and push.message_class != :system ->
+        Map.put(base, "neutral", Content.neutral(push.locale, push.lock_screen_body))
+
+      push.content_free ->
+        base
+
+      true ->
+        link(base, Common.link(request))
+    end
   end
+
+  # E-83
+  defp link(data, nil), do: data
+  defp link(data, url), do: Map.put(data, "relay_url", url)
 
   # TN-30
   defp token(%Request{credentials: nil}, _settings), do: {:error, :not_configured}

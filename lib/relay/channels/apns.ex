@@ -77,6 +77,7 @@ defmodule Relay.Channels.Apns do
   defp probe(account, settings, jwt, timeout_ms) do
     origins = Common.config(__MODULE__, :origins, @origins)
     origin = Map.get(origins, "production")
+
     key =
       {account["environment"], "apns", origin, settings["team_id"], settings["key_id"], :check}
 

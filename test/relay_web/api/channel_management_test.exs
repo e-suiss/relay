@@ -174,6 +174,7 @@ defmodule RelayWeb.Api.ChannelManagementTest do
 
       {:ok, {:archived, _version}} =
         Relay.Channels.archive_account(ctx.scope, id, digest(), actor)
+
       refused = F.body(F.request(:post, path, ctx.token), 409)
       assert refused["code"] == "provider_account_archived"
     end

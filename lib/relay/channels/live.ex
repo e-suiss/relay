@@ -87,19 +87,20 @@ defmodule Relay.Channels.Live do
         domestic_country: settings[@domestic]
       }
 
-      case Relay.Channels.routes(scope, delivery["channel"], declarations, policy) do
-        {:ok, {[], _excluded}} ->
-          {:hold, "channel.no_route"}
-
-        {:ok, {accounts, _excluded}} ->
-          with {:ok, kept} <- traffic(scope, delivery, declarations, accounts),
-               do: installation(scope, delivery, kept)
-
-        {:error, reason} ->
-          {:error, reason}
-      end
+      result = Relay.Channels.routes(scope, delivery["channel"], declarations, policy)
+      routed(result, scope, delivery, declarations)
     end
   end
+
+  defp routed({:ok, {[], _excluded}}, _scope, _delivery, _declarations),
+    do: {:hold, "channel.no_route"}
+
+  defp routed({:ok, {accounts, _excluded}}, scope, delivery, declarations) do
+    with {:ok, kept} <- traffic(scope, delivery, declarations, accounts),
+         do: installation(scope, delivery, kept)
+  end
+
+  defp routed({:error, reason}, _scope, _delivery, _declarations), do: {:error, reason}
 
   # CH-51
   # CH-53

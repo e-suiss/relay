@@ -26,6 +26,8 @@ defmodule RelayWeb.MetricsTest do
     {[:relay, :valkey, :guard], %{mismatch: 1}, %{}, "relay_valkey_eviction_policy_mismatch 1"},
     {[:relay, :access, :link], %{down: 1}, %{state: :stale, result: :unchanged},
      "relay_access_link_down 1"},
+    {[:relay, :access, :pairing], %{unpaired_realms: 2, stream_up: 1}, %{},
+     "relay_access_pairing_unpaired_realms 2"},
     {[:relay, :frequency_counter, :unavailable], %{count: 1}, %{op: :read},
      "relay_frequency_counter_unavailable_total "},
     {[:relay, :push, :signing_unavailable], %{count: 1}, %{provider: :apns, code: :key_error},

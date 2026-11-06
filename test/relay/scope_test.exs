@@ -61,7 +61,8 @@ defmodule Relay.ScopeTest do
                :device_sweep_discovery,
                :usage_day_discovery,
                :provider_account_resolve,
-               :provider_settings_check_discovery
+               :provider_settings_check_discovery,
+               :access_pairing
              ]
     end
 

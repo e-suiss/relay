@@ -37,7 +37,8 @@ if config_env() == :prod do
 
   config :relay, Relay.Access,
     issuer: Relay.Config.Env.fetch!("RELAY_ACCESS_ISSUER"),
-    client_id: Relay.Config.Env.fetch!("RELAY_ACCESS_CLIENT_ID")
+    client_id: Relay.Config.Env.fetch!("RELAY_ACCESS_CLIENT_ID"),
+    event_receiver: "https://" <> Relay.Config.Env.fetch!("RELAY_HOST") <> "/v1/access/events"
 
   config :relay, Relay.Platform.Valkey,
     adapter: Relay.Platform.Valkey.Redix,

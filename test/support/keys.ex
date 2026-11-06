@@ -1,5 +1,5 @@
 defmodule RelayTest.Keys do
-  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per `relay-dkim/` label (DKIM keys); there are no other signing keys; secret data objects are stored in the calling process; key generation succeeds for any label."
+  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs and Ed25519 signing keys Ed25519 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per `relay-dkim/` label (DKIM keys); there are no other signing keys; secret data objects are stored in the calling process; key generation succeeds for any label."
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
@@ -21,6 +21,9 @@ defmodule RelayTest.Keys do
     {:ok, <<r::256, s::256>>}
   end
 
+  def sign(:ed25519, label, message),
+    do: {:ok, :crypto.sign(:eddsa, :none, message, [ed25519(label), :ed25519])}
+
   def sign(:rs256, "relay-dkim/" <> _rest = label, message),
     do: {:ok, :public_key.sign(message, :sha256, rs256(label))}
 
@@ -29,6 +32,11 @@ defmodule RelayTest.Keys do
   @impl Relay.Keys
   def public_key(:es256, label) do
     {public, _private} = :crypto.generate_key(:ecdh, :secp256r1, es256(label))
+    {:ok, public}
+  end
+
+  def public_key(:ed25519, label) do
+    {public, _private} = :crypto.generate_key(:eddsa, :ed25519, ed25519(label))
     {:ok, public}
   end
 
@@ -54,6 +62,8 @@ defmodule RelayTest.Keys do
   end
 
   defp es256(label), do: :crypto.hash(:sha256, "relay-test-es256:" <> label)
+
+  defp ed25519(label), do: :crypto.hash(:sha256, "relay-test-ed25519:" <> label)
 
   @impl Relay.Keys
   def wrap(label, aad, key) do

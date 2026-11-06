@@ -94,6 +94,13 @@ groups:
           decision: E-75
         annotations:
           summary: "The Access link is not established or its keys are stale"
+      - alert: RelayAccessRealmsUnpaired
+        expr: relay_access_pairing_unpaired_realms > 0
+        labels:
+          severity: warning
+          decision: E-101
+        annotations:
+          summary: "Realms of the Access tenants stay unpaired with Access after three runs in a row"
       - alert: RelayFrequencyCounterUnavailable
         expr: increase(relay_frequency_counter_unavailable_total[5m]) > 0
         labels:

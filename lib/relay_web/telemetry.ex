@@ -172,6 +172,11 @@ defmodule RelayWeb.Telemetry do
         measurement: :down,
         description: "1 while the Access link is not established or its keys are stale"
       ),
+      last_value("relay.access.pairing.unpaired_realms",
+        event_name: [:relay, :access, :pairing],
+        measurement: :unpaired_realms,
+        description: "Realms of the Access tenants not paired after three runs in a row"
+      ),
       counter("relay.frequency_counter.unavailable.total",
         event_name: [:relay, :frequency_counter, :unavailable],
         description: "Frequency counter reads and writes that Valkey did not answer"

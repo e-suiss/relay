@@ -190,7 +190,7 @@ defmodule Relay.Access.Events do
       :processed ->
         _ = EventStore.mark(receipt.id, :processed, nil)
         if receipt.event_type in @requeue_after, do: requeue(receipt.access_tenant_id, nil)
-        :ok
+        paired_after(receipt)
 
       {state, reason} when state in [:deferred, :rejected] ->
         _ = EventStore.mark(receipt.id, state, reason)
@@ -210,6 +210,13 @@ defmodule Relay.Access.Events do
     |> Enum.map(&job/1)
     |> EventStore.enqueue_all()
   end
+
+  # E-101
+  defp paired_after(%{event_type: "tenant.created", access_tenant_id: tenant})
+       when is_binary(tenant),
+       do: Relay.Access.Pairing.request({:tenant, tenant})
+
+  defp paired_after(_receipt), do: :ok
 
   defp handle("tenant.created", payload, receipt), do: tenant_created(payload, receipt)
 

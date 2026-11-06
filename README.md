@@ -160,6 +160,14 @@ Operators sign in to the console through Access OpenID Connect. Command line acc
 
 Relay's own calls to Access are signed by its Access client key, the P-256 key `access-client` in Relay's key store (`deploy/hsm-keys.sh` creates it). Register its public key with Relay's client in Access (`[[products]] client_key`); `bin/relay eval 'Relay.Access.Client.print_client_key()'` prints it as a JWK. Product routes such as the tenant snapshot take a fresh RFC 7523 client assertion as `Authorization: Bearer`: `iss` and `sub` are Relay's `client_id`, `aud` is the Access issuer, and it expires within a minute. The token endpoint and AuthZEN decisions are DPoP-bound: Relay authenticates its client credentials grant with the same assertion as `private_key_jwt`, signs every DPoP proof with the same key, and sends a request once more when Access asks for a `DPoP-Nonce`.
 
+### Pairing with the tenant realms
+
+Relay also holds an Ed25519 service key, `access-service` in the key store (`deploy/hsm-keys.sh` creates it): the key of Relay's service instance in every realm of every Access tenant. Register its public key with Relay's client in Access as well; `bin/relay eval 'Relay.Access.ServiceKey.print_service_key()'` (or `mix relay.access.service_key` in development) prints it as a JWK whose `kid` is its RFC 7638 thumbprint.
+
+Relay pairs with the realms when a node starts, every hour, when Access announces a new tenant, and when an operator asks for it (`bin/relay rpc 'Relay.Access.Pairing.request(:all)'`, or `{:tenant, "tnt_…"}` for one tenant). For each tenant it reads the snapshot, asks Access for a challenge per realm that is not yet paired under the service key, checks every challenge (the `kid` is the service key's thumbprint, the nonces are the challenge and the challenge followed by `0x01`, at least a minute of validity is left), signs the ones that hold and sends them back, at most 64 at a time. A challenge Access rejects as stale, a `503` or a network failure is tried once more with a new challenge; a realm still not paired after three runs in a row raises the `RelayAccessRealmsUnpaired` alert. The same run keeps Relay's event stream from Access open: a missing or disabled stream is opened again towards `POST /v1/access/events`, and a paused one is logged as a warning.
+
+Signing a challenge needs the Access kernel, which recomputes the intent digests and produces the signed Actor Intent Statements. This build does not include it yet: every challenge is checked and then skipped with `kernel-unavailable`, so realms stay unpaired and the alert fires after three hours, while the event stream is still kept open. Pairing becomes active once the kernel lands in the key store port.
+
 ## Channels without provider accounts
 
 A self-hosted Relay sends on three channels without any third-party account:

@@ -52,6 +52,23 @@ defmodule Relay.Access.Client do
   end
 
   # E-100
+  # E-101
+  @doc "Sends `method` (`:get` or `:post`) to an Access platform route (the pairing routes and the platform streams) as Relay, authenticated by a fresh RFC 7523 client assertion sent as `Authorization: Bearer`, with `body` as JSON when it is a map; the response comes back as it is, its body raw bytes. Options: `:http`, extra Req options."
+  @spec product_request(:get | :post, String.t(), map() | nil, keyword()) ::
+          {:ok, Req.Response.t()} | {:error, Relay.Error.t()}
+  def product_request(method, url, body, opts \\ [])
+      when method in [:get, :post] and is_binary(url) do
+    with {:ok, client_id} <- client_id(),
+         {:ok, issuer} <- issuer(),
+         {:ok, assertion} <- assertion(client_id, issuer) do
+      headers = [{"accept", "application/json"}, {"authorization", "Bearer " <> assertion}]
+      json = if is_map(body), do: [body: Jason.encode!(body)], else: []
+      type = if is_map(body), do: [{"content-type", "application/json"}], else: []
+      call(url, [method: method, headers: headers ++ type] ++ json, opts)
+    end
+  end
+
+  # E-100
   @doc "Prints the public JWK of Relay's Access client key, to register it with Relay's client in Access; it starts the key store port when the node does not run it."
   @spec print_client_key() :: :ok
   def print_client_key do

@@ -33,13 +33,7 @@ defmodule Relay.Repo.Migrations.CreateTestRecipientFunctions do
     """)
   end
 
-  def down do
-    execute("DROP TRIGGER recipients_erase_test_recipients ON relay.recipients")
-    execute("DROP FUNCTION relay_private.test_recipients_erase()")
-
-    for {signature, _owner, _grantees} <- Enum.reverse(@functions),
-        do: execute("DROP FUNCTION #{signature}")
-  end
+  def down, do: :ok
 
   defp statements do
     [

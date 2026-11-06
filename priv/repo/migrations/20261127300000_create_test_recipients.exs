@@ -86,8 +86,5 @@ defmodule Relay.Repo.Migrations.CreateTestRecipients do
     end
   end
 
-  def down do
-    execute("DROP TABLE relay.test_send_counters")
-    execute("DROP TABLE relay.test_recipients")
-  end
+  def down, do: :ok
 end

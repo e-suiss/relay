@@ -37,6 +37,7 @@ auditStore:
 access:
   issuer: ""
   clientId: ""
+  pepCertificateSecret: relay-access-pep
 
 keyStore:
   module: ""

@@ -2,7 +2,7 @@ defmodule RelayTest.FakeAccess do
   @moduledoc """
   A fake Access for tests, served to the link's HTTP client as a `Req` plug (`config :relay, Relay.Access, http: [plug: {RelayTest.FakeAccess, []}]`); nothing reaches the network. It publishes an OpenID discovery document, a Suiss configuration, an AuthZEN configuration and a key set with one ES256 key (`fake-es256`, tokens) and one Ed25519 key (`fake-ed25519`, Security Event Tokens), issues tokens and pushes events as Security Event Tokens (E-94).
 
-  Every known tenant has two realms, `a` and `b` (`realm_issuer/2`), each with its own discovery document and ES256 key; the tenant snapshot names them, and a tenant whose id starts with `tnt_unknown` is not known (E-96). Relay's own calls are checked as Access checks them (E-98, E-100): the tenant snapshot takes only `Authorization: Bearer` with Relay's RFC 7523 client assertion (ES256 under the key-store key `access-client`, `iss` and `sub` Relay's `client_id`, `aud` the fake issuer, a `jti` and an `exp` at most five minutes ahead); the token endpoint takes only the same assertion as `private_key_jwt`, and it and the AuthZEN evaluation take only a DPoP proof carrying the fake's nonce, answering `use_dpop_nonce` with a `DPoP-Nonce` otherwise; resources take only the DPoP token the fake issued, bound to the proof key. The calling test process receives `{:fake_access, :token, jkt, grant_type}`, `{:fake_access, :nonce, :token | :resource}`, `{:fake_access, :snapshot, tenant}`, `{:fake_access, :realm_keys, slug}` and `{:fake_access, :evaluation, body}`.
+  Every known tenant has two realms, `a` and `b` (`realm_issuer/2`), each with its own discovery document and ES256 key; the tenant snapshot names them, and a tenant whose id starts with `tnt_unknown` is not known (E-96). Relay's own calls are checked as Access checks them (E-98, E-100): the tenant snapshot takes only `Authorization: Bearer` with Relay's RFC 7523 client assertion (ES256 under the key-store key `access-client`, `iss` and `sub` Relay's `client_id`, `aud` the fake issuer, a `jti` and an `exp` at most five minutes ahead); the token endpoint takes only the same assertion as `private_key_jwt` and a DPoP proof carrying the fake's nonce, answering `use_dpop_nonce` with a `DPoP-Nonce` otherwise. AuthZEN decisions are not served here: they need mutual TLS (`RelayTest.FakeAdp`, E-102). The calling test process receives `{:fake_access, :token, jkt, form}`, `{:fake_access, :nonce, :token}`, `{:fake_access, :snapshot, tenant}` and `{:fake_access, :realm_keys, slug}`.
 
   Plug options: `region:` overrides `suiss_region` of the Suiss configuration (the installation region by default), `openid:` merges members into the OpenID document, `suiss: :missing` answers the Suiss configuration with 404, `down: true` answers every request with 503, `keys: :private` publishes a key set with private members.
   """
@@ -174,8 +174,6 @@ defmodule RelayTest.FakeAccess do
 
   defp serve(conn, "/oauth2/token", _opts), do: token_endpoint(conn)
 
-  defp serve(conn, "/access/v1/evaluation", _opts), do: authorized(conn, &evaluation/1)
-
   defp serve(conn, "/access/v1/tenants/" <> rest, _opts) do
     case String.split(rest, "/") do
       [tenant, "snapshot"] -> asserted(conn, &tenant_snapshot(&1, tenant))
@@ -198,12 +196,12 @@ defmodule RelayTest.FakeAccess do
     {:ok, body, conn} = read_body(conn)
     form = URI.decode_query(body)
 
-    case {client_assertion?(form), proved(conn, nil)} do
+    case {client_assertion?(form), proved(conn)} do
       {false, _proved} ->
         oauth_error(conn, 401, "invalid_client")
 
       {true, {:ok, jkt, @nonce}} ->
-        send(self(), {:fake_access, :token, jkt, form["grant_type"]})
+        send(self(), {:fake_access, :token, jkt, form})
         token = "relay." <> jkt <> "." <> random()
         json(conn, %{"access_token" => token, "token_type" => "DPoP", "expires_in" => 300})
 
@@ -252,36 +250,14 @@ defmodule RelayTest.FakeAccess do
     end
   end
 
-  defp authorized(conn, answer) do
-    with ["DPoP " <> token] <- get_req_header(conn, "authorization"),
-         ["relay", jkt, _random] <- String.split(token, "."),
-         {:ok, ^jkt, nonce} <- proved(conn, token) do
-      if nonce == @nonce, do: answer.(conn), else: nonce_challenge(conn)
-    else
-      _refused ->
-        conn
-        |> put_resp_header("www-authenticate", ~s(DPoP error="invalid_token"))
-        |> send_resp(401, "")
-    end
-  end
-
-  defp nonce_challenge(conn) do
-    send(self(), {:fake_access, :nonce, :resource})
-
-    conn
-    |> put_resp_header("www-authenticate", ~s(DPoP error="use_dpop_nonce"))
-    |> put_resp_header("dpop-nonce", @nonce)
-    |> send_resp(401, "")
-  end
-
-  defp proved(conn, token) do
+  defp proved(conn) do
     with [proof] <- get_req_header(conn, "dpop"),
          {:ok, header, claims, input, sig} <- parts(proof),
          %{"typ" => "dpop+jwt", "alg" => "ES256", "jwk" => jwk} <- header,
          {:ok, point} <- point(jwk),
          true <- es256?(input, sig, point),
          true <- claims["htm"] == conn.method and claims["htu"] == url(conn),
-         true <- claims["ath"] == ath(token),
+         true <- is_nil(claims["ath"]),
          true <- is_binary(claims["jti"]) do
       {:ok, thumbprint(jwk), claims["nonce"]}
     else
@@ -294,12 +270,6 @@ defmodule RelayTest.FakeAccess do
   defp tenant_snapshot(conn, tenant) do
     send(self(), {:fake_access, :snapshot, tenant})
     json(conn, snapshot(tenant))
-  end
-
-  defp evaluation(conn) do
-    {:ok, body, conn} = read_body(conn)
-    send(self(), {:fake_access, :evaluation, Jason.decode!(body)})
-    json(conn, %{"decision" => true, "context" => %{"decision_ref" => "decision-1"}})
   end
 
   defp realm_discovery(slug) do
@@ -347,9 +317,6 @@ defmodule RelayTest.FakeAccess do
 
   defp thumbprint(%{"x" => x, "y" => y}),
     do: b64(:crypto.hash(:sha256, ~s({"crv":"P-256","kty":"EC","x":"#{x}","y":"#{y}"})))
-
-  defp ath(nil), do: nil
-  defp ath(token), do: b64(:crypto.hash(:sha256, token))
 
   defp url(conn), do: "#{conn.scheme}://#{conn.host}#{conn.request_path}"
 

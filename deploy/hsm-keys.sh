@@ -7,6 +7,7 @@
 # OP-63
 # E-98
 # E-100
+# E-102
 set -eu
 
 usage() {
@@ -21,6 +22,9 @@ exist under their label are left untouched, so the script can be rerun.
   access-client      P-256 key pair of Relay's Access client: client assertions and
                      DPoP proofs (register its public key with Relay's Access
                      client)
+  access-pep         P-256 key pair of Relay's AuthZEN PEP: its TLS client
+                     certificate is issued for it (bin/relay eval
+                     'Relay.Access.Pep.print_csr()' prints the request)
   KEK                AES-256 key that wraps tenant data keys
   fingerprint        256-bit generic secret for the HMAC-SHA256 secret fingerprints
   cursor             256-bit generic secret for the HMAC-SHA256 pagination cursor tags
@@ -36,6 +40,7 @@ Environment:
   KEY_STORE_CHECKPOINT_LABEL    default: audit-checkpoint
   KEY_STORE_SUBSCRIBER_TOKEN_LABEL  default: subscriber-token
   KEY_STORE_ACCESS_CLIENT_LABEL default: access-client
+  KEY_STORE_ACCESS_PEP_LABEL    default: access-pep
   KEY_STORE_KEK_LABEL           label of the KEK (required)
   KEY_STORE_FINGERPRINT_LABEL   label of the secret fingerprint key (required)
   KEY_STORE_CURSOR_LABEL        label of the pagination cursor key (required)
@@ -55,6 +60,7 @@ USAGE
 checkpoint="${KEY_STORE_CHECKPOINT_LABEL:-audit-checkpoint}"
 subscriber_token="${KEY_STORE_SUBSCRIBER_TOKEN_LABEL:-subscriber-token}"
 access_client="${KEY_STORE_ACCESS_CLIENT_LABEL:-access-client}"
+access_pep="${KEY_STORE_ACCESS_PEP_LABEL:-access-pep}"
 
 command -v pkcs11-tool >/dev/null || { echo "pkcs11-tool not found; install OpenSC" >&2; exit 1; }
 [ -r "$PKCS11_PIN_FILE" ] || { echo "cannot read $PKCS11_PIN_FILE" >&2; exit 1; }
@@ -86,6 +92,7 @@ create() {
 create privkey "$checkpoint" --keypairgen --key-type EC:edwards25519
 create privkey "$subscriber_token" --keypairgen --key-type EC:prime256v1
 create privkey "$access_client" --keypairgen --key-type EC:prime256v1
+create privkey "$access_pep" --keypairgen --key-type EC:prime256v1
 create secrkey "$KEY_STORE_KEK_LABEL" --keygen --key-type AES:32 --sensitive
 create secrkey "$KEY_STORE_FINGERPRINT_LABEL" --keygen --key-type GENERIC:32 --sensitive --usage-sign
 create secrkey "$KEY_STORE_CURSOR_LABEL" --keygen --key-type GENERIC:32 --sensitive --usage-sign

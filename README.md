@@ -158,7 +158,17 @@ Apps never send Access tokens to the inbox, preference or realtime endpoints. Th
 
 Operators sign in to the console through Access OpenID Connect. Command line access to the operator API uses the same kind of DPoP-bound Access token, addressed to Relay's `client_id`; there is no separate operator audience.
 
-Relay's own calls to Access are signed by its Access client key, the P-256 key `access-client` in Relay's key store (`deploy/hsm-keys.sh` creates it). Register its public key with Relay's client in Access (`[[products]] client_key`); `bin/relay eval 'Relay.Access.Client.print_client_key()'` prints it as a JWK. Product routes such as the tenant snapshot take a fresh RFC 7523 client assertion as `Authorization: Bearer`: `iss` and `sub` are Relay's `client_id`, `aud` is the Access issuer, and it expires within a minute. The token endpoint and AuthZEN decisions are DPoP-bound: Relay authenticates its client credentials grant with the same assertion as `private_key_jwt`, signs every DPoP proof with the same key, and sends a request once more when Access asks for a `DPoP-Nonce`.
+Relay's own calls to Access are signed by its Access client key, the P-256 key `access-client` in Relay's key store (`deploy/hsm-keys.sh` creates it). Register its public key with Relay's client in Access (`[[products]] client_key`); `bin/relay eval 'Relay.Access.Client.print_client_key()'` prints it as a JWK. Product and platform routes such as the tenant snapshot take a fresh RFC 7523 client assertion as `Authorization: Bearer`: `iss` and `sub` are Relay's `client_id`, `aud` is the Access issuer, and it expires within a minute. Relay asks for no access token to call Access itself. A client credentials grant is only for a service token of another platform product and always names it with `resource`; the request carries the same assertion as `private_key_jwt` and a DPoP proof of the same key, and is sent once more when Access asks for a `DPoP-Nonce`.
+
+### The AuthZEN PEP certificate
+
+Access takes AuthZEN decisions (`POST /access/v1/evaluation`) only over mutual TLS from a policy enforcement point (PEP) with a client certificate, and addresses each signed decision receipt to that certificate's SHA-256 thumbprint (`x5t#S256`). Relay's PEP key is the P-256 key `access-pep` in its key store (`deploy/hsm-keys.sh` creates it). It never leaves the token: the TLS handshake signature goes through the PKCS#11 port like every other signature.
+
+1. Print a certificate signing request for the key: `bin/relay eval 'Relay.Access.Pep.print_csr()' > relay-pep.csr` (`mix relay.access.pep_csr` in development). The request names `CN=relay-pep` and is signed by the key itself.
+2. Have it signed. With a local Access, put `relay-pep.csr` into the `ACCESS_PRODUCT_KEYS` directory and run Access's `init`; it issues `relay-pep.crt` with the PEP profile next to its `ca.crt` in the `product-tls` volume. In production your operator CA signs it with the PEP profile Access trusts.
+3. Give Relay the certificate (leaf first, then any intermediates) in `RELAY_ACCESS_PEP_CERT_FILE` and the CA bundle that verifies Access's server certificate in `RELAY_ACCESS_CA_FILE`. The Helm chart mounts both from the secret named by `access.pepCertificateSecret` (`tls.crt` and `ca.crt`).
+
+Relay refuses a certificate whose public key is not the PEP key, and reads both files again every ten minutes, so a renewed certificate needs no restart. Decisions use TLS 1.3 only. Until the certificate is in place, every decision is unavailable and the operation that needs it is refused.
 
 ## Channels without provider accounts
 

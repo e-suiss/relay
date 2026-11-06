@@ -3,7 +3,7 @@ defmodule Relay.Access do
   The link to Access, Suiss's identity and authority product (MD-1, E-1 … E-5, E-40, E-78). Relay always runs with Access and is never an authority source. The link is configured with the Access `issuer` and the `client_id` of Relay's own Access client registration (`config :relay, Relay.Access, issuer: "https://…", client_id: "…"`); endpoints, keys and capabilities come from discovery (`Relay.Access.Link`). Every subscriber's pairwise `sub` is in the sector of that client (E-90). Other contexts use only the functions of this module.
 
   * Server API credentials are DPoP-bound Access access tokens addressed to Relay's `client_id` (API-41, API-48, API-71, E-93): `verify_server_token/2` checks them and their proof on every request and maps the API client trace to its tenant, environment, sub-tenant and API-75 scopes. A token of a platform product is issued by the linked issuer; a token of a tenant API client or end user by a realm of its `access_tenant`, found in the tenant snapshot (`Relay.Access.Realms`, E-96).
-  * Relay's own calls to Access (the tenant snapshot, AuthZEN decisions and their token requests) carry DPoP proofs of a key-store key (`Relay.Access.Client`, E-98).
+  * Relay's own calls to Access take its client assertion, signed by a key-store key (the tenant snapshot and the token requests, `Relay.Access.Client`, E-100); AuthZEN decisions go over mutual TLS with Relay's PEP certificate, whose key stays in the key store (`Relay.Access.Pep`, E-102).
   * An ingest connector acts as an API client trace of its configuration (`connector_principal/2`, T-41), checked like a server token.
   * API client traces, tenant and sub-tenant mappings follow Access lifecycle events, pushed as Security Event Tokens (`accept_event/1`, `process_event/1`, E-94).
   * Subscriber tokens come only from the RFC 8693 exchange (`exchange_subscriber_token/3`) and are checked with `verify_subscriber_token/2`; an Access token is never a subscriber credential (E-25).
@@ -20,7 +20,7 @@ defmodule Relay.Access do
       Relay.Tenancy,
       Relay.Tenancy.Provisioning
     ],
-    exports: [Client, UserHandler, ConsentHandler]
+    exports: [Client, Pep, UserHandler, ConsentHandler]
 
   alias Relay.Access.Cache
   alias Relay.Access.Clients

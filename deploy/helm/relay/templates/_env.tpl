@@ -25,6 +25,10 @@
   value: {{ required "access.issuer is required" .Values.access.issuer | quote }}
 - name: RELAY_ACCESS_CLIENT_ID
   value: {{ required "access.clientId is required" .Values.access.clientId | quote }}
+- name: RELAY_ACCESS_PEP_CERT_FILE
+  value: /run/secrets/relay-access-pep/tls.crt
+- name: RELAY_ACCESS_CA_FILE
+  value: /run/secrets/relay-access-pep/ca.crt
 - name: RELAY_TRUSTED_PROXIES
   value: {{ join "," .Values.trustedProxies | quote }}
 - name: PORT

@@ -38,6 +38,8 @@ VALKEY_URL=redis://${valkey_host}:6379
 RELAY_HOST=localhost
 RELAY_ACCESS_ISSUER=https://access.invalid
 RELAY_ACCESS_CLIENT_ID=app_relay_smoke
+RELAY_ACCESS_PEP_CERT_FILE=/run/access-pep/tls.crt
+RELAY_ACCESS_CA_FILE=/run/access-pep/ca.crt
 RELAY_TRUSTED_PROXIES=0.0.0.0/0,::/0
 PORT=${port}
 METRICS_PORT=${metrics_port}
@@ -105,6 +107,12 @@ run --entrypoint softhsm2-util "$image" --init-token --free --label relay-smoke 
 # OP-63
 run -v "$here/hsm-keys.sh:/run/hsm-keys.sh:ro" --entrypoint sh "$image" /run/hsm-keys.sh \
   || fail "key creation failed"
+
+# E-102
+run -e RELAY_ROLES=worker "$image" eval 'Relay.Access.Pep.print_csr()' >"$work/relay-pep.csr" \
+  || fail "the PEP certificate signing request was not printed"
+openssl req -in "$work/relay-pep.csr" -noout -verify >/dev/null 2>&1 \
+  || fail "the PEP certificate signing request does not verify"
 
 bootstrap() {
   run -e RELAY_ROLES=worker -e "ADMIN_DATABASE_URL=ecto://relay@${db_host}:5432/relay_dev" \

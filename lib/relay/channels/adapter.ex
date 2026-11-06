@@ -15,6 +15,8 @@ defmodule Relay.Channels.Adapter do
 
   `c:reports/3` reads a provider's delivery report webhook: it verifies the raw body first with the adapter's declared inbound verification (`Relay.Channels.Inbound`, T-40), then turns each report into a `t:report/0`, whose result is `{:delivered, info}`, `{:rejected, raw}` with the provider code of the adapter's `errors.json`, or `:pending` for an intermediate state. The core normalizes a report with `Relay.Channels.normalize_report/4`; the adapter decides nothing about it.
 
+  `c:check_settings/1` reads the provider's own settings or status of an account through one cheap provider call, so a panel setting that silently overrides what Relay sends is caught (CH-52): it returns `:ok`, `{:mismatch, details}` with the `"setting"` that does not hold and, when known, its `"expected"` and `"actual"` values, or `{:error, reason}` when the provider could not be asked. A rejected credential is a mismatch of the `"credentials"` setting. An adapter without it cannot be verified by a check (CH-14).
+
   Registering an adapter means adding its module to `Relay.Channels.Registry` and its declaration directory to `priv/channels/<provider>/` (CH-71); until the declaration passes the activation gate the adapter is registered but receives no traffic (CH-2).
   """
 
@@ -56,6 +58,15 @@ defmodule Relay.Channels.Adapter do
   @type query_result ::
           {:accepted, accepted()} | {:rejected, raw()} | :not_received | :unavailable
 
+  @type check :: %{
+          required(:account) => map(),
+          required(:credentials) => Relay.Redacted.t() | nil,
+          required(:timeout_ms) => pos_integer()
+        }
+
+  @type check_result ::
+          :ok | {:mismatch, %{String.t() => String.t() | nil}} | {:error, String.t()}
+
   @doc "The provider code of the adapter, the name of its declaration directory."
   @callback provider() :: String.t()
 
@@ -75,5 +86,8 @@ defmodule Relay.Channels.Adapter do
   @callback reports(binary(), [{String.t(), String.t()}], keyword()) ::
               {:ok, [report()]} | {:error, atom()}
 
-  @optional_callbacks query: 1, decode: 1, reports: 3
+  @doc "Reads the provider's settings or status of an account (`account`, its `credentials` and the call's `timeout_ms`) and says whether they hold."
+  @callback check_settings(check()) :: check_result()
+
+  @optional_callbacks query: 1, decode: 1, reports: 3, check_settings: 1
 end

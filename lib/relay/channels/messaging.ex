@@ -156,10 +156,18 @@ defmodule Relay.Channels.Messaging do
   # TN-26
   @doc "The bot token of the request's credential: the credential itself, or the `bot_token` of a channel identity's JSON secret; `nil` without one."
   @spec token(Request.t()) :: String.t() | nil
-  def token(%Request{} = request) do
-    case credential(request) do
+  def token(%Request{credentials: credentials}), do: bot_token(credentials)
+
+  # TN-26
+  @doc "The bot token of a provider credential: the credential itself, or the `bot_token` of a channel identity's JSON secret; `nil` without one."
+  @spec bot_token(Relay.Redacted.t() | nil) :: String.t() | nil
+  def bot_token(nil), do: nil
+
+  def bot_token(credentials) do
+    case Relay.Redacted.expose(credentials) do
       "{" <> _ = json -> json_token(json)
-      value -> value
+      value when is_binary(value) and value != "" -> value
+      _other -> nil
     end
   end
 

@@ -5,6 +5,8 @@ defmodule Relay.Channels.Postmark do
   The delivery identifier travels as the metadata `relay_delivery_id`, so an uncertain call is resolved by searching the outbound messages for it (`query/1`, T-28), and every event names its delivery. Postmark's error codes are reported as `postmark:<ErrorCode>` and HTTP statuses without one as `http_<status>`.
 
   Events come from Postmark's webhooks (delivery, bounce, spam complaint), authenticated by the basic credentials of the webhook URL; Postmark signs nothing, so their authenticity is declared unverifiable (§12.1.2). `events/1` parses a webhook body into `Relay.Channels.Email.Event`s.
+
+  The settings check reads the server of the token (`GET /server`): a server whose delivery type is not `Live` is a sandbox that accepts and silently drops every message (CH-52).
   """
 
   @behaviour Relay.Channels.Adapter
@@ -13,6 +15,7 @@ defmodule Relay.Channels.Postmark do
   alias Relay.Channels.Email.Event
   alias Relay.Channels.Email.StatusCode
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
 
   @base_url "https://api.postmarkapp.com"
   @streams %{"transactional" => "outbound", "marketing" => "broadcast"}
@@ -79,6 +82,34 @@ defmodule Relay.Channels.Postmark do
       _unavailable -> :unavailable
     end
   end
+
+  # CH-52
+  @impl Relay.Channels.Adapter
+  def check_settings(%{credentials: credentials, timeout_ms: timeout_ms}) do
+    with {:ok, map} <- Esp.credential_map(credentials),
+         {:ok, token} <- Esp.secret(map, "server_token") do
+      timeout_ms
+      |> Esp.http(get("/server", token, []))
+      |> SettingsCheck.read(&server/1)
+    else
+      :error -> SettingsCheck.credentials(nil)
+    end
+  end
+
+  defp server(%Req.Response{status: 200} = response) do
+    case Esp.json(response) do
+      %{"DeliveryType" => "Live"} ->
+        :ok
+
+      %{"DeliveryType" => type} when is_binary(type) ->
+        SettingsCheck.mismatch("delivery_type", "Live", type)
+
+      _other ->
+        {:error, "unexpected_response"}
+    end
+  end
+
+  defp server(%Req.Response{status: status}), do: {:error, Esp.http_code(status)}
 
   # DS-11
   @impl Relay.Channels.Adapter

@@ -5,6 +5,8 @@ defmodule Relay.Channels.Sendgrid do
   The delivery identifier travels as the custom argument `relay_delivery_id`, which every event carries. SendGrid has no idempotency key and no status query a send can be resolved by, so an uncertain call is not retried (CH-10). An accepted message's identifier is the `X-Message-Id` header; HTTP statuses are reported as `http_<status>`.
 
   Events come from SendGrid's Event Webhook, signed with ECDSA P-256 over the timestamp and the raw body (`Relay.Channels.verify_ecdsa/4`). `events/1` parses a webhook body, a JSON array, into `Relay.Channels.Email.Event`s.
+
+  The settings check lists the authenticated domains (`GET /v3/whitelabel/domains`): every sending domain of the account's streams, or a parent domain of it, must be authenticated and valid, or SendGrid sends unaligned mail (CH-14, CH-52).
   """
 
   @behaviour Relay.Channels.Adapter
@@ -12,6 +14,7 @@ defmodule Relay.Channels.Sendgrid do
   alias Relay.Channels.Email.Esp
   alias Relay.Channels.Email.Event
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
 
   @hosts %{"global" => "https://api.sendgrid.com", "eu" => "https://api.eu.sendgrid.com"}
   @types %{
@@ -60,6 +63,52 @@ defmodule Relay.Channels.Sendgrid do
       end
     end
   end
+
+  # CH-52
+  @impl Relay.Channels.Adapter
+  def check_settings(%{account: account, credentials: credentials, timeout_ms: timeout_ms}) do
+    with {:ok, map} <- Esp.credential_map(credentials),
+         {:ok, key} <- Esp.secret(map, "api_key") do
+      region = Map.get(Esp.account_settings(account, "sendgrid"), "region", "global")
+      host = Map.get(@hosts, region, @hosts["global"])
+
+      opts = [
+        method: :get,
+        url: host <> "/v3/whitelabel/domains",
+        headers: [{"authorization", "Bearer " <> key}, {"accept", "application/json"}],
+        params: [limit: 200]
+      ]
+
+      timeout_ms
+      |> Esp.http(opts)
+      |> SettingsCheck.read(&domains(&1, SettingsCheck.stream_domains(account)))
+    else
+      :error -> SettingsCheck.credentials(nil)
+    end
+  end
+
+  defp domains(%Req.Response{status: 200, body: body}, wanted) when is_binary(body) do
+    case Jason.decode(body) do
+      {:ok, list} when is_list(list) ->
+        valid = for %{"domain" => domain, "valid" => true} <- list, do: domain
+        missing(wanted, valid)
+
+      _other ->
+        {:error, "unexpected_response"}
+    end
+  end
+
+  defp domains(%Req.Response{status: status}, _wanted), do: {:error, Esp.http_code(status)}
+
+  defp missing(wanted, valid) do
+    case Enum.find(wanted, fn domain -> not authenticated?(domain, valid) end) do
+      nil -> :ok
+      domain -> SettingsCheck.mismatch("domain_authentication", "valid", domain)
+    end
+  end
+
+  defp authenticated?(domain, valid),
+    do: Enum.any?(valid, &(domain == &1 or String.ends_with?(domain, "." <> &1)))
 
   # DS-11
   @impl Relay.Channels.Adapter

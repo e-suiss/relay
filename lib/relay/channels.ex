@@ -25,6 +25,7 @@ defmodule Relay.Channels do
   alias Relay.Channels.Registry
   alias Relay.Channels.Request
   alias Relay.Channels.Routing
+  alias Relay.Channels.SettingsCheck
   alias Relay.Channels.Simulated
   alias Relay.Channels.Sms
   alias Relay.Channels.SmsSender
@@ -472,6 +473,103 @@ defmodule Relay.Channels do
   @spec set_account_health(Relay.Scope.t(), Relay.Id.t(), String.t()) :: result(atom())
   def set_account_health(scope, id, health),
     do: Store.in_scope(scope, fn _status -> Store.account_set_health(id, health) end)
+
+  # C-45
+  @doc "A provider account by its identifier, read in its own scoped transaction; `nil` when there is none."
+  @spec provider_account(Relay.Scope.t(), Relay.Id.t()) :: result(map() | nil)
+  def provider_account(scope, id),
+    do: Store.in_scope(scope, fn _status -> Store.account(id) end)
+
+  # CH-14
+  # INV-43
+  @doc "Marks a provider account whose verification is asked for as `pending`, inside the caller's scoped transaction; a verified account stays verified until its check says otherwise. Answers the account's state before the check."
+  @spec request_settings_check(Relay.Id.t(), digest(), Relay.Actor.t()) ::
+          :pending | :verified | :not_found
+  def request_settings_check(id, digest, actor) do
+    case Store.account(id) do
+      nil ->
+        :not_found
+
+      %{"verification_state" => "verified"} ->
+        :verified
+
+      %{} ->
+        _ = Store.account_verify(id, "pending", nil, digest, actor)
+        :pending
+    end
+  end
+
+  # CH-52
+  @doc "The providers whose adapter has the settings check (`c:Relay.Channels.Adapter.check_settings/1`)."
+  @spec settings_check_providers() :: [String.t()]
+  def settings_check_providers,
+    do: for(a <- Registry.adapters(), SettingsCheck.supported?(a), do: a.provider())
+
+  # CH-14
+  # CH-52
+  @doc "Runs the settings check of a provider account with its credential within `timeout_ms`; `:unsupported` when its adapter has none."
+  @spec check_settings(map(), Relay.Redacted.t() | nil, pos_integer()) ::
+          SettingsCheck.outcome()
+  def check_settings(%{"provider" => provider} = account, credentials, timeout_ms) do
+    with {:ok, adapter} <- Registry.adapter(provider),
+         true <- SettingsCheck.supported?(adapter) do
+      check = %{account: account, credentials: credentials, timeout_ms: timeout_ms}
+      adapter.check_settings(check)
+    else
+      _unsupported -> :unsupported
+    end
+  end
+
+  # CH-14
+  # CH-52
+  @doc "What a settings check outcome leads to; see `Relay.Channels.SettingsCheck.plan/3`."
+  @spec settings_check_plan(SettingsCheck.mode(), SettingsCheck.outcome(), boolean()) ::
+          SettingsCheck.plan()
+  defdelegate settings_check_plan(mode, outcome, final?), to: SettingsCheck, as: :plan
+
+  # CH-14
+  # CH-52
+  # INV-43
+  @doc "Applies the plan of a provider account's settings check in one scoped transaction: its verification with its rule, audited under `digest`, its health and, for a mismatch, the `provider_account.settings_mismatched` event."
+  @spec apply_settings_check(
+          Relay.Scope.t(),
+          map(),
+          SettingsCheck.plan(),
+          digest(),
+          Relay.Actor.t()
+        ) :: result(atom())
+  def apply_settings_check(scope, %{"id" => id} = account, plan, digest, actor) do
+    Store.in_scope(scope, fn _status ->
+      result = settings_verification(id, plan.verification, digest, actor)
+      _ = if plan.health, do: Store.account_set_health(id, plan.health)
+      _ = if plan.mismatch, do: Store.settings_mismatched(account, plan.mismatch, plan_rule(plan))
+      result
+    end)
+  end
+
+  defp settings_verification(_id, nil, _digest, _actor), do: :unchanged
+
+  defp settings_verification(id, {state, rule_id}, digest, actor),
+    do: Store.account_verify(id, state, rule_id, digest, actor)
+
+  defp plan_rule(%{verification: {_state, rule_id}}), do: rule_id
+
+  # CH-52
+  # TN-13 (4)
+  @doc "Lists the scopes that have a verified account of `providers` due for its settings check; scopes only, through the discovery escape hatch."
+  @spec settings_check_scopes([String.t()], pos_integer(), pos_integer()) ::
+          [{Relay.Id.t(), String.t()}]
+  defdelegate settings_check_scopes(providers, interval_s, limit), to: Store
+
+  # CH-52
+  @doc "The verified accounts of `providers` in a scope whose settings check is due, in their own scoped transaction."
+  @spec settings_check_due(Relay.Scope.t(), [String.t()], pos_integer(), pos_integer()) ::
+          result([map()])
+  def settings_check_due(scope, providers, interval_s, limit) do
+    Store.in_scope(scope, fn _status ->
+      Store.settings_check_due(providers, interval_s, limit)
+    end)
+  end
 
   # C-25
   @doc "Creates or changes a sender identity; see `Relay.Channels.Store.sender_identity_put/3`."

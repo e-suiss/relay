@@ -5,12 +5,15 @@ defmodule Relay.Channels.WhatsappCloud do
   The send endpoint has no idempotency key, so the declared policy is `no_auto_retry` with `biz_opaque_callback_data` as the correlation field: an attempt whose answer never came is not sent again, and its final state comes from the status webhooks, which carry the correlation back (CH-60, T-28). The adapter decides nothing: it reports Meta's error code (`error.code`), or `http_<status>` when the body carries none, and the core classifies it through `errors.json` (CH-7, CH-59).
 
   The account's `settings` give the business number (`phone_number_id`) and, optionally, the Graph API version (`graph_api_version`, default `v24.0`).
+
+  The settings check reads the business number (`GET /<version>/<phone_number_id>`): a number whose status is not `CONNECTED`, such as one pending, flagged, restricted or disconnected, does not send (CH-52).
   """
 
   @behaviour Relay.Channels.Adapter
 
   alias Relay.Channels.ProviderHttp
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
   alias Relay.Channels.Whatsapp.Message
 
   @base_url "https://graph.facebook.com"
@@ -39,6 +42,37 @@ defmodule Relay.Channels.WhatsappCloud do
       |> result()
     end
   end
+
+  # CH-52
+  # CH-61
+  @impl Relay.Channels.Adapter
+  def check_settings(%{account: account, credentials: credentials, timeout_ms: timeout_ms}) do
+    with {:ok, token} <- token(credentials),
+         {:ok, number} <- phone_number_id(account) do
+      [
+        method: :get,
+        url: Enum.join([@base_url, version(account), number], "/"),
+        headers: [{"authorization", "Bearer " <> token}],
+        params: [fields: "status,code_verification_status"]
+      ]
+      |> ProviderHttp.call(timeout_ms)
+      |> SettingsCheck.read(&number_status/1)
+    else
+      {:rejected, %{code: "credentials_missing"}} -> SettingsCheck.credentials(nil)
+      {:rejected, %{code: _sender}} -> SettingsCheck.mismatch("phone_number_id", "set", nil)
+    end
+  end
+
+  defp number_status(%Req.Response{status: 200, body: %{"status" => "CONNECTED"}}), do: :ok
+
+  defp number_status(%Req.Response{status: 200, body: %{"status" => status}})
+       when is_binary(status),
+       do: SettingsCheck.mismatch("phone_number_status", "CONNECTED", status)
+
+  defp number_status(%Req.Response{status: 404}),
+    do: SettingsCheck.mismatch("phone_number_id", "registered", nil)
+
+  defp number_status(%Req.Response{}), do: {:error, "unexpected_response"}
 
   defp token(nil), do: rejected("credentials_missing")
 

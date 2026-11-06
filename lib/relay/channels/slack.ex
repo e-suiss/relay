@@ -5,15 +5,20 @@ defmodule Relay.Channels.Slack do
   A message about a subject that already has a message in the conversation is edited with `chat.update` (CH-23); when Slack says that message can no longer be edited, a new one is posted. Slack gives no delivery or read information (its capability flags are off); interactions arrive through the Events API and the interactivity endpoint and are recorded as events only.
 
   The raw code of a failure is Slack's `error` string; `429` is `ratelimited` with Slack's `Retry-After`, and an answer without a Slack error is `http_<status>`.
+
+  The settings check calls `auth.test`: the bot token must still be accepted and belong to the workspace the account was installed in (CH-52).
   """
 
   @behaviour Relay.Channels.Adapter
 
   alias Relay.Channels.Messaging
+  alias Relay.Channels.ProviderHttp
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
 
   @base "https://slack.com/api/"
   @not_editable ~w(message_not_found cant_update_message edit_window_closed)
+  @revoked ~w(invalid_auth not_authed account_inactive token_revoked token_expired)
 
   @impl Relay.Channels.Adapter
   def provider, do: "slack"
@@ -34,6 +39,48 @@ defmodule Relay.Channels.Slack do
       token -> send_message(request, token, opts)
     end
   end
+
+  # CH-52
+  # CH-62
+  @impl Relay.Channels.Adapter
+  def check_settings(%{account: account, credentials: credentials, timeout_ms: timeout_ms}) do
+    case Messaging.bot_token(credentials) do
+      nil ->
+        SettingsCheck.credentials(nil)
+
+      token ->
+        [
+          method: :post,
+          url: @base <> "auth.test",
+          headers: [{"authorization", "Bearer " <> token}]
+        ]
+        |> ProviderHttp.call(timeout_ms)
+        |> SettingsCheck.read(&auth(&1, account))
+    end
+  end
+
+  defp auth(%Req.Response{status: 200, body: body}, account) do
+    expected = get_in(account, ["settings", "workspace_id"])
+
+    case Messaging.json(body) do
+      %{"ok" => true, "team_id" => team} when expected in [nil, team] ->
+        :ok
+
+      %{"ok" => true, "team_id" => team} ->
+        SettingsCheck.mismatch("workspace_id", expected, team)
+
+      %{"ok" => false, "error" => error} when error in @revoked ->
+        SettingsCheck.credentials(error)
+
+      %{"ok" => false, "error" => error} when is_binary(error) ->
+        {:error, error}
+
+      _other ->
+        {:error, "unexpected_response"}
+    end
+  end
+
+  defp auth(%Req.Response{status: status}, _account), do: {:error, Messaging.http_code(status)}
 
   defp send_message(request, token, opts) do
     fields = Messaging.fields(request.content)

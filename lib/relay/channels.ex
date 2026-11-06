@@ -729,15 +729,15 @@ defmodule Relay.Channels do
   # API-23
   # CH-14
   # CH-6
-  @doc "Checks the channel overrides of a send request against the verified routes of the scope: `overrides.<channel>.provider` names a provider with a verified, routable account of that channel, and `overrides.email.from` lies on a verified sender domain or address of a routable email account. Returns the first failing channel and field."
+  @doc "Checks the channel overrides of a send request against the verified routes of the scope: `overrides.<channel>.provider` names a provider with a verified, routable account of that channel, and every `overrides.email.from` the e-mail steps send with lies on a verified sender domain or address of a routable email account. Returns the first failing channel and field."
   @spec check_overrides(
           Relay.Scope.t(),
           [{String.t(), String.t()}],
-          String.t() | nil,
+          [String.t()],
           ChannelDeclarations.t(),
           Routing.policy()
         ) :: result(:ok | {:not_configured, String.t(), :provider | :from})
-  def check_overrides(scope, providers, from, %ChannelDeclarations{} = declarations, policy) do
+  def check_overrides(scope, providers, froms, %ChannelDeclarations{} = declarations, policy) do
     Store.in_scope(scope, fn _status ->
       missing =
         Enum.find(providers, fn {channel, provider} ->
@@ -747,22 +747,39 @@ defmodule Relay.Channels do
           not Routing.override_allowed?(usable, provider)
         end)
 
-      case {missing, from} do
-        {{channel, _provider}, _from} -> {:not_configured, channel, :provider}
-        {nil, nil} -> :ok
-        {nil, from} -> from_check(from, declarations, policy)
+      case {missing, froms} do
+        {{channel, _provider}, _froms} -> {:not_configured, channel, :provider}
+        {nil, []} -> :ok
+        {nil, froms} -> from_check(froms, declarations, policy)
       end
     end)
   end
 
-  defp from_check(from, declarations, policy) do
+  defp from_check(froms, declarations, policy) do
     {{usable, _excluded}, senders} = route_here("email", declarations, policy)
 
     ids = MapSet.new(usable, & &1["id"])
     own = Enum.filter(senders, &MapSet.member?(ids, &1["provider_account_id"]))
 
-    if Routing.from_allowed?(own, from), do: :ok, else: {:not_configured, "email", :from}
+    if Enum.all?(froms, &Routing.from_allowed?(own, &1)),
+      do: :ok,
+      else: {:not_configured, "email", :from}
   end
+
+  # API-23
+  # C-25
+  @doc "Returns true when an `overrides.email.from` address lies on a verified sender identity of the provider account the route chose, checked again at send time; see `Relay.Channels.Routing.from_allowed?/2`."
+  @spec from_allowed?(Relay.Scope.t(), Relay.Id.t(), String.t()) :: result(boolean())
+  def from_allowed?(scope, account_id, from) do
+    Store.in_scope(scope, fn _status ->
+      account_id |> List.wrap() |> Store.senders() |> Routing.from_allowed?(from)
+    end)
+  end
+
+  # API-23
+  @doc "The channel block a send uses; see `Relay.Channels.Routing.effective_override/2`."
+  @spec effective_override([map() | nil], String.t()) :: map()
+  defdelegate effective_override(levels, channel), to: Routing
 
   # API-23
   @doc "The provider a step is narrowed to; see `Relay.Channels.Routing.requested_provider/2`."

@@ -21,7 +21,7 @@ defmodule Relay.Channels.Live.Store do
   end
 
   # T-15
-  @doc "Reads what the channel step needs of a delivery: its channel, target kind and target (the one device of a test send), recipient, requested provider, class, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity, the category key, the sender's `interruption` and the Access client of the event's API client (the sender of a critical Grant question, CH-84); `nil` when there is no such delivery."
+  @doc "Reads what the channel step needs of a delivery: its channel, target kind and target (the one device of a test send), recipient, requested provider, class, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity, the category key, the sender's `interruption` and the Access client of the event's API client (the sender of a critical Grant question, CH-84), and for the channel overrides the event's sealed request overrides with their key and the pinned version's workflow overrides and steps; `nil` when there is no such delivery."
   @spec delivery(Relay.Id.t()) :: map() | nil
   def delivery(delivery_id) do
     one(
@@ -31,12 +31,17 @@ defmodule Relay.Channels.Live.Store do
         n.message_class::text AS message_class, n.expires_at, n.is_test, e.send_mode::text AS send_mode,
         e.priority, n.subject_type, n.subject_id, p.locale, t.key AS template_key,
         v.sensitivity, c.key AS category_key, wv.definition->>'category' AS category,
-        e.interruption, ac.access_client_id AS sender_ref
+        e.interruption, ac.access_client_id AS sender_ref, ep.overrides_ct,
+        ep.key_id AS payload_key_id, wv.definition->'overrides' AS workflow_overrides,
+        wv.definition->'steps' AS steps
       FROM relay.deliveries d
       JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
         AND n.id = d.notification_id
       LEFT JOIN relay.events e ON e.tenant_id = n.tenant_id AND e.environment = n.environment
         AND e.id = n.event_id
+      LEFT JOIN relay.event_payloads ep ON ep.tenant_id = e.tenant_id
+        AND ep.environment = e.environment AND ep.event_id = e.id
+        AND ep.created_at = e.payload_created_at
       LEFT JOIN relay.delivery_render_plans p ON p.tenant_id = d.tenant_id
         AND p.environment = d.environment AND p.delivery_id = d.id
       LEFT JOIN relay.template_versions v ON v.tenant_id = p.tenant_id

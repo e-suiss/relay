@@ -113,9 +113,61 @@ defmodule Relay.Api.Workflows do
   # PC-57 (3)
   # API-79 (11)
   # API-81
-  @doc "The definition checked against its category inside the request's scoped transaction: the category exists and is not archived, a declared message class is the category's class, and a definition without one takes the category's class, frozen into the definition."
+  # API-23
+  @doc "The definition checked against its category inside the request's scoped transaction: the category exists and is not archived, a declared message class is the category's class, and a definition without one takes the category's class, frozen into the definition. Its workflow and step overrides follow the request's rules: a raw provider block sets no policy field (`policy_field_not_overridable`), and a step overrides only its own channel."
   @spec definition(map()) :: {:ok, map()} | {:error, Relay.Error.t()}
   def definition(definition) do
+    with :ok <- override_rules(definition), do: category_rules(definition)
+  end
+
+  # API-23
+  defp override_rules(definition) do
+    steps = definition |> Map.get("steps", []) |> Enum.with_index()
+
+    policy =
+      Relay.Ingest.policy_field_errors(definition["overrides"], "/definition/overrides") ++
+        Enum.flat_map(steps, &step_policy_fields/1)
+
+    foreign = Enum.flat_map(steps, &foreign_channels/1)
+
+    cond do
+      policy != [] ->
+        {:error,
+         Relay.Error.new(:policy_field_not_overridable, "raw blocks cannot set policy fields", %{
+           errors: policy
+         })}
+
+      foreign != [] ->
+        {:error,
+         Relay.Error.new(:validation_failed, "the workflow definition is invalid", %{
+           errors: foreign
+         })}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp step_policy_fields({%{} = step, index}) do
+    prefix = "/definition/steps/#{index}/overrides"
+    Relay.Ingest.policy_field_errors(step["overrides"], prefix)
+  end
+
+  defp step_policy_fields(_step), do: []
+
+  defp foreign_channels({%{"overrides" => %{} = overrides} = step, index}) do
+    for {channel, _block} <- overrides,
+        channel != step["channel"],
+        do: %{
+          pointer: "/definition/steps/#{index}/overrides/#{channel}",
+          code: "not_allowed",
+          detail: "a step overrides only its own channel"
+        }
+  end
+
+  defp foreign_channels(_step), do: []
+
+  defp category_rules(definition) do
     case Relay.Preferences.category(definition["category"]) do
       nil ->
         {:error, category_error("not_found", "no category has this key")}

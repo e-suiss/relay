@@ -1,6 +1,6 @@
 defmodule Relay.Channels.WhatsappCloud do
   @moduledoc """
-  The WhatsApp Cloud API adapter (CH-1, CH-3, CH-57, CH-60): a thin Graph API client over `Relay.Channels.ProviderHttp.call/2`, with no SDK. One call is `POST /<version>/<phone_number_id>/messages` with the system user token of the provider account as a bearer token; the body comes from `Relay.Channels.Whatsapp.Message` (a template message, or free-form text when the channel step chose it for an open window).
+  The WhatsApp Cloud API adapter (CH-1, CH-3, CH-57, CH-60): a thin Graph API client over `Relay.Channels.ProviderHttp.call/2`, with no SDK. One call is `POST /<version>/<phone_number_id>/messages` with the system user token of the provider account as a bearer token; the body comes from `Relay.Channels.Whatsapp.Message` (a template message, or free-form text when the channel step chose it for an open window). A raw `overrides.whatsapp.raw` block is merged deeply into that body; it cannot change the recipient, the correlation, the message type or the template, and its ignored paths are reported as `override_ignored` (API-23, CH-21).
 
   The send endpoint has no idempotency key, so the declared policy is `no_auto_retry` with `biz_opaque_callback_data` as the correlation field: an attempt whose answer never came is not sent again, and its final state comes from the status webhooks, which carry the correlation back (CH-60, T-28). The adapter decides nothing: it reports Meta's error code (`error.code`), or `http_<status>` when the body carries none, and the core classifies it through `errors.json` (CH-7, CH-59).
 
@@ -12,6 +12,7 @@ defmodule Relay.Channels.WhatsappCloud do
   @behaviour Relay.Channels.Adapter
 
   alias Relay.Channels.ProviderHttp
+  alias Relay.Channels.Push.Override
   alias Relay.Channels.Request
   alias Relay.Channels.SettingsCheck
   alias Relay.Channels.Whatsapp.Message
@@ -36,10 +37,12 @@ defmodule Relay.Channels.WhatsappCloud do
          {:ok, number} <- phone_number_id(request.account),
          {:ok, content} <- content(request.content),
          {:ok, body} <- body(request, content) do
+      {body, ignored} = Override.whatsapp(body, raw(request.overrides))
+
       request
       |> options(number, token, body)
       |> ProviderHttp.call(request.timeout_ms)
-      |> result()
+      |> result(ignored)
     end
   end
 
@@ -111,6 +114,10 @@ defmodule Relay.Channels.WhatsappCloud do
     end
   end
 
+  # API-23
+  defp raw(%{"raw" => %{} = raw}), do: raw
+  defp raw(_overrides), do: nil
+
   defp options(request, number, token, body) do
     [
       method: :post,
@@ -126,7 +133,7 @@ defmodule Relay.Channels.WhatsappCloud do
 
   defp version(_account), do: @version
 
-  defp result({:ok, %Req.Response{status: 200, body: %{"messages" => [first | _]}}})
+  defp result({:ok, %Req.Response{status: 200, body: %{"messages" => [first | _]}}}, ignored)
        when is_map(first) and is_binary(:erlang.map_get("id", first)) do
     detail =
       case first do
@@ -134,16 +141,17 @@ defmodule Relay.Channels.WhatsappCloud do
         _other -> %{}
       end
 
+    detail = if ignored == [], do: detail, else: Map.put(detail, "override_ignored", ignored)
     {:accepted, %{provider_message_id: first["id"], delivery_rank: :accepted, detail: detail}}
   end
 
-  defp result({:ok, %Req.Response{} = response}) do
+  defp result({:ok, %Req.Response{} = response}, _ignored) do
     raw = %{"status" => response.status, "headers" => headers(response), "body" => response.body}
     {:rejected, decode(raw)}
   end
 
-  defp result({:not_sent, reason}), do: {:not_sent, reason}
-  defp result({:uncertain, reason}), do: {:uncertain, reason}
+  defp result({:not_sent, reason}, _ignored), do: {:not_sent, reason}
+  defp result({:uncertain, reason}, _ignored), do: {:uncertain, reason}
 
   defp headers(%Req.Response{headers: headers}) do
     for {name, values} <- headers, value <- List.wrap(values), do: {name, value}

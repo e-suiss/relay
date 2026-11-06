@@ -1,6 +1,6 @@
 defmodule Relay.Channels.Push.Fcm do
   @moduledoc """
-  FCM HTTP v1 message building (CH-24); the retired legacy and batch endpoints are never used. The `android` block carries the policy values of the priority table and the interruption resolver; a raw `android` override cannot change the FCM `priority` or the notification channel (CH-21) and its ignored paths are returned. The collapse key is the class key of the table, and the subject key travels in the data as `relay_topic` (CH-23).
+  FCM HTTP v1 message building (CH-24); the retired legacy and batch endpoints are never used. The `android` block carries the policy values of the priority table and the interruption resolver; a raw `android` override cannot change the FCM `priority` or the notification channel, a raw `apns` block the APNs priority, push type or interruption level, and a raw `webpush` block the `Urgency` (CH-21); the ignored paths are returned. The collapse key is the class key of the table, and the subject key travels in the data as `relay_topic` (CH-23).
 
   A content-free or `system` message is a data message: no notification block, only the opaque `relay_id` and, for a content-free message, the neutral lock screen text the SDK shows when the content cannot be fetched (CH-33, CH-67). Every payload passes the push content check (INV-60) and the 4000-byte FCM limit.
   """
@@ -29,7 +29,9 @@ defmodule Relay.Channels.Push.Fcm do
           optional(:data) => map(),
           optional(:data_only) => boolean(),
           optional(:content_free) => map() | nil,
-          optional(:override_android) => map() | nil
+          optional(:override_android) => map() | nil,
+          optional(:override_apns) => map() | nil,
+          optional(:override_webpush) => map() | nil
         }
 
   @type request :: %{
@@ -59,10 +61,11 @@ defmodule Relay.Channels.Push.Fcm do
       when is_binary(token) and token != "" and is_map_key(@priorities, priority) do
     with {:ok, data} <- data(m),
          {android, ignored} = android(m, Map.fetch!(@priorities, priority), ttl),
-         message = %{"token" => token, "android" => android, "data" => data},
+         {blocks, other} = blocks(m),
+         message = Map.merge(%{"token" => token, "android" => android, "data" => data}, blocks),
          :ok <- Content.check(message),
          :ok <- size(data, android) do
-      {:ok, message, ignored}
+      {:ok, message, ignored ++ other}
     end
   end
 
@@ -109,6 +112,21 @@ defmodule Relay.Channels.Push.Fcm do
       true -> Override.android(policy, Map.get(m, :override_android))
     end
   end
+
+  defp blocks(m) do
+    if content_free?(m) do
+      dropped = for key <- [:override_apns, :override_webpush], Map.get(m, key), do: block(key)
+      {%{}, dropped}
+    else
+      {apns, a} = Override.fcm_apns(Map.get(m, :override_apns))
+      {webpush, w} = Override.fcm_webpush(Map.get(m, :override_webpush))
+      blocks = Map.reject(%{"apns" => apns, "webpush" => webpush}, fn {_k, v} -> is_nil(v) end)
+      {blocks, a ++ w}
+    end
+  end
+
+  defp block(:override_apns), do: "fcm.apns"
+  defp block(:override_webpush), do: "fcm.webpush"
 
   defp notification(m) do
     case {data_message?(m), Map.get(m, :notification)} do

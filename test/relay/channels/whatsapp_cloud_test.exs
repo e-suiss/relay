@@ -76,6 +76,27 @@ defmodule Relay.Channels.WhatsappCloudTest do
       assert body["biz_opaque_callback_data"] == correlation
     end
 
+    test "API-23, CH-21: a raw override is merged into the body and cannot readdress it" do
+      test = self()
+      raw = %{"to" => "+15550000000", "context" => %{"message_id" => "wamid.prev"}}
+      request = request(overrides: %{"raw" => raw})
+
+      stub(fn conn ->
+        {:ok, raw, conn} = Plug.Conn.read_body(conn)
+        send(test, {:sent, raw})
+        reply(conn, 200, %{"messages" => [%{"id" => "wamid.HBgM"}]})
+      end)
+
+      assert {:accepted, %{detail: %{"override_ignored" => ["whatsapp.to"]}}} =
+               WhatsappCloud.deliver(request)
+
+      assert_received {:sent, raw}
+      body = Jason.decode!(raw)
+      assert body["to"] == "+905551112233"
+      assert body["context"] == %{"message_id" => "wamid.prev"}
+      assert body["type"] == "template"
+    end
+
     test "CH-59, CH-7: a Graph API error is reported by its code and classified by the mapping" do
       stub(fn conn ->
         reply(conn, 400, %{

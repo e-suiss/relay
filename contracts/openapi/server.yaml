@@ -2919,6 +2919,7 @@ paths:
         - unknown_field
         - resource_conflict
         - category_class_mismatch
+        - policy_field_not_overridable
       x-relay-scopes:
         - config
       x-relay-role: tenant_operator
@@ -3127,6 +3128,7 @@ paths:
         - precondition_failed
         - precondition_required
         - category_class_mismatch
+        - policy_field_not_overridable
       x-relay-scopes:
         - config
       x-relay-role: tenant_operator

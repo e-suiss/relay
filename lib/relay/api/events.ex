@@ -243,7 +243,9 @@ defmodule Relay.Api.Events do
          {:ok, actor_ct} <- seal(scope, key_id, "actor_ct", request.actor, key),
          {:ok, links_ct} <- seal(scope, key_id, "links_ct", request.links, key),
          ce = ce_attributes(cloudevent),
-         {:ok, ce_ct} <- seal(scope, key_id, "ce_attributes_ct", ce, key) do
+         {:ok, ce_ct} <- seal(scope, key_id, "ce_attributes_ct", ce, key),
+         overrides = if(request.overrides in [nil, %{}], do: nil, else: request.overrides),
+         {:ok, overrides_ct} <- seal(scope, key_id, "overrides_ct", overrides, key) do
       {:ok,
        %{
          key_id: key_id,
@@ -252,6 +254,7 @@ defmodule Relay.Api.Events do
          actor_ct: actor_ct,
          links_ct: links_ct,
          ce_attributes_ct: ce_ct,
+         overrides_ct: overrides_ct,
          plain_size: byte_size(Jason.encode!(request.data))
        }}
     end
@@ -332,10 +335,16 @@ defmodule Relay.Api.Events do
           do: {step.key, {step.channel, provider}}
 
     pairs = providers |> Map.values() |> Enum.uniq()
-    from = get_in(request.overrides, ["email", "from"])
     policy = %{domestic_country: settings[@domestic]}
 
-    case check_overrides(scope, pairs, from, policy) do
+    froms =
+      for %{channel: "email"} = step <- request.steps,
+          from = effective(request.overrides, definition, step)["from"],
+          is_binary(from),
+          uniq: true,
+          do: from
+
+    case check_overrides(scope, pairs, froms, policy) do
       {:ok, :ok} ->
         {:ok, Map.new(providers, fn {key, {_channel, provider}} -> {key, provider} end)}
 
@@ -355,12 +364,12 @@ defmodule Relay.Api.Events do
     end
   end
 
-  defp check_overrides(_scope, [], nil, _policy), do: {:ok, :ok}
+  defp check_overrides(_scope, [], [], _policy), do: {:ok, :ok}
 
-  defp check_overrides(scope, pairs, from, policy) do
+  defp check_overrides(scope, pairs, froms, policy) do
     case Relay.Datasets.channel_declarations() do
       {:ok, declarations} ->
-        Relay.Channels.check_overrides(scope, pairs, from, declarations, policy)
+        Relay.Channels.check_overrides(scope, pairs, froms, declarations, policy)
 
       {:error, _error} ->
         {:error, unavailable("the channel declarations could not be read")}
@@ -368,10 +377,18 @@ defmodule Relay.Api.Events do
   end
 
   defp provider(requested, definition, step, tenant) do
-    steps = Map.get(definition, "steps", [])
-    own = Enum.find_value(steps, &(is_map(&1) and &1["key"] == step.key and &1["overrides"]))
-    levels = [requested, own, definition["overrides"], tenant]
+    levels = [requested, own_overrides(definition, step), definition["overrides"], tenant]
     Relay.Channels.requested_provider(levels, step.channel)
+  end
+
+  defp effective(requested, definition, step) do
+    levels = [requested, own_overrides(definition, step), definition["overrides"]]
+    Relay.Channels.effective_override(levels, step.channel)
+  end
+
+  defp own_overrides(definition, step) do
+    steps = Map.get(definition, "steps", [])
+    Enum.find_value(steps, &(is_map(&1) and &1["key"] == step.key and &1["overrides"]))
   end
 
   defp tenant_overrides(settings) do

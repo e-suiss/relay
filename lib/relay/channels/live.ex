@@ -2,7 +2,7 @@ defmodule Relay.Channels.Live do
   @moduledoc """
   The channel step of the delivery job (`Relay.Delivery.Send`, configured as `config :relay, Relay.Delivery, channel: Module`): it hands a rendered delivery to its provider and records the outcome.
 
-    1. The route. On the `test` plane and in `shadow` mode the fake provider answers (X-25, API-62, CH-72); the send mode is the event's own mode (test only), then the tenant's `send_mode.category.<category>.channel.<channel>`, `send_mode.channel.<channel>` and `send_mode` settings for the workflow's category, then the installation default. The route is narrowed to the provider the delivery was accepted with (API-23) and, under the tenant's `channels.domestic_only` policy, to accounts processing data in that country (CH-6, TN-58). Otherwise only a verified provider account whose adapter is activated takes traffic (`Relay.Channels.routes/4`, CH-14, INV-43); without one the delivery is held with `channel.no_route` and the job comes back later. The circuit breakers pick the first account that may be called; a rejection moves to the next account and, when every one is open, the job waits without counting an attempt (CH-13, T-25).
+    1. The route. On the `test` plane and in `shadow` mode the fake provider answers (X-25, API-62, CH-72); the send mode is the event's own mode (test only), then the tenant's `send_mode.category.<category>.channel.<channel>`, `send_mode.channel.<channel>` and `send_mode` settings for the workflow's category, then the installation default. The route is narrowed to the provider the delivery was accepted with (API-23) and, under the tenant's `channels.domestic_only` policy, to accounts processing data in that country (CH-6, TN-58). The delivery's channel overrides are its event's sealed request overrides over the pinned workflow version's step (the step of the delivery's channel and template) and workflow overrides (API-23); they reach the adapter as the request's `overrides`, and an `overrides.email.from` is checked again against the chosen account's verified sender identities, or the delivery is skipped with `channel.sender_unapproved`. Otherwise only a verified provider account whose adapter is activated takes traffic (`Relay.Channels.routes/4`, CH-14, INV-43); without one the delivery is held with `channel.no_route` and the job comes back later. The circuit breakers pick the first account that may be called; a rejection moves to the next account and, when every one is open, the job waits without counting an attempt (CH-13, T-25).
     2. The target. An address channel reads the recipient's active address; a device channel reads the recipient's permitted devices from `Relay.Devices` and takes the most recently seen one of the route's provider platform (CH-28); a recipient whose devices are all without permission is skipped with `channel.no_permission`, one without a device with `channel.no_address`. A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
     3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50). On `push` and `web_push` the push policy is decided from the active `push_priority_map` before the attempt opens (`Relay.Channels.push_policy/2`: platform priority, interruption level, collapse keys, content-free mode and lock screen text; CH-19, CH-23, CH-33, CH-65, CH-67) and handed to the adapter; its recorded reasons (`priority_clamped`, `interruption_clamped`, `critical_not_granted`, `interruption_platform_lowered`, `override_ignored`) are emitted as `[:relay, :push, :policy]`. The requested level is the event's `interruption`; for `critical` the tenant's opening, the template's declaration and the platform entitlement of the route's provider are read, and the recipient's Grant is asked only when the first two hold (`Relay.Channels.critical_grant/1`, CH-84). When the provider accepts a push it is counted for the high priority monitor and a `critical` one is audited (`Relay.PushPolicy`, CH-20, CH-22). On SMS and voice the route keeps only the accounts of the message class's traffic, `security` or `standard`, so an OTP never shares an account or a credit pool with a campaign (CH-53), and a `+90` number only the BTK-authorized providers, or the delivery is skipped with `channel.tr_route_unauthorized` (CH-51). Before the attempt `Relay.Channels.sms_preflight/7`, with the renderer's SMS measurement, checks the sender identity's rules for the class (CH-50), the TR route and the explicit encoding (CH-48), and names the provider product (CH-53); a broken rule skips the delivery with its `rule_id`. On WhatsApp, `Relay.Channels.Live.Whatsapp.prepare/4` then applies the number's availability, the customer service window, the template's approval and the tier count (CH-57, CH-58, CH-61).
     4. The provider limits (CH-17): the account, sender and recipient layers of the provider's declared limits, stricter than the provider's and in the channel's unit, each a GCRA decision (`Relay.Channels.Limits`); a denial snoozes the job for its `retry_after` without opening an attempt. A shared account's quota carries the lane ceiling (T-33, TN-53), and a 429 lowers the account's rate until successes raise it again (AIMD, `Relay.Channels.Throttle`); the provider's `Retry-After` still plans the retry.
@@ -59,6 +59,7 @@ defmodule Relay.Channels.Live do
   @spec deliver(Scope.t(), Relay.Id.t(), map()) :: result()
   def deliver(%Scope{} = scope, delivery_id, args) when is_map(args) do
     with {:ok, %{} = delivery} <- Store.in_scope(scope, fn _ -> Store.delivery(delivery_id) end),
+         {:ok, overrides} <- overrides(scope, delivery),
          {:ok, declarations} <- Relay.Datasets.channel_declarations(),
          {:ok, parameters} <- Relay.Datasets.channel_parameters(),
          {:ok, route} <- route(scope, delivery, declarations) do
@@ -67,7 +68,8 @@ defmodule Relay.Channels.Live do
         delivery: delivery,
         declarations: declarations,
         parameters: parameters,
-        args: args
+        args: args,
+        overrides: overrides
       }
 
       admit(ctx, route)
@@ -78,6 +80,47 @@ defmodule Relay.Channels.Live do
       {:error, reason} -> {:error, reason}
     end
   end
+
+  # API-23
+  defp overrides(scope, delivery) do
+    with {:ok, requested} <- requested_overrides(scope, delivery) do
+      levels = [requested, step_overrides(delivery), delivery["workflow_overrides"]]
+      {:ok, Relay.Channels.effective_override(levels, delivery["channel"])}
+    end
+  end
+
+  defp step_overrides(%{"steps" => steps, "channel" => channel, "template_key" => template})
+       when is_list(steps) do
+    Enum.find_value(steps, fn step ->
+      if is_map(step) and step["channel"] == channel and step["template"] == template,
+        do: step["overrides"]
+    end)
+  end
+
+  defp step_overrides(_delivery), do: nil
+
+  defp requested_overrides(_scope, %{"overrides_ct" => nil}), do: {:ok, nil}
+
+  defp requested_overrides(scope, %{"overrides_ct" => ct, "payload_key_id" => key_id}) do
+    field = %{
+      tenant_id: scope.tenant_id,
+      environment: scope.environment,
+      subject_id: nil,
+      retention_class: :notification_content,
+      table: "event_payloads",
+      column: "overrides_ct",
+      key_id: key_id
+    }
+
+    with {:ok, plain} <- Relay.Tenancy.decrypt_field(field, ct),
+         {:ok, %{} = overrides} <- Jason.decode(Relay.Redacted.expose(plain)) do
+      {:ok, overrides}
+    else
+      _unreadable -> {:error, :overrides_unavailable}
+    end
+  end
+
+  defp requested_overrides(_scope, _delivery), do: {:ok, nil}
 
   @type usage_price :: {:ok, map()} | :unpriced
   @type usage_pricer :: (... -> usage_price())
@@ -384,9 +427,27 @@ defmodule Relay.Channels.Live do
          Relay.Channels.simulated_address?(ctx.delivery["channel"], value) do
       skip(ctx.scope, ctx.delivery["id"], "channel.invalid_recipient")
     else
-      content(ctx, account, ticket, target)
+      sender(ctx, account, ticket, target)
     end
   end
+
+  # API-23
+  # C-25
+  defp sender(
+         %{delivery: %{"channel" => "email"}, overrides: %{"from" => from}} = ctx,
+         %{"id" => <<_::128>> = id} = account,
+         ticket,
+         target
+       )
+       when is_binary(from) do
+    case Relay.Channels.from_allowed?(ctx.scope, id, from) do
+      {:ok, true} -> content(ctx, account, ticket, target)
+      {:ok, false} -> skip(ctx.scope, ctx.delivery["id"], "channel.sender_unapproved")
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp sender(ctx, account, ticket, target), do: content(ctx, account, ticket, target)
 
   # TP-50
   defp content(ctx, account, ticket, target) do
@@ -696,6 +757,7 @@ defmodule Relay.Channels.Live do
       ttl_s: ttl,
       message_class: ctx.delivery["message_class"],
       test?: ctx.scope.environment == :test,
+      overrides: ctx.overrides,
       push: Map.get(ctx, :push),
       update: update(ctx, account, target)
     }

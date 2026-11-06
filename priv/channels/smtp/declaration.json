@@ -1,0 +1,63 @@
+{
+  "provider": "smtp",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "email"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "§12.6.1 CH-34 T-39",
+    "RFC 5321",
+    "RFC 3463",
+    "RFC 7372",
+    "RFC 7505",
+    "RFC 6531"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "email": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": false,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "no_auto_retry",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": "Message-ID",
+    "status_query": false,
+    "source": "§12.2.4 CH-10; RFC 5321 has no submission idempotency"
+  },
+  "paid_channels": [],
+  "pricing": {
+    "currency": "EUR",
+    "units": {
+      "email": "none"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [],
+    "sender": [],
+    "recipient": []
+  },
+  "data_residency": {
+    "in_installation": true,
+    "processing_countries": [],
+    "transfer_basis": "none",
+    "scc_notified_on": null,
+    "source": "§12.6.1 CH-34: the tenant's own mail server"
+  },
+  "inbound_verification": {
+    "method": "none",
+    "header": null,
+    "authenticity": "verified",
+    "source": "§12.6.11 CH-46: Relay accepts no mail on this adapter"
+  }
+}

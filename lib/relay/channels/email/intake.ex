@@ -38,14 +38,29 @@ defmodule Relay.Channels.Email.Intake do
 
   def plan(%Event{} = event, %{kind: kind} = result) do
     case kind do
-      :hard -> [{:suppress, "hard_bounce", nil}, {:reputation, :bounce}, {:evidence, "bounced"}]
-      :soft -> [:count_soft_bounce, {:evidence, "rejected"}]
-      :complaint -> [{:suppress, "complaint", nil}, {:reputation, :complaint}, evidence("complained")]
-      :sender_config -> [{:sender_config, result.rule}, {:evidence, "rejected"}]
-      :policy -> [{:reputation, :bounce}, {:evidence, "rejected"}]
-      :content -> [{:evidence, "rejected"}]
-      :unknown -> [{:unknown_code, "event:" <> event.code}, {:evidence, "rejected"}]
-      :delivered -> [{:reputation, :delivered}, {:evidence, "delivered"}]
+      :hard ->
+        [{:suppress, "hard_bounce", nil}, {:reputation, :bounce}, {:evidence, "bounced"}]
+
+      :soft ->
+        [:count_soft_bounce, {:evidence, "rejected"}]
+
+      :complaint ->
+        [{:suppress, "complaint", nil}, {:reputation, :complaint}, evidence("complained")]
+
+      :sender_config ->
+        [{:sender_config, result.rule}, {:evidence, "rejected"}]
+
+      :policy ->
+        [{:reputation, :bounce}, {:evidence, "rejected"}]
+
+      :content ->
+        [{:evidence, "rejected"}]
+
+      :unknown ->
+        [{:unknown_code, "event:" <> event.code}, {:evidence, "rejected"}]
+
+      :delivered ->
+        [{:reputation, :delivered}, {:evidence, "delivered"}]
     end
   end
 

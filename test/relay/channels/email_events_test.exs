@@ -56,6 +56,7 @@ defmodule Relay.Channels.EmailEventsTest do
                Postmark.events(body)
 
       assert Relay.Redacted.expose(event.recipient) == "reader@example.com"
+
       assert %{kind: :hard, suppression: "hard_bounce", reputation: :bounce} =
                classify(event, ctx)
     end
@@ -190,6 +191,7 @@ defmodule Relay.Channels.EmailEventsTest do
     setup do
       %{cert: der, key: key} =
         :public_key.pkix_test_root_cert(~c"SNS test", key: {:rsa, 2048, 65_537})
+
       pem = :public_key.pem_encode([{:Certificate, der, :not_encrypted}])
       %{key: key, fetch: fn @cert_url -> {:ok, pem} end}
     end
@@ -257,6 +259,7 @@ defmodule Relay.Channels.EmailEventsTest do
       assert {:error, :bad_signature} = Ses.message_events(settings, tampered, ctx.fetch)
 
       other = Jason.encode!(signed)
+
       assert {:error, :wrong_topic} =
                Ses.message_events(%{"topic_arn" => "arn:x"}, other, ctx.fetch)
 

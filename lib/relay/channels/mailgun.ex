@@ -145,11 +145,21 @@ defmodule Relay.Channels.Mailgun do
 
     {type, code} =
       case {name, severity} do
-        {"delivered", _severity} -> {:delivered, "delivered"}
-        {"failed", "permanent"} -> {:bounced, "failed:permanent"}
-        {"failed", "temporary"} -> {:deferred, "failed:temporary"}
-        {"complained", _severity} -> {:complained, "complained"}
-        {"rejected", _severity} -> {:rejected, "rejected"}
+        {"delivered", _severity} ->
+          {:delivered, "delivered"}
+
+        {"failed", "permanent"} ->
+          {:bounced, "failed:permanent"}
+
+        {"failed", "temporary"} ->
+          {:deferred, "failed:temporary"}
+
+        {"complained", _severity} ->
+          {:complained, "complained"}
+
+        {"rejected", _severity} ->
+          {:rejected, "rejected"}
+
         {engagement, _severity} when engagement in ["opened", "clicked", "unsubscribed"] ->
           {:engagement, engagement}
 

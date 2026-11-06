@@ -246,11 +246,21 @@ defmodule Relay.Channels.Ses do
     base = base(mail, id)
 
     case type do
-      "Bounce" -> bounces(base, message["bounce"] || %{})
-      "Complaint" -> complaints(base, message["complaint"] || %{})
-      "Delivery" -> deliveries(base, message["delivery"] || %{})
-      "DeliveryDelay" -> delays(base, message["deliveryDelay"] || %{})
-      "Reject" -> [%{base | type: :rejected, code: "Reject"}]
+      "Bounce" ->
+        bounces(base, message["bounce"] || %{})
+
+      "Complaint" ->
+        complaints(base, message["complaint"] || %{})
+
+      "Delivery" ->
+        deliveries(base, message["delivery"] || %{})
+
+      "DeliveryDelay" ->
+        delays(base, message["deliveryDelay"] || %{})
+
+      "Reject" ->
+        [%{base | type: :rejected, code: "Reject"}]
+
       engagement when engagement in ["Open", "Click", "Subscription"] ->
         [%{base | type: :engagement, code: engagement}]
 

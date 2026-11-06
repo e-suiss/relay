@@ -157,8 +157,10 @@ defmodule Relay.Channels.EspTest do
       assert sent["tracking_settings"]["open_tracking"]["enable"] == false
       assert sent["ip_pool_name"] == "tx-pool"
       [personalization] = sent["personalizations"]
+
       assert personalization["custom_args"]["relay_delivery_id"] ==
                Relay.Id.to_string(request.delivery_id)
+
       assert Map.has_key?(sent["headers"], "Feedback-ID")
     end
 
@@ -201,6 +203,7 @@ defmodule Relay.Channels.EspTest do
 
       assert {:accepted, %{provider_message_id: "<mg-1@sender.example>"}} =
                Mailgun.deliver(request)
+
       assert_received {:sent, "/v3/sender.example/messages", auth, form}
       assert auth == "Basic " <> Base.encode64("api:mg-key")
       fields = URI.decode_query(form)

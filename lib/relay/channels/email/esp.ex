@@ -38,7 +38,9 @@ defmodule Relay.Channels.Email.Esp do
       |> Keyword.merge(test_options())
 
     case Relay.Channels.http_request(opts) do
-      {:ok, response} -> {:ok, response}
+      {:ok, response} ->
+        {:ok, response}
+
       {:error, %{reason: reason}} when reason in @unreached ->
         {:not_sent, Atom.to_string(reason)}
 

@@ -4,6 +4,8 @@ image:
 
 host: relay.example.com
 
+trustedProxies: []
+
 database:
   url: ""
   queueUrl: ""

@@ -1,6 +1,7 @@
 defmodule Relay.Access.DiscoveryTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Access.Discovery
   alias Relay.Access.Link
   alias RelayTest.FakeAccess
   alias RelayTest.TenantFixture
@@ -33,7 +34,7 @@ defmodule Relay.Access.DiscoveryTest do
       assert issuer == FakeAccess.issuer()
       assert region == FakeAccess.installation_region()
       assert management == FakeAccess.issuer() <> "/management"
-      assert events == FakeAccess.issuer() <> "/event-subscriptions"
+      assert events == FakeAccess.issuer() <> "/.well-known/ssf-configuration"
       assert jwks == FakeAccess.jwks()
 
       assert %{token_endpoint: endpoint, keys: [_, _]} = Link.current()
@@ -46,6 +47,62 @@ defmodule Relay.Access.DiscoveryTest do
 
       assert Relay.Access.link_state() == :stale
       assert {:ok, _principal} = verify(ctx.token)
+    end
+  end
+
+  describe "E-92 Suiss configuration" do
+    test "E-92: the Suiss members come from the Suiss configuration, not the OpenID document" do
+      openid = %{
+        "suiss_region" => other_region(),
+        "suiss_management_api" => "https://elsewhere.test/management"
+      }
+
+      assert {:ok, :ok} = Relay.Access.refresh(http: [plug: {FakeAccess, openid: openid}])
+      assert Relay.Access.link_state() == :ok
+
+      assert [[_, "ok", region, management, _, true, _]] = Relay.Repo.query!(@link, []).rows
+      assert region == FakeAccess.installation_region()
+      assert management == FakeAccess.issuer() <> "/management"
+    end
+
+    test "E-92: without the Suiss configuration the link is not refreshed and the last keys stay",
+         ctx do
+      assert {:error, %Relay.Error{code: :access_unreachable}} =
+               Relay.Access.refresh(http: [plug: {FakeAccess, suiss: :missing}])
+
+      assert Relay.Access.link_state() == :stale
+      assert {:ok, _principal} = verify(ctx.token)
+    end
+
+    test "E-92: the Suiss configuration must name the issuer and HTTPS addresses only" do
+      issuer = FakeAccess.issuer()
+      document = FakeAccess.suiss("tr")
+
+      assert {:ok, suiss} = Discovery.parse_suiss(document, issuer)
+      assert suiss.region == "tr"
+      assert suiss.relay == "https://relay.test"
+      assert suiss.event_subscriptions == issuer <> "/.well-known/ssf-configuration"
+
+      for bad <- [
+            Map.put(document, "issuer", "https://other.test"),
+            Map.delete(document, "issuer"),
+            Map.put(document, "suiss_relay", "http://relay.test"),
+            Map.put(document, "suiss_management_api", "http://access.test/management"),
+            Map.put(document, "suiss_event_subscriptions", issuer <> "/events"),
+            Map.put(document, "suiss_event_subscriptions", %{
+              "ssf_configuration" => "http://access.test/ssf"
+            })
+          ] do
+        assert {:error, %Relay.Error{code: :access_discovery_invalid}} =
+                 Discovery.parse_suiss(bad, issuer)
+      end
+
+      minimal = %{"issuer" => issuer}
+
+      assert {:ok, %{region: nil, relay: nil, management_api: nil, event_subscriptions: nil}} =
+               Discovery.parse_suiss(minimal, issuer)
+
+      assert Discovery.suiss_url(issuer <> "/") == issuer <> "/.well-known/suiss-configuration"
     end
   end
 

@@ -38,6 +38,7 @@ VALKEY_URL=redis://${valkey_host}:6379
 RELAY_HOST=localhost
 RELAY_ACCESS_ISSUER=https://access.invalid
 RELAY_ACCESS_CLIENT_ID=app_relay_smoke
+RELAY_TRUSTED_PROXIES=0.0.0.0/0,::/0
 PORT=${port}
 METRICS_PORT=${metrics_port}
 SECRET_KEY_BASE_FILE=/run/secret-key-base
@@ -155,6 +156,11 @@ done
 curl -fsSI "$base/livez" | grep -qi '^correlation-id: ' || fail "correlation id header missing"
 curl -fsS "$base/.well-known/security.txt" | grep -q '^Contact: ' || fail "security.txt missing"
 
+# E-91
+[ "$(curl -s -o /dev/null -w '%{http_code}' "$base/.well-known/relay-configuration")" = 400 ] || fail "plain HTTP was served"
+curl -fsS -H 'X-Forwarded-Proto: https' -H 'X-Forwarded-Host: relay.example' "$base/.well-known/relay-configuration" \
+  | grep -q '"issuer": *"https://localhost"' || fail "a trusted proxy's HTTPS request was not served with the configured issuer"
+
 # OP-71 (9)
 curl -fsS "http://localhost:${metrics_port}/metrics" | grep -q '^# TYPE relay_' || fail "metrics port does not serve /metrics"
 [ "$(curl -s -o /dev/null -w '%{http_code}' "$base/metrics")" = 404 ] || fail "the API port serves /metrics"
@@ -182,6 +188,13 @@ if run -e RELAY_ROLES=api -e RELAY_UNKNOWN_SETTING=1 "$image" start >"$work/bad.
   fail "unknown configuration was accepted"
 fi
 grep -q "unknown environment variables: RELAY_UNKNOWN_SETTING" "$work/bad.log" || fail "unknown configuration was not reported"
+
+# E-91
+if run -e RELAY_ROLES=api -e RELAY_TRUSTED_PROXIES=10.0.0.0/33 "$image" start >"$work/bad-proxies.log" 2>&1; then
+  fail "a malformed trusted proxy range was accepted"
+fi
+grep -q "RELAY_TRUSTED_PROXIES names a malformed range" "$work/bad-proxies.log" \
+  || { cat "$work/bad-proxies.log" >&2; fail "a malformed trusted proxy range was not reported"; }
 
 # TN-68 (1)
 if run -e RELAY_ROLES=api -e SECRET_KEY_BASE_FILE=/run/missing-secret-key-base "$image" start >"$work/no-key-base.log" 2>&1; then

@@ -4,7 +4,7 @@ info:
   title: Relay Server API
   version: "2026-11-01"
   x-relay-built-stage: 6
-  description: "Sending, management and query families of Relay, called by tenant backends with Access client credentials tokens, and management by operator sessions. JSON in UTF-8, snake_case fields, RFC 3339 UTC times, ISO 8601 durations, amounts and large integers as strings. Unknown fields are rejected with 422 unknown_field at every depth, including overrides; null clears a field and an absent field is left untouched. HTTPS only (TLS 1.2 or later, HSTS). Every response carries Request-Id and Relay-Version. Errors are RFC 9457 problem details whose type resolves to /v1/errors/{code} on the same region. Every POST, PUT, PATCH and DELETE needs an Idempotency-Key (24 hours, fixed); a replay returns the first response byte for byte with Idempotency-Replayed: true. Relay delivers at least once and, with durable idempotency, processes effectively once. Identifiers are opaque, prefixed and time ordered (x-relay-id-prefixes). Resources of other tenants and environments return 404. Health endpoints are not part of this API."
+  description: "Sending, management and query families of Relay, called by tenant backends with Access client credentials tokens, and management by operator sessions. JSON in UTF-8, snake_case fields, RFC 3339 UTC times, ISO 8601 durations, amounts and large integers as strings. Unknown fields are rejected with 422 unknown_field at every depth, including overrides; null clears a field and an absent field is left untouched. HTTPS only (TLS 1.2 or later, HSTS); behind a proxy that terminates TLS, the scheme, host and client address come from X-Forwarded-Proto, X-Forwarded-Host and X-Forwarded-For only on a connection from a trusted proxy, and a request that is not HTTPS is answered with 400 malformed_request. Every response carries Request-Id and Relay-Version. Errors are RFC 9457 problem details whose type resolves to /v1/errors/{code} on the same region. Every POST, PUT, PATCH and DELETE needs an Idempotency-Key (24 hours, fixed); a replay returns the first response byte for byte with Idempotency-Replayed: true. Relay delivers at least once and, with durable idempotency, processes effectively once. Identifiers are opaque, prefixed and time ordered (x-relay-id-prefixes). Resources of other tenants and environments return 404. Health endpoints are not part of this API."
   license:
     name: Apache-2.0
     identifier: Apache-2.0
@@ -14499,7 +14499,7 @@ components:
             webhooks: Manage webhook endpoints.
     mtls:
       type: mutualTLS
-      description: "Optional additional layer for enterprise tenants: RFC 8705 certificate-bound Access tokens. It is used together with access_bearer (a DPoP-bound token), never alone. Behind a proxy that terminates TLS, the client certificate is read from the RFC 9440 Client-Cert header (and Client-Cert-Chain) only when the connection comes from a configured client certificate proxy; the header from any other peer is ignored."
+      description: "Optional additional layer for enterprise tenants: RFC 8705 certificate-bound Access tokens. It is used together with access_bearer (a DPoP-bound token), never alone. Behind a proxy that terminates TLS, the client certificate is read from the RFC 9440 Client-Cert header (and Client-Cert-Chain) only when the connection comes from a trusted proxy (RELAY_TRUSTED_PROXIES); the header from any other peer is ignored."
     operator_session:
       type: apiKey
       in: cookie

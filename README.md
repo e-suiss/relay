@@ -134,6 +134,12 @@ A client needs only its Access issuer. The Access Suiss discovery document (`<ac
 
 The document carries the API base, the data region, the bound Access issuer, the supported dated contract versions, the address of the product event key set (`jwks_uri`) and the capabilities served by this installation as `urn:suiss:relay:<capability>:<version>` URNs, each with its endpoint. A capability is listed only while all of its operations are served. Both documents are public and may be cached for five minutes.
 
+Relay itself is linked to Access by `RELAY_ACCESS_ISSUER` alone. It reads the key set (`jwks_uri`) and the token endpoint from `<access issuer>/.well-known/openid-configuration`, and the region (`suiss_region`), the management API and the event subscriptions from `<access issuer>/.well-known/suiss-configuration`. Both documents must name the configured issuer, and a Relay whose Access serves another region refuses the link.
+
+## Behind a TLS proxy
+
+Relay does not terminate TLS. Run it behind a reverse proxy or load balancer and list the proxy's addresses in `RELAY_TRUSTED_PROXIES` (comma-separated CIDR ranges such as `10.0.0.0/8,fd00::/8`; empty by default; the Helm value is `trustedProxies`). Only a connection from a listed address may set `X-Forwarded-Proto`, `X-Forwarded-Host` and `X-Forwarded-For`, and, for mutual TLS terminated at the proxy, the RFC 9440 `Client-Cert` and `Client-Cert-Chain` headers; from any other peer these headers are dropped. The request's scheme and host are the values the nearest proxy set, and its client address is the nearest untrusted hop of `X-Forwarded-For`. The API refuses a request that is not HTTPS with `400 malformed_request`, so the proxy must send `X-Forwarded-Proto: https`. The discovery `issuer` always comes from `RELAY_HOST`, never from a forwarded header.
+
 ## Authentication
 
 Relay has no API keys of its own. A backend calls the server API with a short-lived Access access token of an API client registered in Access, obtained with the OAuth 2.0 client credentials grant and `resource` set to Relay's Access `client_id` (`access_client_id` in Relay's discovery document). The token is sender-constrained with DPoP (RFC 9449): every request carries it as `Authorization: DPoP <token>` together with a `DPoP` header holding a fresh proof signed by the token's key, naming the request's method and URL and the token's hash. A proof is accepted once; there is no bearer token.

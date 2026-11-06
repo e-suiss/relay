@@ -157,6 +157,56 @@ defmodule Relay.Api.EdgeUnitTest do
       assert Transport.request_url(unnamed, ["10.0.0.0/8"]) == "https://relay.test/v1/x"
     end
 
+    test "E-91: a trusted proxy's forwarded scheme, host and client address become the request's" do
+      conn =
+        %{conn(:get, "http://relay.internal:4000/v1/x") | remote_ip: {10, 0, 0, 5}}
+        |> Plug.Conn.put_req_header("x-forwarded-proto", "https")
+        |> Plug.Conn.put_req_header("x-forwarded-host", "relay.example.com")
+        |> Plug.Conn.put_req_header("x-forwarded-for", "203.0.113.7")
+
+      forwarded = Transport.forward(conn, ["10.0.0.0/8"])
+      assert %{scheme: :https, host: "relay.example.com", port: 443} = forwarded
+      assert forwarded.remote_ip == {203, 0, 113, 7}
+      assert Transport.forward(forwarded, []) == forwarded
+      assert Transport.scheme(forwarded, []) == :https
+
+      with_port = Plug.Conn.put_req_header(conn, "x-forwarded-host", "relay.example.com:8443")
+      assert %{host: "relay.example.com", port: 8443} = Transport.forward(with_port, ["10.0.0.5"])
+
+      for bad <- ["", "me@relay.example.com", "relay.example.com/path", "relay.example.com:x"] do
+        bad_host = Plug.Conn.put_req_header(conn, "x-forwarded-host", bad)
+        assert %{host: "relay.internal"} = Transport.forward(bad_host, ["10.0.0.0/8"]), bad
+      end
+    end
+
+    test "E-91: the nearest proxy's scheme counts, so a client cannot claim HTTPS before it" do
+      conn =
+        %{conn(:get, "http://relay.internal/v1/x") | remote_ip: {10, 0, 0, 5}}
+        |> Plug.Conn.put_req_header("x-forwarded-proto", "https, http")
+
+      assert Transport.scheme(conn, ["10.0.0.0/8"]) == :http
+    end
+
+    test "E-91: forwarded headers from an untrusted peer are dropped and change nothing" do
+      conn =
+        %{conn(:get, "http://relay.internal/v1/x") | remote_ip: {192, 0, 2, 9}}
+        |> Plug.Conn.put_req_header("x-forwarded-proto", "https")
+        |> Plug.Conn.put_req_header("x-forwarded-host", "relay.example.com")
+        |> Plug.Conn.put_req_header("x-forwarded-for", "203.0.113.7")
+        |> Plug.Conn.put_req_header("client-cert", ":AAAA:")
+        |> Plug.Conn.put_req_header("client-cert-chain", ":AAAA:")
+
+      direct = Transport.forward(conn, ["10.0.0.0/8"])
+      assert %{scheme: :http, host: "relay.internal", remote_ip: {192, 0, 2, 9}} = direct
+
+      for header <- ["x-forwarded-proto", "x-forwarded-host", "x-forwarded-for", "client-cert"] do
+        assert Plug.Conn.get_req_header(direct, header) == []
+      end
+
+      assert Transport.forward(direct, ["192.0.2.0/24"]) == direct
+      assert Transport.client_certificate(direct, ["192.0.2.0/24"]) == nil
+    end
+
     test "API-55: an unknown beta feature is refused and a beta response is marked" do
       assert {:ok, []} = Beta.parse([])
       assert {:error, %Relay.Error{code: :unsupported_beta_feature}} = Beta.parse(["time_travel"])

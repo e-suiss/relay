@@ -1,50 +1,105 @@
 defmodule RelayWeb.Api.Transport do
   @moduledoc """
-  The transport rules of the API (API-8): HTTPS only, with HSTS on every answer, and the client address. Behind a TLS terminating proxy the scheme and the client address come from `X-Forwarded-Proto` and `X-Forwarded-For`, but only when the connection's peer is one of the proxies listed in `config :relay, RelayWeb.Api, trusted_proxies: [cidr]`; there is no setting that admits plain HTTP.
+  The transport rules of the API (API-8, E-91): HTTPS only, with HSTS on every answer, the request's scheme, host and client address, and its client certificate. Relay does not terminate TLS itself; the installation lists its trusted proxies in `RELAY_TRUSTED_PROXIES` (`config :relay, RelayWeb.Api, trusted_proxies: [cidr]`, empty by default). Only on a connection whose peer is in that list are `X-Forwarded-Proto`, `X-Forwarded-Host`, `X-Forwarded-For` and the RFC 9440 `Client-Cert` and `Client-Cert-Chain` read: the scheme and the host are the values the nearest proxy set (the last ones), and the client address is the nearest untrusted hop of `X-Forwarded-For`. From any other peer those headers are dropped. There is no setting that admits plain HTTP.
 
-  The client certificate of an mTLS connection (RFC 8705) is the connection's own. Behind a proxy that terminates mTLS it comes from the RFC 9440 `Client-Cert` header (and `Client-Cert-Chain`), but only when the connection's peer is one of the proxies listed in `config :relay, RelayWeb.Api, client_cert_proxies: [cidr]` (E-79 (4)); the list is empty by default, and a header from any other peer, or one that is not a well-formed DER certificate, is ignored.
+  `RelayWeb.Endpoint` applies `forward/2` once to every request; the readers below apply it themselves when it has not run, so they answer the same either way.
+
+  The client certificate of an mTLS connection (RFC 8705) is the connection's own. Behind a proxy that terminates mTLS it is the `Client-Cert` (with `Client-Cert-Chain`) of a trusted proxy (E-79 (4)); one that is not a well-formed DER certificate is ignored.
   """
 
   import Bitwise
 
   @hsts "max-age=63072000; includeSubDomains"
+  @peer :relay_transport_peer
+  @forwarded [
+    "x-forwarded-proto",
+    "x-forwarded-host",
+    "x-forwarded-for",
+    "client-cert",
+    "client-cert-chain"
+  ]
 
   @doc "The HSTS header value."
   @spec hsts() :: String.t()
   def hsts, do: @hsts
 
   # API-8
+  # E-91
+  @doc "Applies the forwarded headers of a trusted proxy to the connection's scheme, host, port and client address, or drops them when the peer is not trusted. A connection it has already seen is returned unchanged."
+  @spec forward(Plug.Conn.t(), [String.t()]) :: Plug.Conn.t()
+  def forward(conn, trusted \\ trusted_proxies())
+
+  def forward(%Plug.Conn{private: %{@peer => _peer}} = conn, _trusted), do: conn
+
+  def forward(conn, trusted) do
+    peer = conn.remote_ip
+
+    if trusted?(peer, trusted) do
+      conn
+      |> forwarded_scheme()
+      |> forwarded_host()
+      |> Map.put(:remote_ip, forwarded_for(conn, trusted))
+      |> Plug.Conn.put_private(@peer, {:proxy, peer})
+    else
+      @forwarded
+      |> Enum.reduce(conn, &Plug.Conn.delete_req_header(&2, &1))
+      |> Plug.Conn.put_private(@peer, {:direct, peer})
+    end
+  end
+
+  defp forwarded_scheme(conn) do
+    case last_value(conn, "x-forwarded-proto") do
+      nil -> conn
+      proto -> scheme_of(conn, String.downcase(proto))
+    end
+  end
+
+  defp scheme_of(conn, "https"), do: %{conn | scheme: :https, port: 443}
+  defp scheme_of(conn, _other), do: %{conn | scheme: :http, port: 80}
+
+  defp forwarded_host(conn) do
+    case last_value(conn, "x-forwarded-host") do
+      nil -> conn
+      value -> host_of(conn, URI.new("//" <> value))
+    end
+  end
+
+  defp host_of(conn, {:ok, %URI{host: host, port: port, userinfo: nil, path: path, query: nil}})
+       when is_binary(host) and host != "" and path in [nil, ""],
+       do: %{conn | host: host, port: port || conn.port}
+
+  defp host_of(conn, _invalid), do: conn
+
+  defp forwarded_for(conn, trusted) do
+    conn
+    |> Plug.Conn.get_req_header("x-forwarded-for")
+    |> Enum.flat_map(&String.split(&1, ","))
+    |> Enum.map(&String.trim/1)
+    |> Enum.reverse()
+    |> Enum.flat_map(&parse_ip/1)
+    |> Enum.find(conn.remote_ip, &(not trusted?(&1, trusted)))
+  end
+
+  defp last_value(conn, header) do
+    conn
+    |> Plug.Conn.get_req_header(header)
+    |> Enum.flat_map(&String.split(&1, ","))
+    |> Enum.map(&String.trim/1)
+    |> List.last()
+  end
+
+  # API-8
+  # E-91
   @doc "The scheme the client used: the forwarded one from a trusted proxy, else the connection's own."
   @spec scheme(Plug.Conn.t(), [String.t()]) :: :http | :https
-  def scheme(conn, trusted \\ trusted_proxies()) do
-    forwarded = Plug.Conn.get_req_header(conn, "x-forwarded-proto")
-
-    case {trusted?(conn.remote_ip, trusted), forwarded} do
-      {true, [proto | _]} -> forwarded_scheme(proto)
-      _ -> conn.scheme
-    end
-  end
-
-  defp forwarded_scheme(proto) do
-    if String.downcase(String.trim(proto)) == "https", do: :https, else: :http
-  end
+  def scheme(conn, trusted \\ trusted_proxies()), do: forward(conn, trusted).scheme
 
   # E-93
-  @doc "The external URL of the request without query, which a DPoP proof's `htu` names: the scheme and host a trusted proxy forwarded (`X-Forwarded-Proto`, `X-Forwarded-Host`), else the connection's own, and the request path."
+  @doc "The external URL of the request without query, which a DPoP proof's `htu` names: the scheme, host and port of the request after `forward/2` (those a trusted proxy forwarded, else the connection's own) and the request path."
   @spec request_url(Plug.Conn.t(), [String.t()]) :: String.t()
   def request_url(conn, trusted \\ trusted_proxies()) do
-    scheme = scheme(conn, trusted)
-    Atom.to_string(scheme) <> "://" <> authority(conn, scheme, trusted) <> conn.request_path
-  end
-
-  defp authority(conn, scheme, trusted) do
-    forwarded = Plug.Conn.get_req_header(conn, "x-forwarded-host")
-
-    case {trusted?(conn.remote_ip, trusted), forwarded} do
-      {true, [host | _]} -> host |> String.split(",") |> hd() |> String.trim()
-      {true, []} when scheme != conn.scheme -> conn.host
-      _own -> conn.host <> port(scheme, conn.port)
-    end
+    %{scheme: scheme, host: host, port: port} = forward(conn, trusted)
+    Atom.to_string(scheme) <> "://" <> host <> port(scheme, port) <> conn.request_path
   end
 
   defp port(:https, 443), do: ""
@@ -52,37 +107,26 @@ defmodule RelayWeb.Api.Transport do
   defp port(_scheme, port), do: ":" <> Integer.to_string(port)
 
   # API-47
+  # E-91
   @doc "The client address: the nearest untrusted hop of `X-Forwarded-For` behind trusted proxies, else the peer."
   @spec client_ip(Plug.Conn.t(), [String.t()]) :: :inet.ip_address()
-  def client_ip(conn, trusted \\ trusted_proxies()) do
-    if trusted?(conn.remote_ip, trusted) do
-      conn
-      |> Plug.Conn.get_req_header("x-forwarded-for")
-      |> Enum.flat_map(&String.split(&1, ","))
-      |> Enum.map(&String.trim/1)
-      |> Enum.reverse()
-      |> Enum.flat_map(&parse_ip/1)
-      |> Enum.find(conn.remote_ip, &(not trusted?(&1, trusted)))
-    else
-      conn.remote_ip
-    end
-  end
+  def client_ip(conn, trusted \\ trusted_proxies()), do: forward(conn, trusted).remote_ip
 
   # API-41
   # API-48
   # E-79 (4)
-  @doc "The client certificate of the request as DER, or nil: the connection's own, else the RFC 9440 `Client-Cert` of a configured client certificate proxy."
+  # E-91
+  @doc "The client certificate of the request as DER, or nil: the connection's own, else the RFC 9440 `Client-Cert` of a trusted proxy."
   @spec client_certificate(Plug.Conn.t(), [String.t()]) :: binary() | nil
-  def client_certificate(conn, proxies \\ client_cert_proxies()) do
+  def client_certificate(conn, trusted \\ trusted_proxies()) do
     case Plug.Conn.get_peer_data(conn) do
       %{ssl_cert: der} when is_binary(der) -> der
-      _plain -> forwarded_certificate(conn, proxies)
+      _plain -> forwarded_certificate(forward(conn, trusted))
     end
   end
 
-  defp forwarded_certificate(conn, proxies) do
-    with true <- trusted?(conn.remote_ip, proxies),
-         [value] <- Plug.Conn.get_req_header(conn, "client-cert"),
+  defp forwarded_certificate(%Plug.Conn{private: %{@peer => {:proxy, _peer}}} = conn) do
+    with [value] <- Plug.Conn.get_req_header(conn, "client-cert"),
          {:ok, der} <- byte_sequence(value),
          true <- certificate?(der),
          {:ok, _chain} <- chain(Plug.Conn.get_req_header(conn, "client-cert-chain")) do
@@ -91,6 +135,8 @@ defmodule RelayWeb.Api.Transport do
       _ignored -> nil
     end
   end
+
+  defp forwarded_certificate(_conn), do: nil
 
   defp chain([]), do: {:ok, []}
 
@@ -120,12 +166,8 @@ defmodule RelayWeb.Api.Transport do
     _malformed -> false
   end
 
-  @doc "The client certificate proxy ranges of the configuration; empty by default."
-  @spec client_cert_proxies() :: [String.t()]
-  def client_cert_proxies,
-    do: :relay |> Application.get_env(RelayWeb.Api, []) |> Keyword.get(:client_cert_proxies, [])
-
-  @doc "The trusted proxy ranges of the configuration."
+  # E-91
+  @doc "The trusted proxy ranges of the configuration; empty by default."
   @spec trusted_proxies() :: [String.t()]
   def trusted_proxies,
     do: :relay |> Application.get_env(RelayWeb.Api, []) |> Keyword.get(:trusted_proxies, [])

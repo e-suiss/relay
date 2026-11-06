@@ -25,6 +25,8 @@
   value: {{ required "access.issuer is required" .Values.access.issuer | quote }}
 - name: RELAY_ACCESS_CLIENT_ID
   value: {{ required "access.clientId is required" .Values.access.clientId | quote }}
+- name: RELAY_TRUSTED_PROXIES
+  value: {{ join "," .Values.trustedProxies | quote }}
 - name: PORT
   value: "4000"
 - name: METRICS_PORT

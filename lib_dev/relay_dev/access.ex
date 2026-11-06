@@ -1,6 +1,6 @@
 defmodule RelayDev.Access do
   @moduledoc """
-  The local stand-in of Access for `just dev` (T-65 (1)), served to the link's HTTP client as a `Req` plug, so nothing reaches the network: it publishes the discovery document of the configured issuer, an AuthZEN configuration and a key set with one ES256 key, and mints DPoP-bound client credentials tokens for the sample API client with the proofs that go with them (E-93). The key is derived from a fixed label, so the node and a separate `mix relay.dev.token` agree on it. Relay still verifies every token through the Access link exactly as in production; only the issuer is local. Compiled in the dev and test environments only.
+  The local stand-in of Access for `just dev` (T-65 (1)), served to the link's HTTP client as a `Req` plug, so nothing reaches the network: it publishes the OpenID discovery document and the Suiss configuration of the configured issuer, an AuthZEN configuration and a key set with one ES256 key, and mints DPoP-bound client credentials tokens for the sample API client with the proofs that go with them (E-93). The key is derived from a fixed label, so the node and a separate `mix relay.dev.token` agree on it. Relay still verifies every token through the Access link exactly as in production; only the issuer is local. Compiled in the dev and test environments only.
   """
 
   @behaviour Plug
@@ -19,17 +19,20 @@ defmodule RelayDev.Access do
     end
   end
 
-  @doc "The discovery document of the stand-in for a region."
-  @spec discovery(String.t()) :: map()
-  def discovery(region) do
+  @doc "The OpenID discovery document of the stand-in."
+  @spec discovery() :: map()
+  def discovery do
     %{
       "issuer" => issuer(),
       "jwks_uri" => issuer() <> "/jwks",
       "token_endpoint" => issuer() <> "/oauth2/token",
-      "grant_types_supported" => ["client_credentials"],
-      "suiss_region" => region
+      "grant_types_supported" => ["client_credentials"]
     }
   end
+
+  @doc "The Suiss configuration of the stand-in for a region."
+  @spec suiss(String.t()) :: map()
+  def suiss(region), do: %{"issuer" => issuer(), "suiss_region" => region}
 
   @doc "The public key set of the stand-in."
   @spec jwks() :: map()
@@ -57,7 +60,8 @@ defmodule RelayDev.Access do
   @impl Plug
   def call(conn, _opts) do
     case conn.request_path do
-      "/.well-known/openid-configuration" -> json(conn, discovery(region()))
+      "/.well-known/openid-configuration" -> json(conn, discovery())
+      "/.well-known/suiss-configuration" -> json(conn, suiss(region()))
       "/.well-known/authzen-configuration" -> json(conn, %{"policy_decision_point" => issuer()})
       "/jwks" -> json(conn, jwks())
       _other -> send_resp(conn, 404, "")

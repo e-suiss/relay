@@ -7,6 +7,7 @@ defmodule Relay.Channels.Registry do
 
   @adapters [
     Relay.Channels.Fake,
+    Relay.Channels.Smtp,
     Relay.Channels.Slack,
     Relay.Channels.Teams,
     Relay.Channels.Telegram,

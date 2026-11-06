@@ -218,9 +218,8 @@ defmodule Relay.ChannelParameters do
       Enum.all?(rows, &(&1["channel"] != "sms" or &1["allowed"] == false))
   end
 
-  defp cap?(%{"mode" => "exponential", "base_ms" => base, "cap_ms" => cap})
-       when is_integer(base) and is_integer(cap),
-       do: cap >= base
+  defp cap?(%{"base_ms" => base, "cap_ms" => cap}) when is_integer(base) and is_integer(cap),
+    do: cap >= base
 
   defp cap?(_row), do: true
 

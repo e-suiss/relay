@@ -135,7 +135,8 @@ defmodule Relay.Ingest.EventStore do
   # API-19
   # API-20
   # OP-7
-  @doc "Records an accepted event with its encrypted payload."
+  # E-83
+  @doc "Records an accepted event with its encrypted payload, the sender's `interruption` and its encrypted `links`."
   @spec event_accept(map()) :: {atom(), Relay.Id.t() | nil, DateTime.t() | nil}
   def event_accept(e) do
     [row] =
@@ -165,7 +166,9 @@ defmodule Relay.Ingest.EventStore do
         e.ce_attributes_ct,
         e.key_id,
         e.plain_size,
-        e.traceparent
+        e.traceparent,
+        e.interruption,
+        e.links_ct
       ])
 
     {Repo.code!(row["result"], [

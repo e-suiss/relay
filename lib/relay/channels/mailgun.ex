@@ -5,6 +5,8 @@ defmodule Relay.Channels.Mailgun do
   The delivery identifier travels as the user variable `relay_delivery_id`, which every event carries. Mailgun has no idempotency key and no status query a send can be resolved by, so an uncertain call is not retried (CH-10). HTTP statuses are reported as `http_<status>`.
 
   Events come from Mailgun's webhooks. Their signature is an HMAC-SHA256 of the timestamp and a token inside the JSON body, not of the body itself, so their authenticity is declared unverifiable (§12.1.2) and `verify/3` checks the signature, the timestamp and the token; `events/1` parses a webhook body into `Relay.Channels.Email.Event`s.
+
+  The settings check lists the account's domains (`GET /v4/domains`): every sending domain of the account's streams must be `active`, or Mailgun holds or refuses its mail (CH-14, CH-52).
   """
 
   @behaviour Relay.Channels.Adapter
@@ -12,6 +14,7 @@ defmodule Relay.Channels.Mailgun do
   alias Relay.Channels.Email.Esp
   alias Relay.Channels.Email.Event
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
 
   @hosts %{"global" => "https://api.mailgun.net", "eu" => "https://api.eu.mailgun.net"}
   @tolerance_s 300
@@ -45,6 +48,45 @@ defmodule Relay.Channels.Mailgun do
       end
     end
   end
+
+  # CH-52
+  @impl Relay.Channels.Adapter
+  def check_settings(%{account: account, credentials: credentials, timeout_ms: timeout_ms}) do
+    with {:ok, map} <- Esp.credential_map(credentials),
+         {:ok, key} <- Esp.secret(map, "api_key") do
+      region = Map.get(Esp.account_settings(account, "mailgun"), "region", "global")
+      host = Map.get(@hosts, region, @hosts["global"])
+
+      opts = [
+        method: :get,
+        url: host <> "/v4/domains",
+        auth: {:basic, "api:" <> key},
+        params: [limit: 1000]
+      ]
+
+      timeout_ms
+      |> Esp.http(opts)
+      |> SettingsCheck.read(&domains(&1, SettingsCheck.stream_domains(account)))
+    else
+      :error -> SettingsCheck.credentials(nil)
+    end
+  end
+
+  defp domains(%Req.Response{status: 200} = response, wanted) do
+    case Esp.json(response) do
+      %{"items" => items} when is_list(items) ->
+        active = for %{"name" => name, "state" => "active"} <- items, do: name
+        inactive(Enum.reject(wanted, &(&1 in active)))
+
+      _other ->
+        {:error, "unexpected_response"}
+    end
+  end
+
+  defp domains(%Req.Response{status: status}, _wanted), do: {:error, Esp.http_code(status)}
+
+  defp inactive([]), do: :ok
+  defp inactive([domain | _rest]), do: SettingsCheck.mismatch("domain_state", "active", domain)
 
   # DS-11
   @impl Relay.Channels.Adapter

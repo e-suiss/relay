@@ -1,6 +1,6 @@
 defmodule Relay.Templates.Render do
   @moduledoc """
-  The render of one pinned template cell for one channel on the send path (TP-50). Every part of the cell is parsed and rendered in the bounded sandbox (`Relay.Templates.Sandbox`) with a context built for the channel and the part's escaping mode, then handed to the channel's output module: SMS through `Relay.Templates.Sms.plan/2` with the template's encoding policy, push with the sensitivity class (a `sensitive` template shows only `lock_screen_body`), e-mail with subject, preheader, HTML and plain text, WhatsApp through the parameter cleaner, the inbox as structured fields and webhook as a JSON body. A channel without an output module of its own renders every text field of its cell as plain text.
+  The render of one pinned template cell for one channel on the send path (TP-50). Every part of the cell is parsed and rendered in the bounded sandbox (`Relay.Templates.Sandbox`) with a context built for the channel and the part's escaping mode, then handed to the channel's output module: SMS through `Relay.Templates.Sms.plan/2` with the template's encoding policy, push with the sensitivity class (a `sensitive` template shows only `lock_screen_body`), e-mail with subject, preheader, HTML and plain text, WhatsApp through the parameter cleaner, the inbox as structured fields and webhook as a JSON body. The `href` of the event's `primary` link is the push tap target and the inbox item's target, as the output's `url` (E-83). A channel without an output module of its own renders every text field of its cell as plain text.
 
   E-mail HTML comes from the cell's `raw_html` source or, for an MJML cell, from the HTML compiled at publication (`compiled_html`); MJML is never compiled here (TP-8). Each pinned partial is rendered first with the same context, which has no `partial` variable, so a partial cannot read another, and its output is inserted unescaped as `partial.<key>` (TP-61). A pinned e-mail layout wraps the rendered HTML through its compiled HTML, where the helper `content_for_layout` holds the template's HTML, and its `text_header` and `text_footer` around the plain text.
 
@@ -27,6 +27,7 @@ defmodule Relay.Templates.Render do
           required(:data) => map(),
           optional(:recipient) => map(),
           optional(:brand) => map(),
+          optional(:links) => %{String.t() => String.t()},
           optional(:helpers) => map(),
           optional(:event_schema) => map() | nil,
           optional(:schema) => JSV.Root.t() | nil,
@@ -126,6 +127,7 @@ defmodule Relay.Templates.Render do
             "payload" => out.payload
           }
 
+          output = target(output, state.input)
           {:ok, output, %{"bytes" => out.bytes, "changes" => changes(changes)}, state}
 
         {:error, findings} ->
@@ -184,8 +186,11 @@ defmodule Relay.Templates.Render do
         |> Map.put("actions", actions)
 
       case Inbox.render(fields, locale: state.input.locale) do
-        {:ok, %{output: out, changes: changes}} -> {:ok, inbox(out), changes_of(changes), state}
-        {:error, findings} -> findings(findings)
+        {:ok, %{output: out, changes: changes}} ->
+          {:ok, target(inbox(out), state.input), changes_of(changes), state}
+
+        {:error, findings} ->
+          findings(findings)
       end
     end
   end
@@ -245,6 +250,14 @@ defmodule Relay.Templates.Render do
   end
 
   defp changes_of(changes), do: %{"changes" => changes(changes)}
+
+  # E-83
+  defp target(output, input) do
+    case input |> Map.get(:links, %{}) |> Map.get("primary") do
+      url when is_binary(url) -> Map.put(output, "url", url)
+      _none -> output
+    end
+  end
 
   # TP-8
   defp email_source(cell) do
@@ -378,6 +391,7 @@ defmodule Relay.Templates.Render do
       data: input.data,
       recipient: Map.get(input, :recipient, %{}),
       brand: Map.get(input, :brand, %{}),
+      links: Map.get(input, :links, %{}),
       helpers: helpers,
       variables: criticality(Map.get(input, :event_schema)),
       schema: Map.get(input, :schema),

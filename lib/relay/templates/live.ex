@@ -7,6 +7,8 @@ defmodule Relay.Templates.Live do
   `legal_footer` joins the brand's legal name, MERSIS number, contact and postal address and, for the `marketing` class, the commercial message mark in the cell's language (Turkish or English, English for every other language) (TP-55, TP-61). A render failure fails the delivery with its `failure_reason` and the `notification.render_failed` event, without retry (TP-41, INV-46). Every render emits `[:relay, :render, :stop]` with its duration and the bounded `channel` and `result` tags.
 
   `unsubscribe_url` is a stable placeholder until the preference links are issued; the channel adapter replaces it.
+
+  The event's links are decrypted with its data and read as `links.<rel>`; the `primary` link is the push tap target and the inbox item's target (E-83).
   """
 
   use Boundary,
@@ -233,11 +235,11 @@ defmodule Relay.Templates.Live do
   defp run(scope, delivery_id, input, started) do
     channel = input.delivery["channel"]
 
-    case event_data(scope, input.delivery) do
-      {:ok, data} ->
-        rendered = Relay.Templates.render_cell(cell_input(input, data))
-        finish(scope, delivery_id, input, channel, started, rendered)
-
+    with {:ok, data} <- event_data(scope, input.delivery),
+         {:ok, links} <- links(scope, input.delivery) do
+      rendered = Relay.Templates.render_cell(Map.put(cell_input(input, data), :links, links))
+      finish(scope, delivery_id, input, channel, started, rendered)
+    else
       {:error, :erased} ->
         failed(scope, delivery_id, channel, started, {:schema_violation, cause("data_erased")})
 
@@ -365,15 +367,7 @@ defmodule Relay.Templates.Live do
   defp event_data(_scope, %{"data_ct" => nil}), do: {:ok, %{}}
 
   defp event_data(scope, %{"data_ct" => ct, "data_key_id" => key_id}) do
-    field = %{
-      tenant_id: scope.tenant_id,
-      environment: scope.environment,
-      subject_id: nil,
-      retention_class: :notification_content,
-      table: "event_payloads",
-      column: "data_ct",
-      key_id: key_id
-    }
+    field = payload_field(scope, key_id, "data_ct")
 
     with {:ok, plain} <- Relay.Tenancy.decrypt_field(field, ct),
          {:ok, data} when is_map(data) <- Jason.decode(Relay.Redacted.expose(plain)) do
@@ -381,6 +375,32 @@ defmodule Relay.Templates.Live do
     else
       _unreadable -> {:error, :unavailable}
     end
+  end
+
+  # E-83
+  defp links(_scope, %{"links_ct" => nil}), do: {:ok, %{}}
+
+  defp links(scope, %{"links_ct" => ct, "data_key_id" => key_id}) do
+    field = payload_field(scope, key_id, "links_ct")
+
+    with {:ok, plain} <- Relay.Tenancy.decrypt_field(field, ct),
+         {:ok, links} when is_list(links) <- Jason.decode(Relay.Redacted.expose(plain)) do
+      {:ok, Map.new(links, &{&1["rel"], &1["href"]})}
+    else
+      _unreadable -> {:error, :unavailable}
+    end
+  end
+
+  defp payload_field(scope, key_id, column) do
+    %{
+      tenant_id: scope.tenant_id,
+      environment: scope.environment,
+      subject_id: nil,
+      retention_class: :notification_content,
+      table: "event_payloads",
+      column: column,
+      key_id: key_id
+    }
   end
 
   # TP-40

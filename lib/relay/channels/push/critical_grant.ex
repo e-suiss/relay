@@ -3,7 +3,7 @@ defmodule Relay.Channels.Push.CriticalGrant do
   Port to the Access decision API (AuthZEN) for the recipient's explicit Grant of critical interruption to a sender (CH-66, Access E48). Only the recipient grants it; a sender can neither grant nor widen it, and Relay never decides it: the question is asked at send time and every answer comes from Access. An answer that is not an explicit permit, an error or an exception is a denial (fail-closed).
   """
 
-  @typedoc "The question: may `sender_ref` interrupt `recipient_ref` at the critical level in this tenant, for this template."
+  @typedoc "The question: may `sender_ref` (the Access client or agent that sent the event) interrupt `recipient_ref` (the recipient's pairwise `sub` in Relay's sector, E-90) at the critical level in this tenant, for this template (CH-84)."
   @type query :: %{
           tenant_id: Relay.Id.t(),
           recipient_ref: String.t(),

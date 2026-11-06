@@ -190,5 +190,11 @@
     "rule": "physical_delete",
     "match": "truncate",
     "reason": "TP-45: `truncate` is the name of the Liquid text filter; the file holds no SQL"
+  },
+  {
+    "path": "priv/repo/migrations/20261126000000_add_event_interruption_and_links.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "E-83, OP-24: committed relay_fn functions are dropped for a new signature and replaced as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   }
 ]

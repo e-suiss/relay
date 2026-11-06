@@ -95,12 +95,16 @@ defmodule Relay.Channels.Fcm do
       topic: push.collapse && push.collapse.topic,
       channel_id: channel(push),
       notification: if(data_only, do: nil, else: Map.take(fields, ["title", "body"])),
-      data: %{"relay_id" => Common.content_id(request)},
+      data: link(%{"relay_id" => Common.content_id(request)}, Common.link(request)),
       data_only: data_only,
       content_free: content_free(request, push, data_only),
       override_android: Common.override(request, "fcm", "android")
     }
   end
+
+  # E-83
+  defp link(data, nil), do: data
+  defp link(data, url), do: Map.put(data, "relay_url", url)
 
   # CH-30
   # CH-65 (3)

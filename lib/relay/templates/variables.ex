@@ -54,6 +54,7 @@ defmodule Relay.Templates.Variables do
     "postal_address"
   ]
   @helpers ~w(legal_footer unsubscribe_url)
+  @rel ~r/^[a-z][a-z0-9_]{0,31}$/
   @pseudo ~w(size first last)
   @date_filters ~w(datetime date time)
   @worst_heap 256 * 1024 * 1024
@@ -330,8 +331,9 @@ defmodule Relay.Templates.Variables do
   # TP-14
   # TP-15
   # TP-16
+  # E-83
   @doc """
-  Validates the variables of a parsed template against an event schema. Options: `:recipient_schema` (the schema of the recipient attributes), `:brand_fields` and `:helpers` (the names allowed under `brand` and at the top level). An `:error` finding blocks publication; a `:warning` is recorded.
+  Validates the variables of a parsed template against an event schema. Options: `:recipient_schema` (the schema of the recipient attributes), `:brand_fields` and `:helpers` (the names allowed under `brand` and at the top level). A link is read as `links.<rel>` with a valid `rel`. An `:error` finding blocks publication; a `:warning` is recorded.
   """
   @spec validate(Engine.t(), map(), keyword()) :: [finding()]
   def validate(%Engine{} = template, schema, opts \\ []) when is_map(schema) do
@@ -344,6 +346,7 @@ defmodule Relay.Templates.Variables do
     |> Enum.flat_map(fn read ->
       case read.segments do
         ["brand" | rest] -> namespace(read, rest == [] or rest -- brand != [] or length(rest) > 1)
+        ["links" | rest] -> namespace(read, not link?(rest))
         [helper | rest] when helper != "recipient" -> helper(read, helper, rest, helpers, schema)
         ["recipient" | rest] -> check(read, rest, recipient)
       end
@@ -353,6 +356,9 @@ defmodule Relay.Templates.Variables do
 
   defp namespace(read, true), do: [undeclared(read)]
   defp namespace(_read, false), do: []
+
+  defp link?([rel]) when is_binary(rel), do: Regex.match?(@rel, rel)
+  defp link?(_segments), do: false
 
   defp helper(read, helper, rest, helpers, schema) do
     cond do

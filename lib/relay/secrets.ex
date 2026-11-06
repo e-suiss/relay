@@ -109,6 +109,65 @@ defmodule Relay.Secrets do
     end
   end
 
+  # TN-26 (2)
+  # INV-51
+  @doc "Registers a secret reference of `kind` under a new identifier in its own scoped transaction and returns it; a secret already registered for this kind returns its existing active reference, so a retried request finds the same one. A retired secret is refused: a rotation needs a new secret."
+  @spec register_ref(
+          Relay.Scope.t(),
+          kind(),
+          String.t(),
+          pos_integer(),
+          binary(),
+          Relay.Actor.t()
+        ) :: {:ok, Ref.t()} | {:error, Error.t()}
+  def register_ref(scope, kind, ref, ref_version, digest, actor) when kind in @kinds do
+    attrs = %{
+      id: Relay.Id.generate(),
+      kind: kind,
+      ref: ref,
+      ref_version: ref_version,
+      record_digest: digest
+    }
+
+    with {:ok, secret} <- resolve(ref),
+         {:ok, fingerprint} <- fingerprint(secret) do
+      in_scope(scope, fn ->
+        {:ok, _created_or_exists} = Store.register(attrs, fingerprint, actor)
+        registered(Store.find(Atom.to_string(kind), fingerprint))
+      end)
+    end
+  end
+
+  defp registered(%Ref{state: :active} = ref), do: {:ok, ref}
+  defp registered(_ref), do: {:error, Error.new(:secret_retired, "secret reference retired")}
+
+  # TN-26 (5)
+  @doc "Retires a stored secret reference in its own scoped transaction; the holders are signalled with `signal_rotation/2` by the caller once the reference is no longer named."
+  @spec retire(Relay.Scope.t(), Relay.Id.t(), binary(), Relay.Actor.t()) ::
+          {:ok, :retired | :already_retired | :not_found} | {:error, Error.t()}
+  def retire(scope, <<_::128>> = id, digest, actor),
+    do: in_scope(scope, fn -> {:ok, Store.retire(id, digest, actor)} end)
+
+  @doc "Like `retire/4`, inside the caller's scoped transaction."
+  @spec retire(Relay.Id.t(), binary(), Relay.Actor.t()) ::
+          :retired | :already_retired | :not_found
+  def retire(<<_::128>> = id, digest, actor), do: Store.retire(id, digest, actor)
+
+  # INV-51
+  @doc "The stored secret references of `ids` by identifier, in their own scoped transaction; only fingerprints, versions and states are returned."
+  @spec describe(Relay.Scope.t(), [Relay.Id.t()]) ::
+          {:ok, %{Relay.Id.t() => Ref.t()}} | {:error, Error.t()}
+  def describe(scope, ids), do: in_scope(scope, fn -> {:ok, describe(ids)} end)
+
+  @doc "Like `describe/2`, inside the caller's scoped transaction."
+  @spec describe([Relay.Id.t()]) :: %{Relay.Id.t() => Ref.t()}
+  def describe(ids), do: ids |> Enum.uniq() |> Store.many() |> Map.new(&{&1.id, &1})
+
+  # TN-26 (5)
+  @doc "Signals the holders of a tenant environment's secrets that a reference changed; they fetch their secret again."
+  @spec signal_rotation(Relay.Scope.t(), pos_integer()) :: :ok | {:error, Error.t()}
+  def signal_rotation(scope, version), do: signal(scope, version)
+
   # TN-26 (5)
   @doc "Subscribes the calling process to the rotations of a tenant environment's secrets; it receives `{:relay_signal, topic, event}` after each rotation and fetches its secret again."
   @spec subscribe_rotations(Relay.Scope.t()) :: :ok | {:error, Error.t()}

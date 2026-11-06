@@ -11,7 +11,17 @@ defmodule Relay.Channels.Live.Store do
   def in_scope(scope, fun), do: Repo.in_scope(scope, fun)
 
   # T-15
-  @doc "Reads what the channel step needs of a delivery: its channel, target kind and target (the one device of a test send), recipient, requested provider, class, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity and the category key; `nil` when there is no such delivery."
+  @doc "Queues a job inside the current transaction; rolls the transaction back when it is not queued."
+  @spec insert_job!(Ecto.Changeset.t()) :: :ok
+  def insert_job!(changeset) do
+    case Oban.insert(changeset) do
+      {:ok, _job} -> :ok
+      {:error, reason} -> Repo.rollback({:job_not_queued, reason})
+    end
+  end
+
+  # T-15
+  @doc "Reads what the channel step needs of a delivery: its channel, target kind and target (the one device of a test send), recipient, requested provider, class, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity, the category key, the sender's `interruption` and the Access client of the event's API client (the sender of a critical Grant question, CH-84); `nil` when there is no such delivery."
   @spec delivery(Relay.Id.t()) :: map() | nil
   def delivery(delivery_id) do
     one(
@@ -20,7 +30,8 @@ defmodule Relay.Channels.Live.Store do
         d.target_id, d.recipient_id, d.provider, d.provider_account_id, d.traceparent, d.attempt_count,
         n.message_class::text AS message_class, n.expires_at, n.is_test, e.send_mode::text AS send_mode,
         e.priority, n.subject_type, n.subject_id, p.locale, t.key AS template_key,
-        v.sensitivity, c.key AS category_key, wv.definition->>'category' AS category
+        v.sensitivity, c.key AS category_key, wv.definition->>'category' AS category,
+        e.interruption, ac.access_client_id AS sender_ref
       FROM relay.deliveries d
       JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
         AND n.id = d.notification_id
@@ -36,6 +47,8 @@ defmodule Relay.Channels.Live.Store do
         AND c.id = t.category_id
       LEFT JOIN relay.workflow_versions wv ON wv.tenant_id = e.tenant_id
         AND wv.environment = e.environment AND wv.id = e.workflow_version_id
+      LEFT JOIN relay.api_clients ac ON ac.tenant_id = e.tenant_id
+        AND ac.environment = e.environment AND ac.id = e.api_client_id
       WHERE d.id = $1
       """,
       [delivery_id]

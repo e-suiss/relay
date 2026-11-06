@@ -4,7 +4,7 @@ defmodule Relay.Channels.Push.H2 do
 
   A connection opens lazily on its first request through `Relay.TenantWorker` and stops when idle (T-45 (6)). Admission control is per connection: a semaphore admits at most the server's `SETTINGS_MAX_CONCURRENT_STREAMS` (capped) streams and, until the server's SETTINGS have arrived, a single one, so a cold connection never carries concurrent requests; the rest wait in a bounded queue, and a request that finds the queue full is refused with `too_many_concurrent_requests`, a `transient` failure. Connections are pinged, renewed after a jittered maximum age and drained after a GOAWAY; requests the server did not process come back as never sent.
 
-  The result of `request/7`: `{:ok, response}`, `{:not_sent, reason}` when the request never reached the provider (a retry is safe) or `{:uncertain, reason}` when it may have (T-28). The client never retries and never follows redirects; TLS peer verification cannot be turned off (T-43).
+  The result of `request/7`: `{:ok, response}`, `{:not_sent, reason}` when the request never reached the provider (a retry is safe) or `{:uncertain, reason}` when it may have (T-28). A call that finds its connection already stopped (it went idle between lookup and call) never reached the provider, so it is made once more on a new connection and is otherwise `{:not_sent, "connection_stopped"}`; beyond that the client never retries and never follows redirects; TLS peer verification cannot be turned off (T-43).
   """
 
   alias Relay.Channels.Push.H2.Connection
@@ -44,18 +44,30 @@ defmodule Relay.Channels.Push.H2 do
     opts = Keyword.merge([idle_ms: Connection.idle_ms()], opts)
     args = [key: key, origin: origin, opts: opts, idle_ms: Keyword.fetch!(opts, :idle_ms)]
 
-    case Relay.TenantWorker.ensure(tenant_id, {__MODULE__, key}, {Connection, args}) do
-      {:ok, pid} -> call(pid, key, auth, request, timeout_ms)
+    with {:ok, pid} <- connection(tenant_id, key, args),
+         {:stopped, _reason} <- call(pid, key, auth, request, timeout_ms),
+         {:ok, pid} <- connection(tenant_id, key, args) do
+      stopped(call(pid, key, auth, request, timeout_ms))
+    else
       {:error, _reason} -> {:not_sent, "connection_unavailable"}
+      result -> result
     end
   end
 
+  defp connection(tenant_id, key, args),
+    do: Relay.TenantWorker.ensure(tenant_id, {__MODULE__, key}, {Connection, args})
+
+  # T-28
   defp call(pid, key, auth, request, timeout_ms) do
     deadline = Relay.Clock.monotonic_ms() + timeout_ms
     GenServer.call(pid, {:request, key, auth, request, deadline}, timeout_ms + 1_000)
   catch
+    :exit, {reason, _call} when reason in [:noproc, :normal] -> {:stopped, reason}
     :exit, _reason -> {:uncertain, "connection_exited"}
   end
+
+  defp stopped({:stopped, _reason}), do: {:not_sent, "connection_stopped"}
+  defp stopped(result), do: result
 
   @doc "The connection process of a key in a tenant, if one is open."
   @spec whereis(Relay.Id.t(), key()) :: pid() | nil

@@ -105,6 +105,59 @@ defmodule Relay.Channels.Store do
     Repo.code!(row["provider_account_set_health"], [:updated, :unchanged, :not_found])
   end
 
+  # C-45
+  @doc "A provider account by its identifier, or `nil`."
+  @spec account(id()) :: map() | nil
+  def account(id) do
+    case all("SELECT #{@account_columns} FROM relay.provider_accounts WHERE id = $1", [id]) do
+      [row] -> row
+      [] -> nil
+    end
+  end
+
+  # CH-52
+  @doc "The active, verified provider accounts of `providers` whose settings were last checked more than `interval_s` ago or never, the longest unchecked first."
+  @spec settings_check_due([String.t()], pos_integer(), pos_integer()) :: [map()]
+  def settings_check_due(providers, interval_s, limit) do
+    all(
+      "SELECT #{@account_columns} FROM relay.provider_accounts WHERE state = 'active' AND verification_state = 'verified' AND provider = ANY($1::text[]) AND (health_checked_at IS NULL OR health_checked_at <= now() - $2::bigint * interval '1 second') ORDER BY health_checked_at NULLS FIRST, id LIMIT $3",
+      [providers, interval_s, limit]
+    )
+  end
+
+  # CH-52
+  # TN-13 (4)
+  @doc "Lists the scopes that have a verified provider account of `providers` due for its settings check, through the discovery escape hatch; scopes only, no content."
+  @spec settings_check_scopes([String.t()], pos_integer(), pos_integer()) ::
+          [{Relay.Id.t(), String.t()}]
+  def settings_check_scopes(providers, interval_s, limit) do
+    escape = :provider_settings_check_discovery
+    function = "relay_ops.provider_settings_check_scopes"
+    rows = Repo.call_unscoped!(escape, function, [providers, interval_s, limit])
+    for row <- rows, do: {row["tenant_id"], row["environment"]}
+  end
+
+  # CH-52
+  @doc "Appends the `provider_account.settings_mismatched` event of a provider account whose settings do not hold."
+  @spec settings_mismatched(map(), map(), String.t()) :: :appended
+  def settings_mismatched(account, mismatch, rule_id) do
+    id = Relay.Id.to_string(account["id"])
+
+    data =
+      Map.merge(mismatch, %{
+        "provider_account_id" => Relay.ExternalId.encode("pva", account["id"]),
+        "provider" => account["provider"],
+        "channel" => account["channel"],
+        "failure_class" => "sender_config",
+        "rule_id" => rule_id
+      })
+
+    type = "provider_account.settings_mismatched"
+    params = [Relay.Id.generate(), type, "provider_account:" <> id, data, nil]
+    [row] = Repo.call!("relay_fn.outbox_append", params)
+    Repo.code!(row["result"], [:appended])
+  end
+
   # C-25
   @doc "Creates or changes a sender identity of a provider account."
   @spec sender_identity_put(map(), digest(), Actor.t()) ::
@@ -219,11 +272,11 @@ defmodule Relay.Channels.Store do
 
   # C-25
   # TN-10
-  @doc "The approved sender identities of provider accounts that are not suspended."
+  @doc "The approved sender identities of provider accounts that are neither suspended nor archived."
   @spec senders([id()]) :: [map()]
   def senders(account_ids) do
     all(
-      "SELECT tenant_id, environment, id, provider_account_id, subtenant_id, channel, kind, value, country, sms_type, registration FROM relay.sender_identities WHERE provider_account_id = ANY($1::uuid[]) AND approval_state = 'approved' AND suspended_at IS NULL ORDER BY id",
+      "SELECT tenant_id, environment, id, provider_account_id, subtenant_id, channel, kind, value, country, sms_type, registration FROM relay.sender_identities WHERE provider_account_id = ANY($1::uuid[]) AND approval_state = 'approved' AND suspended_at IS NULL AND archived_at IS NULL ORDER BY id",
       [account_ids]
     )
   end
@@ -268,6 +321,113 @@ defmodule Relay.Channels.Store do
       [row] -> row
       [] -> nil
     end
+  end
+
+  @views %{
+    account:
+      "SELECT #{@account_columns}, health_checked_at, created_at, updated_at FROM relay.provider_accounts",
+    sender:
+      "SELECT id, provider_account_id, subtenant_id, channel, kind, value, country, approval_state, suspended_at, suspension_rule_id, sms_type, registration, archived_at, version, created_at, updated_at FROM relay.sender_identities",
+    channel_identity:
+      "SELECT id, channel, kind, app_ref, secret_ref_id, state, version, created_at, updated_at FROM relay.channel_identities"
+  }
+
+  # C-25
+  # C-26
+  # C-45
+  @doc "A provider account, sender identity or channel identity by its identifier, or `nil`; `lock: true` holds the row for the rest of the transaction."
+  @spec row(:account | :sender | :channel_identity, id(), boolean()) :: map() | nil
+  def row(kind, id, lock?) do
+    if lock?, do: lock(kind, id)
+
+    case all(Map.fetch!(@views, kind) <> " WHERE id = $1", [id]) do
+      [row] -> row
+      [] -> nil
+    end
+  end
+
+  defp lock(kind, id) do
+    key = "relay.channels.#{kind}:" <> Base.encode16(id, case: :lower)
+    Repo.scoped_query!("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [key])
+    :ok
+  end
+
+  # API-56
+  @doc "A page of provider accounts, sender identities or channel identities newest first from a decoded cursor; at most `limit + 1` rows come back."
+  @spec page(:account | :sender | :channel_identity, map() | nil, pos_integer()) :: [map()]
+  def page(kind, nil, limit) do
+    sql = Map.fetch!(@views, kind) <> " ORDER BY created_at DESC, id DESC LIMIT $1"
+    all(sql, [limit + 1])
+  end
+
+  def page(kind, %{direction: :after, sort_ts_us: ts, id: id}, limit) do
+    all(
+      Map.fetch!(@views, kind) <>
+        " WHERE (created_at, id) < ($1, $2) ORDER BY created_at DESC, id DESC LIMIT $3",
+      [DateTime.from_unix!(ts, :microsecond), id, limit + 1]
+    )
+  end
+
+  def page(kind, %{direction: :before, sort_ts_us: ts, id: id}, limit) do
+    sql =
+      Map.fetch!(@views, kind) <>
+        " WHERE (created_at, id) > ($1, $2) ORDER BY created_at, id LIMIT $3"
+
+    sql
+    |> all([DateTime.from_unix!(ts, :microsecond), id, limit + 1])
+    |> Enum.reverse()
+  end
+
+  # C-45
+  # C-25
+  # C-26
+  # OP-73
+  @doc "Archives a provider account or a sender identity, or retires a channel identity; the row stays."
+  @spec archive(:account | :sender | :channel_identity, id(), digest(), Actor.t()) ::
+          {:archived | :already_archived | :retired | :already_retired | :not_found,
+           pos_integer() | nil}
+  def archive(kind, id, digest, %Actor{} = actor) do
+    {function, codes} =
+      case kind do
+        :account -> {"relay_fn.provider_account_archive", [:archived, :already_archived]}
+        :sender -> {"relay_fn.sender_identity_archive", [:archived, :already_archived]}
+        :channel_identity -> {"relay_fn.channel_identity_retire", [:retired, :already_retired]}
+      end
+
+    :ok = lock(kind, id)
+    [row] = Repo.call!(function, [id, digest] ++ Actor.params(actor))
+    {Repo.code!(row["result"], codes ++ [:not_found]), row["version"]}
+  end
+
+  # TN-26 (5)
+  @doc "Whether a secret reference is still named by a provider account that is not archived or by an active channel identity."
+  @spec secret_in_use?(id()) :: boolean()
+  def secret_in_use?(secret_ref_id) do
+    [%{"used" => used}] =
+      all(
+        "SELECT EXISTS (SELECT 1 FROM relay.provider_accounts WHERE credential_ref_id = $1 AND state <> 'archived') OR EXISTS (SELECT 1 FROM relay.channel_identities WHERE secret_ref_id = $1 AND state = 'active') AS used",
+        [secret_ref_id]
+      )
+
+    used
+  end
+
+  # C-25
+  @doc "Whether a provider account already has a sender identity of this kind and value."
+  @spec sender_taken?(id(), String.t(), String.t()) :: boolean()
+  def sender_taken?(account_id, kind, value) do
+    sql =
+      "SELECT id FROM relay.sender_identities WHERE provider_account_id = $1 AND kind = $2 AND value = $3"
+
+    all(sql, [account_id, kind, value]) != []
+  end
+
+  # C-26
+  @doc "Whether a channel identity of this kind already has the application reference."
+  @spec app_ref_taken?(String.t(), String.t()) :: boolean()
+  def app_ref_taken?(kind, app_ref) do
+    sql = "SELECT id FROM relay.channel_identities WHERE kind = $1 AND app_ref = $2"
+    all(sql, [kind, app_ref]) != []
   end
 
   defp all(sql, params) do

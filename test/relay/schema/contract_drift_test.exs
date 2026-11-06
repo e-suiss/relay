@@ -50,6 +50,7 @@ defmodule Relay.Schema.ContractDriftTest do
     {"relay.events", "events_priority_check", {"schemas", ["Priority"]}},
     {"relay.events", "events_security_subtype_check", {"schemas", ["SecuritySubtype"]}},
     {"relay.events", "events_on_expire_check", {"schemas", ["OnExpire"]}},
+    {"relay.events", "events_interruption_check", {"schemas", ["Interruption"]}},
     {"relay.events", "events_state_check", {"schemas", ["Event", "properties", "status"]}},
     {"relay.event_type_mappings", "event_type_mappings_state_check",
      {"schemas", ["EventTypeMapping", "properties", "state"]}},

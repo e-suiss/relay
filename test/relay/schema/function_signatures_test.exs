@@ -245,6 +245,9 @@ defmodule Relay.Schema.FunctionSignaturesTest do
       ~w(changed recorded unchanged version_conflict not_found),
     "relay_fn.whatsapp_template_category" => ~w(drifted aligned unchanged not_found),
     "relay_fn.whatsapp_template_edit" => ~w(recorded unchanged not_found),
+    "relay_fn.provider_account_archive" => ~w(archived already_archived not_found),
+    "relay_fn.sender_identity_archive" => ~w(archived already_archived not_found),
+    "relay_fn.channel_identity_retire" => ~w(retired already_retired not_found),
     "relay_fn.test_recipient_add" =>
       ~w(added exists limit_reached recipient_not_found device_not_found),
     "relay_fn.test_recipient_confirm" => ~w(verified already_verified expired not_found),

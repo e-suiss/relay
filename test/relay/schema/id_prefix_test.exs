@@ -75,6 +75,10 @@ defmodule Relay.Schema.IdPrefixTest do
       assert ExternalId.table("wtp") == {:ok, "whatsapp_templates"}
     end
 
+    test "C-25: the stage six sender identity table has its prefix" do
+      assert ExternalId.table("snd") == {:ok, "sender_identities"}
+    end
+
     test "API-61: the stage six test recipient table has its prefix" do
       assert ExternalId.table("trc") == {:ok, "test_recipients"}
     end

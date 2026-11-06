@@ -2,7 +2,7 @@ defmodule Relay.Templates.Context do
   @moduledoc """
   The allow-listed render context of one template cell for one channel (TP-5, TP-24).
 
-  Only plain JSON-like data enters: string-keyed maps, lists, strings, numbers, booleans and null. Event data is at the top level; the schema-declared recipient attributes are under `recipient`, the brand variables under `brand`, and the render helpers (for example `legal_footer`, `unsubscribe_url`) are top-level names supplied by the caller. Internal structures, the tenant identity and secrets have no place in it. Data deeper than five levels is cut off, so it cannot be read.
+  Only plain JSON-like data enters: string-keyed maps, lists, strings, numbers, booleans and null. Event data is at the top level; the schema-declared recipient attributes are under `recipient`, the brand variables under `brand`, the event's links by `rel` under `links` (their `href`, E-83), and the render helpers (for example `legal_footer`, `unsubscribe_url`) are top-level names supplied by the caller. Internal structures, the tenant identity and secrets have no place in it. Data deeper than five levels is cut off, so it cannot be read.
 
   The context is built for one channel and one escaping mode and every string value is escaped for it (`Relay.Templates.Escape`); a helper given as `{:trusted, string}` is Relay's own output and is not escaped. Rendering checks the channel, so a context is never reused for another channel. In right-to-left locales every printed value is isolated with U+2068 … U+2069, except on SMS (TP-29).
 
@@ -57,7 +57,7 @@ defmodule Relay.Templates.Context do
     :webhook
   ]
   @max_depth 5
-  @reserved ~w(recipient brand)
+  @reserved ~w(recipient brand links)
   @rtl ~w(ar arc ckb dv fa he ks ku ps sd syr ug ur yi)
 
   @doc "The channel types a context can be built for."
@@ -92,7 +92,7 @@ defmodule Relay.Templates.Context do
   @doc """
   Builds the context of one render.
 
-  Fields: `:locale` (a supported BCP 47 locale, required), `:time_zone` (an IANA zone, required), `:data` (event data), `:recipient`, `:brand`, `:helpers` (name to string or `{:trusted, string}`), `:variables` (criticality declarations by path, see `Relay.Templates.Variables.criticality/1`), `:schema` (a built `JSV.Root` the event data is validated against) and `:escape` (defaults to `escape_mode(channel, part)` with `:part`).
+  Fields: `:locale` (a supported BCP 47 locale, required), `:time_zone` (an IANA zone, required), `:data` (event data), `:recipient`, `:brand`, `:links` (`rel` to `href`), `:helpers` (name to string or `{:trusted, string}`), `:variables` (criticality declarations by path, see `Relay.Templates.Variables.criticality/1`), `:schema` (a built `JSV.Root` the event data is validated against) and `:escape` (defaults to `escape_mode(channel, part)` with `:part`).
   """
   @spec new(channel(), keyword()) :: {:ok, t()} | {:error, error()}
   def new(channel, fields) when channel in @channels and is_list(fields) do
@@ -104,6 +104,7 @@ defmodule Relay.Templates.Context do
          {:ok, data} <- plain(:data, Keyword.get(fields, :data, %{})),
          {:ok, recipient} <- plain(:recipient, Keyword.get(fields, :recipient, %{})),
          {:ok, brand} <- plain(:brand, Keyword.get(fields, :brand, %{})),
+         {:ok, links} <- plain(:links, Keyword.get(fields, :links, %{})),
          {:ok, helpers} <- helpers(Keyword.get(fields, :helpers, %{})),
          :ok <- reserved(data, helpers),
          :ok <- validate(data, fields[:schema]) do
@@ -111,7 +112,7 @@ defmodule Relay.Templates.Context do
 
       vars =
         data
-        |> Map.merge(%{"recipient" => recipient, "brand" => brand})
+        |> Map.merge(%{"recipient" => recipient, "brand" => brand, "links" => links})
         |> Escape.value(escape)
         |> prune(1)
         |> Map.merge(Map.new(helpers, fn {name, value} -> {name, helper(value, escape)} end))

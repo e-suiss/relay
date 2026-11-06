@@ -125,5 +125,6 @@
   {"file": "20261121000100_create_usage_day_scopes.exs", "sha256": "401d5f8c941653190f201b068c25d54dc1dbbd7352519290b6e7d3935114d892"},
   {"file": "20261122000100_create_push_critical_function.exs", "sha256": "45acbea495653e992779ba8d238db1e0ea49c8b03d6a044fea9f390aad84cce8"},
   {"file": "20261124000000_rebuild_reference_check_for_whatsapp_and_messaging.exs", "sha256": "413acdc9f9c0d09d57321df7fd2554a07317c6bc085ebf940ac7425bedbc91a7"},
-  {"file": "20261125000100_add_channel_management_states.exs", "sha256": "f3fdc245f6225c1f6dc999427b6cf5fbd59969ccda8cf8c8c13c911473b0da2f"}
+  {"file": "20261125000100_add_channel_management_states.exs", "sha256": "2c129f501f1284d02086a0707bc5ca4cec69cbb9b8162e5c39fc98f1a619bbc9"},
+  {"file": "20261125000200_validate_provider_account_archived_state.exs", "sha256": "9872a9a3184d8f195b06a64f78b1fc70245192fb5d84cfb9352b75e9ce819cde"}
 ]

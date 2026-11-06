@@ -16,11 +16,9 @@ defmodule Relay.Repo.Migrations.AddChannelManagementStates do
   # TN-26
   # OP-73
   def up do
-    execute("ALTER TABLE relay.provider_accounts DROP CONSTRAINT provider_accounts_state_check")
-
     execute("""
-    ALTER TABLE relay.provider_accounts ADD CONSTRAINT provider_accounts_state_check
-      CHECK (state IN ('active', 'disabled', 'archived'))
+    ALTER TABLE relay.provider_accounts ADD CONSTRAINT provider_accounts_state_archived_check
+      CHECK (state IN ('active', 'disabled', 'archived')) NOT VALID
     """)
 
     execute("ALTER TABLE relay.sender_identities ADD COLUMN archived_at timestamptz")

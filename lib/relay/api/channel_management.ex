@@ -411,9 +411,8 @@ defmodule Relay.Api.ChannelManagement do
 
   @doc "A record digest over an action, the scope and a reference."
   @spec digest(Relay.Scope.t(), String.t(), Relay.Id.t() | String.t()) :: <<_::256>>
-  def digest(scope, action, <<_::128>> = id), do: digest(scope, action, Relay.Id.to_string(id))
-
   def digest(scope, action, ref) do
+    ref = if Relay.Id.valid?(ref), do: Relay.Id.to_string(ref), else: ref
     environment = Atom.to_string(scope.environment)
     canonical = Relay.Canonical.encode!([action, {:bytes, scope.tenant_id}, environment, ref])
     :crypto.hash(:sha256, canonical)

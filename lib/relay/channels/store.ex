@@ -285,12 +285,18 @@ defmodule Relay.Channels.Store do
   @doc "A provider account, sender identity or channel identity by its identifier, or `nil`; `lock: true` holds the row for the rest of the transaction."
   @spec row(:account | :sender | :channel_identity, id(), boolean()) :: map() | nil
   def row(kind, id, lock?) do
-    lock = if lock?, do: " FOR UPDATE", else: ""
+    if lock?, do: lock(kind, id)
 
-    case all(Map.fetch!(@views, kind) <> " WHERE id = $1" <> lock, [id]) do
+    case all(Map.fetch!(@views, kind) <> " WHERE id = $1", [id]) do
       [row] -> row
       [] -> nil
     end
+  end
+
+  defp lock(kind, id) do
+    key = "relay.channels.#{kind}:" <> Base.encode16(id, case: :lower)
+    Repo.scoped_query!("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [key])
+    :ok
   end
 
   # API-56
@@ -335,6 +341,7 @@ defmodule Relay.Channels.Store do
         :channel_identity -> {"relay_fn.channel_identity_retire", [:retired, :already_retired]}
       end
 
+    :ok = lock(kind, id)
     [row] = Repo.call!(function, [id, digest] ++ Actor.params(actor))
     {Repo.code!(row["result"], codes ++ [:not_found]), row["version"]}
   end

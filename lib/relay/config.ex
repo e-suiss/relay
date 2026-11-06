@@ -45,6 +45,7 @@ defmodule Relay.Config do
     Relay.Connectors,
     Relay.Templates.Sandbox,
     Relay.Templates.Mjml,
+    Relay.Channels.Email.Esp,
     Oban
   ]
   @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.Platform.MaintRepo]

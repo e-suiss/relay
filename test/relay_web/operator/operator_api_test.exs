@@ -198,6 +198,22 @@ defmodule RelayWeb.Operator.OperatorApiTest do
                "auth_missing_credentials"
     end
 
+    test "E-98: the CLI sends its Access token as DPoP with a proof; a Bearer token is refused" do
+      token = FakeAccess.issue("token", %{"sub" => "cli-" <> random(), "auth_time" => 0})
+      dpop = RelayTest.Dpop.headers(token, :get, RelayTest.Dpop.base() <> "/v1/operator/session")
+      shown = json(request(:get, "/v1/operator/session", headers: dpop), 200)
+      assert shown["roles"] == []
+
+      bearer = [{"authorization", "Bearer " <> token}]
+      refused = request(:get, "/v1/operator/session", headers: bearer)
+      assert json(refused, 401)["code"] == "auth_malformed_credentials"
+
+      unproved = request(:get, "/v1/operator/session", headers: [hd(dpop)])
+      assert json(unproved, 401)["code"] == "auth_missing_credentials"
+      assert [challenge] = get_resp_header(unproved, "www-authenticate")
+      assert challenge =~ ~s(DPoP realm="relay")
+    end
+
     test "TN-19: a sign-out revokes the session" do
       session = sign_in("op-" <> TenantFixture.random())
       json(request(:delete, "/v1/operator/session", as: session), 204)

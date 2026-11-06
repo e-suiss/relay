@@ -57,7 +57,7 @@ codes:
       max_seconds: null
     extensions: []
     choice: false
-    description: "The request carries no Authorization header, or a server API request carries no DPoP proof. Send an Access access token as Authorization: DPoP with a DPoP proof header; subscriber operations take a Relay subscriber token as a Bearer token."
+    description: "The request carries no Authorization header, or a server API or operator request with an Access token carries no DPoP proof. Send an Access access token as Authorization: DPoP with a DPoP proof header; subscriber operations take a Relay subscriber token as a Bearer token."
     type: "{base_url}/v1/errors/auth_missing_credentials"
   - code: auth_malformed_credentials
     family: auth

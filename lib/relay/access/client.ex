@@ -64,8 +64,8 @@ defmodule Relay.Access.Client do
   def token(endpoint, form, opts \\ []) when is_binary(endpoint) and is_list(form) do
     with {:ok, client_id} <- client_id(),
          {:ok, issuer} <- issuer(),
-         send = fn nonce -> token_call(endpoint, form, {client_id, issuer}, nonce, opts) end,
-         {:ok, response} <- exchange(send, nonce(endpoint), :token),
+         attempt = fn nonce -> token_call(endpoint, form, {client_id, issuer}, nonce, opts) end,
+         {:ok, response} <- exchange(attempt, nonce(endpoint), :token),
          do: token_answer(response)
   end
 
@@ -115,8 +115,8 @@ defmodule Relay.Access.Client do
 
   defp resource(request, opts) do
     with {:ok, token} <- access_token(opts),
-         send = fn nonce -> resource_call(request, token, nonce, opts) end,
-         {:ok, response} <- exchange(send, nonce(request.url), :resource),
+         attempt = fn nonce -> resource_call(request, token, nonce, opts) end,
+         {:ok, response} <- exchange(attempt, nonce(request.url), :resource),
          do: answer(response)
   end
 
@@ -155,10 +155,10 @@ defmodule Relay.Access.Client do
     end
   end
 
-  defp exchange(send, nonce, kind) do
-    with {:ok, response} <- send.(nonce) do
+  defp exchange(attempt, nonce, kind) do
+    with {:ok, response} <- attempt.(nonce) do
       case asked_nonce(response, kind) do
-        {:ok, fresh} -> send.(fresh)
+        {:ok, fresh} -> attempt.(fresh)
         :none -> {:ok, response}
       end
     end

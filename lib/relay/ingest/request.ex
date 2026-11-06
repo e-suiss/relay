@@ -5,7 +5,7 @@ defmodule Relay.Ingest.Request do
   * `data` is at most the contract's `event.max_data_bytes`; `send_at` lies in the future and at most `event.max_send_at_ahead` ahead (`Relay.Limits`); `expires_at` lies in the future and not before `send_at`.
   * `security_subtype` and `on_expire` belong to the `security` class; a subtype needs `expires_at` (API-24). `retention: none` is refused for `security` and together with an inbox step (API-26).
   * `priority` is clamped to the class ceiling with a `priority_clamped` warning (API-22); `channels` only narrows the workflow's steps.
-  * Raw provider blocks cannot set policy fields (`422 policy_field_not_overridable`, API-23); `overrides.email.from` needs a verified domain, and until sender identities exist none is verified (`403 channel_not_configured`).
+  * Raw provider blocks cannot set policy fields (`422 policy_field_not_overridable`, API-23). The provider and `overrides.email.from` are checked against the verified routes by the send operation (`403 channel_not_configured`).
   * A per-request `send_mode` is accepted only in the test environment (`403 auth_environment_mismatch`, API-62, API-76).
   * A recipient is a plain identifier (it must exist), an object with only `id` (an inbox-only subscriber) or an object with contact details (an explicit upsert, API-21); a topic is refused until topics exist.
   """
@@ -39,7 +39,6 @@ defmodule Relay.Ingest.Request do
       ) do
     with :ok <- send_mode(body, environment),
          :ok <- policy_fields(body),
-         :ok <- sender(body),
          {:ok, times} <- times(body, now) do
       {priority, warnings} = priority(Map.get(body, "priority", "normal"), class)
       narrowed = narrow(steps, Map.get(body, "channels"))
@@ -66,6 +65,7 @@ defmodule Relay.Ingest.Request do
            metadata: Map.get(body, "metadata"),
            data: Map.get(body, "data", %{}),
            send_mode: Map.get(body, "send_mode"),
+           overrides: Map.get(body, "overrides", %{}),
            steps: Enum.map(narrowed, &subtype_rule(&1, Map.get(body, "security_subtype")))
          })}
       else
@@ -112,14 +112,6 @@ defmodule Relay.Ingest.Request do
          })}
     end
   end
-
-  # API-23
-  defp sender(%{"overrides" => %{"email" => %{"from" => _from}}}) do
-    message = "the sender address is not on a verified domain"
-    {:error, Relay.Error.new(:channel_not_configured, message)}
-  end
-
-  defp sender(_body), do: :ok
 
   defp times(body, now) do
     with {:ok, send_at} <- time(body, "send_at"),

@@ -2,7 +2,7 @@ defmodule Relay.Channels.Live do
   @moduledoc """
   The channel step of the delivery job (`Relay.Delivery.Send`, configured as `config :relay, Relay.Delivery, channel: Module`): it hands a rendered delivery to its provider and records the outcome.
 
-    1. The route. On the `test` plane and in `shadow` mode the fake provider answers (X-25, API-62, CH-72); the send mode is the event's own mode (test only), then the tenant's `send_mode.channel.<channel>` and `send_mode` settings, then the installation default. Otherwise only a verified provider account whose adapter is activated takes traffic (`Relay.Channels.routes/4`, CH-14, INV-43); without one the delivery is held with `channel.no_route` and the job comes back later. The circuit breakers pick the first account that may be called; a rejection moves to the next account and, when every one is open, the job waits without counting an attempt (CH-13, T-25).
+    1. The route. On the `test` plane and in `shadow` mode the fake provider answers (X-25, API-62, CH-72); the send mode is the event's own mode (test only), then the tenant's `send_mode.category.<category>.channel.<channel>`, `send_mode.channel.<channel>` and `send_mode` settings for the workflow's category, then the installation default. The route is narrowed to the provider the delivery was accepted with (API-23) and, under the tenant's `channels.domestic_only` policy, to accounts processing data in that country (CH-6, TN-58). Otherwise only a verified provider account whose adapter is activated takes traffic (`Relay.Channels.routes/4`, CH-14, INV-43); without one the delivery is held with `channel.no_route` and the job comes back later. The circuit breakers pick the first account that may be called; a rejection moves to the next account and, when every one is open, the job waits without counting an attempt (CH-13, T-25).
     2. The target. An address channel reads the recipient's active address; a device channel reads the recipient's permitted devices from `Relay.Devices` (CH-28). A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
     3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50). On SMS and voice the route keeps only the accounts of the message class's traffic, `security` or `standard`, so an OTP never shares an account or a credit pool with a campaign (CH-53), and a `+90` number only the BTK-authorized providers, or the delivery is skipped with `channel.tr_route_unauthorized` (CH-51). Before the attempt `Relay.Channels.sms_preflight/7`, with the renderer's SMS measurement, checks the sender identity's rules for the class (CH-50), the TR route and the explicit encoding (CH-48), and names the provider product (CH-53); a broken rule skips the delivery with its `rule_id`.
     4. The provider limits (CH-17): the account, sender and recipient layers of the provider's declared limits, stricter than the provider's and in the channel's unit, each a GCRA decision (`Relay.Channels.Limits`); a denial snoozes the job for its `retry_after` without opening an attempt. A shared account's quota carries the lane ceiling (T-33, TN-53), and a 429 lowers the account's rate until successes raise it again (AIMD, `Relay.Channels.Throttle`); the provider's `Retry-After` still plans the retry.
@@ -33,6 +33,7 @@ defmodule Relay.Channels.Live do
   alias Relay.Scope
 
   @hold_s 300
+  @domestic "channels.domestic_only"
   @classes ~w(security transactional action_required operational system social marketing)a
   @call_ms 10_000
   @ranks %{accepted: 1, delivered: 2}
@@ -69,11 +70,20 @@ defmodule Relay.Channels.Live do
 
   # X-25
   # API-62
+  # API-23
+  # CH-6
+  # TN-58
   defp route(scope, delivery, declarations) do
-    if fake?(scope, delivery) do
+    settings = settings(scope, delivery)
+
+    if fake?(scope, delivery, settings) do
       {:ok, [%{"id" => nil, "provider" => "fake", "credential_ref_id" => nil}]}
     else
-      policy = %{draw: :erlang.phash2(delivery["id"])}
+      policy = %{
+        draw: :erlang.phash2(delivery["id"]),
+        provider: delivery["provider"],
+        domestic_country: settings[@domestic]
+      }
 
       case Relay.Channels.routes(scope, delivery["channel"], declarations, policy) do
         {:ok, {[], _excluded}} -> {:hold, "channel.no_route"}
@@ -111,17 +121,22 @@ defmodule Relay.Channels.Live do
     end
   end
 
-  defp fake?(%Scope{environment: :test}, _delivery), do: true
+  defp settings(scope, delivery) do
+    keys = [@domestic | Relay.Ingest.send_mode_keys(category(delivery), delivery["channel"])]
 
-  defp fake?(scope, delivery) do
+    case Store.in_scope(scope, fn _ -> Store.settings(keys) end) do
+      {:ok, settings} -> settings
+      {:error, _reason} -> %{}
+    end
+  end
+
+  defp category(delivery), do: delivery["category"] || ""
+
+  # OP-51
+  defp fake?(%Scope{environment: :test}, _delivery, _settings), do: true
+
+  defp fake?(_scope, delivery, settings) do
     channel = delivery["channel"]
-    keys = Relay.Ingest.send_mode_keys("", channel)
-
-    settings =
-      case Store.in_scope(scope, fn _ -> Store.settings(keys) end) do
-        {:ok, settings} -> settings
-        {:error, _reason} -> %{}
-      end
 
     installation =
       case Relay.Ingest.installation_send_mode() do
@@ -129,7 +144,8 @@ defmodule Relay.Channels.Live do
         {:error, _reason} -> nil
       end
 
-    Relay.Ingest.send_mode(delivery["send_mode"], settings, "", channel, installation) == :shadow
+    mode = delivery["send_mode"]
+    Relay.Ingest.send_mode(mode, settings, category(delivery), channel, installation) == :shadow
   end
 
   # CH-13

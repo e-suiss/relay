@@ -70,9 +70,9 @@ defmodule Relay.Ingest.RequestTest do
       assert {:ok, %{send_mode: "off"}} = check(%{"send_mode" => "off"}, "transactional", :test)
     end
 
-    test "API-23: a sender address needs a verified domain" do
-      assert {:error, %Relay.Error{code: :channel_not_configured}} =
-               check(%{"overrides" => %{"email" => %{"from" => "a@b.io"}}})
+    test "API-23: the overrides are kept for the route checks of the send operation" do
+      overrides = %{"email" => %{"from" => "a@b.io", "provider" => "smtp"}}
+      assert {:ok, %{overrides: ^overrides}} = check(%{"overrides" => overrides})
     end
   end
 end

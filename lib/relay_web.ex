@@ -9,6 +9,7 @@ defmodule RelayWeb do
       Relay.Platform,
       Relay.Tenancy.KillSwitch,
       Relay.Datasets,
+      Relay.Channels,
       Relay.Api,
       Relay.Access,
       Relay.Operators

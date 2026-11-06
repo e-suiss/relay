@@ -331,6 +331,9 @@ defmodule RelayWeb.Router do
     post "/virtual_clock/advance", VirtualClockController, :advance,
       private: %{relay_operation: "advanceVirtualClock"}
 
+    get "/test/simulated-results", SimulatedResultController, :index,
+      private: %{relay_operation: "listSimulatedResults"}
+
     post "/access/events", AccessEventController, :create,
       private: %{relay_operation: "receiveAccessEvent"}
 

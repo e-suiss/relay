@@ -1,6 +1,6 @@
 defmodule Relay.Tenancy.SettingKeys do
   @moduledoc """
-  The catalog of setting keys (`relay.settings.key`). A setting write names a key from the catalog and a value that passes the key's check; `nil` clears the setting at that level. Stage 1 holds the keys the setting resolver falls back to the tenant defaults for: `default_timezone` and `default_locale`, checked and canonicalised like the tenant defaults (`Relay.Tenancy.Defaults`). `fairness.weight.l2` and `fairness.weight.l3` hold the tenant's DRR weight in a bulk lane, an integer from 1 to 100 (1 when unset); only the tenant-level value counts. `api.rate.burst` and `api.rate.sustained` hold the tenant's API rate limit tiers (API-50, API-77), an object with a positive integer `weight` and a positive integer `window_seconds` of at most 3600; an unset tier takes the contract default. `api.mtls_required` (`true` or `false`) makes the tenant's server API accept only certificate-bound tokens (RFC 8705; API-41, API-48). `devices.max_active` lowers the subscriber's active device limit (CH-74): an integer from 1 to the contract's `devices.max_active_per_subscriber`; a tenant can never raise it. `send_mode`, `send_mode.channel.<channel>` and `send_mode.category.<category>.channel.<channel>` hold the tenant's send modes (OP-51): `live`, `shadow`, `dry_run` or `off`. The `brand.*` keys hold the brand fields templates render (TP-35, TP-48): `brand.logo_url` (an `https` URL of at most 2048 characters), `brand.primary_color` and `brand.secondary_color` (`#RRGGBB`), `brand.sender_name` (at most 100 characters), `brand.footer` (at most 2000), `brand.legal_name` (at most 200), `brand.mersis` (16 digits), `brand.contact` and `brand.postal_address` (at most 500); a sub-tenant inherits every brand field it does not set (TP-36).
+  The catalog of setting keys (`relay.settings.key`). A setting write names a key from the catalog and a value that passes the key's check; `nil` clears the setting at that level. Stage 1 holds the keys the setting resolver falls back to the tenant defaults for: `default_timezone` and `default_locale`, checked and canonicalised like the tenant defaults (`Relay.Tenancy.Defaults`). `fairness.weight.l2` and `fairness.weight.l3` hold the tenant's DRR weight in a bulk lane, an integer from 1 to 100 (1 when unset); only the tenant-level value counts. `api.rate.burst` and `api.rate.sustained` hold the tenant's API rate limit tiers (API-50, API-77), an object with a positive integer `weight` and a positive integer `window_seconds` of at most 3600; an unset tier takes the contract default. `api.mtls_required` (`true` or `false`) makes the tenant's server API accept only certificate-bound tokens (RFC 8705; API-41, API-48). `devices.max_active` lowers the subscriber's active device limit (CH-74): an integer from 1 to the contract's `devices.max_active_per_subscriber`; a tenant can never raise it. `send_mode`, `send_mode.channel.<channel>` and `send_mode.category.<category>.channel.<channel>` hold the tenant's send modes (OP-51): `live`, `shadow`, `dry_run` or `off`. `channels.domestic_only` turns on the tenant's domestic-only policy (CH-6, TN-58): an ISO 3166-1 alpha-2 country code, and a provider account processing data outside that country is listed but never routed. `overrides.<channel>.provider` is the tenant default of the provider a channel is narrowed to (API-23), the last level after the request, the step and the workflow: a provider name. The `brand.*` keys hold the brand fields templates render (TP-35, TP-48): `brand.logo_url` (an `https` URL of at most 2048 characters), `brand.primary_color` and `brand.secondary_color` (`#RRGGBB`), `brand.sender_name` (at most 100 characters), `brand.footer` (at most 2000), `brand.legal_name` (at most 200), `brand.mersis` (16 digits), `brand.contact` and `brand.postal_address` (at most 500); a sub-tenant inherits every brand field it does not set (TP-36).
   """
 
   alias Relay.Tenancy.Defaults
@@ -14,6 +14,7 @@ defmodule Relay.Tenancy.SettingKeys do
     "api.rate.sustained" => :api_rate,
     "api.mtls_required" => :boolean,
     "devices.max_active" => :device_limit,
+    "channels.domestic_only" => :country,
     "brand.logo_url" => {:brand, :url, 2048},
     "brand.primary_color" => {:brand, :color, 7},
     "brand.secondary_color" => {:brand, :color, 7},
@@ -27,6 +28,8 @@ defmodule Relay.Tenancy.SettingKeys do
 
   @device_limit Relay.Limits.fetch!(["devices", "max_active_per_subscriber"])
   @send_modes ~w(live shadow dry_run off)
+  @provider_override ~r/\Aoverrides\.[a-z_]+\.provider\z/
+  @provider ~r/\A[a-z][a-z0-9_]{1,31}\z/
   @send_mode ~r/\Asend_mode(\.channel\.[a-z_]+|\.category\.[a-z][a-z0-9_]{0,63}\.channel\.[a-z_]+)?\z/
 
   @doc "Returns the catalog's keys."
@@ -40,9 +43,20 @@ defmodule Relay.Tenancy.SettingKeys do
   def cast(key, value) do
     case Map.fetch(@catalog, key) do
       {:ok, {:brand, kind, max}} when not is_nil(value) -> brand(kind, max, value)
-      :error when is_binary(key) -> send_mode(key, value)
+      :error when is_binary(key) -> pattern(key, value)
       found -> catalog(found, key, value)
     end
+  end
+
+  # API-23
+  defp pattern(key, value) do
+    if Regex.match?(@provider_override, key), do: provider(value), else: send_mode(key, value)
+  end
+
+  defp provider(value) do
+    if value == nil or (is_binary(value) and Regex.match?(@provider, value)),
+      do: {:ok, value},
+      else: {:error, Relay.Error.new(:invalid_setting, "a provider is a provider name")}
   end
 
   # OP-51
@@ -71,7 +85,7 @@ defmodule Relay.Tenancy.SettingKeys do
         {:error,
          Relay.Error.new(:invalid_setting, "a fairness weight is an integer from 1 to 100")}
 
-      {:ok, kind} when kind in [:api_rate, :boolean, :device_limit] ->
+      {:ok, kind} when kind in [:api_rate, :boolean, :device_limit, :country] ->
         check(kind, value)
 
       {:ok, field} ->
@@ -91,6 +105,14 @@ defmodule Relay.Tenancy.SettingKeys do
   defp check(:device_limit, _value) do
     message = "the device limit is an integer from 1 to #{@device_limit}"
     {:error, Relay.Error.new(:invalid_setting, message)}
+  end
+
+  # CH-6
+  # TN-58
+  defp check(:country, value) do
+    if is_binary(value) and Regex.match?(~r/\A[A-Z]{2}\z/, value),
+      do: {:ok, value},
+      else: {:error, Relay.Error.new(:invalid_setting, "a country is an ISO 3166-1 alpha-2 code")}
   end
 
   # API-41

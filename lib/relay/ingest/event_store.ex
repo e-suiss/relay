@@ -477,6 +477,9 @@ defmodule Relay.Ingest.EventStore do
 
         {:created_before, at}, {sql, ps} ->
           {sql <> " AND n.created_at < $#{length(ps) + 1}", ps ++ [at]}
+
+        {:is_test, flag}, {sql, ps} ->
+          {sql <> " AND n.is_test = $#{length(ps) + 1}", ps ++ [flag]}
       end)
 
     page(@notification, "n", where, params, cursor, limit)

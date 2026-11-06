@@ -49,6 +49,7 @@ defmodule RelayTest.Isolation do
     {"replacePartialDraft",
      %{"definition" => %{"default_locale" => "tr", "bodies" => %{"tr" => "Merhaba"}}}},
     {"previewWorkflow", %{}},
+    {"sendWorkflowTest", %{"to" => ["trc_01j9zq3k4m5n6p7q8r9s0t1v2w"]}},
     {"replaceSubscriberMessagingTarget",
      %{"provider_account_id" => "pva_01j9zq3k4m5n6p7q8r9s0t1v2w", "conversation" => "U1"}}
   ]
@@ -96,7 +97,8 @@ defmodule RelayTest.Isolation do
       "template_key" => &template!/1,
       "layout_key" => &asset!(&1, "layouts"),
       "partial_key" => &asset!(&1, "partials"),
-      "channel" => &messaging_target!/1
+      "channel" => &messaging_target!/1,
+      "test_recipient_id" => &test_recipient!/1
     }
   end
 
@@ -345,6 +347,13 @@ defmodule RelayTest.Isolation do
   def suppression!(scope) do
     body = %{"channel" => "email", "address" => "iso-" <> random() <> "@example.com"}
     F.body(F.request(:post, "/v1/suppressions", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Adds the subscriber `subscriber!/1` creates to the test recipient list of `scope` and returns the entry's identifier."
+  @spec test_recipient!(Relay.Scope.t()) :: String.t()
+  def test_recipient!(scope) do
+    body = %{"subscriber_id" => subscriber!(scope)}
+    F.body(F.request(:post, "/v1/test_recipients", owner(scope), body), 201)["id"]
   end
 
   @doc "Registers a WhatsApp template on a new WhatsApp provider account in `scope` and returns the template's identifier."

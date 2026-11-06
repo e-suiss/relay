@@ -303,11 +303,20 @@ defmodule Relay.Channels.Live do
     recipient_id = delivery["recipient_id"]
 
     case Relay.Devices.targets(scope, recipient_id, channel, delivery["message_class"]) do
-      {:ok, targets} -> platform(targets, account)
+      {:ok, targets} -> pinned(only(targets, delivery), account)
       {:skip, reason} -> device_skip(account, reason)
       {:error, _reason} -> fallback(account, :device)
     end
   end
+
+  # API-61
+  defp only(targets, %{"is_test" => true, "target_id" => <<_::128>> = id}),
+    do: Enum.filter(targets, &(&1.id == id))
+
+  defp only(targets, _delivery), do: targets
+
+  defp pinned([], account), do: device_skip(account, :no_device)
+  defp pinned(targets, account), do: platform(targets, account)
 
   defp platform(targets, account) do
     fake? = account["provider"] == "fake"

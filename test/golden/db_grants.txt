@@ -354,6 +354,16 @@ table relay.tenants relay_archive SELECT
 table relay.tenants relay_maint INSERT,SELECT
 table relay.tenants relay_owner SELECT,UPDATE
 table relay.tenants relay_report SELECT
+table relay.test_recipients relay_app SELECT
+table relay.test_recipients relay_archive SELECT
+table relay.test_recipients relay_maint SELECT
+table relay.test_recipients relay_owner INSERT,SELECT,UPDATE
+table relay.test_recipients relay_report SELECT
+table relay.test_send_counters relay_app SELECT
+table relay.test_send_counters relay_archive SELECT
+table relay.test_send_counters relay_maint SELECT
+table relay.test_send_counters relay_owner INSERT,SELECT,UPDATE
+table relay.test_send_counters relay_report SELECT
 table relay.usage_records relay_app SELECT
 table relay.usage_records relay_archive SELECT
 table relay.usage_records relay_maint SELECT

@@ -25,6 +25,7 @@ defmodule Relay.Api.Events do
   @no_readings %{global: nil, policy: nil}
   @domestic "channels.domestic_only"
   @shards 16
+  @test_per_day Relay.Limits.fetch!(["test_send", "max_notifications_per_day"])
 
   @type context :: %{
           required(:scope) => Scope.t(),
@@ -435,6 +436,26 @@ defmodule Relay.Api.Events do
     )
   end
 
+  # API-61
+  defp quota(%{is_test: true} = prepared) do
+    count = max(length(prepared.recipients), 1)
+
+    case Relay.Ingest.test_send_consume(count, @test_per_day) do
+      {:consumed, _used} ->
+        :ok
+
+      {:exhausted, used} ->
+        message = "the day's test send quota is exhausted"
+
+        {:error,
+         Relay.Error.new(:quota_exhausted, message, %{
+           limit: @test_per_day,
+           actual: used,
+           limit_name: "test_send.max_notifications_per_day"
+         })}
+    end
+  end
+
   # API-51
   # API-79 (1)
   # TN-52
@@ -488,7 +509,7 @@ defmodule Relay.Api.Events do
       expires_at: r.expires_at,
       retention_none: r.retention_none,
       send_mode: r.send_mode,
-      is_test: false,
+      is_test: Map.get(p, :is_test, false),
       recipient_count: length(p.recipients),
       traceparent: p.traceparent
     }
@@ -614,7 +635,7 @@ defmodule Relay.Api.Events do
       security_subtype: p.request.security_subtype,
       sender_type: p.request.sender_type,
       expires_at: p.expires_at,
-      is_test: false,
+      is_test: Map.get(p, :is_test, false),
       traceparent: p.traceparent,
       event_id: event.id,
       workflow_id: p.workflow["workflow_id"],
@@ -798,6 +819,7 @@ defmodule Relay.Api.Events do
       id: delivery_id,
       channel: Map.fetch!(@channels, step.channel),
       target_kind: target_kind(step.channel),
+      target_id: test_device(p, step.channel, row["id"]),
       target_key: target_key(step.channel, row["id"]),
       decision: :send,
       decision_reason: nil,
@@ -813,6 +835,13 @@ defmodule Relay.Api.Events do
       {_other, _id} -> {:error, unavailable("the delivery could not be opened")}
     end
   end
+
+  # API-61
+  defp test_device(%{test_devices: devices}, channel, recipient_id)
+       when channel in ["push", "web_push"],
+       do: Map.get(devices, recipient_id)
+
+  defp test_device(_p, _channel, _recipient_id), do: nil
 
   defp target_kind(channel) when channel in ~w(email sms voice whatsapp), do: :address
   defp target_kind("in_app"), do: :inbox

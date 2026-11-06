@@ -273,6 +273,12 @@ channels:
         "$ref": "#/components/messages/audit.suppression.added"
       audit.suppression.lifted:
         "$ref": "#/components/messages/audit.suppression.lifted"
+      audit.test_recipient.added:
+        "$ref": "#/components/messages/audit.test_recipient.added"
+      audit.test_recipient.verified:
+        "$ref": "#/components/messages/audit.test_recipient.verified"
+      audit.test_recipient.removed:
+        "$ref": "#/components/messages/audit.test_recipient.removed"
       audit.template.created:
         "$ref": "#/components/messages/audit.template.created"
       audit.template.updated:
@@ -507,6 +513,9 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.category_subtenant_setting.changed"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.added"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.lifted"
+      - "$ref": "#/channels/auditLog/messages/audit.test_recipient.added"
+      - "$ref": "#/channels/auditLog/messages/audit.test_recipient.verified"
+      - "$ref": "#/channels/auditLog/messages/audit.test_recipient.removed"
       - "$ref": "#/channels/auditLog/messages/audit.template.created"
       - "$ref": "#/channels/auditLog/messages/audit.template.updated"
       - "$ref": "#/channels/auditLog/messages/audit.template.drafted"
@@ -4695,6 +4704,60 @@ components:
       x-relay-stage: 4
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.test_recipient.added:
+      name: test_recipient.added
+      title: test_recipient.added
+      summary: "A subscriber, or one of its devices, was added to the test recipient list as pending."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: test_recipient
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.test_recipient.verified:
+      name: test_recipient.verified
+      title: test_recipient.verified
+      summary: "The subscriber confirmed a pending test recipient entry with its own subscriber token."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: test_recipient
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.test_recipient.removed:
+      name: test_recipient.removed
+      title: test_recipient.removed
+      summary: "A test recipient entry was removed from the list."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: test_recipient
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.template.created:
       name: template.created
       title: template.created
@@ -5675,6 +5738,9 @@ x-relay-event-names:
   - tenant.suspended
   - tenant_key.destroyed
   - tenant_key.registered
+  - test_recipient.added
+  - test_recipient.removed
+  - test_recipient.verified
   - user.deleted
   - user.reactivated
   - user.suspended

@@ -59,7 +59,8 @@ defmodule Relay.ExternalId do
     {"pva", "provider_accounts"},
     {"chi", "channel_identities"},
     {"mtg", "messaging_targets"},
-    {"wtp", "whatsapp_templates"}
+    {"wtp", "whatsapp_templates"},
+    {"trc", "test_recipients"}
   ]
   @by_prefix Map.new(@tables)
 

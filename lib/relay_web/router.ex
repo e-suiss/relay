@@ -230,6 +230,18 @@ defmodule RelayWeb.Router do
     post "/workflows/:workflow_key/preview", WorkflowController, :preview,
       private: %{relay_operation: "previewWorkflow"}
 
+    post "/workflows/:workflow_key/test", WorkflowController, :test_send,
+      private: %{relay_operation: "sendWorkflowTest"}
+
+    get "/test_recipients", TesterController, :index,
+      private: %{relay_operation: "listTestRecipients"}
+
+    post "/test_recipients", TesterController, :create,
+      private: %{relay_operation: "createTestRecipient"}
+
+    post "/test_recipients/:test_recipient_id/remove", TesterController, :remove,
+      private: %{relay_operation: "removeTestRecipient"}
+
     get "/templates", TemplateController, :index, private: %{relay_operation: "listTemplates"}
     post "/templates", TemplateController, :create, private: %{relay_operation: "createTemplate"}
 
@@ -388,6 +400,12 @@ defmodule RelayWeb.Router do
 
     delete "/subscriber/devices/:device_id", DeviceController, :delete_mine,
       private: %{relay_operation: "deleteMyDevice"}
+
+    get "/subscriber/test_recipients", TesterController, :mine,
+      private: %{relay_operation: "listMyTestRecipients"}
+
+    post "/subscriber/test_recipients/:test_recipient_id/confirm", TesterController, :confirm,
+      private: %{relay_operation: "confirmMyTestRecipient"}
   end
 
   # API-78

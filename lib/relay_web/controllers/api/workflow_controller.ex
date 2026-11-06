@@ -3,8 +3,11 @@ defmodule RelayWeb.Api.WorkflowController do
 
   use RelayWeb, :api_controller
 
+  alias Relay.Api.Events
   alias Relay.Api.Previews
+  alias Relay.Api.TestSends
   alias Relay.Api.Workflows
+  alias RelayWeb.Api.Admission
   alias RelayWeb.Api.Response
   alias RelayWeb.Api.Work
 
@@ -116,6 +119,23 @@ defmodule RelayWeb.Api.WorkflowController do
 
       {:error, error} ->
         Response.problem(conn, error)
+    end
+  end
+
+  # API-61
+  # TP-38
+  # T-35
+  @spec test_send(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def test_send(conn, %{"workflow_key" => key}) do
+    ctx = Work.context(conn)
+
+    with {:ok, key} <- key(key),
+         {:ok, prepared} <- TestSends.prepare_send(ctx, key, conn.assigns.body),
+         {class, channels} = Events.admission(prepared),
+         :ok <- Admission.check(class, channels) do
+      Work.idempotent(conn, fn _status -> TestSends.accept_send(prepared, ctx) end)
+    else
+      {:error, error} -> Response.problem(conn, error)
     end
   end
 

@@ -215,6 +215,11 @@ keys_ping='{:ok, _} = Application.ensure_all_started(:crypto); {:ok, _} = Relay.
 run -e RELAY_ROLES=worker "$image" eval "$keys_ping" >"$work/keys.log" 2>&1 || { cat "$work/keys.log" >&2; fail "key store check failed"; }
 grep -q '^keys: ok$' "$work/keys.log" || { cat "$work/keys.log" >&2; fail "key store did not answer"; }
 
+# E-101
+run -e RELAY_ROLES=worker "$image" eval 'Relay.Access.ServiceKey.print_service_key()' >"$work/service-key.log" 2>&1 \
+  || { cat "$work/service-key.log" >&2; fail "service key check failed"; }
+grep -q '"crv":"Ed25519"' "$work/service-key.log" || { cat "$work/service-key.log" >&2; fail "the Access service key was not printed"; }
+
 program="$(run -e RELAY_ROLES=worker "$image" eval 'IO.puts(Application.app_dir(:relay, "priv/native/pkcs11_port"))' | tail -1)"
 printf '#!/bin/sh\nexit 0\n' > "$work/replaced"
 chmod 755 "$work/replaced"

@@ -20,7 +20,7 @@ defmodule Relay.Access do
       Relay.Tenancy,
       Relay.Tenancy.Provisioning
     ],
-    exports: [Client, UserHandler, ConsentHandler]
+    exports: [Client, ServiceKey, UserHandler, ConsentHandler]
 
   alias Relay.Access.Cache
   alias Relay.Access.Clients
@@ -29,6 +29,7 @@ defmodule Relay.Access do
   alias Relay.Access.Events
   alias Relay.Access.Jose
   alias Relay.Access.Link
+  alias Relay.Access.Pairing
   alias Relay.Access.PlatformTenant
   alias Relay.Access.Realms
   alias Relay.Access.SubscriberToken
@@ -64,9 +65,9 @@ defmodule Relay.Access do
   @spec client_id() :: String.t() | nil
   def client_id, do: Keyword.get(config(), :client_id)
 
-  @doc "Supervised children: the link snapshot, the realm and outbound cache, the API client cache and the usage writer."
+  @doc "Supervised children: the link snapshot, the realm and outbound cache, the API client cache, the usage writer and the start-up pairing run (E-101)."
   @spec children() :: [module()]
-  def children, do: [Link, Cache, Clients, Usage]
+  def children, do: [Link, Cache, Clients, Usage, Pairing]
 
   # E-75
   @doc "The node's link state: `:ok`, `:stale`, `:pending`, `:region_mismatch`, or `:unknown` while the link process is not running."

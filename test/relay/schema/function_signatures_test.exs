@@ -123,6 +123,7 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_ops.access_link_store" => ~w(stored unchanged region_mismatch issuer_mismatch),
     "relay_ops.access_event_receipt_record" => ~w(recorded duplicate),
     "relay_ops.access_event_receipt_mark" => ~w(marked already_final not_found),
+    "relay_ops.access_pairing_apply" => ~w(stored not_found),
     "relay_fn.api_client_upsert" =>
       ~w(created updated unchanged revoked_terminal subtenant_not_found subtenant_changed),
     "relay_fn.api_client_set_status" => ~w(changed unchanged invalid_transition not_found),

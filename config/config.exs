@@ -57,7 +57,8 @@ config :relay, Oban,
        {"*/5 * * * *", Relay.Agents.WaitpointSweep},
        {"17 * * * *", Relay.Devices.Sweep},
        {"20 0 * * *", Relay.Delivery.UsageDay},
-       {"41 * * * *", Relay.Channels.Live.SettingsSweep}
+       {"41 * * * *", Relay.Channels.Live.SettingsSweep},
+       {"53 * * * *", Relay.Access.Pairing.Job}
      ]}
   ]
 
@@ -68,6 +69,8 @@ config :relay, Relay.Platform.Outbox, dispatcher: true
 config :relay, Relay.Access,
   subscriber_token_key: "subscriber-token",
   client_key: "access-client",
+  service_key: "access-service",
+  event_receiver: "https://localhost/v1/access/events",
   autoload: true,
   user_handlers: [Relay.Operators.AccessUserHandler, Relay.Operators.AccessSubscriberHandler],
   consent_handler: Relay.Preferences.AccessConsentHandler

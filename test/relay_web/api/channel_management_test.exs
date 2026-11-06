@@ -1,6 +1,7 @@
 defmodule RelayWeb.Api.ChannelManagementTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Channels.Store
   alias RelayTest.Api
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
@@ -134,8 +135,7 @@ defmodule RelayWeb.Api.ChannelManagementTest do
       archived = F.body(patch(ctx.token, path, %{"priority" => 1}, 2), 409)
       assert archived["code"] == "provider_account_archived"
 
-      {:ok, accounts} =
-        Relay.Repo.in_scope(ctx.scope, fn _status -> Relay.Channels.Store.accounts("email") end)
+      {:ok, accounts} = Relay.Repo.in_scope(ctx.scope, fn _status -> Store.accounts("email") end)
 
       refute Enum.any?(accounts, &(&1["id"] == id))
     end
@@ -189,7 +189,7 @@ defmodule RelayWeb.Api.ChannelManagementTest do
         Relay.Channels.put_sender_identity(ctx.scope, attrs, digest(), TenantFixture.actor())
 
       senders = fn ->
-        Relay.Repo.in_scope(ctx.scope, fn _status -> Relay.Channels.Store.senders([id]) end)
+        Relay.Repo.in_scope(ctx.scope, fn _status -> Store.senders([id]) end)
       end
 
       assert {:ok, [_]} = senders.()

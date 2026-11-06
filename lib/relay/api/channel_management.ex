@@ -157,6 +157,7 @@ defmodule Relay.Api.ChannelManagement do
   def answer(kind, id, status) do
     row = Channels.managed(kind, id)
     secrets = Relay.Secrets.describe(secret_ids(kind, [row]))
+
     location =
       if status == 201, do: [{"location", Map.fetch!(@paths, kind) <> ext(kind, id)}], else: []
 

@@ -93,8 +93,10 @@ just check   # every check CI runs on a pull request
 `just dev` seeds a sample tenant with a recipient, a published `welcome` workflow and a test API client, linked to a local stand-in for Access. Send a first event:
 
 ```sh
+TOKEN=$(mix relay.dev.token)
 curl -X POST http://localhost:4000/v1/events \
-  -H "Authorization: Bearer $(mix relay.dev.token)" \
+  -H "Authorization: DPoP $TOKEN" \
+  -H "DPoP: $(mix relay.dev.proof POST http://localhost:4000/v1/events "$TOKEN")" \
   -H "Idempotency-Key: $(uuidgen)" \
   -H "Content-Type: application/json" \
   -d '{"workflow": "welcome", "to": ["dev-sample-recipient"], "data": {"first_name": "Ayşe"}}'
@@ -131,6 +133,14 @@ Every command accepts `--json` and then prints one JSON object with an `exit_cod
 A client needs only its Access issuer. The Access Suiss discovery document (`<access issuer>/.well-known/suiss-configuration`) names the Relay installation in `suiss_relay`, and Relay's own discovery document is at `<suiss_relay>/.well-known/relay-configuration`. Its `issuer` is byte for byte the `suiss_relay` value (no trailing slash) and is the `source` of every event Relay sends.
 
 The document carries the API base, the data region, the bound Access issuer, the supported dated contract versions, the address of the product event key set (`jwks_uri`) and the capabilities served by this installation as `urn:suiss:relay:<capability>:<version>` URNs, each with its endpoint. A capability is listed only while all of its operations are served. Both documents are public and may be cached for five minutes.
+
+## Authentication
+
+Relay has no API keys of its own. A backend calls the server API with a short-lived Access access token of an API client registered in Access, obtained with the OAuth 2.0 client credentials grant and `resource` set to Relay's Access `client_id` (`access_client_id` in Relay's discovery document). The token is sender-constrained with DPoP (RFC 9449): every request carries it as `Authorization: DPoP <token>` together with a `DPoP` header holding a fresh proof signed by the token's key, naming the request's method and URL and the token's hash. A proof is accepted once; there is no bearer token.
+
+The token only says who is calling. The tenant, the environment (`test` or `live`), an optional subtenant and the scopes come from Relay's record of the API client. Enterprise tenants can additionally bind tokens to a client certificate (RFC 8705).
+
+Apps never send Access tokens to the inbox, preference or realtime endpoints. They exchange the signed-in user's DPoP-bound Access token, with a proof, for a short-lived Relay subscriber token at `POST /v1/subscriber/token` (RFC 8693) and use that as a Bearer token.
 
 ## Channels without provider accounts
 

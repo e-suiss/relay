@@ -73,11 +73,14 @@ defmodule Relay.CLITest do
   defp pick(conn, _key, fun) when is_function(fun, 1), do: fun.(conn)
   defp pick(_conn, _key, response), do: response
 
+  defp fallback(%{method: "GET", request_path: "/.well-known/relay-configuration"} = conn),
+    do: reply(conn, {200, %{"issuer" => @api, "access_client_id" => "app_relay"}})
+
   defp fallback(%{method: "GET", request_path: "/.well-known/openid-configuration"} = conn),
     do: reply(conn, {200, %{"issuer" => @issuer, "token_endpoint" => @issuer <> "/token"}})
 
   defp fallback(%{method: "POST", request_path: "/token"} = conn),
-    do: reply(conn, {200, %{"access_token" => "opaque-token", "token_type" => "Bearer"}})
+    do: reply(conn, {200, %{"access_token" => "opaque-token", "token_type" => "DPoP"}})
 
   defp fallback(conn), do: reply(conn, {418, %{"unexpected" => conn.request_path}})
 
@@ -110,8 +113,11 @@ defmodule Relay.CLITest do
     )
   end
 
-  defp jwt(claims),
-    do: "eyJhbGciOiJub25lIn0." <> Base.url_encode64(Jason.encode!(claims), padding: false) <> ".x"
+  defp jws(token) do
+    [header, claims, _signature] = String.split(token, ".")
+    decode = &(&1 |> Base.url_decode64!(padding: false) |> Jason.decode!())
+    {decode.(header), decode.(claims)}
+  end
 
   defp requests do
     receive do
@@ -121,7 +127,8 @@ defmodule Relay.CLITest do
     end
   end
 
-  defp api_requests, do: Enum.filter(requests(), &(&1.host == "relay.test"))
+  defp api_requests,
+    do: Enum.filter(requests(), &(&1.host == "relay.test" and &1.path =~ ~r/\A\/v1\//))
 
   defp client(conn) do
     ["Basic " <> basic] = Plug.Conn.get_req_header(conn, "authorization")
@@ -212,7 +219,7 @@ defmodule Relay.CLITest do
   end
 
   describe "access" do
-    test "X-33, E-78: the token endpoint is discovered; one token serves the whole run" do
+    test "X-33, E-78, E-93: the token endpoint and Relay's client_id are discovered; one token serves the whole run" do
       routes = %{
         {"GET", "/v1/kill_switches"} => [
           {200, list([kill_switch("ksw_1")], "cur_2")},
@@ -223,22 +230,47 @@ defmodule Relay.CLITest do
       assert {0, out, ""} = cli(["kill-switch", "list"], routes)
       assert out =~ "ksw_1" and out =~ "ksw_2"
 
-      [discovery, token, first, second] = requests()
+      [relay, discovery, token, first, second] = requests()
+      assert relay.path == "/.well-known/relay-configuration"
       assert discovery.path == "/.well-known/openid-configuration"
-      assert token.body == %{"grant_type" => "client_credentials"}
+      assert token.body == %{"grant_type" => "client_credentials", "resource" => "app_relay"}
       assert token.headers["authorization"] == "Basic " <> Base.encode64("cli_test:" <> @secret)
-      assert first.headers["authorization"] == "Bearer opaque-token"
-      assert second.headers["authorization"] == "Bearer opaque-token"
+      assert first.headers["authorization"] == "DPoP opaque-token"
+      assert second.headers["authorization"] == "DPoP opaque-token"
       assert second.query["starting_after"] == "cur_2"
+
+      {header, claims} = jws(token.headers["dpop"])
+      assert %{"typ" => "dpop+jwt", "alg" => "Ed25519", "jwk" => %{"kty" => "OKP"}} = header
+      assert %{"htm" => "POST", "htu" => @issuer <> "/token"} = claims
+      refute Map.has_key?(claims, "ath")
+
+      {^header, claims} = jws(first.headers["dpop"])
+      ath = Base.url_encode64(:crypto.hash(:sha256, "opaque-token"), padding: false)
+      assert %{"htm" => "GET", "htu" => @api <> "/v1/kill_switches", "ath" => ^ath} = claims
     end
 
-    test "X-33, API-42: a token of the other environment is refused before any API call" do
-      body = %{"access_token" => jwt(%{"suiss_environment" => "live"}), "token_type" => "Bearer"}
-      routes = %{{"POST", "/token"} => {200, body}}
+    test "E-93: a use_dpop_nonce answer is sent again once with the nonce" do
+      nonce = [{"dpop-nonce", "n-1"}]
+      ask = {400, nonce, %{"error" => "use_dpop_nonce"}}
+      issued = {200, %{"access_token" => "opaque-token", "token_type" => "DPoP"}}
+
+      routes = %{
+        {"POST", "/token"} => [ask, issued],
+        {"GET", "/v1/kill_switches"} => {200, list([])}
+      }
+
+      assert {0, _out, ""} = cli(["kill-switch", "list"], routes)
+      [first, second] = Enum.filter(requests(), &(&1.path == "/token"))
+      refute Map.has_key?(elem(jws(first.headers["dpop"]), 1), "nonce")
+      assert elem(jws(second.headers["dpop"]), 1)["nonce"] == "n-1"
+    end
+
+    test "E-93: a token that is not DPoP-bound is refused before any API call" do
+      routes = %{{"POST", "/token"} => {200, %{"access_token" => "t", "token_type" => "Bearer"}}}
 
       assert {3, out, ""} = cli(["kill-switch", "list", "--json"], routes)
 
-      assert %{"exit_code" => 3, "error" => %{"code" => "credential_environment_mismatch"}} =
+      assert %{"exit_code" => 3, "error" => %{"code" => "access_token_refused"}} =
                Jason.decode!(out)
 
       assert api_requests() == []
@@ -567,12 +599,12 @@ defmodule Relay.CLITest do
 
       by_client = fn conn ->
         case Plug.Conn.get_req_header(conn, "authorization") do
-          ["Bearer test-token"] -> {200, %{"key" => "welcome", "published_version" => 2}}
-          ["Bearer live-token"] -> {404, problem(404, "workflow_not_found")}
+          ["DPoP test-token"] -> {200, %{"key" => "welcome", "published_version" => 2}}
+          ["DPoP live-token"] -> {404, problem(404, "workflow_not_found")}
         end
       end
 
-      issue = fn conn -> {200, %{"access_token" => client(conn), "token_type" => "Bearer"}} end
+      issue = fn conn -> {200, %{"access_token" => client(conn), "token_type" => "DPoP"}} end
 
       routes = %{
         {"POST", "/token"} => issue,
@@ -603,11 +635,11 @@ defmodule Relay.CLITest do
             do: {request.method, request.path, request.headers["authorization"]}
 
       assert calls == [
-               {"GET", "/v1/workflows/welcome", "Bearer test-token"},
-               {"GET", "/v1/workflows/welcome/versions/2", "Bearer test-token"},
-               {"GET", "/v1/workflows/welcome", "Bearer live-token"},
-               {"POST", "/v1/workflows", "Bearer live-token"},
-               {"POST", "/v1/workflows/welcome/publish", "Bearer live-token"}
+               {"GET", "/v1/workflows/welcome", "DPoP test-token"},
+               {"GET", "/v1/workflows/welcome/versions/2", "DPoP test-token"},
+               {"GET", "/v1/workflows/welcome", "DPoP live-token"},
+               {"POST", "/v1/workflows", "DPoP live-token"},
+               {"POST", "/v1/workflows/welcome/publish", "DPoP live-token"}
              ]
     end
   end

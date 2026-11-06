@@ -90,7 +90,7 @@ defmodule RelayWeb.Api.DevicesTest do
       "scope" => scopes
     }
 
-    headers = [{"content-type", "application/x-www-form-urlencoded"}]
+    headers = FakeAccess.exchange_headers(token)
 
     conn =
       :post

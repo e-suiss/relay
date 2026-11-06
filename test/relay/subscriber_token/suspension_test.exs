@@ -26,7 +26,7 @@ defmodule Relay.SubscriberToken.SuspensionTest do
       "subject_token_type" => @subject_type
     }
 
-    headers = [{"content-type", "application/x-www-form-urlencoded"}]
+    headers = FakeAccess.exchange_headers(token)
 
     :post
     |> Api.conn("/v1/subscriber/token", URI.encode_query(form), headers)

@@ -17,6 +17,8 @@ defmodule RelayWeb.Api.Response do
   @unavailable [DBConnection.ConnectionError, DBConnection.OwnershipError, Postgrex.Error]
   @token_exchange "exchangeSubscriberToken"
   @no_oauth_error [:rate_limited, :internal_error, :service_unavailable, :upstream_timeout]
+  @invalid_token ["auth_invalid_token", "auth_expired_token"]
+  @dpop_algs Enum.join(Relay.Access.dpop_algorithms(), " ")
 
   # API-8
   # sobelow_skip ["XSS.SendResp"]
@@ -46,7 +48,7 @@ defmodule RelayWeb.Api.Response do
   @spec problem(Plug.Conn.t(), Relay.Error.t()) :: Plug.Conn.t()
   def problem(conn, %Relay.Error{} = error) do
     {status, retry, body} = Problem.build(oauth(conn, ErrorMap.to_api(error)), context(conn))
-    headers = if status == 401, do: [{"www-authenticate", challenge(body)}], else: []
+    headers = if status == 401, do: [{"www-authenticate", challenge(conn, error, body)}], else: []
 
     conn
     |> merge_resp_headers([{"content-type", @problem} | headers] ++ retry)
@@ -147,7 +149,24 @@ defmodule RelayWeb.Api.Response do
   @spec base_url() :: String.t()
   def base_url, do: RelayWeb.Endpoint.url()
 
-  defp challenge(%{"code" => code}) when code in ["auth_invalid_token", "auth_expired_token"],
+  # E-93
+  defp challenge(%{assigns: %{operation: %{family: :server}}}, error, body),
+    do: dpop_challenge(error, body)
+
+  defp challenge(%{assigns: %{operation: %{id: @token_exchange}}}, error, body),
+    do: dpop_challenge(error, body)
+
+  defp challenge(_conn, _error, body), do: challenge(body)
+
+  defp dpop_challenge(%Relay.Error{details: %{challenge: "invalid_dpop_proof"}}, _body),
+    do: ~s(DPoP realm="relay", error="invalid_dpop_proof", algs="#{@dpop_algs}")
+
+  defp dpop_challenge(_error, %{"code" => code}) when code in @invalid_token,
+    do: ~s(DPoP realm="relay", error="invalid_token", algs="#{@dpop_algs}")
+
+  defp dpop_challenge(_error, _body), do: ~s(DPoP realm="relay", algs="#{@dpop_algs}")
+
+  defp challenge(%{"code" => code}) when code in @invalid_token,
     do: ~s(Bearer realm="relay", error="invalid_token")
 
   # TN-21

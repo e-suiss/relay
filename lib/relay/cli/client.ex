@@ -1,6 +1,6 @@
 defmodule Relay.CLI.Client do
   @moduledoc """
-  Relay API client of the command line tool. Each call carries the Access token of the API client of its environment and, when configured, `Relay-Version`. A `POST`, `PUT`, `PATCH` or `DELETE` carries a fresh `Idempotency-Key`, the same on every retry of that call. Only a problem marked `retryable: true` is retried, at most three times, after its `Retry-After` (or 1, 2 and 4 seconds) with up to 20 % jitter; a call whose token expired is repeated once with a new token. Any other answer that is not 2xx becomes a failure that keeps the problem.
+  Relay API client of the command line tool. Each call carries the DPoP-bound Access token of the API client of its environment as `Authorization: DPoP` with a fresh `DPoP` proof (`Relay.CLI.Token.proof/5`, E-93) and, when configured, `Relay-Version`. A `POST`, `PUT`, `PATCH` or `DELETE` carries a fresh `Idempotency-Key`, the same on every retry of that call. Only a problem marked `retryable: true` is retried, at most three times, after its `Retry-After` (or 1, 2 and 4 seconds) with up to 20 % jitter; a call whose token expired is repeated once with a new token. Any other answer that is not 2xx becomes a failure that keeps the problem.
   """
 
   alias Relay.CLI.Config
@@ -80,9 +80,9 @@ defmodule Relay.CLI.Client do
 
   defp attempt(ctx, environment, request, retries, renewed?) do
     with {:ok, token} <- Token.fetch(ctx, environment) do
-      bearer = {"authorization", "Bearer " <> Relay.Redacted.expose(token)}
+      signed = Keyword.update!(request, :headers, &(dpop(ctx, request, token) ++ &1))
 
-      case HTTP.request(ctx, Keyword.update!(request, :headers, &[bearer | &1])) do
+      case HTTP.request(ctx, signed) do
         {:ok, %{status: status} = response} when status in 200..299 ->
           {:ok, response}
 
@@ -94,6 +94,14 @@ defmodule Relay.CLI.Client do
           {:error, Failure.new(:unavailable, "connection_failed", message)}
       end
     end
+  end
+
+  # E-93
+  defp dpop(ctx, request, token) do
+    exposed = Relay.Redacted.expose(token)
+    method = request |> Keyword.fetch!(:method) |> Atom.to_string() |> String.upcase()
+    proof = Token.proof(ctx, method, Keyword.fetch!(request, :url), exposed)
+    [{"authorization", "DPoP " <> exposed}, {"dpop", proof}]
   end
 
   defp again(ctx, environment, request, response, retries, renewed?) do

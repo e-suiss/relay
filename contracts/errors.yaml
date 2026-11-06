@@ -57,7 +57,7 @@ codes:
       max_seconds: null
     extensions: []
     choice: false
-    description: The request carries no Authorization header. Send an Access access token as a Bearer token.
+    description: "The request carries no Authorization header, or a server API request carries no DPoP proof. Send an Access access token as Authorization: DPoP with a DPoP proof header; subscriber operations take a Relay subscriber token as a Bearer token."
     type: "{base_url}/v1/errors/auth_missing_credentials"
   - code: auth_malformed_credentials
     family: auth
@@ -70,7 +70,7 @@ codes:
       max_seconds: null
     extensions: []
     choice: false
-    description: The Authorization header is not a well-formed Bearer token.
+    description: "The Authorization header is not a well-formed DPoP token (Bearer for subscriber operations), or the request carries more than one DPoP proof."
     type: "{base_url}/v1/errors/auth_malformed_credentials"
   - code: auth_invalid_token
     family: auth
@@ -83,7 +83,7 @@ codes:
       max_seconds: null
     extensions: []
     choice: false
-    description: The token failed signature, issuer, audience, not-before or algorithm checks, or was issued for another API family.
+    description: "The token failed signature, type, issuer, audience, not-before or algorithm checks, was issued for another API family, or its DPoP proof does not fit the token's key, the request or the clock, or was used before."
     type: "{base_url}/v1/errors/auth_invalid_token"
   - code: auth_revoked_client
     family: auth

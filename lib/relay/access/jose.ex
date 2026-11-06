@@ -41,6 +41,18 @@ defmodule Relay.Access.Jose do
   defp usable(jwks, keys),
     do: {:ok, keys, %{"keys" => Enum.map(jwks, &Map.take(&1, @public))}}
 
+  # E-93
+  @doc "Reads one public JSON Web Key, such as the key of a DPoP proof; a key with private members or one that does not fit an allowed algorithm is refused."
+  @spec public_key(term()) :: {:ok, key()} | :error
+  def public_key(jwk) when is_map(jwk) do
+    case {private?(jwk), key(jwk)} do
+      {false, [key]} -> {:ok, key}
+      _other -> :error
+    end
+  end
+
+  def public_key(_jwk), do: :error
+
   defp private?(jwk) when is_map(jwk), do: Enum.any?(@private, &Map.has_key?(jwk, &1))
   defp private?(_jwk), do: true
 

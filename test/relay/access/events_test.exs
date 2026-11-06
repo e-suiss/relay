@@ -6,7 +6,6 @@ defmodule Relay.Access.EventsTest do
   alias RelayTest.Api
   alias RelayTest.FakeAccess
   alias RelayTest.TenantFixture
-  alias RelayWeb.Auth.Access
 
   defmodule Handler do
     @moduledoc false
@@ -50,8 +49,7 @@ defmodule Relay.Access.EventsTest do
   defp subtenant(scope, organization),
     do: ClientStore.in_scope(scope, fn _status -> ClientStore.subtenant(organization) end)
 
-  defp verify(token),
-    do: Relay.Access.verify_server_token(token, audience: Access.audience(:server))
+  defp verify(token), do: Relay.Access.verify_server_token(token, FakeAccess.presented(token))
 
   defp jobs do
     sql = "SELECT count(*) FROM relay_queue.oban_jobs WHERE worker = 'Relay.Access.EventConsumer'"

@@ -52,11 +52,10 @@ defmodule RelayWeb.Api.SubscribersTest do
       path = "/v1/subscribers/" <> id
 
       patch = fn headers ->
-        RelayTest.Api.conn(:patch, path, Jason.encode!(%{"locale" => "en-GB"}), [
-          {"content-type", "application/merge-patch+json"},
-          {"authorization", "Bearer " <> ctx.token},
-          F.key() | headers
-        ])
+        auth = RelayTest.Api.auth(ctx.token, :patch, path)
+        headers = [{"content-type", "application/merge-patch+json"}, F.key() | auth] ++ headers
+
+        RelayTest.Api.conn(:patch, path, Jason.encode!(%{"locale" => "en-GB"}), headers)
         |> RelayTest.Api.call(RelayWeb.Router)
       end
 

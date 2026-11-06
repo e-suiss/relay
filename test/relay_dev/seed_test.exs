@@ -5,7 +5,6 @@ defmodule RelayDev.SeedTest do
   alias Relay.Access.Link
   alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F
-  alias RelayWeb.Auth.Access
 
   @scopes ~w(config kill_switch publish read subscribers)
 
@@ -39,10 +38,11 @@ defmodule RelayDev.SeedTest do
          ctx do
       assert Relay.Access.link_state() == :ok
 
-      assert {:ok, principal} =
-               Relay.Access.verify_server_token(RelayDev.Seed.token(),
-                 audience: Access.audience(:server)
-               )
+      token = RelayDev.Seed.token()
+      url = "https://relay.test/v1/virtual_clock"
+      proof = [proof: RelayDev.Access.proof("GET", url, token), method: "GET", url: url]
+
+      assert {:ok, principal} = Relay.Access.verify_server_token(token, proof)
 
       assert principal.scope.tenant_id == ctx.plane.tenant_id
       assert principal.scope.environment == :test

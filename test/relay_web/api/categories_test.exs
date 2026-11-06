@@ -21,12 +21,12 @@ defmodule RelayWeb.Api.CategoriesTest do
     do: Map.merge(%{"key" => key, "name" => "Name of " <> key, "message_class" => class}, extra)
 
   defp patch(token, key, body, headers) do
+    path = "/v1/categories/" <> key
+    auth = Api.auth(token, :patch, path)
+    headers = [{"content-type", "application/merge-patch+json"}, F.key() | auth] ++ headers
+
     :patch
-    |> Api.conn("/v1/categories/" <> key, Jason.encode!(body), [
-      {"content-type", "application/merge-patch+json"},
-      {"authorization", "Bearer " <> token},
-      F.key() | headers
-    ])
+    |> Api.conn(path, Jason.encode!(body), headers)
     |> Api.call(RelayWeb.Router)
   end
 

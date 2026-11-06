@@ -59,7 +59,7 @@ ETag:
     type: string
   example: "\"7\""
 WWW-Authenticate:
-  description: "Bearer challenge on 401. Step-up challenges use error=\"insufficient_user_authentication\" with acr_values and max_age (RFC 9470)."
+  description: "Challenge on 401: DPoP (RFC 9449) on the server API and the subscriber token exchange, with error=\"invalid_token\" for a refused token, error=\"invalid_dpop_proof\" for a refused proof and the accepted proof algorithms in algs; Bearer on subscriber and operator operations. Step-up challenges use error=\"insufficient_user_authentication\" with acr_values and max_age (RFC 9470)."
   schema:
     type: string
   example: "Bearer error=\"invalid_token\""

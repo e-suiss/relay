@@ -12,13 +12,11 @@ defmodule RelayWeb.Api.ChannelManagementTest do
   end
 
   defp patch(token, path, body, version) do
+    headers = [{"content-type", "application/merge-patch+json"}, {"if-match", ~s("#{version}")}]
+    headers = [F.key() | headers] ++ Api.auth(token, :patch, path)
+
     :patch
-    |> Api.conn(path, Jason.encode!(body), [
-      {"content-type", "application/merge-patch+json"},
-      {"authorization", "Bearer " <> token},
-      {"if-match", ~s("#{version}")},
-      F.key()
-    ])
+    |> Api.conn(path, Jason.encode!(body), headers)
     |> Api.call(RelayWeb.Router)
   end
 

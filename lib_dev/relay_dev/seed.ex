@@ -40,10 +40,10 @@ defmodule RelayDev.Seed do
     end
   end
 
-  @doc "A token of the sample test plane API client, valid for one hour; see `RelayDev.Access.server_token/4` for `audience`."
-  @spec token(String.t() | nil) :: String.t()
-  def token(audience \\ nil),
-    do: RelayDev.Access.server_token(@tenant, @client, @scopes, audience)
+  # E-93
+  @doc "A DPoP-bound token of the sample test plane API client, valid for one hour; `RelayDev.Access.proof/3` makes the proof each request carries with it."
+  @spec token() :: String.t()
+  def token, do: RelayDev.Access.server_token(@tenant, @client, @scopes)
 
   @doc "The body of a sample `POST /v1/events` request to the sample workflow."
   @spec sample_event() :: map()

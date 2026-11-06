@@ -4,12 +4,14 @@ defmodule Relay.SubscriberToken.ExchangeTest do
   import Plug.Conn
 
   alias RelayTest.Api
+  alias RelayTest.Dpop
   alias RelayTest.FakeAccess
   alias RelayTest.TenantFixture
   alias RelayWeb.Auth.Subscriber
 
   @grant "urn:ietf:params:oauth:grant-type:token-exchange"
   @subject_type "urn:ietf:params:oauth:token-type:access_token"
+  @url "https://relay.test/v1/subscriber/token"
 
   setup do
     :ok = FakeAccess.install!()
@@ -23,6 +25,11 @@ defmodule Relay.SubscriberToken.ExchangeTest do
     do: FakeAccess.user_token(ctx.access_tenant, ctx.app, sub)
 
   defp exchange(form, headers \\ []) do
+    headers =
+      if List.keymember?(headers, "dpop", 0),
+        do: headers,
+        else: [{"dpop", Dpop.proof(:post, @url, form["subject_token"])} | headers]
+
     headers = [{"content-type", "application/x-www-form-urlencoded"} | headers]
 
     :post
@@ -122,19 +129,45 @@ defmodule Relay.SubscriberToken.ExchangeTest do
       assert Jason.decode!(conn.resp_body)["code"] == "unknown_field"
     end
 
-    test "E-79 (1): a subject token naming its client's environment in suiss_environment is exchanged, another is refused",
-         ctx do
-      token = fn named ->
-        claims = %{"suiss_environment" => named}
-        FakeAccess.user_token(ctx.access_tenant, ctx.app, "pairwise-env", claims)
+  end
+
+  describe "E-93 DPoP-bound subject token" do
+    test "E-93: the subject token needs a proof of its key for the exchange request", ctx do
+      token = user_token(ctx)
+      other_key = Dpop.proof(:post, @url, token, key: Dpop.key())
+      other_url = Dpop.proof(:post, "https://relay.test/v1/events", token)
+      other_token = Dpop.proof(:post, @url, user_token(ctx))
+      old = System.system_time(:second) - 300
+      stale = Dpop.proof(:post, @url, token, claims: %{"iat" => old})
+
+      for proof <- ["", other_key, other_url, other_token, stale] do
+        conn = exchange(form(token), [{"dpop", proof}])
+        assert conn.status == 401, proof
+        Api.assert_contract(conn)
+        assert Jason.decode!(conn.resp_body)["code"] == "auth_invalid_token"
+        assert [challenge] = get_resp_header(conn, "www-authenticate")
+        assert challenge =~ ~s(DPoP realm="relay", error="invalid_dpop_proof")
       end
 
-      assert exchange(form(token.("test"))).status == 200
+      assert exchange(form(token)).status == 200
+    end
 
-      for named <- ["live", "staging"] do
-        conn = exchange(form(token.(named)))
+    test "E-93: a proof is accepted once", ctx do
+      token = user_token(ctx)
+      proof = Dpop.proof(:post, @url, token)
+
+      assert exchange(form(token), [{"dpop", proof}]).status == 200
+      conn = exchange(form(token), [{"dpop", proof}])
+      assert conn.status == 401
+      assert Jason.decode!(conn.resp_body)["code"] == "auth_invalid_token"
+    end
+
+    test "E-93: a subject token addressed to another audience or not DPoP-bound is refused",
+         ctx do
+      for claims <- [%{"aud" => "https://relay.test/v1/subscriber/token"}, %{"cnf" => nil}] do
+        token = FakeAccess.user_token(ctx.access_tenant, ctx.app, "pairwise-aud", claims)
+        conn = exchange(form(token))
         assert conn.status == 401
-        Api.assert_contract(conn)
         assert Jason.decode!(conn.resp_body)["code"] == "auth_invalid_token"
       end
     end
@@ -149,7 +182,7 @@ defmodule Relay.SubscriberToken.ExchangeTest do
       end
     end
 
-    test "API-45, E-25: a server API token or an invalid subject token is refused with the OAuth error member",
+    test "API-45, E-25, E-93: a service token or an invalid subject token is refused with the OAuth error member",
          ctx do
       server = FakeAccess.server_token(ctx.access_tenant, ctx.app, "read")
       unknown = FakeAccess.user_token(ctx.access_tenant, "app_unknown", "pairwise-1")

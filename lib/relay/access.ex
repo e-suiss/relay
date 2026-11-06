@@ -2,10 +2,10 @@ defmodule Relay.Access do
   @moduledoc """
   The link to Access, Suiss's identity and authority product (MD-1, E-1 … E-5, E-40, E-78). Relay always runs with Access and is never an authority source. The link is configured with the Access `issuer` and the `client_id` of Relay's own Access client registration (`config :relay, Relay.Access, issuer: "https://…", client_id: "…"`); endpoints, keys and capabilities come from discovery (`Relay.Access.Link`). Every subscriber's pairwise `sub` is in the sector of that client (E-90). Other contexts use only the functions of this module.
 
-  * Server API credentials are Access client credentials tokens (API-41, API-48, API-71): `verify_server_token/2` checks them on every request and maps the API client trace to its tenant, environment, sub-tenant and API-75 scopes.
+  * Server API credentials are DPoP-bound Access access tokens addressed to Relay's `client_id` (API-41, API-48, API-71, E-93): `verify_server_token/2` checks them and their proof on every request and maps the API client trace to its tenant, environment, sub-tenant and API-75 scopes.
   * An ingest connector acts as an API client trace of its configuration (`connector_principal/2`, T-41), checked like a server token.
   * API client traces, tenant and sub-tenant mappings follow Access lifecycle events (`accept_event/1`, `process_event/1`).
-  * Subscriber tokens come only from the RFC 8693 exchange (`exchange_subscriber_token/2`) and are checked with `verify_subscriber_token/2`; an Access token is never a subscriber credential (E-25).
+  * Subscriber tokens come only from the RFC 8693 exchange (`exchange_subscriber_token/3`) and are checked with `verify_subscriber_token/2`; an Access token is never a subscriber credential (E-25).
   * Platform tenants (`message_class/2`, `dedup_key/2`) and sub-tenant selection (`select_subtenant/3`).
   """
 
@@ -13,6 +13,7 @@ defmodule Relay.Access do
     top_level?: true,
     deps: [
       Relay,
+      Relay.Datasets,
       Relay.Platform,
       Relay.Platform.Leadership,
       Relay.Tenancy,
@@ -22,6 +23,7 @@ defmodule Relay.Access do
 
   alias Relay.Access.Clients
   alias Relay.Access.ClientStore
+  alias Relay.Access.Dpop
   alias Relay.Access.Events
   alias Relay.Access.Link
   alias Relay.Access.PlatformTenant
@@ -32,6 +34,7 @@ defmodule Relay.Access do
   alias Relay.Scope
 
   @scopes ~w(publish read subscribers config kill_switch)
+  @access_typ "at+jwt"
   @client_cap Relay.Limits.fetch!(["api_clients_per_environment"])
   @unused_days Relay.Limits.fetch!(["unused_api_client_warning_days"])
 
@@ -79,7 +82,6 @@ defmodule Relay.Access do
   def refresh(opts \\ []), do: Link.refresh(opts)
 
   # API-41
-  # API-42
   # API-43
   # API-44
   # API-47
@@ -87,19 +89,17 @@ defmodule Relay.Access do
   # API-71
   # API-75
   # TN-24
+  # E-93
   @doc """
-  Verifies an Access client credentials token for the server API. Options: `:audience` (required, the Relay server API), `:ip` (the client address, for last use) and `:certificate` (the DER client certificate of the connection, for RFC 8705 binding).
+  Verifies an Access access token for the server API (E-93): an `at+jwt` token of the linked issuer whose `aud` is Relay's own Access `client_id` (`client_id/0`), bound by `cnf.jkt` to the key of the request's DPoP proof (`Relay.Access.Dpop`). Options: `:proof` (the `DPoP` header value), `:method` and `:url` (the request's method and external URL, which the proof must name), `:ip` (the client address, for last use) and `:certificate` (the DER client certificate of the connection, for RFC 8705 binding).
 
-  The token names its Access tenant, client and environment in the claims of `Relay.AccessClaims` (`tenant_id`, `client_id`, `suiss_environment`); tenant, environment and sub-tenant come from the API client trace, never from the request, and a token naming another environment than its client's is `auth_invalid_token`. A client whose trace is not known is `auth_invalid_token` as well (E-79 (3)). The granted scopes are the trace's API-75 scopes that the token also carries. A revoked or suspended client is `auth_revoked_client`, a suspended tenant or sub-tenant `auth_tenant_suspended`, a link without keys `service_unavailable`. A token bound to a certificate (`cnf.x5t#S256`) needs that certificate.
+  The token names its Access tenant in `access_tenant` and its Access client in `client_id` (`Relay.AccessClaims`); tenant, environment and sub-tenant come from the API client trace, never from the token or the request. A client whose trace is not known is `auth_invalid_token` (E-79 (3)). The granted scopes are the trace's API-75 scopes, narrowed to those the token carries when it carries a `scope` claim; an Access service token carries none, so the registration alone grants them. A revoked or suspended client is `auth_revoked_client`, a suspended tenant or sub-tenant `auth_tenant_suspended`, a link without keys or an unset `client_id` `service_unavailable`. A token bound to a certificate (`cnf.x5t#S256`) also needs that certificate.
   """
   @spec verify_server_token(String.t(), keyword()) ::
           {:ok, principal()} | {:error, Relay.Error.t()}
   def verify_server_token(token, opts) do
-    audience = Keyword.fetch!(opts, :audience)
-
-    with {:ok, claims} <- verified(token, audience),
+    with {:ok, claims} <- verify_access_token(token, opts),
          {:ok, resolved} <- client(claims),
-         :ok <- same_environment(claims, resolved),
          :ok <- active(resolved),
          {:ok, bound} <- binding(claims, Keyword.get(opts, :certificate)),
          {:ok, scope} <- Scope.new(resolved.tenant_id, resolved.environment) do
@@ -113,6 +113,43 @@ defmodule Relay.Access do
          api_client_id: Relay.ExternalId.encode("cli", resolved.api_client_id),
          certificate_bound: bound
        }}
+    end
+  end
+
+  # API-71
+  # E-93
+  # E-24
+  @doc """
+  Verifies an Access access token addressed to Relay and its DPoP proof, and returns the token's claims: the shared check of the server API and the subscriber token exchange (E-93). Options: `:proof`, `:method` and `:url` as in `verify_server_token/2`. The proof's `jti` is claimed once.
+  """
+  @spec verify_access_token(String.t(), keyword()) :: {:ok, map()} | {:error, Relay.Error.t()}
+  def verify_access_token(token, opts) when is_binary(token) do
+    request = %{
+      method: Keyword.get(opts, :method, ""),
+      url: Keyword.get(opts, :url, ""),
+      now: now()
+    }
+
+    with {:ok, audience} <- audience(),
+         {:ok, claims} <- verified(token, audience),
+         :ok <- Dpop.check(Keyword.get(opts, :proof), token, claims, request),
+         do: {:ok, claims}
+  end
+
+  # E-93
+  @doc "The algorithms a DPoP proof may be signed with, as a `WWW-Authenticate: DPoP` challenge names them."
+  @spec dpop_algorithms() :: [String.t(), ...]
+  defdelegate dpop_algorithms(), to: Dpop, as: :algorithms
+
+  # E-90
+  # E-93
+  defp audience do
+    case client_id() do
+      client_id when is_binary(client_id) and client_id != "" ->
+        {:ok, client_id}
+
+      _unset ->
+        {:error, Relay.Error.new(:service_unavailable, "Relay's Access client_id is not set")}
     end
   end
 
@@ -159,7 +196,7 @@ defmodule Relay.Access do
   defp verify_with_link(token, audience) do
     case Link.current() do
       %{state: state, keys: [_ | _] = keys, issuer: issuer} when state in [:ok, :stale] ->
-        expectation = %{issuer: issuer, audience: audience, now: now()}
+        expectation = %{issuer: issuer, audience: audience, now: now(), typ: @access_typ}
         Token.verify(token, keys, expectation)
 
       _no_keys ->
@@ -167,7 +204,7 @@ defmodule Relay.Access do
     end
   end
 
-  # E-79 (1)
+  # E-93
   # E-79 (3)
   defp client(claims) do
     case {AccessClaims.tenant(claims), AccessClaims.client(claims)} do
@@ -181,14 +218,6 @@ defmodule Relay.Access do
       {:ok, resolved} -> {:ok, resolved}
       :unknown -> invalid("the API client is not registered")
     end
-  end
-
-  # E-79 (1)
-  # API-42
-  defp same_environment(claims, %{environment: environment}) do
-    if AccessClaims.environment?(claims, environment),
-      do: :ok,
-      else: invalid("the token names another environment than its client's")
   end
 
   # API-44
@@ -281,13 +310,16 @@ defmodule Relay.Access do
   defdelegate requeue_deferred(access_tenant_id, reason), to: Events, as: :requeue
 
   # E-24
+  # E-93
   # API-45
   # API-79 (2)
   # TN-25
-  @doc "Exchanges an Access access token for a subscriber token; see `Relay.Access.SubscriberToken.exchange/2`."
-  @spec exchange_subscriber_token(map(), SubscriberToken.audiences()) ::
+  @doc "Exchanges a DPoP-bound Access access token for a subscriber token; see `Relay.Access.SubscriberToken.exchange/3`."
+  @spec exchange_subscriber_token(map(), SubscriberToken.audiences(), keyword()) ::
           {:ok, map()} | {:error, Relay.Error.t()}
-  defdelegate exchange_subscriber_token(params, audiences), to: SubscriberToken, as: :exchange
+  defdelegate exchange_subscriber_token(params, audiences, proof),
+    to: SubscriberToken,
+    as: :exchange
 
   # E-25
   # IN-41

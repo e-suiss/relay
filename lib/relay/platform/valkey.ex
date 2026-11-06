@@ -35,6 +35,21 @@ defmodule Relay.Platform.Valkey do
     end
   end
 
+  # TN-17
+  # E-93
+  @doc "Stores a short-lived value under a tenant key only when the key holds none: `{:ok, true}` when stored, `{:ok, false}` when the key already held a value."
+  @spec put_new(Key.t(), String.t(), adapter()) :: {:ok, boolean()} | {:error, Relay.Error.t()}
+  def put_new(%Key{name: name, ttl_ms: ttl_ms}, value, adapter \\ adapter())
+      when is_binary(value) do
+    :ok = guard()
+
+    case adapter.command(["SET", name, value, "NX", "PX", Integer.to_string(ttl_ms)]) do
+      {:ok, "OK"} -> {:ok, true}
+      {:ok, nil} -> {:ok, false}
+      other -> failure(other)
+    end
+  end
+
   @doc "Reads a short-lived value; a missing or expired entry is `{:ok, nil}`."
   @spec get(Key.t(), adapter()) :: {:ok, String.t() | nil} | {:error, Relay.Error.t()}
   def get(%Key{name: name}, adapter \\ adapter()) do

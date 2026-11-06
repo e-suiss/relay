@@ -34,15 +34,12 @@ defmodule RelayTest.IngestFixture do
 
     conn =
       case body do
-        nil -> Api.conn(method, path, nil, auth(token) ++ headers)
+        nil -> Api.conn(method, path, nil, Api.auth(token, method, path) ++ headers)
         body -> Api.json(method, path, token, body, headers)
       end
 
     Api.call(conn, RelayWeb.Router)
   end
-
-  defp auth(nil), do: []
-  defp auth(token), do: [{"authorization", "Bearer " <> token}]
 
   @doc "Decodes a response body after checking it against the operation's contract."
   @spec body(Plug.Conn.t(), pos_integer()) :: map()

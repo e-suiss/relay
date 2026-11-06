@@ -326,6 +326,15 @@ defmodule Relay.Platform do
   end
 
   # TN-17
+  # E-93
+  @doc "Stores a short-lived value of a scope like `put_short_lived/4`, but only when its key holds none: `{:ok, true}` when stored, `{:ok, false}` when the key already held a value."
+  @spec put_short_lived_new(Relay.Scope.t(), [String.t(), ...], String.t(), pos_integer()) ::
+          {:ok, boolean()} | {:error, Relay.Error.t()}
+  def put_short_lived_new(%Relay.Scope{} = scope, segments, value, ttl_ms) do
+    with {:ok, key} <- short_lived_key(scope, segments, ttl_ms), do: Valkey.put_new(key, value)
+  end
+
+  # TN-17
   @doc "Reads a short-lived value of a scope; a missing or expired value is `{:ok, nil}`."
   @spec get_short_lived(Relay.Scope.t(), [String.t(), ...]) ::
           {:ok, String.t() | nil} | {:error, Relay.Error.t()}

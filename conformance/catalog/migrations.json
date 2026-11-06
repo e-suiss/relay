@@ -129,6 +129,9 @@
   {"file": "20261125000200_validate_provider_account_archived_state.exs", "sha256": "9872a9a3184d8f195b06a64f78b1fc70245192fb5d84cfb9352b75e9ce819cde"},
   {"file": "20261126000000_add_event_interruption_and_links.exs", "sha256": "3e548859974b7f0a6e8988d7f609af07ab63261b04e2660eb0938de90dd2e4dc"},
   {"file": "20261126500000_update_email_reputation_schema_for_min_volume.exs", "sha256": "5a22e602c037088c7a511dd757383b6dd134e14db3e6a1d719269058b58b9dfd"},
+  {"file": "20261127100000_add_attempt_usage_dimensions.exs", "sha256": "c6e427f2c9fc14ca7914f683f12771384478cdd26ecb2d8e15e76558072d8d80"},
+  {"file": "20261127100100_create_attempt_meter_function.exs", "sha256": "e10526c47adbdecb91e96831623f41a6ea994981ef894a5685f9634d98f786af"},
+  {"file": "20261127100200_validate_usage_dimension_checks.exs", "sha256": "0ac49aaf20f7568539f344be46e0ad33c7d6ebcc1cc77935aedb21d570056cf7"},
   {"file": "20261127200000_seal_event_payload_overrides.exs", "sha256": "b005666cdf99a80279e478599fc5230f42b1b03972652b7d4829425c80108f56"},
   {"file": "20261128000100_create_provider_settings_check_scopes.exs", "sha256": "aacd345a4a1c5cbfb870aeba84687d5561688f4c215250dfd638761c3661c659"}
 ]

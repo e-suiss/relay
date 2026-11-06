@@ -29,7 +29,7 @@ defmodule Relay.TenantWorker do
   end
 
   # T-45
-  @doc "Returns the tenant's worker for `key`, starting `module` with `opts` if none runs; `opts` must carry `:idle_ms`."
+  @doc "Returns the tenant's worker for `key`, starting `module` with `opts` if none runs or the registered one has already exited; `opts` must carry `:idle_ms`."
   @spec ensure(Relay.Id.t(), key(), {module(), keyword()}) :: {:ok, pid()} | {:error, term()}
   def ensure(tenant_id, key, {module, opts}) when is_atom(module) and is_list(opts) do
     idle_ms = Keyword.fetch!(opts, :idle_ms)
@@ -37,9 +37,11 @@ defmodule Relay.TenantWorker do
     unless is_integer(idle_ms) and idle_ms > 0,
       do: raise(ArgumentError, "idle_ms must be a positive integer")
 
-    case whereis(tenant_id, key) do
-      pid when is_pid(pid) -> {:ok, pid}
-      nil -> start(tenant_id, key, module, opts)
+    with pid when is_pid(pid) <- whereis(tenant_id, key),
+         true <- Process.alive?(pid) do
+      {:ok, pid}
+    else
+      _absent -> start(tenant_id, key, module, opts)
     end
   end
 

@@ -189,6 +189,13 @@ SubscriberId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/ExternalId"
+MessagingChannel:
+  name: channel
+  in: path
+  description: The messaging channel.
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/MessagingChannel"
 WorkflowKey:
   name: workflow_key
   in: path

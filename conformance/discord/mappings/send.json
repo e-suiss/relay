@@ -1,0 +1,14 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/api/v10/channels/[0-9]+/messages"
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "id": "100000000000000001",
+      "channel_id": "100000000000000000"
+    }
+  }
+}

@@ -276,6 +276,28 @@ impl Hsm {
         Ok(())
     }
 
+    /// Stores `value` as a private, unmodifiable token data object labelled `label`, which `read_secret` reads back. A label already in use is refused with `Exists`.
+    pub fn store_secret(&self, label: &[u8], value: &[u8]) -> Result<(), Failure> {
+        let taken = self.session.find_objects(&[
+            Attribute::Class(ObjectClass::DATA),
+            Attribute::Label(label.to_vec()),
+        ])?;
+        if !taken.is_empty() {
+            return Err(Failure::new(Status::Exists, "secret label already exists"));
+        }
+        let template = [
+            Attribute::Class(ObjectClass::DATA),
+            Attribute::Token(true),
+            Attribute::Private(true),
+            Attribute::Modifiable(false),
+            Attribute::Label(label.to_vec()),
+            Attribute::Value(value.to_vec()),
+        ];
+        let session = self.context.open_rw_session(self.slot)?;
+        session.create_object(&template)?;
+        Ok(())
+    }
+
     fn find(
         &self,
         class: ObjectClass,

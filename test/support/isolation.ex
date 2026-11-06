@@ -5,7 +5,7 @@ defmodule RelayTest.Isolation do
 
   use Boundary,
     top_level?: true,
-    deps: [Relay, Relay.Api, RelayTest.Api, RelayTest.IngestFixture],
+    deps: [Relay, Relay.Api, Relay.Channels, RelayTest.Api, RelayTest.IngestFixture],
     exports: []
 
   alias Relay.Api.Contract
@@ -48,7 +48,9 @@ defmodule RelayTest.Isolation do
     {"publishPartial", %{}},
     {"replacePartialDraft",
      %{"definition" => %{"default_locale" => "tr", "bodies" => %{"tr" => "Merhaba"}}}},
-    {"previewWorkflow", %{}}
+    {"previewWorkflow", %{}},
+    {"replaceSubscriberMessagingTarget",
+     %{"provider_account_id" => "pva_01j9zq3k4m5n6p7q8r9s0t1v2w", "conversation" => "U1"}}
   ]
   @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
   @sms %{
@@ -92,7 +94,8 @@ defmodule RelayTest.Isolation do
       "device_id" => &device!/1,
       "template_key" => &template!/1,
       "layout_key" => &asset!(&1, "layouts"),
-      "partial_key" => &asset!(&1, "partials")
+      "partial_key" => &asset!(&1, "partials"),
+      "channel" => &messaging_target!/1
     }
   end
 
@@ -269,6 +272,34 @@ defmodule RelayTest.Isolation do
 
     path = "/v1/subscribers/#{subscriber}/devices"
     F.body(F.request(:post, path, owner(scope), body), 201)["id"]
+  end
+
+  @doc "Puts a Slack conversation in `scope` for the subscriber `subscriber!/1` created last in the scope (a new one when there is none), on a new Slack provider account, and returns the channel."
+  @spec messaging_target!(Relay.Scope.t()) :: String.t()
+  def messaging_target!(scope) do
+    key = {__MODULE__, :subscriber, scope.tenant_id, scope.environment}
+    subscriber = Process.get(key) || subscriber!(scope)
+    id = Relay.Id.generate()
+
+    account = %{
+      id: id,
+      channel: "slack",
+      provider: "slack",
+      ownership: "shared",
+      role: "primary",
+      priority: 0,
+      processing_countries: ["US"],
+      transfer_basis: "adequacy"
+    }
+
+    {:ok, actor} = Relay.Actor.new(:system, "relay-test", "relay-test")
+    digest = :crypto.strong_rand_bytes(32)
+    {:ok, {:created, 1}} = Relay.Channels.put_account(scope, account, digest, actor)
+
+    body = %{"provider_account_id" => Relay.ExternalId.encode("pva", id), "conversation" => "U1"}
+    path = "/v1/subscribers/#{subscriber}/messaging_targets/slack"
+    F.body(F.request(:put, path, owner(scope), body), 201)
+    "slack"
   end
 
   @doc "Creates a CloudEvents type mapping in `scope` and returns its identifier."

@@ -19,6 +19,7 @@ defmodule Relay.Channels.Live do
       Relay.Datasets,
       Relay.Devices,
       Relay.Ingest,
+      Relay.Messaging,
       Relay.Platform,
       Relay.Secrets,
       Relay.Templates,
@@ -32,6 +33,7 @@ defmodule Relay.Channels.Live do
   alias Relay.Channels.Live.Store
   alias Relay.Scope
 
+  @messaging ~w(slack teams telegram discord)
   @hold_s 300
   @domestic "channels.domestic_only"
   @classes ~w(security transactional action_required operational system social marketing)a
@@ -86,9 +88,15 @@ defmodule Relay.Channels.Live do
       }
 
       case Relay.Channels.routes(scope, delivery["channel"], declarations, policy) do
-        {:ok, {[], _excluded}} -> {:hold, "channel.no_route"}
-        {:ok, {accounts, _excluded}} -> traffic(scope, delivery, declarations, accounts)
-        {:error, reason} -> {:error, reason}
+        {:ok, {[], _excluded}} ->
+          {:hold, "channel.no_route"}
+
+        {:ok, {accounts, _excluded}} ->
+          with {:ok, kept} <- traffic(scope, delivery, declarations, accounts),
+               do: installation(scope, delivery, kept)
+
+        {:error, reason} ->
+          {:error, reason}
       end
     end
   end
@@ -120,6 +128,26 @@ defmodule Relay.Channels.Live do
         {:ok, accounts}
     end
   end
+
+  # CH-62
+  defp installation(scope, %{"channel" => channel} = delivery, accounts)
+       when channel in @messaging do
+    case Relay.Messaging.target(scope, delivery["recipient_id"], channel) do
+      {:ok, %{account_id: account_id}} ->
+        case Enum.filter(accounts, &(&1["id"] == account_id)) do
+          [] -> {:hold, "channel.no_route"}
+          installed -> {:ok, installed}
+        end
+
+      :none ->
+        {:hold, "channel.target_unavailable"}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp installation(_scope, _delivery, accounts), do: {:ok, accounts}
 
   defp settings(scope, delivery) do
     keys = [@domestic | Relay.Ingest.send_mode_keys(category(delivery), delivery["channel"])]
@@ -197,15 +225,27 @@ defmodule Relay.Channels.Live do
   defp read_target(ctx, account) do
     delivery = ctx.delivery
 
-    case delivery["target_kind"] do
+    case target_kind(delivery) do
+      "messaging" -> conversation(ctx.scope, delivery, account)
       "address" -> address(ctx.scope, delivery, account)
       "device" -> device(ctx.scope, delivery, account)
       _endpoint -> fallback(account, :endpoint)
     end
   end
 
+  defp target_kind(%{"channel" => channel}) when channel in @messaging, do: "messaging"
+  defp target_kind(delivery), do: delivery["target_kind"]
+
   defp fallback(%{"provider" => "fake"}, kind), do: {:ok, wrap(""), kind, nil}
   defp fallback(_account, _kind), do: :unavailable
+
+  # CH-62
+  defp conversation(scope, delivery, account) do
+    case Relay.Messaging.target(scope, delivery["recipient_id"], delivery["channel"]) do
+      {:ok, %{id: id, value: value}} -> {:ok, value, :address, id}
+      _unavailable -> fallback(account, :address)
+    end
+  end
 
   defp address(scope, delivery, account) do
     kind = if delivery["channel"] == "email", do: "email", else: "phone"
@@ -410,11 +450,40 @@ defmodule Relay.Channels.Live do
       account: account,
       ttl_s: ttl,
       message_class: ctx.delivery["message_class"],
-      test?: ctx.scope.environment == :test
+      test?: ctx.scope.environment == :test,
+      update: update(ctx, account, target)
     }
 
     Relay.Channels.request(Map.merge(fields, Map.get(ctx, :extra, %{})))
   end
+
+  # CH-23
+  defp update(ctx, %{"provider" => provider}, %{id: <<_::128>> = target_id})
+       when provider in @messaging do
+    case Relay.Messaging.update_ref(ctx.scope, target_id, ctx.delivery["id"]) do
+      {:ok, {_key, ref}} -> ref
+      {:error, _reason} -> nil
+    end
+  end
+
+  defp update(_ctx, _account, _target), do: nil
+
+  # CH-23
+  defp remember(ctx, %{provider: provider, target: %{id: <<_::128>> = id}}, outcome)
+       when provider in @messaging do
+    delivery_id = ctx.delivery["id"]
+
+    case Relay.Messaging.update_ref(ctx.scope, id, delivery_id) do
+      {:ok, {key, _ref}} ->
+        _ = Relay.Messaging.remember(ctx.scope, id, key, outcome.provider_message_id, delivery_id)
+        :ok
+
+      {:error, _reason} ->
+        :ok
+    end
+  end
+
+  defp remember(_ctx, _request, _outcome), do: :ok
 
   # TN-26
   defp credentials(_scope, %{"credential_ref_id" => nil}), do: nil
@@ -539,8 +608,12 @@ defmodule Relay.Channels.Live do
     }
 
     case Relay.Delivery.finish_attempt(ctx.scope, attrs) do
-      {:ok, _result} -> followups(ctx, request, outcome.followups)
-      {:error, reason} -> {:error, reason}
+      {:ok, _result} ->
+        :ok = remember(ctx, request, outcome)
+        followups(ctx, request, outcome.followups)
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -606,7 +679,12 @@ defmodule Relay.Channels.Live do
   defp cleanup(ctx, request, outcome) do
     delivery = ctx.delivery
 
-    case delivery["target_kind"] do
+    case target_kind(delivery) do
+      "messaging" ->
+        recipient = delivery["recipient_id"]
+        rule_id = "channel.address_disabled"
+        _ = Relay.Messaging.disable_target(ctx.scope, recipient, request.channel, rule_id)
+
       "address" ->
         kind = if request.channel == "email", do: "email", else: "phone"
         recipient = delivery["recipient_id"]

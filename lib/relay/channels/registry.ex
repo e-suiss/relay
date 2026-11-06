@@ -15,7 +15,11 @@ defmodule Relay.Channels.Registry do
     Relay.Channels.Ses,
     Relay.Channels.Postmark,
     Relay.Channels.Sendgrid,
-    Relay.Channels.Mailgun
+    Relay.Channels.Mailgun,
+    Relay.Channels.Slack,
+    Relay.Channels.Teams,
+    Relay.Channels.Telegram,
+    Relay.Channels.Discord
   ]
 
   @type missing :: ChannelDeclarations.missing() | :channels

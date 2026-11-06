@@ -256,6 +256,18 @@ Id_dev:
   pattern: "^dev_[0-7][0-9a-hjkmnp-tv-z]{25}$"
   examples:
     - dev_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_pva:
+  type: string
+  description: "Provider account identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^pva_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+Id_chi:
+  type: string
+  description: "Channel identity identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^chi_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+Id_mtg:
+  type: string
+  description: "Messaging conversation identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^mtg_[0-7][0-9a-hjkmnp-tv-z]{25}$"
 RecipientId:
   description: "Relay identifier of a recipient: sub_ for a subscriber, agt_ for an agent."
   oneOf:
@@ -6329,3 +6341,203 @@ DeviceList:
           type: array
           items:
             "$ref": "#/Device"
+MessagingChannel:
+  type: string
+  enum:
+    - slack
+    - teams
+    - telegram
+    - discord
+TeamsConversationReference:
+  type: object
+  description: "The conversation reference a Teams bot captured: the Bot Framework service URL (https, a Bot Framework host) and the conversation ID."
+  required:
+    - service_url
+    - conversation_id
+  properties:
+    service_url:
+      type: string
+      format: uri
+      maxLength: 512
+    conversation_id:
+      type: string
+      minLength: 1
+      maxLength: 512
+  additionalProperties: false
+MessagingTargetPut:
+  type: object
+  required:
+    - provider_account_id
+    - conversation
+  properties:
+    provider_account_id:
+      "$ref": "#/Id_pva"
+    conversation:
+      oneOf:
+        - type: string
+          description: "A Slack user or conversation ID, a Telegram chat ID, or a Discord channel ID (user:<id> for a direct message)."
+          pattern: "^(user:)?[A-Za-z0-9_.:@-]{1,128}$"
+        - "$ref": "#/TeamsConversationReference"
+  additionalProperties: false
+MessagingTarget:
+  type: object
+  description: "Where a subscriber is reached on a messaging channel. The conversation itself is never returned."
+  required:
+    - object
+    - id
+    - subscriber_id
+    - channel
+    - provider_account_id
+    - state
+    - created_at
+    - updated_at
+    - deleted_at
+  properties:
+    object:
+      type: string
+      const: messaging_target
+    id:
+      "$ref": "#/Id_mtg"
+    subscriber_id:
+      "$ref": "#/Id_sub"
+    channel:
+      "$ref": "#/MessagingChannel"
+    provider_account_id:
+      "$ref": "#/Id_pva"
+    state:
+      type: string
+      enum:
+        - active
+        - disabled
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+    deleted_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+MessagingInstallationCreate:
+  type: object
+  required:
+    - channel
+    - channel_identity_id
+  properties:
+    channel:
+      type: string
+      enum:
+        - slack
+        - discord
+        - telegram
+    channel_identity_id:
+      "$ref": "#/Id_chi"
+    redirect_uri:
+      type: string
+      format: uri
+      pattern: "^https://"
+      maxLength: 2048
+  additionalProperties: false
+MessagingInstallation:
+  type: object
+  required:
+    - object
+    - channel
+    - state
+    - authorize_url
+    - expires_at
+    - provider_account_id
+  properties:
+    object:
+      type: string
+      const: messaging_installation
+    channel:
+      "$ref": "#/MessagingChannel"
+    state:
+      type: string
+      enum:
+        - pending
+        - installed
+    authorize_url:
+      oneOf:
+        - type: string
+          format: uri
+        - type: "null"
+    expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    provider_account_id:
+      oneOf:
+        - "$ref": "#/Id_pva"
+        - type: "null"
+  additionalProperties: false
+ChannelAdapter:
+  type: object
+  required:
+    - object
+    - provider
+    - channels
+    - adapter_version
+    - activated
+    - in_use
+    - warning
+    - deprecations
+  properties:
+    object:
+      type: string
+      const: channel_adapter
+    provider:
+      type: string
+      pattern: "^[a-z][a-z0-9_]{1,31}$"
+    channels:
+      type: array
+      items:
+        "$ref": "#/Channel"
+    adapter_version:
+      type: string
+      pattern: "^[0-9]{1,4}\\.[0-9]{1,4}\\.[0-9]{1,4}$"
+    activated:
+      type: boolean
+    in_use:
+      type: boolean
+    warning:
+      type: boolean
+    deprecations:
+      type: array
+      items:
+        type: object
+        required:
+          - api
+          - sunset_on
+        properties:
+          api:
+            type: string
+            maxLength: 128
+          sunset_on:
+            oneOf:
+              - type: string
+                format: date
+              - type: "null"
+        additionalProperties: false
+  additionalProperties: false
+ChannelAdapterList:
+  type: object
+  required:
+    - object
+    - data
+  properties:
+    object:
+      type: string
+      const: list
+    data:
+      type: array
+      items:
+        "$ref": "#/ChannelAdapter"
+  additionalProperties: false
+MessagingInboundRequest:
+  type: object
+  description: "A provider's own request body; Relay reads it only after the signature verified on the raw body."
+MessagingInboundAnswer:
+  type: object
+  description: "What the provider expects in return, or an error name."

@@ -175,6 +175,10 @@ fn run(hsm: &Hsm, op: Op) -> Result<Vec<Zeroizing<Vec<u8>>>, Failure> {
             hsm.generate_key(kind, &label, &id)?;
             vec![]
         }
+        Op::StoreSecret { label, value } => {
+            hsm.store_secret(&label, &value)?;
+            vec![]
+        }
     };
     Ok(fields.into_iter().map(Zeroizing::new).collect())
 }

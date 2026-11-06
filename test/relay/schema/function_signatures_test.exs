@@ -233,7 +233,11 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.provider_account_set_traffic" => ~w(updated unchanged not_found),
     "relay_fn.device_register" =>
       ~w(created updated reassigned recipient_not_found key_not_found),
-    "relay_fn.device_disable" => ~w(disabled already_disabled reregistered not_found)
+    "relay_fn.device_disable" => ~w(disabled already_disabled reregistered not_found),
+    "relay_fn.messaging_target_put" =>
+      ~w(created replaced recipient_not_found account_not_found key_not_found),
+    "relay_fn.messaging_target_disable" => ~w(disabled not_found),
+    "relay_fn.messaging_message_put" => ~w(recorded target_not_found)
   }
 
   defp functions do

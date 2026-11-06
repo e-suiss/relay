@@ -196,6 +196,16 @@ table relay.mailboxes relay_archive SELECT
 table relay.mailboxes relay_maint SELECT
 table relay.mailboxes relay_owner INSERT,SELECT,UPDATE
 table relay.mailboxes relay_report SELECT
+table relay.messaging_messages relay_app SELECT
+table relay.messaging_messages relay_archive SELECT
+table relay.messaging_messages relay_maint SELECT
+table relay.messaging_messages relay_owner INSERT,SELECT,UPDATE
+table relay.messaging_messages relay_report SELECT
+table relay.messaging_targets relay_app SELECT
+table relay.messaging_targets relay_archive SELECT
+table relay.messaging_targets relay_maint SELECT
+table relay.messaging_targets relay_owner INSERT,SELECT,UPDATE
+table relay.messaging_targets relay_report SELECT
 table relay.notifications relay_app SELECT
 table relay.notifications relay_archive SELECT
 table relay.notifications relay_maint SELECT

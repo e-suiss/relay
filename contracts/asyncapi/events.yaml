@@ -38,6 +38,14 @@ channels:
         "$ref": "#/components/messages/webhook.device.unregistered"
       webhook.address.disabled:
         "$ref": "#/components/messages/webhook.address.disabled"
+      webhook.messaging_target.disabled:
+        "$ref": "#/components/messages/webhook.messaging_target.disabled"
+      webhook.messaging_interaction.received:
+        "$ref": "#/components/messages/webhook.messaging_interaction.received"
+      webhook.messaging_installation.completed:
+        "$ref": "#/components/messages/webhook.messaging_installation.completed"
+      webhook.channel_adapter.deprecated:
+        "$ref": "#/components/messages/webhook.channel_adapter.deprecated"
       webhook.webhook.attempt_exhausted:
         "$ref": "#/components/messages/webhook.webhook.attempt_exhausted"
       webhook.webhook_endpoint.disabled:
@@ -356,6 +364,10 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.device.reassigned"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.device.unregistered"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.address.disabled"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.messaging_target.disabled"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.messaging_interaction.received"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.messaging_installation.completed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.channel_adapter.deprecated"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook.attempt_exhausted"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.disabled"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.recovered"
@@ -1373,6 +1385,168 @@ components:
                   additionalProperties: false
       x-relay-surface: webhook
       x-relay-stage: 6
+    webhook.messaging_target.disabled:
+      name: messaging_target.disabled
+      title: messaging_target.disabled
+      summary: "A subscriber's messaging conversation was disabled after a permanent target failure, removed or replaced."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: messaging_target.disabled
+                data:
+                  type: object
+                  required:
+                    - target_id
+                    - recipient_id
+                    - channel
+                  properties:
+                    target_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_mtg"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/MessagingChannel"
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+    webhook.messaging_interaction.received:
+      name: messaging_interaction.received
+      title: messaging_interaction.received
+      summary: "A messaging provider reported an interaction: a message, a card button, a command, a conversation or installation update or a membership change. It is recorded as an event only and is never an approval."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: messaging_interaction.received
+                data:
+                  type: object
+                  required:
+                    - channel
+                    - kind
+                    - provider_event_id
+                  properties:
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/MessagingChannel"
+                    kind:
+                      type: string
+                      enum:
+                        - message
+                        - action
+                        - command
+                        - conversation
+                        - membership
+                    provider_event_id:
+                      type: string
+                      maxLength: 512
+                    provider_account_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_pva"
+                    delivery_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_dlv"
+                    provider_user_id:
+                      type: string
+                      maxLength: 256
+                    conversation_id:
+                      type: string
+                      maxLength: 512
+                    action:
+                      type: string
+                      maxLength: 256
+                    text:
+                      type: string
+                      maxLength: 4000
+                    conversation_reference:
+                      "$ref": "../openapi/components/schemas.yaml#/TeamsConversationReference"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The spec records inbound interactions without naming the event; the name and payload are chosen by the contract (CH-62)."
+    webhook.messaging_installation.completed:
+      name: messaging_installation.completed
+      title: messaging_installation.completed
+      summary: "A channel identity was installed in a workspace; the workspace is a verified provider account of the channel."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: messaging_installation.completed
+                data:
+                  type: object
+                  required:
+                    - channel
+                    - provider_account_id
+                    - workspace_id
+                  properties:
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/MessagingChannel"
+                    provider_account_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_pva"
+                    workspace_id:
+                      type: string
+                      maxLength: 128
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The name and payload are chosen by the contract (CH-62)."
+    webhook.channel_adapter.deprecated:
+      name: channel_adapter.deprecated
+      title: channel_adapter.deprecated
+      summary: "An adapter the tenant uses calls a provider API that the provider deprecated (CH-4)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: channel_adapter.deprecated
+                data:
+                  type: object
+                  required:
+                    - provider
+                    - adapter_version
+                    - api
+                  properties:
+                    provider:
+                      type: string
+                      pattern: "^[a-z][a-z0-9_]{1,31}$"
+                    adapter_version:
+                      type: string
+                      maxLength: 16
+                    api:
+                      type: string
+                      maxLength: 128
+                    sunset_on:
+                      oneOf:
+                        - type: string
+                          format: date
+                        - type: "null"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The spec asks for a tenant warning when a provider API is deprecated (CH-4) but names no event; the name and payload are chosen by the contract."
     webhook.webhook.attempt_exhausted:
       name: webhook.attempt_exhausted
       title: webhook.attempt_exhausted
@@ -5030,6 +5204,7 @@ x-relay-event-names:
   - category.lock_changed
   - category.updated
   - category_subtenant_setting.changed
+  - channel_adapter.deprecated
   - channel_identity.changed
   - consent.updated
   - cross_tenant.queried
@@ -5063,6 +5238,9 @@ x-relay-event-names:
   - mailbox.epoch_bumped
   - mailbox.record_appended
   - mailbox.record_dead_lettered
+  - messaging_installation.completed
+  - messaging_interaction.received
+  - messaging_target.disabled
   - notification.archived
   - notification.cancelled
   - notification.clicked

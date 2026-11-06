@@ -1,0 +1,344 @@
+[
+  {
+    "name": "10003",
+    "raw": {
+      "code": "10003",
+      "status": 404,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 404,
+      "body": {
+        "code": 10003,
+        "message": "Unknown Channel"
+      }
+    }
+  },
+  {
+    "name": "10013",
+    "raw": {
+      "code": "10013",
+      "status": 404,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 404,
+      "body": {
+        "code": 10013,
+        "message": "Unknown User"
+      }
+    }
+  },
+  {
+    "name": "50007",
+    "raw": {
+      "code": "50007",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "code": 50007,
+        "message": "Cannot send messages to this user"
+      }
+    }
+  },
+  {
+    "name": "10008",
+    "raw": {
+      "code": "10008",
+      "status": 404,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 404,
+      "body": {
+        "code": 10008,
+        "message": "Unknown Message"
+      }
+    }
+  },
+  {
+    "name": "50035",
+    "raw": {
+      "code": "50035",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 50035,
+        "message": "Invalid Form Body"
+      }
+    }
+  },
+  {
+    "name": "50006",
+    "raw": {
+      "code": "50006",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "code": 50006,
+        "message": "Cannot send an empty message"
+      }
+    }
+  },
+  {
+    "name": "40005",
+    "raw": {
+      "code": "40005",
+      "status": 413,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 413,
+      "body": {
+        "code": 40005,
+        "message": "Request entity too large"
+      }
+    }
+  },
+  {
+    "name": "50001",
+    "raw": {
+      "code": "50001",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "code": 50001,
+        "message": "Missing Access"
+      }
+    }
+  },
+  {
+    "name": "50013",
+    "raw": {
+      "code": "50013",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "code": 50013,
+        "message": "Missing Permissions"
+      }
+    }
+  },
+  {
+    "name": "20016",
+    "raw": {
+      "code": "20016",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "body": {
+        "code": 20016,
+        "message": "This action cannot be performed due to slowmode rate limit"
+      }
+    }
+  },
+  {
+    "name": "http_401",
+    "raw": {
+      "code": "http_401",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "code": 0,
+        "message": "401: Unauthorized"
+      }
+    }
+  },
+  {
+    "name": "http_429",
+    "raw": {
+      "code": "http_429",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "body": {
+        "message": "You are being rate limited.",
+        "retry_after": 2,
+        "global": false
+      },
+      "headers": {
+        "retry-after": "2"
+      }
+    }
+  },
+  {
+    "name": "http_500",
+    "raw": {
+      "code": "http_500",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_502",
+    "raw": {
+      "code": "http_502",
+      "status": 502,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 502,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_503",
+    "raw": {
+      "code": "http_503",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": {}
+    }
+  },
+  {
+    "name": "http_504",
+    "raw": {
+      "code": "http_504",
+      "status": 504,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 504,
+      "body": {}
+    }
+  },
+  {
+    "name": "credential_missing",
+    "raw": {
+      "code": "credential_missing",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  }
+]

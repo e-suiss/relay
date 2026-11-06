@@ -28,6 +28,7 @@ defmodule Relay.Keys do
   @callback hmac_sha256(label(), Redacted.t()) :: {:ok, <<_::256>>} | {:error, Error.t()}
   @callback read_secret(label()) :: {:ok, Redacted.t()} | {:error, Error.t()}
   @callback generate_key(key_kind(), label(), binary()) :: :ok | {:error, Error.t()}
+  @callback store_secret(label(), Redacted.t()) :: :ok | {:error, Error.t()}
 
   @algs [:es256, :rs256, :ed25519]
   @port_keys [:module, :token, :pin_file]
@@ -130,6 +131,13 @@ defmodule Relay.Keys do
   @doc "Reads the value of the secret data object `label`; the value comes back redacted."
   @spec read_secret(label()) :: {:ok, Redacted.t()} | {:error, Error.t()}
   def read_secret(label) when is_binary(label) and label != "", do: impl().read_secret(label)
+
+  # TN-26
+  @doc "Stores `value` as a private, unmodifiable secret data object `label` inside the token, which `read_secret/1` reads back; a label already in use is refused with `:key_exists`."
+  @spec store_secret(label(), Redacted.t()) :: :ok | {:error, Error.t()}
+  def store_secret(label, value)
+      when is_binary(label) and label != "" and is_struct(value, Redacted),
+      do: impl().store_secret(label, value)
 
   # TN-26
   # TN-27

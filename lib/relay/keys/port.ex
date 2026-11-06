@@ -101,6 +101,12 @@ defmodule Relay.Keys.Port do
   def generate_key(server \\ __MODULE__, kind, label, id),
     do: request(server, {:generate_key, kind, label, id})
 
+  @impl Relay.Keys
+  @doc "Stores a secret data object inside the token through the program. See `Relay.Keys.store_secret/2`."
+  @spec store_secret(GenServer.server(), String.t(), Redacted.t()) :: :ok | {:error, Error.t()}
+  def store_secret(server \\ __MODULE__, label, value),
+    do: request(server, {:store_secret, label, fn -> Redacted.expose(value) end})
+
   defp request(server, request) do
     GenServer.call(server, {:request, request}, :infinity)
   catch
@@ -211,6 +217,7 @@ defmodule Relay.Keys.Port do
 
   defp materialize({:wrap, label, aad, data_key}), do: {:wrap, label, aad, data_key.()}
   defp materialize({:hmac, label, message}), do: {:hmac, label, message.()}
+  defp materialize({:store_secret, label, value}), do: {:store_secret, label, value.()}
   defp materialize(request), do: request
 
   defp restart(state, error) do

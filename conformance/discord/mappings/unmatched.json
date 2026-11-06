@@ -1,0 +1,5 @@
+{
+  "priority": 100,
+  "request": { "method": "ANY", "urlPattern": ".*" },
+  "response": { "status": 501, "jsonBody": { "reason": "NotSimulated" } }
+}

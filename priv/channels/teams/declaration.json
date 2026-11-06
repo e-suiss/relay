@@ -1,0 +1,102 @@
+{
+  "provider": "teams",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "teams"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://learn.microsoft.com/microsoftteams/platform/bots/how-to/conversations/send-proactive-messages (compiled 2026-11-05)",
+    "https://learn.microsoft.com/microsoftteams/platform/bots/build-conversational-capability#status-codes-from-bot-conversational-apis (compiled 2026-11-05)",
+    "https://learn.microsoft.com/microsoftteams/platform/bots/how-to/rate-limit (compiled 2026-11-05)",
+    "https://learn.microsoft.com/azure/bot-service/rest-api/bot-framework-rest-connector-authentication (compiled 2026-11-05)",
+    "https://learn.microsoft.com/microsoftteams/platform/m365-apps/deprecation (compiled 2026-11-05)"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "teams": {
+      "delivery_receipts": false,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": false,
+      "update": true,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": true
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "no_auto_retry",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": null,
+    "status_query": false,
+    "source": "§12.2.4 CH-10; Bot Framework activities have no idempotency key; https://learn.microsoft.com/microsoftteams/platform/bots/how-to/conversations/send-proactive-messages (compiled 2026-11-05)"
+  },
+  "paid_channels": [],
+  "pricing": {
+    "currency": "USD",
+    "units": {
+      "teams": "message"
+    },
+    "prices": [
+      {
+        "channel": "teams",
+        "country": null,
+        "category": null,
+        "unit_price_micros": 0,
+        "tier_from": 0
+      }
+    ]
+  },
+  "limits": {
+    "account": [
+      {
+        "channel": "teams",
+        "unit": "request",
+        "limit": 50,
+        "per_ms": 1000,
+        "source": "per bot per tenant; https://learn.microsoft.com/microsoftteams/platform/bots/how-to/rate-limit (compiled 2026-11-05)"
+      }
+    ],
+    "sender": [],
+    "recipient": [
+      {
+        "channel": "teams",
+        "unit": "message",
+        "limit": 7,
+        "per_ms": 1000,
+        "source": "per bot per conversation; https://learn.microsoft.com/microsoftteams/platform/bots/how-to/rate-limit (compiled 2026-11-05)"
+      },
+      {
+        "channel": "teams",
+        "unit": "message",
+        "limit": 60,
+        "per_ms": 30000,
+        "source": "per bot per conversation; https://learn.microsoft.com/microsoftteams/platform/bots/how-to/rate-limit (compiled 2026-11-05)"
+      },
+      {
+        "channel": "teams",
+        "unit": "message",
+        "limit": 1800,
+        "per_ms": 3600000,
+        "source": "per bot per conversation; https://learn.microsoft.com/microsoftteams/platform/bots/how-to/rate-limit (compiled 2026-11-05)"
+      }
+    ]
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "US"
+    ],
+    "transfer_basis": "adequacy",
+    "scc_notified_on": null,
+    "source": "Bot Framework connector service; EU-US Data Privacy Framework; https://learn.microsoft.com/azure/bot-service/rest-api/bot-framework-rest-connector-authentication (compiled 2026-11-05)"
+  },
+  "inbound_verification": {
+    "method": "jwt",
+    "header": "Authorization",
+    "authenticity": "verified",
+    "source": "https://learn.microsoft.com/azure/bot-service/rest-api/bot-framework-rest-connector-authentication (compiled 2026-11-05)"
+  }
+}

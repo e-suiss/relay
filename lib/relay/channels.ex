@@ -272,6 +272,19 @@ defmodule Relay.Channels do
   defdelegate verify_ecdsa(key, body, headers, opts), to: Inbound, as: :ecdsa
 
   # T-40
+  # CH-62
+  @doc "Verifies Slack's `v0` request signature of a raw body; see `Relay.Channels.Inbound.slack/4`."
+  @spec verify_slack(Inbound.key(), binary(), Inbound.headers(), DateTime.t()) ::
+          :ok | {:error, Inbound.reason()}
+  defdelegate verify_slack(key, body, headers, now), to: Inbound, as: :slack
+
+  # CH-62
+  @doc "Checks a shared secret token in a header; see `Relay.Channels.Inbound.secret_token/3`."
+  @spec verify_secret_token(Inbound.key(), Inbound.headers(), String.t()) ::
+          :ok | {:error, Inbound.signature_reason()}
+  defdelegate verify_secret_token(key, headers, header), to: Inbound, as: :secret_token
+
+  # T-40
   @doc "Verifies a JWT and returns its claims; see `Relay.Channels.Inbound.jwt/3`."
   @spec verify_jwt(Inbound.key(), String.t(), keyword()) ::
           {:ok, map()} | {:error, :bad_signature | :stale_timestamp}

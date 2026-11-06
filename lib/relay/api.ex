@@ -22,7 +22,8 @@ defmodule Relay.Api do
       Relay.TemplateStore,
       Relay.Datasets,
       Relay.Templates.Live,
-      Relay.Channels
+      Relay.Channels,
+      Relay.Messaging
     ],
     exports: [
       Contract,
@@ -44,6 +45,7 @@ defmodule Relay.Api do
       Duration,
       Subscribers,
       Devices,
+      Messaging,
       Workflows,
       Mappings,
       Cancels,

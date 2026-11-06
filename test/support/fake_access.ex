@@ -65,7 +65,7 @@ defmodule RelayTest.FakeAccess do
   end
 
   # E-96
-  @doc "The issuer of one of the two realms (`\"a\"` or `\"b\"`) every known tenant has: a path issuer under the fake issuer."
+  @doc "The issuer of one of the two realms, `a` or `b`, every known tenant has: a path issuer under the fake issuer."
   @spec realm_issuer(String.t(), String.t()) :: String.t()
   def realm_issuer(access_tenant_id, realm) when realm in @realms,
     do: @issuer <> "/realms/" <> access_tenant_id <> "-" <> realm

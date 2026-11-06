@@ -128,7 +128,6 @@ defmodule Relay.SubscriberToken.ExchangeTest do
       Api.assert_contract(conn)
       assert Jason.decode!(conn.resp_body)["code"] == "unknown_field"
     end
-
   end
 
   describe "E-93 DPoP-bound subject token" do

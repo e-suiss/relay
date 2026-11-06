@@ -12,12 +12,10 @@ defmodule Relay.Access.DpopTest do
 
   defp verify(proof, request \\ request()), do: Dpop.verify(proof, @token, Proof.jkt(), request)
 
-  defp refused?(result) do
-    match?(
-      {:error, %Relay.Error{code: :auth_invalid_token, details: %{challenge: "invalid_dpop_proof"}}},
-      result
-    )
-  end
+  defp refused?({:error, %Relay.Error{code: :auth_invalid_token, details: details}}),
+    do: details[:challenge] == "invalid_dpop_proof"
+
+  defp refused?(_result), do: false
 
   describe "E-93 DPoP proofs" do
     test "E-93: a proof of the token's key for the request verifies" do

@@ -2,7 +2,7 @@ defmodule RelayTest.FakeAccess do
   @moduledoc """
   A fake Access for tests, served to the link's HTTP client as a `Req` plug (`config :relay, Relay.Access, http: [plug: {RelayTest.FakeAccess, []}]`); nothing reaches the network. It publishes an OpenID discovery document, a Suiss configuration, an AuthZEN configuration and a key set with one ES256 key (`fake-es256`, tokens) and one Ed25519 key (`fake-ed25519`, Security Event Tokens), issues tokens and pushes events as Security Event Tokens (E-94).
 
-  Every known tenant has two realms, `a` and `b` (`realm_issuer/2`), each with its own discovery document and ES256 key; the tenant snapshot names them, and a tenant whose id starts with `tnt_unknown` is not known (E-96). Relay's own calls are checked as Access checks them (E-98): the token endpoint takes only Relay's `private_key_jwt` client assertion signed by the key-store key `access-dpop`, and it, the tenant snapshot and the AuthZEN evaluation take only a DPoP proof carrying the fake's nonce, answering `use_dpop_nonce` with a `DPoP-Nonce` otherwise; resources take only the DPoP token the fake issued, bound to the proof key. The calling test process receives `{:fake_access, :token, jkt, grant_type}`, `{:fake_access, :nonce, :token | :resource}`, `{:fake_access, :snapshot, tenant}`, `{:fake_access, :realm_keys, slug}` and `{:fake_access, :evaluation, body}`.
+  Every known tenant has two realms, `a` and `b` (`realm_issuer/2`), each with its own discovery document and ES256 key; the tenant snapshot names them, and a tenant whose id starts with `tnt_unknown` is not known (E-96). Relay's own calls are checked as Access checks them (E-98, E-100): the tenant snapshot takes only `Authorization: Bearer` with Relay's RFC 7523 client assertion (ES256 under the key-store key `access-client`, `iss` and `sub` Relay's `client_id`, `aud` the fake issuer, a `jti` and an `exp` at most five minutes ahead); the token endpoint takes only the same assertion as `private_key_jwt`, and it and the AuthZEN evaluation take only a DPoP proof carrying the fake's nonce, answering `use_dpop_nonce` with a `DPoP-Nonce` otherwise; resources take only the DPoP token the fake issued, bound to the proof key. The calling test process receives `{:fake_access, :token, jkt, grant_type}`, `{:fake_access, :nonce, :token | :resource}`, `{:fake_access, :snapshot, tenant}`, `{:fake_access, :realm_keys, slug}` and `{:fake_access, :evaluation, body}`.
 
   Plug options: `region:` overrides `suiss_region` of the Suiss configuration (the installation region by default), `openid:` merges members into the OpenID document, `suiss: :missing` answers the Suiss configuration with 404, `down: true` answers every request with 503, `keys: :private` publishes a key set with private members.
   """
@@ -178,7 +178,7 @@ defmodule RelayTest.FakeAccess do
 
   defp serve(conn, "/access/v1/tenants/" <> rest, _opts) do
     case String.split(rest, "/") do
-      [tenant, "snapshot"] -> authorized(conn, &tenant_snapshot(&1, tenant))
+      [tenant, "snapshot"] -> asserted(conn, &tenant_snapshot(&1, tenant))
       _other -> send_resp(conn, 404, "")
     end
   end
@@ -221,20 +221,36 @@ defmodule RelayTest.FakeAccess do
          "client_assertion" => assertion,
          "client_id" => client_id
        }) do
+    client_id == Relay.Access.client_id() and assertion?(assertion)
+  end
+
+  defp client_assertion?(_form), do: false
+
+  # E-100
+  defp assertion?(assertion) do
     expected = Relay.Access.client_id()
-    {:ok, point} = Relay.Keys.public_key(:es256, "access-dpop")
+    {:ok, point} = Relay.Keys.public_key(:es256, "access-client")
+    latest = System.system_time(:second) + 300
 
     case parts(assertion) do
       {:ok, %{"alg" => "ES256", "typ" => "JWT"}, claims, input, sig} ->
-        named = [client_id, claims["iss"], claims["sub"]] == [expected, expected, expected]
-        named and claims["aud"] == @issuer and es256?(input, sig, point)
+        named = [claims["iss"], claims["sub"], claims["aud"]] == [expected, expected, @issuer]
+        timed = is_integer(claims["exp"]) and claims["exp"] <= latest
+        named and timed and is_binary(claims["jti"]) and es256?(input, sig, point)
 
       _other ->
         false
     end
   end
 
-  defp client_assertion?(_form), do: false
+  defp asserted(conn, answer) do
+    with ["Bearer " <> assertion] <- get_req_header(conn, "authorization"),
+         true <- assertion?(assertion) do
+      answer.(conn)
+    else
+      _refused -> send_resp(conn, 401, "")
+    end
+  end
 
   defp authorized(conn, answer) do
     with ["DPoP " <> token] <- get_req_header(conn, "authorization"),

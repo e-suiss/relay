@@ -158,7 +158,7 @@ Apps never send Access tokens to the inbox, preference or realtime endpoints. Th
 
 Operators sign in to the console through Access OpenID Connect. Command line access to the operator API uses the same kind of DPoP-bound Access token, addressed to Relay's `client_id`; there is no separate operator audience.
 
-Relay's own calls to Access, such as reading a tenant snapshot or asking for an AuthZEN decision, are DPoP-bound too. Relay authenticates its client credentials grant with a `private_key_jwt` client assertion, and both the assertion and every DPoP proof are signed by the P-256 key `access-dpop` in Relay's key store (`deploy/hsm-keys.sh` creates it); register its public key with Relay's Access client. When Access asks for a `DPoP-Nonce`, Relay sends the request once more with it.
+Relay's own calls to Access are signed by its Access client key, the P-256 key `access-client` in Relay's key store (`deploy/hsm-keys.sh` creates it). Register its public key with Relay's client in Access (`[[products]] client_key`); `bin/relay eval 'Relay.Access.Client.print_client_key()'` prints it as a JWK. Product routes such as the tenant snapshot take a fresh RFC 7523 client assertion as `Authorization: Bearer`: `iss` and `sub` are Relay's `client_id`, `aud` is the Access issuer, and it expires within a minute. The token endpoint and AuthZEN decisions are DPoP-bound: Relay authenticates its client credentials grant with the same assertion as `private_key_jwt`, signs every DPoP proof with the same key, and sends a request once more when Access asks for a `DPoP-Nonce`.
 
 ## Channels without provider accounts
 

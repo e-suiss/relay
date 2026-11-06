@@ -9,6 +9,9 @@ defmodule Relay.Access.RealmsTest do
   alias RelayTest.FakeAccess
   alias RelayTest.TenantFixture
 
+  @evaluation FakeAccess.issuer() <> "/access/v1/evaluation"
+  @question %{"subject" => %{"type" => "user", "id" => "op-1"}, "action" => %{"name" => "read"}}
+
   setup do
     :ok = FakeAccess.install!()
     :ok = Clients.reset()
@@ -59,6 +62,7 @@ defmodule Relay.Access.RealmsTest do
       foreign = FakeAccess.realm_token(ctx.access_tenant, ctx.client, "a", %{"iss" => other})
       unknown = FakeAccess.realm_token("tnt_unknown" <> FakeAccess.random(), ctx.client, "a")
       wrong_key = FakeAccess.realm_token(ctx.access_tenant, ctx.client, "a", %{}, "b")
+
       untenanted =
         FakeAccess.realm_token(ctx.access_tenant, ctx.client, "a", %{"access_tenant" => nil})
 
@@ -97,48 +101,57 @@ defmodule Relay.Access.RealmsTest do
   end
 
   describe "E-98 Relay's calls to Access" do
-    test "E-98: the tenant snapshot is read with a DPoP-bound token from a client assertion grant after one nonce challenge",
+    test "E-100: the tenant snapshot is read with an RFC 7523 client assertion, without a token",
          ctx do
       tenant = ctx.access_tenant
-      jkt = relay_jkt()
 
       assert {:ok, %{"tenant" => ^tenant, "realms" => [_a, _b]}} =
                Relay.Access.tenant_snapshot(tenant)
 
-      assert_received {:fake_access, :nonce, :token}
-      assert_received {:fake_access, :token, ^jkt, "client_credentials"}
       assert_received {:fake_access, :snapshot, ^tenant}
-      refute_received {:fake_access, :nonce, :resource}
+      refute_received {:fake_access, :token, _jkt, _grant}
 
       unknown = "tnt_unknown" <> FakeAccess.random()
       assert {:error, :not_found} = Relay.Access.tenant_snapshot(unknown)
-      refute_received {:fake_access, :token, _jkt, _grant}
     end
 
-    test "E-98: a resource that asks for a fresh nonce is called once more with it", ctx do
-      tenant = ctx.access_tenant
-      assert {:ok, _snapshot} = Relay.Access.tenant_snapshot(tenant)
+    test "E-98: a resource is called with a DPoP-bound token of a client assertion grant after one nonce challenge" do
+      jkt = relay_jkt()
+
+      assert {:ok, %{"decision" => true}} = Client.post(@evaluation, @question)
+      assert_received {:fake_access, :nonce, :token}
+      assert_received {:fake_access, :token, ^jkt, "client_credentials"}
+      assert_received {:fake_access, :evaluation, _body}
+      refute_received {:fake_access, :nonce, :resource}
+    end
+
+    test "E-98: a resource that asks for a fresh nonce is called once more with it" do
+      assert {:ok, _answer} = Client.post(@evaluation, @question)
       assert_received {:fake_access, :token, _jkt, "client_credentials"}
-      assert_received {:fake_access, :snapshot, ^tenant}
       forget_nonces()
 
-      assert {:ok, _snapshot} = Relay.Access.tenant_snapshot(tenant)
+      assert {:ok, _answer} = Client.post(@evaluation, @question)
       assert_received {:fake_access, :nonce, :resource}
-      assert_received {:fake_access, :snapshot, ^tenant}
       refute_received {:fake_access, :token, _jkt, _grant}
     end
 
-    test "E-98: a refused token is forgotten and the next call asks for a new one", ctx do
+    test "E-98: a refused token is forgotten and the next call asks for a new one" do
       assert {:ok, _token} = Client.access_token()
       assert_received {:fake_access, :token, _jkt, "client_credentials"}
       stolen = Relay.Redacted.wrap("relay.x.y")
       :ok = Cache.put({Client, :access_token}, stolen, 60_000)
 
       assert {:error, %Relay.Error{code: :access_unreachable}} =
-               Relay.Access.tenant_snapshot(ctx.access_tenant)
+               Client.post(@evaluation, @question)
 
-      assert {:ok, _snapshot} = Relay.Access.tenant_snapshot(ctx.access_tenant)
+      assert {:ok, _answer} = Client.post(@evaluation, @question)
       assert_received {:fake_access, :token, _jkt, "client_credentials"}
+    end
+
+    test "E-100: the public JWK of the Access client key is printed for its registration" do
+      {:ok, jwk} = Client.public_jwk()
+      printed = ExUnit.CaptureIO.capture_io(fn -> :ok = Client.print_client_key() end)
+      assert Jason.decode!(printed) == Map.merge(jwk, %{"alg" => "ES256", "use" => "sig"})
     end
 
     test "E-98, E-27: an AuthZEN decision is asked with Relay's DPoP-bound token" do

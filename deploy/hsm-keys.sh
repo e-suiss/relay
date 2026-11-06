@@ -6,6 +6,7 @@
 # API-56
 # OP-63
 # E-98
+# E-100
 set -eu
 
 usage() {
@@ -17,9 +18,9 @@ exist under their label are left untouched, so the script can be rerun.
 
   audit-checkpoint   Ed25519 key pair that signs audit checkpoints
   subscriber-token   P-256 key pair that signs subscriber tokens
-  access-dpop        P-256 key pair of Relay's calls to Access: DPoP proofs and
-                     client assertions (register its public key with Relay's
-                     Access client)
+  access-client      P-256 key pair of Relay's Access client: client assertions and
+                     DPoP proofs (register its public key with Relay's Access
+                     client)
   KEK                AES-256 key that wraps tenant data keys
   fingerprint        256-bit generic secret for the HMAC-SHA256 secret fingerprints
   cursor             256-bit generic secret for the HMAC-SHA256 pagination cursor tags
@@ -34,7 +35,7 @@ Environment:
   PKCS11_PIN_FILE               file holding the user PIN
   KEY_STORE_CHECKPOINT_LABEL    default: audit-checkpoint
   KEY_STORE_SUBSCRIBER_TOKEN_LABEL  default: subscriber-token
-  KEY_STORE_ACCESS_DPOP_LABEL   default: access-dpop
+  KEY_STORE_ACCESS_CLIENT_LABEL default: access-client
   KEY_STORE_KEK_LABEL           label of the KEK (required)
   KEY_STORE_FINGERPRINT_LABEL   label of the secret fingerprint key (required)
   KEY_STORE_CURSOR_LABEL        label of the pagination cursor key (required)
@@ -53,7 +54,7 @@ USAGE
 : "${KEY_STORE_CURSOR_LABEL:?KEY_STORE_CURSOR_LABEL is required}"
 checkpoint="${KEY_STORE_CHECKPOINT_LABEL:-audit-checkpoint}"
 subscriber_token="${KEY_STORE_SUBSCRIBER_TOKEN_LABEL:-subscriber-token}"
-access_dpop="${KEY_STORE_ACCESS_DPOP_LABEL:-access-dpop}"
+access_client="${KEY_STORE_ACCESS_CLIENT_LABEL:-access-client}"
 
 command -v pkcs11-tool >/dev/null || { echo "pkcs11-tool not found; install OpenSC" >&2; exit 1; }
 [ -r "$PKCS11_PIN_FILE" ] || { echo "cannot read $PKCS11_PIN_FILE" >&2; exit 1; }
@@ -84,7 +85,7 @@ create() {
 
 create privkey "$checkpoint" --keypairgen --key-type EC:edwards25519
 create privkey "$subscriber_token" --keypairgen --key-type EC:prime256v1
-create privkey "$access_dpop" --keypairgen --key-type EC:prime256v1
+create privkey "$access_client" --keypairgen --key-type EC:prime256v1
 create secrkey "$KEY_STORE_KEK_LABEL" --keygen --key-type AES:32 --sensitive
 create secrkey "$KEY_STORE_FINGERPRINT_LABEL" --keygen --key-type GENERIC:32 --sensitive --usage-sign
 create secrkey "$KEY_STORE_CURSOR_LABEL" --keygen --key-type GENERIC:32 --sensitive --usage-sign

@@ -1,6 +1,8 @@
 defmodule Relay.Access.Client do
   @moduledoc """
-  Relay's own calls to Access (E-98): the tenant snapshot, AuthZEN decisions and the token requests they rest on. Access issues no bearer token, so every call carries an RFC 9449 DPoP proof signed in the key store (TN-63) with the P-256 key named by `config :relay, Relay.Access, dpop_key: label` (`access-dpop` by default); its public key travels in the proof header and is never configured anywhere else.
+  Relay's own calls to Access (E-98, E-100): AuthZEN decisions and the token requests they rest on, and the Access product routes such as the tenant snapshot. Every call is signed in the key store (TN-63) with Relay's Access client key, the P-256 key named by `config :relay, Relay.Access, client_key: label` (`access-client` by default). Its public JWK is registered with Relay's client in Access (`[[products]] client_key`); `print_client_key/0` prints it (`bin/relay eval 'Relay.Access.Client.print_client_key()'`, or `mix relay.access.client_key` in development).
+
+  * `product_get/2` reads a product route with `Authorization: Bearer` and a fresh RFC 7523 client assertion (E-100): ES256, `iss` and `sub` Relay's Access `client_id`, `aud` the linked (platform realm) issuer, a single-use `jti` and an `exp` one minute ahead. No access token is involved.
 
   * `get/3` and `post/3` call an Access resource with Relay's Access access token as `Authorization: DPoP` and a proof naming the method, the URL and the token (`ath`).
   * The token comes from the client credentials grant at the linked issuer's token endpoint (`token/3`): the request is authenticated with a `private_key_jwt` client assertion (RFC 7523; `iss` and `sub` Relay's Access `client_id`, `aud` the linked issuer, signed with the same key) and carries a proof, so the token is bound to that key; Access must answer with a `DPoP` token. The token is kept in `Relay.Access.Cache` until 30 seconds before it expires and forgotten when Access refuses it.
@@ -38,9 +40,33 @@ defmodule Relay.Access.Client do
   # E-100
   # E-95
   # E-96
-  @doc "Reads an Access product route (such as the tenant snapshot or `subjects:resolve`) as Relay. The one place that chooses how Relay authenticates there: it is meant to carry an RFC 7523 client assertion of a key-store key (E-100); until Access accepts that, it reads the route like `get/3`."
+  @doc "Reads an Access product route (such as the tenant snapshot) as Relay, authenticated by a fresh RFC 7523 client assertion sent as `Authorization: Bearer`. Options: `:http`, extra Req options."
   @spec product_get(String.t(), keyword()) :: result()
-  def product_get(url, opts \\ []) when is_binary(url), do: get(url, [], opts)
+  def product_get(url, opts \\ []) when is_binary(url) do
+    with {:ok, client_id} <- client_id(),
+         {:ok, issuer} <- issuer(),
+         {:ok, assertion} <- assertion(client_id, issuer),
+         headers = [{"accept", "application/json"}, {"authorization", "Bearer " <> assertion}],
+         {:ok, response} <- call(url, [method: :get, headers: headers], opts),
+         do: product_answer(response)
+  end
+
+  # E-100
+  @doc "Prints the public JWK of Relay's Access client key, to register it with Relay's client in Access; it starts the key store port when the node does not run it."
+  @spec print_client_key() :: :ok
+  def print_client_key do
+    _started =
+      Supervisor.start_link(Relay.Keys.children(),
+        strategy: :one_for_one,
+        max_restarts: 0,
+        max_seconds: 1
+      )
+
+    case public_jwk() do
+      {:ok, jwk} -> IO.puts(Jason.encode!(Map.merge(jwk, %{"alg" => "ES256", "use" => "sig"})))
+      {:error, error} -> raise error.message
+    end
+  end
 
   # E-98
   # E-27
@@ -97,12 +123,13 @@ defmodule Relay.Access.Client do
   end
 
   # E-98
-  @doc "The public JWK of Relay's DPoP key, read from the key store."
+  # E-100
+  @doc "The public JWK of Relay's Access client key, read from the key store."
   @spec public_jwk() :: {:ok, map()} | {:error, Relay.Error.t()}
   def public_jwk do
     label = key_label()
 
-    case Cache.fetch({:dpop_jwk, label}) do
+    case Cache.fetch({:client_jwk, label}) do
       {:ok, jwk} -> {:ok, jwk}
       :miss -> read_jwk(label)
     end
@@ -112,11 +139,11 @@ defmodule Relay.Access.Client do
     case Relay.Keys.public_key(:es256, label) do
       {:ok, <<4, x::binary-32, y::binary-32>>} ->
         jwk = %{"kty" => "EC", "crv" => "P-256", "x" => Jose.encode(x), "y" => Jose.encode(y)}
-        :ok = Cache.put({:dpop_jwk, label}, jwk, @jwk_ms)
+        :ok = Cache.put({:client_jwk, label}, jwk, @jwk_ms)
         {:ok, jwk}
 
       _failed ->
-        unreachable("Relay's DPoP key cannot be read")
+        unreachable("Relay's Access client key cannot be read")
     end
   end
 
@@ -200,6 +227,11 @@ defmodule Relay.Access.Client do
   end
 
   defp answer(%Req.Response{status: status}), do: unreachable("Access answered #{status}")
+
+  defp product_answer(%Req.Response{status: 401}),
+    do: unreachable("Access refused Relay's client assertion")
+
+  defp product_answer(response), do: answer(response)
 
   defp token_answer(%Req.Response{status: 200, body: body}) do
     with {:ok, document, _raw} <- Http.json(body), do: {:ok, document}
@@ -292,7 +324,7 @@ defmodule Relay.Access.Client do
 
     case Relay.Keys.sign(:es256, key_label(), input) do
       {:ok, <<_::512>> = signature} -> {:ok, input <> "." <> Jose.encode(signature)}
-      _failed -> unreachable("Relay's DPoP key cannot sign")
+      _failed -> unreachable("Relay's Access client key cannot sign")
     end
   end
 
@@ -323,7 +355,7 @@ defmodule Relay.Access.Client do
   defp put_claim(claims, _name, nil), do: claims
   defp put_claim(claims, name, value), do: Map.put(claims, name, value)
 
-  defp key_label, do: Keyword.get(Relay.Access.config(), :dpop_key, "access-dpop")
+  defp key_label, do: Keyword.get(Relay.Access.config(), :client_key, "access-client")
 
   defp unreachable(message),
     do: {:error, Relay.Error.new(:access_unreachable, "Access link: " <> message)}

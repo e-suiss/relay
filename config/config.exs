@@ -8,6 +8,8 @@ config :relay,
   keys: Relay.Keys.Port,
   key_provider: Relay.Tenancy.Keyring
 
+config :swoosh, api_client: false, local: false
+
 config :relay, Relay.Repo,
   migration_primary_key: [type: :binary_id],
   migration_timestamps: [type: :utc_datetime_usec]

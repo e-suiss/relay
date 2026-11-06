@@ -5,7 +5,7 @@ defmodule Relay.Channels.Registry do
 
   alias Relay.ChannelDeclarations
 
-  @adapters [Relay.Channels.Fake]
+  @adapters [Relay.Channels.Fake, Relay.Channels.Smtp]
 
   @type missing :: ChannelDeclarations.missing() | :channels
   @type status :: %{

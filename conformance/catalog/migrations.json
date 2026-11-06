@@ -111,5 +111,6 @@
   {"file": "20261114990000_rebuild_reference_check_for_providers_and_devices.exs", "sha256": "191c02db870e06a20feb9b06dd8a5184817d8969fbc2f3a796684d2c58391ab2"},
   {"file": "20261115000100_register_email_datasets.exs", "sha256": "38462d23a48fc5ec2adc17afdae883f392f93ce1364d0f7aae6fc00d668cdc0c"},
   {"file": "20261116000100_register_push_priority_map.exs", "sha256": "bbf88f09696aeafada65df3452727f9772f017b4c79c52ed65bc9cf58529e48c"},
+  {"file": "20261121000100_create_usage_day_scopes.exs", "sha256": "401d5f8c941653190f201b068c25d54dc1dbbd7352519290b6e7d3935114d892"},
   {"file": "20261122000100_create_push_critical_function.exs", "sha256": "45acbea495653e992779ba8d238db1e0ea49c8b03d6a044fea9f390aad84cce8"}
 ]

@@ -358,6 +358,8 @@ channels:
         "$ref": "#/components/messages/access.api_client.created"
       access.api_client.updated:
         "$ref": "#/components/messages/access.api_client.updated"
+      access.api_client.disabled:
+        "$ref": "#/components/messages/access.api_client.disabled"
       access.api_client.suspended:
         "$ref": "#/components/messages/access.api_client.suspended"
       access.api_client.reactivated:
@@ -568,6 +570,7 @@ operations:
       - "$ref": "#/channels/accessInbound/messages/access.organization.updated"
       - "$ref": "#/channels/accessInbound/messages/access.api_client.created"
       - "$ref": "#/channels/accessInbound/messages/access.api_client.updated"
+      - "$ref": "#/channels/accessInbound/messages/access.api_client.disabled"
       - "$ref": "#/channels/accessInbound/messages/access.api_client.suspended"
       - "$ref": "#/channels/accessInbound/messages/access.api_client.reactivated"
       - "$ref": "#/channels/accessInbound/messages/access.api_client.revoked"
@@ -4598,6 +4601,49 @@ components:
       x-relay-stage: 3
       x-relay-choice: true
       x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.api_client.disabled:
+      name: api_client.disabled
+      title: api_client.disabled
+      summary: "An API client was disabled in Access (idp.client.retire); Relay suspends it and rejects its tokens at once on every node (E-97)."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:api_client.disabled"
+                  properties:
+                    "urn:suiss:access:event:api_client.disabled":
+                      type: object
+                      required:
+                        - tenant
+                        - client_id
+                      properties:
+                        tenant:
+                          type: string
+                          maxLength: 128
+                        realm:
+                          type: string
+                        client_id:
+                          type: string
+                          maxLength: 255
+                        exercise:
+                          type: string
+                        platform_product:
+                          type: string
+                        at:
+                          type: integer
+                          minimum: 0
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
     access.api_client.suspended:
       name: api_client.suspended
       title: api_client.suspended
@@ -5851,6 +5897,7 @@ x-relay-event-names:
   - address.disabled
   - agent.ceiling_exceeded
   - api_client.created
+  - api_client.disabled
   - api_client.reactivated
   - api_client.revoked
   - api_client.suspended

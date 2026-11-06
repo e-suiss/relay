@@ -201,6 +201,33 @@ defmodule Relay.Access.EventsTest do
       assert {:error, %Relay.Error{code: :auth_revoked_client}} = verify(token)
     end
 
+    test "E-97: api_client.disabled suspends the client and api_client.reactivated opens it again" do
+      tenant = TenantFixture.tenant!()
+      access_tenant = tenant.attrs.access_tenant_id
+      client = %{"access_tenant_id" => access_tenant, "access_client_id" => "app_retired"}
+      live = Map.merge(client, %{"environment" => "live", "scopes" => ["publish"]})
+      assert receipt_of(deliver!("api_client.created", live))["state"] == "processed"
+
+      token = FakeAccess.server_token(access_tenant, "app_retired", "publish")
+      assert {:ok, %{scopes: ["publish"]}} = verify(token)
+
+      member = %{
+        "tenant" => access_tenant,
+        "realm" => "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b10",
+        "client_id" => "app_retired",
+        "exercise" => String.duplicate("A", 43),
+        "at" => 1_790_000_000_000
+      }
+
+      disabled = deliver!("api_client.disabled", member)
+      assert receipt_of(disabled)["state"] == "processed"
+      assert {:error, %Relay.Error{code: :auth_revoked_client}} = verify(token)
+
+      again = deliver!("api_client.reactivated", client)
+      assert receipt_of(again)["state"] == "processed"
+      assert {:ok, %{scopes: ["publish"]}} = verify(token)
+    end
+
     test "API-44: an event for a tenant or sub-tenant that does not exist yet waits and applies once it does" do
       access_tenant = "acc_" <> FakeAccess.random()
 

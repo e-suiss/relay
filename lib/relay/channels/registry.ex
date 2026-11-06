@@ -11,7 +11,11 @@ defmodule Relay.Channels.Registry do
     Relay.Channels.Fake,
     Relay.Channels.Smtp,
     Relay.Channels.Netgsm,
-    Relay.Channels.Verimor
+    Relay.Channels.Verimor,
+    Relay.Channels.Ses,
+    Relay.Channels.Postmark,
+    Relay.Channels.Sendgrid,
+    Relay.Channels.Mailgun
   ]
 
   @type missing :: ChannelDeclarations.missing() | :channels

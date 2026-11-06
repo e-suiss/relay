@@ -1,0 +1,314 @@
+[
+  {
+    "code": "credential_invalid",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7; TN-26"
+  },
+  {
+    "code": "configuration_invalid",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.1 CH-34"
+  },
+  {
+    "code": "sender_invalid",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.2 CH-35"
+  },
+  {
+    "code": "message_invalid",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.4 CH-38"
+  },
+  {
+    "code": "smtputf8_unsupported",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.6.11 CH-45"
+  },
+  {
+    "code": "http_400",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: request refused"
+  },
+  {
+    "code": "http_401",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: 401"
+  },
+  {
+    "code": "http_403",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: forbidden"
+  },
+  {
+    "code": "http_413",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: 413 payload too large"
+  },
+  {
+    "code": "http_429",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: 429"
+  },
+  {
+    "code": "http_5xx",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2.1 CH-7: 5xx"
+  },
+  {
+    "code": "ses:MessageRejected",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html MessageRejected"
+  },
+  {
+    "code": "ses:BadRequestException",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html BadRequestException"
+  },
+  {
+    "code": "ses:MailFromDomainNotVerifiedException",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html MailFromDomainNotVerifiedException"
+  },
+  {
+    "code": "ses:AccountSuspendedException",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html AccountSuspendedException"
+  },
+  {
+    "code": "ses:SendingPausedException",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html SendingPausedException"
+  },
+  {
+    "code": "ses:NotFoundException",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html NotFoundException"
+  },
+  {
+    "code": "ses:LimitExceededException",
+    "class": "quota",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html LimitExceededException"
+  },
+  {
+    "code": "ses:TooManyRequestsException",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html TooManyRequestsException"
+  },
+  {
+    "code": "ses:ThrottlingException",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/CommonErrors.html ThrottlingException"
+  },
+  {
+    "code": "ses:AccessDeniedException",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/CommonErrors.html AccessDeniedException"
+  },
+  {
+    "code": "ses:UnrecognizedClientException",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/CommonErrors.html UnrecognizedClientException"
+  },
+  {
+    "code": "ses:InvalidSignatureException",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/CommonErrors.html InvalidSignatureException"
+  },
+  {
+    "code": "ses:ExpiredTokenException",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/CommonErrors.html ExpiredTokenException"
+  },
+  {
+    "code": "ses:InternalFailure",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/CommonErrors.html InternalFailure"
+  },
+  {
+    "code": "ses:ServiceUnavailable",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/CommonErrors.html ServiceUnavailable"
+  },
+  {
+    "code": "event:Permanent/General",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "bounced",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html Permanent General"
+  },
+  {
+    "code": "event:Permanent/NoEmail",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "bounced",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html Permanent NoEmail"
+  },
+  {
+    "code": "event:Permanent/Suppressed",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "bounced",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html Permanent Suppressed"
+  },
+  {
+    "code": "event:Permanent/OnAccountSuppressionList",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html Permanent OnAccountSuppressionList"
+  },
+  {
+    "code": "event:Permanent/UnsubscribedRecipient",
+    "class": "policy",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html Permanent UnsubscribedRecipient"
+  },
+  {
+    "code": "event:Transient/General",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html Transient General"
+  },
+  {
+    "code": "event:Transient/MailboxFull",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html Transient MailboxFull"
+  },
+  {
+    "code": "event:Transient/MessageTooLarge",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html Transient MessageTooLarge"
+  },
+  {
+    "code": "event:Transient/ContentRejected",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html Transient ContentRejected"
+  },
+  {
+    "code": "event:Transient/AttachmentRejected",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html Transient AttachmentRejected"
+  },
+  {
+    "code": "event:Undetermined/Undetermined",
+    "class": "unknown",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html Undetermined; §12.2.2 CH-8"
+  },
+  {
+    "code": "event:Complaint",
+    "class": "policy",
+    "condition": null,
+    "event_code": "complained",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html Complaint; §12.6.6 CH-40"
+  },
+  {
+    "code": "event:Reject",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://docs.aws.amazon.com/ses/latest/dg/event-publishing-retrieving-sns-contents.html Reject: a virus or a refused message"
+  }
+]

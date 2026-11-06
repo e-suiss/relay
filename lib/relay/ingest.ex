@@ -223,6 +223,11 @@ defmodule Relay.Ingest do
   @spec check_request(map(), map()) :: {:ok, map()} | {:error, Relay.Error.t()}
   defdelegate check_request(body, context), to: Request, as: :check
 
+  # API-23
+  @doc "The policy field errors of a channel-keyed overrides map; see `Relay.Ingest.Request.policy_field_errors/2`."
+  @spec policy_field_errors(map() | nil, String.t()) :: [map()]
+  defdelegate policy_field_errors(overrides, prefix), to: Request
+
   # TN-9
   @doc "Reads the platform product of the scope's tenant; see `Relay.Ingest.EventStore.platform_product/0`."
   @spec platform_product() :: String.t() | nil

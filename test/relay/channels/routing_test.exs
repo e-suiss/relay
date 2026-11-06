@@ -120,5 +120,32 @@ defmodule Relay.Channels.RoutingTest do
       assert Routing.requested_provider(levels, "push") == "fcm"
       assert Routing.requested_provider([nil, %{}, nil, %{}], "email") == nil
     end
+
+    test "API-23: the channel block merges field by field, the higher level winning" do
+      levels = [
+        %{"push" => %{"raw" => %{"apns" => %{"payload" => %{"badge" => 3}}}}},
+        %{"push" => %{"raw" => %{"apns" => %{"headers" => %{"apns-collapse-id" => "a"}}}}},
+        %{
+          "push" => %{
+            "provider" => "apns",
+            "raw" => %{"apns" => %{"payload" => %{"badge" => 1}}}
+          },
+          "email" => %{"from" => "news@mail.example.com"}
+        }
+      ]
+
+      assert Routing.effective_override(levels, "push") == %{
+               "provider" => "apns",
+               "raw" => %{
+                 "apns" => %{
+                   "payload" => %{"badge" => 3},
+                   "headers" => %{"apns-collapse-id" => "a"}
+                 }
+               }
+             }
+
+      assert Routing.effective_override(levels, "email") == %{"from" => "news@mail.example.com"}
+      assert Routing.effective_override([nil, %{}, nil], "sms") == %{}
+    end
   end
 end

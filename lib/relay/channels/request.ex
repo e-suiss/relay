@@ -11,7 +11,7 @@ defmodule Relay.Channels.Request do
     * `sender`: the verified sender identity of the route, or `nil`.
     * `ttl_s`: the channel time to live derived from the message's `expires_at` (`Relay.Channels.ttl_s/2`, CH-9), `nil` without `expires_at`.
     * `timeout_ms`: the call timeout, the shortest of the message, channel and provider layers (CH-9); the adapter never waits longer.
-    * `message_class`, `test?` (the test plane) and `overrides` (the request's channel overrides, API-23).
+    * `message_class`, `test?` (the test plane) and `overrides`: the delivery's channel block of overrides by the precedence request > step > workflow (API-23), such as `"from"` on e-mail or `"raw"` on push and WhatsApp; the request's own block is read from the event's sealed payload.
     * `push`: the push policy the channel step decided (`Relay.Channels.Push.Policy`), `nil` on the other channels.
     * `encoding`: on SMS the explicit encoding of the send, `"GSM7"`, `"GSM7_TR"` or `"UCS2"` (CH-48); the adapter names it to the provider and never leaves it to the provider's detection.
     * `product`: the provider product, `"otp"` for a `security` message on a provider with an OTP product, otherwise `"standard"` (CH-53).

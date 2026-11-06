@@ -2,7 +2,7 @@ defmodule Relay.Channels.Email do
   @moduledoc """
   The outgoing e-mail of a delivery, built once for every e-mail adapter so the SMTP adapter and the ESP adapters carry the same sender, header fields, return path and signature (CH-34, CH-35, CH-38, CH-43, CH-44, CH-45, CH-76).
 
-    * The sender identity is the stream configuration of the provider account (`Relay.Channels.Email.Streams`): the request's `sender` when the route gives one, otherwise the account's `settings`, read by the message class and the content's optional `"category"`. The `system` class has no e-mail stream.
+    * The sender identity is the stream configuration of the provider account (`Relay.Channels.Email.Streams`): the request's `sender` when the route gives one, otherwise the account's `settings`, read by the message class and the content's optional `"category"`. The `system` class has no e-mail stream. The delivery's `overrides.email.from` (`Request` `overrides`), checked against the verified sender identities at intake and again by the channel step, replaces the stream's from address; the sending domain, DKIM selector and return path stay the stream's (API-23).
     * The header fields are those of `Relay.Channels.Email.Headers`: `Feedback-ID` (`<campaign>:<category>:<tenant>:<sender>`) on every e-mail, and on a bulk one `List-Unsubscribe` and `List-Unsubscribe-Post` from the content's `"unsubscribe"` (`"https"` and `"mailto"`); a bulk e-mail without them is refused.
     * The envelope sender is the VERP return path of the delivery under the stream's return path domain (`Relay.Channels.Email.Verp`), its tag computed inside the key store under the tenant environment's VERP key (`verp_key_label/1`).
     * The subject, plain text and HTML are passed as the renderer wrote them: Relay wraps no link and adds no pixel, so a link the sender wrote, Access's `email_verification` link among them, reaches the recipient unchanged, and a `security` e-mail has no tracking and no redirect chain.
@@ -91,6 +91,7 @@ defmodule Relay.Channels.Email do
     mac = Keyword.get_lazy(opts, :mac, fn -> verp_mac(request.scope) end)
 
     with {:ok, sender} <- sender(config(request), class, text(content, "category")),
+         sender = from_override(sender, request),
          {:ok, parts} <- parts(content),
          {:ok, to} <- recipient(request),
          {:ok, return_path} <- Verp.encode(request.delivery_id, sender.return_path_domain, mac),
@@ -117,6 +118,13 @@ defmodule Relay.Channels.Email do
        })}
     end
   end
+
+  # API-23
+  defp from_override(sender, %Request{overrides: %{"from" => from}})
+       when is_binary(from) and from != "",
+       do: %{sender | from: from}
+
+  defp from_override(sender, _request), do: sender
 
   defp verp_mac(scope), do: Verp.key_function(verp_key_label(scope))
 

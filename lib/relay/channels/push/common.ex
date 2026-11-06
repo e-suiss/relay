@@ -49,11 +49,11 @@ defmodule Relay.Channels.Push.Common do
 
   def fields(%Request{}), do: %{}
 
-  @doc "The raw provider overrides of a block (`apns`, `fcm`, `hms`), or `nil` (API-23)."
+  @doc "The raw provider overrides of a block (`apns`, `fcm`, `hms`) in the channel's `raw` override, or `nil` (API-23)."
   @spec override(Request.t(), String.t(), String.t()) :: map() | nil
   def override(%Request{overrides: overrides}, block, field) do
     case overrides do
-      %{^block => %{^field => %{} = value}} -> value
+      %{"raw" => %{^block => %{^field => %{} = value}}} -> value
       _none -> nil
     end
   end

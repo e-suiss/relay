@@ -135,7 +135,8 @@ defmodule Relay.Ingest.EventStore do
   # API-19
   # API-20
   # OP-7
-  @doc "Records an accepted event with its encrypted payload."
+  # API-23
+  @doc "Records an accepted event with its encrypted payload, the request's channel overrides among it."
   @spec event_accept(map()) :: {atom(), Relay.Id.t() | nil, DateTime.t() | nil}
   def event_accept(e) do
     [row] =
@@ -163,6 +164,7 @@ defmodule Relay.Ingest.EventStore do
         e.metadata_ct,
         e.actor_ct,
         e.ce_attributes_ct,
+        Map.get(e, :overrides_ct),
         e.key_id,
         e.plain_size,
         e.traceparent

@@ -345,6 +345,21 @@ defmodule Relay.Delivery.Store do
     Repo.code!(row["attempt_start"], [:started, :not_pending, :not_found])
   end
 
+  # OP-38
+  @doc "Records the usage dimensions of an attempt: its destination country and, on SMS, its segment count."
+  @spec attempt_meter(Relay.Id.t(), pos_integer(), map()) :: :metered | :not_found
+  def attempt_meter(delivery_id, attempt_no, meter) do
+    [row] =
+      Repo.call!("relay_fn.attempt_meter", [
+        delivery_id,
+        attempt_no,
+        Map.get(meter, :destination_country),
+        Map.get(meter, :sms_segments)
+      ])
+
+    Repo.code!(row["attempt_meter"], [:metered, :not_found])
+  end
+
   # C-31
   @doc "Finishes an attempt; a terminal attempt is never overwritten."
   @spec attempt_finish(map()) ::

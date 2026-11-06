@@ -123,7 +123,7 @@ defmodule Relay.Channels.Sms do
   # CH-50
   # CH-51
   # CH-53
-  @doc "The checks of an SMS send on a provider, in order: the sender identity's rules for the class, the TR route and the explicit encoding; the request fields (`sender`, `encoding`, `product`) or `{:skip, rule_id}`."
+  @doc "The checks of an SMS send on a provider, in order: the sender identity's rules for the class, the TR route and the explicit encoding; the request fields (`sender`, `encoding`, `product`) with the segment count of the usage records (`segments`), or `{:skip, rule_id}`."
   @spec preflight(map(), map(), String.t() | nil, String.t(), map() | binary(), measurer()) ::
           {:ok, map()} | {:skip, String.t()}
   def preflight(declaration, sender, message_class, number, content, measure) do
@@ -134,7 +134,8 @@ defmodule Relay.Channels.Sms do
          :ok <- route(declaration, number, text),
          {:ok, measured} <- encoding(declaration, text, country(number), measure) do
       product = product(declaration, message_class)
-      {:ok, %{sender: sender, encoding: measured.encoding, product: product}}
+      fields = %{sender: sender, encoding: measured.encoding, product: product}
+      {:ok, Map.put(fields, :segments, measured.segments)}
     else
       {:error, rule_id} -> {:skip, rule_id}
     end

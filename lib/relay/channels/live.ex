@@ -41,6 +41,7 @@ defmodule Relay.Channels.Live do
   alias Relay.Scope
 
   @messaging ~w(slack teams telegram discord)
+  @phone_channels ~w(sms voice whatsapp)
   @hold_s 300
   @domestic "channels.domestic_only"
   @classes ~w(security transactional action_required operational system social marketing)a
@@ -75,6 +76,27 @@ defmodule Relay.Channels.Live do
       {:hold, rule_id} -> hold(scope, delivery_id, rule_id)
       {:skip, rule_id} -> skip(scope, delivery_id, rule_id)
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @type usage_price :: {:ok, map()} | :unpriced
+  @type usage_pricer :: (... -> usage_price())
+
+  # CH-18
+  # OP-38
+  @doc "The pricer of the daily usage records over the active provider declarations: a function of provider, channel, destination country, category and the volume already sent in the period that returns the unit price (`Relay.Channels.price/5`) or `:unpriced`; `{:error, reason}` while the declarations cannot be read."
+  @spec usage_pricing() :: {:ok, usage_pricer()} | {:error, term()}
+  def usage_pricing do
+    case Relay.Datasets.channel_declarations() do
+      {:ok, declarations} -> {:ok, &usage_price(declarations, &1, &2, &3, &4, &5)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp usage_price(declarations, provider, channel, country, category, volume) do
+    case ChannelDeclarations.declaration(declarations, provider) do
+      {:ok, declaration} -> Relay.Channels.price(declaration, channel, country, category, volume)
+      {:error, :unknown_provider} -> :unpriced
     end
   end
 
@@ -610,6 +632,7 @@ defmodule Relay.Channels.Live do
          {:ok, :started} <- Relay.Delivery.start_attempt(scope, delivery["id"], n) do
       channel = delivery["channel"]
       _ = Relay.Delivery.count_attempt(scope, ctx.parameters, channel, account["id"], n)
+      _ = meter(ctx, n, target)
       call(ctx, account, ticket, request(ctx, account, target, content, key, n))
     else
       {:ok, {:attempt_active, _n}} -> {:snooze, @hold_s}
@@ -619,6 +642,28 @@ defmodule Relay.Channels.Live do
   end
 
   defp default_key(delivery_id), do: "dlv-" <> Relay.Id.to_string(delivery_id)
+
+  # OP-38
+  defp meter(ctx, n, target) do
+    channel = ctx.delivery["channel"]
+    segments = sms_segments(channel, get_in(ctx, [:extra, :segments]))
+    country = if channel in @phone_channels, do: Relay.Phone.country(phone(target))
+
+    if country || segments do
+      meter = %{destination_country: country, sms_segments: segments}
+      Relay.Delivery.meter_attempt(ctx.scope, ctx.delivery["id"], n, meter)
+    end
+  end
+
+  defp sms_segments("sms", segments) when is_integer(segments) and segments > 0, do: segments
+  defp sms_segments(_channel, _segments), do: nil
+
+  defp phone(target) do
+    case Relay.Redacted.expose(target.value) do
+      value when is_binary(value) -> value
+      _other -> ""
+    end
+  end
 
   defp request(ctx, account, target, content, key, n) do
     now = Relay.Clock.utc_now()
@@ -655,7 +700,8 @@ defmodule Relay.Channels.Live do
       update: update(ctx, account, target)
     }
 
-    Relay.Channels.request(Map.merge(fields, Map.get(ctx, :extra, %{})))
+    extra = ctx |> Map.get(:extra, %{}) |> Map.delete(:segments)
+    Relay.Channels.request(Map.merge(fields, extra))
   end
 
   # CH-23

@@ -23,12 +23,19 @@ defmodule Relay.Devices.TokenTest do
           do: refute(Token.permitted?(permission, class))
     end
 
-    test "CH-29: a provisional device receives only marketing and social messages" do
+    test "CH-29, CH-79: a provisional device receives only marketing and social messages" do
       assert Token.permitted?("provisional", :marketing)
       assert Token.permitted?("provisional", "social")
-      refute Token.permitted?("provisional", :security)
-      refute Token.permitted?("provisional", :transactional)
+
+      for class <- ~w(security transactional action_required operational system)a,
+          do: refute(Token.permitted?("provisional", class))
+
       refute Token.permitted?("provisional", nil)
+    end
+
+    test "CH-79: a device is stale after 30 days and disabled after 270 days without a sighting" do
+      assert Relay.Limits.seconds!(["devices", "stale_after"]) == 30 * 86_400
+      assert Relay.Limits.seconds!(["devices", "inactive_disable_after"]) == 270 * 86_400
     end
   end
 

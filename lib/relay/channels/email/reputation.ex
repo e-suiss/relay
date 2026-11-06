@@ -5,7 +5,7 @@ defmodule Relay.Channels.Email.Reputation do
   | State | Condition | New state | Transition |
   |---|---|---|---|
   | ok | a rate at its warning threshold | warning | `{:warning, rates}`: an event to the tenant |
-  | ok, warning | a rate at its stop threshold | stopped | `{:stopped, rates}`: the stream pauses |
+  | ok, warning | a rate at its stop threshold on at least `min_volume` sent mails in the window | stopped | `{:stopped, rates}`: the stream pauses |
   | warning | both rates under their warning thresholds | ok | — |
   | stopped | any | stopped | — |
 
@@ -60,7 +60,7 @@ defmodule Relay.Channels.Email.Reputation do
     rates = rates(circuit, now, params)
 
     cond do
-      over?(rates, params["stop_bounce_bp"], params["stop_complaint_bp"]) ->
+      stop?(rates, params) ->
         {%{circuit | state: :stopped, stopped_at: now, stop_rates: rates}, [{:stopped, rates}]}
 
       over?(rates, params["warn_bounce_bp"], params["warn_complaint_bp"]) ->
@@ -71,6 +71,12 @@ defmodule Relay.Channels.Email.Reputation do
       true ->
         {%{circuit | state: :ok}, []}
     end
+  end
+
+  # CH-85
+  defp stop?(rates, params) do
+    rates.sent >= Map.get(params, "min_volume", 0) and
+      over?(rates, params["stop_bounce_bp"], params["stop_complaint_bp"])
   end
 
   defp over?(rates, bounce_bp, complaint_bp) do

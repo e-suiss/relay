@@ -15,12 +15,15 @@ defmodule Relay.Channels do
   alias Relay.Channels.Email.Event
   alias Relay.Channels.Email.Intake
   alias Relay.Channels.Inbound
+  alias Relay.Channels.Limits
   alias Relay.Channels.Outcome
+  alias Relay.Channels.Pricing
   alias Relay.Channels.Registry
   alias Relay.Channels.Request
   alias Relay.Channels.Routing
   alias Relay.Channels.Simulated
   alias Relay.Channels.Store
+  alias Relay.Channels.Throttle
   alias Relay.Channels.Timeouts
 
   require Logger
@@ -28,9 +31,9 @@ defmodule Relay.Channels do
   @type digest :: <<_::256>>
   @type result(value) :: {:ok, value} | {:error, term()}
 
-  @doc "Supervised children: the owner of the circuit breaker table."
+  @doc "Supervised children: the owners of the circuit breaker table and the adaptive throttle table."
   @spec children() :: [Supervisor.child_spec()]
-  def children, do: [Supervisor.child_spec(Breaker, [])]
+  def children, do: [Supervisor.child_spec(Breaker, []), Supervisor.child_spec(Throttle, [])]
 
   # T-25
   # INV-40
@@ -147,6 +150,28 @@ defmodule Relay.Channels do
   @doc "Parses a provider's `Retry-After`; see `Relay.Channels.Timeouts.retry_after_ms/2`."
   @spec retry_after_ms(String.t() | nil, DateTime.t()) :: non_neg_integer() | nil
   defdelegate retry_after_ms(value, now), to: Timeouts
+
+  # CH-17
+  # T-20
+  @doc "The provider limit checks of one call; see `Relay.Channels.Limits.checks/2`."
+  @spec limit_checks(ChannelDeclarations.declaration() | nil, Limits.call()) :: [Limits.check()]
+  defdelegate limit_checks(declaration, call), to: Limits, as: :checks
+
+  # CH-18
+  @doc "The unit price of a provider's channel; see `Relay.Channels.Pricing.price/5`."
+  @spec price(map() | nil, String.t(), String.t() | nil, String.t() | nil, non_neg_integer()) ::
+          {:ok, Pricing.price()} | :unpriced
+  defdelegate price(declaration, channel, country, category, volume \\ 0), to: Pricing
+
+  # CH-17
+  @doc "The adaptive factor of a provider account's rate; see `Relay.Channels.Throttle.factor/1`."
+  @spec throttle_factor(Relay.Id.t() | nil) :: float()
+  defdelegate throttle_factor(account_id), to: Throttle, as: :factor
+
+  # CH-17
+  @doc "Moves a provider account's adaptive factor after a throttled or successful call; see `Relay.Channels.Throttle.record/2`."
+  @spec record_throttle(Relay.Id.t(), :throttled | :success) :: :ok
+  defdelegate record_throttle(account_id, outcome), to: Throttle, as: :record
 
   # CH-72
   # X-26

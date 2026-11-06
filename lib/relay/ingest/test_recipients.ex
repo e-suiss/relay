@@ -79,6 +79,7 @@ defmodule Relay.Ingest.TestRecipients do
   def listed(recipient_id) do
     sql =
       @row <> " WHERE t.recipient_id = $1 AND #{@listed} ORDER BY t.created_at DESC, t.id DESC"
+
     all(sql, [recipient_id])
   end
 

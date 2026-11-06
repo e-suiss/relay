@@ -257,6 +257,7 @@ defmodule Relay.Api.TestSends do
   def not_found, do: Relay.Error.new(:test_recipient_not_found, "no such test recipient")
 
   defp workflow_not_found, do: Relay.Error.new(:workflow_not_found, "no workflow has this key")
+
   defp subscriber_not_found,
     do: Relay.Error.new(:subscriber_not_found, "no subscriber has this id")
 

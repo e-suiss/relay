@@ -1,6 +1,6 @@
 defmodule Relay.Access.Client do
   @moduledoc """
-  Relay's own calls to Access (E-98): AuthZEN decisions, other Access resources and the token requests they rest on. Access issues no bearer token, so every call carries an RFC 9449 DPoP proof signed in the key store (TN-63) with the P-256 key named by `config :relay, Relay.Access, dpop_key: label` (`access-dpop` by default); its public key travels in the proof header and is never configured anywhere else.
+  Relay's own calls to Access (E-98): the tenant snapshot, AuthZEN decisions and the token requests they rest on. Access issues no bearer token, so every call carries an RFC 9449 DPoP proof signed in the key store (TN-63) with the P-256 key named by `config :relay, Relay.Access, dpop_key: label` (`access-dpop` by default); its public key travels in the proof header and is never configured anywhere else.
 
   * `get/3` and `post/3` call an Access resource with Relay's Access access token as `Authorization: DPoP` and a proof naming the method, the URL and the token (`ath`).
   * The token comes from the client credentials grant at the linked issuer's token endpoint (`token/3`): the request is authenticated with a `private_key_jwt` client assertion (RFC 7523; `iss` and `sub` Relay's Access `client_id`, `aud` the linked issuer, signed with the same key) and carries a proof, so the token is bound to that key; Access must answer with a `DPoP` token. The token is kept in `Relay.Access.Cache` until 30 seconds before it expires and forgotten when Access refuses it.
@@ -26,12 +26,21 @@ defmodule Relay.Access.Client do
   @type result :: {:ok, map()} | {:error, :not_found} | {:error, Relay.Error.t()}
 
   # E-98
+  # E-95
+  # E-96
   @doc "Reads an Access resource: `GET url` with `query` (a keyword list or map of query members, or `[]`), as Relay with its DPoP-bound Access access token. Options: `:http`, extra Req options."
   @spec get(String.t(), keyword() | map(), keyword()) :: result()
   def get(url, query \\ [], opts \\ []) when is_binary(url) do
     url = if Enum.empty?(query), do: url, else: url <> "?" <> URI.encode_query(query)
     resource(%{verb: :get, method: "GET", url: url, body: nil}, opts)
   end
+
+  # E-100
+  # E-95
+  # E-96
+  @doc "Reads an Access product route (such as the tenant snapshot or `subjects:resolve`) as Relay. The one place that chooses how Relay authenticates there: it is meant to carry an RFC 7523 client assertion of a key-store key (E-100); until Access accepts that, it reads the route like `get/3`."
+  @spec product_get(String.t(), keyword()) :: result()
+  def product_get(url, opts \\ []) when is_binary(url), do: get(url, [], opts)
 
   # E-98
   # E-27

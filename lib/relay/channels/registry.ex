@@ -7,6 +7,7 @@ defmodule Relay.Channels.Registry do
 
   @adapters [
     Relay.Channels.Fake,
+    Relay.Channels.Smtp,
     Relay.Channels.Apns,
     Relay.Channels.Fcm,
     Relay.Channels.Hms,

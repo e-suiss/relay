@@ -105,6 +105,59 @@ defmodule Relay.Channels.Store do
     Repo.code!(row["provider_account_set_health"], [:updated, :unchanged, :not_found])
   end
 
+  # C-45
+  @doc "A provider account by its identifier, or `nil`."
+  @spec account(id()) :: map() | nil
+  def account(id) do
+    case all("SELECT #{@account_columns} FROM relay.provider_accounts WHERE id = $1", [id]) do
+      [row] -> row
+      [] -> nil
+    end
+  end
+
+  # CH-52
+  @doc "The active, verified provider accounts of `providers` whose settings were last checked more than `interval_s` ago or never, the longest unchecked first."
+  @spec settings_check_due([String.t()], pos_integer(), pos_integer()) :: [map()]
+  def settings_check_due(providers, interval_s, limit) do
+    all(
+      "SELECT #{@account_columns} FROM relay.provider_accounts WHERE state = 'active' AND verification_state = 'verified' AND provider = ANY($1::text[]) AND (health_checked_at IS NULL OR health_checked_at <= now() - $2::bigint * interval '1 second') ORDER BY health_checked_at NULLS FIRST, id LIMIT $3",
+      [providers, interval_s, limit]
+    )
+  end
+
+  # CH-52
+  # TN-13 (4)
+  @doc "Lists the scopes that have a verified provider account of `providers` due for its settings check, through the discovery escape hatch; scopes only, no content."
+  @spec settings_check_scopes([String.t()], pos_integer(), pos_integer()) ::
+          [{Relay.Id.t(), String.t()}]
+  def settings_check_scopes(providers, interval_s, limit) do
+    escape = :provider_settings_check_discovery
+    function = "relay_ops.provider_settings_check_scopes"
+    rows = Repo.call_unscoped!(escape, function, [providers, interval_s, limit])
+    for row <- rows, do: {row["tenant_id"], row["environment"]}
+  end
+
+  # CH-52
+  @doc "Appends the `provider_account.settings_mismatched` event of a provider account whose settings do not hold."
+  @spec settings_mismatched(map(), map(), String.t()) :: :appended
+  def settings_mismatched(account, mismatch, rule_id) do
+    id = Relay.Id.to_string(account["id"])
+
+    data =
+      Map.merge(mismatch, %{
+        "provider_account_id" => Relay.ExternalId.encode("pva", account["id"]),
+        "provider" => account["provider"],
+        "channel" => account["channel"],
+        "failure_class" => "sender_config",
+        "rule_id" => rule_id
+      })
+
+    type = "provider_account.settings_mismatched"
+    params = [Relay.Id.generate(), type, "provider_account:" <> id, data, nil]
+    [row] = Repo.call!("relay_fn.outbox_append", params)
+    Repo.code!(row["result"], [:appended])
+  end
+
   # C-25
   @doc "Creates or changes a sender identity of a provider account."
   @spec sender_identity_put(map(), digest(), Actor.t()) ::

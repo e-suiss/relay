@@ -11,6 +11,16 @@ defmodule Relay.Channels.Live.Store do
   def in_scope(scope, fun), do: Repo.in_scope(scope, fun)
 
   # T-15
+  @doc "Queues a job inside the current transaction; rolls the transaction back when it is not queued."
+  @spec insert_job!(Ecto.Changeset.t()) :: :ok
+  def insert_job!(changeset) do
+    case Oban.insert(changeset) do
+      {:ok, _job} -> :ok
+      {:error, reason} -> Repo.rollback({:job_not_queued, reason})
+    end
+  end
+
+  # T-15
   @doc "Reads what the channel step needs of a delivery: its channel, target kind, recipient, requested provider, class, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity and the category key; `nil` when there is no such delivery."
   @spec delivery(Relay.Id.t()) :: map() | nil
   def delivery(delivery_id) do

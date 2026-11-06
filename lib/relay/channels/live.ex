@@ -14,6 +14,7 @@ defmodule Relay.Channels.Live do
     top_level?: true,
     deps: [
       Relay,
+      Relay.Audit,
       Relay.Channels,
       Relay.Delivery,
       Relay.Datasets,
@@ -33,6 +34,7 @@ defmodule Relay.Channels.Live do
   alias Relay.ChannelDeclarations
   alias Relay.Channels.Live.Events
   alias Relay.Channels.Live.Followup
+  alias Relay.Channels.Live.SettingsCheck
   alias Relay.Channels.Live.Store
   alias Relay.Channels.Live.Whatsapp
   alias Relay.Scope
@@ -86,6 +88,13 @@ defmodule Relay.Channels.Live do
   defdelegate whatsapp_inbound(scope, account, app_secret, body, headers),
     to: Whatsapp,
     as: :inbound
+
+  # CH-14
+  # CH-52
+  @doc "Asks for the verification of a provider account inside the caller's scoped transaction and queues its settings check; see `Relay.Channels.Live.SettingsCheck.request/3`."
+  @spec request_settings_check(Scope.t(), Relay.Id.t(), Relay.Actor.t()) ::
+          :pending | :verified | :not_found
+  defdelegate request_settings_check(scope, id, actor), to: SettingsCheck, as: :request
 
   # X-25
   # API-62

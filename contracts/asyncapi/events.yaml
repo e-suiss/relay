@@ -46,6 +46,8 @@ channels:
         "$ref": "#/components/messages/webhook.messaging_installation.completed"
       webhook.channel_adapter.deprecated:
         "$ref": "#/components/messages/webhook.channel_adapter.deprecated"
+      webhook.provider_account.settings_mismatched:
+        "$ref": "#/components/messages/webhook.provider_account.settings_mismatched"
       webhook.webhook.attempt_exhausted:
         "$ref": "#/components/messages/webhook.webhook.attempt_exhausted"
       webhook.webhook_endpoint.disabled:
@@ -113,6 +115,8 @@ channels:
         "$ref": "#/components/messages/webhook.killswitch.auto_paused"
       operations.provider.unknown_code:
         "$ref": "#/components/messages/operations.provider.unknown_code"
+      webhook.provider_account.settings_mismatched:
+        "$ref": "#/components/messages/webhook.provider_account.settings_mismatched"
       operations.push_priority.threshold_reached:
         "$ref": "#/components/messages/operations.push_priority.threshold_reached"
       webhook.quota.threshold_reached:
@@ -386,6 +390,7 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.messaging_interaction.received"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.messaging_installation.completed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.channel_adapter.deprecated"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.provider_account.settings_mismatched"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook.attempt_exhausted"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.disabled"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.recovered"
@@ -422,6 +427,7 @@ operations:
       - "$ref": "#/channels/operations/messages/webhook.killswitch.released"
       - "$ref": "#/channels/operations/messages/webhook.killswitch.auto_paused"
       - "$ref": "#/channels/operations/messages/operations.provider.unknown_code"
+      - "$ref": "#/channels/operations/messages/webhook.provider_account.settings_mismatched"
       - "$ref": "#/channels/operations/messages/operations.push_priority.threshold_reached"
       - "$ref": "#/channels/operations/messages/webhook.quota.threshold_reached"
       - "$ref": "#/channels/operations/messages/webhook.quota.reserve_opened"
@@ -1574,6 +1580,63 @@ components:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The spec asks for a tenant warning when a provider API is deprecated (CH-4) but names no event; the name and payload are chosen by the contract."
+    webhook.provider_account.settings_mismatched:
+      name: provider_account.settings_mismatched
+      title: provider_account.settings_mismatched
+      summary: "A setting in the provider's panel overrides what Relay sends, found by the provider settings check (CH-52); the failure class is sender_config, so no subscriber is suppressed. The provider account left the verified route and is verified again only by a successful check."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: provider_account.settings_mismatched
+                data:
+                  type: object
+                  required:
+                    - provider_account_id
+                    - provider
+                    - channel
+                    - failure_class
+                    - rule_id
+                    - setting
+                    - expected
+                    - actual
+                  properties:
+                    provider_account_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_pva"
+                    provider:
+                      type: string
+                      pattern: "^[a-z][a-z0-9_]{1,31}$"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    failure_class:
+                      const: sender_config
+                    rule_id:
+                      const: channel.provider_settings_mismatch
+                    setting:
+                      type: string
+                      maxLength: 128
+                    expected:
+                      oneOf:
+                        - type: string
+                          maxLength: 128
+                        - type: "null"
+                    actual:
+                      oneOf:
+                        - type: string
+                          maxLength: 128
+                        - type: "null"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 6
+      x-relay-also:
+        - operations
+      x-relay-choice: true
+      x-relay-choice-note: "CH-52 asks for a sender_config event when a provider panel setting does not hold but names no event; the name and payload are chosen by the contract."
     webhook.webhook.attempt_exhausted:
       name: webhook.attempt_exhausted
       title: webhook.attempt_exhausted
@@ -5631,6 +5694,7 @@ x-relay-event-names:
   - provider.unknown_code
   - provider_account.changed
   - provider_account.credential_rotated
+  - provider_account.settings_mismatched
   - provider_account.verified
   - push_critical.changed
   - push_critical.used

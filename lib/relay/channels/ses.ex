@@ -4,6 +4,8 @@ defmodule Relay.Channels.Ses do
 
   The account's `settings.ses` carry `"region"`, an optional `"configuration_set"` and, for events, `"queue_url"` and `"topic_arn"`. The delivery identifier travels as the message tag `relay_delivery_id`, which every event carries. SES has no idempotency key and no status query a send can be resolved by, so an uncertain call is not retried (CH-10). SES errors are reported as `ses:<error type>`, other HTTP statuses as `http_<status>`.
 
+  The settings check reads the account's sending status (`GET /v2/email/account`): sending must be enabled and the account out of the sandbox, which delivers only to verified addresses (CH-52).
+
   Events reach Relay through a durable queue, never through a short-lived HTTP subscription (CH-47): SES publishes them to an SNS topic, the topic delivers them to the tenant's SQS queue, and Relay reads the queue (`receive_messages/3`), checks the SNS signature of each message (`Relay.Channels.Email.Sns`), parses the SES event (`events/2`) and deletes the message only once it is processed (`delete_message/3`).
   """
 
@@ -14,6 +16,7 @@ defmodule Relay.Channels.Ses do
   alias Relay.Channels.Email.Event
   alias Relay.Channels.Email.Sns
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
 
   @region ~r/\A[a-z]{2}(-[a-z]+)+-\d{1,2}\z/
   @queue ~r/\Ahttps:\/\/sqs\.([a-z0-9\-]+)\.amazonaws\.com\/\d{12}\/[A-Za-z0-9_\-]{1,80}(\.fifo)?\z/
@@ -59,6 +62,47 @@ defmodule Relay.Channels.Ses do
       end
     end
   end
+
+  # CH-52
+  @impl Relay.Channels.Adapter
+  def check_settings(%{account: account, credentials: credentials, timeout_ms: timeout_ms}) do
+    settings = Esp.account_settings(account, "ses")
+
+    with {:ok, region} <- region(settings),
+         {:ok, credentials} <- credentials(Esp.credential_map(credentials)) do
+      opts = [
+        method: :get,
+        url: "https://email." <> region <> ".amazonaws.com/v2/email/account",
+        headers: [{"accept", "application/json"}],
+        aws_sigv4: sigv4(credentials, :ses, region)
+      ]
+
+      timeout_ms
+      |> Esp.http(opts)
+      |> SettingsCheck.read(&account_status/1)
+    else
+      {:rejected, %{code: "credential_invalid"}} -> SettingsCheck.credentials(nil)
+      {:rejected, %{code: _configuration}} -> SettingsCheck.mismatch("region", "set", nil)
+    end
+  end
+
+  defp account_status(%Req.Response{status: 200} = response) do
+    case Esp.json(response) do
+      %{"SendingEnabled" => false} ->
+        SettingsCheck.mismatch("sending_enabled", "true", "false")
+
+      %{"ProductionAccessEnabled" => false} ->
+        SettingsCheck.mismatch("production_access", "true", "false")
+
+      %{"SendingEnabled" => true} ->
+        :ok
+
+      _other ->
+        {:error, "unexpected_response"}
+    end
+  end
+
+  defp account_status(%Req.Response{status: status}), do: {:error, Esp.http_code(status)}
 
   # DS-11
   @impl Relay.Channels.Adapter

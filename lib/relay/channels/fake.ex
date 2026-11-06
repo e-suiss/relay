@@ -1,6 +1,6 @@
 defmodule Relay.Channels.Fake do
   @moduledoc """
-  The fake provider adapter (X-25, X-26, API-63, TN-7). On the test plane, and in `shadow` mode, the whole pipeline runs with the same code and the same `rule_id`s as on the live plane, and only this last step differs: the answer comes from the simulated result table (`Relay.Channels.Simulated`, CH-72) by the target address, with no network call. Its declaration is `priv/channels/fake/` and passes the same activation gate as every adapter.
+  The fake provider adapter (X-25, X-26, API-63, TN-7). On the test plane, and in `shadow` mode, the whole pipeline runs with the same code and the same `rule_id`s as on the live plane, and only this last step differs: the answer comes from the simulated result table (`Relay.Channels.Simulated`, CH-72) by the target address, with no network call. Its declaration is `priv/channels/fake/` and passes the same activation gate as every adapter. The simulated provider has no panel, so its settings check always holds (CH-52).
   """
 
   @behaviour Relay.Channels.Adapter
@@ -35,6 +35,10 @@ defmodule Relay.Channels.Fake do
       _uncertain -> :not_received
     end
   end
+
+  # CH-52
+  @impl Relay.Channels.Adapter
+  def check_settings(%{account: %{}}), do: :ok
 
   defp result(request) do
     value = Relay.Redacted.expose(request.target.value)

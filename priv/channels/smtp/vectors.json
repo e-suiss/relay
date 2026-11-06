@@ -1,0 +1,1583 @@
+[
+  {
+    "name": "smtputf8_unsupported",
+    "raw": {
+      "code": "smtputf8_unsupported",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "smtputf8_unsupported"
+    }
+  },
+  {
+    "name": "message_invalid",
+    "raw": {
+      "code": "message_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "message_invalid"
+    }
+  },
+  {
+    "name": "sender_invalid",
+    "raw": {
+      "code": "sender_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "sender_invalid"
+    }
+  },
+  {
+    "name": "signing_key_invalid",
+    "raw": {
+      "code": "signing_key_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "signing_key_invalid"
+    }
+  },
+  {
+    "name": "configuration_invalid",
+    "raw": {
+      "code": "configuration_invalid",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "configuration_invalid"
+    }
+  },
+  {
+    "name": "tls_failed",
+    "raw": {
+      "code": "tls_failed",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "tls_failed"
+    }
+  },
+  {
+    "name": "tls_unavailable",
+    "raw": {
+      "code": "tls_unavailable",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "tls_unavailable"
+    }
+  },
+  {
+    "name": "auth_unavailable",
+    "raw": {
+      "code": "auth_unavailable",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "auth_unavailable"
+    }
+  },
+  {
+    "name": "auth_failed",
+    "raw": {
+      "code": "auth_failed",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "failure": "auth_failed"
+    }
+  },
+  {
+    "name": "smtp_4xx",
+    "raw": {
+      "code": "smtp_4xx",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 Requested action aborted: local error in processing"
+    }
+  },
+  {
+    "name": "smtp_5xx",
+    "raw": {
+      "code": "smtp_5xx",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 Requested action not taken"
+    }
+  },
+  {
+    "name": "5.1.1",
+    "raw": {
+      "code": "5.1.1",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "bounced",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.1.1 refused"
+    }
+  },
+  {
+    "name": "5.1.2",
+    "raw": {
+      "code": "5.1.2",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "bounced",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.1.2 refused"
+    }
+  },
+  {
+    "name": "5.1.3",
+    "raw": {
+      "code": "5.1.3",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "bounced",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.1.3 refused"
+    }
+  },
+  {
+    "name": "5.1.6",
+    "raw": {
+      "code": "5.1.6",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "bounced",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.1.6 refused"
+    }
+  },
+  {
+    "name": "5.1.10",
+    "raw": {
+      "code": "5.1.10",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "bounced",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.1.10 refused"
+    }
+  },
+  {
+    "name": "5.2.1",
+    "raw": {
+      "code": "5.2.1",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": null,
+      "event_code": "bounced",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.2.1 refused"
+    }
+  },
+  {
+    "name": "5.1.7",
+    "raw": {
+      "code": "5.1.7",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.1.7 refused"
+    }
+  },
+  {
+    "name": "5.1.8",
+    "raw": {
+      "code": "5.1.8",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.1.8 refused"
+    }
+  },
+  {
+    "name": "5.2.2",
+    "raw": {
+      "code": "5.2.2",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.2.2 refused"
+    }
+  },
+  {
+    "name": "5.2.3",
+    "raw": {
+      "code": "5.2.3",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.2.3 refused"
+    }
+  },
+  {
+    "name": "5.3.4",
+    "raw": {
+      "code": "5.3.4",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.3.4 refused"
+    }
+  },
+  {
+    "name": "5.7.1",
+    "raw": {
+      "code": "5.7.1",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.1 refused"
+    }
+  },
+  {
+    "name": "5.7.20",
+    "raw": {
+      "code": "5.7.20",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.20 refused"
+    }
+  },
+  {
+    "name": "5.7.21",
+    "raw": {
+      "code": "5.7.21",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.21 refused"
+    }
+  },
+  {
+    "name": "5.7.22",
+    "raw": {
+      "code": "5.7.22",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.22 refused"
+    }
+  },
+  {
+    "name": "5.7.23",
+    "raw": {
+      "code": "5.7.23",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.23 refused"
+    }
+  },
+  {
+    "name": "5.7.24",
+    "raw": {
+      "code": "5.7.24",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.24 refused"
+    }
+  },
+  {
+    "name": "5.7.25",
+    "raw": {
+      "code": "5.7.25",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.25 refused"
+    }
+  },
+  {
+    "name": "5.7.26",
+    "raw": {
+      "code": "5.7.26",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.26 refused"
+    }
+  },
+  {
+    "name": "5.7.27",
+    "raw": {
+      "code": "5.7.27",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.27 refused"
+    }
+  },
+  {
+    "name": "5.7.30",
+    "raw": {
+      "code": "5.7.30",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.30 refused"
+    }
+  },
+  {
+    "name": "5.7.515",
+    "raw": {
+      "code": "5.7.515",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.515 refused"
+    }
+  },
+  {
+    "name": "4.0.0",
+    "raw": {
+      "code": "4.0.0",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.0.0 try again later"
+    }
+  },
+  {
+    "name": "4.1.0",
+    "raw": {
+      "code": "4.1.0",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.1.0 try again later"
+    }
+  },
+  {
+    "name": "4.1.1",
+    "raw": {
+      "code": "4.1.1",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.1.1 try again later"
+    }
+  },
+  {
+    "name": "4.1.2",
+    "raw": {
+      "code": "4.1.2",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.1.2 try again later"
+    }
+  },
+  {
+    "name": "4.1.3",
+    "raw": {
+      "code": "4.1.3",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.1.3 try again later"
+    }
+  },
+  {
+    "name": "4.1.4",
+    "raw": {
+      "code": "4.1.4",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.1.4 try again later"
+    }
+  },
+  {
+    "name": "4.1.5",
+    "raw": {
+      "code": "4.1.5",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.1.5 try again later"
+    }
+  },
+  {
+    "name": "4.1.6",
+    "raw": {
+      "code": "4.1.6",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.1.6 try again later"
+    }
+  },
+  {
+    "name": "4.1.7",
+    "raw": {
+      "code": "4.1.7",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.1.7 try again later"
+    }
+  },
+  {
+    "name": "4.1.8",
+    "raw": {
+      "code": "4.1.8",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.1.8 try again later"
+    }
+  },
+  {
+    "name": "4.2.0",
+    "raw": {
+      "code": "4.2.0",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.2.0 try again later"
+    }
+  },
+  {
+    "name": "4.2.1",
+    "raw": {
+      "code": "4.2.1",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.2.1 try again later"
+    }
+  },
+  {
+    "name": "4.2.2",
+    "raw": {
+      "code": "4.2.2",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.2.2 try again later"
+    }
+  },
+  {
+    "name": "4.2.3",
+    "raw": {
+      "code": "4.2.3",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.2.3 try again later"
+    }
+  },
+  {
+    "name": "4.2.4",
+    "raw": {
+      "code": "4.2.4",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.2.4 try again later"
+    }
+  },
+  {
+    "name": "4.3.0",
+    "raw": {
+      "code": "4.3.0",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.3.0 try again later"
+    }
+  },
+  {
+    "name": "4.3.1",
+    "raw": {
+      "code": "4.3.1",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.3.1 try again later"
+    }
+  },
+  {
+    "name": "4.3.2",
+    "raw": {
+      "code": "4.3.2",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.3.2 try again later"
+    }
+  },
+  {
+    "name": "4.3.3",
+    "raw": {
+      "code": "4.3.3",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.3.3 try again later"
+    }
+  },
+  {
+    "name": "4.3.4",
+    "raw": {
+      "code": "4.3.4",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.3.4 try again later"
+    }
+  },
+  {
+    "name": "4.3.5",
+    "raw": {
+      "code": "4.3.5",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.3.5 try again later"
+    }
+  },
+  {
+    "name": "4.4.0",
+    "raw": {
+      "code": "4.4.0",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.4.0 try again later"
+    }
+  },
+  {
+    "name": "4.4.1",
+    "raw": {
+      "code": "4.4.1",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.4.1 try again later"
+    }
+  },
+  {
+    "name": "4.4.2",
+    "raw": {
+      "code": "4.4.2",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.4.2 try again later"
+    }
+  },
+  {
+    "name": "4.4.3",
+    "raw": {
+      "code": "4.4.3",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.4.3 try again later"
+    }
+  },
+  {
+    "name": "4.4.4",
+    "raw": {
+      "code": "4.4.4",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.4.4 try again later"
+    }
+  },
+  {
+    "name": "4.4.5",
+    "raw": {
+      "code": "4.4.5",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.4.5 try again later"
+    }
+  },
+  {
+    "name": "4.4.6",
+    "raw": {
+      "code": "4.4.6",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.4.6 try again later"
+    }
+  },
+  {
+    "name": "4.4.7",
+    "raw": {
+      "code": "4.4.7",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.4.7 try again later"
+    }
+  },
+  {
+    "name": "4.5.0",
+    "raw": {
+      "code": "4.5.0",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.5.0 try again later"
+    }
+  },
+  {
+    "name": "4.5.1",
+    "raw": {
+      "code": "4.5.1",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.5.1 try again later"
+    }
+  },
+  {
+    "name": "4.5.2",
+    "raw": {
+      "code": "4.5.2",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.5.2 try again later"
+    }
+  },
+  {
+    "name": "4.5.3",
+    "raw": {
+      "code": "4.5.3",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.5.3 try again later"
+    }
+  },
+  {
+    "name": "4.5.4",
+    "raw": {
+      "code": "4.5.4",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.5.4 try again later"
+    }
+  },
+  {
+    "name": "4.5.5",
+    "raw": {
+      "code": "4.5.5",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.5.5 try again later"
+    }
+  },
+  {
+    "name": "4.6.0",
+    "raw": {
+      "code": "4.6.0",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.6.0 try again later"
+    }
+  },
+  {
+    "name": "4.6.1",
+    "raw": {
+      "code": "4.6.1",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.6.1 try again later"
+    }
+  },
+  {
+    "name": "4.6.2",
+    "raw": {
+      "code": "4.6.2",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.6.2 try again later"
+    }
+  },
+  {
+    "name": "4.6.3",
+    "raw": {
+      "code": "4.6.3",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.6.3 try again later"
+    }
+  },
+  {
+    "name": "4.6.4",
+    "raw": {
+      "code": "4.6.4",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.6.4 try again later"
+    }
+  },
+  {
+    "name": "4.7.0",
+    "raw": {
+      "code": "4.7.0",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.7.0 try again later"
+    }
+  },
+  {
+    "name": "4.7.1",
+    "raw": {
+      "code": "4.7.1",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.7.1 try again later"
+    }
+  },
+  {
+    "name": "4.7.2",
+    "raw": {
+      "code": "4.7.2",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.7.2 try again later"
+    }
+  },
+  {
+    "name": "4.7.3",
+    "raw": {
+      "code": "4.7.3",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.7.3 try again later"
+    }
+  },
+  {
+    "name": "4.7.4",
+    "raw": {
+      "code": "4.7.4",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.7.4 try again later"
+    }
+  },
+  {
+    "name": "4.7.5",
+    "raw": {
+      "code": "4.7.5",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.7.5 try again later"
+    }
+  },
+  {
+    "name": "4.7.6",
+    "raw": {
+      "code": "4.7.6",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.7.6 try again later"
+    }
+  },
+  {
+    "name": "4.7.7",
+    "raw": {
+      "code": "4.7.7",
+      "status": 451,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "451 4.7.7 try again later"
+    }
+  },
+  {
+    "name": "5.6.0",
+    "raw": {
+      "code": "5.6.0",
+      "status": 554,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "554 5.6.0 content refused"
+    }
+  },
+  {
+    "name": "5.6.1",
+    "raw": {
+      "code": "5.6.1",
+      "status": 554,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "554 5.6.1 content refused"
+    }
+  },
+  {
+    "name": "5.6.2",
+    "raw": {
+      "code": "5.6.2",
+      "status": 554,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "554 5.6.2 content refused"
+    }
+  },
+  {
+    "name": "5.6.3",
+    "raw": {
+      "code": "5.6.3",
+      "status": 554,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "554 5.6.3 content refused"
+    }
+  },
+  {
+    "name": "5.6.4",
+    "raw": {
+      "code": "5.6.4",
+      "status": 554,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "554 5.6.4 content refused"
+    }
+  },
+  {
+    "name": "5.7.0",
+    "raw": {
+      "code": "5.7.0",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.0 policy refusal"
+    }
+  },
+  {
+    "name": "5.7.2",
+    "raw": {
+      "code": "5.7.2",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.2 policy refusal"
+    }
+  },
+  {
+    "name": "5.7.3",
+    "raw": {
+      "code": "5.7.3",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.3 policy refusal"
+    }
+  },
+  {
+    "name": "5.7.4",
+    "raw": {
+      "code": "5.7.4",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.4 policy refusal"
+    }
+  },
+  {
+    "name": "5.7.5",
+    "raw": {
+      "code": "5.7.5",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.5 policy refusal"
+    }
+  },
+  {
+    "name": "5.7.6",
+    "raw": {
+      "code": "5.7.6",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.6 policy refusal"
+    }
+  },
+  {
+    "name": "5.7.7",
+    "raw": {
+      "code": "5.7.7",
+      "status": 550,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "reply": "550 5.7.7 policy refusal"
+    }
+  }
+]

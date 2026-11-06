@@ -19,6 +19,9 @@ defmodule Relay.Channels do
   alias Relay.Channels.Outcome
   alias Relay.Channels.Pricing
   alias Relay.Channels.Push.CriticalGrant
+  alias Relay.Channels.Push.Policy
+  alias Relay.Channels.Push.Priority
+  alias Relay.Channels.Push.Tokens
   alias Relay.Channels.Registry
   alias Relay.Channels.Request
   alias Relay.Channels.Routing
@@ -35,9 +38,33 @@ defmodule Relay.Channels do
   @type digest :: <<_::256>>
   @type result(value) :: {:ok, value} | {:error, term()}
 
-  @doc "Supervised children: the owners of the circuit breaker table and the adaptive throttle table."
+  @doc "Supervised children: the owners of the circuit breaker table and the adaptive throttle table, and the holder of the push provider tokens."
   @spec children() :: [Supervisor.child_spec()]
-  def children, do: [Supervisor.child_spec(Breaker, []), Supervisor.child_spec(Throttle, [])]
+  def children,
+    do: [
+      Supervisor.child_spec(Breaker, []),
+      Supervisor.child_spec(Throttle, []),
+      Supervisor.child_spec(Tokens, [])
+    ]
+
+  # CH-19
+  # OP-65 (4)
+  @doc "Builds the `push_priority_map` snapshot from the content of its active version; see `Relay.Channels.Push.Priority.new/2`."
+  @spec push_priority(map(), Relay.Id.t()) :: Priority.t()
+  defdelegate push_priority(content, version_id), to: Priority, as: :new
+
+  @doc "The name of the push priority data set."
+  @spec push_priority_dataset() :: String.t()
+  defdelegate push_priority_dataset(), to: Priority, as: :dataset
+
+  # CH-19
+  # CH-23
+  # CH-33
+  # CH-65
+  # CH-67
+  @doc "Decides the push policy of a delivery; see `Relay.Channels.Push.Policy.decide/2`."
+  @spec push_policy(Priority.t(), Policy.facts()) :: {:ok, Policy.t()} | {:error, Relay.Error.t()}
+  defdelegate push_policy(table, facts), to: Policy, as: :decide
 
   # T-25
   # INV-40

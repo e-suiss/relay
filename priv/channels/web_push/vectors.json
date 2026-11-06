@@ -1,0 +1,288 @@
+[
+  {
+    "name": "400",
+    "raw": {
+      "code": "400",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": ""
+    }
+  },
+  {
+    "name": "401",
+    "raw": {
+      "code": "401",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": ""
+    }
+  },
+  {
+    "name": "403",
+    "raw": {
+      "code": "403",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": ""
+    }
+  },
+  {
+    "name": "404",
+    "raw": {
+      "code": "404",
+      "status": 404,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": "unregistered",
+      "event_code": "unregistered",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 404,
+      "body": ""
+    }
+  },
+  {
+    "name": "410",
+    "raw": {
+      "code": "410",
+      "status": 410,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": "unregistered",
+      "event_code": "unregistered",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 410,
+      "body": ""
+    }
+  },
+  {
+    "name": "413",
+    "raw": {
+      "code": "413",
+      "status": 413,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 413,
+      "body": ""
+    }
+  },
+  {
+    "name": "429",
+    "raw": {
+      "code": "429",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "rate_limited",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "body": ""
+    }
+  },
+  {
+    "name": "500",
+    "raw": {
+      "code": "500",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": ""
+    }
+  },
+  {
+    "name": "502",
+    "raw": {
+      "code": "502",
+      "status": 502,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 502,
+      "body": ""
+    }
+  },
+  {
+    "name": "503",
+    "raw": {
+      "code": "503",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": ""
+    }
+  },
+  {
+    "name": "504",
+    "raw": {
+      "code": "504",
+      "status": 504,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 504,
+      "body": ""
+    }
+  },
+  {
+    "name": "unmapped 418",
+    "raw": {
+      "code": "418",
+      "status": 418,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 418,
+      "body": ""
+    }
+  },
+  {
+    "name": "relay:content_forbidden",
+    "raw": {
+      "code": "relay:content_forbidden",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "relay:invalid_request",
+    "raw": {
+      "code": "relay:invalid_request",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "relay:not_configured",
+    "raw": {
+      "code": "relay:not_configured",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "relay:payload_too_large",
+    "raw": {
+      "code": "relay:payload_too_large",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "relay:silent_not_supported",
+    "raw": {
+      "code": "relay:silent_not_supported",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  }
+]

@@ -1,4 +1,4 @@
-defmodule Relay.Ingest.TestRecipients do
+defmodule Relay.Ingest.TestRecipients.Store do
   @moduledoc """
   Data access of the test recipient list and the test send quota (API-61). A test recipient is a subscriber, or one of its devices, that the tenant adds as `pending` and that becomes `verified` only when the subscriber confirms it with its own subscriber token within the verification window; a pending entry whose window has passed is `expired` and no longer counts. The list holds at most the contract's `test_send.max_test_recipients` pending and verified entries. A removed entry, and every entry of an erased subscriber, is kept as `removed`; rows are never deleted. Test sends count against their own daily counter, never against the sending quota. Every function runs inside `Relay.Repo.in_scope/3`.
   """

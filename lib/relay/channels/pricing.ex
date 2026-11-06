@@ -45,7 +45,9 @@ defmodule Relay.Channels.Pricing do
   # CH-18
   @doc "The cost of `quantity` units at a price, in micros of its currency."
   @spec cost(price(), non_neg_integer()) :: non_neg_integer()
-  def cost(%{unit_price_micros: micros}, quantity), do: micros * quantity
+  def cost(%{unit_price_micros: micros}, quantity)
+      when is_integer(micros) and is_integer(quantity),
+      do: micros * quantity
 
   defp applies?(row, channel, country, category, volume) do
     row["channel"] == channel and row["country"] in [nil, country] and

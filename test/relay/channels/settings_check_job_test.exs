@@ -45,7 +45,7 @@ defmodule Relay.Channels.SettingsCheckJobTest do
           channel: "email",
           provider: provider,
           ownership: "tenant",
-          credential_ref_id: credential!(scope, %{"server_token" => "pm-token"}),
+          credential_ref_id: credential!(scope, %{"server_token" => TenantFixture.random()}),
           role: "primary",
           priority: 0,
           in_installation: true,

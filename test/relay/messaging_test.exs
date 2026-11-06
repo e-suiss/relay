@@ -1,9 +1,9 @@
 defmodule Relay.MessagingTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Datasets
   alias Relay.Messaging
   alias Relay.Messaging.Install
-  alias Relay.Datasets
   alias Relay.Repo
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture

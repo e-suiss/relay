@@ -486,6 +486,18 @@
       "personal_columns": [],
       "tenant_close": "row kept",
       "subject_erasure": "not subject data"
+    },
+    {
+      "table": "test_recipients",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers only",
+      "subject_erasure": "identifiers only; the subject's entries become removed when the subscriber is erased; row kept"
+    },
+    {
+      "table": "test_send_counters",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
     }
   ],
   "locations": [

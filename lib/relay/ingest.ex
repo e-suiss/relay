@@ -13,6 +13,7 @@ defmodule Relay.Ingest do
   alias Relay.Ingest.Request
   alias Relay.Ingest.SendMode
   alias Relay.Ingest.Store
+  alias Relay.Ingest.TestRecipients.Store, as: TestRecipients
 
   @type actor :: Relay.Actor.t()
   @type reason :: String.t() | nil
@@ -280,4 +281,50 @@ defmodule Relay.Ingest do
   @doc "Reads the value at a JSON Pointer; see `Relay.Ingest.Pointer.get/2`."
   @spec pointer_get(term(), String.t()) :: {:ok, term()} | :error
   defdelegate pointer_get(document, pointer), to: Pointer, as: :get
+
+  # API-61
+  @doc "Adds a pending test recipient; see `Relay.Ingest.TestRecipients.Store.add/6`."
+  @spec test_recipient_add(
+          Relay.Id.t(),
+          Relay.Id.t() | nil,
+          pos_integer(),
+          pos_integer(),
+          binary(),
+          actor()
+        ) :: {atom(), Relay.Id.t() | nil}
+  defdelegate test_recipient_add(recipient_id, device_id, limit, window_s, digest, actor),
+    to: TestRecipients,
+    as: :add
+
+  # API-61
+  @doc "Confirms a pending test recipient; see `Relay.Ingest.TestRecipients.Store.confirm/4`."
+  @spec test_recipient_confirm(Relay.Id.t(), Relay.Id.t(), binary(), actor()) :: atom()
+  defdelegate test_recipient_confirm(id, recipient_id, digest, actor),
+    to: TestRecipients,
+    as: :confirm
+
+  # API-61
+  @doc "Removes a test recipient; see `Relay.Ingest.TestRecipients.Store.remove/3`."
+  @spec test_recipient_remove(Relay.Id.t(), binary(), actor()) :: atom()
+  defdelegate test_recipient_remove(id, digest, actor), to: TestRecipients, as: :remove
+
+  # API-61
+  @doc "Reads a test recipient; see `Relay.Ingest.TestRecipients.Store.get/1`."
+  @spec test_recipient(Relay.Id.t()) :: map() | nil
+  defdelegate test_recipient(id), to: TestRecipients, as: :get
+
+  # API-61
+  @doc "The pending and verified test recipients; see `Relay.Ingest.TestRecipients.Store.listed/1`."
+  @spec test_recipients(Relay.Id.t() | nil) :: [map()]
+  defdelegate test_recipients(recipient_id), to: TestRecipients, as: :listed
+
+  # API-61
+  @doc "The verified test recipients among `ids`; see `Relay.Ingest.TestRecipients.Store.verified/1`."
+  @spec verified_test_recipients([Relay.Id.t()]) :: [map()]
+  defdelegate verified_test_recipients(ids), to: TestRecipients, as: :verified
+
+  # API-61
+  @doc "Consumes the test send quota; see `Relay.Ingest.TestRecipients.Store.consume/2`."
+  @spec test_send_consume(pos_integer(), non_neg_integer()) :: {atom(), non_neg_integer()}
+  defdelegate test_send_consume(count, limit), to: TestRecipients, as: :consume
 end

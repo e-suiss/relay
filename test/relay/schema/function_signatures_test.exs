@@ -54,6 +54,7 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.dead_letter_close" => ~w(closed not_open not_found),
     "relay_fn.dead_letter_replay_finish" => ~w(replayed not_replaying not_found),
     "relay_fn.attempt_start" => ~w(started not_pending not_found),
+    "relay_fn.attempt_meter" => ~w(metered not_found),
     "relay_fn.attempt_finish" => ~w(applied duplicate_ignored already_terminal not_found),
     "relay_fn.ledger_append" =>
       ~w(applied duplicate_ignored stale_ignored conflict_flagged delivery_not_found attempt_not_found rejected_future_timestamp),

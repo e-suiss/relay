@@ -106,6 +106,13 @@ defmodule Relay.Delivery do
   def start_attempt(scope, delivery_id, attempt_no),
     do: Store.in_scope(scope, fn _status -> Store.attempt_start(delivery_id, attempt_no) end)
 
+  # OP-38
+  @doc "Records the usage dimensions of a started attempt (`destination_country`, `sms_segments`) for the daily usage records."
+  @spec meter_attempt(Scope.t(), Relay.Id.t(), pos_integer(), map()) :: result(atom())
+  def meter_attempt(scope, delivery_id, attempt_no, meter) do
+    Store.in_scope(scope, fn _status -> Store.attempt_meter(delivery_id, attempt_no, meter) end)
+  end
+
   # T-29
   @doc "Finishes an attempt; a succeeded attempt of a replay marks its dead letter replayed."
   @spec finish_attempt(Scope.t(), map()) :: result({atom(), atom() | nil})
@@ -500,7 +507,7 @@ defmodule Relay.Delivery do
   # OP-38
   # T-87
   @doc "Writes the usage records of a closed UTC day for every scope; see `Relay.Delivery.Usage.Store.close_day/1`."
-  @spec close_usage_day(Date.t()) :: Relay.Delivery.Usage.Store.counts()
+  @spec close_usage_day(Date.t()) :: Relay.Delivery.Usage.Store.counts() | {:error, term()}
   defdelegate close_usage_day(day), to: Relay.Delivery.Usage.Store, as: :close_day
 
   # INV-49

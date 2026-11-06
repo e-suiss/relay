@@ -3,6 +3,7 @@ defmodule RelayWeb.Endpoint do
 
   alias Relay.Config.SecretFiles
   alias Relay.Redacted
+  alias RelayWeb.Api.Transport
 
   @secret_key_base_min_bytes 64
 
@@ -41,6 +42,7 @@ defmodule RelayWeb.Endpoint do
     websocket: [connect_info: [session: {RelayWeb.Operator.Panel, :session_options, []}]],
     longpoll: false
 
+  plug :forward
   plug Plug.Static, at: "/", from: :relay, gzip: false, only: RelayWeb.static_paths()
 
   if code_reloading? do
@@ -53,4 +55,7 @@ defmodule RelayWeb.Endpoint do
 
   plug Plug.Head
   plug RelayWeb.Router
+
+  # E-91
+  defp forward(conn, _opts), do: Transport.forward(conn)
 end

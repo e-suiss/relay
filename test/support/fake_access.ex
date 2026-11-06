@@ -1,8 +1,8 @@
 defmodule RelayTest.FakeAccess do
   @moduledoc """
-  A fake Access for tests, served to the link's HTTP client as a `Req` plug (`config :relay, Relay.Access, http: [plug: {RelayTest.FakeAccess, []}]`); nothing reaches the network. It publishes a discovery document, an AuthZEN configuration and a key set with one ES256 key (`fake-es256`, tokens) and one Ed25519 key (`fake-ed25519`, webhooks), issues tokens and signs event deliveries with the shared Suiss webhook profile.
+  A fake Access for tests, served to the link's HTTP client as a `Req` plug (`config :relay, Relay.Access, http: [plug: {RelayTest.FakeAccess, []}]`); nothing reaches the network. It publishes an OpenID discovery document, a Suiss configuration, an AuthZEN configuration and a key set with one ES256 key (`fake-es256`, tokens) and one Ed25519 key (`fake-ed25519`, webhooks), issues tokens and signs event deliveries with the shared Suiss webhook profile.
 
-  Plug options: `region:` overrides `suiss_region` (the installation region by default), `down: true` answers every request with 503, `keys: :private` publishes a key set with private members.
+  Plug options: `region:` overrides `suiss_region` of the Suiss configuration (the installation region by default), `openid:` merges members into the OpenID document, `suiss: :missing` answers the Suiss configuration with 404, `down: true` answers every request with 503, `keys: :private` publishes a key set with private members.
   """
 
   use Boundary,
@@ -25,9 +25,9 @@ defmodule RelayTest.FakeAccess do
   @spec issuer() :: String.t()
   def issuer, do: @issuer
 
-  @doc "The discovery document for a region."
-  @spec discovery(String.t()) :: map()
-  def discovery(region) do
+  @doc "The OpenID discovery document."
+  @spec discovery() :: map()
+  def discovery do
     %{
       "issuer" => @issuer,
       "jwks_uri" => @issuer <> "/jwks",
@@ -35,10 +35,25 @@ defmodule RelayTest.FakeAccess do
       "grant_types_supported" => [
         "client_credentials",
         "urn:ietf:params:oauth:grant-type:token-exchange"
-      ],
+      ]
+    }
+  end
+
+  @doc "The Suiss configuration for a region, in the shape of Access OP-149 item 3."
+  @spec suiss(String.t()) :: map()
+  def suiss(region) do
+    %{
+      "suiss_configuration_version" => 1,
+      "issuer" => @issuer,
       "suiss_region" => region,
+      "suiss_relay" => "https://relay.test",
       "suiss_management_api" => @issuer <> "/management",
-      "suiss_event_subscriptions" => @issuer <> "/event-subscriptions"
+      "suiss_event_subscriptions" => %{
+        "ssf_configuration" => @issuer <> "/.well-known/ssf-configuration",
+        "webhooks" => "urn:suiss:access:delivery:webhook"
+      },
+      "suiss_products" => %{},
+      "endpoints" => %{}
     }
   end
 
@@ -76,26 +91,30 @@ defmodule RelayTest.FakeAccess do
 
   @impl Plug
   def call(conn, opts) do
-    cond do
-      Keyword.get(opts, :down, false) ->
-        send_resp(conn, 503, "unavailable")
-
-      conn.request_path == "/.well-known/openid-configuration" ->
-        json(conn, discovery(Keyword.get_lazy(opts, :region, &installation_region/0)))
-
-      conn.request_path == "/.well-known/authzen-configuration" ->
-        json(conn, %{"policy_decision_point" => @issuer})
-
-      conn.request_path == "/jwks" and Keyword.get(opts, :keys) == :private ->
-        json(conn, %{"keys" => [Map.put(hd(jwks()["keys"]), "d", b64("secret"))]})
-
-      conn.request_path == "/jwks" ->
-        json(conn, jwks())
-
-      true ->
-        send_resp(conn, 404, "")
-    end
+    if Keyword.get(opts, :down, false),
+      do: send_resp(conn, 503, "unavailable"),
+      else: serve(conn, conn.request_path, opts)
   end
+
+  defp serve(conn, "/.well-known/openid-configuration", opts),
+    do: json(conn, Map.merge(discovery(), Keyword.get(opts, :openid, %{})))
+
+  defp serve(conn, "/.well-known/suiss-configuration", opts) do
+    if Keyword.get(opts, :suiss) == :missing,
+      do: send_resp(conn, 404, ""),
+      else: json(conn, suiss(Keyword.get_lazy(opts, :region, &installation_region/0)))
+  end
+
+  defp serve(conn, "/.well-known/authzen-configuration", _opts),
+    do: json(conn, %{"policy_decision_point" => @issuer})
+
+  defp serve(conn, "/jwks", opts) do
+    if Keyword.get(opts, :keys) == :private,
+      do: json(conn, %{"keys" => [Map.put(hd(jwks()["keys"]), "d", b64("secret"))]}),
+      else: json(conn, jwks())
+  end
+
+  defp serve(conn, _path, _opts), do: send_resp(conn, 404, "")
 
   defp json(conn, body) do
     conn

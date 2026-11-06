@@ -5,7 +5,7 @@ defmodule Relay.Delivery.RetryPolicy do
   - A permanent class is never retried (INV-14): `permanent_target`, `permanent_content` and `sender_config` go to the dead letters as `permanent`; `policy` fails the delivery with a rule and no dead letter.
   - An attempt with an uncertain outcome is not retried blindly (T-28): it is retried only when the channel's ambiguity decision allows it (`uncertain: :retry`, `Relay.Channels.Ambiguity`), with the attempt's provider idempotency key, through the backoff row of its class.
   - Otherwise the backoff row decides. Without a row no retry is planned and the delivery goes to the dead letters as `exhausted` (CH-70). After `max_attempts` attempts the delivery is `exhausted`.
-  - The wait is full-jitter exponential backoff from the deterministic jitter (`Relay.Jitter.backoff/6`). A provider `Retry-After` is always honoured and never shortened by local backoff: the wait is the larger of the backoff and `Retry-After` plus 0–20 % (CH-9).
+  - The wait is full-jitter exponential backoff from the deterministic jitter (`Relay.Jitter.backoff/6`). A provider `Retry-After` is always honoured and never shortened by local backoff: the wait is the larger of the backoff and `Retry-After` plus 0–20 % (CH-9). A `retry_after` row waits the provider's `Retry-After`, or its `default_retry_after_ms` when the answer has none; a `retry_after` row that also has `base_ms` and `cap_ms` backs off between them as an exponential row does, so repeated rate limits wait longer up to the cap (CH-85).
   - A retry whose deterministic start is at or after the message's `expires_at` is not planned; the delivery expires (CH-12).
   - A retry the budget denies goes to the dead letters as `budget_denied` (T-27).
   - A planned retry runs at a lower priority: 2 for the second and third attempt, 8 from the fourth (T-36).
@@ -110,7 +110,7 @@ defmodule Relay.Delivery.RetryPolicy do
     n = input.attempt_no
 
     local =
-      if row["mode"] == "exponential",
+      if exponential?(row),
         do:
           Relay.Jitter.backoff(
             input.tenant_id,
@@ -140,6 +140,14 @@ defmodule Relay.Delivery.RetryPolicy do
         ),
       else: local
   end
+
+  # CH-85
+  defp exponential?(%{"mode" => "exponential"}), do: true
+
+  defp exponential?(%{"mode" => "retry_after", "base_ms" => base, "cap_ms" => cap}),
+    do: is_integer(base) and is_integer(cap)
+
+  defp exponential?(_row), do: false
 
   # T-36
   @doc "The job priority of an attempt: 2 for the second and third attempt, 8 from the fourth."

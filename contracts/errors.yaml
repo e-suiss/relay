@@ -1660,3 +1660,73 @@ codes:
     description: No WhatsApp template with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404.
     type: "{base_url}/v1/errors/whatsapp_template_not_found"
     choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: sender_identity_not_found
+    family: resource
+    status: 404
+    title: Sender identity not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No sender identity with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/sender_identity_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: provider_account_archived
+    family: channel
+    status: 409
+    title: Provider account is archived
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The provider account is archived; it receives no traffic and can no longer be changed. The row stays; a new account takes its place."
+    type: "{base_url}/v1/errors/provider_account_archived"
+    choice_note: "Code name and status chosen by the contract (C-45)."
+  - code: provider_account_shared
+    family: channel
+    status: 409
+    title: Provider account is shared
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The provider account uses the installation's shared credential; only a tenant-owned account carries a credential reference that can be rotated."
+    type: "{base_url}/v1/errors/provider_account_shared"
+    choice_note: "Code name and status chosen by the contract (TN-26)."
+  - code: sender_identity_archived
+    family: channel
+    status: 409
+    title: Sender identity is archived
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The sender identity is archived and can no longer be changed, reviewed or used. The row stays; a new identity takes its place."
+    type: "{base_url}/v1/errors/sender_identity_archived"
+    choice_note: "Code name and status chosen by the contract (C-25)."
+  - code: channel_identity_retired
+    family: channel
+    status: 409
+    title: Channel identity is retired
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The channel identity is retired and can no longer be changed or used. The row stays; a new identity takes its place."
+    type: "{base_url}/v1/errors/channel_identity_retired"
+    choice_note: "Code name and status chosen by the contract (C-26)."

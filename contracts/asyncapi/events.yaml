@@ -313,14 +313,20 @@ channels:
         "$ref": "#/components/messages/audit.provider_account.verified"
       audit.provider_account.credential_rotated:
         "$ref": "#/components/messages/audit.provider_account.credential_rotated"
+      audit.provider_account.archived:
+        "$ref": "#/components/messages/audit.provider_account.archived"
       audit.sender_identity.changed:
         "$ref": "#/components/messages/audit.sender_identity.changed"
       audit.sender_identity.suspended:
         "$ref": "#/components/messages/audit.sender_identity.suspended"
       audit.sender_identity.resumed:
         "$ref": "#/components/messages/audit.sender_identity.resumed"
+      audit.sender_identity.archived:
+        "$ref": "#/components/messages/audit.sender_identity.archived"
       audit.channel_identity.changed:
         "$ref": "#/components/messages/audit.channel_identity.changed"
+      audit.channel_identity.retired:
+        "$ref": "#/components/messages/audit.channel_identity.retired"
       audit.push_critical.changed:
         "$ref": "#/components/messages/audit.push_critical.changed"
       audit.push_critical.used:
@@ -527,10 +533,13 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.provider_account.changed"
       - "$ref": "#/channels/auditLog/messages/audit.provider_account.verified"
       - "$ref": "#/channels/auditLog/messages/audit.provider_account.credential_rotated"
+      - "$ref": "#/channels/auditLog/messages/audit.provider_account.archived"
       - "$ref": "#/channels/auditLog/messages/audit.sender_identity.changed"
       - "$ref": "#/channels/auditLog/messages/audit.sender_identity.suspended"
       - "$ref": "#/channels/auditLog/messages/audit.sender_identity.resumed"
+      - "$ref": "#/channels/auditLog/messages/audit.sender_identity.archived"
       - "$ref": "#/channels/auditLog/messages/audit.channel_identity.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.channel_identity.retired"
       - "$ref": "#/channels/auditLog/messages/audit.push_critical.changed"
       - "$ref": "#/channels/auditLog/messages/audit.push_critical.used"
       - "$ref": "#/channels/auditLog/messages/audit.push_priority.threshold_reached"
@@ -2598,6 +2607,60 @@ components:
                   additionalProperties: false
       x-relay-surface: realtime
       x-relay-stage: 9
+    audit.channel_identity.retired:
+      name: channel_identity.retired
+      title: channel_identity.retired
+      summary: "A channel identity was retired; its row stays."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: channel_identity
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.sender_identity.archived:
+      name: sender_identity.archived
+      title: sender_identity.archived
+      summary: "A sender identity was archived; it is no longer used and its row stays."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: sender_identity
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.provider_account.archived:
+      name: provider_account.archived
+      title: provider_account.archived
+      summary: "A provider account was archived; it no longer receives traffic and its row stays."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: provider_account
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.killswitch.bulk_cancelled:
       name: killswitch.bulk_cancelled
       title: killswitch.bulk_cancelled
@@ -5573,6 +5636,7 @@ x-relay-event-names:
   - category_subtenant_setting.changed
   - channel_adapter.deprecated
   - channel_identity.changed
+  - channel_identity.retired
   - consent.updated
   - cross_tenant.queried
   - dataset.activated
@@ -5629,6 +5693,7 @@ x-relay-event-names:
   - partition_policy.updated
   - pii.revealed
   - provider.unknown_code
+  - provider_account.archived
   - provider_account.changed
   - provider_account.credential_rotated
   - provider_account.verified
@@ -5643,6 +5708,7 @@ x-relay-event-names:
   - secret_ref.registered
   - secret_ref.retired
   - send_mode.changed
+  - sender_identity.archived
   - sender_identity.changed
   - sender_identity.resumed
   - sender_identity.suspended

@@ -7237,3 +7237,110 @@ SecretRef:
   minLength: 4
   maxLength: 512
   writeOnly: true
+Id_trc:
+  type: string
+  description: "Test recipient identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^trc_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - trc_01j9zq3k4m5n6p7q8r9s0t1v2w
+TestRecipientState:
+  type: string
+  description: "pending until the subscriber confirms it with its own subscriber token within the verification window; verified once confirmed; expired when the window passed unconfirmed; removed once removed or when the subscriber is erased."
+  enum:
+    - pending
+    - verified
+    - expired
+    - removed
+TestRecipient:
+  type: object
+  description: "A person or one of their devices on the tenant's test recipient list. Only a verified entry receives test sends; pending and verified entries count toward the list limit."
+  required:
+    - object
+    - id
+    - subscriber_id
+    - device_id
+    - state
+    - verify_by
+    - verified_at
+    - removed_at
+    - created_at
+  properties:
+    object:
+      type: string
+      const: test_recipient
+    id:
+      "$ref": "#/Id_trc"
+    subscriber_id:
+      description: "External id of the subscriber; null once the subscriber is erased."
+      oneOf:
+        - "$ref": "#/ExternalId"
+        - type: "null"
+    device_id:
+      description: "The one device a device entry reaches on push and Web Push; null for a person entry."
+      oneOf:
+        - "$ref": "#/Id_dev"
+        - type: "null"
+    state:
+      "$ref": "#/TestRecipientState"
+    verify_by:
+      description: "End of the verification window of a pending entry."
+      "$ref": "#/Timestamp"
+    verified_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    removed_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+TestRecipientList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/TestRecipient"
+TestRecipientCreate:
+  type: object
+  description: "Adds a subscriber, or one of its devices, to the test recipient list as pending."
+  required:
+    - subscriber_id
+  properties:
+    subscriber_id:
+      "$ref": "#/ExternalId"
+    device_id:
+      "$ref": "#/Id_dev"
+  additionalProperties: false
+WorkflowTestRequest:
+  type: object
+  description: "A test send of the workflow's published version to verified test recipients."
+  required:
+    - to
+  properties:
+    to:
+      type: array
+      description: "Verified test recipients, 1 to 5."
+      items:
+        "$ref": "#/Id_trc"
+      minItems: 1
+      maxItems: 5
+      uniqueItems: true
+    data:
+      type: object
+      description: Event data, validated against the event schema of the published workflow version.
+    channels:
+      type: array
+      description: "Narrows the workflow's steps to these channels; never adds steps."
+      items:
+        "$ref": "#/Channel"
+      minItems: 1
+      uniqueItems: true
+    overrides:
+      "$ref": "#/Overrides"
+    metadata:
+      "$ref": "#/Metadata"
+  additionalProperties: false

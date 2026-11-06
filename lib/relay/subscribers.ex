@@ -259,6 +259,24 @@ defmodule Relay.Subscribers do
          do: {:ok, row && open(scope, row, "recipients", "external_id_ct")}
   end
 
+  # API-61
+  @doc "The external identifiers of the subscribers `ids` that are not deleted, by identifier; decrypts, so call it outside any transaction."
+  @spec external_ids(Scope.t(), [Relay.Id.t()]) ::
+          {:ok, %{Relay.Id.t() => String.t()}} | {:error, term()}
+  def external_ids(%Scope{} = scope, ids) when is_list(ids) do
+    with {:ok, rows} <- Store.in_scope(scope, fn _status -> Enum.map(ids, &Store.row/1) end) do
+      found =
+        for %{"id" => id, "state" => state} = row <- rows,
+            state != "deleted",
+            external_id = open(scope, row, "recipients", "external_id_ct"),
+            external_id != nil,
+            into: %{},
+            do: {id, external_id}
+
+      {:ok, found}
+    end
+  end
+
   # API-56
   @doc "Lists subscribers from a decoded cursor and describes them; at most `limit + 1` come back."
   @spec list(Scope.t(), map() | nil, pos_integer()) :: {:ok, [map()]} | {:error, term()}

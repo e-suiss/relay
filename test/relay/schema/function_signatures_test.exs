@@ -248,7 +248,12 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.whatsapp_template_edit" => ~w(recorded unchanged not_found),
     "relay_fn.provider_account_archive" => ~w(archived already_archived not_found),
     "relay_fn.sender_identity_archive" => ~w(archived already_archived not_found),
-    "relay_fn.channel_identity_retire" => ~w(retired already_retired not_found)
+    "relay_fn.channel_identity_retire" => ~w(retired already_retired not_found),
+    "relay_fn.test_recipient_add" =>
+      ~w(added exists limit_reached recipient_not_found device_not_found),
+    "relay_fn.test_recipient_confirm" => ~w(verified already_verified expired not_found),
+    "relay_fn.test_recipient_remove" => ~w(removed already_removed not_found),
+    "relay_fn.test_send_consume" => ~w(consumed exhausted)
   }
 
   defp functions do

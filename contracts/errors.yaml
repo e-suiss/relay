@@ -1730,3 +1730,32 @@ codes:
     description: "The channel identity is retired and can no longer be changed or used. The row stays; a new identity takes its place."
     type: "{base_url}/v1/errors/channel_identity_retired"
     choice_note: "Code name and status chosen by the contract (C-26)."
+  - code: test_recipient_not_found
+    family: resource
+    status: 404
+    title: Test recipient not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No test recipient with this identifier is on the list in this tenant and environment, or it is not the token's own. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/test_recipient_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: test_recipient_limit_reached
+    family: resource
+    status: 422
+    title: Test recipient limit reached
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - limit
+    choice: true
+    description: "The test recipient list already holds its limit of pending and verified entries (API-61). Remove an entry first."
+    type: "{base_url}/v1/errors/test_recipient_limit_reached"
+    choice_note: "Code name and status chosen by the contract (API-61)."

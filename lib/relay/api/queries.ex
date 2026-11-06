@@ -88,7 +88,8 @@ defmodule Relay.Api.Queries do
       {"created_after", :created_after, &time/1},
       {"created_before", :created_before, &time/1},
       {"workflow", :workflow, &key/1},
-      {"subscriber", :subscriber, &external_id/1}
+      {"subscriber", :subscriber, &external_id/1},
+      {"is_test", :is_test, &flag/1}
     ]
 
     {filters, errors} =
@@ -133,6 +134,10 @@ defmodule Relay.Api.Queries do
   end
 
   defp external_id(_value), do: :error
+
+  defp flag("true"), do: {:ok, true}
+  defp flag("false"), do: {:ok, false}
+  defp flag(_value), do: :error
 
   # API-21
   @doc "The blind indexes of external identifiers, outside any transaction."

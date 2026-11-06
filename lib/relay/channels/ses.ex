@@ -147,7 +147,7 @@ defmodule Relay.Channels.Ses do
   end
 
   # CH-47
-  @doc "Receives up to ten messages from the account's SQS queue, waiting at most 20 seconds; returns each message's `\"ReceiptHandle\"` and `\"Body\"`."
+  @doc ~s(Receives up to ten messages from the account's SQS queue, waiting at most 20 seconds; returns each message's `"ReceiptHandle"` and `"Body"`.)
   @spec receive_messages(map(), Relay.Redacted.t(), keyword()) ::
           {:ok, [map()]} | {:error, :configuration_invalid | :unavailable}
   def receive_messages(settings, credentials, opts \\ []) do
@@ -241,36 +241,24 @@ defmodule Relay.Channels.Ses do
   def events(message, id) when is_binary(message), do: message |> Esp.json() |> events(id)
 
   def events(%{} = message, id) do
-    type = message["eventType"] || message["notificationType"]
-    mail = if is_map(message["mail"]), do: message["mail"], else: %{}
-    base = base(mail, id)
-
-    case type do
-      "Bounce" ->
-        bounces(base, message["bounce"] || %{})
-
-      "Complaint" ->
-        complaints(base, message["complaint"] || %{})
-
-      "Delivery" ->
-        deliveries(base, message["delivery"] || %{})
-
-      "DeliveryDelay" ->
-        delays(base, message["deliveryDelay"] || %{})
-
-      "Reject" ->
-        [%{base | type: :rejected, code: "Reject"}]
-
-      engagement when engagement in ["Open", "Click", "Subscription"] ->
-        [%{base | type: :engagement, code: engagement}]
-
-      other when is_binary(other) ->
-        [%{base | code: other}]
-
-      _missing ->
-        [base]
-    end
+    mail = object(message["mail"])
+    typed(message["eventType"] || message["notificationType"], base(mail, id), message)
   end
+
+  defp typed("Bounce", base, message), do: bounces(base, object(message["bounce"]))
+  defp typed("Complaint", base, message), do: complaints(base, object(message["complaint"]))
+  defp typed("Delivery", base, message), do: deliveries(base, object(message["delivery"]))
+  defp typed("DeliveryDelay", base, message), do: delays(base, object(message["deliveryDelay"]))
+  defp typed("Reject", base, _message), do: [%{base | type: :rejected, code: "Reject"}]
+
+  defp typed(engagement, base, _message) when engagement in ["Open", "Click", "Subscription"],
+    do: [%{base | type: :engagement, code: engagement}]
+
+  defp typed(other, base, _message) when is_binary(other), do: [%{base | code: other}]
+  defp typed(_missing, base, _message), do: [base]
+
+  defp object(%{} = value), do: value
+  defp object(_value), do: %{}
 
   defp base(mail, id) do
     tags = if is_map(mail["tags"]), do: mail["tags"], else: %{}

@@ -139,33 +139,11 @@ defmodule Relay.Channels.Mailgun do
   def events(%{"event-data" => %{} = data}) do
     name = text(data["event"]) || "unknown"
     severity = text(data["severity"])
-    status = if is_map(data["delivery-status"]), do: data["delivery-status"], else: %{}
-    variables = if is_map(data["user-variables"]), do: data["user-variables"], else: %{}
+    status = object(data["delivery-status"])
+    variables = object(data["user-variables"])
     headers = get_in(data, ["message", "headers"]) || %{}
 
-    {type, code} =
-      case {name, severity} do
-        {"delivered", _severity} ->
-          {:delivered, "delivered"}
-
-        {"failed", "permanent"} ->
-          {:bounced, "failed:permanent"}
-
-        {"failed", "temporary"} ->
-          {:deferred, "failed:temporary"}
-
-        {"complained", _severity} ->
-          {:complained, "complained"}
-
-        {"rejected", _severity} ->
-          {:rejected, "rejected"}
-
-        {engagement, _severity} when engagement in ["opened", "clicked", "unsubscribed"] ->
-          {:engagement, engagement}
-
-        {other, _severity} ->
-          {:ignored, other}
-      end
+    {type, code} = kind(name, severity)
 
     [
       %Event{
@@ -188,6 +166,20 @@ defmodule Relay.Channels.Mailgun do
   end
 
   def events(_body), do: []
+
+  defp kind("delivered", _severity), do: {:delivered, "delivered"}
+  defp kind("failed", "permanent"), do: {:bounced, "failed:permanent"}
+  defp kind("failed", "temporary"), do: {:deferred, "failed:temporary"}
+  defp kind("complained", _severity), do: {:complained, "complained"}
+  defp kind("rejected", _severity), do: {:rejected, "rejected"}
+
+  defp kind(engagement, _severity) when engagement in ["opened", "clicked", "unsubscribed"],
+    do: {:engagement, engagement}
+
+  defp kind(other, _severity), do: {:ignored, other}
+
+  defp object(%{} = value), do: value
+  defp object(_value), do: %{}
 
   defp text(value) when is_binary(value) and value != "", do: value
   defp text(_value), do: nil

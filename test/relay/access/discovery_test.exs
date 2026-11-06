@@ -82,6 +82,7 @@ defmodule Relay.Access.DiscoveryTest do
       assert suiss.region == "tr"
       assert suiss.relay == "https://relay.test"
       assert suiss.event_subscriptions == issuer <> "/.well-known/ssf-configuration"
+      assert suiss.tenant_snapshot == issuer <> "/access/v1/tenants/{tenant}/snapshot"
 
       for bad <- [
             Map.put(document, "issuer", "https://other.test"),
@@ -91,7 +92,9 @@ defmodule Relay.Access.DiscoveryTest do
             Map.put(document, "suiss_event_subscriptions", issuer <> "/events"),
             Map.put(document, "suiss_event_subscriptions", %{
               "ssf_configuration" => "http://access.test/ssf"
-            })
+            }),
+            Map.put(document, "endpoints", %{"tenant_snapshot" => issuer <> "/tenants"}),
+            Map.put(document, "endpoints", %{"tenant_snapshot" => "http://access.test/{tenant}"})
           ] do
         assert {:error, %Relay.Error{code: :access_discovery_invalid}} =
                  Discovery.parse_suiss(bad, issuer)

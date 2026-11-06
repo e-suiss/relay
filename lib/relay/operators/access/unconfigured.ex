@@ -15,7 +15,8 @@ defmodule Relay.Operators.Access.Unconfigured do
     do: {:error, Access.unavailable("Access is not configured")}
 
   @impl Access
-  def verify_access_token(_token), do: {:error, Access.unavailable("Access is not configured")}
+  def verify_access_token(_token, _opts),
+    do: {:error, Access.unavailable("Access is not configured")}
 
   @impl Access
   def evaluate(_request), do: {:error, Access.unavailable("Access is not configured")}

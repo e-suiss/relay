@@ -2,7 +2,7 @@ defmodule Relay.Operators do
   @moduledoc """
   Operators of Relay: identity from Access, roles in Relay (TN-19 … TN-23, E-26, E-27, E-63, X-3).
 
-  Relay keeps no users or passwords. An operator signs in through Access OpenID Connect (authorization code with PKCE); on the first sign-in Relay creates the operator record, keyed by the Access subject, and opens a session whose cookie value is stored only as a digest. The first installation operator is the Access subject configured as `config :relay, Relay.Operators, bootstrap_subject: sub`, assigned on its first sign-in while the installation has never had an installation operator; emergency access is Access break-glass. The CLI authenticates with an Access access token whose audience is the operator API.
+  Relay keeps no users or passwords. An operator signs in through Access OpenID Connect (authorization code with PKCE); on the first sign-in Relay creates the operator record, keyed by the Access subject, and opens a session whose cookie value is stored only as a digest. The first installation operator is the Access subject configured as `config :relay, Relay.Operators, bootstrap_subject: sub`, assigned on its first sign-in while the installation has never had an installation operator; emergency access is Access break-glass. The CLI authenticates with a DPoP-bound Access access token whose audience is Relay's Access `client_id`, sent as `Authorization: DPoP` with a proof (E-98).
 
   Sensitive operations need a step-up that is at most five minutes old and bound to the session, at the `acr` the installation configures; when Access offers the AuthZEN decision API, Access decides too (`config :relay, Relay.Operators, authzen: :when_offered | :required | :off`). Access that cannot be reached means the operation is not performed (`auth_step_up_unavailable`). Every audit record of an operator action carries the operator's Access subject and the Access record of its step-up or session (TN-48, E-31).
 
@@ -235,10 +235,12 @@ defmodule Relay.Operators do
   end
 
   # TN-19
-  @doc "Resolves the CLI's Access access token into a session; the operator is created on first use."
-  @spec resolve_bearer(String.t()) :: {:ok, Session.t()} | {:error, Relay.Error.t()}
-  def resolve_bearer(token) when is_binary(token) do
-    with {:ok, claims} <- Access.verify_access_token(token),
+  # E-98
+  @doc "Resolves the CLI's DPoP-bound Access access token into a session; `opts` carry the request's proof, method and URL (`Relay.Operators.Access.verify_access_token/2`). The operator is created on first use."
+  @spec resolve_access_token(String.t(), keyword()) ::
+          {:ok, Session.t()} | {:error, Relay.Error.t()}
+  def resolve_access_token(token, opts) when is_binary(token) do
+    with {:ok, claims} <- Access.verify_access_token(token, opts),
          {:ok, subject} <- subject(claims) do
       case Store.ensure(Relay.Id.generate(), subject) do
         {_result, operator_id, "active"} ->

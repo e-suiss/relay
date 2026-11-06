@@ -32,8 +32,9 @@ defmodule Relay.Operators.Access do
               nonce :: String.t()
             ) :: {:ok, claims()} | {:error, Relay.Error.t()}
 
-  @doc "Validates an Access access token whose audience is the Relay operator API (the CLI)."
-  @callback verify_access_token(String.t()) :: {:ok, claims()} | {:error, Relay.Error.t()}
+  @doc "Validates the DPoP-bound Access access token of an operator (the CLI, E-98) with its proof: `aud` Relay's Access `client_id`; `opts` are `:proof`, `:method` and `:url` as in `Relay.Access.verify_access_token/2`."
+  @callback verify_access_token(String.t(), keyword()) ::
+              {:ok, claims()} | {:error, Relay.Error.t()}
 
   @doc "Asks the Access decision API (AuthZEN); `:not_offered` when Access offers no decision endpoint."
   @callback evaluate(evaluation()) ::
@@ -54,9 +55,10 @@ defmodule Relay.Operators.Access do
   def complete(code, verifier, redirect_uri, nonce),
     do: adapter().complete(code, verifier, redirect_uri, nonce)
 
-  @doc "See the `verify_access_token/1` callback."
-  @spec verify_access_token(String.t()) :: {:ok, claims()} | {:error, Relay.Error.t()}
-  def verify_access_token(token), do: adapter().verify_access_token(token)
+  # E-98
+  @doc "See the `verify_access_token/2` callback."
+  @spec verify_access_token(String.t(), keyword()) :: {:ok, claims()} | {:error, Relay.Error.t()}
+  def verify_access_token(token, opts), do: adapter().verify_access_token(token, opts)
 
   # E-27
   # TN-21

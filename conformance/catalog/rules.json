@@ -3017,6 +3017,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "E-96",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "E-97",
     "section": "§7",
     "status": "frozen_technical",
@@ -3025,7 +3033,23 @@
   },
   {
     "acceptance": "pending",
+    "id": "E-98",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "E-99",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-100",
     "section": "§7",
     "status": "frozen_technical",
     "title": "",

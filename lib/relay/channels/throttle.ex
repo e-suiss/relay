@@ -2,7 +2,7 @@ defmodule Relay.Channels.Throttle do
   @moduledoc """
   The adaptive throttle of the provider accounts (CH-17, §12.3.4), node local like the circuit breakers: a factor from 0.1 to 1 per account that scales the account layer of the provider limits (`Relay.Channels.Limits`). A 429 or throttling answer halves it, every success raises it by 0.05 (AIMD); an account never seen is at 1. The provider's `Retry-After` is applied by the retry plan on top of this and always wins.
 
-  The table is public: job processes update their own account's factor directly; two updates racing lose one step, which the next answer corrects.
+  The table is protected: job processes read it directly and send their answers to the owner, which applies the steps in order.
   """
 
   use GenServer
@@ -32,13 +32,11 @@ defmodule Relay.Channels.Throttle do
   # CH-17
   @doc "Moves an account's factor after a throttled or successful call."
   @spec record(Relay.Id.t(), :throttled | :success) :: :ok
-  def record(account_id, outcome) do
-    current = factor(account_id)
-    next = step(current, outcome)
-    if next != current, do: :ets.insert(@table, {account_id, next})
-    :ok
-  rescue
-    ArgumentError -> :ok
+  def record(account_id, outcome) when outcome in [:throttled, :success] do
+    case Process.whereis(__MODULE__) do
+      nil -> :ok
+      pid -> GenServer.cast(pid, {:record, account_id, outcome})
+    end
   end
 
   # CH-17
@@ -51,12 +49,20 @@ defmodule Relay.Channels.Throttle do
   def init(_opts) do
     :ets.new(@table, [
       :named_table,
-      :public,
+      :protected,
       :set,
       read_concurrency: true,
       write_concurrency: true
     ])
 
     {:ok, nil}
+  end
+
+  @impl true
+  def handle_cast({:record, account_id, outcome}, state) do
+    current = factor(account_id)
+    next = step(current, outcome)
+    if next != current, do: :ets.insert(@table, {account_id, next})
+    {:noreply, state}
   end
 end

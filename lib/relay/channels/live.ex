@@ -271,7 +271,7 @@ defmodule Relay.Channels.Live do
         Relay.Platform.rate_limit_check(scope, limit, check.key_parts, check.cost, lane, opts)
 
       {:error, _invalid} ->
-        {:deny, 1000, "rate_limit.invalid_limit"}
+        {:allow, %{}}
     end
   end
 

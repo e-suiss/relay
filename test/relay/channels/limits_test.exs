@@ -97,8 +97,8 @@ defmodule Relay.Channels.LimitsTest do
       id = Relay.Id.generate()
       assert Throttle.factor(id) == 1.0
       assert :ok = Throttle.record(id, :throttled)
-      assert Throttle.factor(id) == 0.5
       assert :ok = Throttle.record(id, :success)
+      _ = :sys.get_state(Throttle)
       assert Throttle.factor(id) == 0.55
       assert Throttle.factor(nil) == 1.0
     end

@@ -599,7 +599,7 @@ RawOverride:
       maxLength: 64
     raw:
       type: object
-      description: "Provider-specific block. On push and web_push it is keyed by the provider block: apns.payload, apns.headers and fcm.android are merged deeply into the payload Relay builds. A field of a higher precedence level replaces the same field of a lower one at every depth. Policy fields cannot be set here (policy_field_not_overridable)."
+      description: "Provider-specific block. On push and web_push it is keyed by the provider block: apns.payload, apns.headers, fcm.android, fcm.apns, fcm.webpush, hms.android and web_push.payload are merged deeply into the payload Relay builds; on whatsapp it is merged deeply into the Cloud API message body. A field of a higher precedence level replaces the same field of a lower one at every depth. Policy fields cannot be set here (policy_field_not_overridable)."
   additionalProperties: false
 Overrides:
   type: object

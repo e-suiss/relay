@@ -62,6 +62,18 @@ defmodule Relay.Channels.Push.FcmTest do
       assert message["android"]["notification"]["channel_id"] == "relay.security.time-sensitive"
       assert message["android"]["notification"]["tag"] == "t"
     end
+
+    test "CH-21: raw apns and webpush blocks travel without their policy fields" do
+      payload = %{"aps" => %{"badge" => 2}}
+      apns = %{"headers" => %{"apns-push-type" => "voip"}, "payload" => payload}
+      webpush = %{"headers" => %{"Urgency" => "high"}, "data" => %{"k" => "v"}}
+      extra = %{override_apns: apns, override_webpush: webpush}
+      assert {:ok, message, ignored} = Fcm.message(base(extra))
+
+      assert ignored == ["fcm.apns.headers.apns-push-type", "fcm.webpush.headers.urgency"]
+      assert message["apns"] == %{"headers" => %{}, "payload" => payload}
+      assert message["webpush"] == %{"headers" => %{}, "data" => %{"k" => "v"}}
+    end
   end
 
   describe "CH-33 data messages" do
@@ -71,6 +83,10 @@ defmodule Relay.Channels.Push.FcmTest do
       assert {:ok, message, ["android"]} = Fcm.message(base(extra))
 
       refute Map.has_key?(message["android"], "notification")
+
+      dropped = Map.put(extra, :override_apns, %{"payload" => %{}})
+      assert {:ok, without, ["android", "fcm.apns"]} = Fcm.message(base(dropped))
+      refute Map.has_key?(without, "apns")
 
       assert message["data"] == %{
                "relay_id" => "n-1",

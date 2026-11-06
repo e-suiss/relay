@@ -96,6 +96,7 @@ defmodule Relay.Channels.SettingsCheckTest do
                check("postmark", %{"server_token" => "pm-1"})
 
       esp(&json(&1, 401, %{"ErrorCode" => 10}))
+
       assert {:mismatch, %{"setting" => "credentials", "actual" => "http_401"}} =
                check("postmark", %{"server_token" => "x"})
 

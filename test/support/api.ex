@@ -41,7 +41,8 @@ defmodule RelayTest.Api do
   @spec auth(String.t() | nil, atom() | String.t(), String.t()) :: [{String.t(), String.t()}]
   def auth(nil, _method, _path), do: []
 
-  def auth(token, _method, "/v1/subscriber/" <> _rest), do: [{"authorization", "Bearer " <> token}]
+  def auth(token, _method, "/v1/subscriber/" <> _rest),
+    do: [{"authorization", "Bearer " <> token}]
 
   def auth(token, method, path), do: RelayTest.Dpop.headers(token, method, @base <> path)
 

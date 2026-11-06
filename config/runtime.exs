@@ -37,7 +37,9 @@ if config_env() == :prod do
 
   config :relay, Relay.Access,
     issuer: Relay.Config.Env.fetch!("RELAY_ACCESS_ISSUER"),
-    client_id: Relay.Config.Env.fetch!("RELAY_ACCESS_CLIENT_ID")
+    client_id: Relay.Config.Env.fetch!("RELAY_ACCESS_CLIENT_ID"),
+    pep_certificate: Relay.Config.Env.fetch!("RELAY_ACCESS_PEP_CERT_FILE"),
+    ca_certificates: Relay.Config.Env.fetch!("RELAY_ACCESS_CA_FILE")
 
   config :relay, Relay.Platform.Valkey,
     adapter: Relay.Platform.Valkey.Redix,

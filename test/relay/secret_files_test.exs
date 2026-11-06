@@ -31,6 +31,8 @@ defmodule Relay.SecretFilesTest do
     "RELAY_HOST" => "relay.example.com",
     "RELAY_ACCESS_ISSUER" => "https://access.example.com",
     "RELAY_ACCESS_CLIENT_ID" => "app_relay",
+    "RELAY_ACCESS_PEP_CERT_FILE" => "/run/secrets/relay-access-pep/tls.crt",
+    "RELAY_ACCESS_CA_FILE" => "/run/secrets/relay-access-pep/ca.crt",
     "AUDIT_S3_ENDPOINT" => "https://s3.example.com",
     "AUDIT_S3_BUCKET" => "relay-audit",
     "AUDIT_S3_REGION" => "eu-central-1",

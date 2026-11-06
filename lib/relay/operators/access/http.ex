@@ -1,6 +1,6 @@
 defmodule Relay.Operators.Access.Http do
   @moduledoc """
-  The Access adapter that talks to the endpoints Access publishes in its discovery document, through `Req`. The client is Relay's own Access client registration (`Relay.Access.client_id/0`, E-90); its token requests and AuthZEN decisions go through `Relay.Access.Client`, authenticated by Relay's client assertion and carrying DPoP proofs of Relay's key-store key, with the access token as `Authorization: DPoP` (E-98). An operator access token of the CLI is checked like a server token (`Relay.Access.verify_access_token/2`, E-93): `aud` Relay's `client_id`, bound to the key of the request's DPoP proof. Configuration (`config :relay, Relay.Operators.Access, ...`): `issuer` and `discovery`.
+  The Access adapter that talks to the endpoints Access publishes in its discovery document, through `Req`. The client is Relay's own Access client registration (`Relay.Access.client_id/0`, E-90); its token requests go through `Relay.Access.Client`, authenticated by Relay's client assertion and carrying DPoP proofs of Relay's key-store key (E-98), and its AuthZEN decisions through `Relay.Access.Pep`, over mutual TLS with Relay's PEP certificate (E-102); the decision's reference is Access's `basis_ref`, or its `exercise`. An operator access token of the CLI is checked like a server token (`Relay.Access.verify_access_token/2`, E-93): `aud` Relay's `client_id`, bound to the key of the request's DPoP proof. Configuration (`config :relay, Relay.Operators.Access, ...`): `issuer` and `discovery`.
 
   `issuer` defaults to the issuer of the Access link (`config :relay, Relay.Access, issuer: ...`). `discovery` is a `{module, function, args}` callback returning `{:ok, map}` with the string keys of an OpenID Provider metadata document: `"issuer"`, `"authorization_endpoint"`, `"token_endpoint"`, `"jwks"` (the JSON Web Key Set itself, `%{"keys" => [...]}`) and, when Access offers AuthZEN, `"access_evaluation_endpoint"`. The Access link's discovery cache plugs in here; without one the adapter reads `<issuer>/.well-known/openid-configuration` and its `jwks_uri` on every call (`discover/0`, with `issuer` configured). Any failure to reach Access is `auth_step_up_unavailable`.
 
@@ -10,6 +10,7 @@ defmodule Relay.Operators.Access.Http do
   @behaviour Relay.Operators.Access
 
   alias Relay.Access.Client
+  alias Relay.Access.Pep
   alias Relay.Operators.Access
 
   @timeout_ms 5_000
@@ -79,7 +80,7 @@ defmodule Relay.Operators.Access.Http do
   end
 
   # E-27
-  # E-98
+  # E-102
   defp evaluate_at(endpoint, request) do
     body = %{
       "subject" => %{"type" => "user", "id" => request.subject},
@@ -87,12 +88,12 @@ defmodule Relay.Operators.Access.Http do
       "resource" => %{"type" => request.resource.type, "id" => request.resource.id}
     }
 
-    case Client.post(endpoint, body) do
-      {:ok, %{"decision" => decision} = answer} when is_boolean(decision) ->
-        ref = get_in(answer, ["context", "decision_ref"]) || get_in(answer, ["context", "id"])
+    case Pep.evaluate(endpoint, body) do
+      {:ok, %{decision: decision, context: context}} ->
+        ref = context["basis_ref"] || context["exercise"]
         {:ok, %{decision: decision, ref: if(is_binary(ref), do: ref)}}
 
-      _other ->
+      {:error, _error} ->
         {:error, Access.unavailable("Access gave no decision")}
     end
   end

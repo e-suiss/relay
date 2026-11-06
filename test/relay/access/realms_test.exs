@@ -4,13 +4,11 @@ defmodule Relay.Access.RealmsTest do
   alias Relay.Access.Cache
   alias Relay.Access.Client
   alias Relay.Access.Clients
-  alias Relay.Operators.Access, as: OperatorAccess
   alias Relay.Operators.Access.Http
   alias RelayTest.FakeAccess
   alias RelayTest.TenantFixture
 
-  @evaluation FakeAccess.issuer() <> "/access/v1/evaluation"
-  @question %{"subject" => %{"type" => "user", "id" => "op-1"}, "action" => %{"name" => "read"}}
+  @token_endpoint FakeAccess.issuer() <> "/oauth2/token"
 
   setup do
     :ok = FakeAccess.install!()
@@ -28,8 +26,6 @@ defmodule Relay.Access.RealmsTest do
     json = ~s({"crv":"P-256","kty":"EC","x":"#{x}","y":"#{y}"})
     Base.url_encode64(:crypto.hash(:sha256, json), padding: false)
   end
-
-  defp forget_nonces, do: :ok = Cache.forget({:dpop_nonce, :_})
 
   describe "E-96 tokens of the tenant realms" do
     test "E-96: a tenant API client's token from either realm of its tenant is accepted", ctx do
@@ -109,69 +105,35 @@ defmodule Relay.Access.RealmsTest do
                Relay.Access.tenant_snapshot(tenant)
 
       assert_received {:fake_access, :snapshot, ^tenant}
-      refute_received {:fake_access, :token, _jkt, _grant}
+      refute_received {:fake_access, :token, _jkt, _form}
 
       unknown = "tnt_unknown" <> FakeAccess.random()
       assert {:error, :not_found} = Relay.Access.tenant_snapshot(unknown)
     end
 
-    test "E-98: a resource is called with a DPoP-bound token of a client assertion grant after one nonce challenge" do
+    test "E-102: a client credentials grant without a resource never reaches Access" do
+      assert {:error, %Relay.Error{code: :access_invalid_target}} =
+               Client.token(@token_endpoint, grant_type: "client_credentials")
+
+      refute_received {:fake_access, :nonce, :token}
+      refute_received {:fake_access, :token, _jkt, _form}
+    end
+
+    test "E-102: a service token names its product and is DPoP-bound after one nonce challenge" do
       jkt = relay_jkt()
+      form = [grant_type: "client_credentials", resource: "app_work"]
 
-      assert {:ok, %{"decision" => true}} = Client.post(@evaluation, @question)
+      assert {:ok, %{"token_type" => "DPoP"}} = Client.token(@token_endpoint, form)
       assert_received {:fake_access, :nonce, :token}
-      assert_received {:fake_access, :token, ^jkt, "client_credentials"}
-      assert_received {:fake_access, :evaluation, _body}
-      refute_received {:fake_access, :nonce, :resource}
-    end
 
-    test "E-98: a resource that asks for a fresh nonce is called once more with it" do
-      assert {:ok, _answer} = Client.post(@evaluation, @question)
-      assert_received {:fake_access, :token, _jkt, "client_credentials"}
-      forget_nonces()
-
-      assert {:ok, _answer} = Client.post(@evaluation, @question)
-      assert_received {:fake_access, :nonce, :resource}
-      refute_received {:fake_access, :token, _jkt, _grant}
-    end
-
-    test "E-98: a refused token is forgotten and the next call asks for a new one" do
-      assert {:ok, _token} = Client.access_token()
-      assert_received {:fake_access, :token, _jkt, "client_credentials"}
-      stolen = Relay.Redacted.wrap("relay.x.y")
-      :ok = Cache.put({Client, :access_token}, stolen, 60_000)
-
-      assert {:error, %Relay.Error{code: :access_unreachable}} =
-               Client.post(@evaluation, @question)
-
-      assert {:ok, _answer} = Client.post(@evaluation, @question)
-      assert_received {:fake_access, :token, _jkt, "client_credentials"}
+      assert_received {:fake_access, :token, ^jkt, %{"resource" => "app_work"} = sent}
+      assert sent["grant_type"] == "client_credentials"
     end
 
     test "E-100: the public JWK of the Access client key is printed for its registration" do
       {:ok, jwk} = Client.public_jwk()
       printed = ExUnit.CaptureIO.capture_io(fn -> :ok = Client.print_client_key() end)
       assert Jason.decode!(printed) == Map.merge(jwk, %{"alg" => "ES256", "use" => "sig"})
-    end
-
-    test "E-98, E-27: an AuthZEN decision is asked with Relay's DPoP-bound token" do
-      previous = Application.get_env(:relay, OperatorAccess)
-
-      discovery = %{
-        "issuer" => FakeAccess.issuer(),
-        "authorization_endpoint" => FakeAccess.issuer() <> "/oauth2/authorize",
-        "token_endpoint" => FakeAccess.issuer() <> "/oauth2/token",
-        "jwks" => FakeAccess.jwks(),
-        "access_evaluation_endpoint" => FakeAccess.issuer() <> "/access/v1/evaluation"
-      }
-
-      config = Keyword.put(previous, :discovery, {Function, :identity, [{:ok, discovery}]})
-      Application.put_env(:relay, OperatorAccess, config)
-      on_exit(fn -> Application.put_env(:relay, OperatorAccess, previous) end)
-      request = %{subject: "op-1", action: "tenant.suspend", resource: %{type: "tenant", id: "t"}}
-
-      assert {:ok, %{decision: true, ref: "decision-1"}} = Http.evaluate(request)
-      assert_received {:fake_access, :evaluation, %{"subject" => %{"id" => "op-1"}}}
     end
   end
 

@@ -75,6 +75,10 @@ defmodule Relay.Schema.IdPrefixTest do
       assert ExternalId.table("wtp") == {:ok, "whatsapp_templates"}
     end
 
+    test "C-25: the stage six sender identity table has its prefix" do
+      assert ExternalId.table("snd") == {:ok, "sender_identities"}
+    end
+
     test "API-72: an identifier is the prefix and 26 lowercase Crockford base32 characters" do
       text = ExternalId.encode("ntf", id())
       assert text =~ ~r/^ntf_[0-9abcdefghjkmnpqrstvwxyz]{26}$/

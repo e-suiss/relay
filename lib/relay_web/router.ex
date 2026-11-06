@@ -178,6 +178,44 @@ defmodule RelayWeb.Router do
     get "/whatsapp/templates/:whatsapp_template_id", WhatsappTemplateController, :show,
       private: %{relay_operation: "getWhatsappTemplate"}
 
+    get "/provider_accounts", ChannelController, :accounts,
+      private: %{relay_operation: "listProviderAccounts"}
+
+    get "/provider_accounts/:provider_account_id", ChannelController, :account,
+      private: %{relay_operation: "getProviderAccount"}
+
+    patch "/provider_accounts/:provider_account_id", ChannelController, :update_account,
+      private: %{relay_operation: "updateProviderAccount"}
+
+    get "/sender_identities", ChannelController, :senders,
+      private: %{relay_operation: "listSenderIdentities"}
+
+    post "/sender_identities", ChannelController, :create_sender,
+      private: %{relay_operation: "createSenderIdentity"}
+
+    get "/sender_identities/:sender_identity_id", ChannelController, :sender,
+      private: %{relay_operation: "getSenderIdentity"}
+
+    patch "/sender_identities/:sender_identity_id", ChannelController, :update_sender,
+      private: %{relay_operation: "updateSenderIdentity"}
+
+    post "/sender_identities/:sender_identity_id/archive", ChannelController, :archive_sender,
+      private: %{relay_operation: "archiveSenderIdentity"}
+
+    get "/channel_identities", ChannelController, :channel_identities,
+      private: %{relay_operation: "listChannelIdentities"}
+
+    get "/channel_identities/:channel_identity_id", ChannelController, :channel_identity,
+      private: %{relay_operation: "getChannelIdentity"}
+
+    patch "/channel_identities/:channel_identity_id", ChannelController, :update_channel_identity,
+      private: %{relay_operation: "updateChannelIdentity"}
+
+    post "/channel_identities/:channel_identity_id/archive",
+         ChannelController,
+         :archive_channel_identity,
+         private: %{relay_operation: "archiveChannelIdentity"}
+
     get "/categories", CategoryController, :index, private: %{relay_operation: "listCategories"}
 
     post "/categories", CategoryController, :create, private: %{relay_operation: "createCategory"}
@@ -490,6 +528,34 @@ defmodule RelayWeb.Router do
 
     post "/suppressions/:suppression_id/lift", SuppressionController, :lift,
       private: %{relay_operation: "liftSuppressionAsOperator"}
+
+    post "/provider_accounts", ChannelController, :create_account,
+      private: %{relay_operation: "createProviderAccount"}
+
+    post "/provider_accounts/:provider_account_id/archive", ChannelController, :archive_account,
+      private: %{relay_operation: "archiveProviderAccount"}
+
+    post "/provider_accounts/:provider_account_id/rotate_credential",
+         ChannelController,
+         :rotate_credential,
+         private: %{relay_operation: "rotateProviderAccountCredential"}
+
+    post "/sender_identities/:sender_identity_id/review", ChannelController, :review_sender,
+      private: %{relay_operation: "reviewSenderIdentity"}
+
+    post "/sender_identities/:sender_identity_id/suspend", ChannelController, :suspend_sender,
+      private: %{relay_operation: "suspendSenderIdentity"}
+
+    post "/sender_identities/:sender_identity_id/resume", ChannelController, :resume_sender,
+      private: %{relay_operation: "resumeSenderIdentity"}
+
+    post "/channel_identities", ChannelController, :create_channel_identity,
+      private: %{relay_operation: "createChannelIdentity"}
+
+    post "/channel_identities/:channel_identity_id/rotate_secret",
+         ChannelController,
+         :rotate_secret,
+         private: %{relay_operation: "rotateChannelIdentitySecret"}
 
     get "/audit_log", SupportController, :audit_log,
       private: %{relay_operation: "listAuditRecords"}

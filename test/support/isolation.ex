@@ -5,7 +5,14 @@ defmodule RelayTest.Isolation do
 
   use Boundary,
     top_level?: true,
-    deps: [Relay, Relay.Api, Relay.Channels, RelayTest.Api, RelayTest.IngestFixture],
+    deps: [
+      Relay,
+      Relay.Api,
+      Relay.Channels,
+      Relay.Secrets,
+      RelayTest.Api,
+      RelayTest.IngestFixture
+    ],
     exports: []
 
   alias Relay.Api.Contract
@@ -50,7 +57,10 @@ defmodule RelayTest.Isolation do
      %{"definition" => %{"default_locale" => "tr", "bodies" => %{"tr" => "Merhaba"}}}},
     {"previewWorkflow", %{}},
     {"replaceSubscriberMessagingTarget",
-     %{"provider_account_id" => "pva_01j9zq3k4m5n6p7q8r9s0t1v2w", "conversation" => "U1"}}
+     %{"provider_account_id" => "pva_01j9zq3k4m5n6p7q8r9s0t1v2w", "conversation" => "U1"}},
+    {"updateProviderAccount", %{"priority" => 5}},
+    {"updateSenderIdentity", %{"country" => "TR"}},
+    {"updateChannelIdentity", %{"app_ref" => "com.example.isolation"}}
   ]
   @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
   @sms %{
@@ -96,7 +106,10 @@ defmodule RelayTest.Isolation do
       "template_key" => &template!/1,
       "layout_key" => &asset!(&1, "layouts"),
       "partial_key" => &asset!(&1, "partials"),
-      "channel" => &messaging_target!/1
+      "channel" => &messaging_target!/1,
+      "provider_account_id" => &provider_account!/1,
+      "sender_identity_id" => &sender_identity!/1,
+      "channel_identity_id" => &channel_identity!/1
     }
   end
 
@@ -302,6 +315,85 @@ defmodule RelayTest.Isolation do
     F.body(F.request(:put, path, owner(scope), body), 201)
     "slack"
   end
+
+  @doc "Creates a provider account in `scope` and returns its identifier."
+  @spec provider_account!(Relay.Scope.t()) :: String.t()
+  def provider_account!(scope), do: Relay.ExternalId.encode("pva", account!(scope))
+
+  @doc "Creates a sender identity in `scope` and returns its identifier."
+  @spec sender_identity!(Relay.Scope.t()) :: String.t()
+  def sender_identity!(scope) do
+    id = Relay.Id.generate()
+
+    sender = %{
+      id: id,
+      provider_account_id: account!(scope),
+      channel: "email",
+      kind: "email_domain",
+      value: "iso-" <> random() <> ".example.com",
+      approval_state: "pending"
+    }
+
+    {:ok, {:created, 1}} = Relay.Channels.put_sender_identity(scope, sender, digest(), system())
+    Relay.ExternalId.encode("snd", id)
+  end
+
+  @doc "Creates a channel identity with a registered secret in `scope` and returns its identifier."
+  @spec channel_identity!(Relay.Scope.t()) :: String.t()
+  def channel_identity!(scope) do
+    var = "RELAY_TEST_ISOLATION_" <> String.upcase(random())
+    System.put_env(var, "isolation-secret-" <> random())
+    secret_id = Relay.Id.generate()
+
+    secret = %{
+      id: secret_id,
+      kind: :channel_identity,
+      ref: "${#{var}}",
+      ref_version: 1,
+      record_digest: digest()
+    }
+
+    {:ok, :created} = Relay.Secrets.register(scope, secret, system())
+    id = Relay.Id.generate()
+
+    identity = %{
+      id: id,
+      channel: "slack",
+      kind: "slack_app",
+      app_ref: "A" <> random(),
+      secret_ref_id: secret_id
+    }
+
+    {:ok, {:created, 1}} =
+      Relay.Channels.put_channel_identity(scope, identity, digest(), system())
+
+    Relay.ExternalId.encode("chi", id)
+  end
+
+  defp account!(scope) do
+    id = Relay.Id.generate()
+
+    account = %{
+      id: id,
+      channel: "email",
+      provider: "fake",
+      ownership: "shared",
+      role: "primary",
+      priority: 0,
+      in_installation: true,
+      transfer_basis: "none"
+    }
+
+    {:ok, {:created, 1}} = Relay.Channels.put_account(scope, account, digest(), system())
+    id
+  end
+
+  defp system do
+    {:ok, actor} = Relay.Actor.new(:system, "relay-test", "relay-test")
+    actor
+  end
+
+  defp digest, do: :crypto.strong_rand_bytes(32)
 
   @doc "Creates a CloudEvents type mapping in `scope` and returns its identifier."
   @spec mapping!(Relay.Scope.t()) :: String.t()

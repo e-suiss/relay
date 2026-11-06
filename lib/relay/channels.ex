@@ -601,6 +601,118 @@ defmodule Relay.Channels do
   def put_channel_identity(scope, attrs, digest, actor),
     do: Store.in_scope(scope, fn _status -> Store.channel_identity_put(attrs, digest, actor) end)
 
+  @typedoc "A managed channel resource: a provider account, a sender identity or a channel identity."
+  @type managed :: :account | :sender | :channel_identity
+
+  # C-25
+  # C-26
+  # C-45
+  @doc "Reads a managed channel resource in its own scoped transaction, or `nil`."
+  @spec get_managed(Relay.Scope.t(), managed(), Relay.Id.t()) :: result(map() | nil)
+  def get_managed(scope, kind, id),
+    do: Store.in_scope(scope, fn _status -> Store.row(kind, id, false) end)
+
+  # API-56
+  @doc "Lists managed channel resources newest first from a decoded cursor in their own scoped transaction; at most `limit + 1` rows come back."
+  @spec list_managed(Relay.Scope.t(), managed(), map() | nil, pos_integer()) :: result([map()])
+  def list_managed(scope, kind, cursor, limit),
+    do: Store.in_scope(scope, fn _status -> Store.page(kind, cursor, limit) end)
+
+  @doc "Reads a managed channel resource inside the caller's scoped transaction, or `nil`; `lock: true` holds the row until the transaction ends."
+  @spec managed(managed(), Relay.Id.t(), keyword()) :: map() | nil
+  def managed(kind, id, opts \\ []), do: Store.row(kind, id, Keyword.get(opts, :lock, false))
+
+  # C-45
+  # MD-4
+  @doc "Writes a provider account inside the caller's scoped transaction; see `Relay.Channels.Store.account_put/3`."
+  @spec write_account(map(), digest(), Relay.Actor.t()) :: {atom(), pos_integer() | nil}
+  defdelegate write_account(attrs, digest, actor), to: Store, as: :account_put
+
+  # C-25
+  @doc "Writes a sender identity inside the caller's scoped transaction; see `Relay.Channels.Store.sender_identity_put/3`."
+  @spec write_sender_identity(map(), digest(), Relay.Actor.t()) :: {atom(), pos_integer() | nil}
+  defdelegate write_sender_identity(attrs, digest, actor), to: Store, as: :sender_identity_put
+
+  # C-26
+  @doc "Writes a channel identity inside the caller's scoped transaction; see `Relay.Channels.Store.channel_identity_put/3`."
+  @spec write_channel_identity(map(), digest(), Relay.Actor.t()) ::
+          {atom(), pos_integer() | nil}
+  defdelegate write_channel_identity(attrs, digest, actor), to: Store, as: :channel_identity_put
+
+  # C-25
+  # C-26
+  # C-45
+  # OP-73
+  @doc "Archives a provider account or a sender identity, or retires a channel identity, inside the caller's scoped transaction; the row stays."
+  @spec archive_managed(managed(), Relay.Id.t(), digest(), Relay.Actor.t()) ::
+          {atom(), pos_integer() | nil}
+  defdelegate archive_managed(kind, id, digest, actor), to: Store, as: :archive
+
+  # C-45
+  # OP-73
+  @doc "Archives a provider account in its own scoped transaction; it receives no traffic and its row stays."
+  @spec archive_account(Relay.Scope.t(), Relay.Id.t(), digest(), Relay.Actor.t()) ::
+          result({atom(), pos_integer() | nil})
+  def archive_account(scope, id, digest, actor),
+    do: Store.in_scope(scope, fn _status -> Store.archive(:account, id, digest, actor) end)
+
+  # C-25
+  @doc "Records the review of a sender identity, `pending`, `approved` or `rejected`, in its own scoped transaction; an archived identity is `:archived`."
+  @spec review_sender_identity(
+          Relay.Scope.t(),
+          Relay.Id.t(),
+          String.t(),
+          digest(),
+          Relay.Actor.t()
+        ) :: result({atom(), pos_integer() | nil})
+  def review_sender_identity(scope, id, approval_state, digest, actor) do
+    Store.in_scope(scope, fn _status ->
+      case Store.row(:sender, id, true) do
+        nil -> {:not_found, nil}
+        %{"archived_at" => %DateTime{}} = row -> {:archived, row["version"]}
+        row -> Store.sender_identity_put(reviewed(row, approval_state), digest, actor)
+      end
+    end)
+  end
+
+  defp reviewed(row, approval_state) do
+    %{
+      id: row["id"],
+      provider_account_id: row["provider_account_id"],
+      subtenant_id: row["subtenant_id"],
+      channel: row["channel"],
+      kind: row["kind"],
+      value: row["value"],
+      country: row["country"],
+      approval_state: approval_state
+    }
+  end
+
+  # TN-26 (5)
+  @doc "Whether a secret reference is still named by a provider account that is not archived or by an active channel identity, in its own scoped transaction."
+  @spec secret_in_use?(Relay.Scope.t(), Relay.Id.t()) :: result(boolean())
+  def secret_in_use?(scope, secret_ref_id),
+    do: Store.in_scope(scope, fn _status -> Store.secret_in_use?(secret_ref_id) end)
+
+  @doc "Like `secret_in_use?/2`, inside the caller's scoped transaction."
+  @spec secret_in_use?(Relay.Id.t()) :: boolean()
+  defdelegate secret_in_use?(secret_ref_id), to: Store
+
+  # C-25
+  @doc "Whether a provider account already has a sender identity of this kind and value, inside the caller's scoped transaction."
+  @spec sender_taken?(Relay.Id.t(), String.t(), String.t()) :: boolean()
+  defdelegate sender_taken?(account_id, kind, value), to: Store
+
+  # C-26
+  @doc "Whether a channel identity of this kind already has the application reference, inside the caller's scoped transaction."
+  @spec app_ref_taken?(String.t(), String.t()) :: boolean()
+  defdelegate app_ref_taken?(kind, app_ref), to: Store
+
+  @doc "Like `app_ref_taken?/2`, in its own scoped transaction."
+  @spec app_ref_taken?(Relay.Scope.t(), String.t(), String.t()) :: result(boolean())
+  def app_ref_taken?(scope, kind, app_ref),
+    do: Store.in_scope(scope, fn _status -> Store.app_ref_taken?(kind, app_ref) end)
+
   # CH-13
   # CH-14
   # INV-43

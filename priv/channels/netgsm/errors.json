@@ -1,0 +1,226 @@
+[
+  {
+    "code": "send:20",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "send:30",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "send:40",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "send:50",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "send:51",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "send:70",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "send:80",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "send:85",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "send:100",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "send:101",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "otp:20",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "otp:30",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "otp:40",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "otp:41",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "otp:60",
+    "class": "quota",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "otp:70",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "otp:100",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "otp:101",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "http:500",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "http:503",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:2",
+    "class": "transient",
+    "condition": null,
+    "event_code": "expired",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:3",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:4",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:11",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:12",
+    "class": "transient",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:14",
+    "class": "quota",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:15",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  {
+    "code": "dlr:16",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  }
+]

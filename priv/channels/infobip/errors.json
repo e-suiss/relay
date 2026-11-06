@@ -1,0 +1,226 @@
+[
+  {
+    "code": "status:UNDELIVERABLE_REJECTED_OPERATOR",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:UNDELIVERABLE_NOT_DELIVERED",
+    "class": "transient",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:UNDELIVERABLE_NOT_SENT",
+    "class": "transient",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:UNDELIVERABLE_REJECTED_PLATFORM",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:EXPIRED_EXPIRED",
+    "class": "transient",
+    "condition": null,
+    "event_code": "expired",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_NETWORK",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_PREFIX_MISSING",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_DND",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_SOURCE",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_NOT_ENOUGH_CREDITS",
+    "class": "quota",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_SENDER",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_DESTINATION_BLOCKLISTED",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_PREPAID_PACKAGE_EXPIRED",
+    "class": "quota",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_DESTINATION_NOT_REGISTERED",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_ROUTE_NOT_AVAILABLE",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_FLOODING_FILTER",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_SYSTEM_ERROR",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_INVALID_UDH",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_MESSAGE_TOO_LONG",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:MISSING_TO",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:REJECTED_DESTINATION",
+    "class": "permanent_target",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "status:SIGNALS_BLOCKED",
+    "class": "policy",
+    "condition": null,
+    "event_code": "undelivered",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "http:400",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "http:401",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "http:403",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "http:429",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "http:500",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  },
+  {
+    "code": "http:503",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://api.infobip.com/platform/1/openapi/sms (3.261.0); https://www.infobip.com/docs/developer-resources/api-fundamentals/message-status-codes; https://www.infobip.com/docs/essentials/api-essentials/response-status-and-error-codes; https://www.infobip.com/docs/developer-resources/api-fundamentals/webhooks; compiled 2026-11-05"
+  }
+]

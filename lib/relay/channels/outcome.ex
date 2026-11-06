@@ -81,6 +81,37 @@ defmodule Relay.Channels.Outcome do
     end
   end
 
+  # CH-7
+  # CH-8
+  # DS-10
+  @doc "Normalizes a delivery report an adapter read from the provider (`c:Relay.Channels.Adapter.reports/3`): a delivered report is the `delivered` event, a failed one is classified through the adapter's mapping like a rejection, and a pending one is `{:ok, nil}`; `{:error, :unknown_event}` when the event code has no evidence row on the channel."
+  @spec report(ChannelDeclarations.t(), String.t(), String.t(), Adapter.report()) ::
+          {:ok, t() | nil} | {:error, :unknown_event}
+  def report(%ChannelDeclarations{}, _provider, _channel, %{result: :pending}), do: {:ok, nil}
+
+  def report(%ChannelDeclarations{} = declarations, provider, channel, %{} = report) do
+    outcome =
+      case report.result do
+        {:delivered, info} ->
+          %__MODULE__{
+            state: :succeeded,
+            event_code: "delivered",
+            delivery_rank: :delivered,
+            detail: Map.merge(Map.get(report, :detail, %{}), info)
+          }
+
+        {:rejected, raw} ->
+          from_result(declarations, provider, {:rejected, raw})
+      end
+
+    outcome = %{outcome | provider_message_id: report.provider_message_id}
+
+    case ChannelDeclarations.evidence(declarations, provider, channel, outcome.event_code) do
+      {:ok, _row} -> {:ok, outcome}
+      {:error, :unknown_event} -> {:error, :unknown_event}
+    end
+  end
+
   defp from_result(_declarations, _provider, {:accepted, info}) do
     %__MODULE__{
       state: :succeeded,

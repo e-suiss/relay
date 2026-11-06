@@ -30,7 +30,7 @@ defmodule Relay.Config do
     Relay.Platform.MaintRepo,
     Relay.Platform.Leadership,
     Relay.Delivery,
-    Relay.Channels.WhatsappCloud,
+    Relay.Channels,
     Relay.Audit,
     Relay.NetworkGuard,
     Relay.Config.SecretFiles,

@@ -19,6 +19,7 @@ defmodule Relay.Api.Gate do
     promotion: "a transactional or operational template contains a promotional call",
     legal_footer_missing: "the commercial template does not use the legal_footer helper",
     legal_footer_fields: "the legal footer misses required brand fields",
+    voice_trade_name: "the commercial voice variant needs the brand's legal_name as its sender",
     icu_categories: "an ICU message lacks plural or select forms of the locale",
     sms_emoji: "the SMS template text contains emoji",
     worst_case_render: "the worst-case sample does not render",

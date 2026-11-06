@@ -1,0 +1,102 @@
+{
+  "provider": "twilio",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "sms",
+    "voice"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "sms": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    },
+    "voice": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "no_auto_retry",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": null,
+    "status_query": false,
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05; no idempotency key and no client message id on Messages or Calls create"
+  },
+  "paid_channels": [
+    "sms",
+    "voice"
+  ],
+  "pricing": {
+    "currency": "USD",
+    "units": {
+      "sms": "segment",
+      "voice": "call_minute"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [],
+    "sender": [
+      {
+        "channel": "sms",
+        "unit": "segment",
+        "limit": 1,
+        "per_ms": 1000,
+        "source": "https://www.twilio.com/docs/messaging/guides/account-based-throughput-overview; long code"
+      }
+    ],
+    "recipient": []
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "US"
+    ],
+    "transfer_basis": "scc",
+    "scc_notified_on": null,
+    "source": "https://www.twilio.com/docs/global-infrastructure/understanding-twilio-regions; the standard contractual clause notification date is not recorded"
+  },
+  "inbound_verification": {
+    "method": "hmac_sha1_url",
+    "header": "x-twilio-signature",
+    "authenticity": "verified",
+    "source": "https://www.twilio.com/docs/usage/security"
+  },
+  "sms": {
+    "encodings": [
+      "GSM7",
+      "UCS2"
+    ],
+    "turkish_single_shift": "unverified",
+    "turkish_single_shift_evidence": null,
+    "btk_authorized": false,
+    "otp_product": false,
+    "sender_types": [
+      "short_code",
+      "long_number",
+      "toll_free",
+      "ten_dlc",
+      "alphanumeric"
+    ],
+    "segment_reserve": [],
+    "source": "https://www.twilio.com/docs/messaging/api/message-resource; https://www.twilio.com/docs/api/errors; https://www.twilio.com/docs/voice/api/call-resource; https://www.twilio.com/docs/usage/security; compiled 2026-11-05; the encoding follows the text with SmartEncoded off: GSM-7 text is GSM7, any other character UCS-2"
+  }
+}

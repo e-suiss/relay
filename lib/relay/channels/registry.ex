@@ -1,11 +1,19 @@
 defmodule Relay.Channels.Registry do
   @moduledoc """
   The registered channel adapters and their activation (CH-2, DS-11, C-44). An adapter is registered by adding its module to `@adapters`; it is activated, and may receive traffic, only when its declaration in the active `channel_event_evidence` version passes `Relay.ChannelDeclarations.gate/2` and declares exactly the adapter's channels. A registered adapter that is not activated is listed with what is missing and receives no traffic. The same check runs in CI over every registered adapter and the declarations in the repository.
+
+  The international SMS adapters `Relay.Channels.Twilio` and `Relay.Channels.Infobip` are built with their declarations but not registered: they process data abroad under standard contractual clauses, and their declarations carry no clause notification date, so they cannot pass the gate (CH-6).
   """
 
   alias Relay.ChannelDeclarations
 
-  @adapters [Relay.Channels.Fake, Relay.Channels.Smtp, Relay.Channels.WhatsappCloud]
+  @adapters [
+    Relay.Channels.Fake,
+    Relay.Channels.Smtp,
+    Relay.Channels.Netgsm,
+    Relay.Channels.Verimor,
+    Relay.Channels.WhatsappCloud
+  ]
 
   @type missing :: ChannelDeclarations.missing() | :channels
   @type status :: %{

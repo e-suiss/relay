@@ -3659,6 +3659,24 @@ SmsCell:
           maxLength: 256
         - type: "null"
   additionalProperties: false
+VoiceCell:
+  type: object
+  description: "The text a voice call reads in the cell's language (otp_oob and commercial voice messages). A commercial voice variant names its sender by the brand's legal_name, the trade name."
+  required:
+    - body
+  properties:
+    body:
+      type: string
+      maxLength: 262144
+      description: "Liquid source of the spoken text."
+    machine_translated:
+      type: boolean
+    translation_approved_by:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+  additionalProperties: false
 PushCell:
   type: object
   required:
@@ -3864,6 +3882,15 @@ TemplateCells:
         "$ref": "#/Locale"
       additionalProperties:
         "$ref": "#/WebhookCell"
+    voice:
+      type: object
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The spec names a voice channel and its linter rule but no voice variant; a text variant read by the call is chosen."
+      propertyNames:
+        "$ref": "#/Locale"
+      additionalProperties:
+        "$ref": "#/VoiceCell"
   additionalProperties: false
 BrandFields:
   type: object

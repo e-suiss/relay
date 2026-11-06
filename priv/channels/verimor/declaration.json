@@ -1,0 +1,106 @@
+{
+  "provider": "verimor",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "sms",
+    "voice"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "sms": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    },
+    "voice": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "wait_and_query",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": "messages[].id",
+    "status_query": true,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05; GET /v2/status?custom_id="
+  },
+  "paid_channels": [
+    "sms",
+    "voice"
+  ],
+  "pricing": {
+    "currency": "TRY",
+    "units": {
+      "sms": "segment",
+      "voice": "answered_call"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [
+      {
+        "channel": "sms",
+        "unit": "request",
+        "limit": 240,
+        "per_ms": 60000,
+        "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+      },
+      {
+        "channel": "voice",
+        "unit": "request",
+        "limit": 2,
+        "per_ms": 1000,
+        "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+      }
+    ],
+    "sender": [],
+    "recipient": []
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "TR"
+    ],
+    "transfer_basis": "none",
+    "scc_notified_on": null,
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05"
+  },
+  "inbound_verification": {
+    "method": "secret_token",
+    "header": null,
+    "authenticity": "unverifiable",
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05; the report and call webhooks are not signed: a secret token in the webhook URL"
+  },
+  "sms": {
+    "encodings": [
+      "GSM7",
+      "GSM7_TR",
+      "UCS2"
+    ],
+    "turkish_single_shift": "unverified",
+    "turkish_single_shift_evidence": null,
+    "btk_authorized": true,
+    "otp_product": false,
+    "sender_types": [
+      "alphanumeric"
+    ],
+    "segment_reserve": [],
+    "source": "https://github.com/verimor/SMS-API/blob/master/user_guide.md; https://github.com/verimor/api-documentation/blob/main/switch_swagger.yaml; compiled 2026-11-05; datacoding 0, 1 and 2"
+  }
+}

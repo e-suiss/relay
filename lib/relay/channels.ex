@@ -19,6 +19,8 @@ defmodule Relay.Channels do
   alias Relay.Channels.Request
   alias Relay.Channels.Routing
   alias Relay.Channels.Simulated
+  alias Relay.Channels.Sms
+  alias Relay.Channels.SmsSender
   alias Relay.Channels.Store
   alias Relay.Channels.Throttle
   alias Relay.Channels.Timeouts
@@ -111,6 +113,16 @@ defmodule Relay.Channels do
   @spec normalize(ChannelDeclarations.t(), String.t(), String.t(), Adapter.result()) ::
           {:ok, Outcome.t()} | {:error, :unknown_event}
   defdelegate normalize(declarations, provider, channel, result), to: Outcome
+
+  # CH-7
+  # CH-8
+  # DS-10
+  @doc "Normalizes a delivery report an adapter read; see `Relay.Channels.Outcome.report/4`."
+  @spec normalize_report(ChannelDeclarations.t(), String.t(), String.t(), Adapter.report()) ::
+          {:ok, Outcome.t() | nil} | {:error, :unknown_event}
+  defdelegate normalize_report(declarations, provider, channel, report),
+    to: Outcome,
+    as: :report
 
   # CH-7
   @doc "The actions of a failure class; see `Relay.Channels.Outcome.actions/1`."
@@ -206,6 +218,18 @@ defmodule Relay.Channels do
   defdelegate verify_hmac(key, body, headers, opts), to: Inbound, as: :hmac
 
   # T-40
+  @doc "Verifies Twilio's callback signature; see `Relay.Channels.Inbound.hmac_sha1_url/4`."
+  @spec verify_twilio(Inbound.key(), String.t(), binary(), Inbound.headers()) ::
+          :ok | {:error, Inbound.signature_reason()}
+  defdelegate verify_twilio(key, url, body, headers), to: Inbound, as: :hmac_sha1_url
+
+  # CH-3
+  @doc "Checks a token carried in a callback URL; see `Relay.Channels.Inbound.url_token/2`."
+  @spec verify_url_token(Inbound.key(), String.t() | nil) ::
+          :ok | {:error, Inbound.signature_reason()}
+  defdelegate verify_url_token(key, given), to: Inbound, as: :url_token
+
+  # T-40
   @doc "Verifies an Ed25519 signature of a raw body; see `Relay.Channels.Inbound.ed25519/4`."
   @spec verify_ed25519(Inbound.key(), binary(), Inbound.headers(), keyword()) ::
           :ok | {:error, Inbound.reason()}
@@ -257,6 +281,112 @@ defmodule Relay.Channels do
     Store.in_scope(scope, fn _status ->
       Store.account_rotate_credential(id, credential_ref_id, step_up_ref, digest, actor)
     end)
+  end
+
+  # CH-50
+  @doc "Records the SMS type and registration of an SMS sender identity after its rules hold (`Relay.Channels.SmsSender.validate/1`): `{:error, rule_id}` names the broken rule. The registration keeps `iys_brand_code`, `us_brand_id`, `us_campaign_id`, `us_use_case`, `tfv_state` and `brn`."
+  @spec register_sms_sender(Relay.Scope.t(), Relay.Id.t(), map(), digest(), Relay.Actor.t()) ::
+          result(atom()) | {:error, {:invalid, String.t()}}
+  def register_sms_sender(scope, id, %{} = registration, digest, actor) do
+    type = registration["sender_type"]
+    fields = Map.take(registration, SmsSender.registration_fields())
+
+    result =
+      Store.in_scope(scope, fn _status ->
+        with {:ok, row} <- Store.sender(id),
+             :ok <- SmsSender.validate(SmsSender.identity(row, type, fields)) do
+          Store.sender_identity_register(id, type, fields, digest, actor)
+        end
+      end)
+
+    case result do
+      {:ok, {:error, rule_id}} when is_binary(rule_id) -> {:error, {:invalid, rule_id}}
+      {:ok, {:error, :not_found}} -> {:ok, :not_found}
+      other -> other
+    end
+  end
+
+  # CH-53
+  @doc "Sets the traffic of a provider account, `security` or `standard`; an OTP never shares an account or a credit pool with a campaign."
+  @spec set_account_traffic(
+          Relay.Scope.t(),
+          Relay.Id.t(),
+          String.t(),
+          digest(),
+          Relay.Actor.t()
+        ) :: result(atom())
+  def set_account_traffic(scope, id, traffic, digest, actor) do
+    Store.in_scope(scope, fn _status ->
+      Store.account_set_traffic(id, traffic, digest, actor)
+    end)
+  end
+
+  # CH-50
+  # CH-51
+  # CH-53
+  # CH-48
+  @doc """
+  The provider-dependent checks of an SMS or voice send on the chosen account, before the attempt opens: the account's approved sender identity; on SMS its rules for the message class (`Relay.Channels.SmsSender.check/2`), the TR route (`Relay.Channels.Sms.route/3`), the explicit encoding with its segments, measured with `measure` (`Relay.Channels.Sms.encoding/4`) and the provider product (`Relay.Channels.Sms.product/2`). Returns the request fields to add, or `{:skip, rule_id}`; other channels pass unchanged.
+  """
+  @spec sms_preflight(
+          Relay.Scope.t(),
+          ChannelDeclarations.t(),
+          map(),
+          map(),
+          String.t(),
+          map() | binary(),
+          Sms.measurer()
+        ) :: {:ok, map()} | {:skip, String.t()}
+  def sms_preflight(scope, declarations, account, delivery, number, content, measure) do
+    if delivery["channel"] in ["sms", "voice"],
+      do: preflight(scope, declarations, account, delivery, {number, content, measure}),
+      else: {:ok, %{}}
+  end
+
+  defp preflight(scope, declarations, account, delivery, {number, content, measure}) do
+    with {:ok, sender} <- account_sender(scope, account),
+         {:ok, declaration} <- declaration(declarations, account["provider"]) do
+      class = delivery["message_class"]
+
+      if delivery["channel"] == "sms",
+        do: Sms.preflight(declaration, sender, class, number, content, measure),
+        else: {:ok, %{sender: sender}}
+    end
+  end
+
+  defp account_sender(scope, account) do
+    case Store.in_scope(scope, fn _status -> Store.senders([account["id"]]) end) do
+      {:ok, [sender | _]} -> {:ok, sender}
+      _none -> {:skip, "channel.sender_unapproved"}
+    end
+  end
+
+  defp declaration(declarations, provider) do
+    case ChannelDeclarations.declaration(declarations, provider) do
+      {:ok, declaration} -> {:ok, declaration}
+      {:error, :unknown_provider} -> {:skip, "channel.sms_encoding_unsupported"}
+    end
+  end
+
+  # CH-53
+  @doc "Keeps the provider accounts of a message class's traffic; see `Relay.Channels.Sms.traffic/2`."
+  @spec sms_traffic([map()], String.t() | nil) :: [map()]
+  def sms_traffic(accounts, message_class), do: Sms.traffic(accounts, message_class)
+
+  # CH-51
+  @doc "Keeps the provider accounts that may send to `number`: for a `+90` number only BTK-authorized providers; see `Relay.Channels.Sms.btk_authorized?/1`."
+  @spec tr_route([map()], String.t(), ChannelDeclarations.t()) :: [map()]
+  def tr_route(accounts, number, %ChannelDeclarations{} = declarations) do
+    if Sms.turkish_number?(number),
+      do: Enum.filter(accounts, &btk_route?(declarations, &1)),
+      else: accounts
+  end
+
+  defp btk_route?(declarations, account) do
+    case ChannelDeclarations.declaration(declarations, account["provider"]) do
+      {:ok, declaration} -> Sms.btk_authorized?(declaration)
+      {:error, :unknown_provider} -> false
+    end
   end
 
   # C-45

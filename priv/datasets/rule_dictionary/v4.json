@@ -1,5 +1,5 @@
 {
-  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-57; CH-58; CH-61",
+  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51",
   "rules": [
     {
       "id": "admission.aimd.l2",
@@ -166,6 +166,21 @@
       }
     },
     {
+      "id": "channel.foreign_route_url",
+      "reason": "foreign_route_url",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-51",
+      "detail": [
+        "channel",
+        "provider"
+      ],
+      "description": {
+        "en": "Not sent because a link in an SMS to a Turkish number cannot go through a route from abroad.",
+        "tr": "Yurt dışı rotadan Türkiye numarasına bağlantılı SMS gönderilemediği için gönderilmedi."
+      }
+    },
+    {
       "id": "channel.invalid_recipient",
       "reason": "invalid_recipient",
       "kind": "gate",
@@ -224,6 +239,111 @@
       }
     },
     {
+      "id": "channel.sender_campaign_mismatch",
+      "reason": "sender_campaign_mismatch",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-50",
+      "detail": [
+        "channel",
+        "provider"
+      ],
+      "description": {
+        "en": "Not sent because the message class is not covered by the use case of the sender's 10DLC campaign.",
+        "tr": "Mesaj sınıfı gönderici numarasının 10DLC kampanya kullanım durumuna uymadığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "channel.sender_generic",
+      "reason": "sender_invalid",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-50",
+      "detail": [
+        "channel",
+        "provider"
+      ],
+      "description": {
+        "en": "Not sent because the SMS sender header is a generic name that may not be used.",
+        "tr": "SMS gönderici başlığı kullanılamayan genel bir ad olduğu için gönderilmedi."
+      }
+    },
+    {
+      "id": "channel.sender_invalid",
+      "reason": "sender_invalid",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-50",
+      "detail": [
+        "channel",
+        "provider"
+      ],
+      "description": {
+        "en": "Not sent because the SMS sender identity breaks the sender rules of its country.",
+        "tr": "SMS gönderici kimliği ülkesinin gönderici kurallarına uymadığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "channel.sender_iys_missing",
+      "reason": "sender_invalid",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-50",
+      "detail": [
+        "channel",
+        "provider"
+      ],
+      "description": {
+        "en": "Not sent because the Turkish SMS sender header has no İYS brand.",
+        "tr": "Türkiye SMS gönderici başlığının İYS markası olmadığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "channel.sender_unapproved",
+      "reason": "sender_unapproved",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-50",
+      "detail": [
+        "channel",
+        "provider"
+      ],
+      "description": {
+        "en": "Not sent because the sender identity is not approved at the provider or is suspended.",
+        "tr": "Gönderici kimliği sağlayıcıda onaylı olmadığı ya da askıda olduğu için gönderilmedi."
+      }
+    },
+    {
+      "id": "channel.sender_unregistered",
+      "reason": "sender_unregistered",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-50",
+      "detail": [
+        "channel",
+        "provider"
+      ],
+      "description": {
+        "en": "Not sent because the US sender number has no 10DLC registration or toll-free verification.",
+        "tr": "ABD gönderici numarasının 10DLC kaydı ya da toll-free doğrulaması olmadığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "channel.sms_encoding_unsupported",
+      "reason": "encoding_unsupported",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-48",
+      "detail": [
+        "channel",
+        "provider"
+      ],
+      "description": {
+        "en": "Not sent because the provider cannot be told an encoding that carries the text.",
+        "tr": "Sağlayıcıya metni taşıyan bir kodlama bildirilemediği için gönderilmedi."
+      }
+    },
+    {
       "id": "channel.target_unavailable",
       "reason": "target_unavailable",
       "kind": "shaper",
@@ -236,6 +356,20 @@
       "description": {
         "en": "Postponed because the target of the channel cannot be read.",
         "tr": "Kanalın hedefi okunamadığı için ertelendi."
+      }
+    },
+    {
+      "id": "channel.tr_route_unauthorized",
+      "reason": "no_route",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-51",
+      "detail": [
+        "channel"
+      ],
+      "description": {
+        "en": "Not sent because an SMS to a Turkish number goes only through a BTK-authorized provider and none is set up.",
+        "tr": "Türkiye numarasına SMS yalnız BTK yetkili sağlayıcıyla gittiği ve böyle bir sağlayıcı kurulu olmadığı için gönderilmedi."
       }
     },
     {
@@ -1190,51 +1324,6 @@
       "description": {
         "en": "The event was kept unmatched because no open waitpoint matched the event.",
         "tr": "Olay eşleşmeden kaydedildi, çünkü olay hiçbir açık bekleme noktasıyla eşleşmedi."
-      }
-    },
-    {
-      "id": "whatsapp.number_unavailable",
-      "reason": "provider_unavailable",
-      "kind": "shaper",
-      "outcome": "defer",
-      "decision": "CH-61",
-      "detail": [
-        "channel",
-        "until"
-      ],
-      "description": {
-        "en": "Postponed because the WhatsApp business number is briefly unusable, as during a throughput upgrade.",
-        "tr": "WhatsApp işletme numarası, throughput yükseltmesi sırasında olduğu gibi kısa süre kullanılamadığı için ertelendi."
-      }
-    },
-    {
-      "id": "whatsapp.template_not_approved",
-      "reason": "template_unavailable",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "CH-57",
-      "detail": [
-        "channel",
-        "template_name",
-        "status"
-      ],
-      "description": {
-        "en": "Not sent because the WhatsApp template is not registered or not approved by Meta; a pending, rejected, paused or disabled template is never sent.",
-        "tr": "WhatsApp şablonu kayıtlı ya da Meta tarafından onaylı olmadığı için gönderilmedi; onay bekleyen, reddedilen, duraklatılan ya da devre dışı şablonla gönderim yapılmaz."
-      }
-    },
-    {
-      "id": "whatsapp.window_closed",
-      "reason": "no_channel_variant",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "CH-58",
-      "detail": [
-        "channel"
-      ],
-      "description": {
-        "en": "Not sent because the recipient's 24-hour WhatsApp customer service window is closed and the content has no approved template.",
-        "tr": "Alıcının 24 saatlik WhatsApp müşteri hizmeti penceresi kapalı olduğu ve içerikte onaylı şablon bulunmadığı için gönderilmedi."
       }
     }
   ]

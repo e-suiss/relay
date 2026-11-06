@@ -1,0 +1,93 @@
+{
+  "provider": "netgsm",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "sms"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "sms": {
+      "delivery_receipts": true,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "no_auto_retry",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": null,
+    "status_query": false,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05; the send request has no client message id, the report is looked up by jobid"
+  },
+  "paid_channels": [
+    "sms"
+  ],
+  "pricing": {
+    "currency": "TRY",
+    "units": {
+      "sms": "segment"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [
+      {
+        "channel": "sms",
+        "unit": "request",
+        "limit": 10,
+        "per_ms": 60000,
+        "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05; report queries"
+      }
+    ],
+    "sender": [],
+    "recipient": [
+      {
+        "channel": "sms",
+        "unit": "message",
+        "limit": 20,
+        "per_ms": 60000,
+        "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05; code 85"
+      }
+    ]
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "TR"
+    ],
+    "transfer_basis": "none",
+    "scc_notified_on": null,
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05"
+  },
+  "inbound_verification": {
+    "method": "none",
+    "header": null,
+    "authenticity": "verified",
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05; delivery reports are read from the report endpoint"
+  },
+  "sms": {
+    "encodings": [
+      "GSM7",
+      "GSM7_TR"
+    ],
+    "turkish_single_shift": "unverified",
+    "turkish_single_shift_evidence": null,
+    "btk_authorized": true,
+    "otp_product": true,
+    "sender_types": [
+      "alphanumeric"
+    ],
+    "segment_reserve": [],
+    "source": "https://www.npmjs.com/package/@netgsm/sms (1.1.11, dist/enums.js, dist/types.d.ts); https://github.com/netgsm1/sms; https://github.com/netgsm1/otp; compiled 2026-11-05; encoding TR is the Turkish character set and has no UCS-2 value; operator NETGSM_STH/NETGSM_MOBIL"
+  }
+}

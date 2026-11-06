@@ -1,6 +1,6 @@
 defmodule Relay.Channels.WhatsappCloud do
   @moduledoc """
-  The WhatsApp Cloud API adapter (CH-1, CH-3, CH-57, CH-60): a thin Graph API client over `Relay.Channels.http_request/1`, with no SDK. One call is `POST /<version>/<phone_number_id>/messages` with the system user token of the provider account as a bearer token; the body comes from `Relay.Channels.Whatsapp.Message` (a template message, or free-form text when the channel step chose it for an open window).
+  The WhatsApp Cloud API adapter (CH-1, CH-3, CH-57, CH-60): a thin Graph API client over `Relay.Channels.ProviderHttp.call/2`, with no SDK. One call is `POST /<version>/<phone_number_id>/messages` with the system user token of the provider account as a bearer token; the body comes from `Relay.Channels.Whatsapp.Message` (a template message, or free-form text when the channel step chose it for an open window).
 
   The send endpoint has no idempotency key, so the declared policy is `no_auto_retry` with `biz_opaque_callback_data` as the correlation field: an attempt whose answer never came is not sent again, and its final state comes from the status webhooks, which carry the correlation back (CH-60, T-28). The adapter decides nothing: it reports Meta's error code (`error.code`), or `http_<status>` when the body carries none, and the core classifies it through `errors.json` (CH-7, CH-59).
 
@@ -9,6 +9,7 @@ defmodule Relay.Channels.WhatsappCloud do
 
   @behaviour Relay.Channels.Adapter
 
+  alias Relay.Channels.ProviderHttp
   alias Relay.Channels.Request
   alias Relay.Channels.Whatsapp.Message
 
@@ -34,7 +35,7 @@ defmodule Relay.Channels.WhatsappCloud do
          {:ok, body} <- body(request, content) do
       request
       |> options(number, token, body)
-      |> Relay.Channels.http_request()
+      |> ProviderHttp.call(request.timeout_ms)
       |> result()
     end
   end
@@ -77,24 +78,12 @@ defmodule Relay.Channels.WhatsappCloud do
   end
 
   defp options(request, number, token, body) do
-    version = version(request.account)
-
-    extra =
-      :relay
-      |> Application.get_env(__MODULE__, [])
-      |> Keyword.get(:req_options, [])
-
-    Keyword.merge(
-      [
-        method: :post,
-        url: Enum.join([@base_url, version, number, "messages"], "/"),
-        headers: [{"authorization", "Bearer " <> token}],
-        json: body,
-        receive_timeout: request.timeout_ms,
-        connect_options: [timeout: request.timeout_ms]
-      ],
-      extra
-    )
+    [
+      method: :post,
+      url: Enum.join([@base_url, version(request.account), number, "messages"], "/"),
+      headers: [{"authorization", "Bearer " <> token}],
+      json: body
+    ]
   end
 
   defp version(%{"settings" => %{"graph_api_version" => version}}) when is_binary(version) do
@@ -119,15 +108,8 @@ defmodule Relay.Channels.WhatsappCloud do
     {:rejected, decode(raw)}
   end
 
-  defp result({:error, %Req.TransportError{reason: reason}})
-       when reason in [:econnrefused, :nxdomain, :ehostunreach, :enetunreach],
-       do: {:not_sent, Atom.to_string(reason)}
-
-  defp result({:error, %Req.TransportError{reason: reason}}),
-    do: {:uncertain, reason |> inspect() |> String.slice(0, 64)}
-
-  defp result({:error, exception}),
-    do: {:uncertain, exception.__struct__ |> inspect() |> String.slice(0, 64)}
+  defp result({:not_sent, reason}), do: {:not_sent, reason}
+  defp result({:uncertain, reason}), do: {:uncertain, reason}
 
   defp headers(%Req.Response{headers: headers}) do
     for {name, values} <- headers, value <- List.wrap(values), do: {name, value}

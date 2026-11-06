@@ -2,6 +2,7 @@ defmodule Relay.Channels.WhatsappCloudTest do
   use ExUnit.Case, async: true
 
   alias Relay.ChannelDeclarations
+  alias Relay.Channels.ProviderHttp
   alias Relay.Channels.Request
   alias Relay.Channels.Whatsapp.Message
   alias Relay.Channels.WhatsappCloud
@@ -32,7 +33,7 @@ defmodule Relay.Channels.WhatsappCloudTest do
     )
   end
 
-  defp stub(fun), do: Req.Test.stub(WhatsappCloud, fun)
+  defp stub(fun), do: Req.Test.stub(ProviderHttp, fun)
 
   defp reply(conn, status, body) do
     conn

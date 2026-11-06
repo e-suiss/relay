@@ -117,6 +117,6 @@
   {"file": "20261119000100_create_whatsapp_template_functions.exs", "sha256": "7829992c5d5c90c65b9d89d07ec02055255f09d86958c9c21c18b4c923089555"},
   {"file": "20261119000200_rebuild_reference_check_for_whatsapp.exs", "sha256": "1ecb8084ded9934eb65b784760d76cca520ed1236240b706157faf5629302677"},
   {"file": "20261119000300_register_whatsapp_datasets.exs", "sha256": "1fe8c230bd397b355af2a9182244081fefb28184b0e0a4009082b1a88f87f32a"},
-  {"file": "20261119000400_create_provider_account_resolve.exs", "sha256": "3cc0fc3897a412dae344b2103eb5d7deb043c18e40f1cce6283c90de64b1cb85"},
+  {"file": "20261119000400_create_provider_account_resolve.exs", "sha256": "446a0bdb97d76775df8bcaa711bf5b4412085b618f239cca5f24bba20915d490"},
   {"file": "20261121000100_create_usage_day_scopes.exs", "sha256": "401d5f8c941653190f201b068c25d54dc1dbbd7352519290b6e7d3935114d892"}
 ]

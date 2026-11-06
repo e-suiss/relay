@@ -23,7 +23,7 @@ defmodule Relay.Repo.Migrations.CreateProviderAccountResolve do
     """)
 
     execute("REVOKE ALL ON FUNCTION #{@signature} FROM PUBLIC")
-    execute("GRANT EXECUTE ON FUNCTION #{@signature} TO relay_api")
+    execute("GRANT EXECUTE ON FUNCTION #{@signature} TO relay_api, relay_worker")
   end
 
   def down, do: :ok

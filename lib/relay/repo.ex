@@ -29,7 +29,8 @@ defmodule Relay.Repo do
     :cross_tenant_overview,
     :suspension_due_discovery,
     :lane_capacity,
-    :device_sweep_discovery
+    :device_sweep_discovery,
+    :usage_day_discovery
   ]
 
   @type tenant_status :: :active | :suspended | :closed
@@ -51,6 +52,7 @@ defmodule Relay.Repo do
           | :suspension_due_discovery
           | :lane_capacity
           | :device_sweep_discovery
+          | :usage_day_discovery
 
   # TN-13 (4)
   @impl Ecto.Repo

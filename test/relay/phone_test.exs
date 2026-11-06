@@ -57,4 +57,16 @@ defmodule Relay.PhoneTest do
       refute inspect(error) =~ "5321234567"
     end
   end
+
+  describe "OP-38 destination country" do
+    test "OP-38: the calling code names the country; a shared code names none" do
+      assert Phone.country("+905321234567") == "TR"
+      assert Phone.country("+4915123456789") == "DE"
+      assert Phone.country("+212612345678") == "MA"
+      assert Phone.country("+35312345678") == "IE"
+      assert Phone.country("+12025550123") == nil
+      assert Phone.country("+79161234567") == nil
+      assert Phone.country("not a number") == nil
+    end
+  end
 end

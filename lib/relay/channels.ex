@@ -204,6 +204,27 @@ defmodule Relay.Channels do
           {:ok, Pricing.price()} | :unpriced
   defdelegate price(declaration, channel, country, category, volume \\ 0), to: Pricing
 
+  @type usage_price :: {:ok, Pricing.price()} | :unpriced
+  @type usage_pricer :: (... -> usage_price())
+
+  # CH-18
+  # OP-38
+  @doc "The pricer of the daily usage records over the active provider declarations: a function of provider, channel, destination country, category and the volume already sent in the period that returns the unit price (`price/5`) or `:unpriced`; `{:error, reason}` while the declarations cannot be read."
+  @spec usage_pricing() :: {:ok, usage_pricer()} | {:error, term()}
+  def usage_pricing do
+    case Relay.Datasets.channel_declarations() do
+      {:ok, declarations} -> {:ok, &usage_price(declarations, &1, &2, &3, &4, &5)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp usage_price(declarations, provider, channel, country, category, volume) do
+    case ChannelDeclarations.declaration(declarations, provider) do
+      {:ok, declaration} -> Pricing.price(declaration, channel, country, category, volume)
+      {:error, :unknown_provider} -> :unpriced
+    end
+  end
+
   # CH-17
   @doc "The adaptive factor of a provider account's rate; see `Relay.Channels.Throttle.factor/1`."
   @spec throttle_factor(Relay.Id.t() | nil) :: float()

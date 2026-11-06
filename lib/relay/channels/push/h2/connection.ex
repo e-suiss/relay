@@ -224,8 +224,6 @@ defmodule Relay.Channels.Push.H2.Connection do
     if jitter > 0, do: max_age - Relay.Random.uniform(jitter), else: max_age
   end
 
-  defp retire(%{conn: nil} = state), do: state
-
   defp retire(state),
     do: %{state | draining: Map.put(state.draining, state.gen, state.conn), conn: nil, ping: nil}
 
@@ -297,12 +295,10 @@ defmodule Relay.Channels.Push.H2.Connection do
   defp stream(state, message) do
     conns = if state.conn, do: [{:current, state.conn}], else: []
     conns = conns ++ Enum.map(state.draining, fn {gen, conn} -> {{:draining, gen}, conn} end)
-    Enum.reduce_while(conns, :unknown, fn {which, conn}, :unknown ->
-      on(state, which, conn, message)
-    end)
+    Enum.reduce_while(conns, :unknown, &on(&1, &2, state, message))
   end
 
-  defp on(state, which, conn, message) do
+  defp on({which, conn}, :unknown, state, message) do
     case Mint.HTTP2.stream(conn, message) do
       :unknown ->
         {:cont, :unknown}
@@ -349,9 +345,6 @@ defmodule Relay.Channels.Push.H2.Connection do
     end
   end
 
-  defp lower(headers),
-    do: Enum.map(headers, fn {name, value} -> {String.downcase(name), value} end)
-
   defp response({:pong, ref}, %{ping: ref} = state), do: %{state | ping: nil}
   defp response({:pong, _ref}, state), do: state
 
@@ -367,6 +360,9 @@ defmodule Relay.Channels.Push.H2.Connection do
   end
 
   defp response(_other, state), do: state
+
+  defp lower(headers),
+    do: Enum.map(headers, fn {name, value} -> {String.downcase(name), value} end)
 
   defp stream_error(%Mint.HTTPError{reason: :unprocessed}), do: {:not_sent, "unprocessed"}
 

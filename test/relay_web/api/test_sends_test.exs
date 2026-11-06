@@ -39,7 +39,7 @@ defmodule RelayWeb.Api.TestSendsTest do
       "scope" => "preferences"
     }
 
-    headers = [{"content-type", "application/x-www-form-urlencoded"}]
+    headers = FakeAccess.exchange_headers(token)
 
     conn =
       :post

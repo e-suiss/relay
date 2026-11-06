@@ -5,7 +5,6 @@ defmodule Relay.Access.DiscoveryTest do
   alias Relay.Access.Link
   alias RelayTest.FakeAccess
   alias RelayTest.TenantFixture
-  alias RelayWeb.Auth.Access
 
   @link "SELECT issuer, state, access_region, management_api, event_subscriptions, authzen IS NOT NULL, jwks FROM relay.access_link"
 
@@ -18,8 +17,7 @@ defmodule Relay.Access.DiscoveryTest do
     %{tenant: tenant, token: token}
   end
 
-  defp verify(token),
-    do: Relay.Access.verify_server_token(token, audience: Access.audience(:server))
+  defp verify(token), do: Relay.Access.verify_server_token(token, FakeAccess.presented(token))
 
   defp other_region do
     Enum.find(["tr", "eu", "us"], &(&1 != FakeAccess.installation_region()))

@@ -6,9 +6,9 @@ defmodule Relay.Access.ApiClientTest do
   alias Relay.Access.Clients
   alias Relay.Access.Usage
   alias RelayTest.Api
+  alias RelayTest.Dpop
   alias RelayTest.FakeAccess
   alias RelayTest.TenantFixture
-  alias RelayWeb.Auth.Access
 
   @domain "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'api_scope_check'"
   @set_status "SELECT * FROM relay_fn.api_client_set_status($1, $2, $3, $4, $5, $6, $7, $8)"
@@ -22,14 +22,14 @@ defmodule Relay.Access.ApiClientTest do
   end
 
   defp verify(token, opts \\ []),
-    do: Relay.Access.verify_server_token(token, [audience: Access.audience(:server)] ++ opts)
+    do: Relay.Access.verify_server_token(token, FakeAccess.presented(token) ++ opts)
 
   defp token(ctx, scope \\ "read config openid", claims \\ %{}),
     do: FakeAccess.server_token(ctx.access_tenant, ctx.client, scope, claims)
 
   defp clock(token, conn_fun \\ & &1) do
     :get
-    |> Api.conn("/v1/virtual_clock", nil, [{"authorization", "Bearer " <> token}])
+    |> Api.conn("/v1/virtual_clock", nil, Api.auth(token, :get, "/v1/virtual_clock"))
     |> conn_fun.()
     |> Api.call()
   end
@@ -61,16 +61,70 @@ defmodule Relay.Access.ApiClientTest do
       assert {:ok, %{scopes: []}} = verify(token(ctx, "openid"))
     end
 
-    test "API-71, E-25: a token for another audience, of an unknown client or tenant is refused",
+    test "E-93: a service token without a scope claim is granted the registration's scopes",
          ctx do
-      subscriber = token(ctx, "read", %{"aud" => Access.audience(:exchange)})
-      unknown = FakeAccess.server_token(ctx.access_tenant, "app_unknown", "read")
-      other = FakeAccess.server_token("acc_nobody", ctx.client, "read")
-      bare = token(ctx, "read", %{"tenant_id" => nil})
+      assert {:ok, %{scopes: ["config", "read"]}} = verify(token(ctx, nil))
+    end
 
-      for bad <- [subscriber, unknown, other, bare] do
+    test "API-71, E-25, E-93: a token for another audience, of an unknown client or tenant is refused",
+         ctx do
+      server_api = token(ctx, "read", %{"aud" => "https://relay.test/v1"})
+      unknown = FakeAccess.server_token(ctx.access_tenant, "app_unknown", "read")
+      other = FakeAccess.server_token("tnt_nobody", ctx.client, "read")
+      bare = token(ctx, "read", %{"access_tenant" => nil})
+      legacy = token(ctx, "read", %{"access_tenant" => nil, "tenant_id" => ctx.access_tenant})
+
+      for bad <- [server_api, unknown, other, bare, legacy] do
         assert {:error, %Relay.Error{code: :auth_invalid_token}} = verify(bad)
       end
+    end
+
+    test "E-93: a token that is not at+jwt, not yet issued or not DPoP-bound is refused", ctx do
+      now = System.system_time(:second)
+      claims = %{"client_id" => ctx.client, "access_tenant" => ctx.access_tenant}
+      untyped = FakeAccess.token(claims, %{"typ" => "JWT"})
+      future = token(ctx, "read", %{"iat" => now + 600, "nbf" => nil})
+      unbound = token(ctx, "read", %{"cnf" => nil})
+
+      for bad <- [untyped, future, unbound] do
+        assert {:error, %Relay.Error{code: :auth_invalid_token}} = verify(bad)
+      end
+    end
+
+    test "E-93: a proof is accepted once and only for the request it names", ctx do
+      token = token(ctx)
+      presented = FakeAccess.presented(token)
+
+      assert {:ok, _} = Relay.Access.verify_server_token(token, presented)
+
+      assert {:error, %Relay.Error{code: :auth_invalid_token}} =
+               Relay.Access.verify_server_token(token, presented)
+
+      fresh = FakeAccess.presented(token)
+
+      for opts <- [
+            Keyword.put(fresh, :method, "POST"),
+            Keyword.put(fresh, :url, "https://relay.test/v1/events"),
+            Keyword.delete(fresh, :proof)
+          ] do
+        assert {:error, %Relay.Error{code: :auth_invalid_token}} =
+                 Relay.Access.verify_server_token(token, opts)
+      end
+
+      assert {:ok, _} = Relay.Access.verify_server_token(token, fresh)
+    end
+
+    test "E-93: a refused proof is 401 with the invalid_dpop_proof challenge", ctx do
+      token = token(ctx)
+      proof = Dpop.proof(:get, "https://relay.test/v1/other", token)
+      headers = [{"authorization", "DPoP " <> token}, {"dpop", proof}]
+      conn = :get |> Api.conn("/v1/virtual_clock", nil, headers) |> Api.call()
+
+      assert conn.status == 401
+      Api.assert_contract(conn)
+      assert Jason.decode!(conn.resp_body)["code"] == "auth_invalid_token"
+      assert [challenge] = get_resp_header(conn, "www-authenticate")
+      assert challenge =~ ~s(DPoP realm="relay", error="invalid_dpop_proof")
     end
 
     test "API-71: an expired token is auth_expired_token", ctx do
@@ -185,7 +239,7 @@ defmodule Relay.Access.ApiClientTest do
     test "API-41, API-48: a certificate-bound token needs the connection's certificate", ctx do
       certificate = :crypto.strong_rand_bytes(300)
       thumbprint = Base.url_encode64(:crypto.hash(:sha256, certificate), padding: false)
-      bound = token(ctx, "read", %{"cnf" => %{"x5t#S256" => thumbprint}})
+      bound = token(ctx, "read", %{"cnf" => bound(thumbprint)})
 
       assert {:ok, %{certificate_bound: true}} = verify(bound, certificate: certificate)
 
@@ -206,7 +260,7 @@ defmodule Relay.Access.ApiClientTest do
 
       certificate = :crypto.strong_rand_bytes(300)
       thumbprint = Base.url_encode64(:crypto.hash(:sha256, certificate), padding: false)
-      bound = token(ctx, "read", %{"cnf" => %{"x5t#S256" => thumbprint}})
+      bound = token(ctx, "read", %{"cnf" => bound(thumbprint)})
       peer = %{address: {10, 0, 0, 1}, port: 443, ssl_cert: certificate}
 
       conn = clock(bound, &Plug.Test.put_peer_data(&1, peer))
@@ -215,22 +269,12 @@ defmodule Relay.Access.ApiClientTest do
     end
   end
 
-  describe "E-79 Access token claims" do
-    test "E-79 (1): suiss_environment names the environment and must be the client's", ctx do
-      assert {:ok, %{scope: scope}} = verify(token(ctx, "read", %{"suiss_environment" => "test"}))
+  describe "E-93 E-79 Access token claims" do
+    test "E-93: access_tenant and client_id name the client; the environment is the registration's",
+         ctx do
+      assert {:ok, %{scope: scope}} = verify(token(ctx, "read", %{"suiss_environment" => "live"}))
       assert scope == ctx.tenant.test
-      assert {:ok, _principal} = verify(token(ctx, "read", %{"environment" => "live"}))
-
-      for named <- ["live", "staging", 7] do
-        assert {:error, %Relay.Error{code: :auth_invalid_token}} =
-                 verify(token(ctx, "read", %{"suiss_environment" => named}))
-      end
-
-      assert Relay.AccessClaims.names() == %{
-               tenant: "tenant_id",
-               client: "client_id",
-               environment: "suiss_environment"
-             }
+      assert Relay.AccessClaims.names() == %{tenant: "access_tenant", client: "client_id"}
     end
 
     test "E-79 (3): a client whose Access event has not arrived is 401 auth_invalid_token", ctx do
@@ -249,6 +293,8 @@ defmodule Relay.Access.ApiClientTest do
   end
 
   defp thumbprint(der), do: Base.url_encode64(:crypto.hash(:sha256, der), padding: false)
+
+  defp bound(thumbprint), do: %{"jkt" => Dpop.jkt(), "x5t#S256" => thumbprint}
 
   defp trusted_proxies(ranges) do
     previous = Application.get_env(:relay, RelayWeb.Api, [])
@@ -270,7 +316,7 @@ defmodule Relay.Access.ApiClientTest do
       actor = TenantFixture.actor()
       {:ok, {:created, _}} = Relay.Tenancy.put_setting(ctx.tenant.test, change, actor)
       der = certificate()
-      bound = token(ctx, "read", %{"cnf" => %{"x5t#S256" => thumbprint(der)}})
+      bound = token(ctx, "read", %{"cnf" => bound(thumbprint(der))})
       %{der: der, bound: bound, header: ":" <> Base.encode64(der) <> ":"}
     end
 

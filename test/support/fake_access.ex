@@ -7,14 +7,12 @@ defmodule RelayTest.FakeAccess do
 
   use Boundary,
     top_level?: true,
-    deps: [Relay, Relay.Access, RelayWeb, RelayTest.Api],
+    deps: [Relay, Relay.Access, RelayWeb, RelayTest.Api, RelayTest.Dpop],
     exports: []
 
   @behaviour Plug
 
   import Plug.Conn
-
-  alias RelayWeb.Auth.Access
 
   @issuer "https://access.test"
   @jobs "SELECT args->>'receipt_id' FROM relay_queue.oban_jobs WHERE worker = 'Relay.Access.EventConsumer' ORDER BY id"
@@ -152,40 +150,72 @@ defmodule RelayTest.FakeAccess do
     client_id
   end
 
-  @doc "A client credentials token of an Access client for the server API; `claims` override the defaults."
-  @spec server_token(String.t(), String.t(), String.t(), map()) :: String.t()
+  # E-93
+  @doc "A DPoP-bound client credentials token of an Access client for the server API (`aud` Relay's Access `client_id`, `cnf.jkt` the proof key of `RelayTest.Dpop`); `claims` override the defaults, and a nil value removes a claim."
+  @spec server_token(String.t(), String.t(), String.t() | nil, map()) :: String.t()
   def server_token(access_tenant_id, client_id, scope, claims \\ %{}) do
     %{
       "sub" => client_id,
       "client_id" => client_id,
-      "tenant_id" => access_tenant_id,
-      "scope" => scope,
-      "aud" => Access.audience(:server)
+      "access_tenant" => access_tenant_id,
+      "scope" => scope
     }
     |> Map.merge(claims)
     |> token()
   end
 
-  @doc "An end user's Access token for the subscriber token exchange."
+  # E-93
+  @doc "An end user's DPoP-bound Access token for the subscriber token exchange, with the `sid` of the user's Access session; `claims` override the defaults."
   @spec user_token(String.t(), String.t(), String.t(), map()) :: String.t()
   def user_token(access_tenant_id, client_id, sub, claims \\ %{}) do
     %{
       "sub" => sub,
+      "sid" => random(),
       "client_id" => client_id,
-      "tenant_id" => access_tenant_id,
-      "aud" => Access.audience(:exchange)
+      "access_tenant" => access_tenant_id
     }
     |> Map.merge(claims)
     |> token()
   end
 
-  @doc "Signs claims with the fake ES256 key; `iss`, `iat`, `nbf` and `exp` default to a token valid for five minutes."
+  # E-93
+  @doc "The headers of a subscriber token exchange of `token`: the form content type and a fresh DPoP proof of the token's key."
+  @spec exchange_headers(String.t()) :: [{String.t(), String.t()}]
+  def exchange_headers(token) do
+    url = RelayTest.Dpop.base() <> "/v1/subscriber/token"
+
+    [
+      {"content-type", "application/x-www-form-urlencoded"},
+      {"dpop", RelayTest.Dpop.proof(:post, url, token)}
+    ]
+  end
+
+  # E-93
+  @doc "The options of `Relay.Access.verify_server_token/2` for `token` presented with a fresh proof on `method` and `path`."
+  @spec presented(String.t(), String.t(), String.t()) :: keyword()
+  def presented(token, method \\ "GET", path \\ "/v1/virtual_clock") do
+    url = RelayTest.Dpop.base() <> path
+    [proof: RelayTest.Dpop.proof(method, url, token), method: method, url: url]
+  end
+
+  @doc "Signs claims with the fake ES256 key; `iss`, `aud` (Relay's Access `client_id`), `iat`, `nbf`, `exp` (a token valid for five minutes), `jti` and `cnf.jkt` (the proof key of `RelayTest.Dpop`) have defaults, and a nil value removes a claim."
   @spec token(map(), map()) :: String.t()
   def token(claims, header \\ %{}) do
     now = System.system_time(:second)
-    defaults = %{"iss" => @issuer, "iat" => now, "nbf" => now, "exp" => now + 300}
+
+    defaults = %{
+      "iss" => @issuer,
+      "aud" => Relay.Access.client_id(),
+      "iat" => now,
+      "nbf" => now,
+      "exp" => now + 300,
+      "jti" => random(),
+      "cnf" => %{"jkt" => RelayTest.Dpop.jkt()}
+    }
+
+    claims = defaults |> Map.merge(claims) |> Map.reject(fn {_name, value} -> is_nil(value) end)
     header = Map.merge(%{"alg" => "ES256", "typ" => "at+jwt", "kid" => "fake-es256"}, header)
-    input = b64(Jason.encode!(header)) <> "." <> b64(Jason.encode!(Map.merge(defaults, claims)))
+    input = b64(Jason.encode!(header)) <> "." <> b64(Jason.encode!(claims))
     {_public, private} = @es256
     der = :crypto.sign(:ecdsa, :sha256, input, [private, :secp256r1])
     {:"ECDSA-Sig-Value", r, s} = :public_key.der_decode(:"ECDSA-Sig-Value", der)

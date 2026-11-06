@@ -4192,7 +4192,7 @@ components:
   securitySchemes:
     access_bearer:
       type: oauth2
-      description: "Short-lived Access access token obtained with OAuth 2.0 client credentials for an API client registered in Access. The client is bound to one tenant, one environment and optionally one subtenant. Relay validates the token with the cached Access JWKS: iss, aud (Relay server API), exp and nbf on every request, an allow-list of algorithms (EdDSA or Ed25519 for Ed25519 keys, ES256, PS256), no unsigned tokens. The token names the Access tenant in tenant_id, the Access client in client_id and, when present, the environment in suiss_environment, which must be the client's. Relay has no API keys of its own. The token endpoint is discovered from the Access issuer."
+      description: "Short-lived, DPoP-bound Access access token (RFC 9068, RFC 9449) obtained with OAuth 2.0 client credentials and resource=<Relay's Access client_id> (RFC 8707) for an API client registered in Access; Relay's client_id is access_client_id in Relay's discovery document. There is no bearer token: every request sends Authorization: DPoP <token> and a DPoP header with a fresh proof signed by the token's key (typ dpop+jwt, alg ES256 or Ed25519, the public jwk in the header, htm the request method, htu the request URL without query and fragment, ath the unpadded base64url SHA-256 of the token, a unique jti, iat within 60 seconds of Relay's clock). The proof key's RFC 7638 thumbprint must be the token's cnf.jkt, and a jti is accepted once. Relay validates the token with the cached Access JWKS: typ at+jwt, iss, aud equal to Relay's Access client_id, exp, nbf and iat on every request, an allow-list of algorithms (EdDSA or Ed25519 for Ed25519 keys, ES256, PS256), no unsigned tokens. The token names the Access tenant in access_tenant and the Access client in client_id; it only says who calls. Tenant, environment, subtenant and scopes come from Relay's registration of the API client, and the token's scope claim, when present, narrows the scopes. Relay has no API keys of its own. The token endpoint is discovered from the Access issuer. A 401 carries a WWW-Authenticate: DPoP challenge, with error=\"invalid_dpop_proof\" when the proof is refused."
       flows:
         clientCredentials:
           tokenUrl: "https://access.example.com/oauth2/token"
@@ -4204,7 +4204,7 @@ components:
             kill_switch: Engage and tighten kill switches of campaign and workflow scope only.
     mtls:
       type: mutualTLS
-      description: "Optional additional layer for enterprise tenants: RFC 8705 certificate-bound Access tokens. It is used together with access_bearer, never alone. Behind a proxy that terminates TLS, the client certificate is read from the RFC 9440 Client-Cert header (and Client-Cert-Chain) only when the connection comes from a trusted proxy (RELAY_TRUSTED_PROXIES); the header from any other peer is ignored."
+      description: "Optional additional layer for enterprise tenants: RFC 8705 certificate-bound Access tokens. It is used together with access_bearer (a DPoP-bound token), never alone. Behind a proxy that terminates TLS, the client certificate is read from the RFC 9440 Client-Cert header (and Client-Cert-Chain) only when the connection comes from a trusted proxy (RELAY_TRUSTED_PROXIES); the header from any other peer is ignored."
     operator_session:
       type: apiKey
       in: cookie

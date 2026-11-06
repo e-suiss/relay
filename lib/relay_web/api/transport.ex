@@ -94,6 +94,18 @@ defmodule RelayWeb.Api.Transport do
   @spec scheme(Plug.Conn.t(), [String.t()]) :: :http | :https
   def scheme(conn, trusted \\ trusted_proxies()), do: forward(conn, trusted).scheme
 
+  # E-93
+  @doc "The external URL of the request without query, which a DPoP proof's `htu` names: the scheme, host and port of the request after `forward/2` (those a trusted proxy forwarded, else the connection's own) and the request path."
+  @spec request_url(Plug.Conn.t(), [String.t()]) :: String.t()
+  def request_url(conn, trusted \\ trusted_proxies()) do
+    %{scheme: scheme, host: host, port: port} = forward(conn, trusted)
+    Atom.to_string(scheme) <> "://" <> host <> port(scheme, port) <> conn.request_path
+  end
+
+  defp port(:https, 443), do: ""
+  defp port(:http, 80), do: ""
+  defp port(_scheme, port), do: ":" <> Integer.to_string(port)
+
   # API-47
   # E-91
   @doc "The client address: the nearest untrusted hop of `X-Forwarded-For` behind trusted proxies, else the peer."

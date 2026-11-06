@@ -27,8 +27,9 @@ paths:
       tags:
         - token
       summary: Exchange an Access token for a subscriber token
-      description: "The only way to obtain a subscriber token. The client sends its Access access token (RFC 8693); the tenant backend needs no code. The subscriber is matched by the Access pairwise sub for this tenant, which is the subscriber's external_id; an unknown sub creates an inbox-only subscriber. Tenant and environment come from the Access client registration the token was issued to, never from the request. When Access cannot be reached no new token is issued and the error is visible; an Access token is never accepted directly for inbox, preferences or realtime. Errors are problem details that also carry the OAuth error member. This OAuth endpoint takes no Idempotency-Key and its response is never stored: issuing a token has no side effect beyond the external_id keyed subscriber upsert."
+      description: "The only way to obtain a subscriber token. The client sends its end user's DPoP-bound Access access token (RFC 8693) issued for resource=<Relay's Access client_id>, with a DPoP header whose proof is signed by the token's key for this request (htm POST, htu this URL, ath the token's hash, a unique jti, a fresh iat); Relay checks token and proof exactly as on the server API. The tenant backend needs no code. The subscriber is matched by the Access pairwise sub for this tenant, which is the subscriber's external_id; an unknown sub creates an inbox-only subscriber. Tenant and environment come from the Access client registration the token was issued to, never from the request. When Access cannot be reached no new token is issued and the error is visible; an Access token is never accepted directly for inbox, preferences or realtime. Errors are problem details that also carry the OAuth error member. This OAuth endpoint takes no Idempotency-Key and its response is never stored: issuing a token has no side effect beyond the external_id keyed subscriber upsert."
       parameters:
+        - "$ref": "./components/parameters.yaml#/DPoP"
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
       requestBody:
@@ -700,7 +701,7 @@ components:
           const: "urn:ietf:params:oauth:grant-type:token-exchange"
         subject_token:
           type: string
-          description: "The end user's Access access token."
+          description: "The end user's DPoP-bound Access access token: typ at+jwt, aud Relay's Access client_id, access_tenant and client_id naming the registered Access client, sub the pairwise subject."
           minLength: 1
           maxLength: 8192
         subject_token_type:

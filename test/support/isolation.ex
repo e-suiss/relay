@@ -70,7 +70,7 @@ defmodule RelayTest.Isolation do
     "cells" => %{"sms" => %{"tr" => %{"body" => "Kodunuz hazır"}}}
   }
 
-  @doc "The server operations with path parameters that `router` mounts, authenticated with a bearer token."
+  @doc "The server operations with path parameters that `router` mounts, authenticated with an Access token."
   @spec operations(module()) :: [Contract.operation()]
   def operations(router) do
     mounted = MapSet.new(RelayTest.Api.routes(router))
@@ -156,26 +156,20 @@ defmodule RelayTest.Isolation do
     body = Map.get(bodies(), operation.id)
     key = {"idempotency-key", "isolation-" <> Base.encode16(:crypto.strong_rand_bytes(6))}
 
-    headers = [key, {"if-match", ~s("999")}]
+    headers = RelayTest.Api.auth(token, method, path) ++ [key, {"if-match", ~s("999")}]
 
     conn =
       if body,
-        do: body_request(operation, method, path, token, body, headers),
-        else: RelayTest.Api.conn(method, path, nil, [bearer(token) | headers])
+        do: body_request(operation, method, path, body, headers),
+        else: RelayTest.Api.conn(method, path, nil, headers)
 
     RelayTest.Api.call(conn, router)
   end
 
-  defp body_request(operation, method, path, token, body, headers) do
+  defp body_request(operation, method, path, body, headers) do
     [media | _] = Map.keys(operation.request)
-
-    RelayTest.Api.conn(method, path, Jason.encode!(body), [
-      {"content-type", media},
-      bearer(token) | headers
-    ])
+    RelayTest.Api.conn(method, path, Jason.encode!(body), [{"content-type", media} | headers])
   end
-
-  defp bearer(token), do: {"authorization", "Bearer " <> token}
 
   defp owner(scope), do: F.token(scope)
 

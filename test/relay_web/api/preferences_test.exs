@@ -57,7 +57,7 @@ defmodule RelayWeb.Api.PreferencesTest do
       "subject_token_type" => @subject_type
     }
 
-    headers = [{"content-type", "application/x-www-form-urlencoded"}]
+    headers = FakeAccess.exchange_headers(token)
 
     conn =
       :post

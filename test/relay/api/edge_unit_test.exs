@@ -138,6 +138,25 @@ defmodule Relay.Api.EdgeUnitTest do
       assert Transport.trusted?({0, 0, 0, 0, 0, 0, 0, 1}, ["::1/128"])
     end
 
+    test "E-93: the request URL a DPoP proof names is the external one behind a trusted proxy" do
+      own = %{conn(:get, "https://relay.test/v1/x?limit=1") | remote_ip: {10, 0, 0, 5}}
+      assert Transport.request_url(own, []) == "https://relay.test/v1/x"
+
+      local = %{conn(:get, "http://relay.test:4000/v1/x") | remote_ip: {10, 0, 0, 5}}
+      assert Transport.request_url(local, []) == "http://relay.test:4000/v1/x"
+
+      proxied =
+        local
+        |> Plug.Conn.put_req_header("x-forwarded-proto", "https")
+        |> Plug.Conn.put_req_header("x-forwarded-host", "api.example.com")
+
+      assert Transport.request_url(proxied, ["10.0.0.0/8"]) == "https://api.example.com/v1/x"
+      assert Transport.request_url(proxied, []) == "http://relay.test:4000/v1/x"
+
+      unnamed = Plug.Conn.put_req_header(local, "x-forwarded-proto", "https")
+      assert Transport.request_url(unnamed, ["10.0.0.0/8"]) == "https://relay.test/v1/x"
+    end
+
     test "E-91: a trusted proxy's forwarded scheme, host and client address become the request's" do
       conn =
         %{conn(:get, "http://relay.internal:4000/v1/x") | remote_ip: {10, 0, 0, 5}}

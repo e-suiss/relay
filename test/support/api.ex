@@ -3,7 +3,7 @@ defmodule RelayTest.Api do
 
   use Boundary,
     top_level?: true,
-    deps: [Relay, Relay.Api, RelayWeb, RelayTest.Api.Verifier],
+    deps: [Relay, Relay.Api, RelayWeb, RelayTest.Api.Verifier, RelayTest.Dpop],
     exports: []
 
   import ExUnit.Assertions
@@ -12,11 +12,13 @@ defmodule RelayTest.Api do
   alias Relay.Api.ErrorCatalog
   alias Relay.Api.Schema
 
+  @base "https://relay.test"
+
   @doc "An HTTPS request from a fresh client address; `body` is the raw body."
   @spec conn(atom() | String.t(), String.t(), binary() | nil, [{String.t(), String.t()}]) ::
           Plug.Conn.t()
   def conn(method, path, body \\ nil, headers \\ []) do
-    conn = Phoenix.ConnTest.build_conn(method, "https://relay.test" <> path, body)
+    conn = Phoenix.ConnTest.build_conn(method, @base <> path, body)
     conn = %{conn | remote_ip: ip()}
 
     Enum.reduce(headers, conn, fn {name, value}, acc ->
@@ -24,15 +26,25 @@ defmodule RelayTest.Api do
     end)
   end
 
-  @doc "A JSON request with a bearer token."
+  @doc "A JSON request with a token; see `auth/3`."
   @spec json(atom(), String.t(), String.t() | nil, term(), [{String.t(), String.t()}]) ::
           Plug.Conn.t()
   def json(method, path, token, body, headers \\ []) do
     raw = if is_binary(body), do: body, else: Jason.encode!(body)
-    auth = if token, do: [{"authorization", "Bearer " <> token}], else: []
+    auth = auth(token, method, path)
 
     conn(method, path, raw, [{"content-type", "application/json"} | auth] ++ headers)
   end
+
+  # E-93
+  @doc "The credential headers of a request with `token`: a Relay subscriber token as Bearer on a subscriber path, else an Access token as `Authorization: DPoP` with a proof of the request's method and URL (`RelayTest.Dpop`); none without a token."
+  @spec auth(String.t() | nil, atom() | String.t(), String.t()) :: [{String.t(), String.t()}]
+  def auth(nil, _method, _path), do: []
+
+  def auth(token, _method, "/v1/subscriber/" <> _rest),
+    do: [{"authorization", "Bearer " <> token}]
+
+  def auth(token, method, path), do: RelayTest.Dpop.headers(token, method, @base <> path)
 
   @doc "A random client address, so per-IP limits of one test never touch another."
   @spec ip() :: :inet.ip_address()

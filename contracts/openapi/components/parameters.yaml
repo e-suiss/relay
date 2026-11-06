@@ -17,6 +17,15 @@ IdempotencyKeyCloudEvents:
     type: string
     minLength: 8
     maxLength: 257
+DPoP:
+  name: DPoP
+  in: header
+  description: "RFC 9449 proof of possession of the Access token's key for this request: a compact JWS with typ dpop+jwt, alg ES256 or Ed25519 and the public jwk in its header; htm, htu (without query and fragment), ath, jti and iat in its claims. A proof is accepted once."
+  required: true
+  schema:
+    type: string
+    minLength: 1
+    maxLength: 8192
 RelayVersion:
   name: Relay-Version
   in: header

@@ -333,11 +333,9 @@ defmodule RelayWeb.Api.EventsTest do
     end
 
     defp structured(token, event, headers \\ []) do
-      conn =
-        RelayTest.Api.conn(:post, "/v1/events", Jason.encode!(event), [
-          {"content-type", "application/cloudevents+json"},
-          {"authorization", "Bearer " <> token} | headers
-        ])
+      auth = RelayTest.Api.auth(token, :post, "/v1/events")
+      headers = [{"content-type", "application/cloudevents+json"} | auth] ++ headers
+      conn = RelayTest.Api.conn(:post, "/v1/events", Jason.encode!(event), headers)
 
       RelayTest.Api.call(conn, RelayWeb.Router)
     end
@@ -362,15 +360,16 @@ defmodule RelayWeb.Api.EventsTest do
     test "API-28: a binary mode event is mapped from its ce-* headers", ctx do
       event = cloudevent("order-3")
 
-      conn =
-        RelayTest.Api.conn(:post, "/v1/events", Jason.encode!(event["data"]), [
-          {"content-type", "application/json"},
-          {"authorization", "Bearer " <> ctx.token},
-          {"ce-specversion", "1.0"},
-          {"ce-id", event["id"]},
-          {"ce-source", event["source"]},
-          {"ce-type", event["type"]}
-        ])
+      headers = [
+        {"content-type", "application/json"},
+        {"ce-specversion", "1.0"},
+        {"ce-id", event["id"]},
+        {"ce-source", event["source"]},
+        {"ce-type", event["type"]}
+      ]
+
+      headers = headers ++ RelayTest.Api.auth(ctx.token, :post, "/v1/events")
+      conn = RelayTest.Api.conn(:post, "/v1/events", Jason.encode!(event["data"]), headers)
 
       assert F.body(RelayTest.Api.call(conn, RelayWeb.Router), 202)["recipient_count"] == 1
     end
@@ -378,11 +377,9 @@ defmodule RelayWeb.Api.EventsTest do
     test "API-28: a CloudEvents batch answers with a batch result", ctx do
       raw = Jason.encode!([cloudevent("b-1"), cloudevent("b-2")])
 
-      conn =
-        RelayTest.Api.conn(:post, "/v1/events", raw, [
-          {"content-type", "application/cloudevents-batch+json"},
-          {"authorization", "Bearer " <> ctx.token}
-        ])
+      auth = RelayTest.Api.auth(ctx.token, :post, "/v1/events")
+      headers = [{"content-type", "application/cloudevents-batch+json"} | auth]
+      conn = RelayTest.Api.conn(:post, "/v1/events", raw, headers)
 
       body = F.body(RelayTest.Api.call(conn, RelayWeb.Router), 202)
       assert body["summary"] == %{"total" => 2, "accepted" => 2, "rejected" => 0}

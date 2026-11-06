@@ -1,6 +1,6 @@
 defmodule Relay.Access.Token do
   @moduledoc """
-  Verification of an Access access token on every request (API-71): the signature under the cached Access keys (`Relay.Access.Jose`), `iss` equal to the linked issuer, `aud` naming the expected Relay audience, `exp` and `nbf` with a clock tolerance of 60 seconds (S-68). Text comparisons of the issuer and the audience take constant time (API-47).
+  Verification of an Access access token on every request (API-71, E-93): the signature under the cached Access keys (`Relay.Access.Jose`), the header `typ` when the expectation names one (`at+jwt` for an Access access token), `iss` equal to the linked issuer, `aud` naming the expected Relay audience, `exp`, `nbf` and `iat` with a clock tolerance of 60 seconds (S-68). Text comparisons of the issuer and the audience take constant time (API-47).
 
   A token that fails any check is `auth_invalid_token`, one past its `exp` is `auth_expired_token`.
   """
@@ -9,23 +9,34 @@ defmodule Relay.Access.Token do
 
   @leeway_s 60
 
-  @type expectation :: %{issuer: String.t(), audience: String.t(), now: integer()}
+  @type expectation :: %{
+          required(:issuer) => String.t(),
+          required(:audience) => String.t(),
+          required(:now) => integer(),
+          optional(:typ) => String.t()
+        }
 
   # API-71
   # API-47
-  @doc "Verifies a token's signature and claims and returns its claims."
+  # E-93
+  @doc "Verifies a token's signature, header type and claims and returns its claims."
   @spec verify(String.t(), [Jose.key()], expectation()) ::
           {:ok, map()} | {:error, Relay.Error.t()} | {:error, :unknown_key}
   def verify(token, keys, expectation) do
     case Jose.verify(token, keys) do
-      {:ok, _header, claims} -> check(claims, expectation)
+      {:ok, header, claims} -> typed(header, claims, expectation)
       {:error, :unknown_key} -> {:error, :unknown_key}
       {:error, _failure} -> invalid("the token signature or algorithm is not valid")
     end
   end
 
+  defp typed(%{"typ" => typ}, claims, %{typ: typ} = expectation), do: check(claims, expectation)
+  defp typed(_header, _claims, %{typ: _typ}), do: invalid("the token is not an access token")
+  defp typed(_header, claims, expectation), do: check(claims, expectation)
+
   # API-71
-  @doc "Checks the issuer, audience, expiry and not-before claims of verified claims."
+  # E-93
+  @doc "Checks the issuer, audience, expiry, not-before and issued-at claims of verified claims."
   @spec check(map(), expectation()) :: {:ok, map()} | {:error, Relay.Error.t()}
   def check(claims, %{issuer: issuer, audience: audience, now: now}) do
     cond do
@@ -41,7 +52,7 @@ defmodule Relay.Access.Token do
       now > claims["exp"] + @leeway_s ->
         {:error, Relay.Error.new(:auth_expired_token, "the token has expired")}
 
-      not_yet?(claims["nbf"], now) ->
+      not_yet?(claims["nbf"], now) or not_yet?(claims["iat"], now) ->
         invalid("the token is not valid yet")
 
       true ->

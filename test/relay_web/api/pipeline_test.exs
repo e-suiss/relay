@@ -56,12 +56,13 @@ defmodule RelayWeb.Api.PipelineTest do
 
     test "API-8: a body that is not JSON in UTF-8 is 415", ctx do
       for type <- ["text/plain", "application/json; charset=latin1", "application/xml"] do
+        auth = Api.auth(ctx.token, :post, "/v1/virtual_clock/advance")
+
         conn =
           :post
           |> Api.conn("/v1/virtual_clock/advance", ~s({"by":"PT1H"}), [
             {"content-type", type},
-            {"authorization", "Bearer " <> ctx.token},
-            key()
+            key() | auth
           ])
           |> Api.call()
 
@@ -89,13 +90,29 @@ defmodule RelayWeb.Api.PipelineTest do
   end
 
   describe "API-43 and API-47 authentication" do
-    test "API-47: a missing or malformed credential is 401 with a Bearer challenge" do
+    test "API-47, E-93: a missing or malformed credential is 401 with a DPoP challenge" do
       missing = advance(nil, %{"by" => "PT1H"}, [key()])
       assert problem(missing, 401)["code"] == "auth_missing_credentials"
-      assert [~s(Bearer realm="relay")] = get_resp_header(missing, "www-authenticate")
+
+      assert [~s(DPoP realm="relay", algs="ES256 Ed25519 EdDSA")] =
+               get_resp_header(missing, "www-authenticate")
 
       malformed = advance(nil, %{"by" => "PT1H"}, [key(), {"authorization", "Basic abc"}])
       assert problem(malformed, 401)["code"] == "auth_malformed_credentials"
+    end
+
+    test "E-93: an Access token as Bearer or without one DPoP proof is refused", ctx do
+      bearer = advance(nil, %{"by" => "PT1H"}, [key(), {"authorization", "Bearer " <> ctx.token}])
+      assert problem(bearer, 401)["code"] == "auth_malformed_credentials"
+
+      dpop = {"authorization", "DPoP " <> ctx.token}
+      unproved = advance(nil, %{"by" => "PT1H"}, [key(), dpop])
+      assert problem(unproved, 401)["code"] == "auth_missing_credentials"
+
+      proofs = [{"dpop", "a.b.c"}, {"dpop", "d.e.f"}]
+      conn = Api.json(:post, "/v1/virtual_clock/advance", nil, %{"by" => "PT1H"}, [key(), dpop])
+      twice = Api.call(%{conn | req_headers: proofs ++ conn.req_headers})
+      assert problem(twice, 401)["code"] == "auth_malformed_credentials"
     end
 
     test "API-47: an invalid or expired token is 401 with error=invalid_token" do
@@ -255,12 +272,11 @@ defmodule RelayWeb.Api.PipelineTest do
     end
 
     test "API-10: a read ignores the Idempotency-Key header", ctx do
+      auth = Api.auth(Api.token(ctx.tenant.test, ["read"]), :get, "/v1/virtual_clock")
+
       conn =
         :get
-        |> Api.conn("/v1/virtual_clock", nil, [
-          {"authorization", "Bearer " <> Api.token(ctx.tenant.test, ["read"])},
-          {"idempotency-key", "x"}
-        ])
+        |> Api.conn("/v1/virtual_clock", nil, [{"idempotency-key", "x"} | auth])
         |> Api.call()
 
       assert conn.status == 200
@@ -378,7 +394,7 @@ defmodule RelayWeb.Api.PipelineTest do
 
       list = fn token, query ->
         :get
-        |> Api.conn("/v1/notifications" <> query, nil, [{"authorization", "Bearer " <> token}])
+        |> Api.conn("/v1/notifications" <> query, nil, Api.auth(token, :get, "/v1/notifications"))
         |> Api.call()
       end
 

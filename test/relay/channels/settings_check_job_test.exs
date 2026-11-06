@@ -4,6 +4,7 @@ defmodule Relay.Channels.SettingsCheckJobTest do
   alias Relay.Channels.Email.Esp
   alias Relay.Channels.Live
   alias Relay.Channels.Live.SettingsCheck
+  alias Relay.Channels.ProviderHttp
   alias Relay.Repo
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
@@ -132,12 +133,14 @@ defmodule Relay.Channels.SettingsCheckJobTest do
              }
     end
 
-    test "CH-14: an adapter without a settings check fails closed" do
+    test "CH-14, CH-52: a Teams bot whose token is refused fails with a credential mismatch" do
       scope = scope()
-      id = account!(scope, "teams", channel: "teams")
+      credential = credential!(scope, %{"app_id" => "bot-app", "app_password" => "wrong"})
+      id = account!(scope, "teams", channel: "teams", credential_ref_id: credential)
+      Req.Test.stub(ProviderHttp, &Plug.Conn.send_resp(&1, 401, "{}"))
 
       assert perform(scope, id) == :ok
-      assert ["failed", "channel.provider_check_unsupported", _health] = state(scope, id)
+      assert ["failed", "channel.provider_settings_mismatch", "degraded"] = state(scope, id)
     end
 
     test "CH-14, T-26: an unreachable provider is retried, then fails the account" do

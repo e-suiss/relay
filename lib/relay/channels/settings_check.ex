@@ -90,6 +90,29 @@ defmodule Relay.Channels.SettingsCheck do
   @spec credentials(String.t() | nil) :: {:mismatch, map()}
   def credentials(actual), do: mismatch("credentials", "accepted", actual)
 
+  # CH-14
+  @doc "`:ok` when every setting of `names` is a non-empty string in `settings`, otherwise the mismatch of the first one that is not."
+  @spec required(map() | nil, [String.t()]) :: :ok | {:mismatch, map()}
+  def required(settings, names) do
+    settings = if is_map(settings), do: settings, else: %{}
+
+    case Enum.find(names, &(not text?(Map.get(settings, &1)))) do
+      nil -> :ok
+      name -> mismatch(name, "set", nil)
+    end
+  end
+
+  defp text?(value), do: is_binary(value) and value != ""
+
+  # CH-14
+  # TN-28
+  @doc "The result of a key store key that could not be used: a key the store does not hold is a mismatch of `setting`, and any other failure is an error."
+  @spec key_store(Relay.Error.t(), String.t()) :: {:mismatch, map()} | {:error, String.t()}
+  def key_store(%Relay.Error{code: :key_not_found}, setting),
+    do: mismatch(setting, "present", "key_not_found")
+
+  def key_store(%Relay.Error{code: code}, _setting), do: {:error, Atom.to_string(code)}
+
   # CH-34
   @doc "The sending domains of an e-mail account's streams, in order and without duplicates."
   @spec stream_domains(map()) :: [String.t()]

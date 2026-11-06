@@ -65,14 +65,12 @@ defmodule Relay.Channels.SettingsCheckTest do
       assert %{verification: nil, health: nil} = SettingsCheck.plan(:recheck, :unsupported, true)
     end
 
-    test "CH-52: the adapters with a settings check are the providers that answer one" do
+    test "CH-14, CH-52: every registered adapter has a settings check" do
       providers = Relay.Channels.settings_check_providers()
 
-      for provider <- ~w(fake postmark sendgrid mailgun ses whatsapp_cloud slack telegram),
-          do: assert(provider in providers, provider)
+      for adapter <- Relay.Channels.Registry.adapters(),
+          do: assert(adapter.provider() in providers, adapter.provider())
 
-      refute "teams" in providers
-      assert check("teams", "token") == :unsupported
       assert check("nothing", nil) == :unsupported
     end
   end

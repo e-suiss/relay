@@ -8,6 +8,7 @@ defmodule Relay.Channels.Netgsm do
     * A commercial (`marketing`) message is sent with the İYS filter `11`; any other with `0`.
     * The validity end (`stopdate`, Turkish time, `ddMMyyyyHHmm`) follows the channel time to live (CH-9).
     * A failure answers with a code in the body: `send:<code>`, `otp:<code>`, or `http:<status>` without one. A delivery report row's status is `dlr:<status>` (`report/1`).
+    * The settings check asks the balance (`/balance`) with the account's user code and password: Netgsm's code `30` (wrong credentials or no API access) is a credential mismatch (CH-14, CH-52).
   """
 
   @behaviour Relay.Channels.Adapter
@@ -15,6 +16,7 @@ defmodule Relay.Channels.Netgsm do
   alias Relay.Channels.Adapter
   alias Relay.Channels.ProviderHttp
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
 
   @base "https://api.netgsm.com.tr"
   @istanbul_s 3 * 3600
@@ -93,6 +95,45 @@ defmodule Relay.Channels.Netgsm do
 
   defp retry_after(nil), do: nil
   defp retry_after(response), do: ProviderHttp.retry_after_ms(response)
+
+  # CH-14
+  # CH-52
+  @impl Relay.Channels.Adapter
+  def check_settings(%{account: account, credentials: credentials, timeout_ms: timeout_ms}) do
+    case {get_in(account, ["settings", "usercode"]), credentials} do
+      {user, secret} when is_binary(user) and user != "" and secret != nil ->
+        body = %{"usercode" => user, "password" => Relay.Redacted.expose(secret), "stip" => 2}
+
+        [method: :post, url: @base <> "/balance", json: body]
+        |> ProviderHttp.call(timeout_ms)
+        |> SettingsCheck.read(&balance/1)
+
+      _missing ->
+        SettingsCheck.credentials(nil)
+    end
+  end
+
+  defp balance(%Req.Response{status: 200, body: body}) do
+    case balance_code(body) do
+      nil -> :ok
+      "30" -> SettingsCheck.credentials("balance:30")
+      code -> {:error, "balance:" <> code}
+    end
+  end
+
+  defp balance(%Req.Response{status: status}), do: {:error, "http:#{status}"}
+
+  defp balance_code(%{"code" => code}) when code in ["00", "0"], do: nil
+  defp balance_code(%{"code" => code}), do: to_string(code)
+
+  defp balance_code(body) when is_binary(body) do
+    case String.trim(body) do
+      "00" -> nil
+      code -> if code =~ ~r/\A\d\d\z/, do: code
+    end
+  end
+
+  defp balance_code(_body), do: nil
 
   # DS-11
   @impl Relay.Channels.Adapter

@@ -6,6 +6,7 @@ defmodule Relay.Api.ChannelManagement do
   alias Relay.Api.Page
   alias Relay.Api.Views
   alias Relay.Channels
+  alias Relay.Channels.Live
 
   @type answer :: {:ok, {100..599, [{String.t(), String.t()}], map()}} | {:error, Relay.Error.t()}
   @type kind :: Channels.managed()
@@ -153,7 +154,7 @@ defmodule Relay.Api.ChannelManagement do
   defp read({:error, _reason}), do: {:error, unavailable()}
 
   @doc "Answers a managed resource as it stands inside the caller's scoped transaction."
-  @spec answer(kind(), Relay.Id.t(), 200 | 201) :: answer()
+  @spec answer(kind(), Relay.Id.t(), 200 | 201 | 202) :: answer()
   def answer(kind, id, status) do
     row = Channels.managed(kind, id)
     secrets = Relay.Secrets.describe(secret_ids(kind, [row]))
@@ -371,6 +372,23 @@ defmodule Relay.Api.ChannelManagement do
         answer(kind, id, 200)
     end
   end
+
+  # CH-14
+  # CH-52
+  @doc "Asks for the verification of a provider account inside the request's transaction (`Relay.Channels.Live.request_settings_check/3`): an account that is not verified becomes pending and its settings check is queued; answers 202 with the account. An archived account is refused."
+  @spec verify_account(Relay.Scope.t(), Relay.Id.t(), Relay.Actor.t()) :: answer()
+  def verify_account(scope, id, actor) do
+    row = Channels.managed(:account, id)
+
+    cond do
+      is_nil(row) -> {:error, not_found(:account)}
+      archived?(:account, row) -> {:error, archived(:account)}
+      true -> verification(Live.request_settings_check(scope, id, actor), id)
+    end
+  end
+
+  defp verification(:not_found, _id), do: {:error, not_found(:account)}
+  defp verification(_state, id), do: answer(:account, id, 202)
 
   defp retire_unused(scope, %{"secret_ref_id" => secret_id}, actor) do
     unless Channels.secret_in_use?(secret_id) do

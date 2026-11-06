@@ -6,6 +6,7 @@ defmodule Relay.Channels.Verimor do
     * Voice (`otp_oob`, CH-56): one call campaign per delivery, `POST /ivr_campaigns.json` with the credential as the API key, the sender identity's number as the caller id (`cli`) and the text read in the content's language (`tr-TR` by default). The billing unit is the answered call.
     * A failure answers with its error name or status: `send:<NAME>`, `voice:<status>` or `http:<status>`. A delivery report is `dlr:<STATUS>` and a call report `call:<status>`.
     * Neither webhook is signed: the callback URL carries a secret token checked in constant time, a compensating control whose authenticity is declared unverifiable (`reports/3`).
+    * The settings check asks the balance: an SMS account with `GET /v2/balance` under its user name and password, a voice account with Bulutsantralim's `GET /balance` under its API key; `401` or `403` is a credential mismatch (CH-14, CH-52).
   """
 
   @behaviour Relay.Channels.Adapter
@@ -13,6 +14,7 @@ defmodule Relay.Channels.Verimor do
   alias Relay.Channels.Adapter
   alias Relay.Channels.ProviderHttp
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
 
   @sms "https://sms.verimor.com.tr"
   @voice "https://api.bulutsantralim.com"
@@ -128,6 +130,38 @@ defmodule Relay.Channels.Verimor do
 
   defp raw(status, _body, _prefix),
     do: %{code: "http:" <> Integer.to_string(status), status: status}
+
+  # CH-14
+  # CH-52
+  @impl Relay.Channels.Adapter
+  def check_settings(%{account: account, credentials: credentials, timeout_ms: timeout_ms}) do
+    user = get_in(account, ["settings", "username"])
+
+    case {account["channel"], user, credentials} do
+      {_channel, _user, nil} ->
+        SettingsCheck.credentials(nil)
+
+      {"voice", _user, secret} ->
+        params = [key: Relay.Redacted.expose(secret)]
+        balance(@voice <> "/balance", params, timeout_ms)
+
+      {_sms, user, secret} when is_binary(user) and user != "" ->
+        params = [username: user, password: Relay.Redacted.expose(secret)]
+        balance(@sms <> "/v2/balance", params, timeout_ms)
+
+      _missing ->
+        SettingsCheck.mismatch("username", "set", nil)
+    end
+  end
+
+  defp balance(url, params, timeout_ms) do
+    [method: :get, url: url, params: params, decode_body: false]
+    |> ProviderHttp.call(timeout_ms)
+    |> SettingsCheck.read(&balanced/1)
+  end
+
+  defp balanced(%Req.Response{status: status}) when status in 200..299, do: :ok
+  defp balanced(%Req.Response{status: status}), do: {:error, "http:#{status}"}
 
   # T-28
   @impl Relay.Channels.Adapter

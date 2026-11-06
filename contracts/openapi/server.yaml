@@ -12883,6 +12883,107 @@ paths:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "Paths, bodies and response shapes of channel management are chosen by the contract; a secret is only ever named by its reference and shown by its fingerprint (TN-26)."
+  "/v1/provider_accounts/{provider_account_id}/verify":
+    post:
+      operationId: verifyProviderAccount
+      tags:
+        - channels
+      summary: Verify a provider account
+      description: "Asks for the verification of a provider account (CH-14): an account that is not verified becomes pending and its provider settings check is queued in the same transaction (202); the check reads the provider's own settings or status and verifies the account, or fails it with channel.provider_settings_mismatch, channel.provider_check_unsupported or channel.provider_check_unavailable (CH-52). A verified account stays verified and keeps its traffic until the check says otherwise. Push accounts are verified by their identity; the test send of CH-14 is a separate test send. An archived account is 409 provider_account_archived. Audited as provider_account.verified."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/ManagedProviderAccountId"
+      security:
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "202":
+          description: The verification is asked for; the account with its verification state.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            ETag:
+              "$ref": "./components/headers.yaml#/ETag"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderAccount"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - provider_account_not_found
+        - provider_account_archived
+      x-relay-scopes:
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "Verification is a POST action that answers 202 with the account; the check itself runs as a job (contract choice)."
   "/v1/sender_identities":
     get:
       operationId: listSenderIdentities

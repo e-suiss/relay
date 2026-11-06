@@ -5,12 +5,16 @@ defmodule Relay.Channels.Discord do
   The message carries a `nonce` derived from the provider idempotency key with `enforce_nonce`, so Discord itself drops a second create of the same send (INV-13). Mentions are never parsed. A message about a subject that already has a message in the channel is edited (CH-23); a message Discord no longer knows is posted again. Discord gives no delivery or read information; interactions arrive at the application's interactions endpoint and are recorded as events only.
 
   The raw code of a failure is Discord's JSON error `code`; `429` carries Discord's `retry_after`, and an answer without a Discord error code is `http_<status>`.
+
+  The settings check reads the bot's own user (`GET /users/@me`): the bot token must still be accepted (CH-14, CH-52).
   """
 
   @behaviour Relay.Channels.Adapter
 
   alias Relay.Channels.Messaging
+  alias Relay.Channels.ProviderHttp
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
 
   @base "https://discord.com/api/v10"
   @nonce_length 25
@@ -34,6 +38,24 @@ defmodule Relay.Channels.Discord do
       token -> send_message(request, token, opts)
     end
   end
+
+  # CH-14
+  # CH-52
+  @impl Relay.Channels.Adapter
+  def check_settings(%{credentials: credentials, timeout_ms: timeout_ms}) do
+    case Messaging.bot_token(credentials) do
+      nil ->
+        SettingsCheck.credentials(nil)
+
+      token ->
+        [method: :get, url: @base <> "/users/@me", headers: [{"authorization", "Bot " <> token}]]
+        |> ProviderHttp.call(timeout_ms)
+        |> SettingsCheck.read(&me/1)
+    end
+  end
+
+  defp me(%Req.Response{status: 200}), do: :ok
+  defp me(%Req.Response{status: status}), do: {:error, Messaging.http_code(status)}
 
   defp send_message(request, token, opts) do
     fields = Messaging.fields(request.content)

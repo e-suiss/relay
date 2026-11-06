@@ -10,6 +10,8 @@ defmodule Relay.Channels.Smtp do
   The account's `settings` carry `"smtp"`: `"host"`, `"tls"` (`implicit` or `starttls`), and optionally `"port"`, `"helo"` (default: the sending domain), `"smtputf8"` (whether the server supports SMTPUTF8, default `false`, CH-45) and `"ca_certificates"` (PEM). The credential, when the account has one, is `{"username", "password"}`; the server must then offer authentication.
 
   The adapter never retries and never waits longer than the request's `timeout_ms` (CH-9, T-26). A failure before the message transaction is `:not_sent`; a connection lost or a timeout once the transaction started is `:uncertain`. A server reply is reported by its enhanced status code (`5.1.1`) or, without one, by its reply class (`smtp_4xx`, `smtp_5xx`); the adapter's errors map classifies it (CH-7).
+
+  The settings check opens a session as a send does, connecting, greeting, upgrading to verified TLS and authenticating when the account has a credential, and ends it with `QUIT` before any message (CH-14, CH-52): a refused login is a credential mismatch; a server without `STARTTLS` or authentication, or a certificate that does not verify, is a mismatch of `tls` or `auth`; a lost connection or a server reply is an error.
   """
 
   @behaviour Relay.Channels.Adapter
@@ -17,6 +19,7 @@ defmodule Relay.Channels.Smtp do
   alias Relay.Channels.Email
   alias Relay.Channels.Email.StatusCode
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
   alias Relay.Error
 
   @modes %{"implicit" => 465, "starttls" => 587}
@@ -71,9 +74,79 @@ defmodule Relay.Channels.Smtp do
   def decode(%{"reply" => reply}) when is_binary(reply), do: reply(reply)
   def decode(%{"failure" => failure}) when is_binary(failure), do: %{code: failure, status: nil}
 
+  # CH-14
+  # CH-52
+  # T-39
+  @impl Relay.Channels.Adapter
+  def check_settings(%{account: account, credentials: credentials, timeout_ms: timeout_ms}) do
+    with {:settings, {:ok, settings}} <- {:settings, settings(account)},
+         {:auth, {:ok, auth}} <- {:auth, auth(credentials)} do
+      helo = List.first(SettingsCheck.stream_domains(account)) || "localhost"
+      id = account["id"] || Relay.Id.generate()
+
+      if Keyword.get(Logger.metadata(), :correlation_id) == nil,
+        do: Logger.metadata(correlation_id: Relay.Id.to_string(id))
+
+      settings
+      |> options(auth, %{domain: helo})
+      |> Keyword.put(:timeout, timeout_ms)
+      |> session(timeout_ms)
+    else
+      {:settings, _invalid} -> SettingsCheck.mismatch("smtp", "valid", nil)
+      {:auth, _invalid} -> SettingsCheck.credentials("invalid")
+    end
+  end
+
+  defp session(options, timeout_ms) do
+    task = Relay.Process.async(fn -> open(options) end)
+
+    case Task.yield(task, timeout_ms) || Task.shutdown(task, :brutal_kill) do
+      {:ok, result} -> opened(result)
+      {:exit, _reason} -> {:error, "smtp_session_failed"}
+      nil -> {:error, "timeout"}
+    end
+  end
+
+  defp open(options) do
+    case :gen_smtp_client.open(options) do
+      {:ok, socket} ->
+        _ = :gen_smtp_client.close(socket)
+        :opened
+
+      failure ->
+        failure
+    end
+  end
+
+  defp opened(:opened), do: :ok
+
+  defp opened({:error, _phase, {:permanent_failure, _host, :auth_failed}}),
+    do: SettingsCheck.credentials("auth_failed")
+
+  defp opened({:error, _phase, {:missing_requirement, _host, :auth}}),
+    do: SettingsCheck.mismatch("auth", "offered", nil)
+
+  defp opened({:error, _phase, {:missing_requirement, _host, :tls}}),
+    do: SettingsCheck.mismatch("tls", "offered", nil)
+
+  defp opened({:error, _phase, {:temporary_failure, _host, :tls_failed}}),
+    do: SettingsCheck.mismatch("tls", "verified", "tls_failed")
+
+  defp opened({:error, _phase, {:network_failure, _host, {:error, {:tls_alert, _alert}}}}),
+    do: SettingsCheck.mismatch("tls", "verified", "tls_alert")
+
+  defp opened({:error, _phase, {:network_failure, _host, _reason}}),
+    do: {:error, "connect_failed"}
+
+  defp opened({:error, _phase, {_kind, _host, reply}}) when is_binary(reply),
+    do: {:error, reply(reply).code}
+
+  defp opened(_other), do: {:error, "smtp_session_failed"}
+
   # CH-34
   # T-39
-  @doc "Reads the `\"smtp\"` connection settings of an account; settings that allow no verified TLS connection are refused."
+  @doc "Reads the `\"smtp\"` connection settings
+ of an account; settings that allow no verified TLS connection are refused."
   @spec settings(map() | nil) :: {:ok, settings()} | {:error, Error.t()}
   def settings(%{"settings" => %{"smtp" => %{"host" => host, "tls" => mode} = smtp}})
       when is_binary(host) and is_map_key(@modes, mode) do

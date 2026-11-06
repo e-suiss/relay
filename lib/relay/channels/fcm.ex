@@ -4,7 +4,9 @@ defmodule Relay.Channels.Fcm do
 
   The message carries the push policy of the channel step only (`Relay.Channels.Push.Policy`): the FCM `priority`, `ttl` from the message's `expires_at`, the class collapse key with the subject key in the data (CH-23), the Android channel of the category at the interruption level (CH-30, CH-65 (3)) and the content-free data form (CH-33); a raw `fcm.android` override cannot change a policy field (CH-21). Acceptance is never delivery (CH-32).
 
-  The account settings: `project_id` and either `auth: "service_account"` with `client_email`, `private_key_id` and `key_label`, or `auth: "workload_identity"` with `audience`, `subject_token_type` and optionally `service_account`, the workload's subject token being the account credential. The installation configuration `config :relay, Relay.Channels.Fcm, origin: origin, connection: opts, http: opts` replaces the FCM host, the connection options and the token endpoint client options.
+  The account settings: `project_id` and either `auth: "service_account"` with `client_email`, `private_key_id` and `key_label`, or `auth: "workload_identity"` with `audience`, `subject_token_type` and optionally `service_account`, the workload's subject token being the account credential.
+
+  The settings check takes a new access token for the account and sends a `validate_only` message to a topic, which FCM validates under the project's credentials without delivering it (CH-14, CH-52): a token endpoint that refuses the account, `401` or `403` is a credential mismatch and `404` a `project_id` mismatch. The installation configuration `config :relay, Relay.Channels.Fcm, origin: origin, connection: opts, http: opts` replaces the FCM host, the connection options and the token endpoint client options.
   """
 
   @behaviour Relay.Channels.Adapter
@@ -12,11 +14,14 @@ defmodule Relay.Channels.Fcm do
   alias Relay.Channels.Push.Common
   alias Relay.Channels.Push.Failures
   alias Relay.Channels.Push.Fcm
+  alias Relay.Channels.Push.Fcm.Auth
   alias Relay.Channels.Push.H2
   alias Relay.Channels.Push.Ttl
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
 
   @origin {:https, "fcm.googleapis.com", 443}
+  @check_topic "relay-settings-check"
 
   @impl Relay.Channels.Adapter
   def provider, do: "fcm"
@@ -45,6 +50,97 @@ defmodule Relay.Channels.Fcm do
   # DS-11
   @impl Relay.Channels.Adapter
   def decode(response), do: %{code: Failures.code(:fcm, response)}
+
+  # CH-14
+  # CH-52
+  # TN-30
+  @impl Relay.Channels.Adapter
+  def check_settings(%{account: account, credentials: credentials, timeout_ms: timeout_ms}) do
+    settings = Map.get(account, "settings") || %{}
+
+    with :ok <- SettingsCheck.required(settings, ["project_id"]),
+         {:ok, source} <- check_source(settings),
+         {:ok, token} <- check_token(source, credentials, timeout_ms) do
+      validate(account, settings["project_id"], token, timeout_ms)
+    end
+  end
+
+  defp check_source(settings) do
+    case source(settings) do
+      {:ok, source} -> {:ok, source}
+      {:error, :not_configured} -> SettingsCheck.mismatch("auth", "configured", nil)
+    end
+  end
+
+  defp check_token(source, credentials, timeout_ms) do
+    now = DateTime.to_unix(Relay.Clock.utc_now())
+    opts = [http: &token_http(&1, timeout_ms), subject_token: fn -> subject(credentials) end]
+
+    case Auth.access_token(source, %{}, now, opts) do
+      {:ok, token, _cache} -> {:ok, token}
+      {:error, error} -> token_failure(error)
+    end
+  end
+
+  defp subject(nil), do: {:error, :missing}
+  defp subject(credentials), do: {:ok, Relay.Redacted.expose(credentials)}
+
+  defp token_http(request, timeout_ms) do
+    case Common.http(__MODULE__, request, timeout_ms) do
+      {:ok, %{status: status, body: body}} -> {:ok, %{status: status, body: body}}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp token_failure(%Relay.Error{code: :fcm_auth_failed, details: %{status: status}})
+       when status == 429 or status >= 500,
+       do: {:error, "token_http_" <> Integer.to_string(status)}
+
+  defp token_failure(%Relay.Error{code: :fcm_auth_failed, details: %{status: status}}),
+    do: SettingsCheck.credentials("token_http_" <> Integer.to_string(status))
+
+  defp token_failure(%Relay.Error{code: :fcm_auth_failed}),
+    do: SettingsCheck.credentials("token_refused")
+
+  defp token_failure(%Relay.Error{code: :fcm_auth_unavailable}),
+    do: {:error, "token_unavailable"}
+
+  defp token_failure(%Relay.Error{} = error), do: SettingsCheck.key_store(error, "key_label")
+
+  defp validate(account, project_id, token, timeout_ms) do
+    origin = Common.config(__MODULE__, :origin, @origin)
+    key = {account["environment"], "fcm", origin, project_id, :check}
+    project = URI.encode(project_id, &URI.char_unreserved?/1)
+    message = %{"validate_only" => true, "message" => %{"topic" => @check_topic}}
+
+    h2 = %{
+      method: "POST",
+      path: "/v1/projects/" <> project <> "/messages:send",
+      headers: [
+        {"authorization", "Bearer " <> Relay.Redacted.expose(token)},
+        {"content-type", "application/json; charset=utf-8"}
+      ],
+      body: Jason.encode!(message)
+    }
+
+    opts = Common.config(__MODULE__, :connection, [])
+
+    case H2.request(account["tenant_id"], key, origin, nil, h2, timeout_ms, opts) do
+      {:ok, response} -> validated(response, project_id)
+      {_transport, reason} -> {:error, reason}
+    end
+  end
+
+  defp validated(%{status: status, body: body}, project_id) do
+    code = Failures.code(:fcm, %{"status" => status, "body" => body})
+
+    cond do
+      status in 200..299 -> :ok
+      status in [401, 403] -> SettingsCheck.credentials(code)
+      status == 404 -> SettingsCheck.mismatch("project_id", project_id, code)
+      true -> {:error, code}
+    end
+  end
 
   defp source(%{"auth" => "workload_identity"} = s) do
     if is_binary(s["audience"]) and is_binary(s["subject_token_type"]) do

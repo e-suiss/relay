@@ -1,0 +1,62 @@
+{
+  "provider": "apns",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "push"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns",
+    "https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns",
+    "§12.5.1 CH-24; §12.5.2 CH-25; §12.2 CH-7"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "push": {
+      "delivery_receipts": false,
+      "read_receipts": false,
+      "collapse": true,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "retry_accepting_duplicate_risk",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": "apns-id",
+    "status_query": false,
+    "source": "APNs has no idempotency key and no status query; apns-id carries the delivery identifier (§12.5.1 CH-24, T-28)"
+  },
+  "paid_channels": [],
+  "pricing": {
+    "currency": "EUR",
+    "units": {
+      "push": "message"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [],
+    "sender": [],
+    "recipient": []
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "US"
+    ],
+    "transfer_basis": "explicit_consent",
+    "scc_notified_on": null,
+    "source": "Apple Push Notification service, United States; iOS has no other push path (§12.1.4 CH-5, CH-6)"
+  },
+  "inbound_verification": {
+    "method": "none",
+    "header": null,
+    "authenticity": "verified",
+    "source": "§12.1.2 CH-2: the provider sends no inbound webhook"
+  }
+}

@@ -1,0 +1,338 @@
+[
+  {
+    "code": "400/BadCollapseId",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "400/BadDeviceToken",
+    "class": "permanent_target",
+    "condition": "unregistered",
+    "event_code": "unregistered",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "400/BadExpirationDate",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "400/BadMessageId",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "400/BadPriority",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "400/BadTopic",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "400/DeviceTokenNotForTopic",
+    "class": "permanent_target",
+    "condition": "unregistered",
+    "event_code": "unregistered",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "400/DuplicateHeaders",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "400/IdleTimeout",
+    "class": "transient",
+    "condition": "timeout",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "400/InvalidPushType",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "400/MissingDeviceToken",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "400/MissingTopic",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "400/PayloadEmpty",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "400/TopicDisallowed",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "403/BadCertificate",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "403/BadCertificateEnvironment",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "403/ExpiredProviderToken",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "403/Forbidden",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "403/InvalidProviderToken",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "403/MissingProviderToken",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "403/UnrelatedKeyIdInToken",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "403/BadEnvironmentKeyInToken",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "404/BadPath",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "405/MethodNotAllowed",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "410/ExpiredToken",
+    "class": "permanent_target",
+    "condition": "unregistered",
+    "event_code": "unregistered",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "410/Unregistered",
+    "class": "permanent_target",
+    "condition": "unregistered",
+    "event_code": "unregistered",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "413/PayloadTooLarge",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "429/TooManyProviderTokenUpdates",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "429/TooManyRequests",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "500/InternalServerError",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "503/ServiceUnavailable",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "503/Shutdown",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "429",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "500",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "502",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "503",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "504",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://developer.apple.com/documentation/usernotifications/handling-notification-responses-from-apns (2026-11-05)"
+  },
+  {
+    "code": "relay:content_forbidden",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  },
+  {
+    "code": "relay:invalid_request",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  },
+  {
+    "code": "relay:not_configured",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  },
+  {
+    "code": "relay:payload_too_large",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  },
+  {
+    "code": "relay:silent_not_supported",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  }
+]

@@ -1,0 +1,86 @@
+{
+  "provider": "fcm",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "push"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode",
+    "https://firebase.google.com/docs/reference/fcm/rest/v1/projects.messages/send",
+    "https://firebase.google.com/docs/cloud-messaging/concept-options#device_throttling",
+    "§12.5.1 CH-24; §18.4.2 TN-30; §12.2 CH-7"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "push": {
+      "delivery_receipts": false,
+      "read_receipts": false,
+      "collapse": true,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "retry_accepting_duplicate_risk",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": "name",
+    "status_query": false,
+    "source": "FCM HTTP v1 has no idempotency key and no status query; the answer names the message (§12.5.1 CH-24, T-28)"
+  },
+  "paid_channels": [],
+  "pricing": {
+    "currency": "EUR",
+    "units": {
+      "push": "message"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [
+      {
+        "channel": "push",
+        "unit": "message",
+        "limit": 600000,
+        "per_ms": 60000,
+        "source": "https://firebase.google.com/docs/cloud-messaging/scale-fcm"
+      }
+    ],
+    "sender": [],
+    "recipient": [
+      {
+        "channel": "push",
+        "unit": "message",
+        "limit": 240,
+        "per_ms": 60000,
+        "source": "https://firebase.google.com/docs/cloud-messaging/concept-options#device_throttling"
+      },
+      {
+        "channel": "push",
+        "unit": "message",
+        "limit": 5000,
+        "per_ms": 3600000,
+        "source": "https://firebase.google.com/docs/cloud-messaging/concept-options#device_throttling"
+      }
+    ]
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "US"
+    ],
+    "transfer_basis": "explicit_consent",
+    "scc_notified_on": null,
+    "source": "Firebase Cloud Messaging, Google LLC, United States (§12.1.4 CH-5, CH-6)"
+  },
+  "inbound_verification": {
+    "method": "none",
+    "header": null,
+    "authenticity": "verified",
+    "source": "§12.1.2 CH-2: the provider sends no inbound webhook"
+  }
+}

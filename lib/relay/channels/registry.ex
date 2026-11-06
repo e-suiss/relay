@@ -20,7 +20,12 @@ defmodule Relay.Channels.Registry do
     Relay.Channels.Teams,
     Relay.Channels.Telegram,
     Relay.Channels.Discord,
-    Relay.Channels.WhatsappCloud
+    Relay.Channels.WhatsappCloud,
+    Relay.Channels.Apns,
+    Relay.Channels.Fcm,
+    Relay.Channels.Hms,
+    Relay.Channels.WebPush,
+    Relay.Channels.UnifiedPush
   ]
 
   @type missing :: ChannelDeclarations.missing() | :channels

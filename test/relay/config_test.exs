@@ -292,6 +292,7 @@ defmodule Relay.ConfigTest do
 
       for bad <- ["10.0.0.0/33", "10.0.0/8", "2001:db8::/129", "10.0.0.0/x", "proxy.internal"] do
         System.put_env("TEST_PROXIES", "10.0.0.0/8," <> bad)
+
         assert_raise Error, ~r/TEST_PROXIES names a malformed range/, fn ->
           Env.cidrs!("TEST_PROXIES")
         end

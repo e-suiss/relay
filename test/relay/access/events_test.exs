@@ -172,7 +172,7 @@ defmodule Relay.Access.EventsTest do
     test "E-94, E-80, E-95: an organization event with Access's member names is recorded and not applied" do
       tenant = TenantFixture.tenant!()
       access_tenant = tenant.attrs.access_tenant_id
-      member = %{"organization" => "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b11", "at" => 1}
+      member = %{"organization" => "org_7", "at" => 1}
       event = FakeAccess.event("organization.created", member)
       claims = Map.put(event, "access_tenant", access_tenant)
 
@@ -182,20 +182,20 @@ defmodule Relay.Access.EventsTest do
 
       assert receipt["payload"] == %{
                "access_tenant_id" => access_tenant,
-               "access_organization_id" => "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b11"
+               "access_organization_id" => "org_7"
              }
 
       updated =
         deliver!("organization.updated", %{
           "tenant" => access_tenant,
-          "organization" => "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b11",
+          "organization" => "org_7",
           "at" => 2
         })
 
       assert %{"state" => "processed", "reason" => "not_applied"} = receipt_of(updated)
 
       for scope <- [tenant.live, tenant.test] do
-        assert {:ok, nil} = subtenant(scope, "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b11")
+        assert {:ok, nil} = subtenant(scope, "org_7")
       end
     end
   end

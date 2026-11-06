@@ -5536,6 +5536,62 @@
   },
   {
     "acceptance": "pending",
+    "id": "CH-79",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "Device lifecycle: stale after 30 days, provisional only for marketing and social",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-80",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "Provider limit share 90 % and adaptive rate after 429",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-81",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "Provider call timeout of 10 seconds",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-82",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "High priority ratio threshold over a sliding 24 hours",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-83",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "Push token lifetimes for VAPID and FCM",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-84",
+    "section": "§12",
+    "status": "frozen_technical",
+    "title": "Critical interruption wiring and fail-closed Grant query",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
+    "id": "CH-85",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "Messaging and WhatsApp retry rows and e-mail reputation defaults",
+    "verify_stage": 6
+  },
+  {
+    "acceptance": "pending",
     "id": "PC-1",
     "section": "§13",
     "status": "canonical_invariant",

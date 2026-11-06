@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "email_reputation",
-  "description": "The e-mail reputation circuit and soft bounce parameters (CH-40, CH-41). Rates are in basis points: the bounce rate is bounces over sent mail, the complaint rate complaints over mail delivered to the inbox (CH-37). The window is sliding and split into equal buckets. A stopped circuit never closes by itself. A soft bounce counts toward a timed suppression once `count` soft bounces fall inside `window_ms`; the suppression lasts `suppress_ms`, and without it no timed suppression is written.",
+  "description": "The e-mail reputation circuit and soft bounce parameters (CH-40, CH-41). Rates are in basis points: the bounce rate is bounces over sent mail, the complaint rate complaints over mail delivered to the inbox (CH-37). The window is sliding and split into equal buckets. A stopped circuit never closes by itself. No stop decision is made while fewer than `min_volume` mails were sent in the window (none when absent). A soft bounce counts toward a timed suppression once `count` soft bounces fall inside `window_ms`; the suppression lasts `suppress_ms`, and without it no timed suppression is written.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -48,6 +48,11 @@
         },
         "stop_complaint_bp": {
           "$ref": "#/$defs/bp"
+        },
+        "min_volume": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000000
         }
       }
     },

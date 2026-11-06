@@ -108,6 +108,27 @@ defmodule Relay.Delivery.RetryPolicyTest do
       assert wait >= 60_000 and wait <= 72_000
     end
 
+    test "CH-85: a retry_after row with a base and a cap also backs off up to the cap" do
+      slack = %{
+        channel: "slack",
+        provider: "slack",
+        condition: "rate_limited",
+        parameters: DeliveryFixture.parameters(3)
+      }
+
+      for n <- 1..7 do
+        {:retry, at, _priority, _next} = RetryPolicy.next(input(Map.put(slack, :attempt_no, n)))
+        local = Relay.Jitter.backoff(@tenant, :live, @delivery, n, 2000, 60_000)
+        default = Relay.Jitter.retry_after(@tenant, :live, @delivery, n, 2000)
+
+        assert DateTime.diff(at, @now, :millisecond) == max(local, default)
+        assert DateTime.diff(at, @now, :millisecond) <= 60_000
+      end
+
+      assert RetryPolicy.next(input(Map.put(slack, :attempt_no, 8))) ==
+               {:dead_letter, :exhausted, "retry.max_attempts"}
+    end
+
     test "T-26: the same delivery and attempt number always plan the same time" do
       assert RetryPolicy.next(input(attempt_no: 2)) == RetryPolicy.next(input(attempt_no: 2))
     end

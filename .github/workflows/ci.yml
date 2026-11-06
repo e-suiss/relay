@@ -88,6 +88,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24.22.1
+      # T-78
+      - run: echo "NPM_CONFIG_BEFORE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
       - run: npx --yes @redocly/cli@2.69.0 lint --extends=minimal contracts/openapi/server.yaml contracts/openapi/subscriber.yaml contracts/openapi/operator.yaml
       - run: npx --yes @asyncapi/cli@6.2.1 validate contracts/asyncapi/events.yaml
       - if: github.event_name == 'pull_request'

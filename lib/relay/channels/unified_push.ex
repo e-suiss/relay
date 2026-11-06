@@ -9,6 +9,7 @@ defmodule Relay.Channels.UnifiedPush do
 
   alias Relay.Channels.Push.Failures
   alias Relay.Channels.Request
+  alias Relay.Channels.WebPush
 
   @impl Relay.Channels.Adapter
   def provider, do: "unified_push"
@@ -18,8 +19,7 @@ defmodule Relay.Channels.UnifiedPush do
 
   # CH-1
   @impl Relay.Channels.Adapter
-  def deliver(%Request{} = request),
-    do: Relay.Channels.WebPush.deliver_push(request, __MODULE__, false)
+  def deliver(%Request{} = request), do: WebPush.deliver_push(request, __MODULE__, false)
 
   # DS-11
   @impl Relay.Channels.Adapter
@@ -28,5 +28,5 @@ defmodule Relay.Channels.UnifiedPush do
   # CH-14
   # CH-52
   @impl Relay.Channels.Adapter
-  def check_settings(%{account: account}), do: Relay.Channels.WebPush.check_vapid(account, false)
+  def check_settings(%{account: account}), do: WebPush.check_vapid(account, false)
 end

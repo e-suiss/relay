@@ -17,7 +17,8 @@ defmodule Relay.Repo.Migrations.CreateWhatsappTemplates do
       provider_account_id uuid NOT NULL,
       waba_id text NOT NULL CONSTRAINT whatsapp_templates_waba_id_check CHECK (waba_id ~ '^[0-9]{1,32}$'),
       name text NOT NULL
-        CONSTRAINT whatsapp_templates_name_check CHECK (name ~ '^[a-z0-9_]{1,512}$'),
+        CONSTRAINT whatsapp_templates_name_check
+          CHECK (char_length(name) BETWEEN 1 AND 512 AND name ~ '^[a-z0-9_]+$'),
       language text NOT NULL
         CONSTRAINT whatsapp_templates_language_check
           CHECK (language ~ '^[a-z]{2,3}(_[A-Za-z0-9]{2,8}){0,2}$'),

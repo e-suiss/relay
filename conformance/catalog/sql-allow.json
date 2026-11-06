@@ -180,6 +180,12 @@
     "reason": "INV-6, TP-31, TP-48: the no-truncate triggers of the template, layout and partial tables and of the render plan, and the append-only triggers of the render snapshot, reject TRUNCATE"
   },
   {
+    "path": "priv/repo/migrations/20261127200000_seal_event_payload_overrides.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "API-23, OP-18: committed relay_fn functions are dropped for a new signature and replaced as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
     "path": "lib/relay/templates/engine.ex",
     "rule": "physical_delete",
     "match": "truncate",

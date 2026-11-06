@@ -495,4 +495,17 @@ defmodule Relay.Delivery do
   @spec ledger(Scope.t(), Relay.Id.t()) :: result([map()])
   def ledger(scope, delivery_id),
     do: Store.in_scope(scope, fn _status -> Store.ledger(delivery_id) end)
+
+  # C-88
+  # OP-38
+  # T-87
+  @doc "Writes the usage records of a closed UTC day for every scope; see `Relay.Delivery.Usage.Store.close_day/1`."
+  @spec close_usage_day(Date.t()) :: Relay.Delivery.Usage.Store.counts()
+  defdelegate close_usage_day(day), to: Relay.Delivery.Usage.Store, as: :close_day
+
+  # INV-49
+  @doc "The usage rows of a closed day in a scope, before they are written; see `Relay.Delivery.Usage.Store.rows/1`."
+  @spec usage_rows(Scope.t(), Date.t()) :: result([map()])
+  def usage_rows(scope, day),
+    do: Store.in_scope(scope, fn _status -> Relay.Delivery.Usage.Store.rows(day) end)
 end

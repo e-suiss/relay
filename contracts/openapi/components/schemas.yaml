@@ -6529,3 +6529,19 @@ WhatsappTemplateList:
           type: array
           items:
             "$ref": "#/WhatsappTemplate"
+WhatsappWebhookNotification:
+  type: object
+  description: "A WhatsApp Business Account notification as Meta sends it; Relay verifies X-Hub-Signature-256 over the raw body before it reads it. Changes Relay does not subscribe to are acknowledged and ignored."
+  required:
+    - object
+    - entry
+  properties:
+    object:
+      type: string
+      maxLength: 64
+    entry:
+      type: array
+      maxItems: 1000
+      items:
+        type: object
+  additionalProperties: false

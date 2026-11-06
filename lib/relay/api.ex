@@ -22,7 +22,9 @@ defmodule Relay.Api do
       Relay.TemplateStore,
       Relay.Datasets,
       Relay.Templates.Live,
-      Relay.Channels
+      Relay.Channels,
+      Relay.Channels.Live,
+      Relay.Secrets
     ],
     exports: [
       Contract,
@@ -57,6 +59,7 @@ defmodule Relay.Api do
       Brand,
       Previews,
       Discovery,
-      WhatsappTemplates
+      WhatsappTemplates,
+      WhatsappWebhooks
     ]
 end

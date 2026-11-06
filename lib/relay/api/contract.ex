@@ -1,6 +1,6 @@
 defmodule Relay.Api.Contract do
   @moduledoc """
-  The API contract, read at compile time from `contracts/openapi/server.yaml`, `contracts/openapi/subscriber.yaml`, `contracts/openapi/operator.yaml` and their components. It answers which operations exist, which family each belongs to (`:server`, `:subscriber` or `:operator`), how it is authenticated (`:bearer`, `:public` or `:webhook`), what it requires (scopes, weight, idempotency, environment; for an operator operation the lowest role, the roles by direction of change and the step-up rule) and which schemas its requests and responses follow. A subscriber or operator operation's local schema references are inlined. The contract files are the single source; nothing here repeats their values.
+  The API contract, read at compile time from `contracts/openapi/server.yaml`, `contracts/openapi/subscriber.yaml`, `contracts/openapi/operator.yaml` and their components. It answers which operations exist, which family each belongs to (`:server`, `:subscriber` or `:operator`), how it is authenticated (`:bearer`, `:public`, `:webhook` or `:provider_webhook`), what it requires (scopes, weight, idempotency, environment; for an operator operation the lowest role, the roles by direction of change and the step-up rule) and which schemas its requests and responses follow. A subscriber or operator operation's local schema references are inlined. The contract files are the single source; nothing here repeats their values.
   """
 
   @root Path.expand("../../../contracts/openapi", __DIR__)
@@ -35,7 +35,7 @@ defmodule Relay.Api.Contract do
           role_by_change: %{lower: [role()], raise: [role()]} | nil,
           step_up: :always | :conditional | :never,
           stored_replay: boolean(),
-          security: :bearer | :public | :webhook,
+          security: :bearer | :public | :webhook | :provider_webhook,
           no_store: boolean(),
           method: String.t(),
           path: String.t(),
@@ -130,6 +130,7 @@ defmodule Relay.Api.Contract do
         case op["security"] do
           [] -> :public
           [%{"suiss_webhook_signature" => _} | _] -> :webhook
+          [%{"meta_webhook_signature" => _} | _] -> :provider_webhook
           _bearer -> :bearer
         end
 

@@ -340,6 +340,12 @@ defmodule RelayWeb.Router do
     post "/virtual_clock/advance", VirtualClockController, :advance,
       private: %{relay_operation: "advanceVirtualClock"}
 
+    get "/inbound/whatsapp/:provider_account_id", WhatsappWebhookController, :verify,
+      private: %{relay_operation: "verifyWhatsappWebhook"}
+
+    post "/inbound/whatsapp/:provider_account_id", WhatsappWebhookController, :create,
+      private: %{relay_operation: "receiveWhatsappWebhook"}
+
     post "/access/events", AccessEventController, :create,
       private: %{relay_operation: "receiveAccessEvent"}
 

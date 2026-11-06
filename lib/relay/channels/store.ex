@@ -257,6 +257,19 @@ defmodule Relay.Channels.Store do
     Repo.code!(row["result"], [:appended])
   end
 
+  # CH-60
+  # TN-13 (4)
+  @doc "Resolves a provider account named in an inbound webhook's path across tenants, through the `:provider_account_resolve` escape hatch: its tenant, environment, provider, channel, state, tenant status and settings; `nil` when there is none."
+  @spec account_resolve(Relay.Id.t()) :: map() | nil
+  def account_resolve(id) do
+    function = "relay_ops.provider_account_resolve"
+
+    case Repo.call_unscoped!(:provider_account_resolve, function, [id]) do
+      [row] -> row
+      [] -> nil
+    end
+  end
+
   defp all(sql, params) do
     %Postgrex.Result{columns: columns, rows: rows} = Repo.scoped_query!(sql, params)
     Enum.map(rows, &(columns |> Enum.zip(&1) |> Map.new()))

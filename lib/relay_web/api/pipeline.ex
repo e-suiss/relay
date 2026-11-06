@@ -280,8 +280,9 @@ defmodule RelayWeb.Api.Pipeline do
   # API-49
   # API-50
   # API-77
-  defp rate_limit(%{assigns: %{principal: nil, operation: %{security: :webhook}}} = conn),
-    do: {:ok, conn}
+  defp rate_limit(%{assigns: %{principal: nil, operation: %{security: security}}} = conn)
+       when security in [:webhook, :provider_webhook],
+       do: {:ok, conn}
 
   defp rate_limit(%{assigns: %{principal: nil, operation: %{public: true} = operation}} = conn) do
     ip = Transport.client_ip(conn)

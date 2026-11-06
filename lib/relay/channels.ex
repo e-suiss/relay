@@ -490,6 +490,33 @@ defmodule Relay.Channels do
   end
 
   # CH-60
+  # TN-13 (4)
+  @doc "The active WhatsApp Cloud API provider account of an inbound webhook's path and the scope it belongs to; `:not_found` for an unknown, other or disabled account or an inactive tenant."
+  @spec whatsapp_inbound_account(Relay.Id.t()) :: {:ok, Relay.Scope.t(), map()} | :not_found
+  def whatsapp_inbound_account(id) do
+    case Store.account_resolve(id) do
+      %{"provider" => "whatsapp_cloud", "channel" => "whatsapp", "state" => "active"} = row ->
+        inbound_account(id, row)
+
+      _other ->
+        :not_found
+    end
+  end
+
+  defp inbound_account(id, %{"tenant_status" => "active"} = row) do
+    case Relay.Environment.cast(row["environment"]) do
+      {:ok, environment} ->
+        scope = Relay.Scope.new!(row["tenant_id"], environment)
+        {:ok, scope, %{"id" => id, "provider" => row["provider"], "settings" => row["settings"]}}
+
+      _invalid ->
+        :not_found
+    end
+  end
+
+  defp inbound_account(_id, _row), do: :not_found
+
+  # CH-60
   # T-40
   @doc "Verifies a WhatsApp Cloud API webhook on its raw body with the app secret and parses it into items; see `Relay.Channels.Whatsapp.Webhook`."
   @spec whatsapp_webhook(Relay.Redacted.t(), binary(), Inbound.headers()) ::

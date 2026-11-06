@@ -1,6 +1,6 @@
 defmodule Relay.Operators.Access.Http do
   @moduledoc """
-  The Access adapter that talks to the endpoints Access publishes in its discovery document, through `Req`. Configuration (`config :relay, Relay.Operators.Access, ...`): `client_id`, `client_secret` (a zero-arity `{module, function, args}` callback returning the secret, called only when the secret is used), `operator_audience` (the `aud` of an operator access token) and `discovery`.
+  The Access adapter that talks to the endpoints Access publishes in its discovery document, through `Req`. The client is Relay's own Access client registration (`Relay.Access.client_id/0`, E-90); its token requests and AuthZEN decisions go through `Relay.Access.Client`, authenticated by Relay's client assertion and carrying DPoP proofs of Relay's key-store key, with the access token as `Authorization: DPoP` (E-98). An operator access token of the CLI is checked like a server token (`Relay.Access.verify_access_token/2`, E-93): `aud` Relay's `client_id`, bound to the key of the request's DPoP proof. Configuration (`config :relay, Relay.Operators.Access, ...`): `issuer` and `discovery`.
 
   `issuer` defaults to the issuer of the Access link (`config :relay, Relay.Access, issuer: ...`). `discovery` is a `{module, function, args}` callback returning `{:ok, map}` with the string keys of an OpenID Provider metadata document: `"issuer"`, `"authorization_endpoint"`, `"token_endpoint"`, `"jwks"` (the JSON Web Key Set itself, `%{"keys" => [...]}`) and, when Access offers AuthZEN, `"access_evaluation_endpoint"`. The Access link's discovery cache plugs in here; without one the adapter reads `<issuer>/.well-known/openid-configuration` and its `jwks_uri` on every call (`discover/0`, with `issuer` configured). Any failure to reach Access is `auth_step_up_unavailable`.
 
@@ -9,6 +9,7 @@ defmodule Relay.Operators.Access.Http do
 
   @behaviour Relay.Operators.Access
 
+  alias Relay.Access.Client
   alias Relay.Operators.Access
 
   @timeout_ms 5_000
@@ -56,47 +57,43 @@ defmodule Relay.Operators.Access.Http do
     end
   end
 
+  # E-98
+  # E-93
   @impl Access
-  def verify_access_token(token) do
-    audience = Keyword.get(Access.config(), :operator_audience, "relay-operator-api")
-
-    with {:ok, discovery} <- discovery(),
-         {:ok, claims} <- verify(token, discovery, audience),
-         do: {:ok, normalise(claims)}
+  def verify_access_token(token, opts) do
+    case Relay.Access.verify_access_token(token, opts) do
+      {:ok, %{"sub" => sub} = claims} when is_binary(sub) -> {:ok, normalise(claims)}
+      {:ok, _claims} -> {:error, invalid("the token has no subject")}
+      {:error, error} -> {:error, error}
+    end
   end
 
   @impl Access
   def evaluate(request) do
     with {:ok, discovery} <- discovery() do
       case discovery["access_evaluation_endpoint"] do
-        endpoint when is_binary(endpoint) -> evaluate_at(discovery, endpoint, request)
+        endpoint when is_binary(endpoint) -> evaluate_at(endpoint, request)
         _ -> :not_offered
       end
     end
   end
 
-  defp evaluate_at(discovery, endpoint, request) do
+  # E-27
+  # E-98
+  defp evaluate_at(endpoint, request) do
     body = %{
       "subject" => %{"type" => "user", "id" => request.subject},
       "action" => %{"name" => request.action},
       "resource" => %{"type" => request.resource.type, "id" => request.resource.id}
     }
 
-    with {:ok, %{"access_token" => bearer}} <-
-           token(discovery, grant_type: "client_credentials"),
-         {:ok, %{status: 200, body: %{"decision" => decision} = answer}}
-         when is_boolean(decision) <-
-           send_request(
-             method: :post,
-             url: endpoint,
-             json: body,
-             headers: [{"authorization", "Bearer " <> bearer}]
-           ) do
-      ref = get_in(answer, ["context", "decision_ref"]) || get_in(answer, ["context", "id"])
-      {:ok, %{decision: decision, ref: if(is_binary(ref), do: ref)}}
-    else
-      {:error, %Relay.Error{} = error} -> {:error, error}
-      _other -> {:error, Access.unavailable("Access gave no decision")}
+    case Client.post(endpoint, body) do
+      {:ok, %{"decision" => decision} = answer} when is_boolean(decision) ->
+        ref = get_in(answer, ["context", "decision_ref"]) || get_in(answer, ["context", "id"])
+        {:ok, %{decision: decision, ref: if(is_binary(ref), do: ref)}}
+
+      _other ->
+        {:error, Access.unavailable("Access gave no decision")}
     end
   end
 
@@ -131,17 +128,12 @@ defmodule Relay.Operators.Access.Http do
     end
   end
 
+  # E-98
   defp token(discovery, form) do
-    case send_request(
-           method: :post,
-           url: discovery["token_endpoint"],
-           form: form,
-           auth: {:basic, client_id() <> ":" <> client_secret()}
-         ) do
-      {:ok, %{status: 200, body: body}} when is_map(body) -> {:ok, body}
-      {:ok, %{status: status}} when status in 400..499 -> {:error, invalid("Access refused")}
-      {:ok, _response} -> {:error, Access.unavailable()}
-      {:error, error} -> {:error, error}
+    case Client.token(discovery["token_endpoint"], form) do
+      {:ok, body} -> {:ok, body}
+      {:error, {:refused, _body}} -> {:error, invalid("Access refused")}
+      {:error, _error} -> {:error, Access.unavailable()}
     end
   end
 
@@ -270,17 +262,8 @@ defmodule Relay.Operators.Access.Http do
     for key <- keys, value = Map.get(params, key), value != nil, do: {key, value}
   end
 
-  defp client_id, do: Keyword.get(Access.config(), :client_id, "")
-
-  defp client_secret do
-    case Keyword.get(Access.config(), :client_secret) do
-      {module, function, args} ->
-        module |> apply(function, args) |> Relay.Redacted.wrap() |> Relay.Redacted.expose()
-
-      _ ->
-        ""
-    end
-  end
+  # E-90
+  defp client_id, do: Relay.Access.client_id() || ""
 
   defp invalid(detail), do: Relay.Error.new(:auth_invalid_token, detail)
   defp expired, do: Relay.Error.new(:auth_expired_token, "the token has expired")

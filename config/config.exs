@@ -67,6 +67,7 @@ config :relay, Relay.Platform.Outbox, dispatcher: true
 
 config :relay, Relay.Access,
   subscriber_token_key: "subscriber-token",
+  dpop_key: "access-dpop",
   autoload: true,
   user_handlers: [Relay.Operators.AccessUserHandler, Relay.Operators.AccessSubscriberHandler],
   consent_handler: Relay.Preferences.AccessConsentHandler

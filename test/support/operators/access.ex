@@ -1,5 +1,5 @@
 defmodule RelayTest.Operators.Access do
-  @moduledoc "Access adapter for operator tests: an authorization code or access token is `code.` or `token.` and the URL-safe Base64 of the JSON claims Access would return (`auth_time` in seconds before now); `unavailable` fails as an unreachable Access. `decide/1` sets the AuthZEN answer of the calling test process: `:not_offered` (the default), `true`, `false` or `:unavailable`."
+  @moduledoc "Access adapter for operator tests: an authorization code or access token is `code.` or `token.` and the URL-safe Base64 of the JSON claims Access would return (`auth_time` in seconds before now); an access token needs a DPoP proof in its options, as the CLI sends it (E-98), and only its presence is checked; `unavailable` fails as an unreachable Access. `decide/1` sets the AuthZEN answer of the calling test process: `:not_offered` (the default), `true`, `false` or `:unavailable`."
 
   use Boundary, top_level?: true, deps: [Relay, Relay.Operators], exports: []
 
@@ -32,11 +32,22 @@ defmodule RelayTest.Operators.Access do
   def complete(_code, _verifier, _redirect_uri, _nonce), do: {:error, unavailable()}
 
   @impl Relay.Operators.Access
-  def verify_access_token("token." <> encoded), do: claims(encoded)
-  def verify_access_token("unavailable"), do: {:error, unavailable()}
+  def verify_access_token(token, opts) do
+    case {token, Keyword.get(opts, :proof)} do
+      {_token, nil} ->
+        details = %{challenge: "invalid_dpop_proof"}
+        {:error, Relay.Error.new(:auth_invalid_token, "a DPoP proof is required", details)}
 
-  def verify_access_token(_token),
-    do: {:error, Relay.Error.new(:auth_invalid_token, "unknown test token")}
+      {"token." <> encoded, _proof} ->
+        claims(encoded)
+
+      {"unavailable", _proof} ->
+        {:error, unavailable()}
+
+      _other ->
+        {:error, Relay.Error.new(:auth_invalid_token, "unknown test token")}
+    end
+  end
 
   @impl Relay.Operators.Access
   def evaluate(_request) do

@@ -74,6 +74,7 @@ defmodule Relay.Channels.Push.OverrideCollapseTest do
       }
 
       assert {block, ignored} = Override.fcm_apns(apns)
+
       assert ignored == [
                "fcm.apns.headers.apns-priority",
                "fcm.apns.payload.aps.interruption-level"

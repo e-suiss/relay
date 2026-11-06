@@ -3,8 +3,8 @@ defmodule Relay.Channels.Live do
   The channel step of the delivery job (`Relay.Delivery.Send`, configured as `config :relay, Relay.Delivery, channel: Module`): it hands a rendered delivery to its provider and records the outcome.
 
     1. The route. On the `test` plane and in `shadow` mode the fake provider answers (X-25, API-62, CH-72); the send mode is the event's own mode (test only), then the tenant's `send_mode.channel.<channel>` and `send_mode` settings, then the installation default. Otherwise only a verified provider account whose adapter is activated takes traffic (`Relay.Channels.routes/4`, CH-14, INV-43); without one the delivery is held with `channel.no_route` and the job comes back later. The circuit breakers pick the first account that may be called; a rejection moves to the next account and, when every one is open, the job waits without counting an attempt (CH-13, T-25).
-    2. The target. An address channel reads the recipient's active address; a device channel reads the recipient's permitted devices from `Relay.Devices` (CH-28). A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
-    3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50).
+    2. The target. An address channel reads the recipient's active address; a device channel reads the recipient's permitted devices from `Relay.Devices` and takes the most recently seen one of the route's provider platform (CH-28); a recipient whose devices are all without permission is skipped with `channel.no_permission`, one without a device with `channel.no_address`. A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
+    3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50). On `push` and `web_push` the push policy is decided from the active `push_priority_map` before the attempt opens (`Relay.Channels.push_policy/2`: platform priority, interruption level, collapse keys, content-free mode and lock screen text; CH-19, CH-23, CH-33, CH-65, CH-67) and handed to the adapter; its recorded reasons (`priority_clamped`, `interruption_clamped`, `critical_not_granted`, `interruption_platform_lowered`, `override_ignored`) are emitted as `[:relay, :push, :policy]`.
     4. The attempt. It is opened with the provider idempotency key that stays the same across the logical send (INV-13, OP-6 (4)) and marked started in its own transaction before the call (INV-55, CH-10). The credential is read from the secret backend for this call only, so a rotation applies at the next call (TN-26). The call is bounded by the three timeout layers (CH-9).
     5. The outcome is normalized into the eight failure classes (CH-7). A success finishes the attempt. A failure finishes it and plans its retry through the job queue only (T-26, INV-14); a permanent target failure soft disables the address or the device at once (CH-11); a code without a mapping raises `provider.unknown_code` and the alarm (CH-8). An uncertain outcome follows the provider's declared policy (T-28): the status query, a retry with the same key, or none; on a paid channel at most one retry and `delivery.uncertain`.
   """
@@ -140,6 +140,12 @@ defmodule Relay.Channels.Live do
       {:ok, value, kind, id} ->
         simulated(ctx, account, ticket, %{kind: kind, id: id, value: value})
 
+      {:ok, %{} = target} ->
+        simulated(ctx, account, ticket, target)
+
+      {:skip, rule_id} ->
+        skip(ctx.scope, ctx.delivery["id"], rule_id)
+
       :unavailable ->
         hold(ctx.scope, ctx.delivery["id"], "channel.target_unavailable")
     end
@@ -183,15 +189,40 @@ defmodule Relay.Channels.Live do
     }
   end
 
+  # CH-28
+  # INV-40
   defp device(scope, delivery, account) do
     channel = if delivery["channel"] == "web_push", do: :web_push, else: :push
     recipient_id = delivery["recipient_id"]
 
     case Relay.Devices.targets(scope, recipient_id, channel, delivery["message_class"]) do
-      {:ok, [%{id: id, token: token} | _]} -> {:ok, token, :device, id}
-      _none -> fallback(account, :device)
+      {:ok, targets} -> platform(targets, account)
+      {:skip, reason} -> device_skip(account, reason)
+      {:error, _reason} -> fallback(account, :device)
     end
   end
+
+  defp platform(targets, account) do
+    fake? = account["provider"] == "fake"
+
+    case Enum.find(targets, &(fake? or &1.platform == account["provider"])) do
+      nil -> fallback(account, :device)
+      device -> {:ok, %{kind: :device, id: device.id, value: device.token, device: meta(device)}}
+    end
+  end
+
+  defp meta(device) do
+    %{
+      platform: device.platform,
+      app: device.app,
+      apns_environment: device.apns_environment,
+      keys: device.keys
+    }
+  end
+
+  defp device_skip(%{"provider" => "fake"} = account, _reason), do: fallback(account, :device)
+  defp device_skip(_account, :no_permission), do: {:skip, "channel.no_permission"}
+  defp device_skip(_account, :no_device), do: {:skip, "channel.no_address"}
 
   defp wrap(value), do: Relay.Redacted.wrap(value)
 
@@ -211,11 +242,68 @@ defmodule Relay.Channels.Live do
   # TP-50
   defp content(ctx, account, ticket, target) do
     case renderer().prepare(ctx.scope, ctx.delivery["id"]) do
-      {:rendered, content} -> attempt(ctx, account, ticket, target, content)
-      :rendered -> attempt(ctx, account, ticket, target, %{})
+      {:rendered, content} -> policy(ctx, account, ticket, target, content)
+      :rendered -> policy(ctx, account, ticket, target, %{})
       {:error, reason} -> {:error, reason}
       _failed_or_done -> :ok
     end
+  end
+
+  # CH-19
+  # CH-23
+  # CH-33
+  # CH-65
+  # CH-67
+  defp policy(ctx, account, ticket, target, content) do
+    case push_policy(ctx, account, content) do
+      {:ok, push} -> attempt(Map.put(ctx, :push, push), account, ticket, target, content)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp push_policy(%{delivery: %{"channel" => channel}} = ctx, account, content)
+       when channel in ["push", "web_push"] do
+    case {priority_table(), account["provider"]} do
+      {{:ok, table}, _provider} -> Relay.Channels.push_policy(table, facts(ctx, content))
+      {{:error, _reason}, "fake"} -> {:ok, nil}
+      {{:error, reason}, _provider} -> {:error, reason}
+    end
+  end
+
+  defp push_policy(_ctx, _account, _content), do: {:ok, nil}
+
+  # OP-65 (4)
+  defp priority_table do
+    name = Relay.Channels.push_priority_dataset()
+
+    case Relay.Datasets.active(Relay.Datasets.installation_scope(), name) do
+      {:ok, %{content: content, id: id}} -> {:ok, Relay.Channels.push_priority(content, id)}
+      {:ok, nil} -> {:error, :push_priority_unavailable}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp facts(ctx, content) do
+    delivery = ctx.delivery
+    sensitive = delivery["sensitivity"] == "sensitive"
+    content = if is_map(content), do: content, else: %{}
+
+    %{
+      tenant_id: ctx.scope.tenant_id,
+      delivery_id: Relay.Id.to_string(delivery["id"]),
+      message_class: delivery["message_class"],
+      priority: delivery["priority"],
+      interruption: nil,
+      subject_type: delivery["subject_type"],
+      subject_id: delivery["subject_id"],
+      sensitivity: delivery["sensitivity"],
+      category: delivery["category_key"],
+      region: Relay.Datasets.installation_region(),
+      locale: delivery["locale"],
+      lock_screen_body: if(sensitive, do: content["body"]),
+      expires_at: delivery["expires_at"],
+      now: Relay.Clock.utc_now()
+    }
   end
 
   # INV-13
@@ -277,7 +365,8 @@ defmodule Relay.Channels.Live do
       account: account,
       ttl_s: ttl,
       message_class: ctx.delivery["message_class"],
-      test?: ctx.scope.environment == :test
+      test?: ctx.scope.environment == :test,
+      push: Map.get(ctx, :push)
     })
   end
 
@@ -301,12 +390,37 @@ defmodule Relay.Channels.Live do
         result = adapter.deliver(request)
         outcome = normalize(ctx, request, result)
         record_breaker(ticket, outcome, Relay.Clock.monotonic_ms() - started)
+        report_policy(request, outcome)
         follow(ctx, adapter, request, outcome)
 
       {:error, _not_activated} ->
         finish(ctx, request, failed("transient", "transport:adapter_not_activated"), :no_retry)
     end
   end
+
+  # CH-19
+  # CH-21
+  # CH-65
+  # CH-66
+  defp report_policy(%{push: %{} = push} = request, outcome) do
+    ignored = if outcome.detail[:override_ignored] in [nil, []], do: [], else: [:override_ignored]
+    reasons = push.reasons ++ ignored
+
+    if reasons != [] do
+      :telemetry.execute([:relay, :push, :policy], %{count: 1}, %{
+        tenant_id: request.scope.tenant_id,
+        provider: request.provider,
+        message_class: push.message_class,
+        level: push.level,
+        reasons: reasons,
+        override_ignored: outcome.detail[:override_ignored] || []
+      })
+    end
+
+    :ok
+  end
+
+  defp report_policy(_request, _outcome), do: :ok
 
   # DS-10
   defp normalize(ctx, request, result) do

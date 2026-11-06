@@ -1,0 +1,65 @@
+{
+  "provider": "hms",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "push"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://developer.huawei.com/consumer/en/doc/HMSCore-References/https-send-api-0000001050986197",
+    "https://developer.huawei.com/consumer/en/doc/HMSCore-Guides/message-classification-0000001149358835",
+    "§12.5.4 CH-27; §12.2 CH-7"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "push": {
+      "delivery_receipts": false,
+      "read_receipts": false,
+      "collapse": false,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "retry_accepting_duplicate_risk",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": "requestId",
+    "status_query": false,
+    "source": "HMS Push Kit has no idempotency key and no status query; the answer carries its requestId (§12.5.4, T-28)"
+  },
+  "paid_channels": [],
+  "pricing": {
+    "currency": "EUR",
+    "units": {
+      "push": "message"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [],
+    "sender": [],
+    "recipient": []
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "CN",
+      "DE",
+      "RU",
+      "SG"
+    ],
+    "transfer_basis": "explicit_consent",
+    "scc_notified_on": null,
+    "source": "Huawei Push Kit processes in the data center of the app's service region (§12.1.4 CH-6)"
+  },
+  "inbound_verification": {
+    "method": "none",
+    "header": null,
+    "authenticity": "verified",
+    "source": "§12.1.2 CH-2: the provider sends no inbound webhook"
+  }
+}

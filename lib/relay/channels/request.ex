@@ -4,7 +4,7 @@ defmodule Relay.Channels.Request do
 
     * `scope`, `delivery_id`, `attempt_no`: the attempt; `channel` and `provider` the route.
     * `idempotency_key`: the provider idempotency key, stable across the attempts of the logical send (INV-13, OP-6 (4)); an adapter sends it in the provider's key or correlation field.
-    * `target`: `%{kind: :address | :device | :endpoint, id: id | nil, value: Relay.Redacted.t()}`, the address, token or endpoint the provider sends to.
+    * `target`: `%{kind: :address | :device | :endpoint, id: id | nil, value: Relay.Redacted.t()}`, the address, token or endpoint the provider sends to; a device target also carries `device`, its `platform`, `app`, `apns_environment` and redacted Web Push `keys`.
     * `content`: the rendered content of the delivery's channel cell, as the renderer encodes it.
     * `credentials`: the provider credential resolved from the secret backend for this call only, or `nil`; never cached by the adapter (TN-26).
     * `account`: the provider connection the route chose (`id`, `ownership`, `settings`), or `nil`.
@@ -12,6 +12,7 @@ defmodule Relay.Channels.Request do
     * `ttl_s`: the channel time to live derived from the message's `expires_at` (`Relay.Channels.ttl_s/2`, CH-9), `nil` without `expires_at`.
     * `timeout_ms`: the call timeout, the shortest of the message, channel and provider layers (CH-9); the adapter never waits longer.
     * `message_class`, `test?` (the test plane) and `overrides` (the request's channel overrides, API-23).
+    * `push`: the push policy the channel step decided (`Relay.Channels.Push.Policy`), `nil` on the other channels.
   """
 
   @enforce_keys [
@@ -40,13 +41,15 @@ defmodule Relay.Channels.Request do
     ttl_s: nil,
     message_class: nil,
     test?: false,
-    overrides: %{}
+    overrides: %{},
+    push: nil
   ]
 
   @type target :: %{
           required(:kind) => :address | :device | :endpoint,
           required(:id) => Relay.Id.t() | nil,
-          required(:value) => Relay.Redacted.t()
+          required(:value) => Relay.Redacted.t(),
+          optional(:device) => map()
         }
 
   @type t :: %__MODULE__{
@@ -65,6 +68,7 @@ defmodule Relay.Channels.Request do
           ttl_s: non_neg_integer() | nil,
           message_class: String.t() | nil,
           test?: boolean(),
-          overrides: map()
+          overrides: map(),
+          push: map() | nil
         }
 end

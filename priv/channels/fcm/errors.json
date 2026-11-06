@@ -1,0 +1,186 @@
+[
+  {
+    "code": "UNSPECIFIED_ERROR",
+    "class": "unknown",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "INVALID_ARGUMENT",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "UNREGISTERED",
+    "class": "permanent_target",
+    "condition": "unregistered",
+    "event_code": "unregistered",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "SENDER_ID_MISMATCH",
+    "class": "permanent_target",
+    "condition": "unregistered",
+    "event_code": "unregistered",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "QUOTA_EXCEEDED",
+    "class": "quota",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "UNAVAILABLE",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "INTERNAL",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "THIRD_PARTY_AUTH_ERROR",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "rpc:INVALID_ARGUMENT",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "rpc:UNAUTHENTICATED",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "rpc:PERMISSION_DENIED",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "rpc:RESOURCE_EXHAUSTED",
+    "class": "quota",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "rpc:INTERNAL",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "rpc:UNAVAILABLE",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "500",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "502",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "503",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "504",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://firebase.google.com/docs/reference/fcm/rest/v1/ErrorCode (2026-11-05)"
+  },
+  {
+    "code": "relay:content_forbidden",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  },
+  {
+    "code": "relay:invalid_request",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  },
+  {
+    "code": "relay:not_configured",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  },
+  {
+    "code": "relay:payload_too_large",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  },
+  {
+    "code": "relay:silent_not_supported",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  }
+]

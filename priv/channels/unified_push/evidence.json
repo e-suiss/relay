@@ -1,0 +1,58 @@
+[
+  {
+    "channel": "push",
+    "event_code": "accepted",
+    "effect_kind": "evidence",
+    "sets_delivery": "accepted",
+    "sets_failure": "none",
+    "attempt_effect": "succeeded",
+    "after_delivered": "stale",
+    "projection_effect": "raise_delivery",
+    "side_effect": "none",
+    "scope": "attempt",
+    "decision_grade": "unreliable",
+    "source": "§12.5.7 CH-32; https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292"
+  },
+  {
+    "channel": "push",
+    "event_code": "rejected",
+    "effect_kind": "evidence",
+    "sets_delivery": "none",
+    "sets_failure": "failed",
+    "attempt_effect": "failed",
+    "after_delivered": "stale",
+    "projection_effect": "set_failure",
+    "side_effect": "none",
+    "scope": "attempt",
+    "decision_grade": "unreliable",
+    "source": "§12.5.7 CH-32; https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292"
+  },
+  {
+    "channel": "push",
+    "event_code": "uncertain",
+    "effect_kind": "operational_signal",
+    "sets_delivery": "none",
+    "sets_failure": "none",
+    "attempt_effect": "unknown",
+    "after_delivered": "stale",
+    "projection_effect": "none",
+    "side_effect": "none",
+    "scope": "attempt",
+    "decision_grade": "unreliable",
+    "source": "§12.5.7 CH-32; https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292"
+  },
+  {
+    "channel": "push",
+    "event_code": "unregistered",
+    "effect_kind": "evidence",
+    "sets_delivery": "none",
+    "sets_failure": "failed",
+    "attempt_effect": "failed",
+    "after_delivered": "valid",
+    "projection_effect": "set_failure",
+    "side_effect": "deactivate_device",
+    "scope": "attempt",
+    "decision_grade": "unreliable",
+    "source": "§12.5.7 CH-32; https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292"
+  }
+]

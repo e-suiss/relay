@@ -1,0 +1,62 @@
+{
+  "provider": "unified_push",
+  "adapter_version": "1.0.0",
+  "channels": [
+    "push"
+  ],
+  "compiled_at": "2026-11-05",
+  "sources": [
+    "https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292",
+    "https://unifiedpush.org/developers/spec/server/",
+    "§12.5.4 CH-1"
+  ],
+  "deprecations": [],
+  "capabilities": {
+    "push": {
+      "delivery_receipts": false,
+      "read_receipts": false,
+      "collapse": true,
+      "ttl": true,
+      "update": false,
+      "recall": false,
+      "business_initiated": true,
+      "inbound": false
+    }
+  },
+  "provider_idempotency_policy": {
+    "mode": "retry_accepting_duplicate_risk",
+    "provider_key": false,
+    "key_field": null,
+    "correlation_field": "Location",
+    "status_query": false,
+    "source": "RFC 8030 has no idempotency key and no status query; the push service answers with the message's Location (§12.5.3 CH-26, T-28)"
+  },
+  "paid_channels": [],
+  "pricing": {
+    "currency": "EUR",
+    "units": {
+      "push": "message"
+    },
+    "prices": []
+  },
+  "limits": {
+    "account": [],
+    "sender": [],
+    "recipient": []
+  },
+  "data_residency": {
+    "in_installation": false,
+    "processing_countries": [
+      "US"
+    ],
+    "transfer_basis": "explicit_consent",
+    "scc_notified_on": null,
+    "source": "The distributor the user installs; the default public distributor runs in the United States and an account declares its own (§12.1.4 CH-6)"
+  },
+  "inbound_verification": {
+    "method": "none",
+    "header": null,
+    "authenticity": "verified",
+    "source": "§12.1.2 CH-2: the provider sends no inbound webhook"
+  }
+}

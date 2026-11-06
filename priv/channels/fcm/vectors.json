@@ -1,0 +1,576 @@
+[
+  {
+    "name": "UNSPECIFIED_ERROR",
+    "raw": {
+      "code": "UNSPECIFIED_ERROR",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": {
+        "error": {
+          "code": 500,
+          "status": "INTERNAL",
+          "message": "vector",
+          "details": [
+            {
+              "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+              "errorCode": "UNSPECIFIED_ERROR"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "INVALID_ARGUMENT",
+    "raw": {
+      "code": "INVALID_ARGUMENT",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "code": 400,
+          "status": "INVALID_ARGUMENT",
+          "message": "vector",
+          "details": [
+            {
+              "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+              "errorCode": "INVALID_ARGUMENT"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "UNREGISTERED",
+    "raw": {
+      "code": "UNREGISTERED",
+      "status": 404,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": "unregistered",
+      "event_code": "unregistered",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 404,
+      "body": {
+        "error": {
+          "code": 404,
+          "status": "NOT_FOUND",
+          "message": "vector",
+          "details": [
+            {
+              "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+              "errorCode": "UNREGISTERED"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "SENDER_ID_MISMATCH",
+    "raw": {
+      "code": "SENDER_ID_MISMATCH",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_target",
+      "condition": "unregistered",
+      "event_code": "unregistered",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "error": {
+          "code": 403,
+          "status": "PERMISSION_DENIED",
+          "message": "vector",
+          "details": [
+            {
+              "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+              "errorCode": "SENDER_ID_MISMATCH"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "QUOTA_EXCEEDED",
+    "raw": {
+      "code": "QUOTA_EXCEEDED",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "body": {
+        "error": {
+          "code": 429,
+          "status": "RESOURCE_EXHAUSTED",
+          "message": "vector",
+          "details": [
+            {
+              "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+              "errorCode": "QUOTA_EXCEEDED"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "UNAVAILABLE",
+    "raw": {
+      "code": "UNAVAILABLE",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": {
+        "error": {
+          "code": 503,
+          "status": "UNAVAILABLE",
+          "message": "vector",
+          "details": [
+            {
+              "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+              "errorCode": "UNAVAILABLE"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "INTERNAL",
+    "raw": {
+      "code": "INTERNAL",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": {
+        "error": {
+          "code": 500,
+          "status": "INTERNAL",
+          "message": "vector",
+          "details": [
+            {
+              "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+              "errorCode": "INTERNAL"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "THIRD_PARTY_AUTH_ERROR",
+    "raw": {
+      "code": "THIRD_PARTY_AUTH_ERROR",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "error": {
+          "code": 401,
+          "status": "UNAUTHENTICATED",
+          "message": "vector",
+          "details": [
+            {
+              "@type": "type.googleapis.com/google.firebase.fcm.v1.FcmError",
+              "errorCode": "THIRD_PARTY_AUTH_ERROR"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "name": "rpc:INVALID_ARGUMENT",
+    "raw": {
+      "code": "rpc:INVALID_ARGUMENT",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "code": 400,
+          "status": "INVALID_ARGUMENT",
+          "message": "vector"
+        }
+      }
+    }
+  },
+  {
+    "name": "rpc:UNAUTHENTICATED",
+    "raw": {
+      "code": "rpc:UNAUTHENTICATED",
+      "status": 401,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "error": {
+          "code": 401,
+          "status": "UNAUTHENTICATED",
+          "message": "vector"
+        }
+      }
+    }
+  },
+  {
+    "name": "rpc:PERMISSION_DENIED",
+    "raw": {
+      "code": "rpc:PERMISSION_DENIED",
+      "status": 403,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "auth",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "error": {
+          "code": 403,
+          "status": "PERMISSION_DENIED",
+          "message": "vector"
+        }
+      }
+    }
+  },
+  {
+    "name": "rpc:RESOURCE_EXHAUSTED",
+    "raw": {
+      "code": "rpc:RESOURCE_EXHAUSTED",
+      "status": 429,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "quota",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 429,
+      "body": {
+        "error": {
+          "code": 429,
+          "status": "RESOURCE_EXHAUSTED",
+          "message": "vector"
+        }
+      }
+    }
+  },
+  {
+    "name": "rpc:INTERNAL",
+    "raw": {
+      "code": "rpc:INTERNAL",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": {
+        "error": {
+          "code": 500,
+          "status": "INTERNAL",
+          "message": "vector"
+        }
+      }
+    }
+  },
+  {
+    "name": "rpc:UNAVAILABLE",
+    "raw": {
+      "code": "rpc:UNAVAILABLE",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": {
+        "error": {
+          "code": 503,
+          "status": "UNAVAILABLE",
+          "message": "vector"
+        }
+      }
+    }
+  },
+  {
+    "name": "500",
+    "raw": {
+      "code": "500",
+      "status": 500,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 500,
+      "body": "<html>Bad Gateway</html>"
+    }
+  },
+  {
+    "name": "502",
+    "raw": {
+      "code": "502",
+      "status": 502,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 502,
+      "body": "<html>Bad Gateway</html>"
+    }
+  },
+  {
+    "name": "503",
+    "raw": {
+      "code": "503",
+      "status": 503,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 503,
+      "body": "<html>Bad Gateway</html>"
+    }
+  },
+  {
+    "name": "504",
+    "raw": {
+      "code": "504",
+      "status": 504,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "transient",
+      "condition": "server_error",
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 504,
+      "body": "<html>Bad Gateway</html>"
+    }
+  },
+  {
+    "name": "unmapped NOT_FOUND",
+    "raw": {
+      "code": "rpc:NOT_FOUND",
+      "status": 404,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 404,
+      "body": {
+        "error": {
+          "code": 404,
+          "status": "NOT_FOUND",
+          "message": "vector"
+        }
+      }
+    }
+  },
+  {
+    "name": "unmapped FAILED_PRECONDITION",
+    "raw": {
+      "code": "rpc:FAILED_PRECONDITION",
+      "status": 400,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "unknown",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "error": {
+          "code": 400,
+          "status": "FAILED_PRECONDITION",
+          "message": "vector"
+        }
+      }
+    }
+  },
+  {
+    "name": "relay:content_forbidden",
+    "raw": {
+      "code": "relay:content_forbidden",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "relay:invalid_request",
+    "raw": {
+      "code": "relay:invalid_request",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "relay:not_configured",
+    "raw": {
+      "code": "relay:not_configured",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "sender_config",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "relay:payload_too_large",
+    "raw": {
+      "code": "relay:payload_too_large",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  },
+  {
+    "name": "relay:silent_not_supported",
+    "raw": {
+      "code": "relay:silent_not_supported",
+      "status": null,
+      "retry_after_ms": null
+    },
+    "expect": {
+      "class": "permanent_content",
+      "condition": null,
+      "event_code": "rejected",
+      "suppressed_success": false
+    }
+  }
+]

@@ -1,6 +1,6 @@
 defmodule Relay.Channels.Push.WebPush do
   @moduledoc """
-  Web Push requests (RFC 8030) and payloads. A request carries the `aes128gcm` encrypted body (`Relay.Channels.Push.WebPush.Encryption`), the VAPID `Authorization` header (`Relay.Channels.Push.WebPush.Vapid`), `TTL`, `Urgency` and an optional `Topic`. There is no silent Web Push: a message without an urgency (the `system` class) is refused (CH-26).
+  Web Push requests (RFC 8030) and payloads. A request carries the `aes128gcm` encrypted body (`Relay.Channels.Push.WebPush.Encryption`), the VAPID `Authorization` header (`Relay.Channels.Push.WebPush.Vapid`; a UnifiedPush distributor may take none), `TTL`, `Urgency` and an optional `Topic`. There is no silent Web Push: a message without an urgency (the `system` class) is refused (CH-26).
 
   Two payload forms are built: the classic form, a JSON object the application's service worker reads, and the Declarative Web Push form, which the browser shows without a service worker (CH-26, T-38).
   """
@@ -23,7 +23,7 @@ defmodule Relay.Channels.Push.WebPush do
           required(:payload) => binary(),
           required(:ttl) => non_neg_integer(),
           required(:urgency) => urgency() | nil,
-          required(:authorization) => String.t(),
+          required(:authorization) => String.t() | nil,
           optional(:topic) => String.t() | nil
         }
 
@@ -48,18 +48,21 @@ defmodule Relay.Channels.Push.WebPush do
          {:ok, urgency} <- urgency(push.urgency),
          {:ok, topic} <- topic(Map.get(push, :topic)),
          {:ok, body} <- Encryption.encrypt(payload, p256dh, auth) do
-      headers =
-        [
-          {"authorization", push.authorization},
-          {"content-encoding", "aes128gcm"},
-          {"content-type", "application/octet-stream"},
-          {"ttl", Integer.to_string(push.ttl)},
-          {"urgency", urgency}
-        ] ++ topic
+      base = [
+        {"content-encoding", "aes128gcm"},
+        {"content-type", "application/octet-stream"},
+        {"ttl", Integer.to_string(push.ttl)},
+        {"urgency", urgency}
+      ]
+
+      headers = authorization(push.authorization) ++ base ++ topic
 
       {:ok, %{method: :post, url: endpoint, headers: headers, body: body}}
     end
   end
+
+  defp authorization(nil), do: []
+  defp authorization(value) when is_binary(value), do: [{"authorization", value}]
 
   defp ttl(ttl) when is_integer(ttl) and ttl >= 0, do: :ok
   defp ttl(_ttl), do: {:error, Error.new(:web_push_ttl_invalid, "TTL is a non-negative integer")}

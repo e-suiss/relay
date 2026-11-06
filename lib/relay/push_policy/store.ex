@@ -37,7 +37,7 @@ defmodule Relay.PushPolicy.Store do
       Repo.call!("relay_fn.outbox_append", [
         Relay.Id.generate(),
         "push_priority.threshold_reached",
-        "push_priority",
+        "push_priority:tenant",
         payload,
         nil
       ])

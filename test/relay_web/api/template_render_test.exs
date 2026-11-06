@@ -458,6 +458,15 @@ defmodule RelayWeb.Api.TemplateRenderTest do
       workflow!(ctx, ["sms", "push", "webhook", "email"], event_schema: schema)
       data = %{"order" => String.duplicate("x", 5_000), "items" => [1, 2]}
       external_id = subscriber!(ctx.token, %{"phone" => "+905551112233"})
+
+      device = %{
+        "platform" => "fcm",
+        "token" => "fcm:" <> TenantFixture.random() <> TenantFixture.random(),
+        "app" => "com.example.shop",
+        "permission" => "granted"
+      }
+
+      F.body(F.request(:post, "/v1/subscribers/#{external_id}/devices", ctx.token, device), 201)
       accepted = send!(ctx.token, external_id, %{"data" => data})
       by_channel = deliveries(ctx.token, accepted)
       ref = attach([:relay, :render, :stop])

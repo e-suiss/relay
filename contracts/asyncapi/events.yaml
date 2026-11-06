@@ -307,6 +307,8 @@ channels:
         "$ref": "#/components/messages/audit.push_critical.changed"
       audit.push_critical.used:
         "$ref": "#/components/messages/audit.push_critical.used"
+      audit.push_priority.threshold_reached:
+        "$ref": "#/components/messages/audit.push_priority.threshold_reached"
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
@@ -504,6 +506,7 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.channel_identity.changed"
       - "$ref": "#/channels/auditLog/messages/audit.push_critical.changed"
       - "$ref": "#/channels/auditLog/messages/audit.push_critical.used"
+      - "$ref": "#/channels/auditLog/messages/audit.push_priority.threshold_reached"
   receiveAccessInbound:
     action: receive
     channel:
@@ -4967,6 +4970,24 @@ components:
               properties:
                 target_type:
                   const: delivery
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.push_priority.threshold_reached:
+      name: push_priority.threshold_reached
+      title: push_priority.threshold_reached
+      summary: "A tenant's share of high priority push sends crossed the warning threshold (CH-22)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: tenant
       x-relay-surface: audit
       x-relay-stage: 6
       x-relay-choice: true

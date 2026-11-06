@@ -2,8 +2,8 @@ defmodule Relay.Access do
   @moduledoc """
   The link to Access, Suiss's identity and authority product (MD-1, E-1 … E-5, E-40, E-78). Relay always runs with Access and is never an authority source. The link is configured with the Access `issuer` and the `client_id` of Relay's own Access client registration (`config :relay, Relay.Access, issuer: "https://…", client_id: "…"`); endpoints, keys and capabilities come from discovery (`Relay.Access.Link`). Every subscriber's pairwise `sub` is in the sector of that client (E-90). Other contexts use only the functions of this module.
 
-  * Server API credentials are DPoP-bound Access access tokens addressed to Relay's `client_id` (API-41, API-48, API-71, E-93): `verify_server_token/2` checks them and their proof on every request and maps the API client trace to its tenant, environment, sub-tenant and API-75 scopes. A token of a platform product is issued by the linked issuer; a token of a tenant API client or end user by a realm of its `access_tenant`, found in the tenant snapshot (`Relay.Access.Realms`, E-96).
-  * Relay's own calls to Access (the tenant snapshot, AuthZEN decisions and their token requests) carry DPoP proofs of a key-store key (`Relay.Access.Client`, E-98).
+  * Server API credentials are DPoP-bound Access access tokens addressed to Relay's `client_id` (API-41, API-48, API-71, E-93): `verify_server_token/2` checks them and their proof on every request and maps the API client trace to its tenant, environment, sub-tenant and API-75 scopes.
+  * Relay's own calls to Access (AuthZEN decisions and their token requests) carry DPoP proofs of a key-store key (`Relay.Access.Client`, E-98).
   * An ingest connector acts as an API client trace of its configuration (`connector_principal/2`, T-41), checked like a server token.
   * API client traces, tenant and sub-tenant mappings follow Access lifecycle events, pushed as Security Event Tokens (`accept_event/1`, `process_event/1`, E-94).
   * Subscriber tokens come only from the RFC 8693 exchange (`exchange_subscriber_token/3`) and are checked with `verify_subscriber_token/2`; an Access token is never a subscriber credential (E-25).
@@ -27,10 +27,8 @@ defmodule Relay.Access do
   alias Relay.Access.ClientStore
   alias Relay.Access.Dpop
   alias Relay.Access.Events
-  alias Relay.Access.Jose
   alias Relay.Access.Link
   alias Relay.Access.PlatformTenant
-  alias Relay.Access.Realms
   alias Relay.Access.SubscriberToken
   alias Relay.Access.Token
   alias Relay.Access.Usage
@@ -64,7 +62,7 @@ defmodule Relay.Access do
   @spec client_id() :: String.t() | nil
   def client_id, do: Keyword.get(config(), :client_id)
 
-  @doc "Supervised children: the link snapshot, the realm and outbound cache, the API client cache and the usage writer."
+  @doc "Supervised children: the link snapshot, the outbound cache, the API client cache and the usage writer."
   @spec children() :: [module()]
   def children, do: [Link, Cache, Clients, Usage]
 
@@ -95,7 +93,7 @@ defmodule Relay.Access do
   # TN-24
   # E-93
   @doc """
-  Verifies an Access access token for the server API (E-93): an `at+jwt` token of the linked issuer or of a realm of its `access_tenant` (E-96) whose `aud` is Relay's own Access `client_id` (`client_id/0`), bound by `cnf.jkt` to the key of the request's DPoP proof (`Relay.Access.Dpop`). Options: `:proof` (the `DPoP` header value), `:method` and `:url` (the request's method and external URL, which the proof must name), `:ip` (the client address, for last use) and `:certificate` (the DER client certificate of the connection, for RFC 8705 binding).
+  Verifies an Access access token for the server API (E-93): an `at+jwt` token of the linked issuer whose `aud` is Relay's own Access `client_id` (`client_id/0`), bound by `cnf.jkt` to the key of the request's DPoP proof (`Relay.Access.Dpop`). Options: `:proof` (the `DPoP` header value), `:method` and `:url` (the request's method and external URL, which the proof must name), `:ip` (the client address, for last use) and `:certificate` (the DER client certificate of the connection, for RFC 8705 binding).
 
   The token names its Access tenant in `access_tenant` and its Access client in `client_id` (`Relay.AccessClaims`); tenant, environment and sub-tenant come from the API client trace, never from the token or the request. A client whose trace is not known is `auth_invalid_token` (E-79 (3)). The granted scopes are the trace's API-75 scopes, narrowed to those the token carries when it carries a `scope` claim; an Access service token carries none, so the registration alone grants them. A revoked or suspended client is `auth_revoked_client`, a suspended tenant or sub-tenant `auth_tenant_suspended`, a link without keys or an unset `client_id` `service_unavailable`. A token bound to a certificate (`cnf.x5t#S256`) also needs that certificate.
   """
@@ -140,13 +138,6 @@ defmodule Relay.Access do
          do: {:ok, claims}
   end
 
-  # E-95
-  # E-96
-  @doc "Reads the snapshot of an Access tenant from Access now; see `Relay.Access.Realms.snapshot/1`."
-  @spec tenant_snapshot(String.t()) ::
-          {:ok, map()} | {:error, :not_found} | {:error, Relay.Error.t()}
-  defdelegate tenant_snapshot(access_tenant), to: Realms, as: :snapshot
-
   # E-93
   @doc "The algorithms a DPoP proof may be signed with, as a `WWW-Authenticate: DPoP` challenge names them."
   @spec dpop_algorithms() :: [String.t(), ...]
@@ -189,35 +180,7 @@ defmodule Relay.Access do
     end
   end
 
-  # E-93
-  # E-96
   defp verified(token, audience) do
-    with {:ok, issuer} <- linked_issuer(),
-         {:ok, claimed} <- claimed(token) do
-      if Token.same?(claimed["iss"], issuer),
-        do: platform(token, audience),
-        else: Realms.verify(token, claimed, %{audience: audience, now: now(), typ: @access_typ})
-    end
-  end
-
-  defp linked_issuer do
-    case Link.current() do
-      %{state: state, issuer: issuer} when state in [:ok, :stale] and is_binary(issuer) ->
-        {:ok, issuer}
-
-      _no_link ->
-        {:error, Relay.Error.new(:service_unavailable, "the Access link is not established")}
-    end
-  end
-
-  defp claimed(token) do
-    case Jose.peek_claims(token) do
-      {:ok, claims} -> {:ok, claims}
-      {:error, :malformed} -> invalid("the token is not a compact JWS")
-    end
-  end
-
-  defp platform(token, audience) do
     case verify_with_link(token, audience) do
       {:error, :unknown_key} ->
         _ = Link.refresh_keys()

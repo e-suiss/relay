@@ -124,14 +124,6 @@ defmodule Relay.Access.Jose do
          do: json(encoded_header)
   end
 
-  # E-96
-  @doc "Reads the claims of a compact JWS without verifying it, only to choose the keys that verify it."
-  @spec peek_claims(String.t()) :: {:ok, map()} | {:error, :malformed}
-  def peek_claims(token) when is_binary(token) do
-    with {:ok, _header, encoded_claims, _signature} <- split(token),
-         do: json(encoded_claims)
-  end
-
   defp split(token) do
     with [header, claims, encoded] <- String.split(token, "."),
          {:ok, signature} <- decode(encoded) do

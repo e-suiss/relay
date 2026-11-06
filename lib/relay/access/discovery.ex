@@ -75,17 +75,6 @@ defmodule Relay.Access.Discovery do
 
   def parse_suiss(_document, _issuer), do: invalid("the Suiss configuration lacks issuer")
 
-  # E-96
-  @doc "The address template of the tenant snapshot a Suiss configuration names (`endpoints.tenant_snapshot`, Access OP-149 item 4), with `{tenant}` in its path."
-  @spec tenant_snapshot(map()) :: {:ok, String.t()} | {:error, Relay.Error.t()}
-  def tenant_snapshot(%{"endpoints" => %{"tenant_snapshot" => url}}) when is_binary(url) do
-    if https?(url) and String.contains?(url, "{tenant}"),
-      do: {:ok, url},
-      else: invalid("the tenant snapshot address is not an HTTPS template")
-  end
-
-  def tenant_snapshot(_document), do: invalid("the Suiss configuration has no tenant snapshot")
-
   defp event_subscriptions(nil), do: nil
   defp event_subscriptions(%{"ssf_configuration" => url}) when is_binary(url), do: url
   defp event_subscriptions(_value), do: :invalid

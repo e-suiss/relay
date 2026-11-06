@@ -6,8 +6,8 @@ defmodule Relay.Access.ApiClientTest do
   alias Relay.Access.Clients
   alias Relay.Access.Usage
   alias RelayTest.Api
-  alias RelayTest.FakeAccess
   alias RelayTest.Dpop
+  alias RelayTest.FakeAccess
   alias RelayTest.TenantFixture
 
   @domain "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'api_scope_check'"

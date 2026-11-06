@@ -60,7 +60,7 @@ defmodule Relay.Channels.WebPush do
   def deliver_push(%Request{}, _adapter, _vapid?), do: Common.rejection(:not_configured)
 
   defp keys(request) do
-    with %Relay.Redacted{} = keys <- Common.device(request)[:keys],
+    with keys when keys != nil <- Common.device(request)[:keys],
          %{"p256dh" => p256dh, "auth" => auth} <- Relay.Redacted.expose(keys),
          {:ok, <<4, _::512>> = p256dh} <- Jwt.decode64(p256dh),
          {:ok, <<_::128>> = auth} <- Jwt.decode64(auth) do

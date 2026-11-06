@@ -93,10 +93,8 @@ defmodule Relay.Channels.Push.Common do
     end
   end
 
-  defp flat(headers) when is_map(headers),
+  defp flat(headers),
     do: Enum.flat_map(headers, fn {name, values} -> Enum.map(values, &{name, &1}) end)
-
-  defp flat(headers) when is_list(headers), do: headers
 
   @doc "An adapter's installation configuration value under `config :relay, <adapter>`."
   @spec config(module(), atom(), term()) :: term()

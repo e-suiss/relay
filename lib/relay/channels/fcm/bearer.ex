@@ -24,10 +24,8 @@ defmodule Relay.Channels.Fcm.Bearer do
     end
   end
 
-  defp subject(%{subject_token: %Relay.Redacted{} = token}),
-    do: {:ok, Relay.Redacted.expose(token)}
-
-  defp subject(_config), do: {:error, :missing}
+  defp subject(%{subject_token: nil}), do: {:error, :missing}
+  defp subject(%{subject_token: token}), do: {:ok, Relay.Redacted.expose(token)}
 
   defp http(request) do
     case Common.http(Relay.Channels.Fcm, request, @timeout_ms) do

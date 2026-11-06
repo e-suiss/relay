@@ -104,7 +104,9 @@ defmodule Relay.Channels.Hms do
   end
 
   # TN-30
-  defp token(%Request{credentials: %Relay.Redacted{} = secret} = request, settings) do
+  defp token(%Request{credentials: nil}, _settings), do: {:error, :not_configured}
+
+  defp token(%Request{credentials: secret} = request, settings) do
     scope = request.scope
     key = {scope.tenant_id, scope.environment, "hms", settings["app_id"]}
     now = DateTime.to_unix(Relay.Clock.utc_now())
@@ -115,8 +117,6 @@ defmodule Relay.Channels.Hms do
       {:error, _reason} -> {:error, :token_unavailable}
     end
   end
-
-  defp token(_request, _settings), do: {:error, :not_configured}
 
   defp fetch_token(settings, secret, now, timeout_ms) do
     form = [

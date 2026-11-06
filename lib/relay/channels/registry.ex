@@ -7,7 +7,12 @@ defmodule Relay.Channels.Registry do
 
   alias Relay.ChannelDeclarations
 
-  @adapters [Relay.Channels.Fake, Relay.Channels.Netgsm, Relay.Channels.Verimor]
+  @adapters [
+    Relay.Channels.Fake,
+    Relay.Channels.Smtp,
+    Relay.Channels.Netgsm,
+    Relay.Channels.Verimor
+  ]
 
   @type missing :: ChannelDeclarations.missing() | :channels
   @type status :: %{

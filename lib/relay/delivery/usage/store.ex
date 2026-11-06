@@ -2,7 +2,7 @@ defmodule Relay.Delivery.Usage.Store do
   @moduledoc """
   The daily usage records (C-88, OP-38, INV-49). When a UTC day has closed, the provider attempts that finished in it are counted per `(channel, provider, destination country, WhatsApp category, outcome, is_test)` of every scope and written as immutable `usage_records` rows through `relay_fn.usage_record_append`: `quantity` is the number of deliveries, `attempt_count` the number of attempts; an attempt that succeeded is `accepted`, one that stayed uncertain `uncertain` and a failed one `failed`. Test sends are their own rows (`is_test`), so billing and product metrics never mix them with live traffic.
 
-  The dimensions come from the attempts: the destination country the channel step derived from the number's calling code and, on SMS, the segment count it measured (`relay_fn.attempt_meter`); the WhatsApp category is the one the provider's `pricing` object reported for the delivery by the end of the day (CH-60), otherwise unknown. The cost of an `accepted` or `uncertain` row is its units (segments when the provider prices SMS by the segment, otherwise attempts) at the unit price of the provider's declaration for the country and category (CH-18), with the tier of the volume already recorded in the calendar month before the day; a row without a matching price has no cost. The pricer is the channel context's (`config :relay, Relay.Delivery, pricing: Module`, by default `Relay.Channels`, whose `usage_pricing/0` it calls); while it cannot read the declarations no day is written.
+  The dimensions come from the attempts: the destination country the channel step derived from the number's calling code and, on SMS, the segment count it measured (`relay_fn.attempt_meter`); the WhatsApp category is the one the provider's `pricing` object reported for the delivery by the end of the day (CH-60), otherwise unknown. The cost of an `accepted` or `uncertain` row is its units (segments when the provider prices SMS by the segment, otherwise attempts) at the unit price of the provider's declaration for the country and category (CH-18), with the tier of the volume already recorded in the calendar month before the day; a row without a matching price has no cost. The pricer is the channel context's (`config :relay, Relay.Delivery, pricing: Module`, by default `Relay.Channels.Live`, whose `usage_pricing/0` it calls); while it cannot read the declarations no day is written.
 
   Writing is idempotent: the same counts again are a `duplicate`. Different counts for a row already written are a `conflict`: the row is kept as it is and the conflict raises `[:relay, :usage, :conflict]` telemetry and an error log that alarms the operator. A day that has not closed yet is refused by the database (`day_open`).
   """
@@ -12,7 +12,7 @@ defmodule Relay.Delivery.Usage.Store do
   require Logger
 
   @page 100
-  @pricing Relay.Channels
+  @pricing Relay.Channels.Live
   @outcomes [:recorded, :duplicate, :conflict, :day_open]
 
   @type counts :: %{
@@ -97,7 +97,7 @@ defmodule Relay.Delivery.Usage.Store do
 
   # CH-18
   # OP-38
-  @doc "Prices one counted row: an `accepted` or `uncertain` row gets `cost_micros` and `currency` from `pricer` (`Relay.Channels.usage_pricing/0`) at the tier of `volumes`, the month's earlier units per `{channel, provider}` as `{attempts, segments}`; a failed or unpriced row is returned as it is."
+  @doc "Prices one counted row: an `accepted` or `uncertain` row gets `cost_micros` and `currency` from `pricer` (`Relay.Channels.Live.usage_pricing/0`) at the tier of `volumes`, the month's earlier units per `{channel, provider}` as `{attempts, segments}`; a failed or unpriced row is returned as it is."
   @spec price(map(), function(), volumes()) :: map()
   def price(%{"outcome" => "failed"} = row, _pricer, _volumes), do: row
 

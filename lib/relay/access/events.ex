@@ -6,7 +6,7 @@ defmodule Relay.Access.Events do
 
   * `tenant.created` creates the mapped tenant with its keys; the default time zone and locale are mandatory (TN-2, X-35) and another region is refused (INV-41). An Access tenant that Access marks with a `platform_product` (a Suiss product such as `access` itself) becomes that product's platform tenant (C-18, E-9, TN-9): an ordinary, isolated tenant with no data privilege; an unknown product is refused.
   * `organization.created` and `organization.updated` create, rename or archive the mapped sub-tenant in both environments under one identifier (TN-6, C-12).
-  * `api_client.created`, `api_client.updated`, `api_client.suspended`, `api_client.reactivated` and `api_client.revoked` write the API client trace and announce the new generation to every node (API-44, TN-24).
+  * `api_client.created`, `api_client.updated`, `api_client.suspended`, `api_client.reactivated` and `api_client.revoked` write the API client trace and announce the new generation to every node (API-44, TN-24). `api_client.disabled`, which Access emits when it retires a client, suspends it (E-97).
   * `user.suspended`, `user.reactivated` and `user.deleted` go to the configured user event handlers (`config :relay, Relay.Access, user_handlers: [module]`, `Relay.Access.UserHandler`); without one the receipt waits as `deferred` with reason `no_handler`.
   * `consent.updated` goes, in each environment of the mapped tenant, to the configured consent handler (`config :relay, Relay.Access, consent_handler: module`, `Relay.Access.ConsentHandler`) with its status and source in lowercase, the evidence it sealed for that environment when the event was received (the receipt keeps only that ciphertext and never the evidence in clear) and its brand: the sub-tenant mapped from the event's organization, or the tenant itself without one (E-80). A consent that cannot be read is `rejected`; without a handler, or while its organization is not mapped yet, it waits as `deferred`.
 
@@ -32,6 +32,7 @@ defmodule Relay.Access.Events do
       ~w(access_tenant_id access_client_id environment access_organization_id scopes),
     "api_client.updated" => ~w(access_tenant_id access_client_id scopes),
     "api_client.suspended" => ~w(access_tenant_id access_client_id),
+    "api_client.disabled" => ~w(access_tenant_id access_client_id),
     "api_client.reactivated" => ~w(access_tenant_id access_client_id),
     "api_client.revoked" => ~w(access_tenant_id access_client_id),
     "user.suspended" => ~w(subject),
@@ -43,6 +44,7 @@ defmodule Relay.Access.Events do
   }
   @statuses %{
     "api_client.suspended" => "suspended",
+    "api_client.disabled" => "suspended",
     "api_client.reactivated" => "active",
     "api_client.revoked" => "revoked"
   }
@@ -442,6 +444,7 @@ defmodule Relay.Access.Events do
   # API-44
   # TN-24 (5)
   # TN-36
+  # E-97
   defp client_status(type, payload, receipt, resolved) do
     client = to_string(payload["access_client_id"])
     status = Map.fetch!(@statuses, type)

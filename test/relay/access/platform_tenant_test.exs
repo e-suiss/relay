@@ -3,7 +3,6 @@ defmodule Relay.Access.PlatformTenantTest do
 
   alias Relay.Access.ClientStore
   alias Relay.Repo
-  alias RelayTest.Api
   alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
@@ -14,11 +13,9 @@ defmodule Relay.Access.PlatformTenantTest do
   end
 
   defp deliver!(type, data) do
-    envelope = FakeAccess.event(type, data)
-    conn = FakeAccess.deliver(envelope)
-    assert conn.status == 204
-    Api.assert_contract(conn)
-    envelope["id"]
+    claims = FakeAccess.event(type, data)
+    assert FakeAccess.deliver(claims).status == 202
+    claims["jti"]
   end
 
   defp receipt_of(webhook_id) do

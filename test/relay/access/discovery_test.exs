@@ -122,8 +122,8 @@ defmodule Relay.Access.DiscoveryTest do
 
       assert {:error, %Relay.Error{code: :service_unavailable}} = verify(ctx.token)
 
-      envelope = FakeAccess.event("tenant.created", %{"access_tenant_id" => "acc_x"})
-      assert FakeAccess.deliver(envelope).status == 503
+      claims = FakeAccess.event("tenant.created", %{"access_tenant_id" => "acc_x"})
+      assert FakeAccess.deliver(claims).status == 503
     end
   end
 

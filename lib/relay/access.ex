@@ -4,7 +4,7 @@ defmodule Relay.Access do
 
   * Server API credentials are DPoP-bound Access access tokens addressed to Relay's `client_id` (API-41, API-48, API-71, E-93): `verify_server_token/2` checks them and their proof on every request and maps the API client trace to its tenant, environment, sub-tenant and API-75 scopes.
   * An ingest connector acts as an API client trace of its configuration (`connector_principal/2`, T-41), checked like a server token.
-  * API client traces, tenant and sub-tenant mappings follow Access lifecycle events (`accept_event/1`, `process_event/1`).
+  * API client traces, tenant and sub-tenant mappings follow Access lifecycle events, pushed as Security Event Tokens (`accept_event/1`, `process_event/1`, E-94).
   * Subscriber tokens come only from the RFC 8693 exchange (`exchange_subscriber_token/3`) and are checked with `verify_subscriber_token/2`; an Access token is never a subscriber credential (E-25).
   * Platform tenants (`message_class/2`, `dedup_key/2`) and sub-tenant selection (`select_subtenant/3`).
   """
@@ -292,11 +292,12 @@ defmodule Relay.Access do
   @spec client_limits() :: %{per_environment: pos_integer(), unused_days: pos_integer()}
   def client_limits, do: %{per_environment: @client_cap, unused_days: @unused_days}
 
-  # E-36
+  # E-94
   # E-70
-  @doc "Receives an Access event delivery; see `Relay.Access.Events`. `request` carries `:webhook_id`, `:timestamp`, `:signature`, `:raw_body` and the decoded `:envelope`."
-  @spec accept_event(map()) :: :ok | {:error, Relay.Error.t()}
-  defdelegate accept_event(request), to: Events, as: :accept
+  @doc "Receives a Security Event Token Access pushed; see `Relay.Access.Events`. A refusal is `{:refused, err, description}` with an RFC 8935 error code."
+  @spec accept_event(binary()) ::
+          :ok | {:error, {:refused, String.t(), String.t()}} | {:error, Relay.Error.t()}
+  defdelegate accept_event(token), to: Events, as: :accept
 
   # E-36
   @doc "Applies one Access event receipt; the `Relay.Access.EventConsumer` job calls it."

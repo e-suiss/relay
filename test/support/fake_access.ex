@@ -1,6 +1,6 @@
 defmodule RelayTest.FakeAccess do
   @moduledoc """
-  A fake Access for tests, served to the link's HTTP client as a `Req` plug (`config :relay, Relay.Access, http: [plug: {RelayTest.FakeAccess, []}]`); nothing reaches the network. It publishes an OpenID discovery document, a Suiss configuration, an AuthZEN configuration and a key set with one ES256 key (`fake-es256`, tokens) and one Ed25519 key (`fake-ed25519`, webhooks), issues tokens and signs event deliveries with the shared Suiss webhook profile.
+  A fake Access for tests, served to the link's HTTP client as a `Req` plug (`config :relay, Relay.Access, http: [plug: {RelayTest.FakeAccess, []}]`); nothing reaches the network. It publishes an OpenID discovery document, a Suiss configuration, an AuthZEN configuration and a key set with one ES256 key (`fake-es256`, tokens) and one Ed25519 key (`fake-ed25519`, Security Event Tokens), issues tokens and pushes events as Security Event Tokens (E-94).
 
   Plug options: `region:` overrides `suiss_region` of the Suiss configuration (the installation region by default), `openid:` merges members into the OpenID document, `suiss: :missing` answers the Suiss configuration with 404, `down: true` answers every request with 503, `keys: :private` publishes a key set with private members.
   """
@@ -222,44 +222,39 @@ defmodule RelayTest.FakeAccess do
     input <> "." <> b64(<<r::256, s::256>>)
   end
 
-  @doc "A CloudEvents envelope of an Access event."
+  @doc "The claims of a Security Event Token Access pushes for an event of `type` with `data`; `jti` is the event identifier."
   @spec event(String.t(), map(), String.t()) :: map()
-  def event(type, data, id \\ "evt_" <> random()) do
+  def event(type, data, jti \\ "evt_" <> random()) do
     %{
-      "specversion" => "1.0",
-      "id" => id,
-      "source" => @issuer,
-      "type" => type,
-      "time" => "2026-11-01T00:00:00Z",
-      "datacontenttype" => "application/json",
-      "data" => data
+      "iss" => @issuer,
+      "aud" => Relay.Access.client_id(),
+      "iat" => System.system_time(:second),
+      "jti" => jti,
+      "sub_id" => %{"format" => "opaque", "id" => jti},
+      "events" => %{("urn:suiss:access:event:" <> type) => data}
     }
   end
 
-  @doc "The webhook headers of a delivery of `body` with webhook id `id`; `:timestamp` overrides the time."
-  @spec webhook_headers(String.t(), binary(), keyword()) :: [{String.t(), String.t()}]
-  def webhook_headers(id, body, opts \\ []) do
-    timestamp = Integer.to_string(Keyword.get(opts, :timestamp, System.system_time(:second)))
+  @doc "Signs SET claims with the fake Ed25519 key; `header` overrides members of the JOSE header."
+  @spec set(map(), map()) :: String.t()
+  def set(claims, header \\ %{}) do
+    defaults = %{"alg" => "Ed25519", "typ" => "secevent+jwt", "kid" => "fake-ed25519"}
+    input = b64(Jason.encode!(Map.merge(defaults, header))) <> "." <> b64(Jason.encode!(claims))
     {_public, private} = @ed25519
-    signed = id <> "." <> timestamp <> "." <> body
-    signature = :crypto.sign(:eddsa, :none, signed, [private, :ed25519])
-
-    [
-      {"webhook-id", id},
-      {"webhook-timestamp", timestamp},
-      {"webhook-signature", "v1a," <> Base.encode64(signature)}
-    ]
+    input <> "." <> b64(:crypto.sign(:eddsa, :none, input, [private, :ed25519]))
   end
 
-  @doc "Delivers an Access event to `POST /v1/access/events` through the router; `:headers` replaces the signed webhook headers."
-  @spec deliver(map(), keyword()) :: Plug.Conn.t()
-  def deliver(envelope, opts \\ []) do
-    body = Jason.encode!(envelope)
-    headers = Keyword.get_lazy(opts, :headers, fn -> webhook_headers(envelope["id"], body) end)
-    headers = [{"content-type", "application/cloudevents+json"} | headers]
+  @doc "Pushes SET claims, signed with `set/2`, or a ready token to `POST /v1/access/events` through the router; `:content_type` replaces `application/secevent+jwt`."
+  @spec deliver(map() | String.t(), keyword()) :: Plug.Conn.t()
+  def deliver(claims_or_token, opts \\ [])
+
+  def deliver(claims, opts) when is_map(claims), do: deliver(set(claims), opts)
+
+  def deliver(token, opts) when is_binary(token) do
+    headers = [{"content-type", Keyword.get(opts, :content_type, "application/secevent+jwt")}]
 
     :post
-    |> RelayTest.Api.conn("/v1/access/events", body, headers)
+    |> RelayTest.Api.conn("/v1/access/events", token, headers)
     |> RelayTest.Api.call(RelayWeb.Router)
   end
 

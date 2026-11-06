@@ -67,6 +67,12 @@ defmodule RelayWeb.Router do
       private: %{relay_operation: "receiveMessagingInbound"}
   end
 
+  # E-94
+  scope "/v1/access", RelayWeb do
+    post "/events", AccessEventController, :create,
+      private: %{relay_operation: "receiveAccessEvent"}
+  end
+
   # E-81
   # E-89
   scope "/.well-known", RelayWeb.Api do
@@ -423,9 +429,6 @@ defmodule RelayWeb.Router do
 
     post "/inbound/whatsapp/:provider_account_id", WhatsappWebhookController, :create,
       private: %{relay_operation: "receiveWhatsappWebhook"}
-
-    post "/access/events", AccessEventController, :create,
-      private: %{relay_operation: "receiveAccessEvent"}
 
     post "/subscriber/token", SubscriberTokenController, :create,
       private: %{relay_operation: "exchangeSubscriberToken"}

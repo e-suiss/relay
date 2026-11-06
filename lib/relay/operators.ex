@@ -439,7 +439,7 @@ defmodule Relay.Operators do
 
   # TN-20
   @doc """
-  Reflects an Access user lifecycle event on the operator with that Access subject: `:suspended` and `:deleted` revoke every active session at once (audited as `operator_session.revoked`), `:deleted` also clears the stored personal fields; `:active` reactivates. Roles stay in Relay. Called by the Access event intake with the event's `webhook-id`.
+  Reflects an Access user lifecycle event on the operator with that Access subject: `:suspended` and `:deleted` revoke every active session at once (audited as `operator_session.revoked`), `:deleted` also clears the stored personal fields; `:active` reactivates. Roles stay in Relay. Called by the Access event intake with the event's SET `jti`.
   """
   @spec access_user_changed(String.t(), :active | :suspended | :deleted, String.t() | nil) ::
           {:ok,

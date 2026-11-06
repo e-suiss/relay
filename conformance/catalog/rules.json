@@ -3001,6 +3001,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "E-94",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "X-1",
     "section": "§8",
     "status": "canonical_invariant",

@@ -281,7 +281,7 @@ defmodule RelayWeb.Api.Pipeline do
   # API-50
   # API-77
   defp rate_limit(%{assigns: %{principal: nil, operation: %{security: security}}} = conn)
-       when security in [:webhook, :provider_webhook],
+       when security == :provider_webhook,
        do: {:ok, conn}
 
   defp rate_limit(%{assigns: %{principal: nil, operation: %{public: true} = operation}} = conn) do

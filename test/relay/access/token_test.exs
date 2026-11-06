@@ -3,8 +3,8 @@ defmodule Relay.Access.TokenTest do
 
   alias Relay.Access.Jose
   alias Relay.Access.PlatformTenant
+  alias Relay.Access.SecurityEvent
   alias Relay.Access.Token
-  alias Relay.Access.Webhook
   alias Relay.Operators.Access.Http
 
   @issuer "https://access.test"
@@ -194,33 +194,103 @@ defmodule Relay.Access.TokenTest do
     end
   end
 
-  defp delivery(private, id, timestamp, body) do
-    signature = :crypto.sign(:eddsa, :none, "#{id}.#{timestamp}.#{body}", [private, :ed25519])
+  defp set_claims(extra) do
+    member = %{"tenant" => "tnt_1", "organization" => "org_1", "at" => 1}
 
-    %{
-      webhook_id: id,
-      timestamp: Integer.to_string(timestamp),
-      signature: "v1,bWFj v1a," <> Base.encode64(signature),
-      raw_body: body
-    }
+    Map.merge(
+      %{
+        "iss" => @issuer,
+        "aud" => "app_relay",
+        "iat" => System.system_time(:second),
+        "jti" => "AQJxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "sub_id" => %{"format" => "opaque", "id" => "tnt_1"},
+        "events" => %{"urn:suiss:access:event:organization.created" => member}
+      },
+      extra
+    )
   end
 
-  describe "E-36 webhook profile" do
-    test "E-36: a v1a signature under an Access Ed25519 key verifies within five minutes" do
+  defp set_expectation(now \\ System.system_time(:second)),
+    do: %{issuer: @issuer, audience: "app_relay", now: now}
+
+  defp set(claims, private, header \\ %{}) do
+    header = Map.merge(%{"alg" => "Ed25519", "typ" => "secevent+jwt", "kid" => "ed"}, header)
+    sign_ed25519(header, claims, private)
+  end
+
+  defp refusal(token, keys, expectation \\ set_expectation()) do
+    {:error, {:refused, err, _description}} = SecurityEvent.verify(token, keys, expectation)
+    err
+  end
+
+  describe "E-94 Security Event Tokens" do
+    test "E-94, E-80: a SET under an Access key gives its event with Access's names read as Relay's" do
       {ed, private} = ed25519()
       keys = keys([ed])
       now = System.system_time(:second)
 
-      assert :ok = Webhook.verify(delivery(private, "msg_1", now, "{}"), keys, now)
-      assert :ok = Webhook.verify(delivery(private, "msg_1", now - 290, "{}"), keys, now)
+      assert {:ok, %{jti: "AQJx" <> _, type: "organization.created", data: data}} =
+               SecurityEvent.verify(set(set_claims(%{}), private), keys, set_expectation())
 
-      tampered = %{delivery(private, "msg_1", now, "{}") | raw_body: ~s({"a":1})}
-      old = delivery(private, "msg_1", now - 301, "{}")
-      hmac_only = %{delivery(private, "msg_1", now, "{}") | signature: "v1,bWFj"}
+      assert data == %{
+               "access_tenant_id" => "tnt_1",
+               "access_organization_id" => "org_1",
+               "at" => 1
+             }
 
-      for bad <- [tampered, old, hmac_only] do
-        assert {:error, %Relay.Error{code: :auth_invalid_token}} = Webhook.verify(bad, keys, now)
+      listed = set_claims(%{"aud" => ["other", "app_relay"], "iat" => now - 300})
+
+      assert {:ok, _event} =
+               SecurityEvent.verify(set(listed, private), keys, set_expectation(now))
+    end
+
+    test "E-94: access_tenant names the tenant when the member does not and must agree with it" do
+      {ed, private} = ed25519()
+      keys = keys([ed])
+      user = %{"urn:suiss:access:event:user.suspended" => %{"subject" => "pairwise-1"}}
+      claims = set_claims(%{"events" => user, "access_tenant" => "tnt_9"})
+
+      assert {:ok, %{type: "user.suspended", data: data}} =
+               SecurityEvent.verify(set(claims, private), keys, set_expectation())
+
+      assert data == %{"subject" => "pairwise-1", "access_tenant_id" => "tnt_9"}
+
+      other = set_claims(%{"access_tenant" => "tnt_9"})
+      assert refusal(set(other, private), keys) == "invalid_request"
+    end
+
+    test "E-94: issuer, audience, iat, jti, events, typ and signature are checked with RFC 8935 codes" do
+      {ed, private} = ed25519()
+      {_other, other_private} = ed25519()
+      keys = keys([ed])
+      now = System.system_time(:second)
+      two = %{"urn:suiss:access:event:a.b" => %{}, "urn:suiss:access:event:c.d" => %{}}
+
+      for {claims, err} <- [
+            {%{"iss" => "https://elsewhere.test"}, "invalid_issuer"},
+            {%{"aud" => "app_other"}, "invalid_audience"},
+            {%{"aud" => nil}, "invalid_audience"},
+            {%{"iat" => now - 306}, "invalid_request"},
+            {%{"iat" => now + 61}, "invalid_request"},
+            {%{"iat" => nil}, "invalid_request"},
+            {%{"jti" => "not a jti"}, "invalid_request"},
+            {%{"events" => two}, "invalid_request"},
+            {%{"events" => %{"urn:other:event:a.b" => %{}}}, "invalid_request"},
+            {%{"events" => %{"urn:suiss:access:event:a.b" => "text"}}, "invalid_request"}
+          ] do
+        token = set(set_claims(claims), private)
+        assert refusal(token, keys, set_expectation(now)) == err, inspect(claims)
       end
+
+      for header <- [%{"typ" => "at+jwt"}, %{"alg" => "none"}] do
+        assert refusal(set(set_claims(%{}), private, header), keys) == "invalid_request"
+      end
+
+      assert refusal(set(set_claims(%{}), other_private), keys) == "authentication_failed"
+      assert refusal("not.a.jws", keys) == "invalid_request"
+
+      gone = set(set_claims(%{}), private, %{"kid" => "gone"})
+      assert {:error, :unknown_key} = SecurityEvent.verify(gone, keys, set_expectation())
     end
   end
 

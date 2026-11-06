@@ -5,18 +5,21 @@ defmodule Relay.Channels.Push.TtlFailuresTest do
   alias Relay.Channels.Push.Ttl
 
   @now ~U[2026-11-05 00:00:00Z]
+  @fcm_error "type.googleapis.com/google.firebase.fcm.v1.FcmError"
+  @readers %{
+    "apns" => :apns,
+    "fcm" => :fcm,
+    "hms" => :hms,
+    "web_push" => :web_push,
+    "unified_push" => :web_push
+  }
 
   defp vectors(provider) do
-    ["priv/push", Atom.to_string(provider), "vectors.json"]
+    ["priv/channels", provider, "vectors.json"]
     |> Path.join()
     |> File.read!()
     |> Jason.decode!()
-    |> Map.fetch!("vectors")
   end
-
-  defp response(%{"status" => status, "body" => body}), do: %{status: status, body: body}
-
-  @fcm_error "type.googleapis.com/google.firebase.fcm.v1.FcmError"
 
   describe "CH-9 time to live" do
     test "CH-9: channel TTLs derive from expires_at minus now" do
@@ -38,50 +41,54 @@ defmodule Relay.Channels.Push.TtlFailuresTest do
     end
   end
 
-  describe "CH-7 failure tables" do
-    test "CH-7: every vector classifies to its class and rule" do
-      for provider <- Failures.providers(), vector <- vectors(provider) do
-        assert {:failure, failure} = Failures.classify(provider, response(vector["response"]))
-        assert Atom.to_string(failure.class) == vector["class"], inspect(vector)
-        assert failure.rule == vector["rule"], inspect(vector)
+  describe "CH-7 failure codes" do
+    test "CH-7, DS-11: every vector's response reads as its raw code" do
+      for {provider, reader} <- @readers,
+          vector <- vectors(provider),
+          Map.has_key?(vector, "response") do
+        assert Failures.code(reader, vector["response"]) == vector["raw"]["code"],
+               "#{provider} #{vector["name"]}"
       end
     end
 
-    test "CH-7: every rule has a vector and the tables carry their source" do
-      for provider <- Failures.providers() do
-        table = Failures.table(provider)
-        assert table["provider"] == Atom.to_string(provider)
-        assert String.starts_with?(table["source"], "https://")
-        assert {:ok, _date} = Date.from_iso8601(table["compiled_at"])
+    test "CH-8: an unmapped code is reported raw, never guessed" do
+      body = ~s({"reason":"SomethingNew"})
 
-        covered = MapSet.new(vectors(provider), & &1["rule"])
-        ids = Enum.map(table["rules"], & &1["id"])
-        assert ids == Enum.uniq(ids)
-        assert Enum.all?(ids, &MapSet.member?(covered, &1)), inspect(provider)
-      end
-    end
-
-    test "CH-8: an unmapped code is unknown, never guessed" do
-      assert {:failure, %{class: :unknown, rule: nil, provider_code: "400/SomethingNew"}} =
-               Failures.classify(:apns, %{status: 400, body: ~s({"reason":"SomethingNew"})})
+      assert {:rejected, %{code: "400/SomethingNew", status: 400}} =
+               Failures.read(:apns, %{status: 400, body: body}, @now)
 
       body = %{"error" => %{"status" => "NOT_FOUND"}}
 
-      assert {:failure, %{class: :unknown, provider_code: "404/NOT_FOUND"}} =
-               Failures.classify(:fcm, %{status: 404, body: body})
+      assert {:rejected, %{code: "rpc:NOT_FOUND"}} =
+               Failures.read(:fcm, %{status: 404, body: body}, @now)
     end
 
     test "CH-11: an APNs 410 carries the time the token became invalid" do
       body = %{"reason" => "Unregistered", "timestamp" => 1_793_836_800_000}
 
-      assert {:failure, %{class: :permanent_target, unregistered_at: 1_793_836_800_000}} =
-               Failures.classify(:apns, %{status: 410, body: body})
+      assert {:rejected, %{code: "410/Unregistered", timestamp: at}} =
+               Failures.read(:apns, %{status: 410, body: body}, @now)
+
+      assert at == DateTime.from_unix!(1_793_836_800_000, :millisecond)
     end
 
-    test "CH-32: acceptance is not delivery" do
-      assert Failures.classify(:apns, %{status: 200, body: ""}) == :accepted
-      assert Failures.classify(:fcm, %{status: 200, body: %{"name" => "m"}}) == :accepted
-      assert Failures.classify(:web_push, %{status: 201, body: nil}) == :accepted
+    test "CH-9: the Retry-After delay is read" do
+      response = %{status: 429, body: "", headers: [{"retry-after", "30"}]}
+
+      assert {:rejected, %{code: "429", retry_after_ms: 30_000}} =
+               Failures.read(:web_push, response, @now)
+    end
+
+    test "CH-32: acceptance is not delivery and an HMS answer needs its success code" do
+      assert Failures.read(:apns, %{status: 200, body: ""}, @now) == :accepted
+      assert Failures.read(:fcm, %{status: 200, body: %{"name" => "m"}}, @now) == :accepted
+      assert Failures.read(:web_push, %{status: 201, body: nil}, @now) == :accepted
+
+      assert Failures.read(:hms, %{status: 200, body: %{"code" => "80000000"}}, @now) ==
+               :accepted
+
+      assert {:rejected, %{code: "80100000"}} =
+               Failures.read(:hms, %{status: 200, body: %{"code" => "80100000"}}, @now)
     end
 
     test "CH-7: the FCM error code wins over the status" do
@@ -92,8 +99,8 @@ defmodule Relay.Channels.Push.TtlFailuresTest do
         }
       }
 
-      assert {:failure, failure} = Failures.classify(:fcm, %{status: 404, body: body})
-      assert %{class: :permanent_target, provider_code: "404/NOT_FOUND/UNREGISTERED"} = failure
+      assert {:rejected, %{code: "UNREGISTERED", status: 404}} =
+               Failures.read(:fcm, %{status: 404, body: body}, @now)
     end
   end
 end

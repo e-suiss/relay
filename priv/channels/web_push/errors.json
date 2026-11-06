@@ -1,0 +1,130 @@
+[
+  {
+    "code": "400",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292 (2026-11-05)"
+  },
+  {
+    "code": "401",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292 (2026-11-05)"
+  },
+  {
+    "code": "403",
+    "class": "auth",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292 (2026-11-05)"
+  },
+  {
+    "code": "404",
+    "class": "permanent_target",
+    "condition": "unregistered",
+    "event_code": "unregistered",
+    "suppressed_success": false,
+    "source": "https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292 (2026-11-05)"
+  },
+  {
+    "code": "410",
+    "class": "permanent_target",
+    "condition": "unregistered",
+    "event_code": "unregistered",
+    "suppressed_success": false,
+    "source": "https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292 (2026-11-05)"
+  },
+  {
+    "code": "413",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292 (2026-11-05)"
+  },
+  {
+    "code": "429",
+    "class": "transient",
+    "condition": "rate_limited",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292 (2026-11-05)"
+  },
+  {
+    "code": "500",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292 (2026-11-05)"
+  },
+  {
+    "code": "502",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292 (2026-11-05)"
+  },
+  {
+    "code": "503",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292 (2026-11-05)"
+  },
+  {
+    "code": "504",
+    "class": "transient",
+    "condition": "server_error",
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "https://www.rfc-editor.org/rfc/rfc8030 and https://www.rfc-editor.org/rfc/rfc8292 (2026-11-05)"
+  },
+  {
+    "code": "relay:content_forbidden",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  },
+  {
+    "code": "relay:invalid_request",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  },
+  {
+    "code": "relay:not_configured",
+    "class": "sender_config",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  },
+  {
+    "code": "relay:payload_too_large",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  },
+  {
+    "code": "relay:silent_not_supported",
+    "class": "permanent_content",
+    "condition": null,
+    "event_code": "rejected",
+    "suppressed_success": false,
+    "source": "§12.2 CH-7: a request the adapter cannot build; Relay.Channels.Push.Common"
+  }
+]

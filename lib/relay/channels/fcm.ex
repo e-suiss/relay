@@ -2,7 +2,7 @@ defmodule Relay.Channels.Fcm do
   @moduledoc """
   The FCM HTTP v1 adapter (CH-1, CH-24); the retired legacy and batch endpoints are never used. It sends one message to one registration token over Relay's own HTTP/2 client (`Relay.Channels.Push.H2`); a connection serves one tenant environment and one Firebase project (INV-40), and the OAuth access token is fetched by Workload Identity Federation or a service account assertion signed in the key store and kept per connection for its lifetime (`Relay.Channels.Fcm.Bearer`, TN-30).
 
-  The message carries the push policy of the channel step only (`Relay.Channels.Push.Policy`): the FCM `priority`, `ttl` from the message's `expires_at`, the class collapse key with the subject key in the data (CH-23), the Android channel of the category at the interruption level (CH-30, CH-65 (3)) and the content-free data form (CH-33); a raw `fcm.android` override cannot change a policy field (CH-21). Acceptance is never delivery (CH-32).
+  The message carries the push policy of the channel step only (`Relay.Channels.Push.Policy`): the FCM `priority`, `ttl` from the message's `expires_at`, the class collapse key with the subject key in the data (CH-23), the Android channel of the category at the interruption level (CH-30, CH-65 (3)) and the content-free data form (CH-33); a raw `fcm.android`, `fcm.apns` or `fcm.webpush` override cannot change a policy field (CH-21). Acceptance is never delivery (CH-32).
 
   The account settings: `project_id` and either `auth: "service_account"` with `client_email`, `private_key_id` and `key_label`, or `auth: "workload_identity"` with `audience`, `subject_token_type` and optionally `service_account`, the workload's subject token being the account credential.
 
@@ -194,7 +194,9 @@ defmodule Relay.Channels.Fcm do
       data: link(%{"relay_id" => Common.content_id(request)}, Common.link(request)),
       data_only: data_only,
       content_free: content_free(request, push, data_only),
-      override_android: Common.override(request, "fcm", "android")
+      override_android: Common.override(request, "fcm", "android"),
+      override_apns: Common.override(request, "fcm", "apns"),
+      override_webpush: Common.override(request, "fcm", "webpush")
     }
   end
 

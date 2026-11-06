@@ -102,6 +102,24 @@ defmodule Relay.Channels.EspTest do
       assert "Message-ID" in names
     end
 
+    test "API-23: the delivery's from override replaces the stream's from address" do
+      request = %{
+        request("postmark", %{"server_token" => "pm-token"})
+        | overrides: %{"from" => "billing@sender.example"}
+      }
+
+      parent = self()
+
+      stub(fn conn ->
+        send(parent, {:sent, body(conn)})
+        Req.Test.json(conn, %{"ErrorCode" => 0, "MessageID" => "pm-2", "Message" => "OK"})
+      end)
+
+      assert {:accepted, %{provider_message_id: "pm-2"}} = Postmark.deliver(request)
+      assert_received {:sent, json}
+      assert Jason.decode!(json)["From"] == "billing@sender.example"
+    end
+
     test "CH-7: an inactive recipient is a permanent target failure" do
       stub(fn conn ->
         conn

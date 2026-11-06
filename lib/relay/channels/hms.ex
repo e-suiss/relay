@@ -2,7 +2,7 @@ defmodule Relay.Channels.Hms do
   @moduledoc """
   The Huawei Push Kit adapter (CH-1, CH-27). It sends one message to one token through the Push Kit server API (`messages:send`), authenticated with the app's OAuth 2.0 client credentials token; the client secret is the account credential and the token is held per tenant environment and app for its lifetime (`Relay.Channels.Push.Tokens`).
 
-  The Relay message class maps to the HMS classification by the fixed table of `push_priority_map` and never by the tenant (CH-27): `security`, `transactional`, `operational` and `action_required` go as service and communication messages (importance `NORMAL`), `marketing` and `social` as news and marketing messages (importance `LOW`). The FCM priority of the table sets the HMS `urgency`, the message's `expires_at` the `ttl`; a `system` or content-free message is a data message with the opaque identifier and neutral text only (CH-33). An HMS answer is accepted only with the success code `80000000`, and acceptance is never delivery (CH-32).
+  The Relay message class maps to the HMS classification by the fixed table of `push_priority_map` and never by the tenant (CH-27): `security`, `transactional`, `operational` and `action_required` go as service and communication messages (importance `NORMAL`), `marketing` and `social` as news and marketing messages (importance `LOW`). The FCM priority of the table sets the HMS `urgency`, the message's `expires_at` the `ttl`; a `system` or content-free message is a data message with the opaque identifier and neutral text only (CH-33). A raw `hms.android` override is merged deeply into the `android` block and cannot change the `urgency`, the `importance` or the `category`; its ignored paths are reported as `override_ignored`, and a data message drops it (CH-21). An HMS answer is accepted only with the success code `80000000`, and acceptance is never delivery (CH-32).
 
   The account settings: `app_id` and `client_id`.
 
@@ -14,6 +14,7 @@ defmodule Relay.Channels.Hms do
   alias Relay.Channels.Push.Common
   alias Relay.Channels.Push.Content
   alias Relay.Channels.Push.Failures
+  alias Relay.Channels.Push.Override
   alias Relay.Channels.Push.Tokens
   alias Relay.Channels.Push.Ttl
   alias Relay.Channels.Request
@@ -39,9 +40,9 @@ defmodule Relay.Channels.Hms do
   def deliver(%Request{push: %{} = push} = request) do
     with {:ok, settings} <- Common.settings(request, ["app_id", "client_id"]),
          {:ok, ttl} <- ttl(push),
-         {:ok, body} <- body(request, push, ttl),
+         {:ok, body, ignored} <- body(request, push, ttl),
          {:ok, token} <- token(request, settings) do
-      call(request, settings, token, body)
+      call(request, settings, token, body, ignored)
     else
       {:error, :expired} -> {:not_sent, "expired"}
       {:error, :token_unavailable} -> {:not_sent, "auth_unavailable"}
@@ -133,6 +134,7 @@ defmodule Relay.Channels.Hms do
     end
   end
 
+  # CH-21
   # CH-27
   # CH-33
   # INV-60
@@ -141,6 +143,8 @@ defmodule Relay.Channels.Hms do
     urgency = if push.mapping.fcm_priority == :high, do: "HIGH", else: "NORMAL"
     android = %{"urgency" => urgency, "ttl" => ttl}
     android = if data_message, do: android, else: notification(android, request, push)
+    override = Common.override(request, "hms", "android")
+    {android, ignored} = android(android, override, data_message)
     data = data(request, push)
 
     message = %{
@@ -151,8 +155,14 @@ defmodule Relay.Channels.Hms do
 
     body = Jason.encode!(%{"validate_only" => false, "message" => message})
 
-    with :ok <- Content.check(%{"android" => android, "data" => data}), do: size(body)
+    with :ok <- Content.check(%{"android" => android, "data" => data}),
+         {:ok, body} <- size(body),
+         do: {:ok, body, ignored}
   end
+
+  defp android(android, nil, _data_message), do: {android, []}
+  defp android(android, _override, true), do: {android, ["hms.android"]}
+  defp android(android, override, false), do: Override.hms_android(android, override)
 
   defp size(body) when byte_size(body) <= @max_bytes, do: {:ok, body}
 
@@ -247,18 +257,18 @@ defmodule Relay.Channels.Hms do
     }
   end
 
-  defp call(request, settings, token, body) do
+  defp call(request, settings, token, body, ignored) do
     http = send_request(settings, Relay.Redacted.expose(token), body)
 
     case Common.http(__MODULE__, http, request.timeout_ms) do
-      {:ok, response} -> answer(response)
+      {:ok, response} -> answer(response, ignored)
       {:error, :not_sent} -> {:not_sent, "connect_failed"}
       {:error, :uncertain} -> {:uncertain, "no_answer"}
     end
   end
 
   # CH-32
-  defp answer(response) do
+  defp answer(response, ignored) do
     case Failures.read(:hms, response, Relay.Clock.utc_now()) do
       :accepted ->
         id =
@@ -267,7 +277,7 @@ defmodule Relay.Channels.Hms do
             _other -> nil
           end
 
-        {:accepted, %{provider_message_id: id}}
+        {:accepted, %{provider_message_id: id, detail: %{override_ignored: ignored}}}
 
       {:rejected, raw} ->
         {:rejected, raw}

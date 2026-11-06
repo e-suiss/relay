@@ -2,7 +2,7 @@ defmodule Relay.Channels.WebPush do
   @moduledoc """
   The Web Push adapter (RFC 8030, RFC 8291, RFC 8292; CH-1, CH-3, CH-26), which needs no provider account of the tenant (CH-5). It encrypts the payload for the subscription with a fresh ephemeral key (`aes128gcm`) and signs the VAPID token of the web application's key in the key store, cached per key and push service (TN-31); it calls the subscription's push service through `Relay.Channels.http_request/1`. UnifiedPush shares this module (`Relay.Channels.UnifiedPush`).
 
-  The push carries the push policy of the channel step only (`Relay.Channels.Push.Policy`): `TTL` from the message's `expires_at`, `Urgency` from the interruption level, never above the class urgency (CH-65 (3)), and `Topic` from the subject (CH-23). There is no silent Web Push: a `system` message is refused (CH-26). A content-free push carries the opaque identifier and neutral text only (CH-33, CH-67). Acceptance (201) is never delivery (CH-32).
+  The push carries the push policy of the channel step only (`Relay.Channels.Push.Policy`): `TTL` from the message's `expires_at`, `Urgency` from the interruption level, never above the class urgency (CH-65 (3)), and `Topic` from the subject (CH-23). There is no silent Web Push: a `system` message is refused (CH-26). A content-free push carries the opaque identifier and neutral text only (CH-33, CH-67). A raw `web_push.payload` override is merged deeply into the classic payload and cannot change the opaque identifier or the topic; its ignored paths are reported as `override_ignored`, and a content-free push drops it (CH-21). Acceptance (201) is never delivery (CH-32).
 
   The account settings: `vapid_subject` (`mailto:` or `https:`) and `vapid_keys`, by web application the list of its VAPID keys newest first, each with its key store `label` and base64url `public_key` (C-26, TN-31).
 
@@ -16,6 +16,7 @@ defmodule Relay.Channels.WebPush do
   alias Relay.Channels.Push.Failures
   alias Relay.Channels.Push.Interruption
   alias Relay.Channels.Push.Jwt
+  alias Relay.Channels.Push.Override
   alias Relay.Channels.Push.Tokens
   alias Relay.Channels.Push.Ttl
   alias Relay.Channels.Push.WebPush
@@ -109,11 +110,11 @@ defmodule Relay.Channels.WebPush do
     with {:ok, keys} <- keys(request),
          {:ok, urgency} <- urgency(push),
          {:ok, ttl} <- ttl(push),
-         {:ok, payload} <- payload(request, push),
+         {:ok, payload, ignored} <- payload(request, push),
          {:ok, authorization} <- authorization(request, vapid?),
          subscription = subscription(request, push, keys, payload, {ttl, urgency, authorization}),
          {:ok, built} <- WebPush.request(subscription) do
-      call(adapter, built, request.timeout_ms)
+      call(adapter, built, request.timeout_ms, ignored)
     else
       {:error, :expired} -> {:not_sent, "expired"}
       {:error, :signing_unavailable} -> {:not_sent, "auth_unavailable"}
@@ -150,6 +151,7 @@ defmodule Relay.Channels.WebPush do
     end
   end
 
+  # CH-21
   # CH-33
   # CH-67
   # INV-60
@@ -162,10 +164,17 @@ defmodule Relay.Channels.WebPush do
         do: Map.put(base, "neutral", Content.neutral(push.locale, push.lock_screen_body)),
         else: base |> Map.merge(Common.fields(request)) |> link(Common.link(request))
 
-    data = Map.merge(data, topic)
+    override = Common.override(request, "web_push", "payload")
+    {data, ignored} = raw(Map.merge(data, topic), override, push)
 
-    with :ok <- Content.check(data), do: WebPush.classic(data)
+    with :ok <- Content.check(data),
+         {:ok, payload} <- WebPush.classic(data),
+         do: {:ok, payload, ignored}
   end
+
+  defp raw(data, nil, _push), do: {data, []}
+  defp raw(data, _override, %{content_free: true}), do: {data, ["web_push.payload"]}
+  defp raw(data, override, _push), do: Override.web_push_payload(data, override)
 
   # E-83
   defp link(data, nil), do: data
@@ -249,13 +258,14 @@ defmodule Relay.Channels.WebPush do
   end
 
   # CH-32
-  defp call(adapter, built, timeout_ms) do
+  defp call(adapter, built, timeout_ms, ignored) do
     case Common.http(adapter, built, timeout_ms) do
       {:ok, response} ->
         case Failures.read(:web_push, response, Relay.Clock.utc_now()) do
           :accepted ->
             location = List.keyfind(response.headers, "location", 0)
-            {:accepted, %{provider_message_id: location && elem(location, 1)}}
+            id = location && elem(location, 1)
+            {:accepted, %{provider_message_id: id, detail: %{override_ignored: ignored}}}
 
           {:rejected, raw} ->
             {:rejected, raw}

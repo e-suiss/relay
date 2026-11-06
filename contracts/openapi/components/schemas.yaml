@@ -599,7 +599,7 @@ RawOverride:
       maxLength: 64
     raw:
       type: object
-      description: Provider-specific block. Policy fields cannot be set here (policy_field_not_overridable).
+      description: "Provider-specific block. On push and web_push it is keyed by the provider block: apns.payload, apns.headers, fcm.android, fcm.apns, fcm.webpush, hms.android and web_push.payload are merged deeply into the payload Relay builds; on whatsapp it is merged deeply into the Cloud API message body. A field of a higher precedence level replaces the same field of a lower one at every depth. Policy fields cannot be set here (policy_field_not_overridable)."
   additionalProperties: false
 Overrides:
   type: object
@@ -1974,6 +1974,12 @@ ChannelStep:
       description: Template key the step renders.
       pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
       maxLength: 100
+    overrides:
+      "$ref": "#/Overrides"
+      description: "Overrides of this step, keyed by the step's own channel; another channel is 422 validation_failed. Precedence is request, step, workflow, tenant default; a raw block cannot set a policy field (policy_field_not_overridable)."
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The spec names a step level of overrides but no field; the step and the definition carry an overrides field of the request's shape."
   additionalProperties: false
 WorkflowDefinition:
   type: object
@@ -2007,6 +2013,12 @@ WorkflowDefinition:
         "$ref": "#/ChannelStep"
       minItems: 1
       maxItems: 50
+    overrides:
+      "$ref": "#/Overrides"
+      description: "Workflow-level overrides of every step. Precedence is request, step, workflow, tenant default; a raw block cannot set a policy field (policy_field_not_overridable)."
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The spec names a workflow level of overrides but no field; the definition carries an overrides field of the request's shape."
   additionalProperties: false
   x-relay-choice: true
   x-relay-choice-note: "Until tenant categories exist (later stage), the definition declares message_class next to category; afterwards the class must match the category's class."
@@ -2041,6 +2053,12 @@ WorkflowDefinitionRequest:
         "$ref": "#/ChannelStep"
       minItems: 1
       maxItems: 50
+    overrides:
+      "$ref": "#/Overrides"
+      description: "Workflow-level overrides of every step. Precedence is request, step, workflow, tenant default; a raw block cannot set a policy field (policy_field_not_overridable)."
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: "The spec names a workflow level of overrides but no field; the definition carries an overrides field of the request's shape."
   additionalProperties: false
   x-relay-choice: true
   x-relay-choice-note: "Until tenant categories exist (later stage), the definition declares message_class next to category; afterwards the class must match the category's class."

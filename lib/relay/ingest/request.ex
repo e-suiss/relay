@@ -97,17 +97,7 @@ defmodule Relay.Ingest.Request do
 
   # API-23
   defp policy_fields(body) do
-    overrides = Map.get(body, "overrides", %{})
-
-    found =
-      for channel <- @raw_channels,
-          raw = get_in(overrides, [channel, "raw"]),
-          is_map(raw),
-          {key, _value} <- raw,
-          String.downcase(key) in @policy_fields,
-          do: field("/overrides/#{channel}/raw/#{key}", "not_allowed", "a policy field")
-
-    case found do
+    case policy_field_errors(Map.get(body, "overrides"), "/overrides") do
       [] ->
         :ok
 
@@ -118,6 +108,20 @@ defmodule Relay.Ingest.Request do
          })}
     end
   end
+
+  # API-23
+  @doc "The field errors of the policy fields a channel-keyed overrides map sets in a raw provider block, with pointers under `prefix` (such as `/overrides` of a request or `/definition/steps/0/overrides` of a workflow); a raw block never sets a policy field."
+  @spec policy_field_errors(map() | nil, String.t()) :: [map()]
+  def policy_field_errors(%{} = overrides, prefix) do
+    for channel <- @raw_channels,
+        raw = get_in(overrides, [channel, "raw"]),
+        is_map(raw),
+        {key, _value} <- raw,
+        String.downcase(key) in @policy_fields,
+        do: field("#{prefix}/#{channel}/raw/#{key}", "not_allowed", "a policy field")
+  end
+
+  def policy_field_errors(_overrides, _prefix), do: []
 
   # E-83
   defp link_schemes(links) do

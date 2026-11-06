@@ -153,4 +153,23 @@ defmodule Relay.Channels.Routing do
       _level -> nil
     end)
   end
+
+  # API-23
+  @doc "The channel block a step sends with, by the one-way precedence request > step > workflow: each level is a channel-keyed overrides map, highest first, and a field of a higher level replaces the same field of a lower one at every depth, so a raw provider block is merged field by field."
+  @spec effective_override([map() | nil], String.t()) :: map()
+  def effective_override(levels, channel) do
+    levels
+    |> Enum.reverse()
+    |> Enum.reduce(%{}, fn
+      %{^channel => %{} = block}, acc -> deep_merge(acc, block)
+      _level, acc -> acc
+    end)
+  end
+
+  defp deep_merge(low, high) do
+    Map.merge(low, high, fn
+      _key, %{} = l, %{} = h -> deep_merge(l, h)
+      _key, _l, h -> h
+    end)
+  end
 end

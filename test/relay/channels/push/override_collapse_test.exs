@@ -66,6 +66,96 @@ defmodule Relay.Channels.Push.OverrideCollapseTest do
       assert Override.android(policy, nil) == {policy, []}
       assert Override.apns_headers(policy, nil) == {policy, []}
     end
+
+    test "CH-21: raw FCM apns and webpush blocks carry no APNs policy field or Urgency" do
+      apns = %{
+        "headers" => %{"APNs-Priority" => "10", "apns-collapse-id" => "c"},
+        "payload" => %{"aps" => %{"interruption-level" => "critical", "badge" => 1}}
+      }
+
+      assert {block, ignored} = Override.fcm_apns(apns)
+
+      assert ignored == [
+               "fcm.apns.headers.apns-priority",
+               "fcm.apns.payload.aps.interruption-level"
+             ]
+
+      assert block == %{
+               "headers" => %{"apns-collapse-id" => "c"},
+               "payload" => %{"aps" => %{"badge" => 1}}
+             }
+
+      webpush = %{"headers" => %{"Urgency" => "high", "TTL" => "60"}, "fcm_options" => %{}}
+
+      assert {block, ["fcm.webpush.headers.urgency"]} = Override.fcm_webpush(webpush)
+      assert block == %{"headers" => %{"ttl" => "60"}, "fcm_options" => %{}}
+
+      assert Override.fcm_apns(nil) == {nil, []}
+      assert Override.fcm_webpush(nil) == {nil, []}
+    end
+
+    test "CH-21, CH-27: a raw HMS android block cannot change urgency, importance or category" do
+      policy = %{"urgency" => "NORMAL", "notification" => %{"importance" => "LOW"}}
+
+      override = %{
+        "urgency" => "HIGH",
+        "category" => "IM",
+        "notification" => %{"importance" => "NORMAL", "color" => "#00ff00"}
+      }
+
+      assert {android, ignored} = Override.hms_android(policy, override)
+
+      assert ignored == [
+               "hms.android.urgency",
+               "hms.android.notification.importance",
+               "hms.android.category"
+             ]
+
+      assert android == %{
+               "urgency" => "NORMAL",
+               "notification" => %{"importance" => "LOW", "color" => "#00ff00"}
+             }
+    end
+
+    test "CH-21, CH-23: a raw Web Push payload keeps the opaque identifier and the topic" do
+      policy = %{"relay_id" => "d1", "title" => "Hi"}
+      override = %{"relay_id" => "other", "relay_topic" => "t", "badge" => "/b.png"}
+
+      assert {payload, ignored} = Override.web_push_payload(policy, override)
+      assert payload == %{"relay_id" => "d1", "title" => "Hi", "badge" => "/b.png"}
+      assert ignored == ["web_push.payload.relay_id", "web_push.payload.relay_topic"]
+    end
+
+    test "API-23, CH-60: a raw WhatsApp block keeps the addressing, type and template" do
+      policy = %{
+        "to" => "+905551112233",
+        "biz_opaque_callback_data" => "c1",
+        "type" => "template",
+        "template" => %{"name" => "t", "language" => %{"code" => "tr"}}
+      }
+
+      override = %{
+        "to" => "+15550000000",
+        "type" => "text",
+        "template" => %{"name" => "other", "components" => []},
+        "context" => %{"message_id" => "wamid.1"}
+      }
+
+      assert {body, ["whatsapp.to", "whatsapp.type", "whatsapp.template.name"]} =
+               Override.whatsapp(policy, override)
+
+      assert body == %{
+               "to" => "+905551112233",
+               "biz_opaque_callback_data" => "c1",
+               "type" => "template",
+               "template" => %{
+                 "name" => "t",
+                 "language" => %{"code" => "tr"},
+                 "components" => []
+               },
+               "context" => %{"message_id" => "wamid.1"}
+             }
+    end
   end
 
   describe "CH-23 collapse keys" do

@@ -190,5 +190,65 @@ defmodule RelayWeb.Api.ChannelSurfaceTest do
       conn = send_event(ctx.token, event())
       assert F.body(conn, 403)["code"] == "channel_not_configured"
     end
+
+    test "API-23, OP-25: request overrides are sealed with the event and erased with the subject",
+         ctx do
+      account!(ctx.scope)
+      overrides = %{"email" => %{"from" => "news@mail.example.com"}}
+      body = F.body(send_event(ctx.token, event(%{"overrides" => overrides})), 202)
+      [%{"notification_id" => notification}] = body["notifications"]
+      {:ok, event_id} = Relay.ExternalId.decode(body["id"], ["evt"])
+
+      assert sealed_overrides(ctx.scope, event_id) == overrides
+
+      {:ok, [[recipient_id]]} =
+        Repo.in_scope(ctx.scope, fn _status ->
+          Repo.scoped_query!(
+            "SELECT recipient_id FROM relay.notifications WHERE id = $1",
+            [internal(notification)]
+          ).rows
+        end)
+
+      assert {:ok, :erased, _cancelled} =
+               Relay.Keys.Erasure.erase_subject(
+                 ctx.scope,
+                 recipient_id,
+                 "dsr-overrides",
+                 TenantFixture.actor()
+               )
+
+      assert sealed_overrides(ctx.scope, event_id) == nil
+    end
+
+    test "API-23: an event without overrides seals none", ctx do
+      body = F.body(send_event(ctx.token, event()), 202)
+      {:ok, event_id} = Relay.ExternalId.decode(body["id"], ["evt"])
+      assert sealed_overrides(ctx.scope, event_id) == nil
+    end
+  end
+
+  defp sealed_overrides(scope, event_id) do
+    {:ok, [[ct, key_id]]} =
+      Repo.in_scope(scope, fn _status ->
+        Repo.scoped_query!(
+          "SELECT overrides_ct, key_id FROM relay.event_payloads WHERE event_id = $1",
+          [event_id]
+        ).rows
+      end)
+
+    if ct do
+      field = %{
+        tenant_id: scope.tenant_id,
+        environment: scope.environment,
+        subject_id: nil,
+        retention_class: :notification_content,
+        table: "event_payloads",
+        column: "overrides_ct",
+        key_id: key_id
+      }
+
+      {:ok, plain} = Relay.Tenancy.decrypt_field(field, ct)
+      Jason.decode!(Relay.Redacted.expose(plain))
+    end
   end
 end

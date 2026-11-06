@@ -158,7 +158,7 @@ defmodule Relay.Channels.PushAdaptersTest do
 
     test "CH-21: a raw override cannot change a policy field and is reported" do
       apns({200, [], ""})
-      overrides = %{"apns" => %{"headers" => %{"apns-priority" => "5"}}}
+      overrides = %{"raw" => %{"apns" => %{"headers" => %{"apns-priority" => "5"}}}}
 
       assert {:accepted, %{detail: %{override_ignored: ["apns.headers.apns-priority"]}}} =
                Apns.deliver(apns_request(%{overrides: overrides}))

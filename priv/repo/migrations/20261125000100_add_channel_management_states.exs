@@ -34,18 +34,7 @@ defmodule Relay.Repo.Migrations.AddChannelManagementStates do
     end
   end
 
-  def down do
-    for {signature, _owner, _grantees} <- Enum.reverse(@functions),
-        do: execute("DROP FUNCTION #{signature}")
-
-    execute("ALTER TABLE relay.sender_identities DROP COLUMN archived_at")
-    execute("ALTER TABLE relay.provider_accounts DROP CONSTRAINT provider_accounts_state_check")
-
-    execute("""
-    ALTER TABLE relay.provider_accounts ADD CONSTRAINT provider_accounts_state_check
-      CHECK (state IN ('active', 'disabled'))
-    """)
-  end
+  def down, do: :ok
 
   defp statements do
     [

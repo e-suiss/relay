@@ -15,7 +15,7 @@ defmodule Relay.Access.RealmsTest do
   setup do
     :ok = FakeAccess.install!()
     :ok = Clients.reset()
-    true = :ets.delete_all_objects(Cache)
+    :ok = Cache.forget(:_)
     tenant = TenantFixture.tenant!()
     client = FakeAccess.client!(tenant.test, ["read", "config"])
     %{tenant: tenant, access_tenant: tenant.attrs.access_tenant_id, client: client}
@@ -29,7 +29,7 @@ defmodule Relay.Access.RealmsTest do
     Base.url_encode64(:crypto.hash(:sha256, json), padding: false)
   end
 
-  defp forget_nonces, do: :ets.match_delete(Cache, {{:dpop_nonce, :_}, :_, :_})
+  defp forget_nonces, do: :ok = Cache.forget({:dpop_nonce, :_})
 
   describe "E-96 tokens of the tenant realms" do
     test "E-96: a tenant API client's token from either realm of its tenant is accepted", ctx do

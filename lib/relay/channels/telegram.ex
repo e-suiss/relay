@@ -5,12 +5,16 @@ defmodule Relay.Channels.Telegram do
   A message about a subject that already has a message in the chat is edited with `editMessageText` (CH-23); an unchanged message is the same message, and a message Telegram can no longer edit is posted again. Telegram gives no delivery or read information; updates arrive at the bot's webhook and are recorded as events only.
 
   The raw code of a failure is the Bot API `error_code` with the known `description` (`403_bot_blocked` for a user who blocked the bot, `permanent_target`); `429` carries the `retry_after` of the answer; a description that is not known is `http_<error_code>`, which has no mapping and is classified `unknown` (CH-8).
+
+  The settings check calls `getWebhookInfo`: the bot token must still be accepted and the bot's webhook still set, or its updates no longer reach Relay (CH-52).
   """
 
   @behaviour Relay.Channels.Adapter
 
   alias Relay.Channels.Messaging
+  alias Relay.Channels.ProviderHttp
   alias Relay.Channels.Request
+  alias Relay.Channels.SettingsCheck
 
   @base "https://api.telegram.org/bot"
   @descriptions [
@@ -49,6 +53,37 @@ defmodule Relay.Channels.Telegram do
       token -> send_message(request, token, opts)
     end
   end
+
+  # CH-52
+  # CH-62
+  @impl Relay.Channels.Adapter
+  def check_settings(%{credentials: credentials, timeout_ms: timeout_ms}) do
+    case Messaging.bot_token(credentials) do
+      nil ->
+        SettingsCheck.credentials(nil)
+
+      token ->
+        [method: :post, url: @base <> token <> "/getWebhookInfo", json: %{}]
+        |> ProviderHttp.call(timeout_ms)
+        |> SettingsCheck.read(&webhook/1)
+    end
+  end
+
+  defp webhook(%Req.Response{status: 200, body: body}) do
+    case Messaging.json(body) do
+      %{"ok" => true, "result" => %{"url" => url}} when is_binary(url) and url != "" ->
+        :ok
+
+      %{"ok" => true, "result" => %{}} ->
+        SettingsCheck.mismatch("webhook_url", "set", nil)
+
+      _other ->
+        {:error, "unexpected_response"}
+    end
+  end
+
+  defp webhook(%Req.Response{status: 404}), do: SettingsCheck.credentials("404_not_found")
+  defp webhook(%Req.Response{status: status}), do: {:error, Messaging.http_code(status)}
 
   defp send_message(request, token, opts) do
     fields = Messaging.fields(request.content)

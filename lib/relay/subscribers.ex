@@ -250,6 +250,15 @@ defmodule Relay.Subscribers do
   defp active_id(%{"id" => id, "kind" => "subscriber", "state" => "active"}), do: id
   defp active_id(_other), do: nil
 
+  # E-90
+  # CH-84
+  @doc "The external identifier of a recipient, its pairwise `sub` in Relay's sector, decrypted outside any transaction; `nil` when there is no such recipient or its subject key was erased."
+  @spec external_id(Scope.t(), Relay.Id.t()) :: {:ok, String.t() | nil} | {:error, term()}
+  def external_id(%Scope{} = scope, recipient_id) do
+    with {:ok, row} <- Store.in_scope(scope, fn _status -> Store.row(recipient_id) end),
+         do: {:ok, row && open(scope, row, "recipients", "external_id_ct")}
+  end
+
   # API-56
   @doc "Lists subscribers from a decoded cursor and describes them; at most `limit + 1` come back."
   @spec list(Scope.t(), map() | nil, pos_integer()) :: {:ok, [map()]} | {:error, term()}

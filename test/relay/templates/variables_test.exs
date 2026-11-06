@@ -128,6 +128,12 @@ defmodule Relay.Templates.VariablesTest do
       assert codes("{{ recipient.first_name }}", @schema, recipient_schema: recipient) == []
     end
 
+    test "E-83: a link is read as links.<rel> with a valid rel" do
+      assert codes("{{ links.primary }}{{ links.order_2 }}") == []
+      assert codes("{{ links.primary.href }}") == [{"undeclared_variable", "links.primary.href"}]
+      assert codes("{{ links }}") == [{"undeclared_variable", "links"}]
+    end
+
     test "TP-14: an optional variable is read only inside a condition" do
       assert codes("{{ order.note }}") == [{"optional_unguarded", "order.note"}]
       assert codes("{% if order.note %}{{ order.note }}{% endif %}") == []

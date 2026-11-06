@@ -111,14 +111,18 @@ defmodule Relay.Channels.Email.Esp do
 
   @doc "The provider settings of an account under `key`, an empty map when there are none."
   @spec settings(Request.t(), String.t()) :: map()
-  def settings(%Request{account: %{"settings" => %{} = settings}}, key) do
+  def settings(%Request{account: account}, key), do: account_settings(account, key)
+
+  @doc "The provider settings of a provider account under `key`, an empty map when there are none."
+  @spec account_settings(map() | nil, String.t()) :: map()
+  def account_settings(%{"settings" => %{} = settings}, key) do
     case Map.get(settings, key) do
       %{} = provider -> provider
       _missing -> %{}
     end
   end
 
-  def settings(%Request{}, _key), do: %{}
+  def account_settings(_account, _key), do: %{}
 
   # CH-9
   @doc "The provider's `Retry-After` of a response, in milliseconds."

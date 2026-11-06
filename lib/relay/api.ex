@@ -62,6 +62,8 @@ defmodule Relay.Api do
       Previews,
       Discovery,
       WhatsappTemplates,
-      WhatsappWebhooks
+      WhatsappWebhooks,
+      ChannelManagement,
+      ChannelOperations
     ]
 end

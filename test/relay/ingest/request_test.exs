@@ -75,4 +75,36 @@ defmodule Relay.Ingest.RequestTest do
       assert {:ok, %{overrides: ^overrides}} = check(%{"overrides" => overrides})
     end
   end
+
+  describe "E-83 CH-65 interruption and links" do
+    test "E-83, CH-65: the sender's interruption and links are kept as sent" do
+      links = [%{"rel" => "primary", "href" => "https://example.com/o/1", "title" => "Order"}]
+
+      assert {:ok, %{interruption: "critical", links: ^links}} =
+               check(%{"interruption" => "critical", "links" => links})
+
+      assert {:ok, %{interruption: nil, links: nil}} = check(%{})
+    end
+
+    test "E-83: a link that is not an absolute https URI is link_scheme_not_allowed" do
+      for href <- ["http://example.com/o/1", "myapp://orders/1", "/orders/1", "https:///o"] do
+        primary = %{"rel" => "primary", "href" => "https://example.com/"}
+        links = [primary, %{"rel" => "b", "href" => href}]
+
+        assert {:error, %Relay.Error{code: :link_scheme_not_allowed, details: details}} =
+                 check(%{"links" => links})
+
+        assert [%{pointer: "/links/1/href"}] = details.errors
+      end
+    end
+
+    test "E-83: a rel is unique in the request" do
+      link = %{"rel" => "primary", "href" => "https://example.com/o/1"}
+
+      assert {:error, %Relay.Error{code: :validation_failed, details: details}} =
+               check(%{"links" => [link, link]})
+
+      assert [%{pointer: "/links/1/rel", code: "conflict"}] = details.errors
+    end
+  end
 end

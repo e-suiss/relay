@@ -56,6 +56,19 @@ defmodule Relay.Channels.Email.ReputationTest do
              } = params()
     end
 
+    test "CH-85: no stop decision below 500 sent mails in the window; the warning still comes" do
+      assert params()["min_volume"] == 500
+
+      circuit = sent(499, 499) |> feed(1, :bounce, 100)
+      assert circuit.state == :warning
+      assert Reputation.admit(circuit) == :allow
+
+      assert {circuit, [{:stopped, %{sent: 500}}]} =
+               Reputation.record(circuit, :sent, 2, params())
+
+      assert Reputation.admit(circuit) == :paused
+    end
+
     test "CH-41: a bounce rate at 2 % warns once and the stream still sends" do
       circuit = sent(1000, 1000) |> feed(1, :bounce, 19)
       assert circuit.state == :ok
@@ -91,7 +104,7 @@ defmodule Relay.Channels.Email.ReputationTest do
     end
 
     test "CH-41: a stopped circuit never closes by itself, however the rates fall" do
-      circuit = sent(100, 100) |> feed(1, :complaint, 1)
+      circuit = sent(1000, 1000) |> feed(1, :complaint, 1)
       assert circuit.state == :stopped
 
       later = 7 * @hour
@@ -103,7 +116,7 @@ defmodule Relay.Channels.Email.ReputationTest do
     end
 
     test "CH-41: closing is an explicit action that clears the window and is audited" do
-      circuit = sent(100, 100) |> feed(1, :bounce, 10)
+      circuit = sent(1000, 1000) |> feed(1, :bounce, 40)
       action = %{actor_ref: "operator:alice", reason: "list cleaned"}
 
       assert {:ok, closed, audit} = Reputation.close(circuit, action, 5000)
@@ -112,7 +125,7 @@ defmodule Relay.Channels.Email.ReputationTest do
 
       assert %{actor_ref: "operator:alice", reason: "list cleaned", closed_at: 5000} = audit
 
-      assert audit.stop_rates.bounces == 10
+      assert audit.stop_rates.bounces == 40
       assert Reputation.close(closed, action, 6000) == {:error, :not_stopped}
     end
 

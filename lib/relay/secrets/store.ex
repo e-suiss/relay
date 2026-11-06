@@ -42,6 +42,31 @@ defmodule Relay.Secrets.Store do
     end
   end
 
+  @select "SELECT tenant_id, environment::text AS environment, id, kind, ref, ref_version, fingerprint, state, created_at, retired_at FROM relay.secret_refs"
+
+  @spec find(String.t(), <<_::256>>) :: Ref.t() | nil
+  def find(kind, fingerprint) do
+    case refs(@select <> " WHERE kind = $1 AND fingerprint = $2", [kind, fingerprint]) do
+      [ref] -> ref
+      [] -> nil
+    end
+  end
+
+  @spec many([Relay.Id.t()]) :: [Ref.t()]
+  def many(ids), do: refs(@select <> " WHERE id = ANY($1::uuid[])", [ids])
+
+  @spec retire(Relay.Id.t(), binary(), Relay.Actor.t()) ::
+          :retired | :already_retired | :not_found
+  def retire(id, digest, actor) do
+    [row] = Repo.call!("relay_fn.secret_ref_retire", [id, digest] ++ Relay.Actor.params(actor))
+    Repo.code!(row["secret_ref_retire"], [:retired, :already_retired, :not_found])
+  end
+
+  defp refs(sql, params) do
+    %{rows: rows, columns: columns} = Repo.scoped_query!(sql, params)
+    Enum.map(rows, &(columns |> Enum.zip(&1) |> Map.new() |> ref() |> elem(0)))
+  end
+
   @spec rotate(Relay.Id.t(), map(), <<_::256>>, binary(), Relay.Actor.t()) ::
           {:ok, :rotated} | {:error, Relay.Error.t()}
   def rotate(retire_id, new, fingerprint, retire_digest, actor) do

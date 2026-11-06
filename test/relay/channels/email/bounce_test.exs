@@ -120,8 +120,8 @@ defmodule Relay.Channels.Email.BounceTest do
       assert Bounce.soft_bounce([now - 2, now - 1], now, @params) == :no_duration
     end
 
-    test "CH-40: the bundled parameters are 3 soft bounces in 72 hours" do
-      assert %{"window_ms" => 259_200_000, "count" => 3} =
+    test "CH-40, CH-85: the bundled parameters are 3 soft bounces in 72 hours, suppressed 7 days" do
+      assert %{"window_ms" => 259_200_000, "count" => 3, "suppress_ms" => 604_800_000} =
                Bundled.content("email_reputation")["soft_bounce"]
     end
   end

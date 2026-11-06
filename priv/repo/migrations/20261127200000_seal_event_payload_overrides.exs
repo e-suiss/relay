@@ -1,8 +1,8 @@
 defmodule Relay.Repo.Migrations.SealEventPayloadOverrides do
   use Ecto.Migration
 
-  @old_accept "relay_fn.event_accept(uuid, uuid, uuid, uuid, uuid, text, bytea, text, text, text, text, text, text, timestamp with time zone, timestamp with time zone, boolean, text, boolean, bigint, bytea, bytea, bytea, bytea, uuid, bigint, text)"
-  @accept "relay_fn.event_accept(uuid, uuid, uuid, uuid, uuid, text, bytea, text, text, text, text, text, text, timestamp with time zone, timestamp with time zone, boolean, text, boolean, bigint, bytea, bytea, bytea, bytea, bytea, uuid, bigint, text)"
+  @old_accept "relay_fn.event_accept(uuid, uuid, uuid, uuid, uuid, text, bytea, text, text, text, text, text, text, timestamp with time zone, timestamp with time zone, boolean, text, boolean, bigint, bytea, bytea, bytea, bytea, uuid, bigint, text, text, bytea)"
+  @accept "relay_fn.event_accept(uuid, uuid, uuid, uuid, uuid, text, bytea, text, text, text, text, text, text, timestamp with time zone, timestamp with time zone, boolean, text, boolean, bigint, bytea, bytea, bytea, bytea, uuid, bigint, text, text, bytea, bytea)"
 
   # API-23
   # API-26
@@ -12,7 +12,7 @@ defmodule Relay.Repo.Migrations.SealEventPayloadOverrides do
     execute("ALTER TABLE relay.event_payloads ADD COLUMN overrides_ct bytea")
     execute("SET LOCAL ROLE relay_owner")
     execute("DROP FUNCTION #{@old_accept}")
-    execute(payload_erase())
+    execute(event_payload_erase())
     execute(subject_erase())
     execute("RESET ROLE")
     execute(event_accept())
@@ -31,8 +31,8 @@ defmodule Relay.Repo.Migrations.SealEventPayloadOverrides do
       p_priority text, p_security_subtype text, p_on_expire text, p_send_at timestamptz,
       p_expires_at timestamptz, p_retention_none boolean, p_send_mode text, p_is_test boolean,
       p_recipient_count bigint, p_data_ct bytea, p_metadata_ct bytea, p_actor_ct bytea,
-      p_ce_attributes_ct bytea, p_overrides_ct bytea, p_key_id uuid, p_plain_size bigint,
-      p_traceparent text)
+      p_ce_attributes_ct bytea, p_key_id uuid, p_plain_size bigint, p_traceparent text,
+      p_interruption text, p_links_ct bytea, p_overrides_ct bytea)
       RETURNS TABLE (result text, event_id uuid, created_at timestamptz)
     LANGUAGE plpgsql VOLATILE SECURITY DEFINER
     SET search_path = pg_catalog, pg_temp
@@ -93,24 +93,24 @@ defmodule Relay.Repo.Migrations.SealEventPayloadOverrides do
         api_client_id, subtenant_id, source, ce_key_digest, dedup_key, cancellation_key,
         sender_type, priority, security_subtype, on_expire, send_at, expires_at,
         retention_none, send_mode, is_test, recipient_count, state, cancelled_at,
-        cancellation_id, payload_created_at, traceparent, created_at)
+        cancellation_id, payload_created_at, traceparent, interruption, created_at)
       VALUES (v_tenant, v_env, p_id, p_workflow_id, p_workflow_version_id, p_api_client_id,
         v_subtenant, p_source, p_ce_key_digest, p_dedup_key, p_cancellation_key, p_sender_type,
         p_priority, p_security_subtype, p_on_expire, p_send_at, p_expires_at, p_retention_none,
         p_send_mode, p_is_test, p_recipient_count, 'accepted', NULL, NULL, v_now,
-        p_traceparent, v_now);
+        p_traceparent, p_interruption, v_now);
       INSERT INTO relay.event_payloads (tenant_id, environment, event_id, created_at, data_ct,
-        metadata_ct, actor_ct, ce_attributes_ct, overrides_ct, key_id, plain_size, erased_at,
-        erase_reason)
+        metadata_ct, actor_ct, ce_attributes_ct, links_ct, overrides_ct, key_id, plain_size,
+        erased_at, erase_reason)
       VALUES (v_tenant, v_env, p_id, v_now, p_data_ct, p_metadata_ct, p_actor_ct,
-        p_ce_attributes_ct, p_overrides_ct, p_key_id, p_plain_size, NULL, NULL);
+        p_ce_attributes_ct, p_links_ct, p_overrides_ct, p_key_id, p_plain_size, NULL, NULL);
       RETURN QUERY SELECT 'accepted'::text, p_id, v_now;
     END
     $fn$
     """
   end
 
-  defp payload_erase do
+  defp event_payload_erase do
     ~S"""
     CREATE OR REPLACE FUNCTION relay_fn.event_payload_erase(p_event_id uuid, p_reason text)
       RETURNS text
@@ -146,8 +146,8 @@ defmodule Relay.Repo.Migrations.SealEventPayloadOverrides do
           AND d.delivery_rank = 0 AND d.failure_kind IS NULL) THEN
         RETURN 'not_terminal';
       END IF;
-      UPDATE relay.event_payloads p SET data_ct = NULL, overrides_ct = NULL, erased_at = now(),
-          erase_reason = p_reason
+      UPDATE relay.event_payloads p SET data_ct = NULL, links_ct = NULL, overrides_ct = NULL,
+          erased_at = now(), erase_reason = p_reason
         WHERE p.tenant_id = v_tenant AND p.environment = v_env AND p.event_id = p_event_id
           AND p.created_at = v_created;
       RETURN 'erased';
@@ -157,7 +157,7 @@ defmodule Relay.Repo.Migrations.SealEventPayloadOverrides do
   end
 
   defp subject_erase do
-    ~S"""
+    """
     CREATE OR REPLACE FUNCTION relay_fn.subject_erase(p_recipient_id uuid, p_request_ref text,
       p_destroy_classes text[], p_restrict_classes text[], p_record_digest bytea,
       p_actor_kind text, p_actor_ref text, p_on_behalf_of_ref text, p_access_record_ref text)
@@ -215,7 +215,7 @@ defmodule Relay.Repo.Migrations.SealEventPayloadOverrides do
         WHERE a.tenant_id = v_tenant AND a.environment = v_env AND a.recipient_id = p_recipient_id
           AND a.state <> 'deleted';
       UPDATE relay.event_payloads p SET data_ct = NULL, metadata_ct = NULL, actor_ct = NULL,
-          overrides_ct = NULL, erased_at = COALESCE(p.erased_at, now()),
+          links_ct = NULL, overrides_ct = NULL, erased_at = COALESCE(p.erased_at, now()),
           erase_reason = COALESCE(p.erase_reason, 'subject_erasure')
         FROM relay.events e
         WHERE p.tenant_id = v_tenant AND p.environment = v_env

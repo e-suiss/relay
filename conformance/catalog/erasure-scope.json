@@ -321,9 +321,10 @@
         "metadata_ct",
         "actor_ct",
         "ce_attributes_ct",
+        "links_ct",
         "overrides_ct"
       ],
-      "subject_erasure": "data, metadata, actor and channel overrides of every event with a notification to the subject set to null",
+      "subject_erasure": "data, metadata, actor, links and channel overrides of every event with a notification to the subject set to null",
       "table": "event_payloads",
       "tenant_close": "tenant data key destroyed; row kept"
     },

@@ -41,7 +41,7 @@ defmodule Relay.Templates.Live.Store do
   end
 
   # TP-50
-  @doc "The render input of a delivery: its channel and state, the notification's recipient, sub-tenant, class and subtype, the event schema of the workflow version, the recipient's time zone and the sealed event data; `nil` when there is no such delivery."
+  @doc "The render input of a delivery: its channel and state, the notification's recipient, sub-tenant, class and subtype, the event schema of the workflow version, the recipient's time zone and the sealed event data and links; `nil` when there is no such delivery."
   @spec delivery(Relay.Id.t()) :: map() | nil
   def delivery(delivery_id) do
     one(
@@ -50,7 +50,7 @@ defmodule Relay.Templates.Live.Store do
         n.id AS notification_id, n.recipient_id, n.subtenant_id,
         n.message_class::text AS message_class, n.security_subtype::text AS security_subtype,
         v.event_schema, r.timezone, p.data_ct, p.key_id AS data_key_id,
-        p.erased_at AS data_erased_at
+        p.erased_at AS data_erased_at, p.links_ct
       FROM relay.deliveries d
       JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
         AND n.id = d.notification_id

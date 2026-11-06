@@ -6829,3 +6829,429 @@ WhatsappWebhookNotification:
       items:
         type: object
   additionalProperties: false
+Id_snd:
+  type: string
+  description: "Sender identity identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^snd_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - snd_01j9zq3k4m5n6p7q8r9s0t1v2w
+ProviderName:
+  type: string
+  description: "Adapter name of a provider, as its declaration names it."
+  pattern: "^[a-z][a-z0-9_]{1,31}$"
+ProviderAccountRole:
+  type: string
+  description: "Route role of a provider account (CH-13)."
+  enum:
+    - primary
+    - backup
+TransferBasis:
+  type: string
+  description: "Transfer basis of a provider that processes data outside the installation (CH-6)."
+  enum:
+    - none
+    - adequacy
+    - scc
+    - explicit_consent
+    - derogation
+CountryList:
+  type: array
+  description: "ISO 3166-1 alpha-2 countries where the provider processes the data (CH-6)."
+  maxItems: 16
+  uniqueItems: true
+  items:
+    type: string
+    pattern: "^[A-Z]{2}$"
+ProviderSettings:
+  type: object
+  description: "Non-secret provider settings, such as a sender number identifier or a region; a secret never goes here."
+  maxProperties: 64
+SecretView:
+  type: object
+  description: "A stored secret reference as it is shown: its fingerprint (HMAC-SHA256 under the installation's fingerprint key), version and state. The reference and the secret are never returned (INV-51)."
+  required:
+    - fingerprint
+    - version
+    - state
+  properties:
+    fingerprint:
+      type: string
+      pattern: "^[0-9a-f]{64}$"
+    version:
+      type: integer
+      minimum: 1
+    state:
+      type: string
+      enum:
+        - active
+        - retired
+  additionalProperties: false
+ProviderAccount:
+  type: object
+  description: "A provider account of a channel (C-45): its route role, verification, health, data residency and the fingerprint of its credential. Only a verified, active account receives traffic (CH-14)."
+  required:
+    - object
+    - id
+    - channel
+    - provider
+    - ownership
+    - role
+    - priority
+    - weight
+    - state
+    - traffic
+    - verification_state
+    - verified_at
+    - verification_rule_id
+    - health
+    - health_checked_at
+    - in_installation
+    - processing_countries
+    - transfer_basis
+    - scc_notified_on
+    - settings
+    - credential
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: provider_account
+    id:
+      "$ref": "#/Id_pva"
+    channel:
+      "$ref": "#/Channel"
+    provider:
+      "$ref": "#/ProviderName"
+    ownership:
+      type: string
+      enum:
+        - shared
+        - tenant
+    role:
+      "$ref": "#/ProviderAccountRole"
+    priority:
+      type: integer
+      minimum: 0
+      maximum: 99
+    weight:
+      type: integer
+      minimum: 0
+      maximum: 10000
+    state:
+      type: string
+      enum:
+        - active
+        - disabled
+        - archived
+    traffic:
+      type: string
+      enum:
+        - standard
+        - security
+    verification_state:
+      type: string
+      enum:
+        - unverified
+        - pending
+        - verified
+        - failed
+    verified_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    verification_rule_id:
+      oneOf:
+        - "$ref": "#/RuleId"
+        - type: "null"
+    health:
+      type: string
+      enum:
+        - unknown
+        - healthy
+        - degraded
+        - down
+    health_checked_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    in_installation:
+      type: boolean
+    processing_countries:
+      "$ref": "#/CountryList"
+    transfer_basis:
+      "$ref": "#/TransferBasis"
+    scc_notified_on:
+      oneOf:
+        - type: string
+          format: date
+        - type: "null"
+    settings:
+      "$ref": "#/ProviderSettings"
+    credential:
+      oneOf:
+        - "$ref": "#/SecretView"
+        - type: "null"
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+ProviderAccountList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/ProviderAccount"
+ProviderAccountPatch:
+  type: object
+  description: "JSON Merge Patch of the fields of a provider account that hold no secret. A provider outside the installation needs at least one processing country, and the scc basis needs its notification date (CH-6)."
+  properties:
+    role:
+      "$ref": "#/ProviderAccountRole"
+    priority:
+      type: integer
+      minimum: 0
+      maximum: 99
+    weight:
+      type: integer
+      minimum: 0
+      maximum: 10000
+    in_installation:
+      type: boolean
+    processing_countries:
+      "$ref": "#/CountryList"
+    transfer_basis:
+      "$ref": "#/TransferBasis"
+    scc_notified_on:
+      oneOf:
+        - type: string
+          format: date
+        - type: "null"
+    settings:
+      "$ref": "#/ProviderSettings"
+  additionalProperties: false
+SenderIdentityKind:
+  type: string
+  enum:
+    - email_domain
+    - email_address
+    - sms_sender
+    - phone_number
+    - whatsapp_number
+    - bot
+SenderIdentity:
+  type: object
+  description: "A sender identity of a provider account (C-25). Only an approved identity that is neither suspended nor archived is used to send."
+  required:
+    - object
+    - id
+    - provider_account_id
+    - subtenant_id
+    - channel
+    - kind
+    - value
+    - country
+    - approval_state
+    - suspended_at
+    - suspension_rule_id
+    - sms_type
+    - state
+    - archived_at
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: sender_identity
+    id:
+      "$ref": "#/Id_snd"
+    provider_account_id:
+      "$ref": "#/Id_pva"
+    subtenant_id:
+      oneOf:
+        - "$ref": "#/Id_stn"
+        - type: "null"
+    channel:
+      "$ref": "#/Channel"
+    kind:
+      "$ref": "#/SenderIdentityKind"
+    value:
+      type: string
+      minLength: 1
+      maxLength: 320
+    country:
+      oneOf:
+        - type: string
+          pattern: "^[A-Z]{2}$"
+        - type: "null"
+    approval_state:
+      type: string
+      enum:
+        - pending
+        - approved
+        - rejected
+    suspended_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    suspension_rule_id:
+      oneOf:
+        - "$ref": "#/RuleId"
+        - type: "null"
+    sms_type:
+      oneOf:
+        - type: string
+          enum:
+            - alphanumeric
+            - short_code
+            - long_number
+            - toll_free
+            - ten_dlc
+        - type: "null"
+    state:
+      type: string
+      enum:
+        - active
+        - archived
+    archived_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+SenderIdentityList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/SenderIdentity"
+SenderIdentityCreate:
+  type: object
+  required:
+    - provider_account_id
+    - kind
+    - value
+  properties:
+    provider_account_id:
+      "$ref": "#/Id_pva"
+    subtenant_id:
+      "$ref": "#/Id_stn"
+    kind:
+      "$ref": "#/SenderIdentityKind"
+    value:
+      type: string
+      minLength: 1
+      maxLength: 320
+    country:
+      type: string
+      pattern: "^[A-Z]{2}$"
+  additionalProperties: false
+SenderIdentityPatch:
+  type: object
+  description: "JSON Merge Patch of a sender identity; null clears the sub-tenant or the country."
+  properties:
+    subtenant_id:
+      oneOf:
+        - "$ref": "#/Id_stn"
+        - type: "null"
+    country:
+      oneOf:
+        - type: string
+          pattern: "^[A-Z]{2}$"
+        - type: "null"
+  additionalProperties: false
+ChannelIdentityKind:
+  type: string
+  enum:
+    - apns_key
+    - fcm_project
+    - hms_app
+    - vapid
+    - slack_app
+    - teams_bot
+    - telegram_bot
+    - discord_bot
+ChannelIdentity:
+  type: object
+  description: "A channel identity of a platform (C-26) with the fingerprint of its secret."
+  required:
+    - object
+    - id
+    - channel
+    - kind
+    - app_ref
+    - secret
+    - state
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: channel_identity
+    id:
+      "$ref": "#/Id_chi"
+    channel:
+      "$ref": "#/Channel"
+    kind:
+      "$ref": "#/ChannelIdentityKind"
+    app_ref:
+      type: string
+      minLength: 1
+      maxLength: 256
+    secret:
+      oneOf:
+        - "$ref": "#/SecretView"
+        - type: "null"
+    state:
+      type: string
+      enum:
+        - active
+        - retired
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+ChannelIdentityList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/ChannelIdentity"
+ChannelIdentityPatch:
+  type: object
+  description: "JSON Merge Patch of a channel identity."
+  properties:
+    app_ref:
+      type: string
+      minLength: 1
+      maxLength: 256
+  additionalProperties: false
+SecretRef:
+  type: string
+  description: "A secret reference, write-only: ${VAR} names an environment variable of the node, pkcs11:object=<label> a secret data object in the key store. A reference that carries a PIN or a password is refused (TN-26)."
+  minLength: 4
+  maxLength: 512
+  writeOnly: true

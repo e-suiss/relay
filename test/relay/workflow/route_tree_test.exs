@@ -413,9 +413,8 @@ defmodule Relay.Workflow.RouteTreeTest do
     defp cases, do: bind(node_of(3), &states/1)
 
     defp with_status(leaves, from, to) do
-      Map.new(leaves, fn
-        {pointer, %{status: status} = leaf} when status in from -> {pointer, %{leaf | status: to}}
-        other -> other
+      Map.new(leaves, fn {pointer, leaf} ->
+        if leaf.status in from, do: {pointer, %{leaf | status: to}}, else: {pointer, leaf}
       end)
     end
 

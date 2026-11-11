@@ -66,6 +66,7 @@ defmodule Relay.Workflow.ThrottleTest do
 
       assert {:ok, %{outcome: :allowed, rule_id: nil, count: 1}} = hit(scope, @step, "u1", "n1")
       assert {:ok, %{outcome: :allowed, count: 2}} = hit(scope, @step, "u1", "n2")
+
       assert {:ok, %{outcome: :limited, rule_id: "throttle.limited"}} =
                hit(scope, @step, "u1", "n3")
 

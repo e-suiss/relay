@@ -98,7 +98,8 @@ defmodule Relay.Workflow.DigestTest do
       assert {:ok, :not_open} = fire(ctx, window)
     end
 
-    test "WF-27: a window of one event hands over the event itself for its singular template", ctx do
+    test "WF-27: a window of one event hands over the event itself for its singular template",
+         ctx do
       [a | _] = ctx.ids
       {:ok, %{role: :anchor, window_id: window}} = add(ctx, a)
       advance!(ctx, @minutes_6)
@@ -106,7 +107,8 @@ defmodule Relay.Workflow.DigestTest do
       assert {:ok, {:single, %{notification_id: ^a}}} = fire(ctx, window)
     end
 
-    test "WF-26: with leading immediate the first event goes alone and the next one anchors", ctx do
+    test "WF-26: with leading immediate the first event goes alone and the next one anchors",
+         ctx do
       [a, b | _] = ctx.ids
       leading = %{step: Map.put(@sliding, "leading", "immediate")}
 
@@ -161,7 +163,8 @@ defmodule Relay.Workflow.DigestTest do
       assert {:ok, %{role: :anchor, fire_at: %DateTime{}}} = add(ctx, b, zoned)
     end
 
-    test "WF-30: past the density threshold the further events of the category are digested", ctx do
+    test "WF-30: past the density threshold the further events of the category are digested",
+         ctx do
       [a, b, c | _] = ctx.ids
 
       density = fn id ->

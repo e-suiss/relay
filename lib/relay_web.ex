@@ -13,7 +13,8 @@ defmodule RelayWeb do
       Relay.EmailReputation,
       Relay.Api,
       Relay.Access,
-      Relay.Operators
+      Relay.Operators,
+      Relay.Observability
     ],
     exports: [
       Endpoint,

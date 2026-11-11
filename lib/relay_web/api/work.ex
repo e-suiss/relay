@@ -8,8 +8,6 @@ defmodule RelayWeb.Api.Work do
   alias Relay.Api.Pagination
   alias RelayWeb.Api.Response
 
-  @traceparent ~r/\A00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}\z/
-
   @type answer :: {:ok, {100..599, [{String.t(), String.t()}], map()}} | {:error, Relay.Error.t()}
 
   @doc "The request context of the verified principal."
@@ -27,9 +25,11 @@ defmodule RelayWeb.Api.Work do
     }
   end
 
-  defp traceparent(conn) do
+  defp traceparent(conn), do: Relay.Trace.current() || incoming(conn)
+
+  defp incoming(conn) do
     case get_req_header(conn, "traceparent") do
-      [value | _] -> if Regex.match?(@traceparent, value), do: value
+      [value | _] -> if Relay.Trace.valid?(value), do: value
       [] -> nil
     end
   end

@@ -51,6 +51,7 @@ defmodule RelayWeb.Endpoint do
 
   plug Plug.RequestId, http_header: "request-id"
   plug RelayWeb.Plugs.Correlation
+  plug RelayWeb.Plugs.Trace
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Head

@@ -467,6 +467,12 @@ defmodule RelayWeb.Router do
     get "/brand", BrandController, :show, private: %{relay_operation: "getBrand"}
     patch "/brand", BrandController, :update, private: %{relay_operation: "updateBrand"}
 
+    get "/delivery_windows", DeliveryWindowsController, :show,
+      private: %{relay_operation: "getDeliveryWindows"}
+
+    put "/delivery_windows", DeliveryWindowsController, :replace,
+      private: %{relay_operation: "replaceDeliveryWindows"}
+
     get "/event_type_mappings", MappingController, :index,
       private: %{relay_operation: "listEventTypeMappings"}
 

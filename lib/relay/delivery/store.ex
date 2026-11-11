@@ -289,6 +289,15 @@ defmodule Relay.Delivery.Store do
     end
   end
 
+  # DS-4 (3)
+  # OP-3
+  @doc "Fills the failure source of up to `limit` deliveries of the established scope after `after_id` from their ledger, where the stored projection has none and the ledger names one."
+  @spec failure_actor_backfill(Relay.Id.t() | nil, pos_integer()) :: map()
+  def failure_actor_backfill(after_id, limit) do
+    [row] = Repo.call!("relay_fn.delivery_failure_actor_backfill", [after_id, limit])
+    %{scanned: row["scanned"], updated: row["updated"], last_id: row["last_id"]}
+  end
+
   # DS-18
   # TN-13 (4)
   @doc "Lists the scopes that have an accepted delivery older than `min_age_ms` waiting for a window, through the discovery escape hatch; identifiers only."

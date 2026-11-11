@@ -25,6 +25,11 @@ defmodule Relay.Delivery do
 
   @type result(value) :: {:ok, value} | {:error, term()}
   @type tombstone :: :cancelled | :already_sent | :none | :terminal | :not_found
+  @type backfill_step :: %{
+          scanned: non_neg_integer(),
+          updated: non_neg_integer(),
+          last_id: Relay.Id.t() | nil
+        }
   @type window_move :: %{
           delivery_id: Relay.Id.t(),
           channel: String.t(),
@@ -566,6 +571,14 @@ defmodule Relay.Delivery do
   @spec advance_windows(Scope.t(), [map()], pos_integer()) :: result([window_move()])
   def advance_windows(scope, windows, limit) when is_list(windows) and is_integer(limit),
     do: Store.in_scope(scope, fn _status -> Store.windows_advance(windows, limit) end)
+
+  # DS-4 (3)
+  # OP-3
+  @doc "Fills the failure source of up to `limit` deliveries of a scope after `after_id` (`nil` starts at the first) from their ledger, so a projection written before the source was kept rebuilds without a difference. Returns how many were scanned and updated and the last identifier scanned."
+  @spec backfill_failure_actors(Scope.t(), Relay.Id.t() | nil, pos_integer()) ::
+          result(backfill_step())
+  def backfill_failure_actors(scope, after_id, limit) when is_integer(limit) and limit > 0,
+    do: Store.in_scope(scope, fn _status -> Store.failure_actor_backfill(after_id, limit) end)
 
   # DS-18
   # TN-13 (4)

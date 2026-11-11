@@ -142,6 +142,7 @@
   {"file": "20261204000300_extend_delivery_projection_axes.exs", "sha256": "dba7ba4140f3bcf4b3c0dff16e9a69a00f81f725a5525669f7a5de90237000c2"},
   {"file": "20261204000400_validate_delivery_window_and_engagement_checks.exs", "sha256": "7aa134b668734dd1cdfdaee2d9ac685d562e0c1b49bbf5d9ff003f9095908c7e"},
   {"file": "20261204000500_register_delivery_windows.exs", "sha256": "e82bf4e732dba8501ce2e22033f6cbd3609001fa4d26ead32cb2b3af729cf41d"},
+  {"file": "20261204600000_create_delivery_ledger_followups.exs", "sha256": "183e9c37874aa76090a81f41a1c2bbbc6ab2a9e9c7db0ecac61848b3166dcb76"},
   {"file": "20261205000100_register_reconciliation_dataset.exs", "sha256": "fd79e460e8135ea755f7ca304745daeb05f6533ac7a3315301a29b090b9ea2ab"},
   {"file": "20261205000200_create_reconciliation_scopes.exs", "sha256": "1a626c90f149d40985960e8786682a2d854090080e5b6f4abaabedfa23ec5bed"},
   {"file": "20261205000300_index_open_deliveries.exs", "sha256": "873e87dceff2f184038ea9639f7f2d384a6749dc2d502a6be87bc3536d72ba0d"},

@@ -460,6 +460,48 @@ defmodule Relay.Delivery.Store do
     )
   end
 
+  # DS-30
+  # DS-52
+  @doc "What the engagement of a delivery is classified with: its channel, delivery rank and acceptance time, the occurrence of its first provider delivery evidence (`delivered_at`, or `nil`) and its clicks that occurred since `since` as `{link, occurred_at}` in occurrence order; `nil` when there is no such delivery."
+  @spec engagement(Relay.Id.t(), DateTime.t()) :: map() | nil
+  def engagement(delivery_id, since) do
+    sql = """
+    SELECT tenant_id, environment, id, channel::text AS channel, delivery_rank, accepted_at
+    FROM relay.deliveries WHERE id = $1
+    """
+
+    case one(sql, [delivery_id]) do
+      nil -> nil
+      delivery -> Map.merge(delivery, engagement_events(delivery_id, since))
+    end
+  end
+
+  defp engagement_events(delivery_id, since) do
+    sql = """
+    SELECT tenant_id, environment, event_type, occurred_at, detail ->> 'link' AS link
+    FROM relay.delivery_events
+    WHERE delivery_id = $1 AND ((event_type = 'engagement.clicked' AND occurred_at >= $2)
+      OR (actor IN ('provider_webhook', 'provider_api')
+        AND detail -> 'effect' ->> 'delivery_rank' = '2'))
+    ORDER BY occurred_at, id
+    """
+
+    rows = all(sql, [delivery_id, since])
+    {clicks, delivered} = Enum.split_with(rows, &(&1["event_type"] == "engagement.clicked"))
+
+    %{
+      "delivered_at" => Enum.find_value(delivered, & &1["occurred_at"]),
+      "clicks" => Enum.flat_map(clicks, &click/1)
+    }
+  end
+
+  defp click(%{"link" => link, "occurred_at" => at}) do
+    case Integer.parse(link || "") do
+      {n, ""} -> [{n, at}]
+      _other -> []
+    end
+  end
+
   @doc "Reads the ledger of a delivery in receive order."
   @spec ledger(Relay.Id.t()) :: [map()]
   def ledger(delivery_id) do

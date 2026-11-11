@@ -498,6 +498,13 @@ defmodule Relay.Delivery do
   defp text(nil), do: nil
   defp text(value), do: to_string(value)
 
+  # DS-30
+  # DS-52
+  @doc "Reads what the engagement of a delivery is classified with; see `Relay.Delivery.Store.engagement/2`."
+  @spec engagement(Scope.t(), Relay.Id.t(), DateTime.t()) :: result(map() | nil)
+  def engagement(scope, delivery_id, since),
+    do: Store.in_scope(scope, fn _status -> Store.engagement(delivery_id, since) end)
+
   @doc "Reads the ledger of a delivery."
   @spec ledger(Scope.t(), Relay.Id.t()) :: result([map()])
   def ledger(scope, delivery_id),

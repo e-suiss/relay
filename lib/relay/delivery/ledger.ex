@@ -10,7 +10,8 @@ defmodule Relay.Delivery.Ledger do
              delivery.paused delivery.resumed delivery.held delivery.expired
              delivery.dead_lettered delivery.replay_opened delivery.uncertain
              provider.reported
-             attempt.started attempt.succeeded attempt.failed attempt.unknown)
+             attempt.started attempt.succeeded attempt.failed attempt.unknown
+             engagement.opened engagement.clicked)
   @failure_kinds [:skipped, :failed, :bounced, :expired, :cancelled]
   @after_delivered [:valid, :stale, :conflict]
   @ranks %{none: 0, accepted: 1, delivered: 2}

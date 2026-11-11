@@ -7350,3 +7350,55 @@ WorkflowTestRequest:
     metadata:
       "$ref": "#/Metadata"
   additionalProperties: false
+EmailTracking:
+  type: object
+  description: "The tenant's open and click tracking of a category's or template's e-mails (CH-43, DS-29, DS-32)."
+  additionalProperties: false
+  required:
+    - object
+    - target
+    - key
+    - open_pixel
+    - wrap_links
+    - trackable
+    - warnings
+  properties:
+    object:
+      type: string
+      enum:
+        - email_tracking
+    target:
+      type: string
+      enum:
+        - category
+        - template
+    key:
+      type: string
+      maxLength: 100
+    open_pixel:
+      type: boolean
+      description: "The open pixel is appended to the HTML part."
+    wrap_links:
+      type: boolean
+      description: "The HTML part's links lead through Relay's click redirect, which classifies each click as human or likely_bot."
+    trackable:
+      type: boolean
+      description: "false for the security class, whose e-mails are never tracked."
+    warnings:
+      type: array
+      maxItems: 1
+      items:
+        type: string
+        enum:
+          - open_pixel_unreliable
+EmailTrackingWrite:
+  type: object
+  additionalProperties: false
+  required:
+    - open_pixel
+    - wrap_links
+  properties:
+    open_pixel:
+      type: boolean
+    wrap_links:
+      type: boolean

@@ -759,12 +759,30 @@ defmodule Relay.Channels.Live do
       test?: ctx.scope.environment == :test,
       overrides: ctx.overrides,
       push: Map.get(ctx, :push),
-      update: update(ctx, account, target)
+      update: update(ctx, account, target),
+      tracking: tracking(ctx)
     }
 
     extra = ctx |> Map.get(:extra, %{}) |> Map.delete(:segments)
     Relay.Channels.request(Map.merge(fields, extra))
   end
+
+  # CH-43
+  # DS-29
+  defp tracking(%{delivery: %{"channel" => "email"} = delivery, scope: scope}) do
+    category = delivery["category_key"] || delivery["category"]
+    keys = Relay.Channels.email_tracking_keys(category, delivery["template_key"])
+
+    settings =
+      case Store.in_scope(scope, fn _ -> Store.settings(keys) end) do
+        {:ok, settings} -> settings
+        {:error, _reason} -> %{}
+      end
+
+    Relay.Channels.email_tracking(delivery, settings)
+  end
+
+  defp tracking(_ctx), do: nil
 
   # CH-23
   defp update(ctx, %{"provider" => provider}, %{id: <<_::128>> = target_id})

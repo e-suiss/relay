@@ -11,9 +11,13 @@ defmodule Relay.Channels do
   alias Relay.Channels.Adapter
   alias Relay.Channels.Ambiguity
   alias Relay.Channels.Breaker
+  alias Relay.Channels.Email
   alias Relay.Channels.Email.Bounce
+  alias Relay.Channels.Email.ClickSignals
   alias Relay.Channels.Email.Event
   alias Relay.Channels.Email.Intake
+  alias Relay.Channels.Email.Tracking
+  alias Relay.Channels.Email.Verp
   alias Relay.Channels.Inbound
   alias Relay.Channels.Limits
   alias Relay.Channels.Outcome
@@ -840,6 +844,57 @@ defmodule Relay.Channels do
   @doc "Builds the request of one provider call; see `Relay.Channels.Request`."
   @spec request(map()) :: Request.t()
   def request(%{} = fields), do: struct!(Request, fields)
+
+  # DS-29
+  @doc "The setting keys of the open and click tracking of a category and a template; see `Relay.Channels.Email.Tracking.setting_keys/2`."
+  @spec email_tracking_keys(String.t() | nil, String.t() | nil) :: [String.t()]
+  def email_tracking_keys(category, template),
+    do: Tracking.setting_keys(category, template)
+
+  # DS-29
+  @doc "The setting key of the tracking of a `category` or `template` key; see `Relay.Channels.Email.Tracking.setting_key/2`."
+  @spec email_tracking_key(String.t(), String.t()) :: String.t()
+  def email_tracking_key(target, key), do: Tracking.setting_key(target, key)
+
+  # CH-43
+  # CH-44
+  # DS-29
+  @doc "The tracking plan of an e-mail delivery (`message_class`, `security_subtype`, `category_key` or `category`, `template_key`) under the tenant's tracking settings: nothing on for the `security` class or a security subtype, whatever the setting."
+  @spec email_tracking(map(), %{String.t() => term()}) :: Tracking.plan()
+  def email_tracking(delivery, settings) do
+    category = delivery["category_key"] || delivery["category"]
+    message = %{
+      class: delivery["message_class"] || "",
+      security_subtype: delivery["security_subtype"]
+    }
+
+    settings
+    |> Tracking.configured(category, delivery["template_key"])
+    |> Map.merge(message)
+    |> Tracking.plan()
+  end
+
+  # CH-43
+  @doc "Reads and verifies a tracking token of `kind` under its tenant environment's tracking key in the key store; see `Relay.Channels.Email.Tracking.read/3`."
+  @spec read_tracking_token(String.t(), :open | :click) ::
+          {:ok, Tracking.decoded()} | {:error, :invalid | Relay.Error.t()}
+  def read_tracking_token(token, kind) do
+    Tracking.read(token, kind, &Verp.key_function(Email.tracking_key_label(&1)))
+  end
+
+  # DS-30
+  # DS-52
+  @doc "Classifies an e-mail click; see `Relay.Channels.Email.ClickSignals.classify/4`."
+  @spec classify_click(map(), map(), pos_integer(), map()) ::
+          {:human | :likely_bot, String.t() | nil}
+  def classify_click(signals, request, link, history),
+    do: ClickSignals.classify(signals, request, link, history)
+
+  # DS-32
+  @doc "Whether an e-mail open is a machine open; see `Relay.Channels.Email.ClickSignals.machine_open/2`."
+  @spec machine_open(map(), map()) :: {boolean(), String.t() | nil}
+  def machine_open(signals, request),
+    do: ClickSignals.machine_open(signals, request)
 
   # CH-7
   @doc "A failed outcome of a class with a raw code, for a call Relay could not make or classify; a `transient` one has the `server_error` condition."

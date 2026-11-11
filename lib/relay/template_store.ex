@@ -596,6 +596,30 @@ defmodule Relay.TemplateStore do
     code(row, [:created, :updated, :unchanged, :cleared, :version_conflict, :subtenant_not_found])
   end
 
+  # DS-29
+  @doc "The value of a tenant-level setting, `nil` when it is not set."
+  @spec tenant_setting(String.t()) :: term()
+  def tenant_setting(key) do
+    sql = """
+    SELECT s.tenant_id, s.environment::text AS environment, s.value FROM relay.settings s
+    WHERE s.subtenant_id IS NULL AND s.key = $1
+    """
+
+    case one(sql, [key]) do
+      nil -> nil
+      row -> row["value"]
+    end
+  end
+
+  # DS-29
+  @doc "Sets or clears (`nil`) a tenant-level setting; the key and value are checked by the caller."
+  @spec tenant_setting_put(String.t(), term(), digest(), Actor.t()) :: atom()
+  def tenant_setting_put(key, value, digest, %Actor{} = actor) do
+    params = [nil, key, value, nil, digest | Actor.params(actor)]
+    [row] = Repo.call!("relay_fn.setting_set", params)
+    code(row, [:created, :updated, :unchanged, :cleared, :version_conflict, :subtenant_not_found])
+  end
+
   @doc "The brand field names."
   @spec brand_fields() :: [String.t()]
   def brand_fields, do: @brand_fields

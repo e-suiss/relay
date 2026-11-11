@@ -36,7 +36,8 @@ config :relay, Relay.Platform.Leadership,
     {"load_shed_controller", Relay.Platform.LoadShed.Controller, []},
     {"kill_switch_paused_expiry", Relay.Tenancy.KillSwitch.Expiry, []},
     {"access_link_refresh", Relay.Access.Refresh, []},
-    {"tenant_suspension_activator", Relay.Operators.SuspensionActivator, []}
+    {"tenant_suspension_activator", Relay.Operators.SuspensionActivator, []},
+    {"observability_rollup", Relay.Observability.Rollup, []}
   ]
 
 config :relay, Relay.Audit,
@@ -59,7 +60,11 @@ config :relay, Oban,
        {"*/5 * * * *", Relay.Delivery.WindowSweep},
        {"17 * * * *", Relay.Devices.Sweep},
        {"20 0 * * *", Relay.Delivery.UsageDay},
-       {"41 * * * *", Relay.Channels.Live.SettingsSweep}
+       {"13 * * * *", Relay.Delivery.ReportRollup},
+       {"40 2 * * *", Relay.Delivery.ReportRollup, args: %{"days" => 15}},
+       {"41 * * * *", Relay.Channels.Live.SettingsSweep},
+       {"*/5 * * * *", Relay.Channels.Live.ReconcileSweep},
+       {"* * * * *", Relay.Channels.Live.SesQueue}
      ]}
   ]
 

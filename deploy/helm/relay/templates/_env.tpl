@@ -15,6 +15,10 @@
   value: {{ required "database.maintUrl is required" .Values.database.maintUrl | quote }}
 - name: MAINT_DATABASE_PASSWORD_FILE
   value: /run/secrets/relay/maint-database-password
+- name: REPORT_DATABASE_URL
+  value: {{ required "database.reportUrl is required" .Values.database.reportUrl | quote }}
+- name: REPORT_DATABASE_PASSWORD_FILE
+  value: /run/secrets/relay/report-database-password
 - name: POOL_SIZE
   value: {{ .Values.database.poolSize | quote }}
 - name: VALKEY_URL
@@ -31,6 +35,8 @@
   value: "4000"
 - name: METRICS_PORT
   value: {{ required "metrics.port is required" .Values.metrics.port | quote }}
+- name: OTEL_EXPORTER_OTLP_ENDPOINT
+  value: {{ .Values.metrics.otlpEndpoint | quote }}
 - name: PKCS11_MODULE
   value: {{ required "keyStore.module is required" .Values.keyStore.module | quote }}
 - name: PKCS11_TOKEN

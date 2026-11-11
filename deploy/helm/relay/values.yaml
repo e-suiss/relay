@@ -10,6 +10,7 @@ database:
   url: ""
   queueUrl: ""
   maintUrl: ""
+  reportUrl: ""
   migratorUrl: ""
   adminUrl: ""
   passwordSecret: relay-database
@@ -26,6 +27,7 @@ secretKeyBaseSecret: relay-secret-key-base
 
 metrics:
   port: 9568
+  otlpEndpoint: ""
 
 auditStore:
   endpoint: ""

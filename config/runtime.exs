@@ -11,6 +11,11 @@ if config_env() == :prod do
     configure: {Relay.Config.SecretFiles, :configure, [:maint_repo]},
     pool_size: 2
 
+  config :relay, Relay.ReportRepo,
+    url: Relay.Config.Env.database_url!("REPORT_DATABASE_URL"),
+    configure: {Relay.Config.SecretFiles, :configure, [:report_repo]},
+    pool_size: 4
+
   config :relay, Relay.Keys.Port,
     module: Relay.Config.Env.fetch!("PKCS11_MODULE"),
     token: Relay.Config.Env.fetch!("PKCS11_TOKEN"),
@@ -56,9 +61,12 @@ if config_env() == :prod do
     ip: {0, 0, 0, 0, 0, 0, 0, 0},
     port: Relay.Config.Env.integer!("METRICS_PORT")
 
+  config :relay, Relay.Trace, endpoint: System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT")
+
   config :relay, Relay.Config.SecretFiles,
     repo: Relay.Config.Env.fetch!("DATABASE_PASSWORD_FILE"),
     maint_repo: Relay.Config.Env.fetch!("MAINT_DATABASE_PASSWORD_FILE"),
+    report_repo: Relay.Config.Env.fetch!("REPORT_DATABASE_PASSWORD_FILE"),
     audit_s3: Relay.Config.Env.fetch!("AUDIT_S3_SECRET_ACCESS_KEY_FILE"),
     secret_key_base: Relay.Config.Env.fetch!("SECRET_KEY_BASE_FILE")
 

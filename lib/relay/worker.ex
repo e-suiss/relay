@@ -1,6 +1,6 @@
 defmodule Relay.Worker do
   @moduledoc """
-  Base of every Relay job worker. `use Relay.Worker` takes the `Oban.Worker` options plus `:timeout`, a literal number of milliseconds that defaults to and may not exceed one hour; the worker's `timeout/1` is fixed to that value and cannot be overridden. A job that needs longer is split into smaller jobs, and a long wait is a row with a timer, not a running job.
+  Base of every Relay job worker. `use Relay.Worker` takes the `Oban.Worker` options plus `:timeout`, a literal number of milliseconds that defaults to and may not exceed one hour; the worker's `timeout/1` is fixed to that value and cannot be overridden, and `new/2` adds the current trace context and correlation id to the job's metadata (`Relay.Trace.Jobs`). A job that needs longer is split into smaller jobs, and a long wait is a row with a timer, not a running job.
 
       defmodule Relay.Delivery.SendWorker do
         use Relay.Worker, queue: :l1, max_attempts: 10, timeout: 30_000
@@ -42,6 +42,10 @@ defmodule Relay.Worker do
 
       @impl Oban.Worker
       def timeout(%Oban.Job{}), do: unquote(timeout)
+
+      @impl Oban.Worker
+      def new(args, opts) when is_map(args) and is_list(opts),
+        do: super(args, Relay.Trace.job_opts(opts))
 
       @doc false
       def __relay_worker__, do: true

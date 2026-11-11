@@ -4,6 +4,7 @@ database:
   url: ecto://relay_worker@postgres:5432/relay
   queueUrl: ecto://relay_queue@postgres:5432/relay
   maintUrl: ecto://relay_maint@postgres:5432/relay
+  reportUrl: ecto://relay_report@postgres:5432/relay
   migratorUrl: ecto://relay_migrator@postgres:5432/relay
   adminUrl: ecto://relay@postgres:5432/relay
 valkey:

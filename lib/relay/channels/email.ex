@@ -5,7 +5,7 @@ defmodule Relay.Channels.Email do
     * The sender identity is the stream configuration of the provider account (`Relay.Channels.Email.Streams`): the request's `sender` when the route gives one, otherwise the account's `settings`, read by the message class and the content's optional `"category"`. The `system` class has no e-mail stream. The delivery's `overrides.email.from` (`Request` `overrides`), checked against the verified sender identities at intake and again by the channel step, replaces the stream's from address; the sending domain, DKIM selector and return path stay the stream's (API-23).
     * The header fields are those of `Relay.Channels.Email.Headers`: `Feedback-ID` (`<campaign>:<category>:<tenant>:<sender>`) on every e-mail, and on a bulk one `List-Unsubscribe` and `List-Unsubscribe-Post` from the content's `"unsubscribe"` (`"https"` and `"mailto"`); a bulk e-mail without them is refused.
     * The envelope sender is the VERP return path of the delivery under the stream's return path domain (`Relay.Channels.Email.Verp`), its tag computed inside the key store under the tenant environment's VERP key (`verp_key_label/1`).
-    * The subject, plain text and HTML are passed as the renderer wrote them: Relay wraps no link and adds no pixel, so a link the sender wrote, Access's `email_verification` link among them, reaches the recipient unchanged, and a `security` e-mail has no tracking and no redirect chain.
+    * The subject, plain text and HTML are passed as the renderer wrote them unless the request's `tracking` plan turns on link wrapping or the open pixel, which only the tenant does for a category or template (`Relay.Channels.Email.Tracking`, CH-43, DS-29): then the HTML part's links lead through Relay's click endpoint and an open pixel is appended, signed under the tenant environment's tracking key (`tracking_key_label/1`). Without a plan a link the sender wrote, Access's `email_verification` link among them, reaches the recipient unchanged, and a `security` e-mail never has tracking or a redirect chain.
     * An address that needs SMTPUTF8 is never refused: the message is marked for it, and a provider without support fails with the `permanent_content` error `smtputf8_unsupported`.
     * `render/2` writes the message with Swoosh and signs it with DKIM (`Relay.Channels.Email.Dkim`) inside the key store under the key of the stream's domain and selector (`dkim_key_label/3`); every field Relay adds is inside `h=`.
   """
@@ -15,6 +15,7 @@ defmodule Relay.Channels.Email do
   alias Relay.Channels.Email.Mime
   alias Relay.Channels.Email.Smtputf8
   alias Relay.Channels.Email.Streams
+  alias Relay.Channels.Email.Tracking
   alias Relay.Channels.Email.Verp
   alias Relay.Channels.Request
   alias Relay.Error
@@ -78,11 +79,39 @@ defmodule Relay.Channels.Email do
     )
   end
 
+  # CH-43
+  # TN-63
+  @doc "The key store label of the open and click tracking key of a tenant environment."
+  @spec tracking_key_label(Scope.t()) :: Relay.Keys.label()
+  def tracking_key_label(%Scope{} = scope) do
+    Enum.join(
+      [
+        "relay-tracking",
+        Relay.Id.to_string(scope.tenant_id),
+        Relay.Environment.dump(scope.environment)
+      ],
+      "/"
+    )
+  end
+
+  # CH-43
+  @doc "Relay's public root, where the tracking endpoints are served: the scheme, host and port of the endpoint's configured URL."
+  @spec public_root() :: String.t()
+  def public_root do
+    url = :relay |> Application.get_env(RelayWeb.Endpoint, []) |> Keyword.get(:url, [])
+    scheme = Keyword.get(url, :scheme, "https")
+    port = Keyword.get(url, :port)
+    default? = port == nil or {scheme, port} in [{"https", 443}, {"http", 80}]
+    root = scheme <> "://" <> Keyword.get(url, :host, "localhost")
+    if default?, do: root, else: root <> ":" <> Integer.to_string(port)
+  end
+
   # CH-35
   # CH-38
+  # CH-43
   # CH-45
   @doc """
-  Prepares the e-mail of a request: the sender identity of its stream, the recipient, the rendered parts unchanged, the header fields, the VERP return path and the `Message-ID`. `opts` takes `:smtputf8`, whether the provider supports SMTPUTF8 (default `false`), and `:mac`, the VERP key function (default: the tenant environment's VERP key in the key store).
+  Prepares the e-mail of a request: the sender identity of its stream, the recipient, the rendered parts (with the request's tracking plan applied to the HTML part), the header fields, the VERP return path and the `Message-ID`. `opts` takes `:smtputf8`, whether the provider supports SMTPUTF8 (default `false`), `:mac`, the VERP key function (default: the tenant environment's VERP key in the key store), `:tracking_mac`, the tracking key function (default: the tenant environment's tracking key), and `:tracking_root` (default `public_root/0`).
   """
   @spec prepare(Request.t(), keyword()) :: {:ok, prepared()} | {:error, Error.t()}
   def prepare(%Request{} = request, opts \\ []) do
@@ -93,6 +122,8 @@ defmodule Relay.Channels.Email do
     with {:ok, sender} <- sender(config(request), class, text(content, "category")),
          sender = from_override(sender, request),
          {:ok, parts} <- parts(content),
+         {:ok, html} <- tracked(request, parts.html, opts),
+         parts = %{parts | html: html},
          {:ok, to} <- recipient(request),
          {:ok, return_path} <- Verp.encode(request.delivery_id, sender.return_path_domain, mac),
          {:ok, headers} <- headers(request, class, content, return_path),
@@ -118,6 +149,19 @@ defmodule Relay.Channels.Email do
        })}
     end
   end
+
+  # CH-44
+  # DS-29
+  defp tracked(%Request{message_class: "security"}, html, _opts), do: {:ok, html}
+
+  defp tracked(%Request{tracking: %{} = plan} = request, html, opts) do
+    root = Keyword.get_lazy(opts, :tracking_root, &public_root/0)
+    label = tracking_key_label(request.scope)
+    mac = Keyword.get_lazy(opts, :tracking_mac, fn -> Verp.key_function(label) end)
+    Tracking.instrument(html, plan, {request.scope, request.delivery_id}, {root, mac})
+  end
+
+  defp tracked(_request, html, _opts), do: {:ok, html}
 
   # API-23
   defp from_override(sender, %Request{overrides: %{"from" => from}})

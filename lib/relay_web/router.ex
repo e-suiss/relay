@@ -43,6 +43,24 @@ defmodule RelayWeb.Router do
     }
   end
 
+  pipeline :downloads do
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" => "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+      "cache-control" => "no-store",
+      "referrer-policy" => "no-referrer",
+      "x-robots-tag" => "noindex"
+    }
+  end
+
+  pipeline :tracking do
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" => "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+      "cache-control" => "no-store",
+      "referrer-policy" => "no-referrer",
+      "x-robots-tag" => "noindex"
+    }
+  end
+
   scope "/", RelayWeb do
     pipe_through :api
 
@@ -60,9 +78,30 @@ defmodule RelayWeb.Router do
     post "/:token", LinkController, :create
   end
 
+  # DS-37
+  scope "/exports", RelayWeb do
+    pipe_through :downloads
+
+    get "/:token", ExportDownloadController, :show
+  end
+
+  # CH-43
+  # CH-44
+  # DS-30
+  # DS-32
+  scope "/e", RelayWeb do
+    pipe_through :tracking
+
+    get "/c/:token", TrackingController, :click
+    get "/o/:token", TrackingController, :open
+  end
+
   # CH-62
   # WH-49
   scope "/inbound/v1", RelayWeb do
+    post "/providers/:provider_account_id", ProviderWebhookController, :create,
+      private: %{relay_operation: "receiveProviderWebhook"}
+
     post "/:channel/:tenant/:environment/:identity", InboundController, :create,
       private: %{relay_operation: "receiveMessagingInbound"}
   end
@@ -199,6 +238,28 @@ defmodule RelayWeb.Router do
     post "/provider_accounts/:provider_account_id/verify", ChannelController, :verify_account,
       private: %{relay_operation: "verifyProviderAccount"}
 
+    get "/provider_invoices", ProviderInvoiceController, :index,
+      private: %{relay_operation: "listProviderInvoices"}
+
+    post "/provider_invoices", ProviderInvoiceController, :create,
+      private: %{relay_operation: "createProviderInvoice"}
+
+    get "/provider_invoices/:provider_invoice_id", ProviderInvoiceController, :show,
+      private: %{relay_operation: "getProviderInvoice"}
+
+    get "/reports/deliveries", ReportController, :deliveries,
+      private: %{relay_operation: "getDeliveryReport"}
+
+    get "/reports/skips", ReportController, :skips, private: %{relay_operation: "getSkipReport"}
+
+    get "/reports/costs", ReportController, :costs, private: %{relay_operation: "getCostReport"}
+
+    get "/exports", ExportController, :index, private: %{relay_operation: "listExports"}
+
+    post "/exports", ExportController, :create, private: %{relay_operation: "createExport"}
+
+    get "/exports/:export_id", ExportController, :show, private: %{relay_operation: "getExport"}
+
     get "/sender_identities", ChannelController, :senders,
       private: %{relay_operation: "listSenderIdentities"}
 
@@ -246,6 +307,24 @@ defmodule RelayWeb.Router do
 
     put "/categories/:category_key/subtenants/:subtenant_id", CategoryController, :put_setting,
       private: %{relay_operation: "replaceCategorySubtenantSetting"}
+
+    get "/categories/:category_key/email_tracking", EmailTrackingController, :show,
+      private: %{relay_operation: "getCategoryEmailTracking", relay_target: "category"}
+
+    put "/categories/:category_key/email_tracking", EmailTrackingController, :replace,
+      private: %{relay_operation: "replaceCategoryEmailTracking", relay_target: "category"}
+
+    get "/templates/:template_key/email_tracking", EmailTrackingController, :show,
+      private: %{relay_operation: "getTemplateEmailTracking", relay_target: "template"}
+
+    put "/templates/:template_key/email_tracking", EmailTrackingController, :replace,
+      private: %{relay_operation: "replaceTemplateEmailTracking", relay_target: "template"}
+
+    post "/email_reports", EmailReportController, :create,
+      private: %{relay_operation: "uploadEmailReport"}
+
+    get "/email_reports/summary", EmailReportController, :summary,
+      private: %{relay_operation: "getEmailReportSummary"}
 
     get "/suppressions", SuppressionController, :index,
       private: %{relay_operation: "listSuppressions"}
@@ -453,6 +532,9 @@ defmodule RelayWeb.Router do
 
     delete "/subscriber/devices/:device_id", DeviceController, :delete_mine,
       private: %{relay_operation: "deleteMyDevice"}
+
+    post "/subscriber/push_receipts", ReceiptController, :create_mine,
+      private: %{relay_operation: "recordMyPushReceipt"}
 
     get "/subscriber/test_recipients", TesterController, :mine,
       private: %{relay_operation: "listMyTestRecipients"}

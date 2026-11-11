@@ -2,6 +2,10 @@ defmodule RelayWeb.MetricsTest do
   use RelayWeb.ConnCase, async: false
 
   @rules "deploy/observability/alerts.yaml"
+  @runbooks "deploy/observability/runbooks.md"
+  @runbook_base "https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#"
+  @reconciliation ~w(relay_reconciliation_drift_total relay_reconciliation_lag_milliseconds)
+  @forbidden [:message_id, :campaign_id, :template_id, :recipient, :user, :device, :token, :pid]
 
   @events [
     {[:relay, :partition, :horizon_alarm], %{count: 1}, %{table: "delivery_events"},
@@ -55,20 +59,27 @@ defmodule RelayWeb.MetricsTest do
   end
 
   describe "OP-69 alarms" do
-    test "OP-69: every stage 1 alarm metric has an alert rule and every rule reads an alarm metric" do
+    test "OP-69: every alarm metric has an alert rule" do
       names = Enum.map(RelayWeb.Telemetry.alarm_metrics(), &prometheus_name/1)
-      exprs = Enum.map(rules(), & &1["expr"])
+      exprs = for rule <- rules(), rule["alert"], do: rule["expr"]
 
       for name <- names, do: assert(Enum.any?(exprs, &(&1 =~ ~r/\b#{name}\b/)), name)
+    end
 
-      for expr <- exprs,
-          do: assert(Enum.any?(names, &(expr =~ ~r/\b#{&1}\b/)), expr)
+    test "OP-37: every alert reads an exported or recorded metric and links its runbook" do
+      exported = Enum.map(RelayWeb.Telemetry.exported_metrics(), &prometheus_name/1)
+      recorded = for rule <- rules(), rule["record"], uniq: true, do: rule["record"]
+      names = exported ++ recorded ++ @reconciliation ++ ["ALERTS"]
+      runbooks = File.read!(@runbooks)
 
-      assert length(names) == length(Enum.uniq(names))
+      assert length(exported) == length(Enum.uniq(exported))
 
-      for rule <- rules() do
-        assert rule["labels"]["severity"] in ["page", "warning"], rule["alert"]
-        assert rule["labels"]["decision"] =~ ~r/^[A-Z]+-\d+$/, rule["alert"]
+      for %{"alert" => alert} = rule <- rules() do
+        assert Enum.any?(names, &(rule["expr"] =~ ~r/\b#{Regex.escape(&1)}(_bucket)?\b/)), alert
+        assert rule["labels"]["severity"] in ["page", "warning", "ticket"], alert
+        assert rule["labels"]["decision"] =~ ~r/^[A-Z]+-\d+$/, alert
+        assert rule["annotations"]["runbook_url"] == @runbook_base <> String.downcase(alert)
+        assert runbooks =~ ~r/^## #{alert}$/m, alert
       end
     end
 
@@ -132,6 +143,20 @@ defmodule RelayWeb.MetricsTest do
     test "T-63: alarm metric tags come from bounded sets" do
       for metric <- RelayWeb.Telemetry.alarm_metrics(),
           do: assert(metric.tags -- [:table, :task, :kind, :component, :check] == [], metric.name)
+    end
+
+    test "OP-35: no metric carries a forbidden label and only a counter carries the tenant" do
+      metrics = RelayWeb.Telemetry.exported_metrics()
+
+      for metric <- metrics do
+        assert metric.tags -- @forbidden == metric.tags, inspect(metric.name)
+
+        if :tenant in metric.tags,
+          do: assert(match?(%Telemetry.Metrics.Counter{}, metric), inspect(metric.name))
+      end
+
+      assert [%{name: [:relay, :jobs, :processed, :total]}] =
+               Enum.filter(metrics, &(:tenant in &1.tags))
     end
   end
 end

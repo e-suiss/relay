@@ -343,6 +343,12 @@ channels:
         "$ref": "#/components/messages/audit.push_critical.used"
       audit.push_priority.threshold_reached:
         "$ref": "#/components/messages/audit.push_priority.threshold_reached"
+      audit.export.downloaded:
+        "$ref": "#/components/messages/audit.export.downloaded"
+      audit.export.requested:
+        "$ref": "#/components/messages/audit.export.requested"
+      audit.provider_invoice.recorded:
+        "$ref": "#/components/messages/audit.provider_invoice.recorded"
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
@@ -560,6 +566,9 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.push_critical.changed"
       - "$ref": "#/channels/auditLog/messages/audit.push_critical.used"
       - "$ref": "#/channels/auditLog/messages/audit.push_priority.threshold_reached"
+      - "$ref": "#/channels/auditLog/messages/audit.provider_invoice.recorded"
+      - "$ref": "#/channels/auditLog/messages/audit.export.requested"
+      - "$ref": "#/channels/auditLog/messages/audit.export.downloaded"
   receiveAccessInbound:
     action: receive
     channel:
@@ -5461,6 +5470,60 @@ components:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.provider_invoice.recorded:
+      name: provider_invoice.recorded
+      title: provider_invoice.recorded
+      summary: "A provider invoice was recorded for reconciliation with the usage records (OP-38, OP-42)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: provider_invoice
+      x-relay-surface: audit
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.export.requested:
+      name: export.requested
+      title: export.requested
+      summary: "A raw data export was requested (DS-37)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: export
+      x-relay-surface: audit
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.export.downloaded:
+      name: export.downloaded
+      title: export.downloaded
+      summary: "A raw data export was downloaded through its signed link (DS-37)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: export
+      x-relay-surface: audit
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.push_critical.changed:
       name: push_critical.changed
       title: push_critical.changed
@@ -5926,6 +5989,8 @@ x-relay-event-names:
   - device.reassigned
   - device.unregistered
   - event_type_mapping.changed
+  - export.downloaded
+  - export.requested
   - fanout.cancelled
   - inbox.counters_changed
   - inbox.item_created
@@ -5975,6 +6040,7 @@ x-relay-event-names:
   - provider_account.credential_rotated
   - provider_account.settings_mismatched
   - provider_account.verified
+  - provider_invoice.recorded
   - push_critical.changed
   - push_critical.used
   - push_priority.threshold_reached

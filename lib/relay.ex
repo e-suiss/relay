@@ -20,6 +20,7 @@ defmodule Relay do
       Role,
       Repo,
       BulkRepo,
+      ReportRepo,
       QueueRepo,
       Scope,
       ScopeError,
@@ -49,6 +50,7 @@ defmodule Relay do
       NetworkGuard,
       NetworkGuard.Error,
       Binary,
-      TenantWorker
+      TenantWorker,
+      Trace
     ]
 end

@@ -65,8 +65,14 @@ defmodule Relay.Api do
       Discovery,
       WhatsappTemplates,
       WhatsappWebhooks,
+      ProviderWebhooks,
       ChannelManagement,
       ChannelOperations,
-      TestSends
+      TestSends,
+      ProviderInvoices,
+      Reports,
+      Exports,
+      EmailTracking,
+      EmailReports
     ]
 end

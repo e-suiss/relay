@@ -25,6 +25,8 @@ config :relay, Relay.QueueRepo,
 
 config :relay, RelayWeb.Metrics, server: false
 
+config :relay, Relay.ReportRepo, enabled: false
+
 config :relay, Oban, testing: :manual
 
 config :relay, Relay.Platform.Outbox, dispatcher: false

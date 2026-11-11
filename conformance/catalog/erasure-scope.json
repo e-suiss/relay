@@ -489,6 +489,12 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "email_reports",
+      "personal_columns": [],
+      "tenant_close": "row kept; reports carry mail server addresses and counts only",
+      "subject_erasure": "not subject data"
+    },
+    {
       "table": "test_recipients",
       "personal_columns": [],
       "tenant_close": "row kept; identifiers only",
@@ -499,6 +505,30 @@
       "personal_columns": [],
       "tenant_close": "row kept",
       "subject_erasure": "not subject data"
+    },
+    {
+      "table": "provider_invoices",
+      "personal_columns": [],
+      "tenant_close": "row kept; invoice figures only",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "report_delivery_rollups",
+      "personal_columns": [],
+      "tenant_close": "row kept; counts only",
+      "subject_erasure": "not subject data; counts only"
+    },
+    {
+      "table": "report_skip_rollups",
+      "personal_columns": [],
+      "tenant_close": "row kept; counts only",
+      "subject_erasure": "not subject data; counts only"
+    },
+    {
+      "table": "exports",
+      "personal_columns": [],
+      "tenant_close": "row kept; the content is cleared when the export expires",
+      "subject_erasure": "the CSV holds identifiers, codes and counts only and its content is cleared 7 days after it was written; row kept"
     }
   ],
   "locations": [

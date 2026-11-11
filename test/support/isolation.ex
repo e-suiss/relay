@@ -40,6 +40,8 @@ defmodule RelayTest.Isolation do
      %{"preferences" => [%{"level" => "channel", "channel" => "sms", "value" => "opt_out"}]}},
     {"updateCategory", %{"name" => "Isolation"}},
     {"replaceCategorySubtenantSetting", %{"enabled" => false}},
+    {"replaceCategoryEmailTracking", %{"open_pixel" => false, "wrap_links" => false}},
+    {"replaceTemplateEmailTracking", %{"open_pixel" => false, "wrap_links" => false}},
     {"liftSuppression", %{"reason" => "isolation"}},
     {"registerSubscriberDevice",
      %{
@@ -111,7 +113,9 @@ defmodule RelayTest.Isolation do
       "provider_account_id" => &provider_account!/1,
       "sender_identity_id" => &sender_identity!/1,
       "channel_identity_id" => &channel_identity!/1,
-      "test_recipient_id" => &test_recipient!/1
+      "test_recipient_id" => &test_recipient!/1,
+      "provider_invoice_id" => &provider_invoice!/1,
+      "export_id" => &export!/1
     }
   end
 
@@ -440,6 +444,28 @@ defmodule RelayTest.Isolation do
   def test_recipient!(scope) do
     body = %{"subscriber_id" => subscriber!(scope)}
     F.body(F.request(:post, "/v1/test_recipients", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Requests a raw data export in `scope` and returns its identifier."
+  @spec export!(Relay.Scope.t()) :: String.t()
+  def export!(scope) do
+    body = %{"kind" => "usage_records", "from" => "2026-10-01", "to" => "2026-11-01"}
+    F.body(F.request(:post, "/v1/exports", owner(scope), body), 202)["id"]
+  end
+
+  @doc "Records a provider invoice in `scope` and returns its identifier."
+  @spec provider_invoice!(Relay.Scope.t()) :: String.t()
+  def provider_invoice!(scope) do
+    body = %{
+      "provider" => "netgsm",
+      "invoice_ref" => "iso-" <> random(),
+      "period_start" => "2026-10-01",
+      "period_end" => "2026-11-01",
+      "currency" => "TRY",
+      "amount_micros" => "0"
+    }
+
+    F.body(F.request(:post, "/v1/provider_invoices", owner(scope), body), 201)["id"]
   end
 
   @doc "Registers a WhatsApp template on a new WhatsApp provider account in `scope` and returns the template's identifier."

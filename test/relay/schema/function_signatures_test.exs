@@ -253,7 +253,15 @@ defmodule Relay.Schema.FunctionSignaturesTest do
       ~w(added exists limit_reached recipient_not_found device_not_found),
     "relay_fn.test_recipient_confirm" => ~w(verified already_verified expired not_found),
     "relay_fn.test_recipient_remove" => ~w(removed already_removed not_found),
-    "relay_fn.test_send_consume" => ~w(consumed exhausted)
+    "relay_fn.test_send_consume" => ~w(consumed exhausted),
+    "relay_fn.provider_invoice_record" => ~w(recorded exists conflict),
+    "relay_fn.provider_invoice_check" => ~w(changed unchanged not_found),
+    "relay_fn.report_rollup_recompute" => ~w(recomputed),
+    "relay_fn.export_request" => ~w(requested),
+    "relay_fn.export_complete" => ~w(completed not_pending not_found),
+    "relay_fn.export_fail" => ~w(failed not_pending not_found),
+    "relay_fn.export_download" => ~w(ready expired not_ready not_found),
+    "relay_fn.email_report_record" => ~w(recorded duplicate)
   }
 
   defp functions do

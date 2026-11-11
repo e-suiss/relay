@@ -11,12 +11,14 @@ defmodule Relay.Delivery do
 
   alias Relay.Actor
   alias Relay.Delivery.DeadLetters
+  alias Relay.Delivery.Exports
   alias Relay.Delivery.Ledger
   alias Relay.Delivery.Projection
   alias Relay.Delivery.RetryBudget
   alias Relay.Delivery.RetryPolicy
   alias Relay.Delivery.Send
   alias Relay.Delivery.Store
+  alias Relay.Delivery.Usage.InvoiceStore
   alias Relay.Scope
 
   @system %Actor{kind: :system, ref: "relay:dead_letter_auto_replay", on_behalf_of_ref: "relay"}
@@ -78,6 +80,14 @@ defmodule Relay.Delivery do
           result({Ledger.result(), Ledger.rank() | nil, non_neg_integer() | nil})
   def append_ledger(scope, %Ledger{} = entry),
     do: Store.in_scope(scope, fn _status -> Ledger.append(entry) end)
+
+  # OP-3
+  # OP-4
+  # T-41
+  @doc "Appends a ledger entry inside the caller's scoped transaction, so a batch of provider events is written in one transaction; see `Relay.Delivery.Ledger.append/1`."
+  @spec ledger_append(Ledger.t()) ::
+          {Ledger.result(), Ledger.rank() | nil, non_neg_integer() | nil}
+  def ledger_append(%Ledger{} = entry), do: Ledger.append(entry)
 
   @doc "Cancels a delivery."
   @spec cancel_delivery(Scope.t(), Relay.Id.t(), String.t(), binary(), Actor.t()) ::
@@ -510,6 +520,37 @@ defmodule Relay.Delivery do
   defp text(nil), do: nil
   defp text(value), do: to_string(value)
 
+  # DS-30
+  # DS-52
+  @doc "Reads what the engagement of a delivery is classified with; see `Relay.Delivery.Store.engagement/2`."
+  @spec engagement(Scope.t(), Relay.Id.t(), DateTime.t()) :: result(map() | nil)
+  def engagement(scope, delivery_id, since),
+    do: Store.in_scope(scope, fn _status -> Store.engagement(delivery_id, since) end)
+
+  # DS-13
+  @doc "Reads what the engagement of a delivery is classified with inside the caller's scoped transaction; see `Relay.Delivery.Store.engagement/2`."
+  @spec engagement_in_scope(Relay.Id.t(), DateTime.t()) :: map() | nil
+  defdelegate engagement_in_scope(delivery_id, since), to: Store, as: :engagement
+
+  # DS-33
+  # E-84
+  @doc "Appends an engagement entry inside the caller's scoped transaction and announces the notification's first engagement of `announce` (`seen`, or `clicked` with `link_rel`), or nothing for `nil`; see `Relay.Delivery.Store.engagement_record/3`."
+  @spec record_engagement_in_scope(Ledger.t(), String.t() | nil, String.t() | nil) ::
+          Ledger.result()
+  def record_engagement_in_scope(%Ledger{} = entry, announce, link_rel),
+    do: Store.engagement_record(Ledger.params(entry), announce, link_rel)
+
+  # DS-33
+  # E-84
+  @doc "Appends an engagement entry in its own scoped transaction; see `record_engagement_in_scope/3`."
+  @spec record_engagement(Scope.t(), Ledger.t(), String.t() | nil, String.t() | nil) ::
+          result(Ledger.result())
+  def record_engagement(scope, %Ledger{} = entry, announce, link_rel) do
+    Store.in_scope(scope, fn _status ->
+      record_engagement_in_scope(entry, announce, link_rel)
+    end)
+  end
+
   @doc "Reads the ledger of a delivery."
   @spec ledger(Scope.t(), Relay.Id.t()) :: result([map()])
   def ledger(scope, delivery_id),
@@ -558,4 +599,119 @@ defmodule Relay.Delivery do
   @spec usage_rows(Scope.t(), Date.t()) :: result([map()])
   def usage_rows(scope, day),
     do: Store.in_scope(scope, fn _status -> Relay.Delivery.Usage.Store.rows(day) end)
+
+  # OP-38
+  # OP-42
+  @doc "Records a provider invoice inside the caller's scoped transaction of `scope` and reconciles a new one at once with the usage records of its period; see `Relay.Delivery.Usage.InvoiceStore`."
+  @spec record_invoice(Scope.t(), map(), <<_::256>>, Actor.t()) ::
+          {:recorded | :exists | :conflict, Relay.Id.t()}
+  def record_invoice(%Scope{} = scope, attrs, digest, %Actor{} = actor) do
+    case InvoiceStore.record(attrs, digest, actor) do
+      {:recorded, id} ->
+        if InvoiceStore.check(id) == {:changed, :drift}, do: InvoiceStore.alarm(scope, [id])
+        {:recorded, id}
+
+      other ->
+        other
+    end
+  end
+
+  # OP-42
+  @doc "Reconciles a provider invoice again inside the caller's scoped transaction."
+  @spec check_invoice(Relay.Id.t()) ::
+          {:changed | :unchanged | :not_found, :matched | :drift | nil}
+  defdelegate check_invoice(id), to: InvoiceStore, as: :check
+
+  @doc "Reads a provider invoice inside the caller's scoped transaction, or `nil`."
+  @spec invoice(Relay.Id.t()) :: map() | nil
+  defdelegate invoice(id), to: InvoiceStore, as: :get
+
+  @doc "Reads a provider invoice in its own scoped transaction, or `nil`."
+  @spec get_invoice(Scope.t(), Relay.Id.t()) :: result(map() | nil)
+  def get_invoice(scope, id), do: Store.in_scope(scope, fn _status -> InvoiceStore.get(id) end)
+
+  # DS-35
+  # OP-39
+  @doc "Recomputes the report rollups of `days` for every tenant scope; see `Relay.Delivery.Reports.Store.recompute_all/1`."
+  @spec recompute_reports([Date.t()]) :: non_neg_integer()
+  defdelegate recompute_reports(days), to: Relay.Delivery.Reports.Store, as: :recompute_all
+
+  # DS-35
+  @doc "Recomputes the report rollups of one UTC day in its own scoped transaction."
+  @spec recompute_report_day(Scope.t(), Date.t()) ::
+          result(%{deliveries: non_neg_integer(), skips: non_neg_integer()})
+  def recompute_report_day(scope, day),
+    do: Store.in_scope(scope, fn _status -> Relay.Delivery.Reports.Store.recompute(day) end)
+
+  # DS-35
+  # TN-18
+  @doc "Reads a report (`:deliveries`, `:skips` or `:costs`) of the UTC days `from` to `to` (exclusive) on the report pool; see `Relay.Delivery.Reports.Store.read/4`."
+  @spec report(Scope.t(), :deliveries | :skips | :costs, Date.t(), Date.t()) :: result([map()])
+  defdelegate report(scope, kind, from, to), to: Relay.Delivery.Reports.Store, as: :read
+
+  # DS-37
+  @doc "Records an export request inside the caller's scoped transaction, audits it and queues its job in the same transaction; see `Relay.Delivery.Exports.Store`."
+  @spec request_export(Scope.t(), map(), <<_::256>>, Actor.t()) :: :requested
+  def request_export(%Scope{} = scope, attrs, digest, %Actor{} = actor) do
+    result = Exports.Store.request(attrs, digest, actor)
+    args = scope |> Scope.to_job_args() |> Map.put("export_id", Relay.Id.to_string(attrs.id))
+    Store.insert_job!(Relay.Delivery.ExportJob.new(args), result)
+  end
+
+  @doc "Reads an export without its content inside the caller's scoped transaction, or `nil`."
+  @spec export(Relay.Id.t()) :: map() | nil
+  defdelegate export(id), to: Exports.Store, as: :get
+
+  @doc "Reads an export without its content in its own scoped transaction, or `nil`."
+  @spec get_export(Scope.t(), Relay.Id.t()) :: result(map() | nil)
+  def get_export(scope, id), do: Store.in_scope(scope, fn _status -> Exports.Store.get(id) end)
+
+  # API-56
+  @doc "Lists exports newest first from a decoded cursor in their own scoped transaction; at most `limit + 1` rows come back."
+  @spec list_exports(Scope.t(), map() | nil, pos_integer()) :: result([map()])
+  def list_exports(scope, cursor, limit),
+    do: Store.in_scope(scope, fn _status -> Exports.Store.page(cursor, limit) end)
+
+  # DS-37
+  @doc "Writes the CSV of a pending export; see `Relay.Delivery.Exports.Store.run/2`."
+  @spec run_export(Scope.t(), Relay.Id.t()) ::
+          {:ok, :completed | :failed | :not_pending | :not_found} | {:error, term()}
+  defdelegate run_export(scope, id), to: Exports.Store, as: :run
+
+  # DS-37
+  @doc "Fails a pending export as `unavailable` in its own scoped transaction."
+  @spec fail_export(Scope.t(), Relay.Id.t()) :: result(:failed | :not_pending | :not_found)
+  def fail_export(scope, id),
+    do: Store.in_scope(scope, fn _status -> Exports.Store.fail(id, "unavailable") end)
+
+  # DS-37
+  @doc "Downloads a ready export in its own scoped transaction and audits the download: `{:ready, export, content}`, or `:expired`, `:not_ready` or `:not_found`."
+  @spec download_export(Scope.t(), Relay.Id.t(), <<_::256>>, Actor.t()) ::
+          result({:ready, map(), binary()} | :expired | :not_ready | :not_found)
+  def download_export(scope, id, digest, %Actor{} = actor) do
+    Store.in_scope(scope, fn _status ->
+      case Exports.Store.download(id, digest, actor) do
+        :ready -> {:ready, Exports.Store.get(id), Exports.Store.content(id)}
+        other -> other
+      end
+    end)
+  end
+
+  # DS-37
+  @doc "Signs the download link token of an export; see `Relay.Delivery.Exports.Link.sign/3`."
+  @spec export_link(Scope.t(), Relay.Id.t(), DateTime.t()) ::
+          {:ok, String.t()} | {:error, Relay.Error.t()}
+  defdelegate export_link(scope, id, expires_at), to: Exports.Link, as: :sign
+
+  # DS-37
+  @doc "Verifies a download link token now; see `Relay.Delivery.Exports.Link.verify/2`."
+  @spec verify_export_link(String.t()) ::
+          {:ok, Exports.Link.claims()} | {:error, :invalid | :expired | Relay.Error.t()}
+  def verify_export_link(token), do: Exports.Link.verify(token, Relay.Clock.utc_now())
+
+  # API-56
+  @doc "Lists provider invoices newest first from a decoded cursor in their own scoped transaction; at most `limit + 1` rows come back."
+  @spec list_invoices(Scope.t(), map() | nil, pos_integer()) :: result([map()])
+  def list_invoices(scope, cursor, limit),
+    do: Store.in_scope(scope, fn _status -> InvoiceStore.page(cursor, limit) end)
 end

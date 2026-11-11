@@ -1,8 +1,8 @@
 defmodule RelayWeb.Telemetry do
   @moduledoc """
-  Telemetry supervisor and metric definitions. Metric tags come from bounded sets only; tenant, user, device, address or identifier never become a tag.
+  Telemetry supervisor and metric definitions. Metric tags come from bounded sets only; user, device, address or identifier never become a tag, histograms never carry the tenant, and a counter carries it only as the bounded label of the busiest tenants (OP-35).
 
-  Every stage 1 alarm is a Prometheus metric, scraped from `GET /metrics` on the internal metrics port (`RelayWeb.Metrics`) and matched by an alert rule in `deploy/observability/alerts.yaml`. An alarm that is a state is a 0/1 gauge; an alarm that is an event is the Unix time of its last occurrence (`*_timestamp_seconds`).
+  Every alarm is a Prometheus metric, scraped from `GET /metrics` on the internal metrics port (`RelayWeb.Metrics`) and matched by an alert rule in `deploy/observability/alerts.yaml`. An alarm that is a state is a 0/1 gauge; an alarm that is an event is the Unix time of its last occurrence (`*_timestamp_seconds`).
   """
 
   use Supervisor
@@ -10,6 +10,22 @@ defmodule RelayWeb.Telemetry do
   import Telemetry.Metrics
 
   @reporter :relay_metrics
+  @vm_samples [
+    :memory_total,
+    :memory_processes,
+    :memory_binary,
+    :memory_ets,
+    :memory_atom,
+    :process_count,
+    :process_limit,
+    :port_count,
+    :port_limit,
+    :atom_count,
+    :atom_limit,
+    :run_queue,
+    :dirty_cpu_run_queue,
+    :dirty_io_run_queue
+  ]
 
   @doc false
   @spec start_link(term()) :: Supervisor.on_start()
@@ -18,8 +34,8 @@ defmodule RelayWeb.Telemetry do
   @impl true
   def init(_arg) do
     children = [
-      {Peep, name: @reporter, metrics: alarm_metrics() ++ policy_metrics() ++ render_metrics()},
-      {:telemetry_poller, measurements: [], period: 10_000}
+      {Peep, name: @reporter, metrics: exported_metrics()},
+      {:telemetry_poller, measurements: [{Relay.Observability, :vm_sample, []}], period: 10_000}
     ]
 
     Supervisor.init(children, strategy: :one_for_one, max_restarts: 3, max_seconds: 5)
@@ -45,7 +61,243 @@ defmodule RelayWeb.Telemetry do
       summary("vm.total_run_queue_lengths.total"),
       summary("vm.total_run_queue_lengths.cpu"),
       summary("vm.total_run_queue_lengths.io")
-    ] ++ alarm_metrics() ++ policy_metrics() ++ render_metrics()
+    ] ++ exported_metrics()
+  end
+
+  # OP-32
+  @doc "Every metric exported on `/metrics`."
+  @spec exported_metrics() :: [Telemetry.Metrics.t()]
+  def exported_metrics do
+    alarm_metrics() ++
+      policy_metrics() ++
+      render_metrics() ++
+      slo_metrics() ++
+      delivery_metrics() ++
+      operations_metrics() ++
+      vm_metrics()
+  end
+
+  # DS-42
+  # OP-35 (6)
+  # OP-36
+  # TN-44
+  @doc "The SLI counters of the SLO table: accept and provider handoff latency within the class threshold, provider acceptance, tenant SLO violations, and the kill switch effect time."
+  @spec slo_metrics() :: [Telemetry.Metrics.t()]
+  def slo_metrics do
+    [
+      counter("relay.slo.accept.total",
+        event_name: [:relay, :slo, :accept],
+        tags: [:class, :good],
+        description: "Accepted single events by class and whether they were within the threshold"
+      ),
+      sum("relay.slo.handoff.total",
+        event_name: [:relay, :slo, :handoff],
+        measurement: :count,
+        tags: [:class, :channel, :provider, :good],
+        description: "Provider handoffs by class and whether they were within the threshold"
+      ),
+      sum("relay.slo.availability.total",
+        event_name: [:relay, :slo, :availability],
+        measurement: :count,
+        tags: [:class, :channel, :provider, :good],
+        description: "Provider attempts by class and whether the provider accepted them"
+      ),
+      sum("relay.slo.tenant_violation.total",
+        event_name: [:relay, :slo, :tenant_violation],
+        measurement: :count,
+        tags: [:channel, :severity],
+        description: "Tenant SLO windows that missed their target"
+      ),
+      last_value("relay.kill_switch.effect.seconds",
+        event_name: [:relay, :kill_switch, :effective],
+        measurement: &(&1.duration_ms / 1000),
+        tags: [:platform],
+        description: "Seconds from a kill switch stop to the last queued job paused"
+      ),
+      counter("relay.slo.kill_switch.total",
+        event_name: [:relay, :slo, :kill_switch],
+        tags: [:platform, :good],
+        description: "Kill switches by whether they took effect within the target"
+      ),
+      sum("relay.kill_switch.paused.total",
+        event_name: [:relay, :kill_switch, :sweep],
+        measurement: :paused,
+        tags: [:platform],
+        description: "Queued jobs a kill switch sweep paused"
+      )
+    ]
+  end
+
+  # DS-24
+  # DS-36
+  # DS-41
+  # OP-33
+  # OP-37 (7)
+  # CH-47
+  # MD-12
+  @doc "The delivery metrics that are always produced: the funnel and its gaps, skips by rule, duplicates, conflicts and late events, unknown outcomes and codes, provider event delay, reconciliation lag, clicks by kind and the extra alarm signals."
+  @spec delivery_metrics() :: [Telemetry.Metrics.t()]
+  def delivery_metrics do
+    [
+      sum("relay.funnel.total",
+        event_name: [:relay, :funnel, :stage],
+        measurement: :count,
+        tags: [:stage, :channel, :provider],
+        description: "Deliveries reaching each funnel stage, counted from the ledger"
+      ),
+      last_value("relay.funnel.gap",
+        event_name: [:relay, :funnel, :gap],
+        measurement: :count,
+        tags: [:gap, :channel, :provider],
+        description: "Deliveries missing between two funnel stages"
+      ),
+      sum("relay.delivery.skipped.total",
+        event_name: [:relay, :delivery, :skipped],
+        measurement: :count,
+        tags: [:channel, :rule_id],
+        description: "Skipped deliveries by rule"
+      ),
+      sum("relay.delivery.anomaly.total",
+        event_name: [:relay, :delivery, :anomaly],
+        measurement: :count,
+        tags: [:kind, :channel, :provider],
+        description: "Duplicate deliveries, conflicts and late events"
+      ),
+      sum("relay.delivery.outcome.total",
+        event_name: [:relay, :delivery, :outcome],
+        measurement: :count,
+        tags: [:outcome, :channel, :provider],
+        description: "Delivery outcomes, unknown_pending and unknown included"
+      ),
+      counter("relay.provider.unknown_code.total",
+        event_name: [:relay, :channels, :unknown_code],
+        tags: [:channel, :provider],
+        description: "Provider codes without a mapping"
+      ),
+      counter("relay.provider.event.total",
+        event_name: [:relay, :provider, :event],
+        tags: [:channel, :provider],
+        description: "Provider delivery events received"
+      ),
+      distribution("relay.provider.event_delay.seconds",
+        event_name: [:relay, :provider, :event],
+        measurement: &(&1.delay_ms / 1000),
+        tags: [:channel, :provider],
+        description: "Seconds from the provider handoff to the provider's delivery event"
+      ),
+      last_value("relay.reconciliation.lag.seconds",
+        event_name: [:relay, :reconciliation, :lag],
+        measurement: :seconds,
+        tags: [:channel, :provider],
+        description: "Age of the oldest delivery waiting for reconciliation"
+      ),
+      sum("relay.engagement.click.total",
+        event_name: [:relay, :engagement, :click],
+        measurement: :count,
+        tags: [:channel, :kind],
+        description: "Clicks by human or likely bot"
+      ),
+      counter("relay.policy.quiet_hour_violation.total",
+        event_name: [:relay, :policy, :quiet_hour_violation],
+        tags: [:channel],
+        description: "Deliveries handed off inside the recipient's quiet hours"
+      ),
+      counter("relay.digest.flush.total",
+        event_name: [:relay, :digest, :flush],
+        tags: [:result],
+        description: "Digest flushes by result"
+      ),
+      counter("relay.campaign.overrun.total",
+        event_name: [:relay, :campaign, :overrun],
+        tags: [:lane],
+        description: "Campaigns running longer than 1.5 times their estimate"
+      ),
+      counter("relay.agents.silent_wait.total",
+        event_name: [:relay, :agents, :silent_wait],
+        description: "Agent waits that ended without any answer"
+      ),
+      counter("relay.agents.message.total",
+        event_name: [:relay, :agents, :message],
+        tags: [:direction],
+        description: "Agent messages sent and replies received"
+      ),
+      last_value("relay.provider.incident",
+        event_name: [:relay, :provider, :incident],
+        measurement: :active,
+        tags: [:provider],
+        description: "1 while the provider's status page reports an incident"
+      )
+    ]
+  end
+
+  # OP-35 (3)
+  # OP-37 (1)
+  # OP-37 (2)
+  # T-6
+  # T-68 (3)
+  # TN-62
+  @doc "The operations metrics: oldest job age per lane, provider breaker state, noisy neighbour shares, jobs per tenant (busiest tenants only) and the request budget counters."
+  @spec operations_metrics() :: [Telemetry.Metrics.t()]
+  def operations_metrics do
+    [
+      last_value("relay.queue.oldest_job_age.seconds",
+        event_name: [:relay, :load_shed, :delay],
+        measurement: &(&1.ms / 1000),
+        tags: [:lane],
+        description: "Age of the oldest job waiting in each lane"
+      ),
+      last_value("relay.breaker.open",
+        event_name: [:relay, :breaker, :state],
+        measurement: :open,
+        tags: [:provider],
+        description: "1 while the provider breaker is open"
+      ),
+      last_value("relay.noisy_neighbour.share",
+        event_name: [:relay, :neighbours, :share],
+        measurement: :share,
+        tags: [:signal, :queue],
+        description: "Largest share of one tenant or API client in the last window"
+      ),
+      counter("relay.jobs.processed.total",
+        event_name: [:relay, :jobs, :processed],
+        tags: [:queue, :tenant],
+        description: "Jobs processed by queue; the busiest tenants by name, the rest as other"
+      ),
+      counter("relay.request.budget.total",
+        event_name: [:relay, :request, :budget],
+        tags: [:type, :good],
+        description: "API requests by type and whether they stayed within the budget"
+      ),
+      counter("relay.request.budget_breach.total",
+        event_name: [:relay, :request, :budget_breach],
+        tags: [:type, :resource],
+        description: "API requests over the latency or reduction budget of their type"
+      )
+    ]
+  end
+
+  # T-48
+  # T-53 (2)
+  @doc "The VM metrics: the periodic sample and the system monitor reports by kind and process label."
+  @spec vm_metrics() :: [Telemetry.Metrics.t()]
+  def vm_metrics do
+    samples =
+      for measurement <- @vm_samples do
+        last_value("relay.vm.#{measurement}",
+          event_name: [:relay, :vm, :sample],
+          measurement: measurement,
+          description: "VM sample: #{measurement}"
+        )
+      end
+
+    samples ++
+      [
+        counter("relay.vm.monitor.total",
+          event_name: [:relay, :vm, :monitor],
+          tags: [:kind, :process],
+          description: "VM system monitor reports"
+        )
+      ]
   end
 
   # DS-24

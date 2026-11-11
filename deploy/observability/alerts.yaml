@@ -8,6 +8,7 @@ groups:
           decision: OP-13
         annotations:
           summary: "Partition horizon of {{ $labels.table }} is closer than the alarm threshold"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaypartitionhorizon
       - alert: RelaySingletonLeaderless
         expr: relay_leadership_leaderless == 1
         labels:
@@ -15,6 +16,7 @@ groups:
           decision: T-86
         annotations:
           summary: "Singleton task {{ $labels.task }} has had no leader for five minutes"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysingletonleaderless
       - alert: RelayAuditCheckpointOverdue
         expr: time() - relay_audit_checkpoint_overdue_timestamp_seconds < 3600
         labels:
@@ -22,6 +24,7 @@ groups:
           decision: OP-63
         annotations:
           summary: "An audit record was integrated after the declared checkpoint interval"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayauditcheckpointoverdue
       - alert: RelayAuditCheckpointUnpublished
         expr: time() - relay_audit_checkpoint_unpublished_timestamp_seconds < 3600
         labels:
@@ -29,6 +32,7 @@ groups:
           decision: OP-70
         annotations:
           summary: "A signed audit checkpoint reached no publication target"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayauditcheckpointunpublished
       - alert: RelayAuditMismatch
         expr: time() - relay_audit_mismatch_timestamp_seconds < 7200
         labels:
@@ -36,6 +40,7 @@ groups:
           decision: OP-63
         annotations:
           summary: "Audit verification found a {{ $labels.kind }} mismatch"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayauditmismatch
       - alert: RelayQueuePolling
         expr: relay_queue_polling == 1
         for: 5m
@@ -44,6 +49,7 @@ groups:
           decision: T-17
         annotations:
           summary: "The job queue {{ $labels.component }} falls back to polling"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayqueuepolling
       - alert: RelayIntegrityViolation
         expr: time() - relay_integrity_violation_timestamp_seconds < 90000
         labels:
@@ -51,6 +57,7 @@ groups:
           decision: OP-42
         annotations:
           summary: "Integrity check {{ $labels.check }} found violations in {{ $labels.table }}"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayintegrityviolation
       - alert: RelayIntegrityStale
         expr: time() - max(relay_integrity_last_run_timestamp_seconds) > 129600
         labels:
@@ -58,6 +65,7 @@ groups:
           decision: OP-71
         annotations:
           summary: "The nightly integrity check has not completed for 36 hours"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayintegritystale
       - alert: RelayIntegrityUnreported
         expr: absent(relay_integrity_last_run_timestamp_seconds)
         for: 36h
@@ -66,6 +74,7 @@ groups:
           decision: OP-71
         annotations:
           summary: "No node has reported a completed nightly integrity check for 36 hours"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayintegrityunreported
       - alert: RelayProjectionDifference
         expr: time() - relay_projection_difference_timestamp_seconds < 691200
         labels:
@@ -73,6 +82,7 @@ groups:
           decision: OP-71
         annotations:
           summary: "The weekly rebuild found a delivery projection that differs from its ledger"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayprojectiondifference
       - alert: RelayQueryStatsMissing
         expr: relay_postgres_query_stats_missing == 1
         labels:
@@ -80,6 +90,7 @@ groups:
           decision: OP-11
         annotations:
           summary: "PostgreSQL does not preload pg_stat_statements"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayquerystatsmissing
       - alert: RelayValkeyEvictionPolicy
         expr: relay_valkey_eviction_policy_mismatch == 1
         labels:
@@ -87,6 +98,7 @@ groups:
           decision: T-9
         annotations:
           summary: "Valkey runs with an eviction policy other than noeviction"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayvalkeyevictionpolicy
       - alert: RelayAccessLinkDown
         expr: relay_access_link_down == 1
         labels:
@@ -94,6 +106,7 @@ groups:
           decision: E-75
         annotations:
           summary: "The Access link is not established or its keys are stale"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayaccesslinkdown
       - alert: RelayFrequencyCounterUnavailable
         expr: increase(relay_frequency_counter_unavailable_total[5m]) > 0
         labels:
@@ -101,6 +114,7 @@ groups:
           decision: PC-50
         annotations:
           summary: "The frequency counter is unavailable and frequency caps fail open"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayfrequencycounterunavailable
       - alert: RelayPushSigningUnavailable
         expr: increase(relay_push_signing_unavailable_total[5m]) > 0
         labels:
@@ -108,3 +122,499 @@ groups:
           decision: TN-29
         annotations:
           summary: "The key store cannot sign push provider tokens; the last token has at most an hour of runway"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaypushsigningunavailable
+  - name: relay-slo
+    rules:
+      - record: relay:slo_objective
+        expr: vector(0.9995)
+        labels:
+          sli: availability
+          class: security
+      - record: relay:slo_objective
+        expr: vector(0.999)
+        labels:
+          sli: availability
+          class: action_required
+      - record: relay:slo_objective
+        expr: vector(0.999)
+        labels:
+          sli: availability
+          class: transactional
+      - record: relay:slo_objective
+        expr: vector(0.999)
+        labels:
+          sli: availability
+          class: operational
+      - record: relay:slo_objective
+        expr: vector(0.999)
+        labels:
+          sli: availability
+          class: system
+      - record: relay:slo_objective
+        expr: vector(0.995)
+        labels:
+          sli: availability
+          class: social
+      - record: relay:slo_objective
+        expr: vector(0.995)
+        labels:
+          sli: availability
+          class: marketing
+      - record: relay:slo_accept_errors:ratio_rate5m
+        expr: |
+          sum by (class) (rate(relay_slo_accept_total{good="false"}[5m]))
+          /
+          sum by (class) (rate(relay_slo_accept_total[5m]))
+      - record: relay:slo_accept_errors:ratio_rate30m
+        expr: |
+          sum by (class) (rate(relay_slo_accept_total{good="false"}[30m]))
+          /
+          sum by (class) (rate(relay_slo_accept_total[30m]))
+      - record: relay:slo_accept_errors:ratio_rate1h
+        expr: |
+          sum by (class) (rate(relay_slo_accept_total{good="false"}[1h]))
+          /
+          sum by (class) (rate(relay_slo_accept_total[1h]))
+      - record: relay:slo_accept_errors:ratio_rate6h
+        expr: |
+          sum by (class) (rate(relay_slo_accept_total{good="false"}[6h]))
+          /
+          sum by (class) (rate(relay_slo_accept_total[6h]))
+      - record: relay:slo_accept_errors:ratio_rate3d
+        expr: |
+          sum by (class) (rate(relay_slo_accept_total{good="false"}[3d]))
+          /
+          sum by (class) (rate(relay_slo_accept_total[3d]))
+      - record: relay:slo_handoff_errors:ratio_rate5m
+        expr: |
+          sum by (class, channel, provider) (rate(relay_slo_handoff_total{good="false"}[5m]))
+          /
+          sum by (class, channel, provider) (rate(relay_slo_handoff_total[5m]))
+      - record: relay:slo_handoff_errors:ratio_rate30m
+        expr: |
+          sum by (class, channel, provider) (rate(relay_slo_handoff_total{good="false"}[30m]))
+          /
+          sum by (class, channel, provider) (rate(relay_slo_handoff_total[30m]))
+      - record: relay:slo_handoff_errors:ratio_rate1h
+        expr: |
+          sum by (class, channel, provider) (rate(relay_slo_handoff_total{good="false"}[1h]))
+          /
+          sum by (class, channel, provider) (rate(relay_slo_handoff_total[1h]))
+      - record: relay:slo_handoff_errors:ratio_rate6h
+        expr: |
+          sum by (class, channel, provider) (rate(relay_slo_handoff_total{good="false"}[6h]))
+          /
+          sum by (class, channel, provider) (rate(relay_slo_handoff_total[6h]))
+      - record: relay:slo_handoff_errors:ratio_rate3d
+        expr: |
+          sum by (class, channel, provider) (rate(relay_slo_handoff_total{good="false"}[3d]))
+          /
+          sum by (class, channel, provider) (rate(relay_slo_handoff_total[3d]))
+      - record: relay:slo_availability_errors:ratio_rate5m
+        expr: |
+          sum by (class, channel, provider) (rate(relay_slo_availability_total{good="false"}[5m]))
+          /
+          sum by (class, channel, provider) (rate(relay_slo_availability_total[5m]))
+      - record: relay:slo_availability_errors:ratio_rate30m
+        expr: |
+          sum by (class, channel, provider) (rate(relay_slo_availability_total{good="false"}[30m]))
+          /
+          sum by (class, channel, provider) (rate(relay_slo_availability_total[30m]))
+      - record: relay:slo_availability_errors:ratio_rate1h
+        expr: |
+          sum by (class, channel, provider) (rate(relay_slo_availability_total{good="false"}[1h]))
+          /
+          sum by (class, channel, provider) (rate(relay_slo_availability_total[1h]))
+      - record: relay:slo_availability_errors:ratio_rate6h
+        expr: |
+          sum by (class, channel, provider) (rate(relay_slo_availability_total{good="false"}[6h]))
+          /
+          sum by (class, channel, provider) (rate(relay_slo_availability_total[6h]))
+      - record: relay:slo_availability_errors:ratio_rate3d
+        expr: |
+          sum by (class, channel, provider) (rate(relay_slo_availability_total{good="false"}[3d]))
+          /
+          sum by (class, channel, provider) (rate(relay_slo_availability_total[3d]))
+      - alert: RelaySloAcceptFastBurn
+        expr: |
+          relay:slo_accept_errors:ratio_rate1h > (14.4 * (1 - 0.99))
+          and
+          relay:slo_accept_errors:ratio_rate5m > (14.4 * (1 - 0.99))
+        labels:
+          severity: page
+          decision: OP-36
+        annotations:
+          summary: "Accept latency of {{ $labels.class }} burns its error budget 14.4x"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysloacceptfastburn
+      - alert: RelaySloAcceptSlowBurn
+        expr: |
+          relay:slo_accept_errors:ratio_rate6h > (6 * (1 - 0.99))
+          and
+          relay:slo_accept_errors:ratio_rate30m > (6 * (1 - 0.99))
+        labels:
+          severity: page
+          decision: OP-36
+        annotations:
+          summary: "Accept latency of {{ $labels.class }} burns its error budget 6x"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysloacceptslowburn
+      - alert: RelaySloAcceptBudgetBurn
+        expr: |
+          relay:slo_accept_errors:ratio_rate3d > (1 * (1 - 0.99))
+          and
+          relay:slo_accept_errors:ratio_rate6h > (1 * (1 - 0.99))
+        labels:
+          severity: ticket
+          decision: OP-36
+        annotations:
+          summary: "Accept latency of {{ $labels.class }} burns its error budget 1x"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysloacceptbudgetburn
+      - alert: RelaySloHandoffFastBurn
+        expr: |
+          relay:slo_handoff_errors:ratio_rate1h > (14.4 * (1 - 0.99))
+          and
+          relay:slo_handoff_errors:ratio_rate5m > (14.4 * (1 - 0.99))
+        labels:
+          severity: page
+          decision: OP-36
+        annotations:
+          summary: "Provider handoff latency of {{ $labels.class }} on {{ $labels.channel }}/{{ $labels.provider }} burns its error budget 14.4x"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayslohandofffastburn
+      - alert: RelaySloHandoffSlowBurn
+        expr: |
+          relay:slo_handoff_errors:ratio_rate6h > (6 * (1 - 0.99))
+          and
+          relay:slo_handoff_errors:ratio_rate30m > (6 * (1 - 0.99))
+        labels:
+          severity: page
+          decision: OP-36
+        annotations:
+          summary: "Provider handoff latency of {{ $labels.class }} on {{ $labels.channel }}/{{ $labels.provider }} burns its error budget 6x"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayslohandoffslowburn
+      - alert: RelaySloHandoffBudgetBurn
+        expr: |
+          relay:slo_handoff_errors:ratio_rate3d > (1 * (1 - 0.99))
+          and
+          relay:slo_handoff_errors:ratio_rate6h > (1 * (1 - 0.99))
+        labels:
+          severity: ticket
+          decision: OP-36
+        annotations:
+          summary: "Provider handoff latency of {{ $labels.class }} on {{ $labels.channel }}/{{ $labels.provider }} burns its error budget 1x"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayslohandoffbudgetburn
+      - alert: RelaySloAvailabilityFastBurn
+        expr: |
+          relay:slo_availability_errors:ratio_rate1h > on (class) group_left () (14.4 * (1 - relay:slo_objective{sli="availability"}))
+          and
+          relay:slo_availability_errors:ratio_rate5m > on (class) group_left () (14.4 * (1 - relay:slo_objective{sli="availability"}))
+        labels:
+          severity: page
+          decision: OP-36
+        annotations:
+          summary: "Provider acceptance of {{ $labels.class }} on {{ $labels.channel }}/{{ $labels.provider }} burns its error budget 14.4x"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysloavailabilityfastburn
+      - alert: RelaySloAvailabilitySlowBurn
+        expr: |
+          relay:slo_availability_errors:ratio_rate6h > on (class) group_left () (6 * (1 - relay:slo_objective{sli="availability"}))
+          and
+          relay:slo_availability_errors:ratio_rate30m > on (class) group_left () (6 * (1 - relay:slo_objective{sli="availability"}))
+        labels:
+          severity: page
+          decision: OP-36
+        annotations:
+          summary: "Provider acceptance of {{ $labels.class }} on {{ $labels.channel }}/{{ $labels.provider }} burns its error budget 6x"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysloavailabilityslowburn
+      - alert: RelaySloAvailabilityBudgetBurn
+        expr: |
+          relay:slo_availability_errors:ratio_rate3d > on (class) group_left () (1 * (1 - relay:slo_objective{sli="availability"}))
+          and
+          relay:slo_availability_errors:ratio_rate6h > on (class) group_left () (1 * (1 - relay:slo_objective{sli="availability"}))
+        labels:
+          severity: ticket
+          decision: OP-36
+        annotations:
+          summary: "Provider acceptance of {{ $labels.class }} on {{ $labels.channel }}/{{ $labels.provider }} burns its error budget 1x"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysloavailabilitybudgetburn
+      - record: relay:delivery_proven:ratio_1h
+        expr: |
+          sum by (channel, provider) (increase(relay_funnel_total{stage="delivered"}[1h]))
+          /
+          sum by (channel, provider) (increase(relay_funnel_total{stage="provider_accepted"}[1h]))
+      - record: relay:delivery_provider_accepted:increase1h
+        expr: sum by (channel, provider) (increase(relay_funnel_total{stage="provider_accepted"}[1h]))
+      - alert: RelayProvenDeliveryDrop
+        expr: |
+          relay:delivery_proven:ratio_1h < 0.6 * (relay:delivery_proven:ratio_1h offset 1h)
+          and
+          relay:delivery_provider_accepted:increase1h >= 200
+          and
+          (relay:delivery_provider_accepted:increase1h offset 1h) >= 200
+        labels:
+          severity: page
+          decision: OP-36
+        annotations:
+          summary: "Proven delivery rate on {{ $labels.channel }}/{{ $labels.provider }} fell by more than 40% in an hour"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayprovendeliverydrop
+      - alert: RelayKillSwitchSlow
+        expr: sum by (platform) (increase(relay_slo_kill_switch_total{good="false"}[15m])) > 0
+        labels:
+          severity: page
+          decision: TN-44
+        annotations:
+          summary: "A kill switch took longer than 90 seconds from the stop to the last queued job paused"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaykillswitchslow
+      - alert: RelayTenantSloViolation
+        expr: sum by (channel, severity) (increase(relay_slo_tenant_violation_total[1h])) > 0
+        labels:
+          severity: ticket
+          decision: OP-35
+        annotations:
+          summary: "Tenant SLO windows on {{ $labels.channel }} missed their {{ $labels.severity }} target"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaytenantsloviolation
+  - name: relay-delivery
+    rules:
+      - alert: RelayFunnelDataLoss
+        expr: max by (channel, provider) (relay_funnel_gap{gap="accepted_enqueued"}) > 0
+        labels:
+          severity: page
+          decision: DS-36
+        annotations:
+          summary: "Accepted deliveries on {{ $labels.channel }}/{{ $labels.provider }} never reached the queue"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayfunneldataloss
+      - alert: RelaySkipSpike
+        expr: |
+          sum by (channel, rule_id) (rate(relay_delivery_skipped_total[30m]))
+          > 3 * sum by (channel, rule_id) (rate(relay_delivery_skipped_total[1d] offset 1d))
+          and
+          sum by (channel, rule_id) (increase(relay_delivery_skipped_total[30m])) > 50
+        labels:
+          severity: warning
+          decision: OP-37
+        annotations:
+          summary: "Skips by {{ $labels.rule_id }} on {{ $labels.channel }} rose to more than three times yesterday's rate"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayskipspike
+      - alert: RelayUnknownProviderCode
+        expr: sum by (channel, provider) (increase(relay_provider_unknown_code_total[15m])) > 0
+        labels:
+          severity: warning
+          decision: DS-10
+        annotations:
+          summary: "{{ $labels.provider }} on {{ $labels.channel }} reports codes without a mapping"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayunknownprovidercode
+      - alert: RelayQuietHourViolation
+        expr: sum by (channel) (increase(relay_policy_quiet_hour_violation_total[10m])) > 0
+        labels:
+          severity: page
+          decision: OP-37
+        annotations:
+          summary: "A {{ $labels.channel }} delivery was handed off inside the recipient's quiet hours"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayquiethourviolation
+      - alert: RelayDuplicateDelivery
+        expr: |
+          sum by (kind, channel, provider) (increase(relay_delivery_anomaly_total{kind=~"duplicate_delivered|conflict"}[1h]))
+          / on (channel, provider) group_left ()
+          sum by (channel, provider) (increase(relay_funnel_total{stage="provider_accepted"}[1h]))
+          > 0.01
+        labels:
+          severity: warning
+          decision: DS-41
+        annotations:
+          summary: "More than 1% of {{ $labels.channel }}/{{ $labels.provider }} deliveries were {{ $labels.kind }} in the last hour"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayduplicatedelivery
+      - alert: RelayEmptyDigest
+        expr: sum(increase(relay_digest_flush_total{result="empty"}[6h])) / sum(increase(relay_digest_flush_total[6h])) > 0.2
+        labels:
+          severity: warning
+          decision: OP-37
+        annotations:
+          summary: "More than 20% of digest flushes in the last six hours were empty"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayemptydigest
+      - alert: RelayCampaignOverrun
+        expr: sum by (lane) (increase(relay_campaign_overrun_total[15m])) > 0
+        labels:
+          severity: warning
+          decision: OP-37
+        annotations:
+          summary: "A campaign on {{ $labels.lane }} runs longer than 1.5 times its estimate"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaycampaignoverrun
+      - alert: RelayAgentSilentWait
+        expr: sum(increase(relay_agents_silent_wait_total[1h])) > 0
+        labels:
+          severity: warning
+          decision: OP-37
+        annotations:
+          summary: "Agent waits ended without any answer in the last hour"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentsilentwait
+      - alert: RelayAgentReplyDrop
+        expr: |
+          (
+            sum(increase(relay_agents_message_total{direction="reply"}[1h]))
+            / sum(increase(relay_agents_message_total{direction="sent"}[1h]))
+          )
+          < 0.5 * (
+            sum(increase(relay_agents_message_total{direction="reply"}[1h] offset 1d))
+            / sum(increase(relay_agents_message_total{direction="sent"}[1h] offset 1d))
+          )
+          and
+          sum(increase(relay_agents_message_total{direction="sent"}[1h]))
+          > 1.5 * sum(increase(relay_agents_message_total{direction="sent"}[1h] offset 1d))
+        labels:
+          severity: warning
+          decision: OP-37
+        annotations:
+          summary: "Agent reply rate halved while agent message volume grew"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentreplydrop
+      - alert: RelayEspEventDelay
+        expr: histogram_quantile(0.95, sum by (provider, le) (rate(relay_provider_event_delay_seconds_bucket{channel="email"}[30m]))) > 1800
+        labels:
+          severity: page
+          decision: CH-47
+        annotations:
+          summary: "Delivery events of {{ $labels.provider }} arrive more than 30 minutes after the handoff"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayespeventdelay
+      - alert: RelayEspEventsSilent
+        expr: |
+          sum by (provider) (increase(relay_funnel_total{channel="email",stage="provider_accepted"}[1h])) > 100
+          unless
+          sum by (provider) (increase(relay_provider_event_total{channel="email"}[1h])) > 0
+        labels:
+          severity: page
+          decision: CH-47
+        annotations:
+          summary: "{{ $labels.provider }} accepted email for an hour without sending any delivery event"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayespeventssilent
+      - alert: RelayReconciliationLag
+        expr: max by (channel, provider) (relay_reconciliation_lag_seconds) > 1800
+        labels:
+          severity: warning
+          decision: DS-41
+        annotations:
+          summary: "Reconciliation of {{ $labels.channel }}/{{ $labels.provider }} is more than 30 minutes behind"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayreconciliationlag
+  - name: relay-operations
+    rules:
+      - record: relay:queue_age_threshold_seconds
+        expr: vector(5)
+        labels:
+          lane: l0
+      - record: relay:queue_age_threshold_seconds
+        expr: vector(30)
+        labels:
+          lane: l1
+      - record: relay:queue_age_threshold_seconds
+        expr: vector(30)
+        labels:
+          lane: l2
+      - record: relay:queue_age_threshold_seconds
+        expr: vector(1800)
+        labels:
+          lane: l3
+      - alert: RelayQueueOldestJob
+        expr: |
+          max by (lane) (relay_queue_oldest_job_age_seconds)
+          > on (lane) group_left ()
+          relay:queue_age_threshold_seconds
+        for: 5m
+        labels:
+          severity: page
+          decision: OP-37
+        annotations:
+          summary: "The oldest job of {{ $labels.lane }} waits longer than the lane's threshold"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayqueueoldestjob
+      - alert: RelayProviderBreakerOpen
+        expr: max by (provider) (relay_breaker_open) == 1
+        for: 10m
+        labels:
+          severity: page
+          decision: OP-37
+        annotations:
+          summary: "The {{ $labels.provider }} breaker has been open for ten minutes"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayproviderbreakeropen
+      - alert: RelayProviderIncident
+        expr: max by (provider) (relay_provider_incident) == 1
+        labels:
+          severity: page
+          decision: OP-37
+        annotations:
+          summary: "{{ $labels.provider }} reports an incident on its status page"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayproviderincident
+      - alert: RelayNoisyNeighbour
+        expr: max by (signal, queue) (relay_noisy_neighbour_share) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          decision: TN-62
+        annotations:
+          summary: "One tenant or API client makes up more than half of {{ $labels.signal }} on {{ $labels.queue }}"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaynoisyneighbour
+      - alert: RelayPerformanceBudget
+        expr: |
+          sum by (type) (rate(relay_request_budget_total{good="false"}[30m]))
+          /
+          sum by (type) (rate(relay_request_budget_total[30m]))
+          > 0.01
+        for: 15m
+        labels:
+          severity: warning
+          decision: T-68
+        annotations:
+          summary: "More than 1% of {{ $labels.type }} requests exceed their performance budget"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayperformancebudget
+      - alert: RelayWakeUpBudget
+        expr: count(count by (alertname) (max_over_time(ALERTS{alertstate="firing",severity="page"}[12h]))) > 5
+        labels:
+          severity: ticket
+          decision: OP-37
+        annotations:
+          summary: "More than five alerts paged in the last twelve hours; review the alerts"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaywakeupbudget
+  - name: relay-vm
+    rules:
+      - alert: RelayAtomGrowth
+        expr: deriv(relay_vm_atom_count[1h]) * 3600 > 1000
+        for: 1h
+        labels:
+          severity: warning
+          decision: T-48
+        annotations:
+          summary: "The atom table grows by more than 1000 atoms an hour"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayatomgrowth
+      - alert: RelayAtomLimit
+        expr: relay_vm_atom_count / relay_vm_atom_limit > 0.8
+        labels:
+          severity: page
+          decision: T-48
+        annotations:
+          summary: "The atom table is more than 80% full"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayatomlimit
+      - alert: RelayProcessLimit
+        expr: relay_vm_process_count / relay_vm_process_limit > 0.8
+        labels:
+          severity: page
+          decision: T-48
+        annotations:
+          summary: "The process table is more than 80% full"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayprocesslimit
+      - alert: RelayLongSchedule
+        expr: sum by (kind, process) (increase(relay_vm_monitor_total{kind=~"long_gc|long_schedule"}[10m])) > 20
+        labels:
+          severity: warning
+          decision: T-48
+        annotations:
+          summary: "{{ $labels.process }} reports {{ $labels.kind }} repeatedly"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaylongschedule
+      - alert: RelayLongMessageQueue
+        expr: sum by (process) (increase(relay_vm_monitor_total{kind="long_message_queue"}[10m])) > 0
+        labels:
+          severity: warning
+          decision: T-48
+        annotations:
+          summary: "{{ $labels.process }} has a long message queue"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaylongmessagequeue
+      - alert: RelayDirtySchedulerQueue
+        expr: min_over_time(relay_vm_dirty_cpu_run_queue[5m]) > 10
+        labels:
+          severity: warning
+          decision: T-53
+        annotations:
+          summary: "Dirty CPU scheduler work has been queued for five minutes"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaydirtyschedulerqueue

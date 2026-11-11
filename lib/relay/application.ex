@@ -16,6 +16,7 @@ defmodule Relay.Application do
       Relay.Delivery,
       Relay.Connectors,
       Relay.Templates,
+      Relay.Observability,
       RelayWeb
     ]
 
@@ -41,6 +42,7 @@ defmodule Relay.Application do
       [Relay.Config.SecretFiles] ++
         Relay.Config.startup_probes() ++
         [RelayWeb.Telemetry] ++
+        Relay.Observability.children() ++
         RelayWeb.Metrics.children() ++
         [
           Relay.Repo,

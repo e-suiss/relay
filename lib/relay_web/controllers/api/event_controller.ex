@@ -67,8 +67,10 @@ defmodule RelayWeb.Api.EventController do
 
   # T-35
   # OP-7
+  # OP-36
   defp single(conn, ctx, prepared) do
     {class, channels} = Events.admission(prepared)
+    conn = put_private(conn, :relay_message_class, class)
 
     case Admission.check(class, channels) do
       :ok -> Work.idempotent(conn, fn _status -> accept(prepared, ctx) end)

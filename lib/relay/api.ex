@@ -70,6 +70,7 @@ defmodule Relay.Api do
       ProviderInvoices,
       Reports,
       Exports,
-      EmailTracking
+      EmailTracking,
+      EmailReports
     ]
 end

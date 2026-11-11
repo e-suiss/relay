@@ -16,6 +16,8 @@ defmodule Relay.Channels do
   alias Relay.Channels.Email.ClickSignals
   alias Relay.Channels.Email.Event
   alias Relay.Channels.Email.Intake
+  alias Relay.Channels.Email.Reports
+  alias Relay.Channels.Email.ReportStore
   alias Relay.Channels.Email.Tracking
   alias Relay.Channels.Email.Verp
   alias Relay.Channels.Inbound
@@ -839,6 +841,24 @@ defmodule Relay.Channels do
 
     CriticalGrant.decide(module, query)
   end
+
+  # CH-46
+  @doc "Parses an uploaded DMARC aggregate or TLS-RPT report; see `Relay.Channels.Email.Reports.parse/3`."
+  @spec parse_email_report(Reports.kind(), Reports.encoding(), binary()) ::
+          {:ok, Reports.report()} | {:error, :invalid_report | :report_too_large}
+  def parse_email_report(kind, encoding, content), do: Reports.parse(kind, encoding, content)
+
+  # CH-46
+  @doc "Appends a parsed report inside the caller's scoped transaction; see `Relay.Channels.Email.ReportStore.record/2`."
+  @spec record_email_report(Reports.report(), digest()) :: {:recorded | :duplicate, Relay.Id.t()}
+  def record_email_report(report, digest), do: ReportStore.record(report, digest)
+
+  # CH-46
+  @doc "Reads the reports of a domain in a scope; see `Relay.Channels.Email.ReportStore.reports/4`."
+  @spec email_reports(Relay.Scope.t(), String.t(), DateTime.t(), DateTime.t(), pos_integer()) ::
+          result([map()])
+  def email_reports(scope, domain, from, to, limit),
+    do: Store.in_scope(scope, fn _status -> ReportStore.reports(domain, from, to, limit) end)
 
   # CH-2
   @doc "Builds the request of one provider call; see `Relay.Channels.Request`."

@@ -317,6 +317,12 @@ defmodule RelayWeb.Router do
     put "/templates/:template_key/email_tracking", EmailTrackingController, :replace,
       private: %{relay_operation: "replaceTemplateEmailTracking", relay_target: "template"}
 
+    post "/email_reports", EmailReportController, :create,
+      private: %{relay_operation: "uploadEmailReport"}
+
+    get "/email_reports/summary", EmailReportController, :summary,
+      private: %{relay_operation: "getEmailReportSummary"}
+
     get "/suppressions", SuppressionController, :index,
       private: %{relay_operation: "listSuppressions"}
 

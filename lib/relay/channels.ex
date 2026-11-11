@@ -14,8 +14,8 @@ defmodule Relay.Channels do
   alias Relay.Channels.Email.Bounce
   alias Relay.Channels.Email.Event
   alias Relay.Channels.Email.Intake
-  alias Relay.Channels.Email.ReportStore
   alias Relay.Channels.Email.Reports
+  alias Relay.Channels.Email.ReportStore
   alias Relay.Channels.Inbound
   alias Relay.Channels.Limits
   alias Relay.Channels.Outcome

@@ -121,6 +121,9 @@ defmodule RelayWeb.Router do
     get "/deliveries/:delivery_id/history", DeliveryController, :history,
       private: %{relay_operation: "getDeliveryHistory"}
 
+    get "/subscribers/:subscriber_id/decisions", NotificationController, :decisions,
+      private: %{relay_operation: "listSubscriberDecisions"}
+
     post "/subscribers/bulk", SubscriberController, :bulk,
       private: %{relay_operation: "bulkUpsertSubscribers"}
 

@@ -25,7 +25,8 @@ defmodule Relay.Api do
       Relay.Channels,
       Relay.Messaging,
       Relay.Channels.Live,
-      Relay.Secrets
+      Relay.Secrets,
+      Relay.Rules
     ],
     exports: [
       Contract,

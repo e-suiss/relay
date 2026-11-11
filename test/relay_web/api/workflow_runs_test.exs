@@ -244,6 +244,61 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
       end
     end
 
+    test "WF-27: a digest anchor parks, a later event folds, and the fired window resumes the anchor with the digest template",
+         ctx do
+      digest = %{
+        "type" => "digest",
+        "key" => "batch",
+        "digest_key" => "order:{{data.order}}",
+        "mode" => "fixed",
+        "max_wait" => "PT1H"
+      }
+
+      reminder = Map.put(mail("mail"), "digest_template", "order-shipped")
+      definition = F.definition(message_class: "social") |> Map.put("steps", [digest, reminder])
+      :ok = F.category_of!(ctx.token, definition)
+      :ok = F.template!(ctx.scope, "order-shipped", definition["category"])
+      body = %{"key" => "digested", "definition" => definition}
+      assert F.request(:post, "/v1/workflows", ctx.token, body).status == 201
+      F.publish!(ctx.scope, ctx.token, "digested")
+
+      recipient = "user-" <> TenantFixture.random()
+
+      event = %{
+        "workflow" => "digested",
+        "to" => [%{"id" => recipient, "email" => "ayse@example.com"}],
+        "data" => %{"order" => "A-1"}
+      }
+
+      [first, second] =
+        for _n <- 1..2 do
+          accepted = F.body(F.request(:post, "/v1/events", ctx.token, event), 202)
+          [%{"notification_id" => notification}] = accepted["notifications"]
+          {:ok, id} = Relay.ExternalId.decode(notification, ["ntf"])
+          {notification, id}
+        end
+
+      anchor = run!(ctx, elem(first, 1))
+      assert anchor["state"] == "running"
+      assert anchor["step_cursor"]["parked"] == "batch"
+      assert %{"state" => "completed", "step_results" => folded} = run!(ctx, elem(second, 1))
+      assert folded["batch"]["outcome"] == "folded"
+      assert deliveries(ctx, elem(first, 0)) == []
+
+      advance!(ctx, @hour + 60_000)
+      {:ok, window_id} = Relay.Id.parse(anchor["step_results"]["batch"]["window_id"])
+      assert {:ok, _closed} = Relay.Workflow.digest_fire(ctx.scope, window_id)
+      assert {:ok, :completed} = Relay.Workflow.wake(ctx.scope, anchor["id"], true)
+
+      assert [%{"id" => delivery}] = deliveries(ctx, elem(first, 0))
+      {:ok, delivery_id} = Relay.ExternalId.decode(delivery, ["dlv"])
+
+      assert {:ok, %{"total_activities" => 2}} =
+               Repo.in_scope(ctx.scope, fn _status ->
+                 Relay.Workflow.digest_render(delivery_id)
+               end)
+    end
+
     test "API-57: cancelling the notification cancels its waiting run", ctx do
       workflow!(ctx, "cancelled", [
         %{"type" => "delay", "key" => "wait", "duration" => "PT1H"},

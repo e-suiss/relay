@@ -324,7 +324,7 @@ defmodule Relay.Workflow do
 
   # WF-14
   # WF-7
-  @doc "Resolves the route tree of every channel step of a definition in its own read transaction (WF-14): `%{step_key => %{\"tree\" => tree}}`, or `%{\"skip\" => rule_id}` for a route that does not resolve. The run copies the result into the notification's plan, so a later change to a named route does not change it (WF-7)."
+  @doc "Resolves the route tree of every channel step of a definition in its own read transaction (WF-14): a map of step key to `tree`, or to `skip` with the rule of a route that does not resolve. The run copies the result into the notification's plan, so a later change to a named route does not change it (WF-7)."
   @spec prepare_routes(Scope.t(), Definition.t()) :: result(%{String.t() => map()})
   def prepare_routes(%Scope{} = scope, definition) do
     Store.in_scope(scope, fn _status -> routes(definition) end)

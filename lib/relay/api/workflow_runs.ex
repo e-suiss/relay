@@ -124,15 +124,12 @@ defmodule Relay.Api.WorkflowRuns do
   # WF-18
   defp facts(subtype, templates) do
     fn step ->
-      variants =
-        case Map.get(templates, step["template"]) do
-          %{locales: locales} -> for {channel, [_ | _]} <- locales, do: channel
-          _unresolved -> :all
-        end
-
-      %{security_subtype: subtype, variants: variants}
+      %{security_subtype: subtype, variants: variants(Map.get(templates, step["template"]))}
     end
   end
+
+  defp variants(%{locales: locales}), do: for({channel, [_ | _]} <- locales, do: channel)
+  defp variants(_unresolved), do: :all
 
   # WF-10
   # WF-59

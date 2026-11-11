@@ -38,7 +38,7 @@ defmodule Relay.Delivery.Send do
   defp settled(:ok, scope, delivery_id) do
     case settled_step() do
       nil -> :ok
-      module -> with(:ok <- module.delivery_settled(scope, delivery_id), do: :ok)
+      module -> module.delivery_settled(scope, delivery_id)
     end
   end
 

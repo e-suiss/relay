@@ -81,7 +81,7 @@ defmodule Relay.Delivery.ProjectionAxesTest do
                :applied
 
       assert append(scope, id, failed ++ [failure_class: "permanent_target"]) == :applied
-      assert %{"status" => "failed", "failure_class" => "permanent_target"} = delivery(scope, id)
+      assert %{"failure_class" => "permanent_target"} = delivery(scope, id)
       assert {:ok, []} = Relay.Delivery.rebuild_projection(scope, id)
     end
   end
@@ -98,7 +98,7 @@ defmodule Relay.Delivery.ProjectionAxesTest do
       assert append(scope, id, attempt_no: second, delivery_rank: :delivered) == :applied
       assert append(scope, id, attempt_no: first, delivery_rank: :delivered) == :applied
 
-      assert %{"status" => "delivered", "duplicate_delivered" => true, "late_event_count" => 1} =
+      assert %{"delivery_rank" => 2, "duplicate_delivered" => true, "late_event_count" => 1} =
                delivery(scope, id)
 
       assert {:ok, []} = Relay.Delivery.rebuild_projection(scope, id)
@@ -113,10 +113,7 @@ defmodule Relay.Delivery.ProjectionAxesTest do
       %{"delivered_at" => delivered_at} = delivery(scope, id)
 
       assert {:ok, %{result: :applied}} = Live.record_event(scope, event(id, "bounced"))
-
-      assert %{"status" => "failed", "delivery_rank" => 2, "delivered_at" => ^delivered_at} =
-               delivery(scope, id)
-
+      assert %{"failure_kind" => "bounced", "delivered_at" => ^delivered_at} = delivery(scope, id)
       assert {:ok, []} = Relay.Delivery.rebuild_projection(scope, id)
     end
 
@@ -130,7 +127,7 @@ defmodule Relay.Delivery.ProjectionAxesTest do
       assert {:ok, %{result: :conflict_flagged}} =
                Live.record_event(scope, event(id, "undelivered"))
 
-      assert %{"status" => "delivered", "has_conflict" => true} = delivery(scope, id)
+      assert %{"failure_kind" => nil, "has_conflict" => true} = delivery(scope, id)
       assert {:ok, []} = Relay.Delivery.rebuild_projection(scope, id)
     end
   end
@@ -166,7 +163,7 @@ defmodule Relay.Delivery.ProjectionAxesTest do
       result = append(scope, id, actor: :client_sdk, delivery_rank: :delivered, engagement: read)
       assert result == :applied
 
-      assert %{"status" => "delivered", "read_source" => "client_sdk", "seen_at" => nil} =
+      assert %{"delivery_rank" => 2, "read_source" => "client_sdk", "seen_at" => nil} =
                delivery(scope, id)
 
       assert {:ok, []} = Relay.Delivery.rebuild_projection(scope, id)
@@ -194,7 +191,7 @@ defmodule Relay.Delivery.ProjectionAxesTest do
       assert Live.record_event(scope, Map.put(event(id, "teleported"), :raw_code, "X-42")) ==
                {:error, :unknown_event}
 
-      assert %{"projection_version" => ^version, "status" => "queued"} = delivery(scope, id)
+      assert %{"projection_version" => ^version, "delivery_rank" => 0} = delivery(scope, id)
       {:ok, ledger} = Relay.Delivery.ledger(scope, id)
 
       assert %{"raw_code" => "X-42", "detail" => %{"event_code" => "teleported"}} =

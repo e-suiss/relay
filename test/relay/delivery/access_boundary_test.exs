@@ -8,7 +8,7 @@ defmodule Relay.Delivery.AccessBoundaryTest do
   ]
 
   @functions ~w(ledger_append ledger_record projection_reduce projection_apply
-                delivery_windows_advance delivery_status delivery_projection_rebuild)
+                delivery_windows_advance delivery_projection_rebuild)
 
   describe "E-6 DS-43 INV-28 delivery is information, never authority" do
     test "E-6, E-7, DS-43: the delivery context never calls Access" do

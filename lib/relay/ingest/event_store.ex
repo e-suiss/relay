@@ -7,12 +7,14 @@ defmodule Relay.Ingest.EventStore do
   alias Relay.Repo
 
   @status "relay_private.delivery_status(d)"
+  @decision_rule "COALESCE(e.detail ->> 'rule_id', e.detail -> 'effect' ->> 'failure_rule_id')"
+  @decision_reason "COALESCE(e.detail ->> 'reason', e.detail -> 'effect' ->> 'failure_reason', e.detail -> 'effect' ->> 'failure_kind')"
 
   @notification """
   SELECT n.id, n.event_id, n.recipient_id, r.kind AS recipient_kind, n.subtenant_id,
     n.message_class, n.security_subtype, n.sender_type, n.dedup_key, n.state, n.close_rule_id,
     n.expires_at, n.duplicate_count, n.is_test, n.created_at, n.updated_at, w.key AS workflow_key,
-    v.version_no AS workflow_version,
+    v.version_no AS workflow_version, ev.correlation_id, ev.item,
     (SELECT jsonb_object_agg(s.status, s.n) FROM (
       SELECT #{@status} AS status, count(*) AS n FROM relay.deliveries d
       WHERE d.tenant_id = n.tenant_id AND d.environment = n.environment
@@ -25,6 +27,8 @@ defmodule Relay.Ingest.EventStore do
     AND w.id = n.workflow_id
   JOIN relay.workflow_versions v ON v.tenant_id = n.tenant_id AND v.environment = n.environment
     AND v.id = n.workflow_version_id
+  LEFT JOIN relay.events ev ON ev.tenant_id = n.tenant_id AND ev.environment = n.environment
+    AND ev.id = n.event_id
   """
 
   @delivery """
@@ -129,7 +133,8 @@ defmodule Relay.Ingest.EventStore do
   # OP-7
   # E-83
   # API-23
-  @doc "Records an accepted event with its encrypted payload, the sender's `interruption`, its encrypted `links` and the request's encrypted channel overrides."
+  # E-85
+  @doc "Records an accepted event with its encrypted payload, the sender's `interruption`, its encrypted `links`, the request's encrypted channel overrides and the sender's `correlation_id` and `item`."
   @spec event_accept(map()) :: {atom(), Relay.Id.t() | nil, DateTime.t() | nil}
   def event_accept(e) do
     [row] =
@@ -162,7 +167,9 @@ defmodule Relay.Ingest.EventStore do
         e.traceparent,
         e.interruption,
         e.links_ct,
-        Map.get(e, :overrides_ct)
+        Map.get(e, :overrides_ct),
+        Map.get(e, :correlation_id),
+        Map.get(e, :item)
       ])
 
     {Repo.code!(row["result"], [
@@ -404,7 +411,8 @@ defmodule Relay.Ingest.EventStore do
            """
            SELECT e.id, e.source, e.subtenant_id, e.dedup_key, e.cancellation_key, e.send_at,
              e.expires_at, e.priority, e.recipient_count, e.state, e.is_test, e.created_at,
-             e.cancelled_at, e.payload_created_at, w.key AS workflow_key,
+             e.cancelled_at, e.payload_created_at, e.correlation_id, e.item,
+             w.key AS workflow_key,
              v.version_no AS workflow_version
            FROM relay.events e
            JOIN relay.workflows w ON w.tenant_id = e.tenant_id AND w.environment = e.environment
@@ -514,10 +522,41 @@ defmodule Relay.Ingest.EventStore do
       Repo.scoped_query!(
         """
         SELECT e.id, e.actor, e.event_type, e.attempt_no, e.raw_code, e.provider, e.occurred_at,
-          e.received_at
+          e.received_at, e.projection_result, #{@decision_reason} AS reason,
+          #{@decision_rule} AS rule_id
         FROM relay.delivery_events e WHERE e.delivery_id = $1 ORDER BY e.received_at, e.id
         """,
         [delivery_id]
+      )
+    )
+  end
+
+  # DS-28
+  @doc "Reads the deliveries of the notifications with their external status, reason and rule, the lattice decision and every rule decision their ledger recorded, in opening order."
+  @spec decision_chains([Relay.Id.t()]) :: [map()]
+  def decision_chains([]), do: []
+
+  def decision_chains(notification_ids) do
+    maps(
+      Repo.scoped_query!(
+        """
+        SELECT d.id, d.notification_id, d.channel, #{@status} AS status, r.reason, r.rule_id,
+          d.decision, d.deferred_until, d.paused_at,
+          COALESCE((SELECT jsonb_agg(jsonb_build_object('type', e.event_type,
+              'rule_id', #{@decision_rule}, 'reason', #{@decision_reason},
+              'deferred_until', e.detail ->> 'deferred_until',
+              'detail', e.detail - 'effect' - 'reason' - 'rule_id' - 'deferred_until',
+              'occurred_at', e.occurred_at) ORDER BY e.received_at, e.id)
+            FROM relay.delivery_events e
+            WHERE e.tenant_id = d.tenant_id AND e.environment = d.environment
+              AND e.delivery_id = d.id AND e.actor = 'relay' AND #{@decision_rule} IS NOT NULL),
+            '[]'::jsonb) AS decisions
+        FROM relay.deliveries d
+        CROSS JOIN LATERAL relay_private.delivery_reason(d) r
+        WHERE d.notification_id = ANY ($1)
+        ORDER BY d.created_at, d.id
+        """,
+        [notification_ids]
       )
     )
   end

@@ -260,7 +260,6 @@ relay_private.category_settings_check(p_class text, p_locked boolean, p_channel_
 relay_private.class_channel_default(p_class text, p_channel text) -> boolean | invoker immutable | owner relay_migrator | search_path=pg_catalog, pg_temp; TimeZone=UTC | execute relay_app,relay_owner,relay_report
 relay_private.ctx_environment() -> relay.environment | invoker stable | owner relay_migrator | search_path=pg_catalog, pg_temp | execute relay_app,relay_archive,relay_maint,relay_owner,relay_report
 relay_private.ctx_tenant_id() -> uuid | invoker stable | owner relay_migrator | search_path=pg_catalog, pg_temp | execute relay_app,relay_archive,relay_maint,relay_owner,relay_report
-relay_private.delivery_status(p_delivery relay.deliveries) -> text | invoker immutable | owner relay_migrator | search_path=pg_catalog, pg_temp | execute relay_app,relay_owner,relay_report
 relay_private.device_retire(p_device relay.devices, p_reason text) -> void | invoker volatile | owner relay_migrator | search_path=pg_catalog, pg_temp; TimeZone=UTC | execute relay_owner
 relay_private.drr_weight(p_value jsonb) -> bigint | invoker immutable | owner relay_migrator | search_path=pg_catalog, pg_temp | execute relay_maint,relay_owner
 relay_private.fanout_emit(p_fanout relay.fanouts) -> void | invoker volatile | owner relay_migrator | search_path=pg_catalog, pg_temp | execute relay_owner

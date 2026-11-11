@@ -510,17 +510,6 @@ defmodule Relay.Delivery do
   def ledger(scope, delivery_id),
     do: Store.in_scope(scope, fn _status -> Store.ledger(delivery_id) end)
 
-  # DS-14
-  # DS-17
-  @doc "The external status of a delivery from its projection columns; see `Relay.Delivery.Projection.status/1`."
-  @spec status(map()) :: String.t()
-  defdelegate status(delivery), to: Projection
-
-  # DS-9
-  @doc "The number of deliveries per external status, the delivery view of a notification; see `Relay.Delivery.Projection.counts/1`."
-  @spec status_counts([map()]) :: %{optional(String.t()) => pos_integer()}
-  defdelegate status_counts(deliveries), to: Projection, as: :counts
-
   # DS-3
   # DS-14
   @doc "The engagement of a delivery from its projection columns; see `Relay.Delivery.Projection.engagement/1`."

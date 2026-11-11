@@ -80,7 +80,7 @@ defmodule Relay.Delivery.WindowSweepTest do
       accepted!(scope, id, 7 * @hour)
 
       assert :ok = WindowSweep.run_due(scope)
-      assert %{"status" => "unknown_pending", "window_stage" => 1} = delivery(scope, id)
+      assert %{"delivery_rank" => 1, "window_stage" => 1} = delivery(scope, id)
 
       assert [%{"event_type" => "delivery.unknown_pending", "actor" => "relay"}] =
                events(scope, id)
@@ -95,7 +95,7 @@ defmodule Relay.Delivery.WindowSweepTest do
       accepted!(scope, id, 73 * @hour)
 
       assert WindowSweep.sweep() >= 1
-      assert %{"status" => "unknown", "window_stage" => 2} = delivery(scope, id)
+      assert %{"delivery_rank" => 1, "window_stage" => 2} = delivery(scope, id)
 
       assert Enum.map(events(scope, id), & &1["event_type"]) ==
                ["delivery.unknown_pending", "delivery.unknown"]
@@ -113,8 +113,8 @@ defmodule Relay.Delivery.WindowSweepTest do
 
       assert :ok = WindowSweep.run_due(scope)
       assert :ok = WindowSweep.run_due(other)
-      assert %{"status" => "sent", "window_stage" => 0} = delivery(scope, fresh)
-      assert %{"status" => "delivered", "window_stage" => 0} = delivery(other, done)
+      assert %{"delivery_rank" => 1, "window_stage" => 0} = delivery(scope, fresh)
+      assert %{"delivery_rank" => 2, "window_stage" => 0} = delivery(other, done)
     end
 
     test "DS-13, CH-32: a push delivery the provider accepted never falls to unknown" do
@@ -124,7 +124,7 @@ defmodule Relay.Delivery.WindowSweepTest do
       accepted!(scope, id, 30 * 24 * @hour)
 
       assert :ok = WindowSweep.run_due(scope)
-      assert %{"status" => "sent", "window_stage" => 0} = delivery(scope, id)
+      assert %{"delivery_rank" => 1, "window_stage" => 0} = delivery(scope, id)
       assert events(scope, id) == []
     end
   end
@@ -134,10 +134,10 @@ defmodule Relay.Delivery.WindowSweepTest do
       %{scope: scope, delivery_id: id} = sms!()
       attempt = accepted!(scope, id, 80 * @hour)
       assert :ok = WindowSweep.run_due(scope)
-      assert %{"status" => "unknown", "attempt_count" => 1} = delivery(scope, id)
+      assert %{"window_stage" => 2, "attempt_count" => 1} = delivery(scope, id)
 
       assert delivered!(scope, id, attempt) == :applied
-      assert %{"status" => "delivered", "attempt_count" => 1} = delivery(scope, id)
+      assert %{"delivery_rank" => 2, "attempt_count" => 1} = delivery(scope, id)
       assert {:ok, []} = Relay.Delivery.rebuild_projection(scope, id)
     end
 
@@ -148,7 +148,7 @@ defmodule Relay.Delivery.WindowSweepTest do
 
       event = %{delivery_id: id, provider: "fake", channel: "sms", event_code: "bounced"}
       assert {:ok, %{result: :applied}} = Live.record_event(scope, event)
-      assert %{"status" => "failed", "window_stage" => 2} = delivery(scope, id)
+      assert %{"failure_kind" => "bounced", "window_stage" => 2} = delivery(scope, id)
       assert {:ok, []} = Relay.Delivery.rebuild_projection(scope, id)
     end
   end
@@ -178,7 +178,7 @@ defmodule Relay.Delivery.WindowSweepTest do
 
       accepted!(scope, early, 4 * @hour)
       assert :ok = WindowSweep.run_due(scope)
-      assert %{"status" => "unknown_pending"} = delivery(scope, early)
+      assert %{"window_stage" => 1} = delivery(scope, early)
     end
   end
 
@@ -194,19 +194,19 @@ defmodule Relay.Delivery.WindowSweepTest do
                  VirtualClock.advance(scope, ms, TenantFixture.digest(), TenantFixture.actor())
 
         assert :ok = WindowSweep.run_due(scope)
-        delivery(scope, id)["status"]
+        delivery(scope, id)["window_stage"]
       end
 
-      assert advance.(5 * @hour) == "sent"
-      assert advance.(2 * @hour) == "unknown_pending"
-      assert advance.(66 * @hour) == "unknown"
+      assert advance.(5 * @hour) == 0
+      assert advance.(2 * @hour) == 1
+      assert advance.(66 * @hour) == 2
 
       late = %{event | event_code: "delivered"}
       assert {:ok, %{result: :applied}} = Live.record_event(scope, late)
-      assert %{"status" => "delivered", "late_event_count" => 0} = delivery(scope, id)
+      assert %{"delivery_rank" => 2, "late_event_count" => 0} = delivery(scope, id)
 
       assert {:ok, %{result: :stale_ignored}} = Live.record_event(scope, late)
-      assert %{"status" => "delivered", "late_event_count" => 1} = delivery(scope, id)
+      assert %{"delivery_rank" => 2, "late_event_count" => 1} = delivery(scope, id)
       assert {:ok, []} = Relay.Delivery.rebuild_projection(scope, id)
     end
   end

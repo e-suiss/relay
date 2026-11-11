@@ -6,8 +6,7 @@ defmodule Relay.Repo.Migrations.ExtendDeliveryProjectionAxes do
 
   @private [
     {"relay_private.projection_reduce(#{@projection}, text, text, bigint, bigint, #{@time}, #{@time}, jsonb, boolean)",
-     ~w(relay_owner relay_app relay_report)},
-    {"relay_private.delivery_status(relay.deliveries)", ~w(relay_owner relay_app relay_report)}
+     ~w(relay_owner relay_app relay_report)}
   ]
 
   @advance "relay_fn.delivery_windows_advance(jsonb, integer)"
@@ -24,7 +23,6 @@ defmodule Relay.Repo.Migrations.ExtendDeliveryProjectionAxes do
   # DS-6
   # DS-7
   # DS-8
-  # DS-17
   # DS-18
   # DS-20
   # OP-4
@@ -36,7 +34,6 @@ defmodule Relay.Repo.Migrations.ExtendDeliveryProjectionAxes do
     execute(projection_reduce())
     execute(projection_apply())
     execute(ledger_record())
-    execute(delivery_status())
 
     for {signature, grantees} <- @private do
       execute("REVOKE ALL ON FUNCTION #{signature} FROM PUBLIC")
@@ -384,27 +381,6 @@ defmodule Relay.Repo.Migrations.ExtendDeliveryProjectionAxes do
       END IF;
       RETURN v_new;
     END
-    $fn$
-    """
-  end
-
-  defp delivery_status do
-    ~S"""
-    CREATE FUNCTION relay_private.delivery_status(p_delivery relay.deliveries) RETURNS text
-    LANGUAGE sql IMMUTABLE
-    SET search_path = pg_catalog, pg_temp
-    AS $fn$
-      SELECT CASE
-        WHEN p_delivery.failure_kind = 'skipped' THEN 'skipped'
-        WHEN p_delivery.failure_kind = 'cancelled' THEN 'cancelled'
-        WHEN p_delivery.failure_kind = 'expired' THEN 'expired'
-        WHEN p_delivery.failure_kind IN ('failed', 'bounced') THEN 'failed'
-        WHEN p_delivery.delivery_rank = 2 THEN 'delivered'
-        WHEN p_delivery.delivery_rank = 1 AND p_delivery.window_stage = 2 THEN 'unknown'
-        WHEN p_delivery.delivery_rank = 1 AND p_delivery.window_stage = 1 THEN 'unknown_pending'
-        WHEN p_delivery.delivery_rank = 1 THEN 'sent'
-        ELSE 'queued'
-      END
     $fn$
     """
   end

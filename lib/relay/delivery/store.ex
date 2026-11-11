@@ -483,7 +483,7 @@ defmodule Relay.Delivery.Store do
   @spec delivery(Relay.Id.t()) :: map() | nil
   def delivery(id) do
     one(
-      "SELECT tenant_id, environment, id, notification_id, channel, target_kind, provider, provider_account_id, decision, decision_reason, decision_rule_id, delivery_rank, accepted_at, delivered_at, failure_kind, failure_class, failure_rule_id, failure_actor, attempt_count, late_event_count, has_conflict, duplicate_delivered, projection_version, paused_at, pause_rule_id, pause_kill_switch_id, replay_depth, replay_dead_letter_id, window_stage, window_stage_at, seen_at, seen_source, read_at, read_source, clicked_at, clicked_source, clicked_by, archived_at, archived_source, relay_private.delivery_status(d) AS status FROM relay.deliveries d WHERE id = $1",
+      "SELECT tenant_id, environment, id, notification_id, channel, target_kind, provider, provider_account_id, decision, decision_reason, decision_rule_id, delivery_rank, accepted_at, delivered_at, failure_kind, failure_class, failure_rule_id, failure_actor, attempt_count, late_event_count, has_conflict, duplicate_delivered, projection_version, paused_at, pause_rule_id, pause_kill_switch_id, replay_depth, replay_dead_letter_id, window_stage, window_stage_at, seen_at, seen_source, read_at, read_source, clicked_at, clicked_source, clicked_by, archived_at, archived_source FROM relay.deliveries WHERE id = $1",
       [id]
     )
   end

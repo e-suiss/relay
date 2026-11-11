@@ -371,19 +371,17 @@ defmodule Relay.Workflow do
 
   defp resume(scope, run, now) do
     with {:ok, bind} <- resumer().resume(scope, run) do
-      RunStore.in_scope(scope, fn _status ->
-        :locked = RunStore.lock(run["id"])
+      RunStore.in_scope(scope, fn _status -> locked(scope, run, now, bind) end)
+    end
+  end
 
-        expected = run["version"]
+  defp locked(scope, run, now, bind) do
+    :locked = RunStore.lock(run["id"])
+    expected = run["version"]
 
-        case RunStore.get(run["id"]) do
-          %{"state" => "waiting", "version" => ^expected} ->
-            advance(scope, run, now, bind)
-
-          _changed ->
-            :raced
-        end
-      end)
+    case RunStore.get(run["id"]) do
+      %{"state" => "waiting", "version" => ^expected} -> advance(scope, run, now, bind)
+      _changed -> :raced
     end
   end
 

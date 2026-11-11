@@ -152,6 +152,7 @@ defmodule Relay.Channels.Live.Reconciliation do
 
   defp items({:reports, delivery_id, reports}) do
     key = "dlv-" <> Relay.Id.to_string(delivery_id)
+
     for %{result: result} = report <- reports,
         result != :pending,
         do: {:report, Map.put(report, :correlation, key)}

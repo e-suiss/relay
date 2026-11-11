@@ -20,6 +20,7 @@ defmodule Relay do
       Role,
       Repo,
       BulkRepo,
+      ReportRepo,
       QueueRepo,
       Scope,
       ScopeError,

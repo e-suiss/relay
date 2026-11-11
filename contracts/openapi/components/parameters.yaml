@@ -440,3 +440,26 @@ ProviderInvoiceId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_piv"
+ReportFrom:
+  name: from
+  in: query
+  description: "First UTC day of the report."
+  required: true
+  schema:
+    type: string
+    format: date
+ReportTo:
+  name: to
+  in: query
+  description: "UTC day after the last day of the report; at most 92 days after from."
+  required: true
+  schema:
+    type: string
+    format: date
+ExportId:
+  name: export_id
+  in: path
+  description: "Raw data export identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_exp"

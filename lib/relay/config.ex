@@ -25,6 +25,7 @@ defmodule Relay.Config do
     Relay.Platform.Fanout,
     Relay.QueueRepo,
     Relay.BulkRepo,
+    Relay.ReportRepo,
     Relay.Platform.LoadShed,
     Relay.Platform.Capacity,
     Relay.Platform.MaintRepo,
@@ -49,7 +50,7 @@ defmodule Relay.Config do
     Relay.Channels.Email.Esp,
     Oban
   ]
-  @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.Platform.MaintRepo]
+  @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.ReportRepo, Relay.Platform.MaintRepo]
   @os_env_keys [
     "RELAY_HOST",
     "RELAY_ROLES",

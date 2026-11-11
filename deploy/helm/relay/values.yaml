@@ -10,6 +10,7 @@ database:
   url: ""
   queueUrl: ""
   maintUrl: ""
+  reportUrl: ""
   migratorUrl: ""
   adminUrl: ""
   passwordSecret: relay-database

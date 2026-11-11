@@ -62,7 +62,8 @@ defmodule Relay.ScopeTest do
                :usage_day_discovery,
                :provider_account_resolve,
                :provider_settings_check_discovery,
-               :delivery_window_discovery
+               :delivery_window_discovery,
+               :report_rollup_discovery
              ]
     end
 

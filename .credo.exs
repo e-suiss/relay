@@ -34,7 +34,12 @@
            [
              files: %{
                included: ["lib/"],
-               excluded: ["lib/relay/repo.ex", "lib/relay/bulk_repo.ex", "lib/relay/release.ex"]
+               excluded: [
+                 "lib/relay/repo.ex",
+                 "lib/relay/bulk_repo.ex",
+                 "lib/relay/report_repo.ex",
+                 "lib/relay/release.ex"
+               ]
              }
            ]},
           {RelayDev.Credo.LaneOutsideLane,

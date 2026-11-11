@@ -1166,6 +1166,111 @@ paths:
       x-relay-step-up: false
       x-relay-choice: true
       x-relay-choice-note: The spec requires a separate endpoint for attempt history and ledger without naming its path.
+  "/v1/subscribers/{subscriber_id}/decisions":
+    get:
+      operationId: listSubscriberDecisions
+      tags:
+        - query
+      summary: Explain why a subscriber did or did not get notifications
+      description: "The decision chain of each notification of one subscriber in a time range, newest first: whether the policy gates passed, every rule that skipped, deferred, expired, cancelled or paused a delivery with the rule's reason, the recorded detail the rule dictionary lists for it (such as the closing preference level) and the dictionary's one sentence explanation, and each channel's result in the external projection. Read from the ledger and the decision records; the range defaults to the last 30 days. Personal data is never shown."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/SubscriberId"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+        - name: created_after
+          in: query
+          description: "Inclusive lower bound of the notification's created_at; 30 days ago by default."
+          required: false
+          schema:
+            "$ref": "./components/schemas.yaml#/Timestamp"
+        - name: created_before
+          in: query
+          description: Exclusive upper bound of the notification's created_at.
+          required: false
+          schema:
+            "$ref": "./components/schemas.yaml#/Timestamp"
+        - name: workflow
+          in: query
+          description: Workflow key.
+          required: false
+          schema:
+            "$ref": "./components/schemas.yaml#/WorkflowKey"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - publish
+      responses:
+        "200":
+          description: A page of decision chains.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/NotificationDecisionList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+        - subscriber_not_found
+      x-relay-scopes:
+        - read
+        - publish
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: "The spec requires the query for a recipient and a time range without naming its path; the subscriber's path and the 30 day default of the panel are chosen by the contract."
   "/v1/subscribers":
     post:
       operationId: createSubscriber

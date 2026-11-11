@@ -78,7 +78,7 @@ defmodule Relay.TraceTest do
         |> RelayWeb.Plugs.Trace.call([])
 
       assert {:ok, %{trace_id: @trace}} = Trace.parse(Trace.current())
-      assert conn.before_send != []
+      assert conn.private[:before_send] != []
 
       Plug.Test.conn(:get, "/livez")
       |> Plug.Conn.put_req_header("traceparent", "00-bad")

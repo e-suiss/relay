@@ -1,11 +1,10 @@
 defmodule Relay.Trace.Exporter do
   @moduledoc """
-  The span exporter: finished spans wait in one public ETS table of at most 2048 spans and are sent to the region's OTLP collector (`config :relay, Relay.Trace, endpoint: url`) as OTLP/HTTP JSON on `/v1/traces`, at most 512 a request, every five seconds. Without an endpoint the exporter does not start and spans are dropped where they are recorded. A full buffer drops the span (`[:relay, :trace, :dropped]`); a failed request drops its batch (`[:relay, :trace, :export_failed]`). Tracing never blocks or fails the work it observes. `:http` in the same configuration passes options to `Req`.
+  The span exporter: finished spans are cast to the exporter process, which keeps at most 2048 of them with its mailbox off the heap, and are sent to the region's OTLP collector (`config :relay, Relay.Trace, endpoint: url`) as OTLP/HTTP JSON on `/v1/traces`, at most 512 a request, every five seconds. Without an endpoint the exporter does not start and spans are dropped where they are recorded. A full buffer drops the span (`[:relay, :trace, :dropped]`); a failed request drops its batch (`[:relay, :trace, :export_failed]`). Tracing never blocks or fails the work it observes. `:http` in the same configuration passes options to `Req`.
   """
 
   use GenServer
 
-  @buffer __MODULE__.Buffer
   @max 2048
   @batch 512
   @flush_ms 5_000
@@ -21,22 +20,13 @@ defmodule Relay.Trace.Exporter do
   def start_link(_arg), do: GenServer.start_link(__MODULE__, nil, name: __MODULE__)
 
   # OP-32
-  @doc "Buffers a finished span; drops it when the exporter is not running or the buffer is full."
+  @doc "Hands a finished span to the exporter; drops it when the exporter is not running."
   @spec export(Relay.Trace.span()) :: :ok
   def export(span) do
-    cond do
-      :ets.whereis(@buffer) == :undefined ->
-        :ok
-
-      :ets.info(@buffer, :size) >= @max ->
-        :telemetry.execute([:relay, :trace, :dropped], %{count: 1}, %{})
-
-      true ->
-        :ets.insert(@buffer, {:erlang.unique_integer([:monotonic]), span})
-        :ok
+    case Process.whereis(__MODULE__) do
+      nil -> :ok
+      pid -> GenServer.cast(pid, {:span, span})
     end
-  rescue
-    ArgumentError -> :ok
   end
 
   # OP-32
@@ -55,44 +45,40 @@ defmodule Relay.Trace.Exporter do
 
   @impl GenServer
   def init(nil) do
-    :ets.new(@buffer, [:named_table, :public, :ordered_set, write_concurrency: true])
+    Process.flag(:message_queue_data, :off_heap)
     Process.send_after(self(), :flush, @flush_ms)
-    {:ok, nil}
+    {:ok, {[], 0}}
   end
 
   @impl GenServer
-  def handle_info(:flush, state) do
-    :ok = send_all()
+  def handle_cast({:span, _span}, {spans, @max}) do
+    :telemetry.execute([:relay, :trace, :dropped], %{count: 1}, %{})
+    {:noreply, {spans, @max}}
+  end
+
+  def handle_cast({:span, span}, {spans, size}), do: {:noreply, {[span | spans], size + 1}}
+
+  @impl GenServer
+  def handle_info(:flush, buffer) do
     Process.send_after(self(), :flush, @flush_ms)
-    {:noreply, state}
+    {:noreply, send_all(buffer)}
   end
 
   @impl GenServer
-  def handle_call(:flush, _from, state), do: {:reply, send_all(), state}
+  def handle_call(:flush, _from, buffer), do: {:reply, :ok, send_all(buffer)}
 
-  defp send_all do
-    case {take(), endpoint()} do
-      {[], _endpoint} ->
+  defp send_all({[], 0}), do: {[], 0}
+
+  defp send_all({spans, _size}) do
+    case endpoint() do
+      nil ->
         :ok
 
-      {_spans, nil} ->
-        :ok
-
-      {spans, url} ->
-        post(url, spans)
-        if length(spans) == @batch, do: send_all(), else: :ok
+      url ->
+        spans |> Enum.reverse() |> Enum.chunk_every(@batch) |> Enum.each(&post(url, &1))
     end
-  end
 
-  defp take do
-    case :ets.select(@buffer, [{{:"$1", :"$2"}, [], [{{:"$1", :"$2"}}]}], @batch) do
-      {rows, _continuation} ->
-        Enum.each(rows, fn {key, _span} -> :ets.delete(@buffer, key) end)
-        Enum.map(rows, fn {_key, span} -> span end)
-
-      :"$end_of_table" ->
-        []
-    end
+    {[], 0}
   end
 
   defp post(endpoint, spans) do

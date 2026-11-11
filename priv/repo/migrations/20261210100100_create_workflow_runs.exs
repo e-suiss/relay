@@ -77,11 +77,6 @@ defmodule Relay.Repo.Migrations.CreateWorkflowRuns do
       FOR EACH ROW EXECUTE FUNCTION relay_private.reject_mutation()
     """)
 
-    execute("""
-    CREATE TRIGGER workflow_runs_no_truncate BEFORE TRUNCATE ON relay.workflow_runs
-      FOR EACH STATEMENT EXECUTE FUNCTION relay_private.reject_mutation()
-    """)
-
     execute("ALTER TABLE relay.workflow_runs ENABLE ROW LEVEL SECURITY")
     execute("ALTER TABLE relay.workflow_runs FORCE ROW LEVEL SECURITY")
 

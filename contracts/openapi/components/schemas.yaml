@@ -990,6 +990,12 @@ Event:
       type: object
     metadata:
       "$ref": "#/Metadata"
+    correlation_id:
+      "$ref": "#/CorrelationId"
+      x-relay-stage: 7
+    item:
+      "$ref": "#/ItemRef"
+      x-relay-stage: 7
     is_test:
       type: boolean
     created_at:
@@ -1099,6 +1105,10 @@ CloudEvent:
     tracestate:
       type: string
       maxLength: 512
+    correlationid:
+      "$ref": "#/CorrelationId"
+      description: "The sender's correlation identifier; mapped to correlation_id of the event."
+      x-relay-stage: 7
   additionalProperties: false
   x-relay-choice: true
   x-relay-choice-note: "Only the listed attributes are accepted; any other extension attribute is rejected with unknown_field, and data must be a JSON object."
@@ -1356,6 +1366,12 @@ Notification:
       type: boolean
     metadata:
       "$ref": "#/Metadata"
+    correlation_id:
+      "$ref": "#/CorrelationId"
+      x-relay-stage: 7
+    item:
+      "$ref": "#/ItemRef"
+      x-relay-stage: 7
     created_at:
       "$ref": "#/Timestamp"
     updated_at:
@@ -1455,6 +1471,22 @@ LedgerEvent:
         - type: string
           maxLength: 64
         - type: "null"
+    outcome:
+      type: string
+      description: "What the event did to the projection: applied, stale_ignored (a late or lower event, kept in the ledger and counted) or conflict_flagged."
+      enum:
+        - applied
+        - stale_ignored
+        - conflict_flagged
+    reason:
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    rule_id:
+      oneOf:
+        - "$ref": "#/RuleId"
+        - type: "null"
     occurred_at:
       "$ref": "#/Timestamp"
     received_at:
@@ -1483,6 +1515,145 @@ DeliveryHistory:
       items:
         "$ref": "#/LedgerEvent"
   additionalProperties: false
+DecisionStep:
+  type: object
+  description: "One recorded decision of a delivery: the rule, its reason family, what it did and the dictionary's one sentence explanation. detail holds only the fields the rule dictionary lists for the rule."
+  required:
+    - type
+    - rule_id
+    - occurred_at
+  properties:
+    type:
+      "$ref": "#/EventName"
+    rule_id:
+      "$ref": "#/RuleId"
+    reason:
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    outcome:
+      oneOf:
+        - type: string
+          enum:
+            - skip
+            - defer
+            - expire
+            - cancel
+            - pause
+            - reject
+        - type: "null"
+    deferred_until:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    detail:
+      type: object
+    description:
+      oneOf:
+        - type: object
+          required:
+            - en
+            - tr
+          properties:
+            en:
+              type: string
+            tr:
+              type: string
+          additionalProperties: false
+        - type: "null"
+    occurred_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+DeliveryDecision:
+  type: object
+  description: "A channel's result and the decisions recorded on its delivery. gates is passed when every gate let the delivery go, stopped when a rule skipped, expired or cancelled it, deferred while a rule defers or pauses it."
+  required:
+    - delivery_id
+    - channel
+    - status
+    - gates
+    - decisions
+  properties:
+    delivery_id:
+      "$ref": "#/Id_dlv"
+    channel:
+      "$ref": "#/Channel"
+    status:
+      "$ref": "#/DeliveryStatus"
+    reason:
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    rule_id:
+      oneOf:
+        - "$ref": "#/RuleId"
+        - type: "null"
+    gates:
+      type: string
+      enum:
+        - passed
+        - stopped
+        - deferred
+    deferred_until:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    decisions:
+      type: array
+      items:
+        "$ref": "#/DecisionStep"
+  additionalProperties: false
+NotificationDecision:
+  type: object
+  description: "The decision chain of one notification."
+  required:
+    - object
+    - notification_id
+    - workflow
+    - state
+    - created_at
+    - deliveries
+  properties:
+    object:
+      type: string
+      const: notification_decision
+    notification_id:
+      "$ref": "#/Id_ntf"
+    event_id:
+      oneOf:
+        - "$ref": "#/Id_evt"
+        - type: "null"
+    workflow:
+      "$ref": "#/WorkflowRef"
+    message_class:
+      "$ref": "#/MessageClass"
+    state:
+      type: string
+      enum:
+        - active
+        - cancelled
+        - expired
+    close_rule_id:
+      oneOf:
+        - "$ref": "#/RuleId"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+    deliveries:
+      type: array
+      items:
+        "$ref": "#/DeliveryDecision"
+  additionalProperties: false
+NotificationDecisionList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/NotificationDecision"
 CancelDetail:
   type: object
   required:

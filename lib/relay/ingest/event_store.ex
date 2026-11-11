@@ -6,15 +6,7 @@ defmodule Relay.Ingest.EventStore do
   alias Relay.Actor
   alias Relay.Repo
 
-  @status """
-  CASE WHEN d.failure_kind = 'skipped' THEN 'skipped'
-    WHEN d.failure_kind = 'cancelled' THEN 'cancelled'
-    WHEN d.failure_kind = 'expired' THEN 'expired'
-    WHEN d.failure_kind IN ('failed', 'bounced') THEN 'failed'
-    WHEN d.delivery_rank = 2 THEN 'delivered'
-    WHEN d.delivery_rank = 1 THEN 'sent'
-    ELSE 'queued' END
-  """
+  @status "relay_private.delivery_status(d)"
 
   @notification """
   SELECT n.id, n.event_id, n.recipient_id, r.kind AS recipient_kind, n.subtenant_id,

@@ -136,5 +136,10 @@
   {"file": "20261127300000_create_test_recipients.exs", "sha256": "f4938b5e03adff651cf407710ac20ff7237e966bb03f7cf8b446d1cd64f0716c"},
   {"file": "20261127300100_create_test_recipient_functions.exs", "sha256": "d42fa6195c479d25e3b4d72a3d2992f623758057273a46136ab4d9d461a8b806"},
   {"file": "20261127300200_rebuild_reference_check_for_test_recipients.exs", "sha256": "08a01041ceb0601417b3dff50e449a8704fa19cb7baa8247feed3d62e20ff967"},
-  {"file": "20261128000100_create_provider_settings_check_scopes.exs", "sha256": "aacd345a4a1c5cbfb870aeba84687d5561688f4c215250dfd638761c3661c659"}
+  {"file": "20261128000100_create_provider_settings_check_scopes.exs", "sha256": "aacd345a4a1c5cbfb870aeba84687d5561688f4c215250dfd638761c3661c659"},
+  {"file": "20261204000100_add_delivery_window_and_engagement_columns.exs", "sha256": "ccfe59ecd0edcdb1563753a4fe6cabfd2c3ab2bf96cac485973cd1d31e3b58ee"},
+  {"file": "20261204000200_index_delivery_windows.exs", "sha256": "2382553dae7f17df9fa59f030cdafa2da1a5451826aec7698c7260cd2d955f00"},
+  {"file": "20261204000300_extend_delivery_projection_axes.exs", "sha256": "6e55e1a474728e0175a7a8c6950836b4cecbb13ff1329ccfbf26f3a7197edd2d"},
+  {"file": "20261204000400_validate_delivery_window_and_engagement_checks.exs", "sha256": "7aa134b668734dd1cdfdaee2d9ac685d562e0c1b49bbf5d9ff003f9095908c7e"},
+  {"file": "20261204000500_register_delivery_windows.exs", "sha256": "e82bf4e732dba8501ce2e22033f6cbd3609001fa4d26ead32cb2b3af729cf41d"}
 ]

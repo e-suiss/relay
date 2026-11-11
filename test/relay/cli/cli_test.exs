@@ -746,11 +746,13 @@ defmodule Relay.CLITest do
       assert post.("/v1/templates").body == @template
 
       publish = post.("/v1/templates/welcome-inbox/publish")
+
       assert publish.body == %{
                "checksum" => checksum,
                "note" => "ship it",
                "accept_warnings" => false
              }
+
       assert publish.headers["if-match"] == ~s("1")
 
       manager = post.("/v1/workflows/welcome/manager")
@@ -820,12 +822,14 @@ defmodule Relay.CLITest do
     test "WF-6: a definition equal to the published version is not drafted or published again",
          %{tmp_dir: dir} do
       put_file(dir, "workflows/welcome.json", %{"key" => "welcome", "definition" => @definition})
+
       published = %{
         "key" => "welcome",
         "managed_by" => "code",
         "draft" => nil,
         "published_version" => 3
       }
+
       stored = Map.put(@definition, "message_class", "transactional")
 
       routes = %{

@@ -447,7 +447,10 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
       ends = quiet!(ctx.scope, strict_send)
       strict = %{"timing_precision" => "strict"}
       delivery = delivery!(ctx.token, "maintenance", strict_send, strict)
-      assert ["defer", "quiet_hours.deferred", %DateTime{} = until] = decision(ctx.scope, delivery)
+
+      assert ["defer", "quiet_hours.deferred", %DateTime{} = until] =
+               decision(ctx.scope, delivery)
+
       assert DateTime.diff(until, ends, :millisecond) == 0
 
       assert %{"release_spread" => "PT1M"} = timing!(ctx.token, %{"release_spread" => "PT1M"})

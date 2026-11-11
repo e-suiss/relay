@@ -30,7 +30,11 @@ defmodule Relay.Timing do
   @doc "The control without a tenant setting: both ceilings, `jittered`."
   @spec default() :: t()
   def default,
-    do: %{release_spread_ms: @release_ms, scheduled_spread_ms: @scheduled_ms, precision: :jittered}
+    do: %{
+      release_spread_ms: @release_ms,
+      scheduled_spread_ms: @scheduled_ms,
+      precision: :jittered
+    }
 
   # WF-58
   @doc "Checks a stored value of the setting: an object of `release_spread_ms` (0 to the release ceiling), `scheduled_spread_ms` (0 to the scheduled ceiling) and `precision` (`jittered` or `strict`); `nil` clears. Returns the value or the names of the fields out of bounds."

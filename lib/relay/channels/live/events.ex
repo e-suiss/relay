@@ -2,7 +2,7 @@ defmodule Relay.Channels.Live.Events do
   @moduledoc """
   Records an event a provider reports after the call: a delivery receipt, a bounce, a complaint, a read, a status query answer (DS-10, DS-6, INV-5). It is the entry point of every adapter's webhook or receipt handler, which verifies the request first (`Relay.Channels.verify_*`) and then passes the event here.
 
-  The event code is looked up in the provider's `channel_event_evidence` rows of the active declarations; an event code without a row is rejected (DS-10 (1)). The row decides the ledger entry: `sets_delivery` raises the delivery axis, `sets_failure` sets the failure axis, `after_delivered` says what a failure after delivery means (DS-6) and `scope: attempt` binds the event to the delivery's latest attempt. A provider code given with the event is classified through the adapter's mapping; a code without a mapping is `unknown` and raises `provider.unknown_code` (CH-8). Group and detail both reach the append-only ledger as a `provider.reported` entry with the event code, the raw code and, when the provider sends one, its raw price object (CH-18). The row's `side_effect` and `decision_grade` are returned for the caller: a side effect such as `add_suppression` or `deactivate_device` is the caller's to apply, and only a `reliable` event may feed an engagement decision.
+  The event code is looked up in the provider's `channel_event_evidence` rows of the active declarations; an event code without a row is rejected (DS-10 (1)). The row decides the ledger entry: `sets_delivery` raises the delivery axis, `sets_failure` sets the failure axis, `after_delivered` says what a failure after delivery means (DS-6) and `scope: attempt` binds the event to the delivery's latest attempt. A provider code given with the event is classified through the adapter's mapping; a code without a mapping is `unknown` and raises `provider.unknown_code` (CH-8). Group and detail both reach the append-only ledger as a `provider.reported` entry with the event code, the raw code and, when the provider sends one, its raw price object (CH-18). The entry carries the current trace context, the event's own trace, and a short `provider event` span links it to the delivery's trace (OP-34); an event of a delivery the provider accepted emits `[:relay, :provider, :event]` with the delay since the acceptance (DS-41, CH-47). The row's `side_effect` and `decision_grade` are returned for the caller: a side effect such as `add_suppression` or `deactivate_device` is the caller's to apply, and only a `reliable` event may feed an engagement decision.
   """
 
   alias Relay.ChannelDeclarations
@@ -100,11 +100,14 @@ defmodule Relay.Channels.Live.Events do
         failure_kind: failure_kind,
         failure_class: if(failure_kind, do: class || "unknown"),
         after_delivered: Map.get(@after_delivered, row["after_delivered"]),
-        detail: detail(event)
+        detail: detail(event),
+        traceparent: Relay.Trace.current()
       )
 
     case Relay.Delivery.append_ledger(scope, entry) do
       {:ok, {result, _rank, _version}} ->
+        observe(event, delivery)
+
         {:ok,
          %{
            result: result,
@@ -115,6 +118,41 @@ defmodule Relay.Channels.Live.Events do
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  # DS-40
+  # DS-41
+  # OP-34
+  # CH-47
+  defp observe(event, delivery) do
+    now = Relay.Clock.utc_now()
+    current = Relay.Trace.current()
+
+    Relay.Trace.record(%{
+      name: "provider event",
+      kind: :consumer,
+      traceparent: Relay.Trace.child(current),
+      parent_span_id: Relay.Trace.span_id(current),
+      started_at: now,
+      ended_at: now,
+      attributes: %{
+        "relay.channel" => event.channel,
+        "relay.provider" => event.provider,
+        "relay.event_type" => event.event_code
+      },
+      links: List.wrap(delivery["traceparent"]),
+      error?: false
+    })
+
+    case delivery["accepted_at"] do
+      %DateTime{} = accepted_at ->
+        delay_ms = max(DateTime.diff(now, accepted_at, :millisecond), 0)
+        meta = %{channel: event.channel, provider: event.provider}
+        :telemetry.execute([:relay, :provider, :event], %{delay_ms: delay_ms}, meta)
+
+      _not_accepted ->
+        :ok
     end
   end
 

@@ -26,6 +26,7 @@ secretKeyBaseSecret: relay-secret-key-base
 
 metrics:
   port: 9568
+  otlpEndpoint: ""
 
 auditStore:
   endpoint: ""

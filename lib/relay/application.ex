@@ -35,12 +35,14 @@ defmodule Relay.Application do
     log_vm_topology()
     :ok = Relay.Templates.warm_up()
     Relay.Platform.attach_telemetry()
+    :ok = Relay.Trace.attach()
     attach_auto_replay()
 
     children =
       [Relay.Config.SecretFiles] ++
         Relay.Config.startup_probes() ++
         [RelayWeb.Telemetry] ++
+        Relay.Trace.children() ++
         RelayWeb.Metrics.children() ++
         [
           Relay.Repo,

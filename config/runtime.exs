@@ -56,6 +56,8 @@ if config_env() == :prod do
     ip: {0, 0, 0, 0, 0, 0, 0, 0},
     port: Relay.Config.Env.integer!("METRICS_PORT")
 
+  config :relay, Relay.Trace, endpoint: System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT")
+
   config :relay, Relay.Config.SecretFiles,
     repo: Relay.Config.Env.fetch!("DATABASE_PASSWORD_FILE"),
     maint_repo: Relay.Config.Env.fetch!("MAINT_DATABASE_PASSWORD_FILE"),

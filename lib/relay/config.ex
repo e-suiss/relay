@@ -29,6 +29,7 @@ defmodule Relay.Config do
     Relay.Platform.Capacity,
     Relay.Platform.MaintRepo,
     Relay.Platform.Leadership,
+    Relay.Trace,
     Relay.Delivery,
     Relay.Channels,
     Relay.Audit,

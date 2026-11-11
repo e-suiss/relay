@@ -1141,7 +1141,8 @@ defmodule Relay.Channels.Live do
   def record_report(%Scope{}, _provider, %{result: :pending}), do: {:ok, :pending}
 
   def record_report(%Scope{} = scope, provider, %{} = report) do
-    with {:ok, declarations} <- Relay.Datasets.channel_declarations(),
+    with {:ok, _delivery_id} <- correlated(report),
+         {:ok, declarations} <- Relay.Datasets.channel_declarations(),
          {:ok, event} <- report_event(declarations, provider, report, :provider_webhook) do
       record_event(scope, event)
     end

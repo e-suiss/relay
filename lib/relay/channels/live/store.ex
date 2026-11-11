@@ -76,7 +76,7 @@ defmodule Relay.Channels.Live.Store do
 
   # DS-40
   # CH-47
-  @doc "Reads the trace context and acceptance time of the deliveries among `ids` as a map of delivery identifier to `%{\"traceparent\" => _, \"accepted_at\" => _}`; an unknown delivery is absent."
+  @doc "Reads the trace context and acceptance time of the deliveries among `ids` as a map of delivery identifier to a map with the `traceparent` and `accepted_at` keys; an unknown delivery is absent."
   @spec delivery_traces([Relay.Id.t()]) :: %{Relay.Id.t() => map()}
   def delivery_traces(ids) do
     rows =

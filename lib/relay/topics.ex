@@ -1,6 +1,6 @@
 defmodule Relay.Topics do
   @moduledoc """
-  Topics and subscriptions (C-51, WF-51 … WF-55): a topic is a named object that subscribers subscribe to, with at most two levels (a parent such as a project and its children such as tasks). An event sent to a topic reaches the topic's subscribers and, for a child topic, its parent's; the subscriber list is frozen when the send is accepted, so a later subscriber does not get it, and a subscriber reached through several paths, or also named directly, gets one notification (WF-52, L-31). Matching is by key only, with no wildcard, context condition or attribute query (WF-53, WF-54, E-67); a topic that reaches no subscriber is recorded with its rule (WF-53).
+  Topics and subscriptions (C-51, WF-51 … WF-55): a topic is a named object that subscribers subscribe to, with at most two levels (a parent such as a project and its children such as tasks). An event sent to a topic reaches the topic's subscribers and, for a child topic, its parent's; the subscriber list is frozen when the send is accepted, so a later subscriber does not get it, and a subscriber reached through several paths, or also named directly, gets one notification (WF-52, L-31). Matching is by key only, with no wildcard, context condition or attribute query (WF-53, WF-54, E-67); a send whose topics reach no subscriber is recorded with its rule (WF-53).
 
   The frozen audience of a send is recorded per recipient with the topic it was reached through (L-3, F-5). Its source kind is generic, so agent subscriptions and the Access event subscription share it (WF-55). An event carries at most the contract's `event.max_recipients` recipients; a larger topic audience is a campaign (API-35).
 
@@ -94,7 +94,7 @@ defmodule Relay.Topics do
   # L-31
   # API-35
   @doc """
-  Expands the topic targets of a checked send request into its frozen recipient set, outside any transaction. The topics are read once: each named topic must exist and be active, and its subscribers and, for a child topic, its active parent's are frozen as they are now. The result replaces `targets` with the direct targets followed by every subscriber not named directly, as an identity reference, once each; `audience` carries what `record/2` records, `nil` without topics. A topic that reaches no subscriber adds a `topic_no_subscribers` warning. More than `event.max_recipients` recipients is `audience_too_large`.
+  Expands the topic targets of a checked send request into its frozen recipient set, outside any transaction. The topics are read once: each named topic must exist and be active, and its subscribers and, for a child topic, its active parent's are frozen as they are now. The result replaces `targets` with the direct targets followed by every subscriber not named directly, as an identity reference, once each; `audience` carries what `record/2` records, `nil` without topics. A send whose topics reach no subscriber is accepted with no topic recipient, and `record/2` records its audience with rule `audience.no_subscribers` (WF-53). More than `event.max_recipients` recipients is `audience_too_large`.
   """
   @spec expand(Scope.t(), map()) :: {:ok, map()} | {:error, Relay.Error.t()}
   def expand(%Scope{} = scope, %{targets: targets} = request) do
@@ -108,14 +108,11 @@ defmodule Relay.Topics do
     keys = named |> Enum.map(&elem(&1, 0)) |> Enum.uniq()
     direct = Enum.count(request.targets, &(not match?({:topic, _key}, &1)))
 
-    with {:ok, {topics, rows, counts}} <- read(scope, named, keys, @max + direct + 1),
+    with {:ok, {topics, rows}} <- read(scope, named, keys, @max + direct + 1),
          {:ok, members} <- named_members(scope, rows),
          {:ok, targets, marked} <- merged(request.targets, members) do
-      warnings = Audience.unreached(named, topics, counts)
       audience = %{topic_ids: Enum.map(topics, & &1["id"]), members: marked}
-
-      changes = %{targets: targets, warnings: request.warnings ++ warnings, audience: audience}
-      {:ok, Map.merge(request, changes)}
+      {:ok, Map.merge(request, %{targets: targets, audience: audience})}
     end
   end
 
@@ -123,8 +120,7 @@ defmodule Relay.Topics do
     work = fn _status ->
       case Audience.check(named, Store.resolve(keys)) do
         {:ok, topics} ->
-          paths = Audience.all_paths(topics)
-          {:ok, {topics, Store.members(paths, limit), Store.reach(paths)}}
+          {:ok, {topics, Store.members(Audience.all_paths(topics), limit)}}
 
         refused ->
           refused

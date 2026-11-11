@@ -174,23 +174,6 @@ defmodule Relay.Topics.Store do
     |> Enum.map(&{&1["recipient_id"], &1["topic_id"]})
   end
 
-  # WF-53
-  @doc "How many active subscribers each of the topics `paths` has."
-  @spec reach([id(), ...]) :: %{id() => non_neg_integer()}
-  def reach(paths) do
-    """
-    SELECT s.topic_id, count(*) AS subscribers
-    FROM relay.topic_subscriptions s
-    JOIN relay.recipients r ON r.tenant_id = s.tenant_id AND r.environment = s.environment
-      AND r.id = s.recipient_id
-    WHERE s.topic_id = ANY ($1) AND s.state = 'active' AND r.kind = 'subscriber'
-      AND r.state = 'active'
-    GROUP BY s.topic_id
-    """
-    |> all([paths])
-    |> Map.new(&{&1["topic_id"], &1["subscribers"]})
-  end
-
   defp page(from, columns, alias_, where, params, cursor, limit) do
     {condition, order, params} =
       case cursor do

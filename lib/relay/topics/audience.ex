@@ -1,9 +1,7 @@
 defmodule Relay.Topics.Audience do
   @moduledoc """
-  The pure core of topic fan-out (WF-51 … WF-53, L-31). A send names subscribers directly, topics, or both; a topic reaches its own subscribers and, for a child topic, the subscribers of its active parent. Matching is by topic key only: there is no wildcard, no context condition and no attribute query (WF-53, WF-54, E-67). The frozen recipient set is the direct targets followed by every topic subscriber that is not already named directly, once each, however many paths reach it (WF-52, L-31). A topic that reaches no subscriber is never dropped silently: it yields a `topic_no_subscribers` warning with its rule (WF-53).
+  The pure core of topic fan-out (WF-51 … WF-53, L-31). A send names subscribers directly, topics, or both; a topic reaches its own subscribers and, for a child topic, the subscribers of its active parent. Matching is by topic key only: there is no wildcard, no context condition and no attribute query (WF-53, WF-54, E-67). The frozen recipient set is the direct targets followed by every topic subscriber that is not already named directly, once each, however many paths reach it (WF-52, L-31).
   """
-
-  @no_subscribers "audience.no_subscribers"
 
   @type target ::
           {:require, String.t()}
@@ -81,23 +79,4 @@ defmodule Relay.Topics.Audience do
   defp external_id({:require, id}), do: id
   defp external_id({:inbox_only, id}), do: id
   defp external_id({:implicit, id, _fields}), do: id
-
-  # WF-53
-  @doc "The warnings of the named topics that reach no subscriber, from the subscriber count of each topic."
-  @spec unreached([{String.t(), non_neg_integer()}], [topic()], %{Relay.Id.t() => integer()}) ::
-          [map()]
-  def unreached(named, topics, counts) do
-    by_key = Map.new(topics, &{&1["key"], &1})
-
-    for {key, index} <- named, reached(by_key[key], counts) == 0 do
-      %{
-        "code" => "topic_no_subscribers",
-        "pointer" => "/to/#{index}",
-        "detail" => "the topic reaches no subscriber (#{@no_subscribers})"
-      }
-    end
-  end
-
-  defp reached(topic, counts),
-    do: topic |> paths() |> Enum.map(&Map.get(counts, &1, 0)) |> Enum.sum()
 end

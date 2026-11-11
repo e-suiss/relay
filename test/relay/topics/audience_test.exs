@@ -59,18 +59,6 @@ defmodule Relay.Topics.AudienceTest do
       assert {:error, :unknown, _errors} = Audience.check([{"project:*", 0}], rows)
       assert {:ok, [%{"id" => 1}]} = Audience.check([{"project:1", 0}, {"project:1", 1}], rows)
     end
-
-    test "WF-53: each named topic without a subscriber yields a warning with its rule" do
-      topics = [
-        %{"id" => :a, "key" => "a", "parent_id" => nil},
-        %{"id" => :b, "key" => "b", "parent_id" => nil}
-      ]
-
-      assert [%{"code" => "topic_no_subscribers", "pointer" => "/to/1", "detail" => detail}] =
-               Audience.unreached([{"a", 0}, {"b", 1}], topics, %{a: 2})
-
-      assert detail =~ "audience.no_subscribers"
-    end
   end
 
   describe "WF-54 E-67 no segment engine" do

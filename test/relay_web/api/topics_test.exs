@@ -214,8 +214,6 @@ defmodule RelayWeb.Api.TopicsTest do
 
       assert accepted["recipient_count"] == 0
       assert accepted["notifications"] == []
-
-      assert [%{"code" => "topic_no_subscribers", "pointer" => "/to/0"}] = accepted["warnings"]
       assert audience(ctx.scope, accepted["id"]) == [0, "audience.no_subscribers", 0]
     end
 

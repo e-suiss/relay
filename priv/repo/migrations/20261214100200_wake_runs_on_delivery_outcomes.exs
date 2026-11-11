@@ -8,7 +8,7 @@ defmodule Relay.Repo.Migrations.WakeRunsOnDeliveryOutcomes do
   def up do
     execute(~S"""
     CREATE FUNCTION relay_private.workflow_run_outcome_wake() RETURNS trigger
-      LANGUAGE plpgsql SECURITY DEFINER
+      LANGUAGE plpgsql
       SET search_path = pg_catalog, pg_temp
       SET TimeZone = 'UTC'
     AS $fn$
@@ -27,7 +27,6 @@ defmodule Relay.Repo.Migrations.WakeRunsOnDeliveryOutcomes do
     """)
 
     execute("REVOKE ALL ON FUNCTION relay_private.workflow_run_outcome_wake() FROM PUBLIC")
-    execute("ALTER FUNCTION relay_private.workflow_run_outcome_wake() OWNER TO relay_owner")
 
     execute("""
     CREATE TRIGGER deliveries_wake_workflow_runs

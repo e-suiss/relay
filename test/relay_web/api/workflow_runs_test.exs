@@ -17,6 +17,9 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
   defp mail(key),
     do: %{"type" => "channel", "key" => key, "channel" => "email", "template" => "order-shipped"}
 
+  defp inbox(key),
+    do: %{"type" => "channel", "key" => key, "channel" => "in_app", "template" => "order-shipped"}
+
   defp workflow!(ctx, key, steps, extra \\ %{}) do
     definition = F.definition() |> Map.put("steps", steps) |> Map.merge(extra)
     :ok = F.category_of!(ctx.token, definition)
@@ -80,7 +83,7 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
       workflow!(ctx, "later", [
         mail("first"),
         %{"type" => "delay", "key" => "wait", "duration" => "PT1H"},
-        mail("second")
+        inbox("second")
       ])
 
       {notification, id} = send!(ctx, "later")
@@ -94,9 +97,10 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
       assert {:ok, :not_due} = Relay.Workflow.wake(ctx.scope, run["id"])
 
       advance!(ctx, @hour + 60_000)
-      assert :ok = Relay.Workflow.run_due(ctx.scope)
+      assert {:ok, :completed} = Relay.Workflow.wake(ctx.scope, run["id"])
 
-      assert [_, _] = deliveries(ctx, notification)
+      channels = ctx |> deliveries(notification) |> Enum.map(& &1["channel"]) |> Enum.sort()
+      assert channels == ["email", "in_app"]
       assert %{"state" => "completed", "step_results" => results} = run!(ctx, id)
       assert [_] = results["second"]["deliveries"]
       assert results["wait"]["outcome"] == "waited"

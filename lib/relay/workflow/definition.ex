@@ -543,7 +543,7 @@ defmodule Relay.Workflow.Definition do
   def named_route_errors(definition, routes) do
     for %{step: %{"type" => "channel", "route" => key}, pointer: pointer} <- entries(definition),
         is_binary(key),
-        found = Map.get(routes, key),
+        found <- [Map.get(routes, key)],
         error <- named_route(found, definition["security_subtype"], pointer <> "/route"),
         do: error
   end

@@ -47,7 +47,7 @@ defmodule Relay.Observability.VmMonitor do
   def label(pid) when is_pid(pid) do
     case Process.info(pid, [:registered_name, :dictionary, :initial_call]) do
       nil -> "exited"
-      info -> registered(info[:registered_name]) || initial(info)
+      info -> registered(info[:registered_name], info)
     end
   end
 
@@ -98,8 +98,8 @@ defmodule Relay.Observability.VmMonitor do
   defp value(:large_heap, info) when is_list(info), do: Keyword.get(info, :heap_size, 0)
   defp value(_kind, _info), do: 1
 
-  defp registered(name) when is_atom(name) and name != nil, do: inspect(name)
-  defp registered(_none), do: nil
+  defp registered(name, _info) when is_atom(name) and name != nil, do: inspect(name)
+  defp registered(_none, info), do: initial(info)
 
   defp initial(info) do
     call =

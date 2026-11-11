@@ -14,7 +14,7 @@ defmodule Relay.Observability do
   # T-48
   # TN-62
   @doc "The supervised children of the context: the tenant label window and the VM system monitor."
-  @spec children() :: [Supervisor.child_spec()]
+  @spec children() :: [module(), ...]
   def children, do: [TopTenants, VmMonitor]
 
   # T-48

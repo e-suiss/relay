@@ -1,13 +1,9 @@
 defmodule Relay.Channels.Live.ReconcileWorker do
   @moduledoc """
-  The job of one reconciliation round (DS-22, DS-48): a scope, a channel and a provider in `status` or `report` mode, and for `report` the UTC day; identifiers only (T-15). The same round is queued once per sweep period. See `Relay.Channels.Live.Reconciliation`.
+  The job of one reconciliation round (DS-22, DS-48): a scope, a channel and a provider in `status` or `report` mode, and for `report` the UTC day; identifiers only (T-15). A round queued twice only asks the provider twice: the receipts keep its events from being written twice (INV-12, T-16). See `Relay.Channels.Live.Reconciliation`.
   """
 
-  use Relay.Worker,
-    queue: :maintenance,
-    max_attempts: 3,
-    timeout: 900_000,
-    unique: [period: 240, fields: [:worker, :args]]
+  use Relay.Worker, queue: :maintenance, max_attempts: 3, timeout: 900_000
 
   alias Relay.Channels.Live.Reconciliation
   alias Relay.Scope

@@ -148,7 +148,7 @@ defmodule Relay.Channels.ReconciliationTest do
       assert {:ok, %{"status" => %{"interval_s" => 900, "per_round" => 500}} = content} =
                Reconciliation.settings()
 
-      assert %{"provider" => "verimor", "mode" => "status"} in content["providers"]
+      assert %{"provider" => "verimor", "channel" => "sms", "mode" => "status"} in content["providers"]
       providers = content["providers"]
       assert %{"provider" => "mailgun", "channel" => "email", "mode" => "report"} in providers
     end

@@ -24,6 +24,7 @@ defmodule Relay.Channels do
   alias Relay.Channels.Limits
   alias Relay.Channels.Outcome
   alias Relay.Channels.Pricing
+  alias Relay.Channels.ProviderWebhook
   alias Relay.Channels.Push.CriticalGrant
   alias Relay.Channels.Push.Policy
   alias Relay.Channels.Push.Priority
@@ -945,6 +946,38 @@ defmodule Relay.Channels do
         :not_found
     end
   end
+
+  # WH-49
+  # TN-13 (4)
+  @doc "The active provider account of an SMS or e-mail provider webhook's path (`Relay.Channels.ProviderWebhook.providers/0`) and the scope it belongs to; `:not_found` for an unknown, other or disabled account or an inactive tenant."
+  @spec provider_webhook_account(Relay.Id.t()) :: {:ok, Relay.Scope.t(), map()} | :not_found
+  def provider_webhook_account(id) do
+    providers = ProviderWebhook.providers()
+
+    case Store.account_resolve(id) do
+      %{"provider" => provider, "state" => "active"} = row ->
+        if provider in providers, do: inbound_account(id, row), else: :not_found
+
+      _other ->
+        :not_found
+    end
+  end
+
+  @type webhook_request :: ProviderWebhook.request()
+  @type webhook_item :: ProviderWebhook.item()
+  @type webhook_reason :: ProviderWebhook.reason()
+
+  # WH-49
+  # T-40
+  @doc "Verifies an SMS or e-mail provider webhook on its raw body and reads its items; see `Relay.Channels.ProviderWebhook.read/3`."
+  @spec provider_webhook(String.t(), Relay.Redacted.t(), webhook_request()) ::
+          {:ok, [webhook_item()]} | {:error, webhook_reason()}
+  defdelegate provider_webhook(provider, key, request), to: ProviderWebhook, as: :read
+
+  # CH-47
+  @doc "Builds an e-mail event (`Relay.Channels.Email.Event`) from its fields, such as one read back from a sealed receipt."
+  @spec email_event(map()) :: Event.t()
+  def email_event(%{} = fields), do: struct!(Event, fields)
 
   defp inbound_account(id, %{"tenant_status" => "active"} = row) do
     case Relay.Environment.cast(row["environment"]) do

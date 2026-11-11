@@ -76,6 +76,14 @@ defmodule Relay.Delivery do
   def append_ledger(scope, %Ledger{} = entry),
     do: Store.in_scope(scope, fn _status -> Ledger.append(entry) end)
 
+  # OP-3
+  # OP-4
+  # T-41
+  @doc "Appends a ledger entry inside the caller's scoped transaction, so a batch of provider events is written in one transaction; see `Relay.Delivery.Ledger.append/1`."
+  @spec ledger_append(Ledger.t()) ::
+          {Ledger.result(), Ledger.rank() | nil, non_neg_integer() | nil}
+  def ledger_append(%Ledger{} = entry), do: Ledger.append(entry)
+
   @doc "Cancels a delivery."
   @spec cancel_delivery(Scope.t(), Relay.Id.t(), String.t(), binary(), Actor.t()) ::
           result(atom())

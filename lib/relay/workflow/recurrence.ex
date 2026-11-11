@@ -147,7 +147,7 @@ defmodule Relay.Workflow.Recurrence do
 
   @doc "The UTC text of an occurrence instant, to the second, as jitter, idempotency and dedup keys use it."
   @spec iso(DateTime.t()) :: String.t()
-  def iso(at), do: at |> DateTime.truncate(:second) |> DateTime.to_iso8601()
+  def iso(at), do: DateTime.to_iso8601(%{at | microsecond: {0, 0}})
 
   defp with_timer(scope, id, occurrence, zone) do
     %{

@@ -2,6 +2,8 @@ defmodule Relay.Workflow do
   @moduledoc """
   Workflows, steps, routing, escalation and scheduling. Other contexts use only the functions of this module.
 
+  Named routes (WF-13, WF-14) are unversioned `{key, name, tree}` records: a change applies to every new decision, and a category may name one as its default. `Relay.Workflow.Route` resolves the tree of a channel step and evaluates it.
+
   In stage 3 a workflow is a registry entry with immutable versions (WF-5): a draft is replaced as a whole, a publication request moves it to the publication gate (`Relay.Workflow.PublishGate`), and a published version never changes (INV-48). Going back to an old version publishes its definition again as a new version (WF-6). A definition is data (C-40): its event schema, its message class and category, and its channel steps; nothing in it runs as customer code.
   """
 
@@ -11,6 +13,8 @@ defmodule Relay.Workflow do
   alias Relay.Scope
   alias Relay.Workflow.Definition
   alias Relay.Workflow.PublishGate
+  alias Relay.Workflow.Route
+  alias Relay.Workflow.RouteStore
   alias Relay.Workflow.Store
 
   @gate %Actor{kind: :system, ref: "relay:publish_gate", on_behalf_of_ref: "relay"}
@@ -208,6 +212,69 @@ defmodule Relay.Workflow do
   @doc "The active workflows whose published version sends the template key in a channel step, inside the caller's scoped transaction: each with its `key`, `version_no` and `event_schema`."
   @spec using_template(String.t()) :: [map()]
   defdelegate using_template(template_key), to: Store
+
+  # WF-13
+  # WF-59 (4)
+  @doc "Creates a named route inside the caller's scoped transaction."
+  @spec create_route(Scope.t(), String.t(), String.t(), Route.tree(), Actor.t()) ::
+          {:created | :key_conflict | :tenant_inactive, Relay.Id.t() | nil, version()}
+  def create_route(%Scope{} = scope, key, name, tree, %Actor{} = actor) do
+    attrs = %{id: Relay.Id.generate(), key: key, name: name, tree: tree}
+    RouteStore.create(attrs, digest(scope, "route.created", key), actor)
+  end
+
+  # WF-14
+  @doc "Replaces the name and tree of a route inside the caller's scoped transaction; `expected_version` is the route's ETag version. The change applies to every decision made after it."
+  @spec replace_route(Scope.t(), String.t(), String.t(), Route.tree(), version(), Actor.t()) ::
+          {:replaced | :unchanged | :not_found | :archived | :version_conflict, version()}
+  def replace_route(%Scope{} = scope, key, name, tree, expected_version, %Actor{} = actor) do
+    digest = digest(scope, "route.replaced", key)
+    RouteStore.replace(key, %{name: name, tree: tree}, expected_version, digest, actor)
+  end
+
+  # WF-14
+  @doc "Archives a route inside the caller's scoped transaction; a route that an active category names as its default is `:in_use`."
+  @spec archive_route(Scope.t(), String.t(), Actor.t()) ::
+          {:archived | :already_archived | :in_use | :not_found, version()}
+  def archive_route(%Scope{} = scope, key, %Actor{} = actor),
+    do: RouteStore.archive(key, digest(scope, "route.archived", key), actor)
+
+  # WF-13
+  @doc "Reads a route by key in its own read transaction; `nil` when the key is unknown."
+  @spec get_route(Scope.t(), String.t()) :: result(map() | nil)
+  def get_route(%Scope{} = scope, key),
+    do: Store.in_scope(scope, fn _status -> RouteStore.get(key) end)
+
+  # WF-13
+  @doc "Reads a route by key inside the caller's scoped transaction; `nil` when the key is unknown."
+  @spec route(String.t()) :: map() | nil
+  defdelegate route(key), to: RouteStore, as: :get
+
+  # API-56
+  @doc "Lists routes newest first from a decoded cursor; at most `limit + 1` rows come back."
+  @spec list_routes(Scope.t(), map() | nil, pos_integer()) :: result([map()])
+  def list_routes(%Scope{} = scope, cursor, limit),
+    do: Store.in_scope(scope, fn _status -> RouteStore.list(cursor, limit) end)
+
+  # WF-14
+  @doc "Resolves the tree of a channel step inside the caller's scoped transaction; see `Relay.Workflow.Route.resolve/2`."
+  @spec resolve_route(map(), String.t() | nil) ::
+          {:ok, Route.tree(), Route.source()} | {:skip, String.t()}
+  defdelegate resolve_route(step, category_key), to: Route, as: :resolve
+
+  # WF-13
+  # WF-15
+  # WF-21
+  @doc "The next actions of a resolved route tree; see `Relay.Workflow.RouteTree.next/3`."
+  @spec next_route(Route.tree(), map(), map()) :: {:ok, map()} | {:error, [map()]}
+  defdelegate next_route(tree, facts, state), to: Route, as: :next
+
+  # WF-15
+  # WF-18
+  # WF-59 (4)
+  @doc "Validates a route tree; see `Relay.Workflow.RouteTree.validate/2`."
+  @spec validate_route(term(), keyword()) :: :ok | {:error, [map()]}
+  defdelegate validate_route(tree, opts \\ []), to: Route, as: :validate
 
   defp with_parts(workflow) do
     Map.merge(workflow, %{

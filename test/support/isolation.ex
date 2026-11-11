@@ -65,7 +65,8 @@ defmodule RelayTest.Isolation do
     {"updateSenderIdentity", %{"country" => "TR"}},
     {"updateChannelIdentity", %{"app_ref" => "com.example.isolation"}},
     {"addTopicSubscriptions", %{"subscribers" => ["isolation-subscriber"]}},
-    {"removeTopicSubscriptions", %{"subscribers" => ["isolation-subscriber"]}}
+    {"removeTopicSubscriptions", %{"subscribers" => ["isolation-subscriber"]}},
+    {"replaceRoute", %{"name" => "Isolation", "tree" => "email"}}
   ]
   @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
   @sms %{
@@ -104,6 +105,7 @@ defmodule RelayTest.Isolation do
       "version" => fn _scope -> "1" end,
       "mapping_id" => &mapping!/1,
       "category_key" => &category!/1,
+      "route_key" => &route!/1,
       "subtenant_id" => &subtenant!/1,
       "suppression_id" => &suppression!/1,
       "device_id" => &device!/1,
@@ -417,6 +419,15 @@ defmodule RelayTest.Isolation do
   def category!(scope) do
     key = "iso_" <> random()
     :ok = F.category!(owner(scope), key)
+    key
+  end
+
+  @doc "Creates a named route in `scope` and returns its key."
+  @spec route!(Relay.Scope.t()) :: String.t()
+  def route!(scope) do
+    key = "iso_" <> random()
+    body = %{"key" => key, "name" => "Isolation", "tree" => %{"single" => ["push", "email"]}}
+    F.body(F.request(:post, "/v1/routes", owner(scope), body), 201)
     key
   end
 

@@ -163,6 +163,9 @@
   {"file": "20261208200000_create_exports.exs", "sha256": "409bd029908d96e18a57470443dc953fb9ce03ae4fc9589b6067bbd9f5d51f2c"},
   {"file": "20261208200100_create_export_functions.exs", "sha256": "4f0a516aabf0dd2cd069b0c6b84fba737aa1b0059cce167950dfaf1f460b2b7f"},
   {"file": "20261209000100_create_observability_rollup_function.exs", "sha256": "50f2375d36190c5583f1c80d4518fc7c152fb9ba14e16b0571e56e74684176b4"},
+  {"file": "20261211400100_create_routes.exs", "sha256": "5d46d2ce98ea3bf12d5ad3f931eb1a797bf31d4b233a62cd5f3ccac05009a6aa"},
+  {"file": "20261211400200_create_route_functions.exs", "sha256": "29d7f7fa192c9bf1f1ec020372d3b0c2b1620edf8592cbfd9bbe477e98aeb027"},
+  {"file": "20261211400300_validate_category_default_route_check.exs", "sha256": "8c95fb6a17ee7bbcd40528aba879d753da89d76439a80b9bb60d513985f43112"},
   {"file": "20261212100000_create_topics.exs", "sha256": "6adeae3d4ea2d285d3aabe9a2b7237269f7ddf68af7d695063b12103f1a39217"},
   {"file": "20261212100100_create_topic_functions.exs", "sha256": "cd11166eec852f6b83732e9a8c4df48ad41acf989a463f608db39de544c4dcd2"},
   {"file": "20261212100200_rebuild_reference_check_for_topics.exs", "sha256": "40c93a9bf7c853208626bde24d432711df3f0c90ff8d156432778b56a8d3db48"}

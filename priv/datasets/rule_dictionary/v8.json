@@ -1,5 +1,5 @@
 {
-  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53",
+  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10",
   "rules": [
     {
       "id": "admission.aimd.l2",
@@ -551,6 +551,20 @@
       "description": {
         "en": "Postponed because the reputation circuit of the sending domain is stopped until a tenant administrator closes it.",
         "tr": "Gönderim alan adının itibar devresi durdurulduğu için, kiracı yöneticisi devreyi kapatana kadar ertelendi."
+      }
+    },
+    {
+      "id": "escalation.stopped",
+      "reason": "escalation_stopped",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "WF-21",
+      "detail": [
+        "signal"
+      ],
+      "description": {
+        "en": "The remaining escalation steps were cancelled because the recipient engaged with the notification.",
+        "tr": "Alıcı bildirimle etkileşime geçtiği için kalan yükseltme basamakları iptal edildi."
       }
     },
     {
@@ -1147,6 +1161,48 @@
       "description": {
         "en": "Not retried because the outcome of the last attempt is unknown.",
         "tr": "Son denemenin sonucu bilinmediği için yeniden denenmedi."
+      }
+    },
+    {
+      "id": "route.channel_locked",
+      "reason": "channel_locked",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "PC-10",
+      "detail": [
+        "channel"
+      ],
+      "description": {
+        "en": "The channel was skipped because it cannot pass the gate of a locked category; the route moved on to the next channel.",
+        "tr": "Kanal kilitli kategorinin kapısından geçemediği için atlandı; rota sıradaki kanala geçti."
+      }
+    },
+    {
+      "id": "route.exhausted",
+      "reason": "route_exhausted",
+      "kind": "terminal",
+      "outcome": "fail",
+      "decision": "WF-15",
+      "detail": [
+        "route"
+      ],
+      "description": {
+        "en": "Not sent because every channel of the route failed permanently or was skipped.",
+        "tr": "Rotadaki her kanal kalıcı olarak başarısız olduğu ya da atlandığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "route.not_found",
+      "reason": "route_not_found",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-14",
+      "detail": [
+        "route"
+      ],
+      "description": {
+        "en": "Not sent because the route the step or its category names does not exist or is archived.",
+        "tr": "Adımın ya da kategorisinin adlandırdığı rota bulunmadığı ya da arşivlendiği için gönderilmedi."
       }
     },
     {

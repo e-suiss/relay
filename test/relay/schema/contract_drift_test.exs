@@ -91,6 +91,7 @@ defmodule Relay.Schema.ContractDriftTest do
     {"relay.quota_policies", "quota_policies_period_check",
      {"operator", @operator_schemas ++ ["QuotaPolicy", "properties", "period"]}},
     {"relay.categories", "categories_state_check", {"schemas", ["CategoryState"]}},
+    {"relay.routes", "routes_state_check", {"schemas", ["RouteState"]}},
     {"relay.categories", "categories_frequency_fate_check", {"schemas", ["FrequencyFate"]}},
     {"relay.preferences", "preferences_level_check", {"schemas", ["PreferenceLevel"]}},
     {"relay.preferences", "preferences_value_check", {"schemas", ["PreferenceValue"]}},

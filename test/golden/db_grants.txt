@@ -332,6 +332,11 @@ table relay.role_assignments relay_app SELECT
 table relay.role_assignments relay_archive SELECT
 table relay.role_assignments relay_maint SELECT
 table relay.role_assignments relay_owner INSERT,SELECT,UPDATE
+table relay.routes relay_app SELECT
+table relay.routes relay_archive SELECT
+table relay.routes relay_maint SELECT
+table relay.routes relay_owner INSERT,SELECT,UPDATE
+table relay.routes relay_report SELECT
 table relay.secret_refs relay_app SELECT
 table relay.secret_refs relay_maint SELECT
 table relay.secret_refs relay_owner INSERT,SELECT,UPDATE

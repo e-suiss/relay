@@ -1,6 +1,6 @@
 defmodule Relay.Api.Categories do
   @moduledoc """
-  Categories on the server API (PC-57 (1), PC-57 (2), PC-57 (6)): list, create (`201`), read, a JSON Merge Patch under `If-Match`, archive, and the overrides of one sub-tenant. A category's key, message class and built-in flag never change. Settings the class does not allow are field errors: an expiry for `security`, a frequency limit outside `marketing`, `social` and `operational`, a digest outside `operational`; a lock outside `transactional`, `operational` and `action_required` is `category_lock_not_allowed` and a marketing category that defaults email, SMS, voice or WhatsApp to on is `category_default_forbidden`.
+  Categories on the server API (PC-57 (1), PC-57 (2), PC-57 (6)): list, create (`201`), read, a JSON Merge Patch under `If-Match`, archive, and the overrides of one sub-tenant. A category may name an active route as its default route (WF-14); an unknown or archived route is a field error at `/default_route`. A category's key, message class and built-in flag never change. Settings the class does not allow are field errors: an expiry for `security`, a frequency limit outside `marketing`, `social` and `operational`, a digest outside `operational`; a lock outside `transactional`, `operational` and `action_required` is `category_lock_not_allowed` and a marketing category that defaults email, SMS, voice or WhatsApp to on is `category_default_forbidden`.
   """
 
   alias Relay.Api.Duration
@@ -31,6 +31,7 @@ defmodule Relay.Api.Categories do
       "default_expires_in" => Duration.iso(c["default_expires_in"]),
       "frequency" => frequency_view(c),
       "digest_allowed" => c["digest_allowed"],
+      "default_route" => c["default_route"],
       "state" => c["state"],
       "builtin" => c["builtin"],
       "version" => c["version"],
@@ -100,7 +101,8 @@ defmodule Relay.Api.Categories do
           locked: Map.get(body, "locked", false),
           enabled: Map.get(body, "enabled", true),
           channel_defaults: Map.get(body, "channel_defaults", %{}),
-          digest_allowed: Map.get(body, "digest_allowed", false)
+          digest_allowed: Map.get(body, "digest_allowed", false),
+          default_route: body["default_route"]
         })
 
       case Relay.Preferences.create_category(scope, attrs, actor) do
@@ -157,7 +159,8 @@ defmodule Relay.Api.Categories do
          locked: Map.get(body, "locked", current["locked"]),
          enabled: Map.get(body, "enabled", current["enabled"]),
          channel_defaults: channel_defaults(current["channel_defaults"], body),
-         digest_allowed: Map.get(body, "digest_allowed", current["digest_allowed"])
+         digest_allowed: Map.get(body, "digest_allowed", current["digest_allowed"]),
+         default_route: Map.get(body, "default_route", current["default_route"])
        })}
     end
   end
@@ -369,6 +372,19 @@ defmodule Relay.Api.Categories do
         :category_default_forbidden,
         "a marketing category cannot default email, sms, voice or whatsapp to on"
       )
+
+  # WF-14
+  defp refused(:route_not_found) do
+    Relay.Error.new(:validation_failed, "the category breaks a field rule", %{
+      errors: [field("/default_route", "not_found", "no route has this key")]
+    })
+  end
+
+  defp refused(:route_archived) do
+    Relay.Error.new(:validation_failed, "the category breaks a field rule", %{
+      errors: [field("/default_route", "not_allowed", "the route is archived")]
+    })
+  end
 
   defp refused(:invalid_settings) do
     Relay.Error.new(:validation_failed, "the category breaks a field rule", %{

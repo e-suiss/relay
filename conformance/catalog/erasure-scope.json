@@ -559,6 +559,12 @@
       "personal_columns": [],
       "tenant_close": "row kept; identifiers only",
       "subject_erasure": "recipient and topic identifiers only; no personal fields; row kept"
+    },
+    {
+      "table": "routes",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
     }
   ],
   "locations": [

@@ -23,6 +23,8 @@ tags:
     description: "Management family: subscribers (scope subscribers)."
   - name: workflows
     description: "Management family: workflows and versions (scope config)."
+  - name: routes
+    description: "Management family: named route policies (scope config)."
   - name: templates
     description: "Management family: templates, versions, translations, preview and producer templates (scope config)."
   - name: layouts
@@ -2836,6 +2838,518 @@ paths:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "Carrying the token in a DELETE body, never in the path or query, is chosen by the contract."
+  "/v1/routes":
+    get:
+      operationId: listRoutes
+      tags:
+        - routes
+      summary: List routes
+      description: "Pages through the named routes of this environment, active and archived. A route is a tree of single (try in order) and all (fan out) nodes with the last_active, user_preference, last active device and escalate strategies; a channel step or a category default names it."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: A page of routes.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/RouteList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: "Resource paths, the route_key path segment, the key pattern and the response shapes of routes are chosen by the contract."
+    post:
+      operationId: createRoute
+      tags:
+        - routes
+      summary: Create a route
+      description: "Creates a named route with a key unique in this environment; 409 resource_conflict if the key exists. The tree is checked before it is stored: node shapes, channel names, an after_delay or escalation step after above zero, at most 4 levels and 10 channels; a broken tree is 422 validation_failed with a pointer under /tree. Audited as route.created."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/RouteCreate"
+      security:
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "201":
+          description: Created.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            ETag:
+              "$ref": "./components/headers.yaml#/ETag"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Route"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - resource_conflict
+      x-relay-scopes:
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: "Resource paths, the route_key path segment, the key pattern and the response shapes of routes are chosen by the contract."
+  "/v1/routes/{route_key}":
+    get:
+      operationId: getRoute
+      tags:
+        - routes
+      summary: Get a route
+      description: "Returns the route with its version; the ETag carries the version."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/RouteKey"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The route.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            ETag:
+              "$ref": "./components/headers.yaml#/ETag"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Route"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - route_policy_not_found
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+    put:
+      operationId: replaceRoute
+      tags:
+        - routes
+      summary: Replace a route
+      description: "Replaces the name and tree of the route under If-Match. Routes are not versioned: the new tree applies to every decision made after the change, while a notification keeps the tree it was created with. An archived route is 409 route_policy_archived. The same name and tree change nothing. Audited as route.replaced."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/RouteKey"
+        - "$ref": "./components/parameters.yaml#/IfMatch"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/RouteReplace"
+      security:
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Replaced.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            ETag:
+              "$ref": "./components/headers.yaml#/ETag"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Route"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "412":
+          "$ref": "./components/responses.yaml#/PreconditionFailed"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "428":
+          "$ref": "./components/responses.yaml#/PreconditionRequired"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - route_policy_not_found
+        - route_policy_archived
+        - precondition_failed
+        - precondition_required
+      x-relay-scopes:
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+  "/v1/routes/{route_key}/archive":
+    post:
+      operationId: archiveRoute
+      tags:
+        - routes
+      summary: Archive a route
+      description: "Archiving is a state change; the row stays and nothing is deleted. A route that an active category names as its default route cannot be archived (409 route_policy_in_use). Archiving an archived route changes nothing and returns it. A step that names an archived route records route.not_found and sends nothing. Audited as route.archived."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/RouteKey"
+      security:
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Archived.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            ETag:
+              "$ref": "./components/headers.yaml#/ETag"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Route"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - route_policy_not_found
+        - route_policy_in_use
+      x-relay-scopes:
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: "No physical delete; archive is a POST action. Archiving an archived route answers 200 unchanged, and a route in use as a category default is refused (contract choices)."
   "/v1/workflows":
     get:
       operationId: listWorkflows
@@ -8090,7 +8604,7 @@ paths:
       tags:
         - categories
       summary: Create a category
-      description: "Creates a category with a key unique in this environment; 409 resource_conflict if the key exists. message_class is set here and never changes. A security category is always locked; only transactional, operational and action_required categories may be locked otherwise, and marketing and social never (422 category_lock_not_allowed). A marketing category may not default email, sms, voice or whatsapp to on (422 category_default_forbidden). Audited as category.created."
+      description: "Creates a category with a key unique in this environment; 409 resource_conflict if the key exists. message_class is set here and never changes. A security category is always locked; only transactional, operational and action_required categories may be locked otherwise, and marketing and social never (422 category_lock_not_allowed). A marketing category may not default email, sms, voice or whatsapp to on (422 category_default_forbidden). default_route names an active route; an unknown or archived one is 422 validation_failed at /default_route. Audited as category.created."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -8293,7 +8807,7 @@ paths:
       tags:
         - categories
       summary: Update a category
-      description: "JSON Merge Patch: null clears a field, an absent field is untouched. channel_defaults merges per channel (null removes that channel's default, which then falls back to the class default); frequency is written as a whole object or cleared with null. key, message_class and builtin never change. An archived category is 409 category_archived. A change of locked is audited as category.lock_changed, any other change as category.updated."
+      description: "JSON Merge Patch: null clears a field, an absent field is untouched. channel_defaults merges per channel (null removes that channel's default, which then falls back to the class default); frequency is written as a whole object or cleared with null. key, message_class and builtin never change. An archived category is 409 category_archived. default_route names an active route or is cleared with null; an unknown or archived route is 422 validation_failed at /default_route. A change of locked is audited as category.lock_changed, any other change as category.updated."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -17497,6 +18011,9 @@ x-relay-id-prefixes:
   - prefix: tsb_
     concept: Topic subscription
     table: topic_subscriptions
+  - prefix: rte_
+    concept: Named route policy
+    table: routes
     stage: 8
     x-relay-choice: true
     x-relay-choice-note: Prefix chosen by the contract.
@@ -17571,5 +18088,8 @@ x-relay-limits:
     max_notifications_per_day: 100
   topic:
     max_subscribers_per_request: 1000
+  route:
+    max_depth: 4
+    max_leaves: 10
   x-relay-choice-note: "Values are POLICY DEFAULT and tenant-adjustable; other_write weight 1 and connector_message_max_bytes are contract choices."
 x-relay-error-catalog: "../errors.yaml"

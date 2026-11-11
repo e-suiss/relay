@@ -87,6 +87,10 @@ defmodule Relay.Schema.IdPrefixTest do
       assert ExternalId.table("emr") == {:ok, "email_reports"}
     end
 
+    test "WF-13: the stage eight route table has its prefix" do
+      assert ExternalId.table("rte") == {:ok, "routes"}
+    end
+
     test "API-72: an identifier is the prefix and 26 lowercase Crockford base32 characters" do
       text = ExternalId.encode("ntf", id())
       assert text =~ ~r/^ntf_[0-9abcdefghjkmnpqrstvwxyz]{26}$/

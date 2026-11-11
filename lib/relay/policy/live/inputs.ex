@@ -182,6 +182,7 @@ defmodule Relay.Policy.Live.Inputs do
       security_subtype: Map.get(@subtypes, fields.security_subtype),
       priority: priority(fields.priority),
       expires_at: fields.expires_at,
+      on_expire: if(Map.get(fields, :on_expire) == "inbox_only", do: :inbox_only, else: :drop),
       sender_kind: Map.get(@senders, fields.sender_type, :system)
     }
   end

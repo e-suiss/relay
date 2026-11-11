@@ -489,7 +489,10 @@ Warning:
       type: string
       enum:
         - priority_clamped
-      description: Warning code.
+        - send_at_ignored
+      description: "Warning code. send_at_ignored: the security class is never scheduled; the send_at of a security request is not applied and the notification is sent at once (WF-40, WF-41)."
+      x-relay-choice: true
+      x-relay-choice-note: "WF-41 passes the security class straight through scheduling without naming how the sender learns it; the request is accepted and a send_at_ignored warning is returned."
     pointer:
       type: string
       description: JSON Pointer of the field the warning is about.

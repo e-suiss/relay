@@ -277,6 +277,7 @@ defmodule Relay.Policy.Live do
             security_subtype: context["security_subtype"],
             priority: context["priority"],
             expires_at: context["expires_at"],
+            on_expire: context["on_expire"],
             sender_type: context["sender_type"]
           }),
         scope_match: :match,

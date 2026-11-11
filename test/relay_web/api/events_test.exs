@@ -184,6 +184,36 @@ defmodule RelayWeb.Api.EventsTest do
       assert [%{"pointer" => "/retention"}] = body["errors"]
     end
 
+    test "WF-40 WF-41: a security send is never scheduled; send_at is ignored with a warning",
+         ctx do
+      F.workflow!(ctx.scope, ctx.token, "login-code", message_class: "security")
+      at = DateTime.to_iso8601(DateTime.add(Relay.Clock.utc_now(), 86_400))
+      body = accepted(ctx.token, %{"workflow" => "login-code", "send_at" => at})
+
+      assert [%{"code" => "send_at_ignored", "pointer" => "/send_at"}] = body["warnings"]
+
+      [%{"id" => delivery}] = deliveries(ctx.token, first_notification(body))
+      {:ok, id} = Relay.ExternalId.decode(delivery, ["dlv"])
+
+      %{rows: [[scheduled_at]]} =
+        Repo.query!(
+          "SELECT scheduled_at FROM relay_queue.oban_jobs WHERE args->>'delivery_id' = $1",
+          [Relay.Id.to_string(id)]
+        )
+
+      scheduled_at = DateTime.from_naive!(scheduled_at, "Etc/UTC")
+      assert DateTime.diff(scheduled_at, Relay.Clock.utc_now()) < 60
+    end
+
+    test "PC-57 (4) WF-38: a send without expires_at gets the class default from send_at", ctx do
+      at = DateTime.add(Relay.Clock.utc_now(), 3_600) |> DateTime.truncate(:second)
+      body = accepted(ctx.token, %{"send_at" => DateTime.to_iso8601(at)})
+      shown = get(ctx.token, "/v1/notifications/" <> first_notification(body))
+
+      {:ok, expires_at, _offset} = DateTime.from_iso8601(shown["expires_at"])
+      assert DateTime.diff(expires_at, at) == 6 * 3_600
+    end
+
     test "INV-46: an unknown field is refused with 422 unknown_field", ctx do
       assert problem(send_event(ctx.token, event(%{"colour" => "red"})), 422)["code"] ==
                "unknown_field"

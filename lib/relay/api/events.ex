@@ -80,6 +80,7 @@ defmodule Relay.Api.Events do
          {:ok, subtenant} <- subtenant(scope, request.tenant, Map.get(ctx, :subtenant_id)),
          {:ok, category} <- subtenant_category(scope, workflow, category, subtenant) do
       request = clamp(request, body, category.message_class)
+      request = immediate(request, category.message_class)
       now = Relay.Clock.business_now(scope)
 
       {:ok,
@@ -138,6 +139,20 @@ defmodule Relay.Api.Events do
     do: category(scope, workflow, id)
 
   defp subtenant_category(_scope, _workflow, category, _subtenant), do: {:ok, category}
+
+  # WF-40
+  # WF-41
+  defp immediate(%{send_at: %DateTime{}} = request, :security) do
+    warning = %{
+      "code" => "send_at_ignored",
+      "pointer" => "/send_at",
+      "detail" => "the security class is sent at once"
+    }
+
+    %{request | send_at: nil, warnings: request.warnings ++ [warning]}
+  end
+
+  defp immediate(request, _class), do: request
 
   # API-22
   # PC-58 (7)
@@ -874,6 +889,7 @@ defmodule Relay.Api.Events do
           security_subtype: p.request.security_subtype,
           priority: p.request.priority,
           expires_at: p.expires_at,
+          on_expire: p.request.on_expire,
           sender_type: p.request.sender_type
         }),
       frequency: Map.get(p.frequency, {row["id"], channel}, @no_readings)

@@ -7691,3 +7691,405 @@ ProviderInvoiceCreate:
     raw:
       "$ref": "#/ProviderInvoiceRaw"
   additionalProperties: false
+DeliveryReportRow:
+  type: object
+  description: "Exact counts of the deliveries created on one UTC day for one channel, provider and test flag (DS-35, DS-36, DS-39). engaged counts deliveries with a human action; opens exclude machine opens; sdk_receipts is the push funnel's own row."
+  required:
+    - day
+    - channel
+    - provider
+    - is_test
+    - accepted
+    - enqueued
+    - dispatched
+    - provider_accepted
+    - delivered
+    - engaged
+    - sdk_receipts
+    - skipped
+    - failed
+    - uncertain
+    - expired
+    - cancelled
+    - duplicate_delivered
+    - conflicts
+    - human_clicks
+    - bot_clicks
+    - opens
+    - machine_opens
+    - recomputed_at
+  properties:
+    day:
+      type: string
+      format: date
+    channel:
+      "$ref": "#/Channel"
+    provider:
+      oneOf:
+        - "$ref": "#/ProviderName"
+        - type: "null"
+    is_test:
+      type: boolean
+    accepted:
+      type: integer
+      minimum: 0
+    enqueued:
+      type: integer
+      minimum: 0
+    dispatched:
+      type: integer
+      minimum: 0
+    provider_accepted:
+      type: integer
+      minimum: 0
+    delivered:
+      type: integer
+      minimum: 0
+    engaged:
+      type: integer
+      minimum: 0
+    sdk_receipts:
+      type: integer
+      minimum: 0
+    skipped:
+      type: integer
+      minimum: 0
+    failed:
+      type: integer
+      minimum: 0
+    uncertain:
+      type: integer
+      minimum: 0
+    expired:
+      type: integer
+      minimum: 0
+    cancelled:
+      type: integer
+      minimum: 0
+    duplicate_delivered:
+      type: integer
+      minimum: 0
+    conflicts:
+      type: integer
+      minimum: 0
+    human_clicks:
+      type: integer
+      minimum: 0
+    bot_clicks:
+      type: integer
+      minimum: 0
+    opens:
+      type: integer
+      minimum: 0
+    machine_opens:
+      type: integer
+      minimum: 0
+    recomputed_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+DeliveryReport:
+  type: object
+  description: "The delivery report of a period of the tenant environment."
+  required:
+    - object
+    - from
+    - to
+    - rows
+  properties:
+    object:
+      type: string
+      const: delivery_report
+    from:
+      type: string
+      format: date
+    to:
+      type: string
+      format: date
+    rows:
+      type: array
+      items:
+        "$ref": "#/DeliveryReportRow"
+  additionalProperties: false
+SkipReportRow:
+  type: object
+  description: "The deliveries created on one UTC day for one channel and test flag that were not sent, by reason and rule_id (DS-35)."
+  required:
+    - day
+    - channel
+    - is_test
+    - reason
+    - rule_id
+    - skipped
+    - recomputed_at
+  properties:
+    day:
+      type: string
+      format: date
+    channel:
+      "$ref": "#/Channel"
+    is_test:
+      type: boolean
+    reason:
+      type: string
+      maxLength: 128
+    rule_id:
+      type: string
+      maxLength: 128
+    skipped:
+      type: integer
+      minimum: 0
+    recomputed_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+SkipReport:
+  type: object
+  description: "The skip distribution of a period of the tenant environment."
+  required:
+    - object
+    - from
+    - to
+    - rows
+  properties:
+    object:
+      type: string
+      const: skip_report
+    from:
+      type: string
+      format: date
+    to:
+      type: string
+      format: date
+    rows:
+      type: array
+      items:
+        "$ref": "#/SkipReportRow"
+  additionalProperties: false
+CostReportRow:
+  type: object
+  description: "One immutable daily usage record (DS-53, OP-38, CH-18). billable_units is zero for failed and simulated attempts; billable_unit is null on rows written before billable units were recorded."
+  required:
+    - day
+    - channel
+    - provider
+    - destination_country
+    - whatsapp_category
+    - outcome
+    - is_test
+    - deliveries
+    - attempts
+    - sms_segments
+    - billable_unit
+    - billable_units
+    - voice_seconds
+    - cost_micros
+    - currency
+  properties:
+    day:
+      type: string
+      format: date
+    channel:
+      "$ref": "#/Channel"
+    provider:
+      type: string
+      maxLength: 64
+    destination_country:
+      oneOf:
+        - type: string
+          pattern: "^[A-Z]{2}$"
+        - type: "null"
+    whatsapp_category:
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    outcome:
+      type: string
+      enum:
+        - accepted
+        - uncertain
+        - failed
+        - late_adjustment
+    is_test:
+      type: boolean
+    deliveries:
+      type: integer
+      minimum: 0
+    attempts:
+      type: integer
+      minimum: 0
+    sms_segments:
+      oneOf:
+        - type: integer
+          minimum: 0
+        - type: "null"
+    billable_unit:
+      oneOf:
+        - type: string
+          enum:
+            - segment
+            - answered_call
+            - message
+            - recipient
+            - attempt
+        - type: "null"
+    billable_units:
+      oneOf:
+        - type: integer
+          minimum: 0
+        - type: "null"
+    voice_seconds:
+      oneOf:
+        - type: integer
+          minimum: 0
+        - type: "null"
+    cost_micros:
+      oneOf:
+        - "$ref": "#/Micros"
+        - type: "null"
+    currency:
+      oneOf:
+        - "$ref": "#/CurrencyCode"
+        - type: "null"
+  additionalProperties: false
+CostReport:
+  type: object
+  description: "The cost report of a period of the tenant environment."
+  required:
+    - object
+    - from
+    - to
+    - rows
+  properties:
+    object:
+      type: string
+      const: cost_report
+    from:
+      type: string
+      format: date
+    to:
+      type: string
+      format: date
+    rows:
+      type: array
+      items:
+        "$ref": "#/CostReportRow"
+  additionalProperties: false
+Id_exp:
+  type: string
+  description: "Raw data export identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^exp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - exp_01j9zq3k4m5n6p7q8r9s0t1v2w
+ExportKind:
+  type: string
+  description: "What an export holds: the deliveries with their decisions and outcomes, the delivery ledger events, or the daily usage records."
+  enum:
+    - deliveries
+    - delivery_events
+    - usage_records
+Export:
+  type: object
+  description: "A raw data export of the tenant environment (DS-37). pending until its job wrote it; ready with its content until it expires; failed as too_large or unavailable; expired once its content was cleared. download_path is set only while it is ready."
+  required:
+    - object
+    - id
+    - kind
+    - format
+    - from
+    - to
+    - state
+    - failure
+    - row_count
+    - byte_size
+    - sha256
+    - download_path
+    - expires_at
+    - completed_at
+    - created_at
+  properties:
+    object:
+      type: string
+      const: export
+    id:
+      "$ref": "#/Id_exp"
+    kind:
+      "$ref": "#/ExportKind"
+    format:
+      type: string
+      const: csv
+    from:
+      type: string
+      format: date
+    to:
+      type: string
+      format: date
+    state:
+      type: string
+      enum:
+        - pending
+        - ready
+        - failed
+        - expired
+    failure:
+      oneOf:
+        - type: string
+          enum:
+            - too_large
+            - unavailable
+        - type: "null"
+    row_count:
+      oneOf:
+        - type: integer
+          minimum: 0
+        - type: "null"
+    byte_size:
+      oneOf:
+        - type: integer
+          minimum: 0
+        - type: "null"
+    sha256:
+      oneOf:
+        - type: string
+          pattern: "^[0-9a-f]{64}$"
+        - type: "null"
+    download_path:
+      oneOf:
+        - type: string
+          pattern: "^/exports/v1\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
+        - type: "null"
+    expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    completed_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+ExportList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Export"
+ExportCreate:
+  type: object
+  description: "A raw data export request: the kind and the UTC days from to to (exclusive, at most 92 days)."
+  required:
+    - kind
+    - from
+    - to
+  properties:
+    kind:
+      "$ref": "#/ExportKind"
+    from:
+      type: string
+      format: date
+    to:
+      type: string
+      format: date
+  additionalProperties: false

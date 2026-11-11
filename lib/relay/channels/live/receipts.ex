@@ -32,7 +32,7 @@ defmodule Relay.Channels.Live.Receipts do
   # INV-12
   # L-17
   # T-40
-  @doc "Verifies a provider webhook request of an account (`%{\"id\", \"provider\"}`) with its verification secret and commits its receipts and their jobs; see the module documentation. Returns how many receipts were recorded and how many events were repeats, the verification error, or `{:error, :unavailable}` when nothing could be committed."
+  @doc "Verifies a provider webhook request of an account (its `id` and `provider`) with its verification secret and commits its receipts and their jobs; see the module documentation. Returns how many receipts were recorded and how many events were repeats, the verification error, or `{:error, :unavailable}` when nothing could be committed."
   @spec accept(Scope.t(), map(), Relay.Redacted.t(), Relay.Channels.webhook_request()) ::
           {:ok, accepted()} | {:error, Relay.Channels.webhook_reason() | :unavailable}
   def accept(%Scope{} = scope, %{"provider" => provider} = account, key, request) do

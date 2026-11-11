@@ -7,7 +7,7 @@ defmodule Relay.Workflow.Variant do
 
   # WF-50
   # WF-7
-  @doc "The variant of every channel step with variants, chosen for the recipient: a map of step key to `%{\"key\", \"template\"}`."
+  @doc "The variant of every channel step with variants, chosen for the recipient: a map of step key to the variant's key and template."
   @spec choose_all(map(), String.t(), Relay.Id.t() | String.t()) :: %{String.t() => map()}
   def choose_all(definition, workflow_key, recipient_id) do
     for %{step: %{"type" => "channel", "variants" => [_ | _]} = step} <-

@@ -1,5 +1,5 @@
 defmodule Relay.Templates.MjmlTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Relay.Templates.Mjml
 

@@ -503,6 +503,19 @@ defmodule Relay.Delivery.Store do
     end
   end
 
+  # DS-33
+  # E-84
+  @doc "Appends an engagement entry, given as the positional parameters of `relay_fn.ledger_append`, through `relay_fn.engagement_record`; with `announce` (`seen`, or `clicked` with `link_rel`) the notification's first engagement of that kind is announced."
+  @spec engagement_record([term(), ...], String.t() | nil, String.t() | nil) :: atom()
+  def engagement_record(params, announce, link_rel) when length(params) == 17 do
+    [id, delivery_id, _attempt, actor, event_type | rest] = params
+    [_raw, _provider, _seq, occurred_at, _receipt, rank | rest] = rest
+    detail = Enum.at(rest, 4)
+    args = [id, delivery_id, actor, event_type, occurred_at, rank, detail, announce, link_rel]
+    [row] = Repo.call!("relay_fn.engagement_record", args)
+    Repo.code!(row["result"], @ledger_results)
+  end
+
   @doc "Reads the ledger of a delivery in receive order."
   @spec ledger(Relay.Id.t()) :: [map()]
   def ledger(delivery_id) do

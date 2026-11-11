@@ -91,6 +91,8 @@ defmodule Relay.Engagement do
       delivery_id: delivery["id"],
       actor: if(human?, do: :user, else: :relay),
       event_type: "engagement.clicked",
+      announce: if(human?, do: "clicked"),
+      link_rel: if(human?, do: "link_" <> Integer.to_string(link)),
       at_ms: request.at_ms,
       delivery_rank: if(human? and delivery["delivery_rank"] < 2, do: :delivered),
       detail: %{
@@ -121,6 +123,8 @@ defmodule Relay.Engagement do
         delivery_id: delivery_id,
         actor: :relay,
         event_type: "engagement.opened",
+        announce: nil,
+        link_rel: nil,
         at_ms: request.at_ms,
         delivery_rank: nil,
         detail: %{
@@ -163,8 +167,8 @@ defmodule Relay.Engagement do
             detail: %{"engagement" => receipt_axis(kind), "decision_grade" => "reliable"}
           )
 
-        {result, _rank, _version} = Relay.Delivery.append_ledger_in_scope(entry)
-        {:ok, result}
+        {announce, link_rel} = if displayed?, do: {"seen", nil}, else: {"clicked", "push"}
+        {:ok, Relay.Delivery.record_engagement_in_scope(entry, announce, link_rel)}
 
       _other ->
         {:error, :delivery_not_found}
@@ -213,9 +217,6 @@ defmodule Relay.Engagement do
         detail: entry.detail
       )
 
-    case Relay.Delivery.append_ledger(scope, ledger) do
-      {:ok, {result, _rank, _version}} -> {:ok, result}
-      {:error, reason} -> {:error, reason}
-    end
+    Relay.Delivery.record_engagement(scope, ledger, entry.announce, entry.link_rel)
   end
 end

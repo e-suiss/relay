@@ -510,11 +510,24 @@ defmodule Relay.Delivery do
   @spec engagement_in_scope(Relay.Id.t(), DateTime.t()) :: map() | nil
   defdelegate engagement_in_scope(delivery_id, since), to: Store, as: :engagement
 
-  # DS-13
-  @doc "Appends a ledger entry inside the caller's scoped transaction; see `Relay.Delivery.Ledger.append/1`."
-  @spec append_ledger_in_scope(Ledger.t()) ::
-          {Ledger.result(), Ledger.rank() | nil, non_neg_integer() | nil}
-  defdelegate append_ledger_in_scope(entry), to: Ledger, as: :append
+  # DS-33
+  # E-84
+  @doc "Appends an engagement entry inside the caller's scoped transaction and announces the notification's first engagement of `announce` (`\"seen\"`, or `\"clicked\"` with `link_rel`), or nothing for `nil`; see `Relay.Delivery.Store.engagement_record/3`."
+  @spec record_engagement_in_scope(Ledger.t(), String.t() | nil, String.t() | nil) ::
+          Ledger.result()
+  def record_engagement_in_scope(%Ledger{} = entry, announce, link_rel),
+    do: Store.engagement_record(Ledger.params(entry), announce, link_rel)
+
+  # DS-33
+  # E-84
+  @doc "Appends an engagement entry in its own scoped transaction; see `record_engagement_in_scope/3`."
+  @spec record_engagement(Scope.t(), Ledger.t(), String.t() | nil, String.t() | nil) ::
+          result(Ledger.result())
+  def record_engagement(scope, %Ledger{} = entry, announce, link_rel) do
+    Store.in_scope(scope, fn _status ->
+      record_engagement_in_scope(entry, announce, link_rel)
+    end)
+  end
 
   @doc "Reads the ledger of a delivery."
   @spec ledger(Scope.t(), Relay.Id.t()) :: result([map()])

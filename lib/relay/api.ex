@@ -67,6 +67,7 @@ defmodule Relay.Api do
       ProviderWebhooks,
       ChannelManagement,
       ChannelOperations,
-      TestSends
+      TestSends,
+      ProviderInvoices
     ]
 end

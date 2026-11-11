@@ -818,7 +818,7 @@ defmodule Relay.Api.Events do
   defp gate(p, step, row, mismatch?, mode) do
     case decision(step, row, mismatch?, mode) do
       {:skip, reason, rule} -> {:skip, reason, rule, %{}}
-      :lattice -> Templates.choose(p.templates, step, row)
+      :lattice -> Templates.choose(p.templates, Map.take(step, [:template, :channel]), row)
     end
   end
 

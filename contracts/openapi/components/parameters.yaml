@@ -456,3 +456,10 @@ ReportTo:
   schema:
     type: string
     format: date
+ExportId:
+  name: export_id
+  in: path
+  description: "Raw data export identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_exp"

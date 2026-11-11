@@ -7968,3 +7968,122 @@ CostReport:
       items:
         "$ref": "#/CostReportRow"
   additionalProperties: false
+Id_exp:
+  type: string
+  description: "Raw data export identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^exp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - exp_01j9zq3k4m5n6p7q8r9s0t1v2w
+ExportKind:
+  type: string
+  description: "What an export holds: the deliveries with their decisions and outcomes, the delivery ledger events, or the daily usage records."
+  enum:
+    - deliveries
+    - delivery_events
+    - usage_records
+Export:
+  type: object
+  description: "A raw data export of the tenant environment (DS-37). pending until its job wrote it; ready with its content until it expires; failed as too_large or unavailable; expired once its content was cleared. download_path is set only while it is ready."
+  required:
+    - object
+    - id
+    - kind
+    - format
+    - from
+    - to
+    - state
+    - failure
+    - row_count
+    - byte_size
+    - sha256
+    - download_path
+    - expires_at
+    - completed_at
+    - created_at
+  properties:
+    object:
+      type: string
+      const: export
+    id:
+      "$ref": "#/Id_exp"
+    kind:
+      "$ref": "#/ExportKind"
+    format:
+      type: string
+      const: csv
+    from:
+      type: string
+      format: date
+    to:
+      type: string
+      format: date
+    state:
+      type: string
+      enum:
+        - pending
+        - ready
+        - failed
+        - expired
+    failure:
+      oneOf:
+        - type: string
+          enum:
+            - too_large
+            - unavailable
+        - type: "null"
+    row_count:
+      oneOf:
+        - type: integer
+          minimum: 0
+        - type: "null"
+    byte_size:
+      oneOf:
+        - type: integer
+          minimum: 0
+        - type: "null"
+    sha256:
+      oneOf:
+        - type: string
+          pattern: "^[0-9a-f]{64}$"
+        - type: "null"
+    download_path:
+      oneOf:
+        - type: string
+          pattern: "^/exports/v1\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
+        - type: "null"
+    expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    completed_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+ExportList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Export"
+ExportCreate:
+  type: object
+  description: "A raw data export request: the kind and the UTC days from to to (exclusive, at most 92 days)."
+  required:
+    - kind
+    - from
+    - to
+  properties:
+    kind:
+      "$ref": "#/ExportKind"
+    from:
+      type: string
+      format: date
+    to:
+      type: string
+      format: date
+  additionalProperties: false

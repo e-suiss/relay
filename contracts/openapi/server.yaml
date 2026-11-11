@@ -3120,7 +3120,7 @@ paths:
         - rate_limited
         - internal_error
         - service_unavailable
-        - route_not_found
+        - route_policy_not_found
       x-relay-scopes:
         - read
         - config
@@ -3133,7 +3133,7 @@ paths:
       tags:
         - routes
       summary: Replace a route
-      description: "Replaces the name and tree of the route under If-Match. Routes are not versioned: the new tree applies to every decision made after the change, while a notification keeps the tree it was created with. An archived route is 409 route_archived. The same name and tree change nothing. Audited as route.replaced."
+      description: "Replaces the name and tree of the route under If-Match. Routes are not versioned: the new tree applies to every decision made after the change, while a notification keeps the tree it was created with. An archived route is 409 route_policy_archived. The same name and tree change nothing. Audited as route.replaced."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -3239,8 +3239,8 @@ paths:
         - payload_too_large
         - validation_failed
         - unknown_field
-        - route_not_found
-        - route_archived
+        - route_policy_not_found
+        - route_policy_archived
         - precondition_failed
         - precondition_required
       x-relay-scopes:
@@ -3255,7 +3255,7 @@ paths:
       tags:
         - routes
       summary: Archive a route
-      description: "Archiving is a state change; the row stays and nothing is deleted. A route that an active category names as its default route cannot be archived (409 route_in_use). Archiving an archived route changes nothing and returns it. A step that names an archived route records route.not_found and sends nothing. Audited as route.archived."
+      description: "Archiving is a state change; the row stays and nothing is deleted. A route that an active category names as its default route cannot be archived (409 route_policy_in_use). Archiving an archived route changes nothing and returns it. A step that names an archived route records route.not_found and sends nothing. Audited as route.archived."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -3339,8 +3339,8 @@ paths:
         - idempotency_key_invalid
         - idempotency_key_reuse
         - idempotency_key_in_progress
-        - route_not_found
-        - route_in_use
+        - route_policy_not_found
+        - route_policy_in_use
       x-relay-scopes:
         - config
       x-relay-role: tenant_operator

@@ -1,6 +1,6 @@
 defmodule Relay.Api.Routes do
   @moduledoc """
-  Named route policies on the server API (WF-13, WF-14, WF-59 (4)): list, create (`201`), read, replace under `If-Match` and archive. A route is unversioned: a replacement applies to every decision made after it, while a notification keeps the tree it was created with. The tree is checked before it is stored (`Relay.Workflow.RouteTree`); a route that an active category names as its default cannot be archived (`route_in_use`).
+  Named route policies on the server API (WF-13, WF-14, WF-59 (4)): list, create (`201`), read, replace under `If-Match` and archive. A route is unversioned: a replacement applies to every decision made after it, while a notification keeps the tree it was created with. The tree is checked before it is stored (`Relay.Workflow.RouteTree`); a route that an active category names as its default cannot be archived (`route_policy_in_use`).
   """
 
   alias Relay.Api.Page
@@ -82,7 +82,7 @@ defmodule Relay.Api.Routes do
         {:ok, {200, [etag(version)], view(Relay.Workflow.route(key))}}
 
       {:in_use, _version} ->
-        {:error, Relay.Error.new(:route_in_use, "a category uses this route as its default")}
+        {:error, Relay.Error.new(:route_policy_in_use, "a category uses the route by default")}
 
       {:not_found, _version} ->
         {:error, not_found()}
@@ -130,9 +130,9 @@ defmodule Relay.Api.Routes do
 
   @doc "The error of an unknown route key."
   @spec not_found() :: Relay.Error.t()
-  def not_found, do: Relay.Error.new(:route_not_found, "no route has this key")
+  def not_found, do: Relay.Error.new(:route_policy_not_found, "no route has this key")
 
   @doc "The error of a change to an archived route."
   @spec archived() :: Relay.Error.t()
-  def archived, do: Relay.Error.new(:route_archived, "the route is archived")
+  def archived, do: Relay.Error.new(:route_policy_archived, "the route is archived")
 end

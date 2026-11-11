@@ -83,7 +83,8 @@ defmodule RelayWeb.Api.RoutesTest do
 
       assert code(create(ctx.token, "critical"), 409) == "resource_conflict"
       assert F.body(F.request(:get, "/v1/routes/critical", ctx.token), 200)["id"] == body["id"]
-      assert code(F.request(:get, "/v1/routes/missing", ctx.token), 404) == "route_not_found"
+      missing = F.request(:get, "/v1/routes/missing", ctx.token)
+      assert code(missing, 404) == "route_policy_not_found"
     end
 
     test "WF-15, WF-59: a zero delay, a deep tree and too many channels are field errors", ctx do
@@ -99,7 +100,7 @@ defmodule RelayWeb.Api.RoutesTest do
       wide = %{"all" => List.duplicate("email", 11)}
       assert pointers(F.body(create(ctx.token, "wide", wide), 422)) == [{"/tree", "too_long"}]
 
-      assert code(F.request(:get, "/v1/routes/zero", ctx.token), 404) == "route_not_found"
+      assert code(F.request(:get, "/v1/routes/zero", ctx.token), 404) == "route_policy_not_found"
     end
 
     test "WF-14: a replacement needs If-Match, applies as a whole and is audited", ctx do
@@ -120,7 +121,7 @@ defmodule RelayWeb.Api.RoutesTest do
       assert F.body(same, 200)["version"] == 2
 
       missing = replace(ctx.token, "missing", body, [{"if-match", ~s("1")}])
-      assert code(missing, 404) == "route_not_found"
+      assert code(missing, 404) == "route_policy_not_found"
     end
 
     test "WF-14: archiving keeps the row, is idempotent and an archived route is not replaced",
@@ -135,8 +136,8 @@ defmodule RelayWeb.Api.RoutesTest do
 
       body = %{"name" => "Old", "tree" => "email"}
       stale = replace(ctx.token, "old", body, [{"if-match", ~s("2")}])
-      assert code(stale, 409) == "route_archived"
-      assert code(archive(ctx.token, "missing"), 404) == "route_not_found"
+      assert code(stale, 409) == "route_policy_archived"
+      assert code(archive(ctx.token, "missing"), 404) == "route_policy_not_found"
     end
 
     test "API-56: routes are listed newest first", ctx do
@@ -150,7 +151,7 @@ defmodule RelayWeb.Api.RoutesTest do
     test "WF-13: another tenant's route is 404", ctx do
       F.body(create(ctx.token, "private"), 201)
       other = F.token(TenantFixture.tenant!().live)
-      assert code(F.request(:get, "/v1/routes/private", other), 404) == "route_not_found"
+      assert code(F.request(:get, "/v1/routes/private", other), 404) == "route_policy_not_found"
     end
   end
 
@@ -179,7 +180,7 @@ defmodule RelayWeb.Api.RoutesTest do
       F.body(create(ctx.token, "critical"), 201)
       F.body(category(ctx.token, "orders", %{"default_route" => "critical"}), 201)
 
-      assert code(archive(ctx.token, "critical"), 409) == "route_in_use"
+      assert code(archive(ctx.token, "critical"), 409) == "route_policy_in_use"
 
       [etag] = etag(ctx.token, "/v1/categories/orders")
       F.body(patch(ctx.token, "orders", %{"default_route" => nil}, [{"if-match", etag}]), 200)

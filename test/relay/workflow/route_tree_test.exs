@@ -25,7 +25,7 @@ defmodule Relay.Workflow.RouteTreeTest do
   @push "/escalate/ladder/1/node"
   @email "/escalate/ladder/2/node"
 
-  defp at(minutes), do: DateTime.add(@t0, minutes * 60, :second)
+  defp at(minutes), do: DateTime.add(@t0, minutes * 60_000, :millisecond)
 
   defp next(tree, facts \\ %{}, leaves \\ %{}, now \\ @t0, events \\ []) do
     {:ok, plan} = RouteTree.next(tree, facts, %{now: now, leaves: leaves, events: events})

@@ -34,8 +34,11 @@ defmodule Relay.Channels.Live do
     exports: []
 
   alias Relay.ChannelDeclarations
+  alias Relay.Channels.Live.EmailEvents
   alias Relay.Channels.Live.Events
   alias Relay.Channels.Live.Followup
+  alias Relay.Channels.Live.Receipts
+  alias Relay.Channels.Live.ReportBatcher
   alias Relay.Channels.Live.SettingsCheck
   alias Relay.Channels.Live.Store
   alias Relay.Channels.Live.Whatsapp
@@ -788,12 +791,30 @@ defmodule Relay.Channels.Live do
       test?: ctx.scope.environment == :test,
       overrides: ctx.overrides,
       push: Map.get(ctx, :push),
-      update: update(ctx, account, target)
+      update: update(ctx, account, target),
+      tracking: tracking(ctx)
     }
 
     extra = ctx |> Map.get(:extra, %{}) |> Map.delete(:segments)
     Relay.Channels.request(Map.merge(fields, extra))
   end
+
+  # CH-43
+  # DS-29
+  defp tracking(%{delivery: %{"channel" => "email"} = delivery, scope: scope}) do
+    category = delivery["category_key"] || delivery["category"]
+    keys = Relay.Channels.email_tracking_keys(category, delivery["template_key"])
+
+    settings =
+      case Store.in_scope(scope, fn _ -> Store.settings(keys) end) do
+        {:ok, settings} -> settings
+        {:error, _reason} -> %{}
+      end
+
+    Relay.Channels.email_tracking(delivery, settings)
+  end
+
+  defp tracking(_ctx), do: nil
 
   # CH-23
   defp update(ctx, %{"provider" => provider}, %{id: <<_::128>> = target_id})
@@ -999,16 +1020,6 @@ defmodule Relay.Channels.Live do
     end
   end
 
-  # CH-87
-  defp reputation_sent(%{delivery: %{"channel" => "email"}} = ctx, request) do
-    with {:ok, domain} <- Relay.Channels.email_domain(request) do
-      _ = Relay.EmailReputation.remember(ctx.scope, request.delivery_id, domain)
-      Relay.EmailReputation.count(ctx.scope, domain, :sent)
-    end
-  end
-
-  defp reputation_sent(_ctx, _request), do: :ok
-
   defp finish(ctx, request, outcome, retry) do
     if outcome.unknown_code? do
       _ =
@@ -1028,6 +1039,16 @@ defmodule Relay.Channels.Live do
       {:error, reason} -> {:error, reason}
     end
   end
+
+  # CH-87
+  defp reputation_sent(%{delivery: %{"channel" => "email"}} = ctx, request) do
+    with {:ok, domain} <- Relay.Channels.email_domain(request) do
+      _ = Relay.EmailReputation.remember(ctx.scope, request.delivery_id, domain)
+      Relay.EmailReputation.count(ctx.scope, domain, :sent)
+    end
+  end
+
+  defp reputation_sent(_ctx, _request), do: :ok
 
   defp failure(ctx, request, outcome, retry) do
     account_id = request.account["id"]
@@ -1172,30 +1193,85 @@ defmodule Relay.Channels.Live do
   # CH-10
   # DS-10
   # CH-8
-  @doc "Records a delivery report an adapter read and verified (`c:Relay.Channels.Adapter.reports/3`) through `record_event/2`: the report's correlation is the provider idempotency key of the send, a delivered report is the `delivered` event and a failed one the event code of the provider code's mapping, with the raw code kept. A pending report records nothing; a report without a known key is `{:error, :delivery_not_found}`."
+  @doc "Records a delivery report an adapter read and verified (`c:Relay.Channels.Adapter.reports/3`) through `record_event/2`; see `report_event/4`. A pending report records nothing; a report without a known key is `{:error, :delivery_not_found}`."
   @spec record_report(Scope.t(), String.t(), map()) ::
           {:ok, Events.recorded() | :pending} | {:error, term()}
   def record_report(%Scope{}, _provider, %{result: :pending}), do: {:ok, :pending}
 
   def record_report(%Scope{} = scope, provider, %{} = report) do
-    with {:ok, delivery_id} <- correlated(report),
-         {:ok, declarations} <- Relay.Datasets.channel_declarations() do
-      {event_code, raw_code} = event_code(declarations, provider, report.result)
-
-      event = %{
-        delivery_id: delivery_id,
-        provider: provider,
-        channel: report.channel,
-        event_code: event_code,
-        actor: :provider_webhook,
-        raw_code: raw_code,
-        occurred_at: Map.get(report, :occurred_at) || Relay.Clock.utc_now(),
-        price: get_in(report, [:detail, "price"]),
-        detail: Map.get(report, :detail, %{})
-      }
-
+    with {:ok, _delivery_id} <- correlated(report),
+         {:ok, declarations} <- Relay.Datasets.channel_declarations(),
+         {:ok, event} <- report_event(declarations, provider, report, :provider_webhook) do
       record_event(scope, event)
     end
+  end
+
+  # CH-10
+  # DS-10
+  # DS-22
+  @doc "The provider event of a delivery report that is not pending, for `record_event/2`: the report's correlation is the provider idempotency key of the send, a delivered report is the `delivered` event and a failed one the event code of the provider code's mapping, with the raw code kept; `actor` is `:provider_webhook` for a pushed report and `:provider_api` for one Relay asked for (DS-8). A report without a known key is `{:error, :delivery_not_found}`."
+  @spec report_event(
+          ChannelDeclarations.t(),
+          String.t(),
+          map(),
+          :provider_webhook | :provider_api
+        ) :: {:ok, Events.event()} | {:error, :delivery_not_found}
+  def report_event(%ChannelDeclarations{} = declarations, provider, %{} = report, actor) do
+    with {:ok, delivery_id} <- correlated(report) do
+      {event_code, raw_code} = event_code(declarations, provider, report.result)
+
+      {:ok,
+       %{
+         delivery_id: delivery_id,
+         provider: provider,
+         channel: report.channel,
+         event_code: event_code,
+         actor: actor,
+         raw_code: raw_code,
+         occurred_at: Map.get(report, :occurred_at) || Relay.Clock.utc_now(),
+         price: get_in(report, [:detail, "price"]),
+         detail: Map.get(report, :detail) || %{}
+       }}
+    end
+  end
+
+  # T-41
+  # DS-10
+  @doc "Records several provider events of one scope in one transaction; see `Relay.Channels.Live.Events.record_many/2`."
+  @spec record_events(Scope.t(), [Events.event()]) ::
+          {:ok, [{:ok, Events.recorded()} | {:error, :unknown_event | :delivery_not_found}]}
+          | {:error, term()}
+  def record_events(%Scope{} = scope, events), do: Events.record_many(scope, events)
+
+  # WH-49
+  # L-17
+  # T-40
+  @doc "Verifies an SMS or e-mail provider webhook request of an account and commits its receipts and their processing jobs before the provider is answered; see `Relay.Channels.Live.Receipts.accept/4`."
+  @spec accept_provider_webhook(
+          Scope.t(),
+          map(),
+          Relay.Redacted.t(),
+          Relay.Channels.webhook_request()
+        ) ::
+          {:ok, Receipts.accepted()} | {:error, Relay.Channels.webhook_reason() | :unavailable}
+  defdelegate accept_provider_webhook(scope, account, key, request), to: Receipts, as: :accept
+
+  @type email_outcome :: EmailEvents.outcome()
+
+  # CH-39
+  # CH-40
+  # CH-47
+  @doc "Records the verified e-mail events of one provider payload and applies their suppressions; see `Relay.Channels.Live.EmailEvents.ingest/2`."
+  @spec ingest_email_events(Scope.t(), [map()]) :: {:ok, [email_outcome()]} | {:error, term()}
+  defdelegate ingest_email_events(scope, events), to: EmailEvents, as: :ingest
+
+  # T-41
+  @doc "The processes of the channel step on this node: the delivery report batcher on the worker role."
+  @spec children() :: [Supervisor.child_spec()]
+  def children do
+    if Relay.Role.enabled?(:worker),
+      do: [Supervisor.child_spec(ReportBatcher, [])],
+      else: []
   end
 
   defp correlated(report) do

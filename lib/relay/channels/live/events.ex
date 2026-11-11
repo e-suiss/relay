@@ -2,7 +2,7 @@ defmodule Relay.Channels.Live.Events do
   @moduledoc """
   Records an event a provider reports after the call: a delivery receipt, a bounce, a complaint, a read, a status query answer (DS-10, DS-6, INV-5). It is the entry point of every adapter's webhook or receipt handler, which verifies the request first (`Relay.Channels.verify_*`) and then passes the event here.
 
-  The event code is looked up in the provider's `channel_event_evidence` rows of the active declarations; an event code without a row is rejected (DS-10 (1)) and never changes the projection: it is written to the ledger as `provider.unknown_code` with its raw code, and raises the `provider.unknown_code` event and the alarm (DS-10 (2)). The row decides the ledger entry: `sets_delivery` raises the delivery axis, `sets_failure` sets the failure axis, `after_delivered` says what a failure after delivery means (DS-6) and `scope: attempt` binds the event to the delivery's latest attempt. A provider code given with the event is classified through the adapter's mapping; a code without a mapping is `unknown` and raises `provider.unknown_code` (CH-8). Group and detail both reach the append-only ledger as a `provider.reported` entry with the event code, the raw code and, when the provider sends one, its raw price object (CH-18). The entry carries the current trace context, the event's own trace, and a short `provider event` span links it to the delivery's trace (OP-34); an event of a delivery the provider accepted emits `[:relay, :provider, :event]` with the delay since the acceptance (DS-41, CH-47). The row's `side_effect` and `decision_grade` are returned for the caller: a side effect such as `add_suppression` or `deactivate_device` is the caller's to apply, and only a `reliable` event may feed an engagement decision.
+  The event code is looked up in the provider's `channel_event_evidence` rows of the active declarations; an event code without a row is rejected (DS-10 (1)) and never changes the projection: it is written to the ledger as `provider.unknown_code` with its raw code, and raises the `provider.unknown_code` event and the alarm (DS-10 (2)). The row decides the ledger entry: `sets_delivery` raises the delivery axis, `sets_failure` sets the failure axis, `after_delivered` says what a failure after delivery means (DS-6) and `scope: attempt` binds the event to the delivery's latest attempt. A provider code given with the event is classified through the adapter's mapping; a code without a mapping is `unknown` and raises `provider.unknown_code` (CH-8). Group and detail both reach the append-only ledger as a `provider.reported` entry with the event code, the raw code and, when the provider sends one, its raw price object (CH-18). The row's `side_effect` and `decision_grade` are returned for the caller: a side effect such as `add_suppression` or `deactivate_device` is the caller's to apply, and only a `reliable` event may feed an engagement decision.
   """
 
   alias Relay.ChannelDeclarations
@@ -17,6 +17,7 @@ defmodule Relay.Channels.Live.Events do
     "cancelled" => :cancelled
   }
   @after_delivered %{"valid" => :valid, "stale" => :stale, "conflict" => :conflict}
+  @unwritten [:delivery_not_found, :attempt_not_found, :rejected_future_timestamp]
 
   @type event :: %{
           required(:delivery_id) => Relay.Id.t(),
@@ -46,40 +47,61 @@ defmodule Relay.Channels.Live.Events do
   @doc "Records a provider event of a delivery; see the module documentation. Returns the ledger result with the evidence row's side effect and decision grade, `{:error, :unknown_event}` for an event code without an evidence row and `{:error, :delivery_not_found}`."
   @spec record(Relay.Scope.t(), event()) ::
           {:ok, recorded()} | {:error, :unknown_event | :delivery_not_found | term()}
-  def record(scope, %{delivery_id: delivery_id} = event) do
-    read = fn _status -> Store.delivery(delivery_id) end
-
-    with {:ok, declarations} <- Relay.Datasets.channel_declarations(),
-         {:ok, %{} = delivery} <- Store.in_scope(scope, read) do
-      case evidence(declarations, event) do
-        {:ok, row} -> append(scope, event, row, delivery, classify(scope, declarations, event))
-        {:error, :unknown_event} -> unknown(scope, event)
-      end
-    else
-      {:ok, nil} -> {:error, :delivery_not_found}
+  def record(scope, %{delivery_id: _delivery_id} = event) do
+    case record_many(scope, [event]) do
+      {:ok, [result]} -> result
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp unknown(scope, event) do
-    code = Map.get(event, :raw_code) || event.event_code
-    _ = Relay.Channels.report_unknown_code(scope, event.provider, event.channel, code)
+  # T-41
+  # WH-49
+  # DS-10
+  # CH-8
+  @doc "Records several provider events of one scope in one transaction, the write of the delivery report batcher (T-41). Each event is read and recorded as `record/2` does; the result list follows the order of `events`. An event whose receipt (`receipt_id`) produces no ledger entry, for an unknown event code, an unknown delivery or attempt or a future timestamp, has its receipt marked `rejected` in the same transaction; an unknown event code of a known delivery is written as `provider.unknown_code` and never changes the projection."
+  @spec record_many(Relay.Scope.t(), [event()]) ::
+          {:ok, [{:ok, recorded()} | {:error, :unknown_event | :delivery_not_found}]}
+          | {:error, term()}
+  def record_many(_scope, []), do: {:ok, []}
 
-    {:ok, entry} =
-      Relay.Delivery.ledger_entry(
-        id: Relay.Id.generate(),
-        delivery_id: event.delivery_id,
-        actor: Map.get(event, :actor, :provider_webhook),
-        event_type: "provider.unknown_code",
-        occurred_at: Map.get_lazy(event, :occurred_at, &Relay.Clock.utc_now/0),
-        raw_code: String.slice(code, 0, 128),
-        provider: event.provider,
-        provider_seq: Map.get(event, :provider_seq),
-        detail: detail(event)
-      )
+  def record_many(scope, events) when is_list(events) do
+    with {:ok, declarations} <- Relay.Datasets.channel_declarations() do
+      planned = Enum.map(events, &plan(scope, declarations, &1))
+      ids = events |> Enum.map(& &1.delivery_id) |> Enum.uniq()
 
-    _ = Relay.Delivery.append_ledger(scope, entry)
-    {:error, :unknown_event}
+      result =
+        Store.in_scope(scope, fn _status ->
+          attempts = Store.delivery_attempts(ids)
+          {Enum.map(planned, &write(&1, attempts)), Store.delivery_traces(ids)}
+        end)
+
+      observed(result, events)
+    end
+  end
+
+  defp observed({:ok, {results, traces}}, events) do
+    events
+    |> Enum.zip(results)
+    |> Enum.each(fn
+      {event, {:ok, _recorded}} -> observe(event, Map.get(traces, event.delivery_id, %{}))
+      {_event, _error} -> :ok
+    end)
+
+    {:ok, results}
+  end
+
+  defp observed({:error, reason}, _events), do: {:error, reason}
+
+  defp plan(scope, declarations, event) do
+    case evidence(declarations, event) do
+      {:ok, row} ->
+        {:ok, event, row, classify(scope, declarations, event)}
+
+      {:error, _reason} ->
+        code = Map.get(event, :raw_code) || event.event_code || "none"
+        _ = Relay.Channels.report_unknown_code(scope, event.provider, event.channel, code)
+        {:unknown, event, code}
+    end
   end
 
   defp evidence(declarations, event) do
@@ -103,9 +125,48 @@ defmodule Relay.Channels.Live.Events do
     end
   end
 
-  defp append(scope, event, row, delivery, class) do
+  defp write({:error, event, reason}, _attempts) do
+    reject(event, reason)
+    {:error, reason}
+  end
+
+  defp write({:unknown, event, code}, attempts) do
+    if Map.has_key?(attempts, event.delivery_id) do
+      unknown(event, code)
+      write({:error, event, :unknown_event}, attempts)
+    else
+      write({:error, event, :delivery_not_found}, attempts)
+    end
+  end
+
+  defp write({:ok, event, row, class}, attempts) do
+    case Map.fetch(attempts, event.delivery_id) do
+      {:ok, attempt_count} -> append(event, row, attempt_count, class)
+      :error -> write({:error, event, :delivery_not_found}, attempts)
+    end
+  end
+
+  # DS-46
+  defp unknown(event, code) do
+    {:ok, entry} =
+      Relay.Delivery.ledger_entry(
+        id: Relay.Id.generate(),
+        delivery_id: event.delivery_id,
+        actor: Map.get(event, :actor, :provider_webhook),
+        event_type: "provider.unknown_code",
+        occurred_at: Map.get_lazy(event, :occurred_at, &Relay.Clock.utc_now/0),
+        raw_code: String.slice(code, 0, 128),
+        provider: event.provider,
+        provider_seq: Map.get(event, :provider_seq),
+        detail: detail(event)
+      )
+
+    Relay.Delivery.ledger_append(entry)
+  end
+
+  defp append(event, row, attempt_count, class) do
     failure_kind = Map.get(@failure_kinds, row["sets_failure"])
-    attempt_no = if row["scope"] == "attempt", do: positive(delivery["attempt_count"])
+    attempt_no = if row["scope"] == "attempt", do: positive(attempt_count)
 
     {:ok, entry} =
       Relay.Delivery.ledger_entry(
@@ -123,26 +184,27 @@ defmodule Relay.Channels.Live.Events do
         failure_kind: failure_kind,
         failure_class: if(failure_kind, do: class || "unknown"),
         after_delivered: Map.get(@after_delivered, row["after_delivered"]),
-        detail: detail(event),
-        traceparent: Relay.Trace.current()
+        detail: detail(event)
       )
 
-    case Relay.Delivery.append_ledger(scope, entry) do
-      {:ok, {result, _rank, _version}} ->
-        observe(event, delivery)
+    {result, _rank, _version} = Relay.Delivery.ledger_append(entry)
+    if result in @unwritten, do: reject(event, Atom.to_string(result))
 
-        {:ok,
-         %{
-           result: result,
-           side_effect: row["side_effect"],
-           decision_grade: row["decision_grade"],
-           failure_class: class
-         }}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    {:ok,
+     %{
+       result: result,
+       side_effect: row["side_effect"],
+       decision_grade: row["decision_grade"],
+       failure_class: class
+     }}
   end
+
+  defp reject(%{receipt_id: <<_::128>> = receipt_id}, reason) do
+    _ = Relay.Webhooks.receipt_mark(receipt_id, :rejected, to_string(reason))
+    :ok
+  end
+
+  defp reject(_event, _reason), do: :ok
 
   # DS-40
   # DS-41

@@ -121,6 +121,7 @@ DECLARE
     "relay_ops.observability_rollup": ["relay_worker"],
     "relay_ops.provider_account_resolve": ["relay_api", "relay_worker"],
     "relay_ops.provider_settings_check_scopes": ["relay_worker"],
+    "relay_ops.reconciliation_scopes": ["relay_worker"],
     "relay_ops.operator_ensure": ["relay_app"],
     "relay_ops.operator_get": ["relay_app"],
     "relay_ops.operator_roles": ["relay_app"],

@@ -6520,6 +6520,22 @@
   },
   {
     "acceptance": "pending",
+    "id": "DS-48",
+    "section": "§14",
+    "status": "policy_default",
+    "title": "Reconciliation frequency: status API every 15 minutes, report API daily at 03:30 UTC",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-49",
+    "section": "§14",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "DS-50",
     "section": "§14",
     "status": "policy_default",
@@ -6533,6 +6549,14 @@
     "status": "engineering_assumption",
     "title": "WhatsApp and voice DLR windows as an engineering assumption",
     "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-52",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
   },
   {
     "acceptance": "pending",

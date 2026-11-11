@@ -31,8 +31,6 @@ tags:
     description: "Management family: named, versioned partials (scope config)."
   - name: brand
     description: "Management family: brand settings of the tenant and its subtenants (scope config)."
-  - name: email-reports
-    description: "Management family: DMARC aggregate and TLS report intake and summaries (scope config)."
   - name: cloudevents
     description: "Management family: CloudEvents type mappings (scope config)."
   - name: categories
@@ -61,6 +59,8 @@ tags:
     description: "Usage family: provider invoices and their reconciliation with the usage records (scope config to record, read to read)."
   - name: reports
     description: "Report family: the delivery, skip and cost reports and the raw data exports of the tenant environment (scope read)."
+  - name: email-reports
+    description: "Management family: DMARC aggregate and TLS report intake and summaries (scope config)."
 paths:
   "/v1/events":
     post:
@@ -8555,13 +8555,100 @@ paths:
       x-relay-step-up: false
       x-relay-choice: true
       x-relay-choice-note: "The subtenant setting is addressed under its category; a GET of a subtenant without a setting returns every override as null and version 0, and a first PUT answers 201. Both are chosen by the contract."
-  "/v1/email_reports":
-    post:
-      operationId: uploadEmailReport
+  "/v1/categories/{category_key}/email_tracking":
+    get:
+      operationId: getCategoryEmailTracking
       tags:
-        - email-reports
-      summary: Upload a DMARC aggregate or TLS report
-      description: "Relay receives no mail: the tenant uploads a DMARC aggregate report (RFC 7489, XML) or an SMTP TLS report (RFC 8460, JSON) it received, as written, gzip-compressed or as a ZIP of one file, base64 encoded. The report is parsed and stored once per kind, reporter and report_id; the same report uploaded again answers 200 with the stored identifier. Unreadable content is 422 validation_failed on /content (CH-46)."
+        - categories
+      summary: Get the e-mail tracking of a category
+      description: "The tenant's open pixel and link wrapping setting of this category's e-mails; both are off without a setting (DS-29). trackable is false for a category of the security class, whose e-mails are never tracked (CH-43, CH-44). With the open pixel on, warnings carries open_pixel_unreliable: opens are never decision input or delivery evidence (DS-32)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CategoryKey"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The e-mail tracking setting.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/EmailTracking"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - category_not_found
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: "DS-29 lets the tenant turn tracking on per category or template but names no surface; the setting is addressed under its category and a template's setting replaces its category's."
+    put:
+      operationId: replaceCategoryEmailTracking
+      tags:
+        - categories
+      summary: Set the e-mail tracking of a category
+      description: "Full replacement of the category's open pixel and link wrapping setting (DS-29). Turning either on for a category of the security class is 422 validation_failed with not_allowed on the field: security and verification e-mails are never tracked, whatever the setting (CH-43, CH-44). Audited as setting.changed."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -8569,12 +8656,13 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayTenant"
         - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/CategoryKey"
       requestBody:
         required: true
         content:
           "application/json":
             schema:
-              "$ref": "./components/schemas.yaml#/EmailReportUpload"
+              "$ref": "./components/schemas.yaml#/EmailTrackingWrite"
       security:
         - access_bearer:
             - config
@@ -8582,7 +8670,7 @@ paths:
         - operator_bearer: []
       responses:
         "200":
-          description: The same report was stored before.
+          description: Replaced.
           headers:
             Request-Id:
               "$ref": "./components/headers.yaml#/Request-Id"
@@ -8611,44 +8699,15 @@ paths:
           content:
             "application/json":
               schema:
-                "$ref": "./components/schemas.yaml#/EmailReport"
-        "201":
-          description: Stored.
-          headers:
-            Request-Id:
-              "$ref": "./components/headers.yaml#/Request-Id"
-            Relay-Version:
-              "$ref": "./components/headers.yaml#/Relay-Version"
-            RateLimit:
-              "$ref": "./components/headers.yaml#/RateLimit"
-            RateLimit-Policy:
-              "$ref": "./components/headers.yaml#/RateLimit-Policy"
-            X-RateLimit-Limit:
-              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
-            X-RateLimit-Remaining:
-              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
-            X-RateLimit-Reset:
-              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
-            Deprecation:
-              "$ref": "./components/headers.yaml#/Deprecation"
-            Sunset:
-              "$ref": "./components/headers.yaml#/Sunset"
-            Link:
-              "$ref": "./components/headers.yaml#/Link"
-            Idempotency-Key:
-              "$ref": "./components/headers.yaml#/Idempotency-Key"
-            Idempotency-Replayed:
-              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
-          content:
-            "application/json":
-              schema:
-                "$ref": "./components/schemas.yaml#/EmailReport"
+                "$ref": "./components/schemas.yaml#/EmailTracking"
         "400":
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
         "409":
           "$ref": "./components/responses.yaml#/Conflict"
         "413":
@@ -8688,6 +8747,7 @@ paths:
         - payload_too_large
         - validation_failed
         - unknown_field
+        - category_not_found
       x-relay-scopes:
         - config
       x-relay-role: tenant_operator
@@ -8696,41 +8756,20 @@ paths:
       x-relay-step-up: false
       x-relay-stage: 7
       x-relay-choice: true
-      x-relay-choice-note: "CH-46 makes DMARC aggregate and TLS-RPT intake a supported capability but names no surface; Relay receives no mail, so the tenant uploads the report it received, and a domain's reports are summed by the end of their date range."
-  "/v1/email_reports/summary":
+      x-relay-choice-note: "DS-29 lets the tenant turn tracking on per category or template but names no surface; the setting is addressed under its category and a template's setting replaces its category's."
+  "/v1/templates/{template_key}/email_tracking":
     get:
-      operationId: getEmailReportSummary
+      operationId: getTemplateEmailTracking
       tags:
-        - email-reports
-      summary: Summarize a domain's DMARC and TLS reports
-      description: "Sums the stored reports of a domain whose date range ends in [from, to), by default the last 30 days and at most 366 days, over at most 1000 reports (truncated says more were left out). DMARC and TLS counts are given separately (CH-46)."
+        - templates
+      summary: Get the e-mail tracking of a template
+      description: "The tenant's open pixel and link wrapping setting of this template's e-mails; both are off without a setting (DS-29). trackable is false for a template of the security class, whose e-mails are never tracked (CH-43, CH-44). With the open pixel on, warnings carries open_pixel_unreliable: opens are never decision input or delivery evidence (DS-32)."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/RelayTenant"
         - "$ref": "./components/parameters.yaml#/RelayEnvironment"
-        - name: domain
-          in: query
-          required: true
-          description: The policy domain.
-          schema:
-            type: string
-            minLength: 1
-            maxLength: 253
-        - name: from
-          in: query
-          required: false
-          description: Start of the window (RFC 3339), inclusive.
-          schema:
-            type: string
-            format: date-time
-        - name: to
-          in: query
-          required: false
-          description: End of the window (RFC 3339), exclusive; now by default.
-          schema:
-            type: string
-            format: date-time
+        - "$ref": "./components/parameters.yaml#/TemplateKey"
       security:
         - access_bearer:
             - read
@@ -8740,7 +8779,7 @@ paths:
         - operator_bearer: []
       responses:
         "200":
-          description: The summary.
+          description: The e-mail tracking setting.
           headers:
             Request-Id:
               "$ref": "./components/headers.yaml#/Request-Id"
@@ -8765,15 +8804,15 @@ paths:
           content:
             "application/json":
               schema:
-                "$ref": "./components/schemas.yaml#/EmailReportSummary"
+                "$ref": "./components/schemas.yaml#/EmailTracking"
         "400":
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
-        "422":
-          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -8795,7 +8834,7 @@ paths:
         - rate_limited
         - internal_error
         - service_unavailable
-        - validation_failed
+        - template_not_found
       x-relay-scopes:
         - read
         - config
@@ -8805,7 +8844,121 @@ paths:
       x-relay-step-up: false
       x-relay-stage: 7
       x-relay-choice: true
-      x-relay-choice-note: "CH-46 makes DMARC aggregate and TLS-RPT intake a supported capability but names no surface; Relay receives no mail, so the tenant uploads the report it received, and a domain's reports are summed by the end of their date range."
+      x-relay-choice-note: "DS-29 lets the tenant turn tracking on per category or template but names no surface; the setting is addressed under its template and a template's setting replaces its category's."
+    put:
+      operationId: replaceTemplateEmailTracking
+      tags:
+        - templates
+      summary: Set the e-mail tracking of a template
+      description: "Full replacement of the template's open pixel and link wrapping setting (DS-29). Turning either on for a template of the security class is 422 validation_failed with not_allowed on the field: security and verification e-mails are never tracked, whatever the setting (CH-43, CH-44). Audited as setting.changed."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/TemplateKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/EmailTrackingWrite"
+      security:
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Replaced.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/EmailTracking"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - template_not_found
+      x-relay-scopes:
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: "DS-29 lets the tenant turn tracking on per category or template but names no surface; the setting is addressed under its template and a template's setting replaces its category's."
   "/v1/suppressions":
     get:
       operationId: listSuppressions
@@ -13058,6 +13211,83 @@ paths:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The spec has inbound interactions acknowledged fast, verified and deduplicated (CH-62, WH-49) but names no path; the path and the answer bodies are chosen by the contract."
+  "/inbound/v1/providers/{provider_account_id}":
+    post:
+      operationId: receiveProviderWebhook
+      tags:
+        - webhooks
+      summary: Receive an SMS or e-mail provider webhook
+      description: "The delivery report and event webhook of an SMS or e-mail provider account: Twilio status callbacks, Infobip delivery reports, Verimor reports, Postmark, SendGrid and Mailgun events. Not a tenant API and outside the /v1 request rules. The path names the account; its tenant and environment come from the account. The request is verified on the raw body before it is read, with the secret the account's settings.webhook_secret_ref_id names: Twilio's X-Twilio-Signature over this URL, Infobip's HMAC-SHA256, Verimor's token query parameter, Postmark's basic credentials, SendGrid's signed Event Webhook (ECDSA) and Mailgun's signature. Each provider event is committed as a receipt unique by provider event identifier, with its processing job, before the 200; a repeated event is acknowledged and counted, not processed again. Events are written to the delivery ledger from the queue, in batches, through the provider's evidence table."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/ProviderAccountId"
+        - name: token
+          in: query
+          required: false
+          description: "The callback token of a provider that signs nothing (Verimor)."
+          schema:
+            type: string
+            maxLength: 512
+        - name: key
+          in: query
+          required: false
+          description: "The provider idempotency key Relay put in a Twilio StatusCallback URL."
+          schema:
+            type: string
+            maxLength: 512
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/ProviderWebhookRequest"
+          "application/x-www-form-urlencoded":
+            schema:
+              "$ref": "./components/schemas.yaml#/ProviderWebhookRequest"
+      security: []
+      responses:
+        "200":
+          description: "Received: every event of the request is a committed receipt, or was one already."
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderWebhookAnswer"
+        "400":
+          description: The verified body is not one the provider sends.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderWebhookAnswer"
+        "401":
+          description: The request did not verify, or the account names no verification secret.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderWebhookAnswer"
+        "404":
+          description: No active SMS or e-mail provider account has this id.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderWebhookAnswer"
+        "413":
+          description: The body is larger than 1 MiB.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderWebhookAnswer"
+        "503":
+          description: The receipts could not be committed; the provider sends the request again.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderWebhookAnswer"
+      x-relay-weight: 0
+      x-relay-weight-note: "Provider inbound channel; not counted against tenant limits."
+      x-relay-idempotency: derived
+      x-relay-step-up: false
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: "The spec has provider webhooks committed as receipts before a fast 2xx, verified per provider on the raw body and deduplicated by provider event (WH-49, DS-22) but names no path; one URL per provider account, the secret reference and the answer bodies are chosen by the contract."
   "/v1/whatsapp/templates":
     get:
       operationId: listWhatsappTemplates
@@ -15695,6 +15925,257 @@ paths:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The spec checks X-Hub-Signature-256 over the raw body (CH-60) but names no receiving path; one URL per provider account and the app secret reference are chosen by the contract."
+  "/v1/email_reports":
+    post:
+      operationId: uploadEmailReport
+      tags:
+        - email-reports
+      summary: Upload a DMARC aggregate or TLS report
+      description: "Relay receives no mail: the tenant uploads a DMARC aggregate report (RFC 7489, XML) or an SMTP TLS report (RFC 8460, JSON) it received, as written, gzip-compressed or as a ZIP of one file, base64 encoded. The report is parsed and stored once per kind, reporter and report_id; the same report uploaded again answers 200 with the stored identifier. Unreadable content is 422 validation_failed on /content (CH-46)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/EmailReportUpload"
+      security:
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The same report was stored before.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/EmailReport"
+        "201":
+          description: Stored.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/EmailReport"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+      x-relay-scopes:
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: "CH-46 makes DMARC aggregate and TLS-RPT intake a supported capability but names no surface; Relay receives no mail, so the tenant uploads the report it received, and a domain's reports are summed by the end of their date range."
+  "/v1/email_reports/summary":
+    get:
+      operationId: getEmailReportSummary
+      tags:
+        - email-reports
+      summary: Summarize a domain's DMARC and TLS reports
+      description: "Sums the stored reports of a domain whose date range ends in [from, to), by default the last 30 days and at most 366 days, over at most 1000 reports (truncated says more were left out). DMARC and TLS counts are given separately (CH-46)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - name: domain
+          in: query
+          required: true
+          description: The policy domain.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 253
+        - name: from
+          in: query
+          required: false
+          description: Start of the window (RFC 3339), inclusive.
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: false
+          description: End of the window (RFC 3339), exclusive; now by default.
+          schema:
+            type: string
+            format: date-time
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The summary.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/EmailReportSummary"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: "CH-46 makes DMARC aggregate and TLS-RPT intake a supported capability but names no surface; Relay receives no mail, so the tenant uploads the report it received, and a domain's reports are summed by the end of their date range."
 components:
   securitySchemes:
     access_bearer:

@@ -4,6 +4,7 @@ defmodule Relay.Channels.Email.Bundled do
   """
 
   @names [
+    "click_signals",
     "email_bounce_codes",
     "email_bulk_sender_rules",
     "email_reputation",

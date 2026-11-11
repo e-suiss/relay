@@ -11,6 +11,7 @@ defmodule RelayWeb do
       Relay.Datasets,
       Relay.Channels,
       Relay.EmailReputation,
+      Relay.Engagement,
       Relay.Api,
       Relay.Access,
       Relay.Operators,

@@ -236,7 +236,7 @@ defmodule Relay.Delivery.Exports.Store do
 
   # DS-37
   @doc "One CSV line (RFC 4180) of values: `nil` is empty, times are RFC 3339 UTC, and a text a spreadsheet would read as a formula gets a leading `'`."
-  @spec csv_line([term()]) :: iodata()
+  @spec csv_line([term()]) :: iolist()
   def csv_line(values), do: [Enum.map_intersperse(values, ",", &field/1), "\r\n"]
 
   defp field(nil), do: ""

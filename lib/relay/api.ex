@@ -67,6 +67,7 @@ defmodule Relay.Api do
       ChannelManagement,
       ChannelOperations,
       TestSends,
+      ProviderInvoices,
       EmailTracking
     ]
 end

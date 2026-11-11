@@ -1,0 +1,9 @@
+{
+  "source_ref": "DS-19 default windows; DS-51: the WhatsApp and voice values are an engineering assumption until measured; DS-50 bounds",
+  "windows": [
+    {"channel": "sms", "provider": null, "short_ms": 21600000, "long_ms": 259200000},
+    {"channel": "email", "provider": null, "short_ms": 86400000, "long_ms": 259200000},
+    {"channel": "whatsapp", "provider": null, "short_ms": 129600000, "long_ms": 604800000},
+    {"channel": "voice", "provider": null, "short_ms": 3600000, "long_ms": 86400000}
+  ]
+}

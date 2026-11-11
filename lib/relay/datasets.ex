@@ -184,7 +184,8 @@ defmodule Relay.Datasets do
   # CH-69
   # CH-71
   # DS-47 (2)
-  @doc "Checks the rules of a data set's content that its JSON Schema cannot express; `channel_parameters`, `rule_dictionary` and `channel_event_evidence` have such rules."
+  # DS-50
+  @doc "Checks the rules of a data set's content that its JSON Schema cannot express; `channel_parameters`, `rule_dictionary`, `channel_event_evidence` and `delivery_windows` have such rules."
   @spec consistent(String.t(), Schema.json()) :: :ok | {:error, Relay.Error.t()}
   def consistent("channel_parameters", content) when is_map(content),
     do: Relay.ChannelParameters.validate(content)
@@ -194,6 +195,9 @@ defmodule Relay.Datasets do
 
   def consistent("channel_event_evidence", content) when is_map(content),
     do: Relay.ChannelDeclarations.validate(content)
+
+  def consistent("delivery_windows", content) when is_map(content),
+    do: Relay.DeliveryWindows.validate(content)
 
   def consistent(_name, _content), do: :ok
 

@@ -31,7 +31,7 @@ defmodule Relay.Delivery.LedgerEntryTest do
                ~w(delivery.queued delivery.skipped delivery.deferred delivery.cancelled
                   delivery.paused delivery.resumed delivery.held delivery.expired
                   delivery.dead_lettered delivery.replay_opened delivery.uncertain
-                  provider.reported
+                  provider.reported provider.unknown_code
                   attempt.started attempt.succeeded attempt.failed attempt.unknown
                   engagement.opened engagement.clicked engagement.displayed)
     end
@@ -69,6 +69,42 @@ defmodule Relay.Delivery.LedgerEntryTest do
       assert Enum.at(params, 10) == 2
       assert Enum.at(params, 11) == "bounced"
       assert Enum.at(params, 14) == "conflict"
+    end
+  end
+
+  describe "DS-3 DS-7 engagement entries" do
+    test "DS-3: an engagement entry reaches the database inside its detail" do
+      {:ok, entry} =
+        Ledger.new(
+          Map.merge(@base, %{
+            actor: :user,
+            detail: %{"link" => 1},
+            engagement: %{kind: :clicked, source: :tracked_link, clicked_by: :human}
+          })
+        )
+
+      assert Enum.at(Ledger.params(entry), 15) == %{
+               "link" => 1,
+               "engagement" => %{
+                 "kind" => "clicked",
+                 "source" => "tracked_link",
+                 "clicked_by" => "human"
+               }
+             }
+    end
+
+    test "DS-7: engagement outside the closed sets, or a clicker on a read, is refused" do
+      for engagement <- [
+            %{kind: :opened, source: :client_sdk},
+            %{kind: :read, source: :smoke_signal},
+            %{kind: :read, source: :client_sdk, clicked_by: :human},
+            %{kind: :clicked, source: :tracked_link},
+            %{kind: :seen, source: :inbox_action, extra: true},
+            "read"
+          ] do
+        assert {:error, %Relay.Error{details: %{field: :engagement}}} =
+                 Ledger.new(Map.put(@base, :engagement, engagement))
+      end
     end
   end
 end

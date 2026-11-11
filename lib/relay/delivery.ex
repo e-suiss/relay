@@ -12,16 +12,24 @@ defmodule Relay.Delivery do
   alias Relay.Actor
   alias Relay.Delivery.DeadLetters
   alias Relay.Delivery.Ledger
+  alias Relay.Delivery.Projection
   alias Relay.Delivery.RetryBudget
   alias Relay.Delivery.RetryPolicy
   alias Relay.Delivery.Send
   alias Relay.Delivery.Store
+  alias Relay.Delivery.Usage.InvoiceStore
   alias Relay.Scope
 
   @system %Actor{kind: :system, ref: "relay:dead_letter_auto_replay", on_behalf_of_ref: "relay"}
 
   @type result(value) :: {:ok, value} | {:error, term()}
   @type tombstone :: :cancelled | :already_sent | :none | :terminal | :not_found
+  @type window_move :: %{
+          delivery_id: Relay.Id.t(),
+          channel: String.t(),
+          provider: String.t() | nil,
+          window_stage: 1 | 2
+        }
 
   # T-15
   @doc "The job worker that sends a delivery; its arguments are the scope, `notification_id` and `delivery_id`."
@@ -534,6 +542,29 @@ defmodule Relay.Delivery do
   def ledger(scope, delivery_id),
     do: Store.in_scope(scope, fn _status -> Store.ledger(delivery_id) end)
 
+  # DS-3
+  # DS-14
+  @doc "The engagement of a delivery from its projection columns; see `Relay.Delivery.Projection.engagement/1`."
+  @spec engagement(map()) :: %{String.t() => term()}
+  defdelegate engagement(delivery), to: Projection
+
+  # DS-18
+  # INV-5
+  # INV-9
+  @doc """
+  Moves up to `limit` due deliveries of a scope through their DLR windows (`Relay.DeliveryWindows.resolve/2` rows), oldest acceptance first: an accepted delivery without a definite event gets `delivery.unknown_pending` once its short window has passed in business time and `delivery.unknown` once its long window has passed, both written by Relay to the ledger. A delivery with a definite event, or locked by another writer, is left alone. Returns the moved deliveries with their channel, provider and new stage; nothing is resent.
+  """
+  @spec advance_windows(Scope.t(), [map()], pos_integer()) :: result([window_move()])
+  def advance_windows(scope, windows, limit) when is_list(windows) and is_integer(limit),
+    do: Store.in_scope(scope, fn _status -> Store.windows_advance(windows, limit) end)
+
+  # DS-18
+  # TN-13 (4)
+  @doc "Lists up to `limit` scopes that have an accepted delivery older than the shortest window, by identifiers only."
+  @spec window_scopes(pos_integer()) :: [{Relay.Id.t(), String.t()}]
+  def window_scopes(limit) when is_integer(limit) and limit > 0,
+    do: Store.window_scopes(Relay.DeliveryWindows.floor_ms(), limit)
+
   # C-88
   # OP-38
   # T-87
@@ -546,4 +577,40 @@ defmodule Relay.Delivery do
   @spec usage_rows(Scope.t(), Date.t()) :: result([map()])
   def usage_rows(scope, day),
     do: Store.in_scope(scope, fn _status -> Relay.Delivery.Usage.Store.rows(day) end)
+
+  # OP-38
+  # OP-42
+  @doc "Records a provider invoice inside the caller's scoped transaction of `scope` and reconciles a new one at once with the usage records of its period; see `Relay.Delivery.Usage.InvoiceStore`."
+  @spec record_invoice(Scope.t(), map(), <<_::256>>, Actor.t()) ::
+          {:recorded | :exists | :conflict, Relay.Id.t()}
+  def record_invoice(%Scope{} = scope, attrs, digest, %Actor{} = actor) do
+    case InvoiceStore.record(attrs, digest, actor) do
+      {:recorded, id} ->
+        if InvoiceStore.check(id) == {:changed, :drift}, do: InvoiceStore.alarm(scope, [id])
+        {:recorded, id}
+
+      other ->
+        other
+    end
+  end
+
+  # OP-42
+  @doc "Reconciles a provider invoice again inside the caller's scoped transaction."
+  @spec check_invoice(Relay.Id.t()) ::
+          {:changed | :unchanged | :not_found, :matched | :drift | nil}
+  defdelegate check_invoice(id), to: InvoiceStore, as: :check
+
+  @doc "Reads a provider invoice inside the caller's scoped transaction, or `nil`."
+  @spec invoice(Relay.Id.t()) :: map() | nil
+  defdelegate invoice(id), to: InvoiceStore, as: :get
+
+  @doc "Reads a provider invoice in its own scoped transaction, or `nil`."
+  @spec get_invoice(Scope.t(), Relay.Id.t()) :: result(map() | nil)
+  def get_invoice(scope, id), do: Store.in_scope(scope, fn _status -> InvoiceStore.get(id) end)
+
+  # API-56
+  @doc "Lists provider invoices newest first from a decoded cursor in their own scoped transaction; at most `limit + 1` rows come back."
+  @spec list_invoices(Scope.t(), map() | nil, pos_integer()) :: result([map()])
+  def list_invoices(scope, cursor, limit),
+    do: Store.in_scope(scope, fn _status -> InvoiceStore.page(cursor, limit) end)
 end

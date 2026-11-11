@@ -95,12 +95,8 @@ defmodule Relay.Engagement do
       link_rel: if(human?, do: "link_" <> Integer.to_string(link)),
       at_ms: request.at_ms,
       delivery_rank: if(human? and delivery["delivery_rank"] < 2, do: :delivered),
+      engagement: %{kind: :clicked, source: :tracked_link, clicked_by: class},
       detail: %{
-        "engagement" => %{
-          "kind" => "clicked",
-          "source" => "tracked_link",
-          "clicked_by" => Atom.to_string(class)
-        },
         "link" => link,
         "class" => Atom.to_string(class),
         "signal" => signal,
@@ -127,6 +123,7 @@ defmodule Relay.Engagement do
         link_rel: nil,
         at_ms: request.at_ms,
         delivery_rank: nil,
+        engagement: nil,
         detail: %{
           "machine_open" => machine?,
           "signal" => signal,
@@ -164,7 +161,8 @@ defmodule Relay.Engagement do
             event_type: "engagement." <> Atom.to_string(kind),
             occurred_at: occurred_at,
             delivery_rank: if(displayed? and delivery["delivery_rank"] < 2, do: :delivered),
-            detail: %{"engagement" => receipt_axis(kind), "decision_grade" => "reliable"}
+            engagement: receipt_axis(kind),
+            detail: %{"decision_grade" => "reliable"}
           )
 
         {announce, link_rel} = if displayed?, do: {"seen", nil}, else: {"clicked", "push"}
@@ -175,10 +173,8 @@ defmodule Relay.Engagement do
     end
   end
 
-  defp receipt_axis(:displayed), do: %{"kind" => "seen", "source" => "client_sdk"}
-
-  defp receipt_axis(:clicked),
-    do: %{"kind" => "clicked", "source" => "client_sdk", "clicked_by" => "human"}
+  defp receipt_axis(:displayed), do: %{kind: :seen, source: :client_sdk}
+  defp receipt_axis(:clicked), do: %{kind: :clicked, source: :client_sdk, clicked_by: :human}
 
   defp signals do
     Relay.Datasets.decide(Relay.Datasets.installation_scope(), "click_signals", & &1)
@@ -214,6 +210,7 @@ defmodule Relay.Engagement do
         event_type: entry.event_type,
         occurred_at: DateTime.from_unix!(entry.at_ms, :millisecond),
         delivery_rank: entry.delivery_rank,
+        engagement: entry.engagement,
         detail: entry.detail
       )
 

@@ -31,6 +31,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
     {"dead_letters", "replay_depth"},
     {"deliveries", "delivery_rank"},
     {"deliveries", "replay_depth"},
+    {"deliveries", "window_stage"},
     {"idempotency_keys", "response_status"},
     {"kill_switches", "canary_percent"},
     {"quota_counters", "shard"},

@@ -6531,16 +6531,16 @@
     "id": "DS-50",
     "section": "§14",
     "status": "policy_default",
-    "title": "",
-    "verify_stage": null
+    "title": "Tenant and channel x provider DLR window bounds",
+    "verify_stage": 7
   },
   {
     "acceptance": "pending",
     "id": "DS-51",
     "section": "§14",
     "status": "engineering_assumption",
-    "title": "",
-    "verify_stage": null
+    "title": "WhatsApp and voice DLR windows as an engineering assumption",
+    "verify_stage": 7
   },
   {
     "acceptance": "pending",
@@ -6555,8 +6555,8 @@
     "id": "DS-53",
     "section": "§14",
     "status": "frozen_technical",
-    "title": "",
-    "verify_stage": null
+    "title": "Billable event: a provider-reached attempt in the channel's unit; rejected, unsent and simulated attempts are not billable; test sends in their own rows",
+    "verify_stage": 7
   },
   {
     "acceptance": "pending",

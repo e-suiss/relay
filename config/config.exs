@@ -57,6 +57,8 @@ config :relay, Oban,
        {"*/5 * * * *", Relay.Agents.WaitpointSweep},
        {"17 * * * *", Relay.Devices.Sweep},
        {"20 0 * * *", Relay.Delivery.UsageDay},
+       {"13 * * * *", Relay.Delivery.ReportRollup},
+       {"40 2 * * *", Relay.Delivery.ReportRollup, args: %{"days" => 15}},
        {"41 * * * *", Relay.Channels.Live.SettingsSweep}
      ]}
   ]

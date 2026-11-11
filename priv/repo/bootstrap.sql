@@ -133,6 +133,7 @@ DECLARE
     "relay_ops.partition_horizon": ["relay_worker"],
     "relay_ops.partition_policy_set": ["relay_app"],
     "relay_ops.receipt_keys_due": ["relay_worker"],
+    "relay_ops.report_rollup_scopes": ["relay_worker"],
     "relay_ops.reference_check": [],
     "relay_ops.retention_due": ["relay_worker"],
     "relay_ops.singleton_acquire": ["relay_worker"],

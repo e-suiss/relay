@@ -205,6 +205,13 @@ defmodule RelayWeb.Router do
     get "/provider_invoices/:provider_invoice_id", ProviderInvoiceController, :show,
       private: %{relay_operation: "getProviderInvoice"}
 
+    get "/reports/deliveries", ReportController, :deliveries,
+      private: %{relay_operation: "getDeliveryReport"}
+
+    get "/reports/skips", ReportController, :skips, private: %{relay_operation: "getSkipReport"}
+
+    get "/reports/costs", ReportController, :costs, private: %{relay_operation: "getCostReport"}
+
     get "/sender_identities", ChannelController, :senders,
       private: %{relay_operation: "listSenderIdentities"}
 

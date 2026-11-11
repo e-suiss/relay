@@ -85,6 +85,12 @@ defmodule RelayWeb.Router do
     get "/:token", ExportDownloadController, :show
   end
 
+  # CH-46
+  # CH-87
+  scope "/tlsrpt/v1", RelayWeb do
+    post "/:tenant/:environment", TlsReportController, :create
+  end
+
   # CH-43
   # CH-44
   # DS-30
@@ -671,6 +677,12 @@ defmodule RelayWeb.Router do
          ChannelController,
          :rotate_secret,
          private: %{relay_operation: "rotateChannelIdentitySecret"}
+
+    get "/email_reputation", ReputationController, :index,
+      private: %{relay_operation: "listEmailReputationCircuits"}
+
+    post "/email_reputation/:domain/close", ReputationController, :close,
+      private: %{relay_operation: "closeEmailReputationCircuit"}
 
     get "/audit_log", SupportController, :audit_log,
       private: %{relay_operation: "listAuditRecords"}

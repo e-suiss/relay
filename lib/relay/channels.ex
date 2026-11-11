@@ -19,6 +19,7 @@ defmodule Relay.Channels do
   alias Relay.Channels.Email.Intake
   alias Relay.Channels.Email.Reports
   alias Relay.Channels.Email.ReportStore
+  alias Relay.Channels.Email.Reputation
   alias Relay.Channels.Email.Tracking
   alias Relay.Channels.Email.Verp
   alias Relay.Channels.Inbound
@@ -914,6 +915,28 @@ defmodule Relay.Channels do
     CriticalGrant.decide(module, query)
   end
 
+  # CH-87
+  @doc "The sending domain of a request's e-mail; see `Relay.Channels.Email.sending_domain/1`."
+  @spec email_domain(Request.t()) :: {:ok, String.t()} | :error
+  def email_domain(%Request{} = request), do: Email.sending_domain(request)
+
+  # CH-41
+  # CH-37
+  # CH-87
+  @doc """
+  Decides a reputation circuit of `state` after adding `count` events of `event` to a window whose totals (`sent`, `delivered`, `bounces`, `complaints`, `now_ms`) were read before them, under the `reputation` parameters of the `email_reputation` data set (`Relay.Channels.Email.Reputation`). Returns the new state, the transitions to announce and the window's rates after the events; a stopped circuit stays stopped.
+  """
+  @spec reputation_decide(Reputation.state(), map(), Reputation.event(), pos_integer(), map()) ::
+          {Reputation.state(), [Reputation.transition()], Reputation.rates()}
+  def reputation_decide(state, totals, event, count, params) do
+    bucket_ms = max(div(params["window_ms"], params["buckets"]), 1)
+    counts = {totals.sent, totals.delivered, totals.bounces, totals.complaints}
+    buckets = %{div(totals.now_ms, bucket_ms) => counts}
+    circuit = %{Reputation.new() | state: state, buckets: buckets}
+    {circuit, transitions} = Reputation.record(circuit, event, totals.now_ms, params, count)
+    {circuit.state, transitions, Reputation.rates(circuit, totals.now_ms, params)}
+  end
+
   # CH-46
   @doc "Parses an uploaded DMARC aggregate or TLS-RPT report; see `Relay.Channels.Email.Reports.parse/3`."
   @spec parse_email_report(Reports.kind(), Reports.encoding(), binary()) ::
@@ -924,6 +947,14 @@ defmodule Relay.Channels do
   @doc "Appends a parsed report inside the caller's scoped transaction; see `Relay.Channels.Email.ReportStore.record/2`."
   @spec record_email_report(Reports.report(), digest()) :: {:recorded | :duplicate, Relay.Id.t()}
   def record_email_report(report, digest), do: ReportStore.record(report, digest)
+
+  # CH-46
+  # CH-87
+  @doc "Appends a parsed report in a scope in its own transaction; see `Relay.Channels.Email.ReportStore.record/2`."
+  @spec store_email_report(Relay.Scope.t(), Reports.report(), digest()) ::
+          result({:recorded | :duplicate, Relay.Id.t()})
+  def store_email_report(scope, report, digest),
+    do: Store.in_scope(scope, fn _status -> ReportStore.record(report, digest) end)
 
   # CH-46
   @doc "Reads the reports of a domain in a scope; see `Relay.Channels.Email.ReportStore.reports/4`."

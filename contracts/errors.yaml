@@ -1787,3 +1787,17 @@ codes:
     description: "The test recipient list already holds its limit of pending and verified entries (API-61). Remove an entry first."
     type: "{base_url}/v1/errors/test_recipient_limit_reached"
     choice_note: "Code name and status chosen by the contract (API-61)."
+  - code: email_reputation_not_found
+    family: resource
+    status: 404
+    title: E-mail reputation circuit not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No sending domain of this tenant and environment has a reputation circuit that left ok. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/email_reputation_not_found"
+    choice_note: "Code name and status chosen by the contract (CH-87)."

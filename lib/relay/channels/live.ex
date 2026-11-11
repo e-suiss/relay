@@ -5,7 +5,7 @@ defmodule Relay.Channels.Live do
     1. The route. On the `test` plane and in `shadow` mode the fake provider answers (X-25, API-62, CH-72); the send mode is the event's own mode (test only), then the tenant's `send_mode.category.<category>.channel.<channel>`, `send_mode.channel.<channel>` and `send_mode` settings for the workflow's category, then the installation default. The route is narrowed to the provider the delivery was accepted with (API-23) and, under the tenant's `channels.domestic_only` policy, to accounts processing data in that country (CH-6, TN-58). The delivery's channel overrides are its event's sealed request overrides over the pinned workflow version's step (the step of the delivery's channel and template) and workflow overrides (API-23); they reach the adapter as the request's `overrides`, and an `overrides.email.from` is checked again against the chosen account's verified sender identities, or the delivery is skipped with `channel.sender_unapproved`. Otherwise only a verified provider account whose adapter is activated takes traffic (`Relay.Channels.routes/4`, CH-14, INV-43); without one the delivery is held with `channel.no_route` and the job comes back later. The circuit breakers pick the first account that may be called; a rejection moves to the next account and, when every one is open, the job waits without counting an attempt (CH-13, T-25).
     2. The target. An address channel reads the recipient's active address; a device channel reads the recipient's permitted devices from `Relay.Devices` and takes the most recently seen one of the route's provider platform (CH-28); a recipient whose devices are all without permission is skipped with `channel.no_permission`, one without a device with `channel.no_address`. A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
     3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50). On `push` and `web_push` the push policy is decided from the active `push_priority_map` before the attempt opens (`Relay.Channels.push_policy/2`: platform priority, interruption level, collapse keys, content-free mode and lock screen text; CH-19, CH-23, CH-33, CH-65, CH-67) and handed to the adapter; its recorded reasons (`priority_clamped`, `interruption_clamped`, `critical_not_granted`, `interruption_platform_lowered`, `override_ignored`) are emitted as `[:relay, :push, :policy]`. The requested level is the event's `interruption`; for `critical` the tenant's opening, the template's declaration and the platform entitlement of the route's provider are read, and the recipient's Grant is asked only when the first two hold (`Relay.Channels.critical_grant/1`, CH-84). When the provider accepts a push it is counted for the high priority monitor and a `critical` one is audited (`Relay.PushPolicy`, CH-20, CH-22). On SMS and voice the route keeps only the accounts of the message class's traffic, `security` or `standard`, so an OTP never shares an account or a credit pool with a campaign (CH-53), and a `+90` number only the BTK-authorized providers, or the delivery is skipped with `channel.tr_route_unauthorized` (CH-51). Before the attempt `Relay.Channels.sms_preflight/7`, with the renderer's SMS measurement, checks the sender identity's rules for the class (CH-50), the TR route and the explicit encoding (CH-48), and names the provider product (CH-53); a broken rule skips the delivery with its `rule_id`. On WhatsApp, `Relay.Channels.Live.Whatsapp.prepare/4` then applies the number's availability, the customer service window, the template's approval and the tier count (CH-57, CH-58, CH-61).
-    4. The provider limits (CH-17): the account, sender and recipient layers of the provider's declared limits, stricter than the provider's and in the channel's unit, each a GCRA decision (`Relay.Channels.Limits`); a denial snoozes the job for its `retry_after` without opening an attempt. A shared account's quota carries the lane ceiling (T-33, TN-53), and a 429 lowers the account's rate until successes raise it again (AIMD, `Relay.Channels.Throttle`); the provider's `Retry-After` still plans the retry.
+    4. The reputation and provider limits. An e-mail of a sending domain whose reputation circuit is stopped is held with `email.reputation_stopped` until a tenant administrator closes the circuit, and a sent e-mail is counted in its domain's window (`Relay.EmailReputation`, CH-87). The provider limits (CH-17): the account, sender and recipient layers of the provider's declared limits, stricter than the provider's and in the channel's unit, each a GCRA decision (`Relay.Channels.Limits`); a denial snoozes the job for its `retry_after` without opening an attempt. A shared account's quota carries the lane ceiling (T-33, TN-53), and a 429 lowers the account's rate until successes raise it again (AIMD, `Relay.Channels.Throttle`); the provider's `Retry-After` still plans the retry.
     5. The attempt. It is opened with the provider idempotency key that stays the same across the logical send (INV-13, OP-6 (4)) and marked started in its own transaction before the call (INV-55, CH-10). The credential is read from the secret backend for this call only, so a rotation applies at the next call (TN-26). The call is bounded by the three timeout layers (CH-9).
     6. The outcome is normalized into the eight failure classes (CH-7). A success finishes the attempt. A failure finishes it and plans its retry through the job queue only (T-26, INV-14); a permanent target failure soft disables the address or the device at once (CH-11); a code without a mapping raises `provider.unknown_code` and the alarm (CH-8). An uncertain outcome follows the provider's declared policy (T-28): the status query, a retry with the same key, or none; on a paid channel at most one retry and `delivery.uncertain`.
   """
@@ -19,6 +19,7 @@ defmodule Relay.Channels.Live do
       Relay.Delivery,
       Relay.Datasets,
       Relay.Devices,
+      Relay.EmailReputation,
       Relay.Ingest,
       Relay.Messaging,
       Relay.Platform,
@@ -622,11 +623,39 @@ defmodule Relay.Channels.Live do
   # T-33
   # TN-53
   defp limited(ctx, account, ticket, target, content) do
-    case provider_limits(ctx, account, target, content) do
-      :allow -> attempt(ctx, account, ticket, target, content)
-      {:deny, ms} -> {:snooze, max(div(ms + 999, 1000), 1)}
+    if reputation_paused?(ctx, account, target, content) do
+      hold(ctx.scope, ctx.delivery["id"], "email.reputation_stopped")
+    else
+      case provider_limits(ctx, account, target, content) do
+        :allow -> attempt(ctx, account, ticket, target, content)
+        {:deny, ms} -> {:snooze, max(div(ms + 999, 1000), 1)}
+      end
     end
   end
+
+  # CH-87
+  defp reputation_paused?(%{delivery: %{"channel" => "email"}} = ctx, account, target, content) do
+    fields = %{
+      scope: ctx.scope,
+      delivery_id: ctx.delivery["id"],
+      attempt_no: 1,
+      channel: "email",
+      provider: account["provider"],
+      idempotency_key: "",
+      target: target,
+      timeout_ms: 1,
+      content: content,
+      account: account,
+      message_class: ctx.delivery["message_class"]
+    }
+
+    case Relay.Channels.email_domain(Relay.Channels.request(fields)) do
+      {:ok, domain} -> Relay.EmailReputation.admit(ctx.scope, domain) == :paused
+      :error -> false
+    end
+  end
+
+  defp reputation_paused?(_ctx, _account, _target, _content), do: false
 
   defp provider_limits(_ctx, %{"provider" => "fake"}, _target, _content), do: :allow
 
@@ -983,6 +1012,7 @@ defmodule Relay.Channels.Live do
     case Relay.Delivery.finish_attempt(ctx.scope, attrs) do
       {:ok, _result} ->
         :ok = remember(ctx, request, outcome)
+        _ = reputation_sent(ctx, request)
         followups(ctx, request, outcome.followups)
 
       {:error, reason} ->
@@ -1009,6 +1039,16 @@ defmodule Relay.Channels.Live do
       {:error, reason} -> {:error, reason}
     end
   end
+
+  # CH-87
+  defp reputation_sent(%{delivery: %{"channel" => "email"}} = ctx, request) do
+    with {:ok, domain} <- Relay.Channels.email_domain(request) do
+      _ = Relay.EmailReputation.remember(ctx.scope, request.delivery_id, domain)
+      Relay.EmailReputation.count(ctx.scope, domain, :sent)
+    end
+  end
+
+  defp reputation_sent(_ctx, _request), do: :ok
 
   defp failure(ctx, request, outcome, retry) do
     account_id = request.account["id"]

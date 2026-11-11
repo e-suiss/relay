@@ -41,6 +41,8 @@ defmodule Relay.Api.WorkflowRuns do
       },
       "steps" => Enum.map(p.request.steps, &step/1),
       "routes" => Map.get(p, :routes, %{}),
+      "variants" =>
+        Relay.Workflow.variants(p.workflow["definition"], p.workflow["key"], row["id"]),
       "providers" => p.providers,
       "templates" => templates(p.templates)
     }
@@ -115,6 +117,7 @@ defmodule Relay.Api.WorkflowRuns do
       run_started_at: p.request.send_at || p.now,
       message_class: p.message_class,
       routes: Map.get(p, :routes, %{}),
+      variants: Relay.Workflow.variants(definition, p.workflow["key"], row["id"]),
       facts: facts()
     }
   end
@@ -243,6 +246,7 @@ defmodule Relay.Api.WorkflowRuns do
       run_started_at: run["started_at"],
       message_class: p.message_class,
       routes: run["plan"]["routes"] || %{},
+      variants: run["plan"]["variants"] || %{},
       facts: facts()
     }
 

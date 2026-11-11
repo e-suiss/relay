@@ -238,6 +238,7 @@ defmodule Relay.Agents.WaitpointStore do
       mailbox_id: row["waiter_mailbox_id"],
       match_event_type: row["match_event_type"],
       correlation_key: row["correlation_key"],
+      condition: row["condition"],
       state: row["state"],
       opened_at: row["opened_at"],
       expires_at: row["expires_at"],

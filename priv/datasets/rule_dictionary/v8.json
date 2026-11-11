@@ -1653,6 +1653,21 @@
       }
     },
     {
+      "id": "workflow_run.wait_refused",
+      "reason": "wait_refused",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-12",
+      "detail": [
+        "step",
+        "reason"
+      ],
+      "description": {
+        "en": "This event wait was skipped because it could not be opened: its correlation key is empty or invalid, or a waitpoint limit was reached.",
+        "tr": "Bu olay bekleme adımı açılamadığı için atlandı: korelasyon anahtarı boş ya da geçersiz veya bir bekleme noktası sınırına ulaşıldı."
+      }
+    },
+    {
       "id": "workflow_run.step_unavailable",
       "reason": "step_unavailable",
       "kind": "gate",

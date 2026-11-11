@@ -18,6 +18,16 @@ defmodule Relay.Agents do
   @spec offer_event(Relay.Scope.t(), map()) :: {:ok, map()} | {:error, term()}
   defdelegate offer_event(scope, event), to: Waitpoint
 
+  # WF-12
+  @doc "Opens a waitpoint inside the caller's scoped transaction; see `Relay.Agents.Waitpoint.open_in/3`."
+  @spec open_waitpoint_in(Relay.Scope.t(), map(), keyword()) :: map()
+  defdelegate open_waitpoint_in(scope, attrs, opts \\ []), to: Waitpoint, as: :open_in
+
+  # WF-12
+  @doc "Offers an event inside the caller's scoped transaction with a second-stage decision; see `Relay.Agents.Waitpoint.offer_in/3`."
+  @spec offer_event_in(Relay.Scope.t(), map(), (map() -> boolean())) :: map()
+  defdelegate offer_event_in(scope, event, accept), to: Waitpoint, as: :offer_in
+
   # AG-11
   @doc "Answers a waitpoint once; see `Relay.Agents.Waitpoint.respond/3`."
   @spec respond(Relay.Scope.t(), Relay.Id.t(), map()) :: {:ok, tuple()} | {:error, term()}

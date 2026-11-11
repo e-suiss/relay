@@ -561,6 +561,12 @@
       "subject_erasure": "not subject data; counts only"
     },
     {
+      "table": "report_variant_rollups",
+      "personal_columns": [],
+      "tenant_close": "row kept; counts only",
+      "subject_erasure": "not subject data; workflow, step and variant keys and counts only"
+    },
+    {
       "table": "exports",
       "personal_columns": [],
       "tenant_close": "row kept; the content is cleared when the export expires",

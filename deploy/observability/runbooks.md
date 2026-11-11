@@ -236,6 +236,12 @@ Every alert rule in `alerts.yaml` links here with its `runbook_url`. Each entry 
 - **Check:** Check the reconciliation task and the provider's status API.
 - **Action:** Restore the task; unknown deliveries stay unknown until reconciled.
 
+## RelayReconciliationDrift
+
+- **Meaning:** Reconciliation found deliveries whose state differs from what the provider reports.
+- **Check:** Compare the drifted deliveries' ledger with the provider's status API answers.
+- **Action:** Find the receipt path that lost the event; the ledger keeps the reconciled evidence.
+
 ## RelayQueueOldestJob
 
 - **Meaning:** The oldest job of a lane waits longer than the lane's threshold.

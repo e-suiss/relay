@@ -348,3 +348,24 @@ tests:
             exp_annotations:
               summary: "ses accepted email for an hour without sending any delivery event"
               runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayespeventssilent
+  - interval: 1m
+    input_series:
+      - series: 'relay_reconciliation_drift_total{channel="sms",provider="twilio",mode="status"}'
+        values: "0 0 2 2 2 2 2 2"
+      - series: 'relay_reconciliation_lag_milliseconds{channel="sms",provider="twilio",mode="status"}'
+        values: "2400000x20"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: RelayReconciliationDrift
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-42, channel: sms, provider: twilio}
+            exp_annotations:
+              summary: "Reconciliation of sms/twilio found deliveries whose projection differs from the provider"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayreconciliationdrift
+      - eval_time: 12m
+        alertname: RelayReconciliationLag
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: DS-41, channel: sms, provider: twilio}
+            exp_annotations:
+              summary: "Reconciliation of sms/twilio is more than 30 minutes behind"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayreconciliationlag

@@ -644,7 +644,7 @@ defmodule Relay.Workflow do
       Runner.unpark(
         Map.put(run["step_cursor"], "results", run["step_results"]),
         Atom.to_string(kind),
-        Map.get(info, :render)
+        jsonable(Map.get(info, :render))
       )
 
     fields = %{
@@ -659,6 +659,12 @@ defmodule Relay.Workflow do
     {:saved, _version} = RunStore.save(run["id"], run["version"], fields)
     timer(scope, run["id"], nil, true)
   end
+
+  defp jsonable(%{} = map), do: Map.new(map, fn {key, value} -> {key, jsonable(value)} end)
+  defp jsonable(list) when is_list(list), do: Enum.map(list, &jsonable/1)
+  defp jsonable(<<_::128>> = id), do: if(String.valid?(id), do: id, else: Relay.Id.to_string(id))
+  defp jsonable(%DateTime{} = at), do: DateTime.to_iso8601(at)
+  defp jsonable(value), do: value
 
   # WF-29
   @doc "The digest render data of a delivery that a run opened with its step's `digest_template` after a window of two or more activities fired, inside the caller's scoped transaction; `nil` for any other delivery."

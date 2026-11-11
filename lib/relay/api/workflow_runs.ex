@@ -115,21 +115,13 @@ defmodule Relay.Api.WorkflowRuns do
       run_started_at: p.request.send_at || p.now,
       message_class: p.message_class,
       routes: Map.get(p, :routes, %{}),
-      facts: facts(p.request.security_subtype, p.templates)
+      facts: facts()
     }
   end
 
   # WF-13
   # WF-16
-  # WF-18
-  defp facts(subtype, templates) do
-    fn step ->
-      %{security_subtype: subtype, variants: variants(Map.get(templates, step["template"]))}
-    end
-  end
-
-  defp variants(%{locales: locales}), do: for({channel, [_ | _]} <- locales, do: channel)
-  defp variants(_unresolved), do: :all
+  defp facts, do: fn _step -> %{} end
 
   # WF-10
   # WF-59
@@ -251,7 +243,7 @@ defmodule Relay.Api.WorkflowRuns do
       run_started_at: run["started_at"],
       message_class: p.message_class,
       routes: run["plan"]["routes"] || %{},
-      facts: facts(p.request.security_subtype, p.templates)
+      facts: facts()
     }
 
     opener = fn step, channel, pointer ->

@@ -47,6 +47,7 @@ defmodule Relay.Delivery.ReportTest do
 
       assert {:ok, %{deliveries: 1, skips: 0}} =
                Relay.Delivery.recompute_report_day(scope, today())
+
       assert [row] = report(scope, :deliveries)
 
       assert %{

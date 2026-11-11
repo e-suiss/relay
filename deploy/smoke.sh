@@ -115,7 +115,7 @@ bootstrap() {
 
 # TN-14
 bootstrap || fail "bootstrap failed"
-for role in relay_migrator relay_worker relay_queue relay_maint; do
+for role in relay_migrator relay_worker relay_queue relay_maint relay_report; do
   psql -q -c "ALTER ROLE $role PASSWORD 'relay'" || fail "role password failed"
 done
 

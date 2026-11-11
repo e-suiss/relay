@@ -53,11 +53,6 @@ defmodule Relay.Repo.Migrations.CreateEmailReports do
       FOR EACH ROW EXECUTE FUNCTION relay_private.reject_mutation()
     """)
 
-    execute("""
-    CREATE TRIGGER email_reports_no_truncate BEFORE TRUNCATE ON relay.email_reports
-      FOR EACH STATEMENT EXECUTE FUNCTION relay_private.reject_mutation()
-    """)
-
     execute("ALTER TABLE relay.email_reports ENABLE ROW LEVEL SECURITY")
     execute("ALTER TABLE relay.email_reports FORCE ROW LEVEL SECURITY")
 

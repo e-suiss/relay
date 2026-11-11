@@ -35,7 +35,8 @@ config :relay, Relay.Platform.Leadership,
     {"load_shed_controller", Relay.Platform.LoadShed.Controller, []},
     {"kill_switch_paused_expiry", Relay.Tenancy.KillSwitch.Expiry, []},
     {"access_link_refresh", Relay.Access.Refresh, []},
-    {"tenant_suspension_activator", Relay.Operators.SuspensionActivator, []}
+    {"tenant_suspension_activator", Relay.Operators.SuspensionActivator, []},
+    {"observability_rollup", Relay.Observability.Rollup, []}
   ]
 
 config :relay, Relay.Audit,

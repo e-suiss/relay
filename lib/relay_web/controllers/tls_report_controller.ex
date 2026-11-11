@@ -77,7 +77,7 @@ defmodule RelayWeb.TlsReportController do
   defp store(conn, scope, report, digest) do
     case Relay.Channels.store_email_report(scope, report, digest) do
       {:ok, {_result, _id}} -> send_resp(conn, 202, "")
-      {:error, :tenant_not_found} -> send_resp(conn, 404, "")
+      {:error, %Relay.Error{code: :not_found}} -> send_resp(conn, 404, "")
       {:error, _reason} -> send_resp(conn, 503, "")
     end
   end

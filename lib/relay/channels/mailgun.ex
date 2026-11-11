@@ -86,14 +86,16 @@ defmodule Relay.Channels.Mailgun do
 
       account
       |> SettingsCheck.stream_domains()
-      |> Enum.reduce_while({:ok, []}, fn domain, {:ok, acc} ->
-        case pages(first_page(host, domain, reconcile), auth, reconcile.timeout_ms, [], 0) do
-          {:ok, events} -> {:cont, {:ok, acc ++ events}}
-          :unavailable -> {:halt, :unavailable}
-        end
-      end)
+      |> Enum.reduce_while({:ok, []}, &domain_events(&1, &2, host, auth, reconcile))
     else
       :error -> :unavailable
+    end
+  end
+
+  defp domain_events(domain, {:ok, acc}, host, auth, reconcile) do
+    case pages(first_page(host, domain, reconcile), auth, reconcile.timeout_ms, [], 0) do
+      {:ok, events} -> {:cont, {:ok, acc ++ events}}
+      :unavailable -> {:halt, :unavailable}
     end
   end
 

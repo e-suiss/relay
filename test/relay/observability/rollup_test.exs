@@ -46,7 +46,7 @@ defmodule Relay.Observability.RollupTest do
     test "OP-33: a delivery the provider accepted reaches each funnel stage" do
       %{scope: scope, delivery_id: id} = DeliveryFixture.sendable!()
       attempt = DeliveryFixture.started_attempt!(scope, id)
-      DeliveryFixture.finish(scope, id, attempt, :succeeded, delivery_rank: :accepted)
+      DeliveryFixture.finish(scope, id, attempt, :succeeded, delivery_rank: 1)
 
       rows = rows()
 

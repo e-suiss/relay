@@ -21,8 +21,10 @@ defmodule Relay.Repo.Migrations.CreateRouteFunctions do
   # PC-57 (1)
   # OP-8
   def up do
+    execute("SET LOCAL ROLE relay_owner")
     execute("DROP FUNCTION #{@old_category_create}")
     execute("DROP FUNCTION #{@old_category_update}")
+    execute("RESET ROLE")
     execute(route_check())
     execute("REVOKE ALL ON FUNCTION relay_private.route_check(text) FROM PUBLIC")
     execute("GRANT EXECUTE ON FUNCTION relay_private.route_check(text) TO relay_owner")

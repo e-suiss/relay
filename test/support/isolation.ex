@@ -63,7 +63,10 @@ defmodule RelayTest.Isolation do
      %{"provider_account_id" => "pva_01j9zq3k4m5n6p7q8r9s0t1v2w", "conversation" => "U1"}},
     {"updateProviderAccount", %{"priority" => 5}},
     {"updateSenderIdentity", %{"country" => "TR"}},
-    {"updateChannelIdentity", %{"app_ref" => "com.example.isolation"}}
+    {"updateChannelIdentity", %{"app_ref" => "com.example.isolation"}},
+    {"addCampaignRecipients", %{"recipients" => ["iso-campaign"]}},
+    {"approveCampaignSamples", %{"samples_digest" => String.duplicate("0", 64)}},
+    {"cancelCampaign", %{"reason" => "isolation"}}
   ]
   @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
   @sms %{
@@ -115,7 +118,8 @@ defmodule RelayTest.Isolation do
       "channel_identity_id" => &channel_identity!/1,
       "test_recipient_id" => &test_recipient!/1,
       "provider_invoice_id" => &provider_invoice!/1,
-      "export_id" => &export!/1
+      "export_id" => &export!/1,
+      "campaign_id" => &campaign!/1
     }
   end
 
@@ -451,6 +455,22 @@ defmodule RelayTest.Isolation do
   def export!(scope) do
     body = %{"kind" => "usage_records", "from" => "2026-10-01", "to" => "2026-11-01"}
     F.body(F.request(:post, "/v1/exports", owner(scope), body), 202)["id"]
+  end
+
+  @doc "Creates a draft campaign in `scope` and returns its identifier."
+  @spec campaign!(Relay.Scope.t()) :: String.t()
+  def campaign!(scope) do
+    deadline = DateTime.add(Relay.Clock.utc_now(), 86_400, :second)
+
+    body = %{
+      "name" => "Isolation",
+      "workflow" => workflow!(scope),
+      "data" => %{"order" => "I-1"},
+      "expected_count" => 1,
+      "deadline" => DateTime.to_iso8601(deadline)
+    }
+
+    F.body(F.request(:post, "/v1/campaigns", owner(scope), body), 201)["id"]
   end
 
   @doc "Records a provider invoice in `scope` and returns its identifier."

@@ -184,7 +184,8 @@ defmodule Relay.Tenancy.KillSwitch do
       subtenant_id: gate["subtenant_id"],
       provider_account_id: gate["provider_account_id"],
       workflow_id: gate["workflow_id"],
-      api_client_id: gate["api_client_id"]
+      api_client_id: gate["api_client_id"],
+      campaign_id: gate["campaign_id"]
     }
   end
 
@@ -882,7 +883,7 @@ defmodule Relay.Tenancy.KillSwitch do
   defp scope_ref(<<_::128>> = id), do: Relay.Id.to_string(id)
 
   defp scope_ref(text) when is_binary(text) do
-    case Relay.ExternalId.decode(text, ["stn", "wfl", "tpl"]) do
+    case Relay.ExternalId.decode(text, ["stn", "wfl", "tpl", "cmp"]) do
       {:ok, id} -> Relay.Id.to_string(id)
       {:error, _} -> text
     end

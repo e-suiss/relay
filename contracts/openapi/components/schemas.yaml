@@ -8485,3 +8485,479 @@ EmailReputationClose:
       type: string
       minLength: 1
       maxLength: 500
+Id_cmp:
+  type: string
+  description: "Campaign identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^cmp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - cmp_01j9zq3k4m5n6p7q8r9s0t1v2w
+CampaignState:
+  type: string
+  description: "draft while its audience is built; preparing while the dry evaluation runs; prepared until it is triggered; running and paused while it sends; completed when every member was accepted, partial when members were rejected or expired at the deadline, cancelled when it was cancelled (T-23)."
+  enum:
+    - draft
+    - preparing
+    - prepared
+    - running
+    - paused
+    - completed
+    - partial
+    - cancelled
+NullableTimestamp:
+  oneOf:
+    - "$ref": "#/Timestamp"
+    - type: "null"
+NullableRuleId:
+  oneOf:
+    - "$ref": "#/RuleId"
+    - type: "null"
+Campaign:
+  type: object
+  description: "A campaign (API-35, WF-44): its audience, its preview (X-14), its approvals (WF-62) and its progress record (T-23). mode is the fan-out model of its audience size: up to 1000 normal, up to 100000 bulk, above that campaign (T-91)."
+  required:
+    - object
+    - id
+    - name
+    - workflow
+    - message_class
+    - state
+    - mode
+    - deadline
+    - audience
+    - preview
+    - approvals
+    - progress
+    - pause_rule_id
+    - close_rule_id
+    - created_at
+    - prepared_at
+    - triggered_at
+    - closed_at
+  properties:
+    object:
+      type: string
+      const: campaign
+    id:
+      "$ref": "#/Id_cmp"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    workflow:
+      type: object
+      required:
+        - key
+        - version
+      properties:
+        key:
+          "$ref": "#/WorkflowKey"
+        version:
+          description: "The frozen workflow version, set at preparation."
+          oneOf:
+            - type: integer
+              minimum: 1
+            - type: "null"
+      additionalProperties: false
+    message_class:
+      oneOf:
+        - "$ref": "#/MessageClass"
+        - type: "null"
+    state:
+      "$ref": "#/CampaignState"
+    mode:
+      type: string
+      enum:
+        - normal
+        - bulk
+        - campaign
+    deadline:
+      "$ref": "#/Timestamp"
+    audience:
+      type: object
+      required:
+        - kind
+        - topic
+        - count
+        - not_found
+        - expected_count
+      properties:
+        kind:
+          type: string
+          enum:
+            - list
+            - topic
+        topic:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 256
+            - type: "null"
+        count:
+          type: integer
+          minimum: 0
+        not_found:
+          type: integer
+          minimum: 0
+        expected_count:
+          type: integer
+          minimum: 1
+      additionalProperties: false
+    preview:
+      oneOf:
+        - "$ref": "#/CampaignPreview"
+        - type: "null"
+    approvals:
+      type: object
+      required:
+        - samples
+        - audience
+      properties:
+        samples:
+          type: object
+          required:
+            - approved_at
+            - approved_by
+          properties:
+            approved_at:
+              "$ref": "#/NullableTimestamp"
+            approved_by:
+              oneOf:
+                - type: string
+                - type: "null"
+          additionalProperties: false
+        audience:
+          type: object
+          required:
+            - required
+            - approved_at
+            - approved_by
+          properties:
+            required:
+              type: boolean
+            approved_at:
+              "$ref": "#/NullableTimestamp"
+            approved_by:
+              oneOf:
+                - type: string
+                - type: "null"
+          additionalProperties: false
+      additionalProperties: false
+    progress:
+      type: object
+      required:
+        - stage
+        - stage_count
+        - next_stage_at
+        - stages
+        - accepted
+        - rejected
+        - expired
+        - cancelled
+      properties:
+        stage:
+          type: integer
+          minimum: 0
+          maximum: 3
+        stage_count:
+          oneOf:
+            - type: integer
+              enum:
+                - 1
+                - 3
+            - type: "null"
+        next_stage_at:
+          "$ref": "#/NullableTimestamp"
+        stages:
+          type: array
+          items:
+            type: object
+            required:
+              - stage
+              - percent
+              - member_count
+              - done_count
+              - opened_at
+            properties:
+              stage:
+                type: integer
+                minimum: 1
+                maximum: 3
+              percent:
+                type: integer
+                enum:
+                  - 1
+                  - 10
+                  - 100
+              member_count:
+                type: integer
+                minimum: 0
+              done_count:
+                type: integer
+                minimum: 0
+              opened_at:
+                "$ref": "#/NullableTimestamp"
+            additionalProperties: false
+        accepted:
+          type: integer
+          minimum: 0
+        rejected:
+          type: integer
+          minimum: 0
+        expired:
+          type: integer
+          minimum: 0
+        cancelled:
+          type: integer
+          minimum: 0
+      additionalProperties: false
+    pause_rule_id:
+      "$ref": "#/NullableRuleId"
+    close_rule_id:
+      "$ref": "#/NullableRuleId"
+    created_at:
+      "$ref": "#/Timestamp"
+    prepared_at:
+      "$ref": "#/NullableTimestamp"
+    triggered_at:
+      "$ref": "#/NullableTimestamp"
+    closed_at:
+      "$ref": "#/NullableTimestamp"
+  additionalProperties: false
+CampaignPreview:
+  type: object
+  description: "The audience preview (X-14): evaluated members, reachable recipients, channel deliveries that would send or be deferred by channel, channel deliveries dropped by rule_id, and the cost estimate. pending while the preparation runs."
+  required:
+    - state
+    - evaluated
+    - reachable
+    - sendable
+    - deferred
+    - drops
+    - estimate
+  properties:
+    state:
+      type: string
+      enum:
+        - pending
+        - ready
+    evaluated:
+      type: integer
+      minimum: 0
+    reachable:
+      type: integer
+      minimum: 0
+    sendable:
+      type: object
+      additionalProperties:
+        type: integer
+        minimum: 0
+    deferred:
+      type: object
+      additionalProperties:
+        type: integer
+        minimum: 0
+    drops:
+      type: array
+      items:
+        type: object
+        required:
+          - rule_id
+          - count
+        properties:
+          rule_id:
+            "$ref": "#/RuleId"
+          count:
+            type: integer
+            minimum: 0
+        additionalProperties: false
+    estimate:
+      oneOf:
+        - "$ref": "#/CampaignEstimate"
+        - type: "null"
+  additionalProperties: false
+CampaignEstimate:
+  type: object
+  description: "The estimated cost by channel: the sendable and deferred deliveries at the unit price of the channel's first active provider account, in micros of its currency; an unpriced channel has no provider, currency or cost (CH-18)."
+  required:
+    - channels
+  properties:
+    channels:
+      type: array
+      items:
+        type: object
+        required:
+          - channel
+          - count
+          - provider
+          - currency
+          - cost_micros
+        properties:
+          channel:
+            "$ref": "#/Channel"
+          count:
+            type: integer
+            minimum: 0
+          provider:
+            oneOf:
+              - type: string
+              - type: "null"
+          currency:
+            oneOf:
+              - type: string
+              - type: "null"
+          unit:
+            type: string
+          unit_price_micros:
+            type: integer
+            minimum: 0
+          cost_micros:
+            oneOf:
+              - type: integer
+                minimum: 0
+              - type: "null"
+        additionalProperties: false
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "The estimate prices each channel at its first active provider account without the destination country or the volume tier."
+CampaignList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Campaign"
+CampaignCreate:
+  type: object
+  description: "A campaign: its name, published workflow, event data, required deadline at most P31D ahead, declared expected_count, and its audience: recipients or a topic, never both, or neither to add the recipients in parts later."
+  required:
+    - name
+    - workflow
+    - expected_count
+    - deadline
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    workflow:
+      "$ref": "#/WorkflowKey"
+    data:
+      type: object
+    expected_count:
+      type: integer
+      minimum: 1
+      maximum: 10000000
+    deadline:
+      "$ref": "#/Timestamp"
+    recipients:
+      type: array
+      maxItems: 5000
+      items:
+        "$ref": "#/ExternalId"
+    topic:
+      type: string
+      minLength: 1
+      maxLength: 256
+  additionalProperties: false
+CampaignRecipientsAdd:
+  type: object
+  description: "A part of a draft list audience: at most 5000 subscriber identifiers."
+  required:
+    - recipients
+  properties:
+    recipients:
+      type: array
+      minItems: 1
+      maxItems: 5000
+      items:
+        "$ref": "#/ExternalId"
+  additionalProperties: false
+CampaignRecipients:
+  type: object
+  required:
+    - object
+    - campaign_id
+    - added
+    - duplicates
+    - not_found
+    - audience_count
+  properties:
+    object:
+      type: string
+      const: campaign_recipients
+    campaign_id:
+      "$ref": "#/Id_cmp"
+    added:
+      type: integer
+      minimum: 0
+    duplicates:
+      type: integer
+      minimum: 0
+    not_found:
+      type: integer
+      minimum: 0
+    audience_count:
+      type: integer
+      minimum: 0
+  additionalProperties: false
+CampaignSamples:
+  type: object
+  description: "The workflow previews of a campaign's five deterministic sample recipients (WF-62); samples_digest names the set an approval approves."
+  required:
+    - object
+    - campaign_id
+    - samples_digest
+    - samples
+  properties:
+    object:
+      type: string
+      const: campaign_samples
+    campaign_id:
+      "$ref": "#/Id_cmp"
+    samples_digest:
+      type: string
+      pattern: "^[0-9a-f]{64}$"
+    samples:
+      type: array
+      maxItems: 5
+      items:
+        type: object
+        required:
+          - recipient
+          - error
+          - steps
+        properties:
+          recipient:
+            oneOf:
+              - "$ref": "#/ExternalId"
+              - type: "null"
+          error:
+            oneOf:
+              - type: string
+              - type: "null"
+          steps:
+            type: array
+            items:
+              "$ref": "#/WorkflowPreviewStep"
+        additionalProperties: false
+  additionalProperties: false
+CampaignSamplesApproval:
+  type: object
+  required:
+    - samples_digest
+  properties:
+    samples_digest:
+      type: string
+      pattern: "^[0-9a-f]{64}$"
+  additionalProperties: false
+CampaignReason:
+  type: object
+  required:
+    - reason
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 500
+  additionalProperties: false

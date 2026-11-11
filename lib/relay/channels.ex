@@ -490,6 +490,15 @@ defmodule Relay.Channels do
   def provider_account(scope, id),
     do: Store.in_scope(scope, fn _status -> Store.account(id) end)
 
+  # X-14
+  # CH-18
+  @doc "The providers of a channel's active accounts, by role and priority, read in their own scoped transaction."
+  @spec active_providers(Relay.Scope.t(), String.t()) :: result([String.t()])
+  def active_providers(scope, channel),
+    do: Store.in_scope(scope, fn _status -> providers(Store.accounts(channel)) end)
+
+  defp providers(accounts), do: Enum.map(accounts, & &1["provider"])
+
   # CH-14
   # INV-43
   @doc "Marks a provider account whose verification is asked for as `pending`, inside the caller's scoped transaction; a verified account stays verified until its check says otherwise. Answers the account's state before the check."

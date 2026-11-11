@@ -1702,6 +1702,62 @@ codes:
     description: "No raw data export with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404."
     type: "{base_url}/v1/errors/export_not_found"
     choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: campaign_not_found
+    family: resource
+    status: 404
+    title: Campaign not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No campaign with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/campaign_not_found"
+    choice_note: "Campaign codes are chosen by the contract (API-35, WF-62)."
+  - code: campaign_topic_unavailable
+    family: workflow
+    status: 422
+    title: Topic audiences are not available
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The campaign's audience is a topic and topic expansion is not available yet; send a recipient list."
+    type: "{base_url}/v1/errors/campaign_topic_unavailable"
+    choice_note: "Campaign codes are chosen by the contract (API-35, WF-62)."
+  - code: campaign_samples_changed
+    family: workflow
+    status: 409
+    title: The campaign samples changed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The sample renders of the campaign differ from the set that was read or approved, for example after a template was published. Read the samples again and approve them."
+    type: "{base_url}/v1/errors/campaign_samples_changed"
+    choice_note: "Campaign codes are chosen by the contract (API-35, WF-62)."
+  - code: campaign_approval_required
+    family: workflow
+    status: 409
+    title: The campaign needs an approval
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The trigger needs the approval of the sample renders and, for an audience above 1.5 times its expected_count, a tenant administrator's approval (WF-62)."
+    type: "{base_url}/v1/errors/campaign_approval_required"
+    choice_note: "Campaign codes are chosen by the contract (API-35, WF-62)."
   - code: provider_account_archived
     family: channel
     status: 409

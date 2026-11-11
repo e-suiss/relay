@@ -260,6 +260,31 @@ defmodule RelayWeb.Router do
 
     get "/reports/costs", ReportController, :costs, private: %{relay_operation: "getCostReport"}
 
+    get "/campaigns", CampaignController, :index, private: %{relay_operation: "listCampaigns"}
+
+    post "/campaigns", CampaignController, :create, private: %{relay_operation: "createCampaign"}
+
+    get "/campaigns/:campaign_id", CampaignController, :show,
+      private: %{relay_operation: "getCampaign"}
+
+    post "/campaigns/:campaign_id/recipients", CampaignController, :recipients,
+      private: %{relay_operation: "addCampaignRecipients"}
+
+    post "/campaigns/:campaign_id/prepare", CampaignController, :prepare,
+      private: %{relay_operation: "prepareCampaign"}
+
+    get "/campaigns/:campaign_id/samples", CampaignController, :samples,
+      private: %{relay_operation: "getCampaignSamples"}
+
+    post "/campaigns/:campaign_id/approve_samples", CampaignController, :approve_samples,
+      private: %{relay_operation: "approveCampaignSamples"}
+
+    post "/campaigns/:campaign_id/trigger", CampaignController, :trigger,
+      private: %{relay_operation: "triggerCampaign"}
+
+    post "/campaigns/:campaign_id/cancel", CampaignController, :cancel,
+      private: %{relay_operation: "cancelCampaign"}
+
     get "/exports", ExportController, :index, private: %{relay_operation: "listExports"}
 
     post "/exports", ExportController, :create, private: %{relay_operation: "createExport"}
@@ -683,6 +708,12 @@ defmodule RelayWeb.Router do
 
     post "/email_reputation/:domain/close", ReputationController, :close,
       private: %{relay_operation: "closeEmailReputationCircuit"}
+
+    post "/campaigns/:campaign_id/approve_audience", CampaignController, :approve_audience,
+      private: %{relay_operation: "approveCampaignAudience"}
+
+    post "/campaigns/:campaign_id/resume", CampaignController, :resume,
+      private: %{relay_operation: "resumeCampaign"}
 
     get "/audit_log", SupportController, :audit_log,
       private: %{relay_operation: "listAuditRecords"}

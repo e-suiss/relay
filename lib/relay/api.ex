@@ -68,6 +68,7 @@ defmodule Relay.Api do
       ChannelOperations,
       TestSends,
       ProviderInvoices,
-      Reports
+      Reports,
+      Exports
     ]
 end

@@ -26,7 +26,7 @@ defmodule Relay.Delivery.Reports.Store do
 
   # DS-35
   # OP-39
-  @doc "Recomputes the rollups of `days` for every tenant scope and returns the number of scopes."
+  @doc "Recomputes the rollups of `days` for every tenant scope, clears the content of its expired exports, and returns the number of scopes."
   @spec recompute_all([Date.t()]) :: non_neg_integer()
   def recompute_all(days), do: recompute_page(days, nil, 0)
 
@@ -41,7 +41,11 @@ defmodule Relay.Delivery.Reports.Store do
   end
 
   defp recompute_scope(days, {tenant_id, environment}, count) do
-    work = fn _status -> Enum.each(days, &recompute/1) end
+    work = fn _status ->
+      Enum.each(days, &recompute/1)
+      _expired = Relay.Delivery.Exports.Store.expire()
+      :ok
+    end
 
     with {:ok, scope} <- Relay.Scope.new(tenant_id, environment),
          {:ok, :ok} <- Repo.in_scope(scope, work) do

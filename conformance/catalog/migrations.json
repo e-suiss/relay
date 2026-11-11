@@ -144,5 +144,7 @@
   {"file": "20261208000300_create_usage_billing_functions.exs", "sha256": "cfb49b12997408e57df7d5a81be74428ab210bb31de4a98aa2104183b68d96d4"},
   {"file": "20261208000400_validate_usage_billable_checks.exs", "sha256": "9571b3a9b23a8e913eb610ee5ee5a02fa024c406692e4a7f95d8fc513b06fec8"},
   {"file": "20261208100000_create_report_rollups.exs", "sha256": "ee389c33998c4fa654ceea6e6233ac75d1942173997c4a099ec01117b575642f"},
-  {"file": "20261208100100_create_report_rollup_functions.exs", "sha256": "d7972c888e2db89088e96bd32d9047b9e5df6fed0b9c7f7d1bf4688ef977c9c5"}
+  {"file": "20261208100100_create_report_rollup_functions.exs", "sha256": "d7972c888e2db89088e96bd32d9047b9e5df6fed0b9c7f7d1bf4688ef977c9c5"},
+  {"file": "20261208200000_create_exports.exs", "sha256": "409bd029908d96e18a57470443dc953fb9ce03ae4fc9589b6067bbd9f5d51f2c"},
+  {"file": "20261208200100_create_export_functions.exs", "sha256": "4f0a516aabf0dd2cd069b0c6b84fba737aa1b0059cce167950dfaf1f460b2b7f"}
 ]

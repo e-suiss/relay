@@ -43,6 +43,15 @@ defmodule RelayWeb.Router do
     }
   end
 
+  pipeline :downloads do
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" => "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+      "cache-control" => "no-store",
+      "referrer-policy" => "no-referrer",
+      "x-robots-tag" => "noindex"
+    }
+  end
+
   scope "/", RelayWeb do
     pipe_through :api
 
@@ -58,6 +67,13 @@ defmodule RelayWeb.Router do
 
     get "/:token", LinkController, :show
     post "/:token", LinkController, :create
+  end
+
+  # DS-37
+  scope "/exports", RelayWeb do
+    pipe_through :downloads
+
+    get "/:token", ExportDownloadController, :show
   end
 
   # CH-62
@@ -214,6 +230,12 @@ defmodule RelayWeb.Router do
     get "/reports/skips", ReportController, :skips, private: %{relay_operation: "getSkipReport"}
 
     get "/reports/costs", ReportController, :costs, private: %{relay_operation: "getCostReport"}
+
+    get "/exports", ExportController, :index, private: %{relay_operation: "listExports"}
+
+    post "/exports", ExportController, :create, private: %{relay_operation: "createExport"}
+
+    get "/exports/:export_id", ExportController, :show, private: %{relay_operation: "getExport"}
 
     get "/sender_identities", ChannelController, :senders,
       private: %{relay_operation: "listSenderIdentities"}

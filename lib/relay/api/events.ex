@@ -671,8 +671,13 @@ defmodule Relay.Api.Events do
         {:ok, [], []}
 
       step ->
-        step =
-          Map.merge(step, %{step_ref: key <> pointer, template: leaf["template"] || step.template})
+        step = %{
+          key: step.key,
+          channel: step.channel,
+          template: leaf["template"] || step.template,
+          skip: step.skip,
+          step_ref: key <> pointer
+        }
 
         case open_delivery(p, notification_id, row, mismatch?, step) do
           {:ok, decisions, nil} -> {:ok, [], decisions}

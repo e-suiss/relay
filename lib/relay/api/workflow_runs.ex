@@ -134,7 +134,7 @@ defmodule Relay.Api.WorkflowRuns do
   # WF-10
   # WF-59
   @doc "Reads the recipients' attributes a definition declares, outside any transaction: the attributes the request writes, else the subscriber's stored attributes, decrypted under its profile key. A definition that declares none reads nothing."
-  @spec attributes(Relay.Scope.t(), map(), [map()]) :: {:ok, [map()]} | {:error, Relay.Error.t()}
+  @spec attributes(Relay.Scope.t(), map(), [map()]) :: {:ok, [map()]}
   def attributes(scope, definition, recipients) do
     if (definition["recipient_attributes"] || %{}) == %{},
       do: {:ok, recipients},

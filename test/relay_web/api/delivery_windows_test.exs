@@ -62,7 +62,8 @@ defmodule RelayWeb.Api.DeliveryWindowsTest do
       twice = F.body(put(ctx.token, repeated), 422)
       assert [%{"pointer" => "/windows/1/provider", "code" => "conflict"}] = twice["errors"]
 
-      inverted = F.body(put(ctx.token, [sms(12 * @hour, 36 * @hour)]), 422)
+      email = %{sms(48 * @hour, 36 * @hour) | "channel" => "email"}
+      inverted = F.body(put(ctx.token, [email]), 422)
       assert [%{"pointer" => "/windows/0/long_ms", "code" => "conflict"}] = inverted["errors"]
 
       view = F.body(F.request(:get, "/v1/delivery_windows", ctx.token), 200)

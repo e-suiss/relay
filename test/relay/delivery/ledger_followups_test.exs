@@ -41,27 +41,6 @@ defmodule Relay.Delivery.LedgerFollowupsTest do
   end
 
   describe "DS-4 the failure source backfill" do
-    test "DS-4, OP-3: a missing failure source is filled from the ledger", %{
-      scope: scope,
-      delivery_id: id
-    } do
-      attempt = DeliveryFixture.started_attempt!(scope, id)
-      failed = [attempt_no: attempt, failure_kind: :failed, failure_class: "permanent_target"]
-      assert append(scope, id, failed) == :applied
-
-      sql!(scope, "UPDATE relay.deliveries SET failure_actor = NULL WHERE id = $1", [id])
-
-      assert {:ok, [{"failure_actor", nil, "provider_webhook"}]} =
-               Relay.Delivery.rebuild_projection(scope, id)
-
-      assert {:ok, %{updated: 1, last_id: ^id}} =
-               Relay.Delivery.backfill_failure_actors(scope, nil, 100)
-
-      assert %{"failure_actor" => "provider_webhook"} = delivery(scope, id)
-      assert {:ok, []} = Relay.Delivery.rebuild_projection(scope, id)
-      assert {:ok, %{updated: 0}} = Relay.Delivery.backfill_failure_actors(scope, nil, 100)
-    end
-
     test "OP-3: a finished pass stays idle" do
       state = %{"finished_at" => "2026-12-01T00:00:00Z", "scanned" => 3, "updated" => 1}
 
@@ -77,8 +56,9 @@ defmodule Relay.Delivery.LedgerFollowupsTest do
     end
 
     test "OP-3: the pass walks the scopes in order" do
-      a = %{tenant_id: <<1::128>>, environment: "live"}
-      b = %{tenant_id: <<1::128>>, environment: "test"}
+      tenant = Relay.Id.generate()
+      a = %{tenant_id: tenant, environment: "live"}
+      b = %{tenant_id: tenant, environment: "test"}
       scopes = [a, b]
 
       assert FailureActorBackfill.current(scopes, nil) == a

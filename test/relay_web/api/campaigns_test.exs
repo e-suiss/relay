@@ -131,6 +131,7 @@ defmodule RelayWeb.Api.CampaignsTest do
       campaign = created!(ctx.token, %{"recipients" => [a, "nobody-" <> a]})
 
       assert campaign["state"] == "draft"
+
       assert campaign["audience"] == %{
                "kind" => "list",
                "topic" => nil,
@@ -179,6 +180,7 @@ defmodule RelayWeb.Api.CampaignsTest do
       assert Enum.all?(samples["samples"], &(&1["steps"] != []))
 
       wrong = %{"samples_digest" => String.duplicate("a", 64)}
+
       assert code(post(ctx.token, campaign, "approve_samples", wrong), 409) ==
                "campaign_samples_changed"
 

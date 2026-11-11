@@ -162,9 +162,9 @@
   {"file": "20261208100200_index_deliveries_by_creation.exs", "sha256": "b0da04a911bb730e891134872f79c8289fecb6996b874d6fa53e3a1686a727b8"},
   {"file": "20261208200000_create_exports.exs", "sha256": "409bd029908d96e18a57470443dc953fb9ce03ae4fc9589b6067bbd9f5d51f2c"},
   {"file": "20261208200100_create_export_functions.exs", "sha256": "4f0a516aabf0dd2cd069b0c6b84fba737aa1b0059cce167950dfaf1f460b2b7f"},
-  {"file": "20261209000100_create_observability_rollup_function.exs", "sha256": "50f2375d36190c5583f1c80d4518fc7c152fb9ba14e16b0571e56e74684176b4"},,,
+  {"file": "20261209000100_create_observability_rollup_function.exs", "sha256": "50f2375d36190c5583f1c80d4518fc7c152fb9ba14e16b0571e56e74684176b4"},,,,
   {"file": "20261214100000_create_campaigns.exs", "sha256": "dfae3bc6e1868481489667c007c0e5694299f1f70c39aea4694bf2a162b0202a"},
   {"file": "20261214100100_create_campaign_functions.exs", "sha256": "b104309536df56967e8c02692add6cd00651b4bae483f0ef7824a652f87ad429"},
   {"file": "20261214100200_extend_kill_switch_campaign_scope.exs", "sha256": "70f897c8f453785c78a6f7beca0680c9343d8e4b10830784d9fa6eae4a275835"},
-  {"file": "20261214100300_rebuild_reference_check_for_campaigns.exs", "sha256": "222b5da7830ae031ed10a6bdc620bdb1ca7ed462c02ca8d0651efed775f2ad91"}
+  {"file": "20261214100300_rebuild_reference_check_for_campaigns.exs", "sha256": "c794ba2cc09eb2aa29a19d12fad9ec0377afbff718561aafeca26dcd5fb67f19"}
 ]

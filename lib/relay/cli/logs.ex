@@ -1,6 +1,6 @@
 defmodule Relay.CLI.Logs do
   @moduledoc """
-  `relay logs`: the activity and delivery log of the environment. It shows the newest page of notifications (`GET /v1/notifications`, operation `listNotifications`) with their delivery counts, filtered by `--workflow`, `--subscriber` and `--status`; `--deliveries` adds each notification's deliveries (`listNotificationDeliveries`). `--follow` then keeps printing notifications created after the command started, polling every `--interval` seconds.
+  `relay logs`: the activity and delivery log of the environment. It shows the newest page of notifications (`GET /v1/notifications`, operation `listNotifications`) with their delivery counts, filtered by `--workflow`, `--subscriber`, `--status` and the creation window `--since`/`--until` (RFC 3339 times); `--deliveries` adds each notification's deliveries (`listNotificationDeliveries`) with their reason, rule and failure code. `--follow` then keeps printing notifications created after the command started, polling every `--interval` seconds. `--why` with `--subscriber` answers "why did they not get it" (`listSubscriberDecisions`): each notification's channels with their result and every rule that stopped or deferred them, with the rule dictionary's sentence.
   """
 
   @behaviour Relay.CLI.Command
@@ -16,9 +16,13 @@ defmodule Relay.CLI.Logs do
   # X-33
   @impl Relay.CLI.Command
   def run(ctx, %Args{opts: opts}) do
+    if opts[:why], do: why(ctx, opts), else: log(ctx, opts)
+  end
+
+  defp log(ctx, opts) do
     since = ctx.now.()
     filters = filters(opts)
-    params = [limit: Keyword.get(opts, :limit, 20)] ++ filters
+    params = [limit: Keyword.get(opts, :limit, 20)] ++ filters ++ window(opts)
 
     with {:ok, interval_ms} <- interval_ms(opts),
          {:ok, page} <- page(ctx, params),
@@ -31,6 +35,63 @@ defmodule Relay.CLI.Logs do
       end
     end
   end
+
+  # DS-28
+  # X-12
+  defp why(ctx, opts) do
+    case opts[:subscriber] do
+      subscriber when is_binary(subscriber) ->
+        path = "/v1/subscribers/" <> Client.segment(subscriber) <> "/decisions"
+        params = [limit: Keyword.get(opts, :limit, 20)] ++ window(opts)
+
+        case Client.call(ctx, ctx.config.environment, :get, path, params: params) do
+          {:ok, %{body: %{"data" => page}}} when is_list(page) ->
+            {:ok, %{"decisions" => page}, Enum.flat_map(page, &decision_lines/1)}
+
+          {:ok, _response} ->
+            {:error, Client.unexpected_body()}
+
+          {:error, _failure} = error ->
+            error
+        end
+
+      _none ->
+        {:error, Failure.new(:usage, "usage_error", "--why needs --subscriber")}
+    end
+  end
+
+  defp window(opts) do
+    for {option, param} <- [since: :created_after, until: :created_before],
+        is_binary(opts[option]),
+        do: {param, opts[option]}
+  end
+
+  @doc "Readable lines of a decision chain: the notification, each channel's result and its decisions."
+  @spec decision_lines(map()) :: [String.t()]
+  def decision_lines(%{} = chain) do
+    workflow = get_in(chain, ["workflow", "key"])
+    head = "#{chain["created_at"]} #{chain["notification_id"]} #{workflow} #{chain["state"]}"
+
+    [head | Enum.flat_map(Map.get(chain, "deliveries", []), &channel_lines/1)]
+  end
+
+  defp channel_lines(%{} = d) do
+    line = "    #{d["channel"]} #{d["status"]} gates=#{d["gates"]}#{rule(d)}"
+    [line | Enum.map(Map.get(d, "decisions", []), &step_line/1)]
+  end
+
+  defp channel_lines(other), do: ["    #{inspect(other)}"]
+
+  defp step_line(step) do
+    sentence = get_in(step, ["description", "en"]) || "unknown rule"
+    "      #{step["occurred_at"]} #{step["rule_id"]} #{step["outcome"]}: #{sentence}"
+  end
+
+  defp rule(%{"rule_id" => rule_id, "reason" => reason}) when is_binary(rule_id),
+    do: " (#{reason} #{rule_id})"
+
+  defp rule(%{"reason" => reason}) when is_binary(reason), do: " (#{reason})"
+  defp rule(_delivery), do: ""
 
   # X-33
   @doc "The list filters of `logs` and `listen`: `--workflow`, `--subscriber` and `--status`."
@@ -119,8 +180,10 @@ defmodule Relay.CLI.Logs do
   defp counts(_counts), do: ""
 
   defp delivery_line(%{} = delivery) do
-    reason = if delivery["reason"], do: " (#{delivery["reason"]})", else: ""
-    "    #{delivery["id"]} #{delivery["channel"]} #{delivery["status"]}#{reason}"
+    code = get_in(delivery, ["failure", "code"])
+    failure = if code, do: " failure=#{code}", else: ""
+    status = "#{delivery["channel"]} #{delivery["status"]}"
+    "    #{delivery["id"]} #{status}#{rule(delivery)}#{failure}"
   end
 
   defp delivery_line(other), do: "    #{inspect(other)}"

@@ -529,6 +529,8 @@ defmodule Relay.Api.Events do
       retention_none: r.retention_none,
       send_mode: r.send_mode,
       interruption: r.interruption,
+      correlation_id: r.correlation_id,
+      item: r.item,
       is_test: Map.get(p, :is_test, false),
       recipient_count: length(p.recipients),
       traceparent: p.traceparent

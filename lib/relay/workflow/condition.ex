@@ -7,6 +7,9 @@ defmodule Relay.Workflow.Condition do
   There is no type conversion: values compare only with values of the same kind (number, string, boolean, timestamp, `null`), and a type mismatch or a missing path gives `null` or `false`, never an error. Timestamps come from `event.time`, `run.started_at`, a recipient attribute declared `timestamp` and `time_add`, which also reads an RFC 3339 string as a timestamp; ordering compares numbers, strings (by bytes) and timestamps. A condition has at most 64 nodes (every operator and operand), nests at most 8 deep and its canonical JSON is at most 4 KiB.
   """
 
+  alias Relay.Workflow.Definition
+  alias Relay.Workflow.Duration
+
   @limits Relay.Limits.fetch!(["workflow"])
   @max_nodes @limits["condition_max_nodes"]
   @max_depth @limits["condition_max_depth"]
@@ -52,7 +55,7 @@ defmodule Relay.Workflow.Condition do
     scope = %{scope | steps: MapSet.new(scope.steps)}
 
     cond do
-      byte_size(IO.iodata_to_binary(Relay.Workflow.Definition.canonical_json(condition))) >
+      byte_size(IO.iodata_to_binary(Definition.canonical_json(condition))) >
           @max_bytes ->
         [error("", "too_long", "a condition is at most #{@max_bytes} bytes of canonical JSON")]
 
@@ -109,7 +112,7 @@ defmodule Relay.Workflow.Condition do
     pointer = pointer <> "/time_add"
 
     errors =
-      case Relay.Workflow.Duration.seconds(duration) do
+      case Duration.seconds(duration) do
         {:ok, _seconds} ->
           []
 
@@ -322,7 +325,7 @@ defmodule Relay.Workflow.Condition do
 
   defp value(%{"time_add" => [time, duration]}, ctx) do
     with {:time, at} <- timestamp(value(time, ctx)),
-         {:ok, seconds} <- Relay.Workflow.Duration.seconds(duration) do
+         {:ok, seconds} <- Duration.seconds(duration) do
       {:time, DateTime.add(at, seconds, :second)}
     else
       _missing -> nil

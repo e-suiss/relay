@@ -12,11 +12,14 @@ defmodule Relay.Workflow.Definition do
   * a definition that declares the security subtype it serves: `otp_oob` sends no e-mail, neither as a channel nor in an inline route (WF-18), and has no delay, digest or time window (WF-40); `email_verification` sends only e-mail (WF-18). Named routes are checked by `named_route_errors/2` once routes are stored.
   """
 
+  alias Relay.Workflow.Condition
+  alias Relay.Workflow.Duration
+  alias Relay.Workflow.Route
+
   @dialect "https://json-schema.org/draft/2020-12/schema"
   @contract Path.expand("../../../contracts/workflow/definition.schema.json", __DIR__)
   @external_resource @contract
   @contract_schema @contract |> File.read!() |> Jason.decode!()
-  @root_key {__MODULE__, :root}
 
   @limits Relay.Limits.fetch!(["workflow"])
   @max_steps @limits["max_steps"]
@@ -30,7 +33,6 @@ defmodule Relay.Workflow.Definition do
   @dedup_min Relay.Limits.seconds!(["workflow", "content_dedup_window_min"])
   @dedup_max Relay.Limits.seconds!(["workflow", "content_dedup_window_max"])
   @undigested ~w(security transactional action_required)
-  @otp_channels ~w(sms whatsapp voice)
   @structural ~w(type key)
 
   @type t :: %{String.t() => term()}
@@ -104,7 +106,9 @@ defmodule Relay.Workflow.Definition do
   @doc "Validates a definition against the contract schema; field errors under `/definition`."
   @spec contract_errors(term()) :: [field_error()]
   def contract_errors(definition) do
-    case JSV.validate(definition, root(), cast: false) do
+    case JSV.validate(definition, JSV.build!(@contract_schema, default_meta: @dialect),
+           cast: false
+         ) do
       {:ok, _value} ->
         []
 
@@ -115,18 +119,6 @@ defmodule Relay.Workflow.Definition do
         |> Enum.flat_map(&unit/1)
         |> Enum.uniq_by(&{&1.pointer, &1.code})
         |> Enum.sort_by(& &1.pointer)
-    end
-  end
-
-  defp root do
-    case :persistent_term.get(@root_key, nil) do
-      nil ->
-        root = JSV.build!(@contract_schema, default_meta: @dialect)
-        :persistent_term.put(@root_key, root)
-        root
-
-      root ->
-        root
     end
   end
 
@@ -286,7 +278,7 @@ defmodule Relay.Workflow.Definition do
     |> Enum.with_index()
     |> Enum.flat_map(fn {branch, index} ->
       at = entry.pointer <> "/branches/#{index}/when"
-      prefix(Relay.Workflow.Condition.validate(branch["when"], scope), at)
+      prefix(Condition.validate(branch["when"], scope), at)
     end)
   end
 
@@ -300,7 +292,7 @@ defmodule Relay.Workflow.Definition do
 
         condition ->
           scope = condition_scope(entry, definition, true)
-          prefix(Relay.Workflow.Condition.validate(condition, scope), entry.pointer <> "/match")
+          prefix(Condition.validate(condition, scope), entry.pointer <> "/match")
       end
 
     timeout ++ match
@@ -332,7 +324,7 @@ defmodule Relay.Workflow.Definition do
   defp max_errors(nil, _pointer, _max, _text), do: []
 
   defp max_errors(duration, pointer, max, text) do
-    case Relay.Workflow.Duration.seconds(duration) do
+    case Duration.seconds(duration) do
       {:ok, 0} -> [error(pointer, "too_short", "the duration is more than zero")]
       {:ok, seconds} when seconds > max -> [error(pointer, "too_long", "at most #{text}")]
       {:ok, _seconds} -> []
@@ -344,8 +336,8 @@ defmodule Relay.Workflow.Definition do
   # WF-15
   # WF-59
   defp route_errors(%{} = tree, pointer) do
-    depth = Relay.Workflow.Route.depth(tree)
-    leaves = Relay.Workflow.Route.leaves(tree)
+    depth = Route.depth(tree)
+    leaves = Route.leaves(tree)
 
     [
       {depth > @route_depth,
@@ -391,7 +383,7 @@ defmodule Relay.Workflow.Definition do
   end
 
   defp zero_errors(duration, pointer) do
-    case Relay.Workflow.Duration.seconds(duration) do
+    case Duration.seconds(duration) do
       {:ok, 0} -> [error(pointer, "too_short", "a time-based step is more than zero")]
       _other -> []
     end
@@ -428,7 +420,7 @@ defmodule Relay.Workflow.Definition do
   defp dedup_errors(%{"content_dedup" => %{"window" => window}}) do
     pointer = "/definition/content_dedup/window"
 
-    case Relay.Workflow.Duration.seconds(window) do
+    case Duration.seconds(window) do
       {:ok, seconds} when seconds < @dedup_min -> [error(pointer, "too_short", "at least PT1M")]
       {:ok, seconds} when seconds > @dedup_max -> [error(pointer, "too_long", "at most PT24H")]
       {:ok, _seconds} -> []
@@ -528,7 +520,7 @@ defmodule Relay.Workflow.Definition do
   defp subtype_step_errors(_entry, _subtype), do: []
 
   defp step_channels(%{"channel" => channel}), do: [channel]
-  defp step_channels(%{"route" => %{} = tree}), do: Relay.Workflow.Route.channels(tree)
+  defp step_channels(%{"route" => %{} = tree}), do: Route.channels(tree)
   defp step_channels(_step), do: []
 
   defp channel_subtype_errors(channels, "otp_oob", pointer) do
@@ -566,11 +558,11 @@ defmodule Relay.Workflow.Definition do
 
   # WF-8
   # WF-59
-  @doc "The channel steps of the whole step tree in order as `{key, channel, template}`; a step whose route is not a plain channel (`Relay.Workflow.Route.plan/1`) is left out."
+  @doc "The channel steps of the whole step tree in order as `{key, channel, template}`; a step whose route is not a plain channel (`Route.plan/1`) is left out."
   @spec steps(t()) :: [%{key: String.t(), channel: String.t(), template: String.t()}]
   def steps(definition) do
     for %{step: %{"type" => "channel"} = step} <- entries(definition),
-        {:channel, channel} <- [Relay.Workflow.Route.plan(step)],
+        {:channel, channel} <- [Route.plan(step)],
         do: %{key: step["key"], channel: channel, template: step["template"]}
   end
 

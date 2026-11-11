@@ -374,8 +374,10 @@ defmodule Relay.Workflow do
       RunStore.in_scope(scope, fn _status ->
         :locked = RunStore.lock(run["id"])
 
+        expected = run["version"]
+
         case RunStore.get(run["id"]) do
-          %{"state" => "waiting", "version" => version} when version == run["version"] ->
+          %{"state" => "waiting", "version" => ^expected} ->
             advance(scope, run, now, bind)
 
           _changed ->

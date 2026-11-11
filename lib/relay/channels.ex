@@ -12,6 +12,7 @@ defmodule Relay.Channels do
   alias Relay.Channels.Ambiguity
   alias Relay.Channels.Breaker
   alias Relay.Channels.Email.Bounce
+  alias Relay.Channels.Email.Esp
   alias Relay.Channels.Email.Event
   alias Relay.Channels.Email.Intake
   alias Relay.Channels.Inbound
@@ -26,6 +27,7 @@ defmodule Relay.Channels do
   alias Relay.Channels.Registry
   alias Relay.Channels.Request
   alias Relay.Channels.Routing
+  alias Relay.Channels.Ses
   alias Relay.Channels.SettingsCheck
   alias Relay.Channels.Simulated
   alias Relay.Channels.Sms
@@ -293,7 +295,7 @@ defmodule Relay.Channels do
   def email_events("postmark", body), do: Relay.Channels.Postmark.events(body)
   def email_events("sendgrid", body), do: Relay.Channels.Sendgrid.events(body)
   def email_events("mailgun", body), do: Relay.Channels.Mailgun.events(body)
-  def email_events("ses", body), do: Relay.Channels.Ses.events(body, nil)
+  def email_events("ses", body), do: Ses.events(body, nil)
   def email_events(_provider, _body), do: []
 
   # T-40
@@ -520,6 +522,28 @@ defmodule Relay.Channels do
       _unsupported -> :unsupported
     end
   end
+
+  # CH-47
+  @doc "Receives up to ten messages from the SQS event queue of an SES provider account (`settings.ses.queue_url`); see `Relay.Channels.Ses.receive_messages/3`."
+  @spec ses_receive(map(), Relay.Redacted.t() | nil, keyword()) ::
+          {:ok, [map()]} | {:error, :configuration_invalid | :unavailable}
+  def ses_receive(account, credentials, opts),
+    do: Ses.receive_messages(Esp.account_settings(account, "ses"), credentials, opts)
+
+  # CH-47
+  @doc "Deletes a processed message from the SQS event queue of an SES provider account."
+  @spec ses_delete(map(), Relay.Redacted.t() | nil, String.t()) ::
+          :ok | {:error, :configuration_invalid | :unavailable}
+  def ses_delete(account, credentials, receipt_handle),
+    do: Ses.delete_message(Esp.account_settings(account, "ses"), credentials, receipt_handle)
+
+  # CH-47
+  # T-40
+  @doc "Verifies the SNS envelope of an SQS message body against the account's `settings.ses.topic_arn` and reads its SES events; `fetch` reads an SNS signing certificate."
+  @spec ses_events(map(), binary(), (String.t() -> {:ok, binary()} | :error)) ::
+          {:ok, [Event.t()]} | {:error, atom()}
+  def ses_events(account, body, fetch \\ &Ses.fetch_certificate/1),
+    do: Ses.message_events(Esp.account_settings(account, "ses"), body, fetch)
 
   # DS-22
   # DS-48

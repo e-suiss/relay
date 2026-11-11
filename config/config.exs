@@ -59,7 +59,8 @@ config :relay, Oban,
        {"17 * * * *", Relay.Devices.Sweep},
        {"20 0 * * *", Relay.Delivery.UsageDay},
        {"41 * * * *", Relay.Channels.Live.SettingsSweep},
-       {"*/5 * * * *", Relay.Channels.Live.ReconcileSweep}
+       {"*/5 * * * *", Relay.Channels.Live.ReconcileSweep},
+       {"* * * * *", Relay.Channels.Live.SesQueue}
      ]}
   ]
 

@@ -131,16 +131,18 @@ defmodule Relay.Channels.Email.Tracking do
       [^part, prefix, mark, href] when n <= @max_links ->
         url = unescape(href)
 
-        if byte_size(url) <= @max_url do
-          with {:ok, token} <- token(scope, delivery_id, {:click, n, url}, mac),
-               do: {:ok, prefix <> mark <> base <> "/e/c/" <> token <> mark}
-        else
-          {:ok, nil}
-        end
+        if byte_size(url) <= @max_url,
+          do: wrapped({prefix, mark}, url, n, scope, delivery_id, {base, mac}),
+          else: {:ok, nil}
 
       _other ->
         {:ok, nil}
     end
+  end
+
+  defp wrapped({prefix, mark}, url, n, scope, delivery_id, {base, mac}) do
+    with {:ok, token} <- token(scope, delivery_id, {:click, n, url}, mac),
+         do: {:ok, prefix <> mark <> base <> "/e/c/" <> token <> mark}
   end
 
   defp pixel(html, false, _scope, _delivery_id, _base, _mac), do: {:ok, html}

@@ -512,7 +512,7 @@ defmodule Relay.Delivery do
 
   # DS-33
   # E-84
-  @doc "Appends an engagement entry inside the caller's scoped transaction and announces the notification's first engagement of `announce` (`\"seen\"`, or `\"clicked\"` with `link_rel`), or nothing for `nil`; see `Relay.Delivery.Store.engagement_record/3`."
+  @doc "Appends an engagement entry inside the caller's scoped transaction and announces the notification's first engagement of `announce` (`seen`, or `clicked` with `link_rel`), or nothing for `nil`; see `Relay.Delivery.Store.engagement_record/3`."
   @spec record_engagement_in_scope(Ledger.t(), String.t() | nil, String.t() | nil) ::
           Ledger.result()
   def record_engagement_in_scope(%Ledger{} = entry, announce, link_rel),

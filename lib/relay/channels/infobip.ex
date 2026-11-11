@@ -3,7 +3,7 @@ defmodule Relay.Channels.Infobip do
   The Infobip SMS adapter (CH-3, CH-48), a thin client of Infobip's SMS API v3 on Req, without Infobip's SDK; its declaration is `priv/channels/infobip/`. Infobip is not a BTK-authorized route here: a `+90` number is never sent through it (CH-51).
 
     * The provider account's `settings.base_url` is the account's own Infobip host (`<id>.api.infobip.com`), checked before every call; the credential is the API key (`Authorization: App <key>`).
-    * `POST /sms/3/messages`. The encoding is named on every send (CH-48): `GSM7_TR` is `language.languageCode: TR` with `singleShift`, `GSM7` and `UCS2` are `languageCode: NONE` with transliteration off, which Infobip sends in the encoding the text needs. The provider idempotency key is the destination's `messageId`, and the `callbackData` carries it again for the delivery reports; an uncertain send is looked up with `GET /sms/3/logs?messageId=` (`query/1`, T-28). The validity follows the channel time to live (CH-9), and `settings.webhook_url` receives the delivery reports.
+    * `POST /sms/3/messages`. The encoding is named on every send (CH-48): `GSM7_TR` is `language.languageCode: TR` with `singleShift`, `GSM7` and `UCS2` are `languageCode: NONE` with transliteration off, which Infobip sends in the encoding the text needs. The provider idempotency key is the destination's `messageId`, and the `callbackData` carries it again for the delivery reports; an uncertain send is looked up with `GET /sms/3/logs?messageId=` (`query/1`, T-28), where the reconciliation also reads its reports (`status/1`, DS-48). The validity follows the channel time to live (CH-9), and `settings.webhook_url` receives the delivery reports.
     * A rejected message answers with its status name `status:<NAME>`, an API error with `http:<status>`. A delivery report is `status:<NAME>` (`reports/3`, verified with the HMAC-SHA256 `X-Hub-Signature` of the raw body).
     * A host that is not an Infobip API host is refused with `config:base_url`, which has no mapping and so raises the alarm (CH-8).
   """
@@ -112,6 +112,19 @@ defmodule Relay.Channels.Infobip do
         %{"results" => []} -> :not_received
         _other -> :unavailable
       end
+    else
+      _unavailable -> :unavailable
+    end
+  end
+
+  # DS-22
+  # DS-48
+  @impl Relay.Channels.Adapter
+  def status(%Request{} = request) do
+    with {:ok, base} <- base(request),
+         {:ok, %Req.Response{status: 200, body: %{"results" => rows}}} when is_list(rows) <-
+           logs(base, request) do
+      if rows == [], do: :not_received, else: {:ok, Enum.map(rows, &report/1)}
     else
       _unavailable -> :unavailable
     end

@@ -4,7 +4,7 @@ defmodule Relay.Channels.Mailgun do
 
   The delivery identifier travels as the user variable `relay_delivery_id`, which every event carries. Mailgun has no idempotency key and no status query a send can be resolved by, so an uncertain call is not retried (CH-10). HTTP statuses are reported as `http_<status>`.
 
-  Events come from Mailgun's webhooks. Their signature is an HMAC-SHA256 of the timestamp and a token inside the JSON body, not of the body itself, so their authenticity is declared unverifiable (§12.1.2) and `verify/3` checks the signature, the timestamp and the token; `events/1` parses a webhook body into `Relay.Channels.Email.Event`s.
+  Events come from Mailgun's webhooks. Their signature is an HMAC-SHA256 of the timestamp and a token inside the JSON body, not of the body itself, so their authenticity is declared unverifiable (§12.1.2) and `verify/3` checks the signature, the timestamp and the token; `events/1` parses a webhook body into `Relay.Channels.Email.Event`s. The daily reconciliation reads the same events back from the Events API of each sending domain of the account (`GET /v3/<domain>/events`, delivered, failed and complained, followed through its pages; `report_events/1`, DS-48).
 
   The settings check lists the account's domains (`GET /v4/domains`): every sending domain of the account's streams must be `active`, or Mailgun holds or refuses its mail (CH-14, CH-52).
   """
@@ -18,6 +18,8 @@ defmodule Relay.Channels.Mailgun do
 
   @hosts %{"global" => "https://api.mailgun.net", "eu" => "https://api.eu.mailgun.net"}
   @tolerance_s 300
+  @page_size 300
+  @max_pages 100
 
   @impl Relay.Channels.Adapter
   def provider, do: "mailgun"
@@ -71,6 +73,68 @@ defmodule Relay.Channels.Mailgun do
       :error -> SettingsCheck.credentials(nil)
     end
   end
+
+  # DS-22
+  # DS-48
+  @impl Relay.Channels.Adapter
+  def report_events(%{account: account, credentials: credentials} = reconcile) do
+    with {:ok, map} <- Esp.credential_map(credentials),
+         {:ok, key} <- Esp.secret(map, "api_key") do
+      region = Map.get(Esp.account_settings(account, "mailgun"), "region", "global")
+      host = Map.get(@hosts, region, @hosts["global"])
+      auth = {:basic, "api:" <> key}
+
+      account
+      |> SettingsCheck.stream_domains()
+      |> Enum.reduce_while({:ok, []}, fn domain, {:ok, acc} ->
+        case pages(first_page(host, domain, reconcile), auth, reconcile.timeout_ms, [], 0) do
+          {:ok, events} -> {:cont, {:ok, acc ++ events}}
+          :unavailable -> {:halt, :unavailable}
+        end
+      end)
+    else
+      :error -> :unavailable
+    end
+  end
+
+  defp first_page(host, domain, reconcile) do
+    query = [
+      begin: DateTime.to_unix(reconcile.from),
+      end: DateTime.to_unix(reconcile.to),
+      ascending: "yes",
+      limit: @page_size,
+      event: "delivered OR failed OR complained"
+    ]
+
+    host <> "/v3/" <> URI.encode(domain) <> "/events?" <> URI.encode_query(query)
+  end
+
+  defp pages(_url, _auth, _timeout_ms, acc, page) when page >= @max_pages, do: {:ok, acc}
+
+  defp pages(url, auth, timeout_ms, acc, page) do
+    case Esp.http(timeout_ms, method: :get, url: url, auth: auth) do
+      {:ok, %Req.Response{status: 200} = response} ->
+        case Esp.json(response) do
+          %{"items" => [_ | _] = items} = body ->
+            events = Enum.flat_map(items, &events(%{"event-data" => &1}))
+            next(get_in(body, ["paging", "next"]), auth, timeout_ms, acc ++ events, page)
+
+          %{"items" => []} ->
+            {:ok, acc}
+
+          _other ->
+            :unavailable
+        end
+
+      _other ->
+        :unavailable
+    end
+  end
+
+  defp next(url, auth, timeout_ms, acc, page) when is_binary(url) and url != "",
+    do: pages(url, auth, timeout_ms, acc, page + 1)
+
+  defp next(_url, _auth, _timeout_ms, acc, _page), do: {:ok, acc}
 
   defp domains(%Req.Response{status: 200} = response, wanted) do
     case Esp.json(response) do

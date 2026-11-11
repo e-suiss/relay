@@ -521,6 +521,53 @@ defmodule Relay.Channels do
     end
   end
 
+  # DS-22
+  # DS-48
+  @doc "Asks the status endpoint of a request's provider about a sent message for reconciliation (`c:Relay.Channels.Adapter.status/1`); `:unsupported` when the provider has no registered adapter with a status query."
+  @spec reconcile_status(Request.t()) ::
+          {:ok, [Adapter.report()]} | :not_received | :unavailable | :unsupported
+  def reconcile_status(%Request{provider: provider} = request) do
+    case reconciler(provider, :status) do
+      {:ok, adapter} -> adapter.status(request)
+      :unsupported -> :unsupported
+    end
+  end
+
+  # DS-22
+  # DS-48
+  @doc "Reads the e-mail events of a provider account between `from` and `to` from its provider's event list API (`c:Relay.Channels.Adapter.report_events/1`) within `timeout_ms`; `:unsupported` when the provider has no registered adapter with one."
+  @spec reconcile_events(
+          map(),
+          Relay.Redacted.t() | nil,
+          DateTime.t(),
+          DateTime.t(),
+          pos_integer()
+        ) :: {:ok, [Event.t()]} | :unavailable | :unsupported
+  def reconcile_events(%{"provider" => provider} = account, credentials, from, to, timeout_ms) do
+    case reconciler(provider, :report_events) do
+      {:ok, adapter} ->
+        adapter.report_events(%{
+          account: account,
+          credentials: credentials,
+          from: from,
+          to: to,
+          timeout_ms: timeout_ms
+        })
+
+      :unsupported ->
+        :unsupported
+    end
+  end
+
+  defp reconciler(provider, callback) do
+    with {:ok, adapter} <- Registry.adapter(provider),
+         true <- Code.ensure_loaded?(adapter) and function_exported?(adapter, callback, 1) do
+      {:ok, adapter}
+    else
+      _unsupported -> :unsupported
+    end
+  end
+
   # CH-14
   # CH-52
   @doc "What a settings check outcome leads to; see `Relay.Channels.SettingsCheck.plan/3`."

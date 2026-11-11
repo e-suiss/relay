@@ -3,8 +3,8 @@ defmodule Relay.Channels.Live.Receipts do
   The durable receipt path of SMS and e-mail provider webhooks (WH-49, L-17, INV-12, DS-22): receipt first, a fast `2xx`, processing from the queue.
 
     1. `accept/4` verifies the request on its raw body with the account's verification secret (`Relay.Channels.provider_webhook/3`) and reads its items. Each item is one provider event: a delivery report that is not pending or an e-mail event that names a delivery.
-    2. Each item is a receipt `(tenant, environment, provider, provider_event_id)`, unique in the database (INV-12): the provider's own event identifier when it sends one (`email:<id>`), otherwise the SHA-256 of the item without its personal fields (`sha256:<hex>`). The item is sealed with the tenant's data key as the receipt body (retention class `delivery_record`). A repeated event is counted on its receipt and processed no further. The receipts and their processing jobs (`Relay.Channels.Live.ReceiptWorker`, at most 100 receipts each, identifiers only, T-15) are committed in one transaction before the provider is answered.
-    3. `process/2`, run by the delivery report batcher (`Relay.Channels.Live.ReportBatcher`, T-41), reads a batch of receipts of one scope, opens each sealed item and records the events of the whole batch in one transaction through the evidence table (`Relay.Channels.Live.Events.record_many/2`), with `actor = provider_webhook` and the receipt on each ledger entry, so a receipt becomes `processed` with its ledger entry. A report whose delivery is unknown or whose body cannot be read is `rejected`; an e-mail event without a classification is `processed` with no entry. The suppressions and telemetry of a recorded e-mail event follow the commit (`Relay.Channels.Live.EmailEvents`).
+    2. Each item is a receipt `(tenant, environment, provider, provider_event_id)`, unique in the database (INV-12): the provider's own event identifier when it sends one (`email:<id>`), otherwise the SHA-256 of the item without its personal fields and its actor (`sha256:<hex>`). The item is sealed with the tenant's data key as the receipt body (retention class `delivery_record`). A repeated event is counted on its receipt and processed no further. The receipts and their processing jobs (`Relay.Channels.Live.ReceiptWorker`, at most 100 receipts each, identifiers only, T-15) are committed in one transaction before the provider is answered.
+    3. `process/2`, run by the delivery report batcher (`Relay.Channels.Live.ReportBatcher`, T-41), reads a batch of receipts of one scope, opens each sealed item and records the events of the whole batch in one transaction through the evidence table (`Relay.Channels.Live.Events.record_many/2`), with the receipt's actor (`provider_webhook`, or `provider_api` for a reconciliation's items, `record/4`) and the receipt on each ledger entry, so a receipt becomes `processed` with its ledger entry. A report whose delivery is unknown or whose body cannot be read is `rejected`; an e-mail event without a classification is `processed` with no entry. The suppressions and telemetry of a recorded e-mail event follow the commit (`Relay.Channels.Live.EmailEvents`).
   """
 
   alias Relay.Channels.Live
@@ -23,7 +23,7 @@ defmodule Relay.Channels.Live.Receipts do
     "rejected" => :rejected,
     "engagement" => :engagement
   }
-  @personal ["recipient", "diagnostic"]
+  @unhashed ["recipient", "diagnostic", "actor"]
   @recorded [:applied, :stale_ignored, :conflict_flagged]
 
   @type accepted :: %{recorded: non_neg_integer(), duplicates: non_neg_integer()}
@@ -37,17 +37,26 @@ defmodule Relay.Channels.Live.Receipts do
           {:ok, accepted()} | {:error, Relay.Channels.webhook_reason() | :unavailable}
   def accept(%Scope{} = scope, %{"provider" => provider} = account, key, request) do
     with {:ok, items} <- Relay.Channels.provider_webhook(provider, key, request) do
-      commit(scope, account, request.body, items)
+      commit(scope, account, :crypto.hash(:sha256, request.body), items, :provider_webhook)
     end
   end
 
-  defp commit(_scope, _account, _body, []), do: {:ok, %{recorded: 0, duplicates: 0}}
+  # DS-22
+  # DS-48
+  # INV-12
+  @doc "Commits the items a reconciliation read from a provider's status or event list API (`actor = provider_api`) as receipts with their jobs, exactly as a webhook's items, so an event already received through the webhook is a repeat and is counted, not written again."
+  @spec record(Scope.t(), map(), [Relay.Channels.webhook_item()], :provider_api) ::
+          {:ok, accepted()} | {:error, :unavailable}
+  def record(%Scope{} = scope, %{"provider" => _provider} = account, items, :provider_api) do
+    digest = :crypto.hash(:sha256, :erlang.term_to_binary(Enum.map(items, &encode/1)))
+    commit(scope, account, digest, items, :provider_api)
+  end
 
-  defp commit(scope, account, body, items) do
-    digest = :crypto.hash(:sha256, body)
+  defp commit(_scope, _account, _digest, [], _actor), do: {:ok, %{recorded: 0, duplicates: 0}}
 
+  defp commit(scope, account, digest, items, actor) do
     with {:ok, key_id} <- Relay.Tenancy.active_tenant_key(scope, :data),
-         {:ok, sealed} <- seal(scope, key_id, items),
+         {:ok, sealed} <- seal(scope, key_id, items, actor),
          {:ok, counts} <- write(scope, account, digest, key_id, sealed) do
       {:ok, counts}
     else
@@ -55,12 +64,12 @@ defmodule Relay.Channels.Live.Receipts do
     end
   end
 
-  defp seal(scope, key_id, items) do
+  defp seal(scope, key_id, items, actor) do
     field = field(scope, key_id)
 
     items
     |> Enum.reduce_while({:ok, []}, fn item, {:ok, acc} ->
-      encoded = encode(item)
+      encoded = Map.put(encode(item), "actor", Atom.to_string(actor))
 
       case Relay.Tenancy.encrypt_field(field, Jason.encode!(encoded)) do
         {:ok, ct} -> {:cont, {:ok, [{event_id(item, encoded), ct} | acc]}}
@@ -164,7 +173,7 @@ defmodule Relay.Channels.Live.Receipts do
     do: String.slice("email:" <> id, 0, 512)
 
   defp event_id(_item, encoded) do
-    binary = encoded |> Map.drop(@personal) |> :erlang.term_to_binary([:deterministic])
+    binary = encoded |> Map.drop(@unhashed) |> :erlang.term_to_binary([:deterministic])
     "sha256:" <> Base.encode16(:crypto.hash(:sha256, binary), case: :lower)
   end
 
@@ -213,7 +222,7 @@ defmodule Relay.Channels.Live.Receipts do
   end
 
   defp item(declarations, _table, row, {:ok, %{"kind" => "report"} = item}) do
-    case Live.report_event(declarations, row["provider"], report(item), :provider_webhook) do
+    case Live.report_event(declarations, row["provider"], report(item), actor(item)) do
       {:ok, event} -> {:event, Map.put(event, :receipt_id, row["id"]), nil}
       {:error, reason} -> {:mark, row["id"], :rejected, Atom.to_string(reason)}
     end
@@ -222,7 +231,8 @@ defmodule Relay.Channels.Live.Receipts do
   defp item(declarations, table, row, {:ok, %{"kind" => "email"} = item}) do
     with {:ok, event} <- email(row["provider"], item),
          {:ok, fields, actions} <- EmailEvents.prepare(declarations, table, event) do
-      {:event, Map.put(fields, :receipt_id, row["id"]), {event, actions}}
+      fields = Map.merge(fields, %{receipt_id: row["id"], actor: actor(item)})
+      {:event, fields, {event, actions}}
     else
       {:skipped, :no_classification} -> {:mark, row["id"], :processed, nil}
       {:skipped, reason} -> {:mark, row["id"], :rejected, Atom.to_string(reason)}
@@ -232,6 +242,9 @@ defmodule Relay.Channels.Live.Receipts do
 
   defp item(_declarations, _table, row, _unreadable),
     do: {:mark, row["id"], :rejected, "unreadable"}
+
+  defp actor(%{"actor" => "provider_api"}), do: :provider_api
+  defp actor(_item), do: :provider_webhook
 
   defp report(item) do
     result =

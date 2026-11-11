@@ -2,7 +2,7 @@ defmodule Relay.Channels.Verimor do
   @moduledoc """
   The Verimor SMS and voice adapter (CH-3, CH-48, CH-51, CH-56), a thin client of Verimor's SMS API v2 and of its Bulutsantralim automatic call campaigns on Req; its declaration is `priv/channels/verimor/`. Verimor is a Turkish operator and a BTK-authorized route for `+90` numbers.
 
-    * SMS: `POST /v2/send.json` with the account's `settings.username` and the credential (the API password). The encoding is named on every send (CH-48): `datacoding` `0` for `GSM7`, `1` for `GSM7_TR` and `2` for `UCS2`. The provider idempotency key is the message's custom id (`messages[].id`) and the campaign's `custom_id`, so an uncertain send is looked up with `GET /v2/status?custom_id=` (`query/1`, T-28). Verimor answers in plain text, so its bodies are read as they come, never decoded by content type. The validity (`valid_for`) follows the channel time to live, between one minute and 48 hours (CH-9). A commercial (`marketing`) message is flagged `is_commercial` with the İYS recipient type `BIREYSEL`.
+    * SMS: `POST /v2/send.json` with the account's `settings.username` and the credential (the API password). The encoding is named on every send (CH-48): `datacoding` `0` for `GSM7`, `1` for `GSM7_TR` and `2` for `UCS2`. The provider idempotency key is the message's custom id (`messages[].id`) and the campaign's `custom_id`, so an uncertain send is looked up with `GET /v2/status?custom_id=` (`query/1`, T-28), and the reconciliation reads its reports there too (`status/1`, DS-48). Verimor answers in plain text, so its bodies are read as they come, never decoded by content type. The validity (`valid_for`) follows the channel time to live, between one minute and 48 hours (CH-9). A commercial (`marketing`) message is flagged `is_commercial` with the İYS recipient type `BIREYSEL`.
     * Voice (`otp_oob`, CH-56): one call campaign per delivery, `POST /ivr_campaigns.json` with the credential as the API key, the sender identity's number as the caller id (`cli`) and the text read in the content's language (`tr-TR` by default). The billing unit is the answered call.
     * A failure answers with its error name or status: `send:<NAME>`, `voice:<status>` or `http:<status>`. A delivery report is `dlr:<STATUS>` and a call report `call:<status>`.
     * Neither webhook is signed: the callback URL carries a secret token checked in constant time, a compensating control whose authenticity is declared unverifiable (`reports/3`).
@@ -166,7 +166,30 @@ defmodule Relay.Channels.Verimor do
   # T-28
   @impl Relay.Channels.Adapter
   def query(%Request{channel: "sms"} = request) do
-    opts = [
+    case ProviderHttp.call(status_opts(request), request.timeout_ms) do
+      {:ok, %Req.Response{status: 200, body: body}} -> queried(rows(json(body)))
+      {:ok, %Req.Response{status: 404}} -> :not_received
+      _other -> :unavailable
+    end
+  end
+
+  def query(_request), do: :unavailable
+
+  # DS-22
+  # DS-48
+  @impl Relay.Channels.Adapter
+  def status(%Request{channel: "sms"} = request) do
+    case ProviderHttp.call(status_opts(request), request.timeout_ms) do
+      {:ok, %Req.Response{status: 200, body: body}} -> reported(rows(json(body)))
+      {:ok, %Req.Response{status: 404}} -> :not_received
+      _other -> :unavailable
+    end
+  end
+
+  def status(_request), do: :unavailable
+
+  defp status_opts(request) do
+    [
       method: :get,
       url: @sms <> "/v2/status",
       params: [
@@ -175,15 +198,10 @@ defmodule Relay.Channels.Verimor do
         custom_id: request.idempotency_key
       ]
     ]
-
-    case ProviderHttp.call(opts, request.timeout_ms) do
-      {:ok, %Req.Response{status: 200, body: body}} -> queried(rows(json(body)))
-      {:ok, %Req.Response{status: 404}} -> :not_received
-      _other -> :unavailable
-    end
   end
 
-  def query(_request), do: :unavailable
+  defp reported([]), do: :not_received
+  defp reported(rows), do: {:ok, Enum.map(rows, &sms_report/1)}
 
   defp json(body) when is_binary(body) do
     case Jason.decode(body) do

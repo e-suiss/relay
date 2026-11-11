@@ -61,7 +61,7 @@ defmodule Relay.Workflow.Throttle do
   end
 
   # WF-30
-  @doc "Counts an event on a counter of its own key space inside the caller's scoped transaction: `{space, parts}` names it (parts are strings or `nil`), `ref` is the event's unique string and `threshold` is `%{\"limit\" => n, \"window\" => duration}`."
+  @doc "Counts an event on a counter of its own key space inside the caller's scoped transaction: `{space, parts}` names it (parts are strings or `nil`), `ref` is the event's unique string and `threshold` holds the `limit` and the `window` duration."
   @spec count(Scope.t(), {String.t(), [String.t() | nil]}, String.t(), map()) ::
           {:ok, hit()} | {:error, Relay.Error.t()}
   def count(%Scope{} = scope, {space, parts}, ref, threshold) when is_binary(space) do

@@ -50,14 +50,7 @@ defmodule Relay.Workflow.Digest.Schedule do
   end
 
   defp parts(text) do
-    pairs =
-      for part <- String.split(text, ";") do
-        case String.split(part, "=", parts: 2) do
-          [key, value] when key != "" and value != "" -> {key, value}
-          _malformed -> :error
-        end
-      end
-
+    pairs = text |> String.split(";") |> Enum.map(&pair/1)
     keys = for {key, _value} <- pairs, do: key
 
     cond do
@@ -65,6 +58,13 @@ defmodule Relay.Workflow.Digest.Schedule do
       length(keys) != length(Enum.uniq(keys)) -> :error
       Enum.any?(keys, &(&1 not in ~w(FREQ INTERVAL BYDAY BYHOUR BYMINUTE))) -> :error
       true -> {:ok, Map.new(pairs)}
+    end
+  end
+
+  defp pair(part) do
+    case String.split(part, "=", parts: 2) do
+      [key, value] when key != "" and value != "" -> {key, value}
+      _malformed -> :error
     end
   end
 

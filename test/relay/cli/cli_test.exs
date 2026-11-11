@@ -672,6 +672,48 @@ defmodule Relay.CLITest do
       assert_received {:slept, 1000}
     end
 
+    test "DS-28, X-12: logs --why prints each channel's result and the rule's sentence" do
+      chain = %{
+        "object" => "notification_decision",
+        "notification_id" => "ntf_1",
+        "workflow" => %{"key" => "welcome", "version" => 1},
+        "state" => "active",
+        "created_at" => "2026-11-01T08:59:00Z",
+        "deliveries" => [
+          %{
+            "delivery_id" => "dlv_1",
+            "channel" => "email",
+            "status" => "skipped",
+            "reason" => "preference_off",
+            "rule_id" => "preference.channel",
+            "gates" => "stopped",
+            "decisions" => [
+              %{
+                "type" => "delivery.skipped",
+                "rule_id" => "preference.channel",
+                "outcome" => "skip",
+                "description" => %{"en" => "The subscriber turned the channel off.", "tr" => "x"},
+                "occurred_at" => "2026-11-01T08:59:00Z"
+              }
+            ]
+          }
+        ]
+      }
+
+      routes = %{{"GET", "/v1/subscribers/user-1/decisions"} => {200, list([chain])}}
+      argv = ["logs", "--why", "--subscriber", "user-1", "--since", "2026-10-01T00:00:00Z"]
+      assert {0, out, ""} = cli(argv, routes)
+      assert out =~ "ntf_1 welcome active"
+      assert out =~ "email skipped gates=stopped (preference_off preference.channel)"
+      assert out =~ "preference.channel skip: The subscriber turned the channel off."
+
+      [request] = api_requests()
+      assert request.query["created_after"] == "2026-10-01T00:00:00Z"
+
+      assert {2, _out, err} = cli(["logs", "--why"])
+      assert err =~ "--why needs --subscriber"
+    end
+
     test "API-64: listen forwards new notifications to a local address, never the token" do
       fresh = notification("ntf_2", "2026-11-01T09:00:05Z")
 

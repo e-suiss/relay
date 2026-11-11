@@ -67,7 +67,8 @@ defmodule Relay.Repo.Migrations.CreateObservabilityRollupFunction do
           count(*), count(*)
         FROM ev
         WHERE ev.event_type IN ('delivery.queued', 'delivery.skipped', 'delivery.deferred')
-          AND ev.occurred_at = ev.created_at
+          AND ev.occurred_at BETWEEN ev.created_at - interval '5 seconds'
+            AND ev.created_at + interval '5 seconds'
         GROUP BY ev.message_class, ev.channel, ev.provider
         UNION ALL
         SELECT 'stage', CASE ev.event_type

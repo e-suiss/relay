@@ -7521,3 +7521,167 @@ WorkflowTestRequest:
     metadata:
       "$ref": "#/Metadata"
   additionalProperties: false
+Id_piv:
+  type: string
+  description: "Provider invoice identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^piv_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - piv_01j9zq3k4m5n6p7q8r9s0t1v2w
+Micros:
+  type: string
+  description: "An amount in millionths of its currency's unit, as a string."
+  pattern: "^(0|[1-9][0-9]{0,18})$"
+  examples:
+    - "1250000"
+SignedMicros:
+  type: string
+  description: "A signed amount in millionths of its currency's unit, as a string."
+  pattern: "^(0|-?[1-9][0-9]{0,18})$"
+  examples:
+    - "-12500"
+CurrencyCode:
+  type: string
+  description: ISO 4217 currency code.
+  pattern: "^[A-Z]{3}$"
+  examples:
+    - EUR
+ProviderInvoiceRaw:
+  type: object
+  description: "The invoice or price object as the provider sent it, kept for reconciliation; at most 64 KiB."
+  maxProperties: 256
+ProviderInvoiceReconciliation:
+  type: object
+  description: "The latest reconciliation of an invoice against the immutable usage records of its provider, channel and period (OP-42): the usage cost in the invoice's currency, the billable units, the billable units without a price in that currency, and the drift of the invoice amount from the usage cost in micros and in basis points of the usage cost. drift means the drift is above the tolerance."
+  required:
+    - checked_at
+    - result
+    - usage_cost_micros
+    - usage_units
+    - unpriced_units
+    - drift_micros
+    - drift_bp
+  properties:
+    checked_at:
+      "$ref": "#/Timestamp"
+    result:
+      type: string
+      enum:
+        - matched
+        - drift
+    usage_cost_micros:
+      "$ref": "#/Micros"
+    usage_units:
+      type: integer
+      minimum: 0
+    unpriced_units:
+      type: integer
+      minimum: 0
+    drift_micros:
+      "$ref": "#/SignedMicros"
+    drift_bp:
+      oneOf:
+        - type: integer
+        - type: "null"
+  additionalProperties: false
+ProviderInvoice:
+  type: object
+  description: "A provider invoice of the tenant environment with its latest reconciliation (OP-38, OP-42). An invoice never changes."
+  required:
+    - object
+    - id
+    - provider
+    - channel
+    - invoice_ref
+    - period_start
+    - period_end
+    - currency
+    - amount_micros
+    - units
+    - raw
+    - reconciliation
+    - created_at
+  properties:
+    object:
+      type: string
+      const: provider_invoice
+    id:
+      "$ref": "#/Id_piv"
+    provider:
+      "$ref": "#/ProviderName"
+    channel:
+      oneOf:
+        - "$ref": "#/Channel"
+        - type: "null"
+    invoice_ref:
+      type: string
+      minLength: 1
+      maxLength: 128
+    period_start:
+      type: string
+      format: date
+    period_end:
+      type: string
+      format: date
+    currency:
+      "$ref": "#/CurrencyCode"
+    amount_micros:
+      "$ref": "#/Micros"
+    units:
+      oneOf:
+        - type: integer
+          minimum: 0
+        - type: "null"
+    raw:
+      oneOf:
+        - "$ref": "#/ProviderInvoiceRaw"
+        - type: "null"
+    reconciliation:
+      oneOf:
+        - "$ref": "#/ProviderInvoiceReconciliation"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+ProviderInvoiceList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/ProviderInvoice"
+ProviderInvoiceCreate:
+  type: object
+  description: "A provider invoice: the period starts on period_start and ends before period_end, at most 92 days."
+  required:
+    - provider
+    - invoice_ref
+    - period_start
+    - period_end
+    - currency
+    - amount_micros
+  properties:
+    provider:
+      "$ref": "#/ProviderName"
+    channel:
+      "$ref": "#/Channel"
+    invoice_ref:
+      type: string
+      minLength: 1
+      maxLength: 128
+    period_start:
+      type: string
+      format: date
+    period_end:
+      type: string
+      format: date
+    currency:
+      "$ref": "#/CurrencyCode"
+    amount_micros:
+      "$ref": "#/Micros"
+    units:
+      type: integer
+      minimum: 0
+    raw:
+      "$ref": "#/ProviderInvoiceRaw"
+  additionalProperties: false

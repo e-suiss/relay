@@ -19,7 +19,6 @@ defmodule Relay.Api.WorkflowRuns do
             )
   @attributes ~w(locale timezone legal_type)
   @domestic "channels.domestic_only"
-  @no_readings %{global: nil, policy: nil}
 
   # WF-7
   # WF-59 (5)
@@ -285,7 +284,7 @@ defmodule Relay.Api.WorkflowRuns do
         channel = Map.fetch!(@channels, name),
         into: %{} do
       readings = Live.frequency(scope, policy, policy.message_class, recipient_id, channel)
-      {{recipient_id, channel}, readings || @no_readings}
+      {{recipient_id, channel}, readings}
     end
   end
 

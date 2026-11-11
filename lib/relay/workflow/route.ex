@@ -36,7 +36,7 @@ defmodule Relay.Workflow.Route do
 
   # WF-59
   @doc "The nesting depth of an inline route tree; a bare channel is depth 1."
-  @spec depth(term()) :: non_neg_integer()
+  @spec depth(term()) :: number()
   def depth(node) when is_binary(node), do: 1
   def depth(%{"channel" => _channel}), do: 1
   def depth(%{"single" => list}) when is_list(list), do: 1 + max_depth(list)

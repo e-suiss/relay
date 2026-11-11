@@ -311,6 +311,12 @@
     },
     {
       "personal_columns": [],
+      "subject_erasure": "not subject data; the run holds step results, delivery identifiers and template keys, never event data or a personal value",
+      "table": "workflow_runs",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
       "subject_erasure": "row kept; keys carry no personal data",
       "table": "events",
       "tenant_close": "row kept"

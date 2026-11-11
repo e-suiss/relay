@@ -195,6 +195,11 @@ defmodule Relay.Ingest do
   @spec event(Relay.Id.t()) :: map() | nil
   defdelegate event(id), to: EventStore
 
+  # WF-59 (5)
+  @doc "Reads the sealed data of an event inside the caller's scoped transaction; see `Relay.Ingest.EventStore.event_data/1`."
+  @spec event_data(Relay.Id.t()) :: map() | nil
+  defdelegate event_data(event_id), to: EventStore
+
   @doc "Reads a notification; see `Relay.Ingest.EventStore.notification/1`."
   @spec notification(Relay.Id.t()) :: map() | nil
   defdelegate notification(id), to: EventStore
@@ -244,16 +249,35 @@ defmodule Relay.Ingest do
   defdelegate installation_send_mode(), to: EventStore
 
   # OP-51
-  @doc "Resolves a send mode with the installation default (`live` when unset); see `Relay.Ingest.SendMode.resolve/5`."
+  @doc "Resolves a send mode of a category and channel with the installation default (`live` when unset); see `Relay.Ingest.SendMode.resolve/6`."
   @spec send_mode(String.t() | nil, map(), String.t(), String.t(), String.t() | nil) ::
           SendMode.mode()
   def send_mode(requested, settings, category, channel, installation \\ nil),
-    do: SendMode.resolve(requested, settings, category, channel, installation || "live")
+    do: SendMode.resolve(requested, settings, nil, category, channel, installation || "live")
+
+  # OP-51
+  # C-89
+  @doc "Resolves a send mode of a workflow, category and channel with the installation default (`live` when unset); see `Relay.Ingest.SendMode.resolve/6`."
+  @spec send_mode(
+          String.t() | nil,
+          map(),
+          String.t() | nil,
+          String.t(),
+          String.t(),
+          String.t() | nil
+        ) :: SendMode.mode()
+  def send_mode(requested, settings, workflow, category, channel, installation),
+    do: SendMode.resolve(requested, settings, workflow, category, channel, installation || "live")
 
   # OP-51
   @doc "The settings keys of a send mode; see `Relay.Ingest.SendMode.keys/2`."
   @spec send_mode_keys(String.t(), String.t()) :: [String.t()]
   defdelegate send_mode_keys(category, channel), to: SendMode, as: :keys
+
+  # C-89
+  @doc "The settings keys of a workflow's send mode; see `Relay.Ingest.SendMode.keys/3`."
+  @spec send_mode_keys(String.t() | nil, String.t(), String.t()) :: [String.t()]
+  defdelegate send_mode_keys(workflow, category, channel), to: SendMode, as: :keys
 
   # API-31
   @doc "The derived CloudEvents idempotency key; see `Relay.Ingest.CloudEvents.idempotency_key/2`."

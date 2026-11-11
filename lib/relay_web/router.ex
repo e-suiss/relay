@@ -375,11 +375,17 @@ defmodule RelayWeb.Router do
     post "/workflows/:workflow_key/publish", WorkflowController, :publish,
       private: %{relay_operation: "publishWorkflow"}
 
+    post "/workflows/:workflow_key/manager", WorkflowController, :set_manager,
+      private: %{relay_operation: "setWorkflowManager"}
+
     get "/workflows/:workflow_key/versions", WorkflowController, :versions,
       private: %{relay_operation: "listWorkflowVersions"}
 
     get "/workflows/:workflow_key/versions/:version", WorkflowController, :version,
       private: %{relay_operation: "getWorkflowVersion"}
+
+    get "/workflows/:workflow_key/versions/:version/mermaid", WorkflowController, :mermaid,
+      private: %{relay_operation: "getWorkflowVersionMermaid"}
 
     post "/workflows/:workflow_key/versions/:version/promote", WorkflowController, :promote,
       private: %{relay_operation: "promoteWorkflowVersion"}

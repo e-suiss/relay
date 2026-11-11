@@ -2,11 +2,14 @@ defmodule Relay.Api.Events do
   @moduledoc """
   The send operations (API-19 … API-34, OP-7, DS-36). An event is prepared outside any transaction (`prepare/3`): its workflow version is resolved and frozen (WF-7), the request's field rules and the event schema are checked (API-20, API-27), the recipients' writes are prepared with their keys (API-21) and the payload is sealed under the tenant data key. It is then accepted inside the request's idempotency transaction (`accept/2`), so the idempotency claim, the event, its notifications and deliveries with their opening ledger events, the queue jobs, the quota counters and the outbox events commit together or not at all.
 
+  Every notification has one workflow run (WF-59 (5), `Relay.Workflow.start_run/2`): at acceptance the run is created and advanced in the same transaction up to its first waiting step, and each channel step it reaches opens its delivery here (`open_step/6`), exactly as a workflow of channel steps alone always did; a later step opens its delivery when the run wakes (`Relay.Api.WorkflowRuns`). A request's `send_at` is the run's time base (WF-41).
+
   Policy outcomes are decisions, not errors (C-4, MD-12, DS-26): every delivery is opened and the policy lattice decides it at once (`Relay.Policy.Live`, PC-58 (2)): a gate or filter skips it, a shaper defers it to `deferred_until` and queues its job for then, and an expiry closes it, each recorded with its reason, rule and detail and announced as `notification.suppressed` (DS-24, DS-27). The class comes from the workflow's category (PC-57 (3)), the priority is clamped to the class ceiling with a `priority_clamped` warning (API-22, PC-58 (7)) and a request without `expires_at` gets the category's or the class default (PC-57 (4)). A matching kill switch pauses the delivery at acceptance and queues no job (TN-40), the send mode `off` and an unknown sub-tenant skip it with a rule (OP-51, API-25), and a suspended subscriber's deliveries are skipped with `subscriber.suspended` (TN-73): the send is accepted and no delivery is sent. Before the lattice, each delivery's template is resolved with sub-tenant inheritance and its cell chosen for the recipient's locale (`Relay.Templates.Live`): a channel without a variant, a locale chain without a cell and a template without a live version skip the delivery with their template rule, and otherwise the template, layout and partial versions and the locale are pinned with the delivery (TP-50, TP-11, TP-26, WF-16). In `dry_run` the template step and the lattice run and the answer carries each channel's decision; nothing is opened, pinned or counted (PC-58 (8)). A durable write failure is `503` (INV-2).
   """
 
   alias Relay.Api.Schema
   alias Relay.Api.Views
+  alias Relay.Api.WorkflowRuns
   alias Relay.Policy.Live
   alias Relay.Scope
   alias Relay.Templates.Live, as: Templates
@@ -53,7 +56,8 @@ defmodule Relay.Api.Events do
     cloudevent = Keyword.get(opts, :cloudevent)
 
     with {:ok, workflow} <- workflow(scope, body["workflow"]),
-         steps = Relay.Workflow.steps(workflow["definition"]),
+         {:ok, routes} <- routes(scope, workflow),
+         steps = Relay.Workflow.route_steps(workflow["definition"], routes),
          {:ok, tenant} <- tenant_settings(scope, workflow, steps),
          {:ok, category} <- category(scope, workflow, nil),
          class = Atom.to_string(category.message_class),
@@ -71,6 +75,7 @@ defmodule Relay.Api.Events do
          {:ok, providers} <- overrides(scope, workflow, request, tenant.settings),
          :ok <- platform(class),
          {:ok, recipients} <- recipients(scope, request.targets),
+         {:ok, recipients} <- WorkflowRuns.attributes(scope, workflow["definition"], recipients),
          {:ok, payload} <- payload(scope, request, cloudevent),
          {:ok, subtenant} <- subtenant(scope, request.tenant, Map.get(ctx, :subtenant_id)),
          {:ok, category} <- subtenant_category(scope, workflow, category, subtenant) do
@@ -82,6 +87,7 @@ defmodule Relay.Api.Events do
          scope: scope,
          event_id: Relay.Id.generate(),
          workflow: workflow,
+         routes: routes,
          category: workflow["definition"]["category"],
          policy: category,
          message_class: class,
@@ -101,6 +107,15 @@ defmodule Relay.Api.Events do
          traceparent: (cloudevent && cloudevent["traceparent"]) || Map.get(ctx, :traceparent),
          api_client_id: api_client(Map.get(ctx, :api_client_id))
        }}
+    end
+  end
+
+  # WF-14
+  # WF-7
+  defp routes(scope, workflow) do
+    case Relay.Workflow.prepare_routes(scope, workflow["definition"]) do
+      {:ok, routes} -> {:ok, routes}
+      {:error, _reason} -> {:error, unavailable("the routes could not be read")}
     end
   end
 
@@ -223,7 +238,7 @@ defmodule Relay.Api.Events do
         end
 
       case Relay.Subscribers.prepare(scope, input, mode) do
-        {:ok, plan} -> {:cont, {:ok, [recipient(plan, index, external_id) | acc]}}
+        {:ok, plan} -> {:cont, {:ok, [recipient(plan, index, external_id, input) | acc]}}
         {:error, %Relay.Error{} = error} -> {:halt, {:error, error}}
         {:error, _reason} -> {:halt, {:error, unavailable("the recipient could not be prepared")}}
       end
@@ -234,8 +249,8 @@ defmodule Relay.Api.Events do
     end
   end
 
-  defp recipient(plan, index, external_id),
-    do: %{plan: plan, index: index, external_id: external_id}
+  defp recipient(plan, index, external_id, input),
+    do: %{plan: plan, index: index, external_id: external_id, fields: input.fields}
 
   defp payload(scope, request, cloudevent) do
     with {:ok, key_id} <- Relay.Tenancy.active_tenant_key(scope, :data),
@@ -286,7 +301,8 @@ defmodule Relay.Api.Events do
   # OP-51
   defp tenant_settings(scope, workflow, steps) do
     category = workflow["definition"]["category"]
-    modes = Enum.flat_map(steps, &Relay.Ingest.send_mode_keys(category, &1.channel))
+    key = workflow["key"]
+    modes = Enum.flat_map(steps, &Relay.Ingest.send_mode_keys(key, category, &1.channel))
     providers = Enum.map(steps, &"overrides.#{&1.channel}.provider")
     keys = Enum.uniq([@domestic | modes ++ providers])
 
@@ -334,7 +350,7 @@ defmodule Relay.Api.Events do
       for step <- request.steps,
           provider = provider(request.overrides, definition, step, tenant),
           into: %{},
-          do: {step.key, {step.channel, provider}}
+          do: {provider_key(step), {step.channel, provider}}
 
     pairs = providers |> Map.values() |> Enum.uniq()
     policy = %{domestic_country: settings[@domestic]}
@@ -377,6 +393,10 @@ defmodule Relay.Api.Events do
         {:error, unavailable("the channel declarations could not be read")}
     end
   end
+
+  @doc "The key of a prepared step's provider: its step key and channel, since a route step sends on every channel of its tree."
+  @spec provider_key(map()) :: String.t()
+  def provider_key(step), do: "#{step.key}:#{step.channel}"
 
   defp provider(requested, definition, step, tenant) do
     levels = [requested, own_overrides(definition, step), definition["overrides"], tenant]
@@ -568,7 +588,12 @@ defmodule Relay.Api.Events do
   # TP-50
   # TP-36
   defp templates(p) do
-    keys = Enum.map(p.request.steps, & &1.template)
+    keys =
+      p.request.steps
+      |> Enum.flat_map(&[&1.template, Map.get(&1, :digest_template)])
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+
     Map.put(p, :templates, Templates.templates(keys, subtenant_id(p.subtenant)))
   end
 
@@ -588,7 +613,9 @@ defmodule Relay.Api.Events do
   # API-21
   # API-16
   # API-25
-  defp notification(p, event, %{plan: plan, index: index, external_id: external_id}, ctx) do
+  defp notification(p, event, %{plan: plan, index: index, external_id: external_id} = r, ctx) do
+    ctx = Map.put(ctx, :attributes, Map.get(r, :attributes, %{}))
+
     with {:ok, recipient_id} <- upsert(plan, index),
          {:ok, result, id, original, mismatch?} <- open_notification(p, event, recipient_id),
          {:ok, decisions} <- created(result, p, id, recipient_id, mismatch?, ctx) do
@@ -599,18 +626,76 @@ defmodule Relay.Api.Events do
 
   defp created(:created, p, id, recipient_id, mismatch?, ctx) do
     row = device_locale(Relay.Subscribers.row(recipient_id), recipient_id)
-    open_deliveries(p, id, row, mismatch?, ctx)
+    start_run(p, id, row, mismatch?, ctx)
   end
 
   defp created(:duplicate, _p, _id, _recipient_id, _mismatch?, _ctx), do: {:ok, []}
 
+  # WF-59 (5)
+  # WF-41
+  # WF-6
+  defp start_run(p, notification_id, row, mismatch?, ctx) do
+    definition = p.workflow["definition"]
+
+    run = %{
+      notification_id: notification_id,
+      recipient_id: row["id"],
+      workflow_key: p.workflow["key"],
+      message_class: p.message_class,
+      definition: definition,
+      plan: WorkflowRuns.plan(p, row, mismatch?),
+      context: WorkflowRuns.context(p, row, Map.get(ctx, :attributes, %{})),
+      now: p.request.send_at || p.now,
+      opener: fn step, channel, pointer ->
+        open_step(p, notification_id, row, mismatch?, step, {channel, pointer})
+      end
+    }
+
+    case Relay.Workflow.start_run(p.scope, run) do
+      {:ok, decisions} -> {:ok, decisions}
+      {:error, %Relay.Error{} = error} -> {:error, error}
+      {:error, _reason} -> {:error, unavailable("the workflow run could not be started")}
+    end
+  end
+
+  # WF-59 (5)
+  # WF-8
+  # WF-63
+  # WF-27
+  @doc "Opens the delivery of a route leaf of a run's channel step inside the accepting or the waking transaction: the prepared step of the same key and channel, keyed in the ledger by the step key and the leaf pointer (WF-63), with the step's digest template when the run carries a fired digest; nothing when the request's `channels` narrowed the channel away. Returns the opened delivery's identifier and the step's dry-run decisions."
+  @spec open_step(prepared(), Relay.Id.t(), map(), boolean(), map(), {String.t(), String.t()}) ::
+          {:ok, [String.t()], [map()]} | {:error, error()}
+  def open_step(p, notification_id, row, mismatch?, %{"key" => key} = leaf, {channel, pointer}) do
+    case Enum.find(p.request.steps, &(&1.key == key and &1.channel == channel)) do
+      nil ->
+        {:ok, [], []}
+
+      step ->
+        step = %{
+          key: step.key,
+          channel: step.channel,
+          template: leaf["template"] || step.template,
+          skip: step.skip,
+          step_ref: key <> pointer
+        }
+
+        case open_delivery(p, notification_id, row, mismatch?, step) do
+          {:ok, decisions, nil} -> {:ok, [], decisions}
+          {:ok, decisions, id} -> {:ok, [Relay.Id.to_string(id)], decisions}
+          {:error, error} -> {:error, error}
+        end
+    end
+  end
+
   # TP-25
-  defp device_locale(%{} = row, recipient_id) do
+  @doc "The subscriber row with the locale of its most recently seen device that carries one (TP-25), inside the caller's scoped transaction."
+  @spec device_locale(map() | nil, Relay.Id.t()) :: map() | nil
+  def device_locale(%{} = row, recipient_id) do
     locale = Enum.find_value(Relay.Devices.current(recipient_id), & &1["locale"])
     Map.put(row, "device_locale", locale)
   end
 
-  defp device_locale(row, _recipient_id), do: row
+  def device_locale(row, _recipient_id), do: row
 
   defp entry(recipient_id, external_id, notification_id, duplicate_of, decisions) do
     Views.accepted_notification(%{
@@ -689,15 +774,6 @@ defmodule Relay.Api.Events do
   defp notification_result({_inactive, _id, _original}, _mismatch?),
     do: {:error, Relay.Error.new(:auth_tenant_suspended, "the tenant is suspended")}
 
-  defp open_deliveries(p, notification_id, row, mismatch?, ctx) do
-    Enum.reduce_while(p.request.steps, {:ok, []}, fn step, {:ok, acc} ->
-      case open_delivery(p, notification_id, row, mismatch?, step, ctx) do
-        {:ok, decisions} -> {:cont, {:ok, acc ++ decisions}}
-        {:error, error} -> {:halt, {:error, error}}
-      end
-    end)
-  end
-
   # OP-51
   # TN-40
   # API-25
@@ -705,11 +781,13 @@ defmodule Relay.Api.Events do
   # PC-58 (2)
   # PC-58 (8)
   # INV-15
-  defp open_delivery(p, notification_id, row, mismatch?, step, _ctx) do
+  # C-89
+  defp open_delivery(p, notification_id, row, mismatch?, step) do
     mode =
       Relay.Ingest.send_mode(
         p.request.send_mode,
         p.settings,
+        p.workflow["key"],
         p.category,
         step.channel,
         p.installation_mode
@@ -719,7 +797,7 @@ defmodule Relay.Api.Events do
 
     case {gate(p, step, row, mismatch?, mode), mode} do
       {{:skip, reason, rule, _detail}, :dry_run} ->
-        {:ok, [Live.dry_run_skip(step.channel, reason, rule)]}
+        {:ok, [Live.dry_run_skip(step.channel, reason, rule)], nil}
 
       {{:skip, reason, rule, detail}, _mode} ->
         skip(p, notification_id, row, step, delivery_id, {reason, rule, detail})
@@ -740,7 +818,7 @@ defmodule Relay.Api.Events do
   defp gate(p, step, row, mismatch?, mode) do
     case decision(step, row, mismatch?, mode) do
       {:skip, reason, rule} -> {:skip, reason, rule, %{}}
-      :lattice -> Templates.choose(p.templates, step, row)
+      :lattice -> Templates.choose(p.templates, Map.take(step, [:template, :channel]), row)
     end
   end
 
@@ -748,11 +826,11 @@ defmodule Relay.Api.Events do
   defp skip(p, notification_id, row, step, delivery_id, {reason, rule, detail}) do
     case open(p, notification_id, row, step, delivery_id) do
       {:ok, nil} ->
-        {:ok, []}
+        {:ok, [], nil}
 
       {:ok, id} ->
         _ = Live.record_skip(id, reason, rule, detail)
-        {:ok, []}
+        {:ok, [], id}
 
       {:error, error} ->
         {:error, error}
@@ -772,7 +850,7 @@ defmodule Relay.Api.Events do
   # PC-58 (8)
   defp dry_run(channel, result) do
     case Live.dry_run(channel, result) do
-      {:ok, decision} -> {:ok, [decision]}
+      {:ok, decision} -> {:ok, [decision], nil}
       :error -> {:error, unavailable("a policy input could not be read")}
     end
   end
@@ -809,9 +887,15 @@ defmodule Relay.Api.Events do
   # INV-48
   defp opened(p, notification_id, row, step, {delivery_id, plan}, result) do
     case open(p, notification_id, row, step, delivery_id) do
-      {:ok, nil} -> {:ok, []}
-      {:ok, id} -> pinned(Templates.pin(id, plan), p, notification_id, id, result)
-      {:error, error} -> {:error, error}
+      {:ok, nil} ->
+        {:ok, [], nil}
+
+      {:ok, id} ->
+        with {:ok, decisions} <- pinned(Templates.pin(id, plan), p, notification_id, id, result),
+             do: {:ok, decisions, id}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
@@ -850,7 +934,8 @@ defmodule Relay.Api.Events do
       decision_reason: nil,
       decision_rule_id: nil,
       deferred_until: nil,
-      provider: Map.get(p.providers, step.key),
+      provider: Map.get(p.providers, provider_key(step)),
+      step_ref: Map.get(step, :step_ref, ""),
       traceparent: p.traceparent
     }
 

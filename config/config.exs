@@ -59,6 +59,7 @@ config :relay, Oban,
        {"*/5 * * * *", Relay.Agents.WaitpointSweep},
        {"*/5 * * * *", Relay.Api.Recurrences.Sweep},
        {"*/5 * * * *", Relay.Workflow.Digest.Sweep},
+       {"*/5 * * * *", Relay.Workflow.RunSweep},
        {"*/5 * * * *", Relay.Delivery.WindowSweep},
        {"17 * * * *", Relay.Devices.Sweep},
        {"20 0 * * *", Relay.Delivery.UsageDay},
@@ -75,8 +76,13 @@ config :relay, Relay.Platform.VirtualClock,
     {Relay.Agents, :run_due, []},
     {Relay.Delivery.WindowSweep, :run_due, []},
     {Relay.Api.Recurrences, :run_due, []},
-    {Relay.Workflow, :run_due_digests, []}
+    {Relay.Workflow, :run_due_digests, []},
+    {Relay.Workflow, :run_due, []}
   ]
+
+config :relay, Relay.Workflow, resumer: Relay.Api.WorkflowRuns
+
+config :relay, Relay.Workflow.Digest, sink: Relay.Workflow
 
 config :relay, Relay.Platform.Outbox, dispatcher: true
 

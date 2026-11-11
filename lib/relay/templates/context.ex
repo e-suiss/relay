@@ -92,7 +92,7 @@ defmodule Relay.Templates.Context do
   @doc """
   Builds the context of one render.
 
-  Fields: `:locale` (a supported BCP 47 locale, required), `:time_zone` (an IANA zone, required), `:data` (event data), `:recipient`, `:brand`, `:links` (`rel` to `href`), `:helpers` (name to string or `{:trusted, string}`), `:variables` (criticality declarations by path, see `Relay.Templates.Variables.criticality/1`), `:schema` (a built `JSV.Root` the event data is validated against) and `:escape` (defaults to `escape_mode(channel, part)` with `:part`).
+  Fields: `:locale` (a supported BCP 47 locale, required), `:time_zone` (an IANA zone, required), `:data` (event data), `:recipient`, `:brand`, `:links` (`rel` to `href`), `:digest` (the render data of a fired digest window, read as `digest.…`, WF-26), `:helpers` (name to string or `{:trusted, string}`), `:variables` (criticality declarations by path, see `Relay.Templates.Variables.criticality/1`), `:schema` (a built `JSV.Root` the event data is validated against) and `:escape` (defaults to `escape_mode(channel, part)` with `:part`).
   """
   @spec new(channel(), keyword()) :: {:ok, t()} | {:error, error()}
   def new(channel, fields) when channel in @channels and is_list(fields) do
@@ -105,6 +105,7 @@ defmodule Relay.Templates.Context do
          {:ok, recipient} <- plain(:recipient, Keyword.get(fields, :recipient, %{})),
          {:ok, brand} <- plain(:brand, Keyword.get(fields, :brand, %{})),
          {:ok, links} <- plain(:links, Keyword.get(fields, :links, %{})),
+         {:ok, digest} <- plain(:digest, Keyword.get(fields, :digest, %{})),
          {:ok, helpers} <- helpers(Keyword.get(fields, :helpers, %{})),
          :ok <- reserved(data, helpers),
          :ok <- validate(data, fields[:schema]) do
@@ -113,6 +114,7 @@ defmodule Relay.Templates.Context do
       vars =
         data
         |> Map.merge(%{"recipient" => recipient, "brand" => brand, "links" => links})
+        |> Map.merge(if(digest == %{}, do: %{}, else: %{"digest" => digest}))
         |> Escape.value(escape)
         |> prune(1)
         |> Map.merge(Map.new(helpers, fn {name, value} -> {name, helper(value, escape)} end))

@@ -268,9 +268,8 @@ defmodule Relay.Workflow.Store do
         SELECT w.key, v.version_no, v.event_schema FROM relay.workflows w
         JOIN relay.workflow_versions v ON v.tenant_id = w.tenant_id
           AND v.environment = w.environment AND v.id = w.published_version_id
-        WHERE w.state = 'active' AND EXISTS (
-          SELECT 1 FROM jsonb_array_elements(v.definition -> 'steps') s
-          WHERE s ->> 'template' = $1)
+        WHERE w.state = 'active' AND jsonb_path_exists(v.definition -> 'steps',
+          '$.** ? (@.template == $t || @.digest_template == $t)', jsonb_build_object('t', $1::text))
         ORDER BY w.key
         """,
         [template_key]

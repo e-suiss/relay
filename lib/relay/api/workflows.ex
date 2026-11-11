@@ -1,6 +1,6 @@
 defmodule Relay.Api.Workflows do
   @moduledoc """
-  The workflow management operations (API-69, WF-5, WF-6): list, create with a first draft (`201`), read, replace the draft under `If-Match`, request a publication (`202`, through the publication gate), list and read published versions, and promote an old version as a new one (`202`). A published version never changes (INV-48).
+  The workflow management operations (API-69, WF-5, WF-6): list, create with a first draft (`201`), read, replace the draft under `If-Match`, request a publication (`202`, through the publication gate), list and read published versions, export a published version as a Mermaid flowchart (`text/plain`), promote an old version as a new one (`202`) and change the workflow's single manager under `If-Match` (WF-4, audited). A published version never changes (INV-48). A draft written through the panel to a code-managed workflow that changes more than its text and control fields is `409 resource_conflict`.
   """
 
   alias Relay.Api.Views
@@ -99,7 +99,53 @@ defmodule Relay.Api.Workflows do
 
         {:ok, {:not_found, _version}} ->
           {:error, workflow_not_found()}
+
+        {:ok, {:managed_by_code, pointers}} ->
+          {:error, managed_by_code(pointers)}
       end
+    end
+  end
+
+  # WF-4
+  defp managed_by_code(pointers) do
+    errors =
+      for pointer <- pointers,
+          do: %{
+            pointer: "/definition" <> String.trim_leading(pointer, "!"),
+            code: "not_allowed",
+            detail: "the workflow is managed by code"
+          }
+
+    Relay.Error.new(:resource_conflict, "the workflow is managed by code", %{errors: errors})
+  end
+
+  # WF-4
+  # X-9
+  @doc "Changes the single manager of a workflow inside the request's transaction; audited as `workflow.manager_changed`."
+  @spec set_manager(Relay.Scope.t(), String.t(), map(), pos_integer(), Relay.Actor.t()) ::
+          answer()
+  def set_manager(scope, key, body, expected_version, actor) do
+    case Relay.Workflow.set_manager(scope, key, body["managed_by"], expected_version, actor) do
+      {:ok, {result, version}} when result in [:changed, :unchanged] ->
+        {:ok, {200, [etag(version)], view(Relay.Workflow.view(key))}}
+
+      {:ok, {:version_conflict, _version}} ->
+        {:error, precondition_failed()}
+
+      {:ok, {:not_found, _version}} ->
+        {:error, workflow_not_found()}
+    end
+  end
+
+  # WF-6
+  @doc "A published version as a Mermaid flowchart."
+  @spec mermaid(Relay.Scope.t(), String.t(), pos_integer()) ::
+          {:ok, String.t()} | {:error, Relay.Error.t()}
+  def mermaid(scope, key, number) do
+    case Relay.Workflow.mermaid(scope, key, number) do
+      {:ok, text} when is_binary(text) -> {:ok, text}
+      {:ok, :workflow_not_found} -> {:error, workflow_not_found()}
+      _missing -> {:error, version_not_found()}
     end
   end
 
@@ -122,7 +168,7 @@ defmodule Relay.Api.Workflows do
 
   # API-23
   defp override_rules(definition) do
-    steps = definition |> Map.get("steps", []) |> Enum.with_index()
+    steps = Relay.Workflow.step_entries(definition)
 
     policy =
       Relay.Ingest.policy_field_errors(definition["overrides"], "/definition/overrides") ++
@@ -148,18 +194,17 @@ defmodule Relay.Api.Workflows do
     end
   end
 
-  defp step_policy_fields({%{} = step, index}) do
-    prefix = "/definition/steps/#{index}/overrides"
-    Relay.Ingest.policy_field_errors(step["overrides"], prefix)
+  defp step_policy_fields({%{} = step, pointer}) do
+    Relay.Ingest.policy_field_errors(step["overrides"], pointer <> "/overrides")
   end
 
   defp step_policy_fields(_step), do: []
 
-  defp foreign_channels({%{"overrides" => %{} = overrides} = step, index}) do
+  defp foreign_channels({%{"overrides" => %{} = overrides, "channel" => own}, pointer}) do
     for {channel, _block} <- overrides,
-        channel != step["channel"],
+        channel != own,
         do: %{
-          pointer: "/definition/steps/#{index}/overrides/#{channel}",
+          pointer: pointer <> "/overrides/#{channel}",
           code: "not_allowed",
           detail: "a step overrides only its own channel"
         }

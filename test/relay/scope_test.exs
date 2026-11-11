@@ -67,7 +67,8 @@ defmodule Relay.ScopeTest do
                :observability_rollup,
                :reconciliation_discovery,
                :recurrence_due_discovery,
-               :digest_window_discovery
+               :digest_window_discovery,
+               :workflow_run_due_discovery
              ]
     end
 

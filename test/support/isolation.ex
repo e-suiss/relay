@@ -26,6 +26,7 @@ defmodule RelayTest.Isolation do
     {"replaceSubscriber", %{"locale" => "tr-TR"}},
     {"updateSubscriber", %{"locale" => "tr-TR"}},
     {"publishWorkflow", %{}},
+    {"setWorkflowManager", %{"managed_by" => "code"}},
     {"replaceKillSwitch", %{"state" => "off", "reason" => "isolation", "ttl" => "PT1H"}},
     {"releaseKillSwitch", %{"reason" => "isolation"}},
     {"resumeKillSwitchDeliveries", %{"reason" => "isolation"}},

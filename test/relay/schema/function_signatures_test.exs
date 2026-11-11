@@ -111,6 +111,9 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.waitpoint_timer_fire" =>
       ~w(expired stalled escalation_due not_due already_terminal not_found),
     "relay_fn.waitpoint_cancel" => ~w(cancelled already_terminal not_found),
+    "relay_fn.workflow_run_start" => ~w(started exists notification_not_found),
+    "relay_fn.workflow_run_save" => ~w(saved version_conflict already_final not_found),
+    "relay_fn.workflow_manager_set" => ~w(changed unchanged version_conflict not_found),
     "relay_fn.fanout_create" => ~w(created exists invalid_bounds tenant_inactive),
     "relay_fn.fanout_slice_begin" =>
       ~w(begun resumed cancelled paused already_terminal not_found),

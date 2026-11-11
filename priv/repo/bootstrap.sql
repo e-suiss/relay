@@ -149,7 +149,8 @@ DECLARE
     "relay_ops.tenant_lookup": ["relay_app"],
     "relay_ops.tenant_overview": ["relay_app"],
     "relay_ops.tenant_suspensions_due": ["relay_app"],
-    "relay_ops.usage_day_scopes": ["relay_worker"], "relay_ops.waitpoint_due_scopes": ["relay_worker"]
+    "relay_ops.usage_day_scopes": ["relay_worker"], "relay_ops.waitpoint_due_scopes": ["relay_worker"],
+    "relay_ops.workflow_run_due_scopes": ["relay_worker"]
   }';
   v_function regprocedure;
   v_name text;

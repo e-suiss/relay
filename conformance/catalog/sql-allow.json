@@ -220,5 +220,11 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "E-83, OP-24: the committed relay_fn.event_accept is dropped for a new signature as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261213100500_key_deliveries_by_step.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WF-63: the committed relay_fn.delivery_open is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit, and gains its step-keyed overload; the role is reset in the same migration transaction"
   }
 ]

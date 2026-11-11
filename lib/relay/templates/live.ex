@@ -40,7 +40,11 @@ defmodule Relay.Templates.Live do
   @legal ~w(legal_name mersis contact postal_address)
   @marks %{"tr" => "Ticari elektronik iletidir.", "en" => "This is a commercial message."}
 
-  @type templates :: %{required(:default_locale) => term(), optional(String.t()) => map()}
+  @type templates :: %{
+          required(:default_locale) => term(),
+          optional(:default_timezone) => term(),
+          optional(String.t()) => map()
+        }
   @type plan :: map()
   @type skip :: {:skip, String.t(), String.t(), map()}
   @type result :: :rendered | :failed | :done | {:error, {:input_unavailable, atom()}}
@@ -48,7 +52,7 @@ defmodule Relay.Templates.Live do
   # TP-11
   # TP-36
   # TP-51
-  @doc "Resolves the live versions of `keys` for a sub-tenant (`nil` for the tenant level) and the tenant's `default_locale`, inside the caller's transaction."
+  @doc "Resolves the live versions of `keys` for a sub-tenant (`nil` for the tenant level) and the tenant's `default_locale` and `default_timezone`, inside the caller's transaction."
   @spec templates([String.t()], Relay.Id.t() | nil) :: templates()
   def templates(keys, subtenant_id) do
     rows = TemplateStore.template_live(Enum.uniq(keys), subtenant_id)
@@ -58,6 +62,7 @@ defmodule Relay.Templates.Live do
     rows
     |> Map.new(fn row -> {row["key"], entry(row, index[row["template_version_id"]])} end)
     |> Map.put(:default_locale, defaults["default_locale"])
+    |> Map.put(:default_timezone, defaults["default_timezone"])
   end
 
   defp entry(row, index) do
@@ -226,7 +231,8 @@ defmodule Relay.Templates.Live do
           partials: partials,
           defaults: Store.defaults(delivery["subtenant_id"]),
           brand: TemplateStore.brand_resolve(delivery["subtenant_id"], version["id"]),
-          policy: TemplateStore.render_policy(delivery_id)
+          policy: TemplateStore.render_policy(delivery_id),
+          digest: Relay.Workflow.digest_render(delivery_id) || %{}
         }
       end
     end)
@@ -281,6 +287,7 @@ defmodule Relay.Templates.Live do
       time_zone: time_zone(delivery["timezone"], input.defaults["default_timezone"]),
       data: data,
       recipient: %{},
+      digest: Map.get(input, :digest, %{}),
       brand: brand(input.brand),
       helpers: helpers(input.brand, delivery["message_class"], locale),
       partials: partials(input.partials, locale),

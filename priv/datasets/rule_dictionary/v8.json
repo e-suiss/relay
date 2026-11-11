@@ -1,5 +1,5 @@
 {
-  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46",
+  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59",
   "rules": [
     {
       "id": "admission.aimd.l2",
@@ -1607,6 +1607,64 @@
       "description": {
         "en": "Not sent because the recipient's 24-hour WhatsApp customer service window is closed and the content has no approved template.",
         "tr": "Alıcının 24 saatlik WhatsApp müşteri hizmeti penceresi kapalı olduğu ve içerikte onaylı şablon bulunmadığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "workflow_run.delay_out_of_range",
+      "reason": "delay_out_of_range",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "WF-37",
+      "detail": [
+        "step",
+        "until"
+      ],
+      "description": {
+        "en": "The workflow stopped because its delay step would wait more than 90 days.",
+        "tr": "Workflow, bekle adımı 90 günden uzun bekleyeceği için durdu."
+      }
+    },
+    {
+      "id": "workflow_run.delay_until_missing",
+      "reason": "delay_until_missing",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "WF-59",
+      "detail": [
+        "step"
+      ],
+      "description": {
+        "en": "The workflow stopped because the event has no readable time for its delay step.",
+        "tr": "Workflow, olayda bekle adımı için okunabilir bir zaman olmadığı için durdu."
+      }
+    },
+    {
+      "id": "workflow_run.route_unavailable",
+      "reason": "route_unavailable",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-13",
+      "detail": [
+        "step"
+      ],
+      "description": {
+        "en": "Not sent because this step's route policy cannot be evaluated yet.",
+        "tr": "Bu adımın rota politikası henüz değerlendirilemediği için gönderilmedi."
+      }
+    },
+    {
+      "id": "workflow_run.step_unavailable",
+      "reason": "step_unavailable",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-8",
+      "detail": [
+        "step",
+        "type"
+      ],
+      "description": {
+        "en": "This workflow step was skipped because its step type is not available yet.",
+        "tr": "Bu workflow adımı, adım türü henüz kullanılamadığı için atlandı."
       }
     }
   ]

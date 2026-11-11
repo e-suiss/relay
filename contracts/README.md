@@ -51,3 +51,4 @@ contracts/
 1. Edit the YAML; keep field names, codes and identifiers consistent across files.
 2. Within a dated version only additions are allowed; removals, renames and meaning changes need a new version.
 3. Run the contract checks in CI; they compare against `main` and stop breaking changes.
+4. A breaking change that was decided on purpose is listed, one change per line, in `openapi/breaking-accepted.txt` in the same pull request; the check skips only the listed changes.

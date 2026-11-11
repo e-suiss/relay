@@ -45,7 +45,15 @@ defmodule Relay.Templates.PublishGate do
   @empty_schema %{"type" => "object", "properties" => %{}}
   @helpers ["legal_footer", "unsubscribe_url"]
   @layout_helpers ["legal_footer", "unsubscribe_url", "content_for_layout"]
-  @not_required ["brand", "recipient", "links", "partial", "legal_footer", "unsubscribe_url"]
+  @not_required [
+    "brand",
+    "recipient",
+    "links",
+    "digest",
+    "partial",
+    "legal_footer",
+    "unsubscribe_url"
+  ]
   @sms_segments 1
   @sms_samples ["max", "turkish"]
   @lint_sample "max"

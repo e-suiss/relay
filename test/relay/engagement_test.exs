@@ -75,6 +75,7 @@ defmodule Relay.EngagementTest do
       end
 
       third = %{scope: scope, delivery_id: id, link: 3}
+
       assert {:ok, {_result, :likely_bot, "burst"}} =
                Relay.Engagement.record_click(third, request())
     end

@@ -863,6 +863,7 @@ defmodule Relay.Channels do
   @spec email_tracking(map(), %{String.t() => term()}) :: Tracking.plan()
   def email_tracking(delivery, settings) do
     category = delivery["category_key"] || delivery["category"]
+
     message = %{
       class: delivery["message_class"] || "",
       security_subtype: delivery["security_subtype"]

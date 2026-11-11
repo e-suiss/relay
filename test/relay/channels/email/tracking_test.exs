@@ -62,6 +62,7 @@ defmodule Relay.Channels.Email.TrackingTest do
 
       assert decoded.scope == scope()
       assert decoded.delivery_id == @delivery
+
       assert {:ok, %{link: 2, url: "http://b.example"}} =
                Tracking.read(second, :click, fn _scope -> mac() end)
     end

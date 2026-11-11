@@ -48,6 +48,7 @@ defmodule Relay.Channels.Email.ClickSignalsTest do
                {:human, nil}
 
       stale = [{1, @sent + 10_000}, {2, @sent + 20_000}]
+
       assert {:human, nil} =
                ClickSignals.classify(signals(), request(), 3, history(clicks: stale))
     end

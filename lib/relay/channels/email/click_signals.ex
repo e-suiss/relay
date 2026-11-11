@@ -129,8 +129,8 @@ defmodule Relay.Channels.Email.ClickSignals do
          {n, ""} <- Integer.parse(size),
          network = bits(network),
          true <- bit_size(network) == bit_size(address) and n <= bit_size(address) do
-      <<prefix::bitstring-size(n), _rest::bitstring>> = network
-      <<own::bitstring-size(n), _tail::bitstring>> = address
+      <<prefix::bitstring-size(^n), _rest::bitstring>> = network
+      <<own::bitstring-size(^n), _tail::bitstring>> = address
       own == prefix
     else
       _other -> false

@@ -226,5 +226,11 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "WF-63: the committed relay_fn.delivery_open is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit, and gains its step-keyed overload; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261214700100_create_category_density_functions.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WF-30, PC-57 (1): committed relay_fn category functions are dropped for their new signature with the density threshold as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   }
 ]

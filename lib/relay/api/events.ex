@@ -891,7 +891,10 @@ defmodule Relay.Api.Events do
         {:ok, [], nil}
 
       {:ok, id} ->
-        with {:ok, decisions} <- pinned(Templates.pin(id, plan), p, notification_id, id, result),
+        hold = hold_input(p, notification_id, row, step, id)
+        pin = Templates.pin(id, plan)
+
+        with {:ok, decisions} <- pinned(pin, p, {notification_id, hold}, id, result),
              do: {:ok, decisions, id}
 
       {:error, error} ->
@@ -899,11 +902,33 @@ defmodule Relay.Api.Events do
     end
   end
 
-  defp pinned(:pinned, p, notification_id, id, result),
-    do: after_open(p, notification_id, id, result)
+  # PC-46
+  # PC-50
+  # WF-30
+  defp pinned(:pinned, p, {notification_id, hold}, id, result) do
+    case Live.hold(p.scope, hold, result) do
+      {:held, deferral} ->
+        _ = Live.record(id, deferral)
+        _ = KillSwitch.at_acceptance(id)
+        {:ok, []}
+
+      :none ->
+        after_open(p, notification_id, id, result)
+    end
+  end
 
   defp pinned(_not_pinned, _p, _notification_id, _id, _result),
     do: {:error, unavailable("the render plan could not be pinned")}
+
+  defp hold_input(p, notification_id, row, step, delivery_id) do
+    %{
+      delivery_id: delivery_id,
+      notification_id: notification_id,
+      recipient_id: row["id"],
+      channel: Map.fetch!(@channels, step.channel),
+      category: p.policy
+    }
+  end
 
   defp after_open(p, notification_id, id, {:send, _info} = result) do
     _ = Live.record(id, result)

@@ -667,7 +667,9 @@ defmodule Relay.Workflow do
   defp jsonable(value), do: value
 
   # WF-29
-  @doc "The digest render data of a delivery that a run opened with its step's `digest_template` after a window of two or more activities fired, inside the caller's scoped transaction; `nil` for any other delivery."
+  # PC-46
+  # WF-30
+  @doc "The digest render data of a delivery, inside the caller's scoped transaction: for a delivery that a run opened with its step's `digest_template` after a window of two or more activities fired, the step's render; for a delivery that anchors a fired window of the policy lattice of two or more activities (density, quiet hours, frequency), that window's render; `nil` for any other delivery."
   @spec digest_render(Relay.Id.t()) :: map() | nil
   def digest_render(delivery_id) do
     with %{"step_cursor" => %{"digest" => %{"kind" => "digest", "step" => key}}} = run <-
@@ -679,9 +681,12 @@ defmodule Relay.Workflow do
            end) do
       run["step_results"][key]["render"]
     else
-      _none -> nil
+      _none -> delivery_id |> Digest.held_render() |> jsonable_render()
     end
   end
+
+  defp jsonable_render(nil), do: nil
+  defp jsonable_render(render), do: jsonable(render)
 
   # WF-43
   # TN-8
@@ -989,6 +994,12 @@ defmodule Relay.Workflow do
   @spec digest_quiet_hours(Scope.t(), map()) ::
           {:ok, :not_applicable | Digest.added()} | {:error, Relay.Error.t()}
   defdelegate digest_quiet_hours(scope, attrs), to: Digest, as: :quiet_hours
+
+  # PC-50
+  # PC-58 (6)
+  @doc "Holds a capped delivery whose frequency fate is `digest` in the window of its category and channel; see `Relay.Workflow.Digest.frequency/2`."
+  @spec digest_frequency(Scope.t(), map()) :: {:ok, Digest.added()} | {:error, Relay.Error.t()}
+  defdelegate digest_frequency(scope, attrs), to: Digest, as: :frequency
 
   # T-24
   # TN-8

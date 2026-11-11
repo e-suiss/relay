@@ -4,7 +4,7 @@ defmodule Relay.Api.Recurrences do
 
   `POST /v1/recurrences` defines a rule that sends a published workflow to one subscriber (`subscriber_id`, the tenant's external id) or to one topic (`topic`) on the occurrences of an RRULE subset from a local `dtstart` (`Relay.Workflow.RRule`). The request is checked outside any transaction: the workflow must be published, `data` must match its event schema and fit `event.max_data_bytes`, the rule must have an occurrence after now. `data` is sealed under the subscriber's `recipient_profile` key, so erasing the subscriber shreds it, and a topic rule's under the tenant data key; it is never shown again. The rule, its first occurrence and its timer job commit with the idempotency claim; a tenant environment holds at most `recurrence.max_active_per_environment` active rules (`422 recurrence_limit_reached`). `POST /v1/recurrences/{id}/cancel` stops every later occurrence; nothing is deleted.
 
-  An occurrence is fired by its timer (`Relay.Api.Recurrences.Timer`), by the virtual clock of a `test` scope (`run_due/1`) or by the missed-timer sweep (`Relay.Api.Recurrences.Sweep`). The due occurrence goes through the same path as `POST /v1/events` (`Relay.Api.Events.prepare/3` and `accept/2`) with the workflow version published at that moment (WF-49): the subscriber is the event's one recipient, the idempotency key is the rule and the occurrence instant (`RECURRENCE` endpoint) and the dedup key is `recurrence:<rule>:<instant>`, so a timer that runs twice opens one event. The occurrence record, the rule's next occurrence and its next timer commit in the event's transaction. Missed occurrences are recorded with `recurrence.missed` (WF-61). A topic rule's occurrence is recorded skipped with `recurrence.topic_unavailable` until topic fan-out exists. While the tenant is suspended the timer waits and fires again every five minutes, so after the suspension ends the missed rule applies (TN-10). An occurrence the send path refuses (an unpublished or archived workflow, data that no longer matches the schema, an exhausted quota) is recorded `failed` with the error code, and the rule goes on. A retryable refusal (overload, an unavailable store) retries the timer. A rule whose subscriber was erased is cancelled with `subject_erasure` at its next timer (OP-24).
+  An occurrence is fired by its timer (`Relay.Api.Recurrences.Timer`), by the virtual clock of a `test` scope (`run_due/1`) or by the missed-timer sweep (`Relay.Api.Recurrences.Sweep`). The due occurrence goes through the same path as `POST /v1/events` (`Relay.Api.Events.prepare/3` and `accept/2`) with the workflow version published at that moment (WF-49): the subscriber is the event's one recipient, the idempotency key is the rule and the occurrence instant (`RECURRENCE` endpoint) and the dedup key is `recurrence:<rule>:<instant>`, so a timer that runs twice opens one event. The occurrence record, the rule's next occurrence and its next timer commit in the event's transaction. Missed occurrences are recorded with `recurrence.missed` (WF-61). A topic rule's occurrence is an event to the topic, which the send path expands into the topic's frozen audience (WF-52, `Relay.Topics.expand/2`); an audience without subscribers is accepted and recorded with `audience.no_subscribers` (WF-53), and an audience above the event's recipient limit is recorded skipped with `recurrence.audience_too_large` (API-35). While the tenant is suspended the timer waits and fires again every five minutes, so after the suspension ends the missed rule applies (TN-10). An occurrence the send path refuses (an unpublished or archived workflow, data that no longer matches the schema, an exhausted quota) is recorded `failed` with the error code, and the rule goes on. A retryable refusal (overload, an unavailable store) retries the timer. A rule whose subscriber was erased is cancelled with `subject_erasure` at its next timer (OP-24).
   """
 
   alias Relay.Api.ErrorCatalog
@@ -23,7 +23,7 @@ defmodule Relay.Api.Recurrences do
   @data_bytes Relay.Limits.fetch!(["event", "max_data_bytes"])
   @due_batch 100
   @sweep_min_age_ms 60_000
-  @topic_rule "recurrence.topic_unavailable"
+  @audience_rule "recurrence.audience_too_large"
   @missed_rule "recurrence.missed"
   @suspended_snooze_s 300
   @lanes [:l1, :l2, :l3]
@@ -253,9 +253,6 @@ defmodule Relay.Api.Recurrences do
 
   defp run(scope, %{send: nil} = due), do: record(scope, due, [])
 
-  defp run(scope, %{row: %{"target_kind" => "topic"}} = due),
-    do: record(scope, due, [skipped(due.send, @topic_rule)])
-
   defp run(scope, due) do
     case event_body(scope, due) do
       {:ok, body} -> deliver(scope, due, body)
@@ -304,6 +301,11 @@ defmodule Relay.Api.Recurrences do
   # TN-10
   defp refused(_scope, _due, %Relay.Error{code: :auth_tenant_suspended}),
     do: {:snooze, @suspended_snooze_s}
+
+  # WF-52
+  # API-35
+  defp refused(scope, due, %Relay.Error{code: :audience_too_large}),
+    do: record(scope, due, [skipped(due.send, @audience_rule)])
 
   defp refused(scope, due, %Relay.Error{code: code} = error) do
     case ErrorCatalog.fetch(code) do
@@ -359,11 +361,16 @@ defmodule Relay.Api.Recurrences do
   defp event_body(scope, due) do
     row = due.row
 
-    with {:ok, external_id} <- recipient(scope, row),
+    with {:ok, target} <- recipient(scope, row),
          {:ok, data} <- open(scope, row) do
-      {:ok, %{"workflow" => row["workflow_key"], "to" => [external_id], "data" => data}}
+      {:ok, %{"workflow" => row["workflow_key"], "to" => [target], "data" => data}}
     end
   end
+
+  # WF-48
+  # WF-52
+  defp recipient(_scope, %{"target_kind" => "topic", "topic_key" => key}),
+    do: {:ok, %{"topic" => key}}
 
   defp recipient(scope, %{"recipient_id" => recipient_id}) do
     case Relay.Subscribers.external_id(scope, recipient_id) do

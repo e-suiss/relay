@@ -3358,7 +3358,7 @@ FrequencyFate:
     - defer
     - digest
     - inbox_only
-  description: "What happens to a notification over the frequency limit. Class defaults: marketing drop, operational defer, social digest."
+  description: "What happens to a notification over the frequency limit. Class defaults: marketing drop, operational defer, social digest. digest collects the capped deliveries of a subscriber on the category and channel in one window released when a slot frees; when it fires, the first delivery goes with the digest data and the others are recorded skipped with digest.folded (PC-58 (6))."
 SuppressionState:
   type: string
   enum:
@@ -3414,6 +3414,49 @@ CategoryFrequency:
     fate:
       "$ref": "#/FrequencyFate"
   additionalProperties: false
+CategoryDensity:
+  type: object
+  description: "Density threshold of a category (WF-30): once a subscriber (per recipient) or one of its device channels (per device: push and web_push are counted per channel, other channels per subscriber) received limit deliveries of the category within window, the next deliveries are collected into a digest window as long as window, released as one delivery with the digest data; the others are recorded skipped with digest.folded. Only social, marketing and operational categories (operational only with digest_allowed) have one."
+  x-relay-choice: true
+  x-relay-choice-note: "The spec sets no bounds and no window for the density digest: limit 1 to 1000, window PT1M to PT24H, per defaults to recipient, and the digest window is a fixed window of the threshold's length."
+  required:
+    - limit
+    - window
+    - per
+  properties:
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 1000
+    window:
+      description: "ISO 8601 duration from PT1M to PT24H."
+      "$ref": "#/Duration"
+    per:
+      type: string
+      enum:
+        - recipient
+        - device
+  additionalProperties: false
+CategoryDensityInput:
+  type: object
+  description: "Density threshold of a category; per defaults to recipient."
+  required:
+    - limit
+    - window
+  properties:
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 1000
+    window:
+      description: "ISO 8601 duration from PT1M to PT24H."
+      "$ref": "#/Duration"
+    per:
+      type: string
+      enum:
+        - recipient
+        - device
+  additionalProperties: false
 Category:
   type: object
   description: "Tenant category. A workflow names its category, and the workflow's message class must be the category's class."
@@ -3430,6 +3473,7 @@ Category:
     - frequency
     - digest_allowed
     - default_route
+    - density
     - state
     - builtin
     - version
@@ -3474,6 +3518,11 @@ Category:
       description: "Key of the route a channel step of this category's workflows sends through when the step names neither a route nor a channel. A step's own route or channel wins over it."
       oneOf:
         - "$ref": "#/RouteKey"
+        - type: "null"
+    density:
+      description: "Density threshold (WF-30); null for none."
+      oneOf:
+        - "$ref": "#/CategoryDensity"
         - type: "null"
     state:
       "$ref": "#/CategoryState"
@@ -3534,6 +3583,9 @@ CategoryCreate:
     default_route:
       description: "Key of an active route; an unknown key is 422 validation_failed at /default_route (not_found), an archived route not_allowed."
       "$ref": "#/RouteKey"
+    density:
+      description: "Density threshold (WF-30); a class without one is 422 validation_failed at /density (not_allowed)."
+      "$ref": "#/CategoryDensityInput"
   additionalProperties: false
 CategoryPatch:
   type: object
@@ -3565,6 +3617,11 @@ CategoryPatch:
       description: "Key of an active route; null removes the default route."
       oneOf:
         - "$ref": "#/RouteKey"
+        - type: "null"
+    density:
+      description: "Written as a whole object; null removes the threshold."
+      oneOf:
+        - "$ref": "#/CategoryDensityInput"
         - type: "null"
   additionalProperties: false
 CategorySubtenantSetting:
@@ -8938,7 +8995,7 @@ RecurrenceCreate:
   x-relay-choice-note: "Body shape chosen by the contract (C-52 names the concept schedule; the resource is recurrences)."
 RecurrenceOccurrence:
   type: object
-  description: "A recorded occurrence of a rule: sent with its event; missed (rule_id recurrence.missed) when it was due during an outage and was not the last due one or was more than PT1H late (WF-61); skipped with its rule_id (recurrence.topic_unavailable until topic fan-out exists, tenant.suspended); failed with the error code the send path answered."
+  description: "A recorded occurrence of a rule: sent with its event; missed (rule_id recurrence.missed) when it was due during an outage and was not the last due one or was more than PT1H late (WF-61); skipped with its rule_id (recurrence.audience_too_large when a topic's audience is above an event's recipient limit, tenant.suspended); failed with the error code the send path answered."
   required:
     - occurrence_at
     - outcome

@@ -76,6 +76,7 @@ defmodule Relay.Policy.Live.Inputs do
       channel_defaults: %{},
       frequency: nil,
       digest_allowed: false,
+      density: nil,
       subtenant_override: false,
       default_expires_ms: nil
     }
@@ -92,6 +93,7 @@ defmodule Relay.Policy.Live.Inputs do
       channel_defaults: Map.merge(tenant_defaults, defaults(row["setting_channel_defaults"])),
       frequency: frequency(row),
       digest_allowed: row["digest_allowed"],
+      density: row["density"],
       subtenant_override: row["setting_id"] != nil,
       default_expires_ms: row["setting_default_expires_ms"] || row["default_expires_ms"]
     }

@@ -7,6 +7,8 @@ defmodule Relay.Ingest.EventStore do
   alias Relay.Repo
 
   @status "relay_private.delivery_status(d)"
+  @decision_rule "COALESCE(e.detail ->> 'rule_id', e.detail -> 'effect' ->> 'failure_rule_id')"
+  @decision_reason "COALESCE(e.detail ->> 'reason', e.detail -> 'effect' ->> 'failure_reason', e.detail -> 'effect' ->> 'failure_kind')"
 
   @notification """
   SELECT n.id, n.event_id, n.recipient_id, r.kind AS recipient_kind, n.subtenant_id,
@@ -520,10 +522,41 @@ defmodule Relay.Ingest.EventStore do
       Repo.scoped_query!(
         """
         SELECT e.id, e.actor, e.event_type, e.attempt_no, e.raw_code, e.provider, e.occurred_at,
-          e.received_at
+          e.received_at, e.projection_result, #{@decision_reason} AS reason,
+          #{@decision_rule} AS rule_id
         FROM relay.delivery_events e WHERE e.delivery_id = $1 ORDER BY e.received_at, e.id
         """,
         [delivery_id]
+      )
+    )
+  end
+
+  # DS-28
+  @doc "Reads the deliveries of the notifications with their external status, reason and rule, the lattice decision and every rule decision their ledger recorded, in opening order."
+  @spec decision_chains([Relay.Id.t()]) :: [map()]
+  def decision_chains([]), do: []
+
+  def decision_chains(notification_ids) do
+    maps(
+      Repo.scoped_query!(
+        """
+        SELECT d.id, d.notification_id, d.channel, #{@status} AS status, r.reason, r.rule_id,
+          d.decision, d.deferred_until, d.paused_at,
+          COALESCE((SELECT jsonb_agg(jsonb_build_object('type', e.event_type,
+              'rule_id', #{@decision_rule}, 'reason', #{@decision_reason},
+              'deferred_until', e.detail ->> 'deferred_until',
+              'detail', e.detail - 'effect' - 'reason' - 'rule_id' - 'deferred_until',
+              'occurred_at', e.occurred_at) ORDER BY e.received_at, e.id)
+            FROM relay.delivery_events e
+            WHERE e.tenant_id = d.tenant_id AND e.environment = d.environment
+              AND e.delivery_id = d.id AND e.actor = 'relay' AND #{@decision_rule} IS NOT NULL),
+            '[]'::jsonb) AS decisions
+        FROM relay.deliveries d
+        CROSS JOIN LATERAL relay_private.delivery_reason(d) r
+        WHERE d.notification_id = ANY ($1)
+        ORDER BY d.created_at, d.id
+        """,
+        [notification_ids]
       )
     )
   end

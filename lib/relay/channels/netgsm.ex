@@ -7,7 +7,7 @@ defmodule Relay.Channels.Netgsm do
     * The encoding is named on every send (CH-48): `GSM7_TR` is `encoding: "TR"`; Netgsm has no UCS-2 value, so its catalogue lists only `GSM7` and `GSM7_TR`, and while its Turkish single shift is unverified Turkish text is refused before the call (CH-75).
     * A commercial (`marketing`) message is sent with the İYS filter `11`; any other with `0`.
     * The validity end (`stopdate`, Turkish time, `ddMMyyyyHHmm`) follows the channel time to live (CH-9).
-    * A failure answers with a code in the body: `send:<code>`, `otp:<code>`, or `http:<status>` without one. A delivery report row's status is `dlr:<status>` (`report/1`); the reconciliation reads the report of a send by its `jobid` (`status/1`, DS-48).
+    * A failure answers with a code in the body: `send:<code>`, `otp:<code>`, or `http:<status>` without one. A delivery report row's status is `dlr:<status>` (`report/1`); the reconciliation reads the report of a send by its `jobid` (`delivery_status/1`, DS-48).
     * The settings check asks the balance (`/balance`) with the account's user code and password: Netgsm's code `30` (wrong credentials or no API access) is a credential mismatch (CH-14, CH-52).
   """
 
@@ -138,7 +138,7 @@ defmodule Relay.Channels.Netgsm do
   # DS-22
   # DS-48
   @impl Relay.Channels.Adapter
-  def status(%Request{provider_message_id: jobid} = request)
+  def delivery_status(%Request{provider_message_id: jobid} = request)
       when is_binary(jobid) and jobid != "" do
     user = to_string(ProviderHttp.setting(request, "usercode"))
     auth = {:basic, user <> ":" <> ProviderHttp.secret(request)}
@@ -154,7 +154,7 @@ defmodule Relay.Channels.Netgsm do
     end
   end
 
-  def status(_request), do: :unavailable
+  def delivery_status(_request), do: :unavailable
 
   defp decoded(body) when is_binary(body) do
     case Jason.decode(body) do
@@ -187,7 +187,7 @@ defmodule Relay.Channels.Netgsm do
   end
 
   # CH-10
-  @doc "Reads one row of Netgsm's delivery report (`/sms/rest/v2/report`, `POST` with the `jobids` of the sends, also the reconciliation `status/1`): status `1` is delivered, `0` pending and any other a failure `dlr:<status>`."
+  @doc "Reads one row of Netgsm's delivery report (`/sms/rest/v2/report`, `POST` with the `jobids` of the sends, also the reconciliation `delivery_status/1`): status `1` is delivered, `0` pending and any other a failure `dlr:<status>`."
   @spec report(map()) :: Adapter.report()
   def report(%{} = row) do
     result =

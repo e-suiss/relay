@@ -15,7 +15,7 @@ defmodule Relay.Channels.Adapter do
 
   `c:reports/3` reads a provider's delivery report webhook: it verifies the raw body first with the adapter's declared inbound verification (`Relay.Channels.Inbound`, T-40), then turns each report into a `t:report/0`, whose result is `{:delivered, info}`, `{:rejected, raw}` with the provider code of the adapter's `errors.json`, or `:pending` for an intermediate state. The core normalizes a report with `Relay.Channels.normalize_report/4`; the adapter decides nothing about it.
 
-  `c:status/1` and `c:report_events/1` serve the periodic channel reconciliation (DS-22, DS-48). `c:status/1` asks the provider's status or report endpoint about one sent message, by the request's idempotency key or its `provider_message_id`, and returns the message's reports as `c:reports/3` reads them (a pending one included), `:not_received` when the provider has no such message, or `:unavailable`. `c:report_events/1` reads the e-mail events of an account between `from` and `to` from the provider's event list API, or `:unavailable`. Neither decides anything: a "not delivered" answer is recorded as evidence and never resends (INV-9, OP-41).
+  `c:delivery_status/1` and `c:report_events/1` serve the periodic channel reconciliation (DS-22, DS-48). `c:delivery_status/1` asks the provider's status or report endpoint about one sent message, by the request's idempotency key or its `provider_message_id`, and returns the message's reports as `c:reports/3` reads them (a pending one included), `:not_received` when the provider has no such message, or `:unavailable`. `c:report_events/1` reads the e-mail events of an account between `from` and `to` from the provider's event list API, or `:unavailable`. Neither decides anything: a "not delivered" answer is recorded as evidence and never resends (INV-9, OP-41).
 
   `c:check_settings/1` reads the provider's own settings or status of an account through one cheap provider call, so a panel setting that silently overrides what Relay sends is caught (CH-52): it returns `:ok`, `{:mismatch, details}` with the `"setting"` that does not hold and, when known, its `"expected"` and `"actual"` values, or `{:error, reason}` when the provider could not be asked. A rejected credential is a mismatch of the `"credentials"` setting. An adapter without it cannot be verified by a check (CH-14).
 
@@ -97,7 +97,7 @@ defmodule Relay.Channels.Adapter do
               {:ok, [report()]} | {:error, atom()}
 
   @doc "Asks the provider's status endpoint about a sent message for reconciliation and reads its reports."
-  @callback status(Relay.Channels.Request.t()) :: {:ok, [report()]} | :not_received | :unavailable
+  @callback delivery_status(Relay.Channels.Request.t()) :: {:ok, [report()]} | :not_received | :unavailable
 
   @doc "Reads the e-mail events of an account (`account`, its `credentials`, the call's `timeout_ms`) between `from` and `to` from the provider's event list API."
   @callback report_events(reconcile()) :: {:ok, [Relay.Channels.Email.Event.t()]} | :unavailable
@@ -109,6 +109,6 @@ defmodule Relay.Channels.Adapter do
                       decode: 1,
                       reports: 3,
                       check_settings: 1,
-                      status: 1,
+                      delivery_status: 1,
                       report_events: 1
 end

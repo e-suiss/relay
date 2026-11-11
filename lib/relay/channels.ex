@@ -523,12 +523,12 @@ defmodule Relay.Channels do
 
   # DS-22
   # DS-48
-  @doc "Asks the status endpoint of a request's provider about a sent message for reconciliation (`c:Relay.Channels.Adapter.status/1`); `:unsupported` when the provider has no registered adapter with a status query."
+  @doc "Asks the status endpoint of a request's provider about a sent message for reconciliation (`c:Relay.Channels.Adapter.delivery_status/1`); `:unsupported` when the provider has no registered adapter with a status query."
   @spec reconcile_status(Request.t()) ::
           {:ok, [Adapter.report()]} | :not_received | :unavailable | :unsupported
   def reconcile_status(%Request{provider: provider} = request) do
-    case reconciler(provider, :status) do
-      {:ok, adapter} -> adapter.status(request)
+    case reconciler(provider, :delivery_status) do
+      {:ok, adapter} -> adapter.delivery_status(request)
       :unsupported -> :unsupported
     end
   end

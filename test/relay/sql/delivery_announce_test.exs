@@ -27,8 +27,10 @@ defmodule Relay.Sql.DeliveryAnnounceTest do
 
   defp started(notification, channel) do
     d = delivery!(notification, channel)
+
     ["opened", 1] =
       row("SELECT * FROM relay_fn.attempt_open($1, $2, NULL, NULL, $3)", [id(), d, "k"])
+
     "started" = one("SELECT relay_fn.attempt_start($1, 1)", [d])
     d
   end

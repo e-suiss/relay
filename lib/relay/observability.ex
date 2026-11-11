@@ -1,9 +1,12 @@
 defmodule Relay.Observability do
   @moduledoc """
-  The observability context: the SLO table, the performance budgets, the bounded tenant label of counters, the noisy neighbour shares and the VM system monitor. Other contexts emit `[:relay, ...]` telemetry events; this context turns the platform's own events (requests, jobs, breaker transitions, VM samples) into the events the metric definitions of `RelayWeb.Telemetry` export, and never reads tenant content.
+  The observability context: the SLO table, the performance budgets, the bounded tenant label of counters, the noisy neighbour shares, the VM system monitor and the `observability_rollup` task that counts the funnel and the SLIs from the ledger (`Relay.Observability.Rollup`). Other contexts emit `[:relay, ...]` telemetry events; this context turns the platform's own events (requests, jobs, breaker transitions, VM samples) into the events the metric definitions of `RelayWeb.Telemetry` export, and never reads tenant content.
   """
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Platform], exports: [Slo, Budget]
+  use Boundary,
+    top_level?: true,
+    deps: [Relay, Relay.Platform, Relay.Platform.Leadership],
+    exports: [Slo, Budget]
 
   alias Relay.Observability.Handlers
   alias Relay.Observability.TopTenants

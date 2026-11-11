@@ -63,6 +63,9 @@ defmodule RelayWeb.Router do
   # CH-62
   # WH-49
   scope "/inbound/v1", RelayWeb do
+    post "/providers/:provider_account_id", ProviderWebhookController, :create,
+      private: %{relay_operation: "receiveProviderWebhook"}
+
     post "/:channel/:tenant/:environment/:identity", InboundController, :create,
       private: %{relay_operation: "receiveMessagingInbound"}
   end

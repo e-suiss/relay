@@ -60,6 +60,24 @@ defmodule Relay.Channels.Live.Store do
     )
   end
 
+  # T-41
+  @doc "Reads the attempt counts of the deliveries among `ids` as a map of delivery identifier to attempt count; an unknown delivery is absent."
+  @spec delivery_attempts([Relay.Id.t()]) :: %{Relay.Id.t() => non_neg_integer()}
+  def delivery_attempts(ids) do
+    rows =
+      all(
+        "SELECT tenant_id, environment, id, attempt_count FROM relay.deliveries WHERE id = ANY($1::uuid[])",
+        [ids]
+      )
+
+    Map.new(rows, &{&1["id"], &1["attempt_count"]})
+  end
+
+  # T-15
+  @doc "Rolls the current scoped transaction back with `reason`."
+  @spec rollback(term()) :: no_return()
+  def rollback(reason), do: Repo.rollback(reason)
+
   # API-62
   # OP-51
   @doc "Reads the tenant-level settings among `keys` as a map of key to value."

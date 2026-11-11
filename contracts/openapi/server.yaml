@@ -12696,6 +12696,83 @@ paths:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The spec has inbound interactions acknowledged fast, verified and deduplicated (CH-62, WH-49) but names no path; the path and the answer bodies are chosen by the contract."
+  "/inbound/v1/providers/{provider_account_id}":
+    post:
+      operationId: receiveProviderWebhook
+      tags:
+        - webhooks
+      summary: Receive an SMS or e-mail provider webhook
+      description: "The delivery report and event webhook of an SMS or e-mail provider account: Twilio status callbacks, Infobip delivery reports, Verimor reports, Postmark, SendGrid and Mailgun events. Not a tenant API and outside the /v1 request rules. The path names the account; its tenant and environment come from the account. The request is verified on the raw body before it is read, with the secret the account's settings.webhook_secret_ref_id names: Twilio's X-Twilio-Signature over this URL, Infobip's HMAC-SHA256, Verimor's token query parameter, Postmark's basic credentials, SendGrid's signed Event Webhook (ECDSA) and Mailgun's signature. Each provider event is committed as a receipt unique by provider event identifier, with its processing job, before the 200; a repeated event is acknowledged and counted, not processed again. Events are written to the delivery ledger from the queue, in batches, through the provider's evidence table."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/ProviderAccountId"
+        - name: token
+          in: query
+          required: false
+          description: "The callback token of a provider that signs nothing (Verimor)."
+          schema:
+            type: string
+            maxLength: 512
+        - name: key
+          in: query
+          required: false
+          description: "The provider idempotency key Relay put in a Twilio StatusCallback URL."
+          schema:
+            type: string
+            maxLength: 512
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/ProviderWebhookRequest"
+          "application/x-www-form-urlencoded":
+            schema:
+              "$ref": "./components/schemas.yaml#/ProviderWebhookRequest"
+      security: []
+      responses:
+        "200":
+          description: "Received: every event of the request is a committed receipt, or was one already."
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderWebhookAnswer"
+        "400":
+          description: The verified body is not one the provider sends.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderWebhookAnswer"
+        "401":
+          description: The request did not verify, or the account names no verification secret.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderWebhookAnswer"
+        "404":
+          description: No active SMS or e-mail provider account has this id.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderWebhookAnswer"
+        "413":
+          description: The body is larger than 1 MiB.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderWebhookAnswer"
+        "503":
+          description: The receipts could not be committed; the provider sends the request again.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderWebhookAnswer"
+      x-relay-weight: 0
+      x-relay-weight-note: "Provider inbound channel; not counted against tenant limits."
+      x-relay-idempotency: derived
+      x-relay-step-up: false
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: "The spec has provider webhooks committed as receipts before a fast 2xx, verified per provider on the raw body and deduplicated by provider event (WH-49, DS-22) but names no path; one URL per provider account, the secret reference and the answer bodies are chosen by the contract."
   "/v1/whatsapp/templates":
     get:
       operationId: listWhatsappTemplates

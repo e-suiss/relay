@@ -6547,6 +6547,12 @@ MessagingInboundRequest:
 MessagingInboundAnswer:
   type: object
   description: "What the provider expects in return, or an error name."
+ProviderWebhookRequest:
+  type: object
+  description: "An SMS or e-mail provider's own webhook body; Relay reads it only after the request verified on the raw body."
+ProviderWebhookAnswer:
+  type: object
+  description: "An empty object, or an error name."
 
 Id_wtp:
   type: string

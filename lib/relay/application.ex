@@ -13,6 +13,7 @@ defmodule Relay.Application do
       Relay.Keys.Eviction,
       Relay.Datasets,
       Relay.Channels,
+      Relay.Channels.Live,
       Relay.Delivery,
       Relay.Connectors,
       Relay.Templates,
@@ -51,6 +52,7 @@ defmodule Relay.Application do
         Relay.Keys.children() ++
         Relay.Platform.children() ++
         Relay.Channels.children() ++
+        Relay.Channels.Live.children() ++
         Relay.Tenancy.children() ++
         Relay.Tenancy.KillSwitch.children() ++
         Relay.Access.children() ++

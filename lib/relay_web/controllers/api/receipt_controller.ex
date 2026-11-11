@@ -6,6 +6,8 @@ defmodule RelayWeb.Api.ReceiptController do
   alias RelayWeb.Api.Response
   alias RelayWeb.Api.Work
 
+  @time %{errors: [%{pointer: "/occurred_at", code: "invalid_format", detail: "RFC 3339"}]}
+
   # DS-13
   # DS-8
   @spec create_mine(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -52,7 +54,7 @@ defmodule RelayWeb.Api.ReceiptController do
         {:ok, at}
 
       _other ->
-        {:error, Relay.Api.Gate.field_error("/occurred_at", "invalid_format", "RFC 3339")}
+        {:error, Relay.Error.new(:validation_failed, "the request breaks a field rule", @time)}
     end
   end
 end

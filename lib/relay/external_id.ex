@@ -64,7 +64,8 @@ defmodule Relay.ExternalId do
     {"trc", "test_recipients"},
     {"piv", "provider_invoices"},
     {"exp", "exports"},
-    {"emr", "email_reports"}
+    {"emr", "email_reports"},
+    {"rec", "recurrences"}
   ]
   @by_prefix Map.new(@tables)
 

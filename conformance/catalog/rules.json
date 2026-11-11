@@ -6512,6 +6512,22 @@
   },
   {
     "acceptance": "pending",
+    "id": "DS-50",
+    "section": "§14",
+    "status": "policy_default",
+    "title": "Tenant and channel x provider DLR window bounds",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-51",
+    "section": "§14",
+    "status": "engineering_assumption",
+    "title": "WhatsApp and voice DLR windows as an engineering assumption",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
     "id": "DS-53",
     "section": "§14",
     "status": "frozen_technical",

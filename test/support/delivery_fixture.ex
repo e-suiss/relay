@@ -9,7 +9,7 @@ defmodule RelayTest.DeliveryFixture do
   alias RelayTest.TenantFixture
 
   @doc """
-  Creates a tenant, a recipient and an accepted notification with one delivery to send. `:notification` and `:delivery` hold attributes merged into the notification and the delivery, such as `expires_at` or `provider`.
+  Creates a tenant, a recipient and an accepted notification with one delivery to send. `:notification` and `:delivery` hold attributes merged into the notification and the delivery, such as `expires_at` or `provider`; `:environment` is `:live` (the default) or `:test`.
   """
   @spec sendable!(keyword()) :: %{
           scope: Relay.Scope.t(),
@@ -19,8 +19,9 @@ defmodule RelayTest.DeliveryFixture do
         }
   def sendable!(opts \\ []) do
     tenant = TenantFixture.tenant!()
-    keys = TenantFixture.keys!(tenant.live)
-    recipient = TenantFixture.recipient!(tenant.live, keys)
+    scope = Map.fetch!(tenant, Keyword.get(opts, :environment, :live))
+    keys = TenantFixture.keys!(scope)
+    recipient = TenantFixture.recipient!(scope, keys)
     delivery = Map.merge(TenantFixture.delivery(), Map.new(Keyword.get(opts, :delivery, [])))
 
     notification =
@@ -30,11 +31,11 @@ defmodule RelayTest.DeliveryFixture do
 
     {:ok, _} =
       Relay.Ingest.accept(
-        tenant.live,
+        scope,
         TenantFixture.accept_request([notification], data_key: keys.data)
       )
 
-    %{scope: tenant.live, keys: keys, delivery_id: delivery.id, notification_id: notification.id}
+    %{scope: scope, keys: keys, delivery_id: delivery.id, notification_id: notification.id}
   end
 
   @doc "Opens and starts the next attempt of a delivery and returns its number; `key` is its provider idempotency key."

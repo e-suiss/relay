@@ -507,6 +507,30 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "digest_windows",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers, a key digest, timing and counts only",
+      "subject_erasure": "identifiers only; the activities' content stays in the event payloads, which the erasure covers"
+    },
+    {
+      "table": "digest_items",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers and an actor digest only",
+      "subject_erasure": "identifiers only; the activities' content stays in the event payloads, which the erasure covers"
+    },
+    {
+      "table": "throttle_counters",
+      "personal_columns": [],
+      "tenant_close": "row kept; a key digest, its window and counts only",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "throttle_hits",
+      "personal_columns": [],
+      "tenant_close": "row kept; digests and an outcome only",
+      "subject_erasure": "not subject data"
+    },
+    {
       "table": "test_recipients",
       "personal_columns": [],
       "tenant_close": "row kept; identifiers only",
@@ -541,6 +565,50 @@
       "personal_columns": [],
       "tenant_close": "row kept; the content is cleared when the export expires",
       "subject_erasure": "the CSV holds identifiers, codes and counts only and its content is cleared 7 days after it was written; row kept"
+    },
+    {
+      "table": "topics",
+      "personal_columns": [],
+      "tenant_close": "row kept; tenant keys only",
+      "subject_erasure": "not subject data; tenant topic keys only"
+    },
+    {
+      "table": "topic_subscriptions",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers only",
+      "subject_erasure": "identifiers only; the subject's subscriptions become removed when the subscriber is erased; row kept"
+    },
+    {
+      "table": "audiences",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers and counts only",
+      "subject_erasure": "not subject data; identifiers and counts only"
+    },
+    {
+      "table": "audience_members",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers only",
+      "subject_erasure": "recipient and topic identifiers only; no personal fields; row kept"
+    },
+    {
+      "table": "routes",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "recurrences",
+      "personal_columns": [
+        "data_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; row kept",
+      "subject_erasure": "a subscriber rule's data is sealed under the subject's recipient_profile key, so the erasure shreds it; the rule is cancelled with subject_erasure at its next timer and no later occurrence is sent; row kept"
+    },
+    {
+      "table": "recurrence_occurrences",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers, codes and times only; row kept"
     }
   ],
   "locations": [

@@ -1,4 +1,4 @@
-defmodule Relay.Repo.Migrations.RebuildReferenceCheckForWorkflowRuns do
+defmodule Relay.Repo.Migrations.RebuildReferenceCheckForDigestsAndThrottles do
   use Ecto.Migration
 
   @foreign_keys [
@@ -56,6 +56,16 @@ defmodule Relay.Repo.Migrations.RebuildReferenceCheckForWorkflowRuns do
      "tenant_id,environment,id"},
     {"devices", "devices_recipient_id_fkey", "tenant_id,environment,recipient_id", "recipients",
      "tenant_id,environment,id"},
+    {"digest_items", "digest_items_delivery_id_fkey", "tenant_id,environment,delivery_id",
+     "deliveries", "tenant_id,environment,id"},
+    {"digest_items", "digest_items_notification_id_fkey",
+     "tenant_id,environment,notification_id,recipient_id", "notifications",
+     "tenant_id,environment,id,recipient_id"},
+    {"digest_items", "digest_items_window_id_fkey",
+     "tenant_id,environment,window_id,recipient_id", "digest_windows",
+     "tenant_id,environment,id,recipient_id"},
+    {"digest_windows", "digest_windows_recipient_id_fkey", "tenant_id,environment,recipient_id",
+     "recipients", "tenant_id,environment,id"},
     {"devices", "devices_token_bidx_key_id_fkey", "tenant_id,environment,token_bidx_key_id",
      "blind_index_keys", "tenant_id,environment,id"},
     {"devices", "devices_token_key_id_fkey", "tenant_id,environment,token_key_id", "subject_keys",
@@ -208,6 +218,8 @@ defmodule Relay.Repo.Migrations.RebuildReferenceCheckForWorkflowRuns do
     {"templates", "templates_subtenant_id_fkey", "tenant_id,environment,subtenant_id",
      "subtenants", "tenant_id,environment,id"},
     {"tenant_suspensions", "tenant_suspensions_tenant_id_fkey", "tenant_id", "tenants", "id"},
+    {"throttle_hits", "throttle_hits_counter_id_fkey", "tenant_id,environment,counter_id",
+     "throttle_counters", "tenant_id,environment,id"},
     {"test_recipients", "test_recipients_device_id_fkey", "tenant_id,environment,device_id",
      "devices", "tenant_id,environment,id"},
     {"test_recipients", "test_recipients_recipient_id_fkey", "tenant_id,environment,recipient_id",
@@ -250,13 +262,6 @@ defmodule Relay.Repo.Migrations.RebuildReferenceCheckForWorkflowRuns do
     {"whatsapp_templates", "whatsapp_templates_provider_account_id_fkey",
      "tenant_id,environment,provider_account_id", "provider_accounts",
      "tenant_id,environment,id"},
-    {"workflow_runs", "workflow_runs_notification_id_fkey",
-     "tenant_id,environment,notification_id", "notifications", "tenant_id,environment,id"},
-    {"workflow_runs", "workflow_runs_workflow_id_fkey", "tenant_id,environment,workflow_id",
-     "workflows", "tenant_id,environment,id"},
-    {"workflow_runs", "workflow_runs_workflow_version_id_fkey",
-     "tenant_id,environment,workflow_version_id", "workflow_versions",
-     "tenant_id,environment,id"},
     {"workflow_versions", "workflow_versions_workflow_id_fkey",
      "tenant_id,environment,workflow_id", "workflows", "tenant_id,environment,id"},
     {"workflows", "workflows_published_version_id_fkey",
@@ -265,7 +270,8 @@ defmodule Relay.Repo.Migrations.RebuildReferenceCheckForWorkflowRuns do
   ]
 
   # OP-42
-  # WF-59 (5)
+  # WF-27
+  # WF-32
   # TN-12
   # TN-16
   def up do

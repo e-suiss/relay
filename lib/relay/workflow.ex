@@ -7,6 +7,10 @@ defmodule Relay.Workflow do
   Every workflow has one manager, `panel` or `code` (WF-4): a draft written through the panel (an operator actor) to a code-managed workflow may change only its text fields and the fields its definition lists in `controls`; changing the manager is an explicit, audited action (`set_manager/5`).
 
   Every notification of a workflow has one run (WF-59 (5), `Relay.Workflow.Runner`): `start_run/2` creates it at acceptance, in the accepting transaction, and advances it synchronously up to the first waiting step, opening the deliveries of the channel steps it reaches through the caller's opener. A waiting run is a row and one timer job (`Relay.Workflow.RunTimer`, WF-43); `wake/2` advances it later in its own transaction, with the opener of the configured resumer (`config :relay, Relay.Workflow, resumer: Module`, a module with `resume/2` that, outside any transaction, returns a function giving the step context and the opener inside the run's transaction). The missed-timer sweep (`Relay.Workflow.RunSweep`) wakes due runs whose timer job is missing. A run finishes on the version it started (WF-6). Cancelling an event, a notification or a cancellation key cancels its runs (`cancel_runs/1`).
+
+  Named routes (WF-13, WF-14) are unversioned `{key, name, tree}` records: a change applies to every new decision, and a category may name one as its default. `Relay.Workflow.Route` resolves the tree of a channel step and evaluates it.
+
+  Recurrence rules (`Relay.Workflow.Recurrence`, C-52, WF-48, WF-49) are definitions of one workflow sent to a subscriber or a topic on the occurrences of an RRULE subset (`Relay.Workflow.RRule`, WF-61); the rule's next occurrence is a row column with a timer, never a waiting message (WF-43).
   """
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
@@ -14,12 +18,19 @@ defmodule Relay.Workflow do
   alias Relay.Actor
   alias Relay.Scope
   alias Relay.Workflow.Condition
+  alias Relay.Workflow.ContentDedup
   alias Relay.Workflow.Definition
+  alias Relay.Workflow.Digest
   alias Relay.Workflow.PublishGate
+  alias Relay.Workflow.Recurrence
+  alias Relay.Workflow.RecurrenceStore
+  alias Relay.Workflow.Route
+  alias Relay.Workflow.RouteStore
   alias Relay.Workflow.Runner
   alias Relay.Workflow.RunStore
   alias Relay.Workflow.RunTimer
   alias Relay.Workflow.Store
+  alias Relay.Workflow.Throttle
 
   @gate %Actor{kind: :system, ref: "relay:publish_gate", on_behalf_of_ref: "relay"}
 
@@ -515,6 +526,284 @@ defmodule Relay.Workflow do
   @doc "The active workflows whose published version sends the template key in a channel step, inside the caller's scoped transaction: each with its `key`, `version_no` and `event_schema`."
   @spec using_template(String.t()) :: [map()]
   defdelegate using_template(template_key), to: Store
+
+  # WF-13
+  # WF-59 (4)
+  @doc "Creates a named route inside the caller's scoped transaction."
+  @spec create_route(Scope.t(), String.t(), String.t(), Route.tree(), Actor.t()) ::
+          {:created | :key_conflict | :tenant_inactive, Relay.Id.t() | nil, version()}
+  def create_route(%Scope{} = scope, key, name, tree, %Actor{} = actor) do
+    attrs = %{id: Relay.Id.generate(), key: key, name: name, tree: tree}
+    RouteStore.create(attrs, digest(scope, "route.created", key), actor)
+  end
+
+  # WF-14
+  @doc "Replaces the name and tree of a route inside the caller's scoped transaction; `expected_version` is the route's ETag version. The change applies to every decision made after it."
+  @spec replace_route(Scope.t(), String.t(), String.t(), Route.tree(), version(), Actor.t()) ::
+          {:replaced | :unchanged | :not_found | :archived | :version_conflict, version()}
+  def replace_route(%Scope{} = scope, key, name, tree, expected_version, %Actor{} = actor) do
+    digest = digest(scope, "route.replaced", key)
+    RouteStore.replace(key, %{name: name, tree: tree}, expected_version, digest, actor)
+  end
+
+  # WF-14
+  @doc "Archives a route inside the caller's scoped transaction; a route that an active category names as its default is `:in_use`."
+  @spec archive_route(Scope.t(), String.t(), Actor.t()) ::
+          {:archived | :already_archived | :in_use | :not_found, version()}
+  def archive_route(%Scope{} = scope, key, %Actor{} = actor),
+    do: RouteStore.archive(key, digest(scope, "route.archived", key), actor)
+
+  # WF-13
+  @doc "Reads a route by key in its own read transaction; `nil` when the key is unknown."
+  @spec get_route(Scope.t(), String.t()) :: result(map() | nil)
+  def get_route(%Scope{} = scope, key),
+    do: Store.in_scope(scope, fn _status -> RouteStore.get(key) end)
+
+  # WF-13
+  @doc "Reads a route by key inside the caller's scoped transaction; `nil` when the key is unknown."
+  @spec route(String.t()) :: map() | nil
+  defdelegate route(key), to: RouteStore, as: :get
+
+  # API-56
+  @doc "Lists routes newest first from a decoded cursor; at most `limit + 1` rows come back."
+  @spec list_routes(Scope.t(), map() | nil, pos_integer()) :: result([map()])
+  def list_routes(%Scope{} = scope, cursor, limit),
+    do: Store.in_scope(scope, fn _status -> RouteStore.list(cursor, limit) end)
+
+  # WF-14
+  @doc "Resolves the tree of a channel step inside the caller's scoped transaction; see `Relay.Workflow.Route.resolve/2`."
+  @spec resolve_route(map(), String.t() | nil) ::
+          {:ok, Route.tree(), Route.source()} | {:skip, String.t()}
+  defdelegate resolve_route(step, category_key), to: Route, as: :resolve
+
+  # WF-13
+  # WF-15
+  # WF-21
+  @doc "The next actions of a resolved route tree; see `Relay.Workflow.RouteTree.next/3`."
+  @spec next_route(Route.tree(), map(), map()) :: {:ok, map()} | {:error, [map()]}
+  defdelegate next_route(tree, facts, state), to: Route, as: :next
+
+  # WF-15
+  # WF-18
+  # WF-59 (4)
+  @doc "Validates a route tree; see `Relay.Workflow.RouteTree.validate/2`."
+  @spec validate_route(term(), keyword()) :: :ok | {:error, [map()]}
+  defdelegate validate_route(tree, opts \\ []), to: Route, as: :validate
+
+  # WF-48
+  # WF-61
+  @doc "Checks a new recurrence rule and computes its first occurrence and timer in its own read transaction; see `Relay.Workflow.Recurrence.plan/2`."
+  @spec plan_recurrence(Scope.t(), Recurrence.input()) ::
+          {:ok, Recurrence.planned()} | {:error, Relay.Error.t()}
+  def plan_recurrence(%Scope{} = scope, input) do
+    case RecurrenceStore.in_scope(scope, fn _status -> Recurrence.plan(scope, input) end) do
+      {:ok, result} -> result
+      {:error, _reason} -> {:error, unavailable()}
+    end
+  end
+
+  # WF-49
+  # WF-61
+  @doc "Records a planned recurrence rule inside the caller's scoped transaction; `:limit_reached` when the tenant environment already holds the most active rules."
+  @spec create_recurrence(map(), <<_::256>>, Actor.t()) :: :created | :limit_reached
+  def create_recurrence(attrs, digest, %Actor{} = actor),
+    do: RecurrenceStore.create(attrs, Recurrence.max_active(), digest, actor)
+
+  # WF-49
+  @doc "Cancels an active recurrence rule inside the caller's scoped transaction."
+  @spec cancel_recurrence(Relay.Id.t(), String.t(), <<_::256>>, Actor.t()) ::
+          :cancelled | :closed | :not_found
+  def cancel_recurrence(id, reason, digest, %Actor{} = actor),
+    do: RecurrenceStore.cancel(id, reason, digest, actor)
+
+  # WF-49
+  # OP-24
+  @doc "Cancels an active recurrence rule in its own transaction, as a timer does for a subscriber that was erased."
+  @spec cancel_recurrence(Scope.t(), Relay.Id.t(), String.t(), <<_::256>>, Actor.t()) ::
+          result(:cancelled | :closed | :not_found)
+  def cancel_recurrence(%Scope{} = scope, id, reason, digest, %Actor{} = actor) do
+    RecurrenceStore.in_scope(scope, fn _status ->
+      RecurrenceStore.cancel(id, reason, digest, actor)
+    end)
+  end
+
+  # WF-48
+  @doc "Reads a recurrence rule with its last occurrence inside the caller's scoped transaction, or `nil`."
+  @spec view_recurrence(Relay.Id.t()) :: map() | nil
+  def view_recurrence(id) do
+    case RecurrenceStore.get(id) do
+      nil -> nil
+      row -> hd(with_last([row]))
+    end
+  end
+
+  # WF-48
+  @doc "Reads a recurrence rule with its last occurrence in its own read transaction, or `nil`."
+  @spec get_recurrence(Scope.t(), Relay.Id.t()) :: result(map() | nil)
+  def get_recurrence(%Scope{} = scope, id),
+    do: RecurrenceStore.in_scope(scope, fn _status -> view_recurrence(id) end)
+
+  # API-56
+  @doc "Lists recurrence rules newest first from a decoded cursor, each with its last occurrence; at most `limit + 1` rows come back."
+  @spec list_recurrences(Scope.t(), map() | nil, pos_integer()) :: result([map()])
+  def list_recurrences(%Scope{} = scope, cursor, limit) do
+    RecurrenceStore.in_scope(scope, fn _status ->
+      with_last(RecurrenceStore.page(cursor, limit))
+    end)
+  end
+
+  # WF-61
+  @doc "The recorded occurrences of a recurrence rule, oldest first, at most `limit`, in its own read transaction."
+  @spec recurrence_occurrences(Scope.t(), Relay.Id.t(), pos_integer()) :: result([map()])
+  def recurrence_occurrences(%Scope{} = scope, id, limit),
+    do: RecurrenceStore.in_scope(scope, fn _status -> RecurrenceStore.occurrences(id, limit) end)
+
+  # WF-49
+  # WF-61
+  @doc "Works out what a recurrence rule has due at `now` in its own read transaction; see `Relay.Workflow.Recurrence.due/3`."
+  @spec due_recurrence(Scope.t(), Relay.Id.t(), DateTime.t()) ::
+          {:ok, Recurrence.due()} | {:error, Relay.Error.t()}
+  def due_recurrence(%Scope{} = scope, id, now) do
+    case RecurrenceStore.in_scope(scope, fn _status -> Recurrence.due(scope, id, now) end) do
+      {:ok, {:error, %Relay.Error{}} = error} -> error
+      {:ok, due} -> {:ok, due}
+      {:error, _reason} -> {:error, unavailable()}
+    end
+  end
+
+  # WF-49
+  # WF-61
+  @doc "Records the occurrences of a recurrence rule and moves it to its next occurrence inside the caller's scoped transaction; see `Relay.Workflow.RecurrenceStore.fire/4`."
+  @spec fire_recurrence(Relay.Id.t(), DateTime.t(), [map()], Recurrence.next() | nil) ::
+          :advanced | :completed | :stale | :not_found
+  defdelegate fire_recurrence(id, expected_next_at, occurrences, next),
+    to: RecurrenceStore,
+    as: :fire
+
+  # WF-49
+  # WF-61
+  @doc "Records the occurrences of a recurrence rule and moves it to its next occurrence in its own transaction; `job` builds the timer job of the next occurrence, queued in the same transaction."
+  @spec record_recurrence(
+          Scope.t(),
+          Relay.Id.t(),
+          DateTime.t(),
+          [map()],
+          Recurrence.next() | nil,
+          (Recurrence.next() -> Ecto.Changeset.t())
+        ) :: result(:advanced | :completed | :stale | :not_found)
+  def record_recurrence(%Scope{} = scope, id, expected_next_at, occurrences, next, job) do
+    RecurrenceStore.in_scope(scope, fn _status ->
+      result = RecurrenceStore.fire(id, expected_next_at, occurrences, next)
+      if result == :advanced, do: RecurrenceStore.insert_job!(job.(next))
+      result
+    end)
+  end
+
+  # WF-43
+  @doc "The identifiers of the active recurrence rules of a scope whose timer is due at `now`, in its own read transaction."
+  @spec due_recurrences(Scope.t(), DateTime.t(), pos_integer()) :: result([Relay.Id.t()])
+  def due_recurrences(%Scope{} = scope, now, limit),
+    do: RecurrenceStore.in_scope(scope, fn _status -> RecurrenceStore.due(now, limit) end)
+
+  # WF-43
+  @doc "The scopes with a recurrence timer due at least `min_age_ms` ago; see `Relay.Workflow.RecurrenceStore.due_scopes/2`."
+  @spec recurrence_due_scopes(non_neg_integer(), pos_integer()) :: [{Relay.Id.t(), String.t()}]
+  defdelegate recurrence_due_scopes(min_age_ms, limit), to: RecurrenceStore, as: :due_scopes
+
+  # WF-42
+  # WF-58
+  @doc "The timer instant of an occurrence; see `Relay.Workflow.Recurrence.fire_at/3`."
+  @spec recurrence_fire_at(Scope.t(), Relay.Id.t(), DateTime.t()) :: DateTime.t()
+  defdelegate recurrence_fire_at(scope, id, at), to: Recurrence, as: :fire_at
+
+  @doc "The UTC text of an occurrence instant; see `Relay.Workflow.Recurrence.iso/1`."
+  @spec recurrence_instant(DateTime.t()) :: String.t()
+  defdelegate recurrence_instant(at), to: Recurrence, as: :iso
+
+  @doc "Queues a job inside the caller's scoped transaction; rolls the transaction back when it is not queued."
+  @spec queue_job!(Ecto.Changeset.t()) :: :ok
+  defdelegate queue_job!(changeset), to: RecurrenceStore, as: :insert_job!
+
+  defp with_last(rows) do
+    last = RecurrenceStore.last_occurrences(Enum.map(rows, & &1["id"]))
+    Enum.map(rows, &Map.put(&1, "last_occurrence", Map.get(last, &1["id"])))
+  end
+
+  defp unavailable, do: Relay.Error.new(:service_unavailable, "try again", %{retry_after: 1})
+
+  # WF-26
+  # WF-27
+  # INV-3
+  @doc "Adds an event to its digest window inside the caller's scoped transaction; see `Relay.Workflow.Digest.add/2`."
+  @spec digest_add(Scope.t(), map()) :: {:ok, Digest.added()} | {:error, Relay.Error.t()}
+  defdelegate digest_add(scope, attrs), to: Digest, as: :add
+
+  # WF-26
+  # WF-59
+  @doc "Checks the fields of a `digest` step; see `Relay.Workflow.Digest.Window.config/2`."
+  @spec digest_config(map(), String.t()) ::
+          {:ok, Digest.Window.t()} | {:error, [Digest.Window.field_error(), ...]}
+  defdelegate digest_config(step, pointer \\ ""), to: Digest.Window, as: :config
+
+  # WF-27
+  @doc "Fires a digest window in its own transaction; see `Relay.Workflow.Digest.fire/2`."
+  @spec digest_fire(Scope.t(), Relay.Id.t()) :: {:ok, term()} | {:error, term()}
+  defdelegate digest_fire(scope, window_id), to: Digest, as: :fire
+
+  # WF-27
+  @doc "Applies a recipient's read signal to the pending digest windows of a notification; see `Relay.Workflow.Digest.read/3`."
+  @spec digest_read(Scope.t(), Relay.Id.t(), Relay.Id.t()) ::
+          {:ok, [{Relay.Id.t(), :cancelled | :read}]} | {:error, term()}
+  defdelegate digest_read(scope, recipient_id, notification_id), to: Digest, as: :read
+
+  # WF-30
+  @doc "Routes an event into a digest window past the recipient's density threshold; see `Relay.Workflow.Digest.density/2`."
+  @spec digest_density(Scope.t(), map()) ::
+          {:ok, :under | Digest.added()} | {:error, Relay.Error.t()}
+  defdelegate digest_density(scope, attrs), to: Digest, as: :density
+
+  # PC-46
+  @doc "Holds a delivery released at the end of quiet hours in its morning window; see `Relay.Workflow.Digest.quiet_hours/2`."
+  @spec digest_quiet_hours(Scope.t(), map()) ::
+          {:ok, :not_applicable | Digest.added()} | {:error, Relay.Error.t()}
+  defdelegate digest_quiet_hours(scope, attrs), to: Digest, as: :quiet_hours
+
+  # T-24
+  # TN-8
+  @doc "Fires the due digest windows of a scope; the virtual clock tick calls it after a step."
+  @spec run_due_digests(Scope.t()) :: :ok | {:error, term()}
+  defdelegate run_due_digests(scope), to: Digest, as: :run_due
+
+  # WF-32
+  # WF-59
+  @doc "Checks the fields of a `throttle` step; see `Relay.Workflow.Throttle.Window.config/2`."
+  @spec throttle_config(map(), String.t()) ::
+          {:ok, Throttle.Window.t()} | {:error, [Throttle.Window.field_error(), ...]}
+  defdelegate throttle_config(step, pointer \\ ""), to: Throttle, as: :config
+
+  # WF-32
+  @doc "Counts an event against a throttle step inside the caller's scoped transaction; see `Relay.Workflow.Throttle.hit/3`."
+  @spec throttle(Scope.t(), map(), map()) :: {:ok, Throttle.hit()} | {:error, Relay.Error.t()}
+  defdelegate throttle(scope, step, attrs), to: Throttle, as: :hit
+
+  # WF-32
+  @doc "Counts an event against a throttle step in its own transaction; see `Relay.Workflow.Throttle.hit_now/3`."
+  @spec throttle_now(Scope.t(), map(), map()) :: {:ok, Throttle.hit()} | {:error, term()}
+  defdelegate throttle_now(scope, step, attrs), to: Throttle, as: :hit_now
+
+  # WF-32
+  # API-69
+  @doc "Resets the active counter of a throttle key inside the caller's scoped transaction, audited."
+  @spec reset_throttle(Scope.t(), String.t(), Actor.t()) ::
+          {:ok, {:reset | :not_active, Relay.Id.t() | nil}} | {:error, Relay.Error.t()}
+  def reset_throttle(%Scope{} = scope, key, %Actor{} = actor),
+    do: Throttle.reset(scope, key, digest(scope, "throttle.reset", key), actor)
+
+  # WF-35
+  # WF-36
+  @doc "The content deduplication step of the delivery job, configured as `config :relay, Relay.Delivery, content_dedup: Module`: checks a rendered delivery for a content repeat and records a repeat as skipped; see `Relay.Workflow.ContentDedup.check/2`."
+  @spec content_dedup(Scope.t(), Relay.Id.t()) :: :send | :skipped | {:error, term()}
+  defdelegate content_dedup(scope, delivery_id), to: ContentDedup, as: :check
 
   defp with_parts(workflow) do
     Map.merge(workflow, %{

@@ -238,6 +238,12 @@ Id_ctg:
   pattern: "^ctg_[0-7][0-9a-hjkmnp-tv-z]{25}$"
   examples:
     - ctg_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_rte:
+  type: string
+  description: "Route identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^rte_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - rte_01j9zq3k4m5n6p7q8r9s0t1v2w
 Id_cns:
   type: string
   description: "Consent copy record identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
@@ -535,15 +541,21 @@ RecipientObject:
   additionalProperties: false
 TopicTarget:
   type: object
-  description: "Topic target. Topics are introduced in a later stage; until then a topic target is rejected with validation_failed (unsupported_value)."
+  description: "Topic target (WF-51, WF-52). The event reaches the active subscribers of the topic and, for a child topic, of its active parent, frozen when the event is accepted; a subscriber reached through several topics or also named directly gets one notification. The topic matches by key only, with no wildcard or context condition (WF-53). An unknown topic is recipient_not_found and an archived one recipient_invalid, both with the target's pointer; an event whose topics reach no subscriber is still accepted and its frozen audience is recorded with rule audience.no_subscribers. All recipients together are at most x-relay-limits event.max_recipients (422 audience_too_large); a larger audience is a campaign."
   required:
     - topic
   properties:
     topic:
-      type: string
-      description: Topic key.
-      pattern: "^[a-z0-9][a-z0-9_.:-]{0,127}$"
+      "$ref": "#/TopicKey"
   additionalProperties: false
+TopicKey:
+  type: string
+  description: "The tenant's key of a topic, such as project:42 or project:42.task:7."
+  pattern: "^[a-z0-9][a-z0-9_.:-]{0,127}$"
+  examples:
+    - "project:42"
+  x-relay-choice: true
+  x-relay-choice-note: "Character set and length are chosen by the contract."
 RecipientTarget:
   description: "A plain string is an identity-only reference: the subscriber must exist or the request fails with recipient_not_found. An object upserts. A topic object targets a topic."
   oneOf:
@@ -3053,6 +3065,240 @@ Role:
     description:
       type: string
   additionalProperties: false
+RouteKey:
+  type: string
+  description: Route key, unique in the environment.
+  pattern: "^[a-z][a-z0-9_]{0,63}$"
+  examples:
+    - critical_alert
+  x-relay-choice: true
+  x-relay-choice-note: "The spec names a route key but no pattern; the category key pattern is reused."
+RouteState:
+  type: string
+  enum:
+    - active
+    - archived
+RouteNode:
+  description: "A node of a route tree: a channel name, a channel sent only to the last active device, single, all, last_active, user_preference or escalate. A tree is at most 4 levels deep, leaves included, and names at most 10 channels; a leaf is addressed by its JSON Pointer inside the tree."
+  oneOf:
+    - "$ref": "#/Channel"
+    - "$ref": "#/RouteDeviceNode"
+    - "$ref": "#/RouteSingleNode"
+    - "$ref": "#/RouteAllNode"
+    - "$ref": "#/RouteLastActiveNode"
+    - "$ref": "#/RouteUserPreferenceNode"
+    - "$ref": "#/RouteEscalateNode"
+  x-relay-choice: true
+  x-relay-choice-note: "The spec bounds the depth at 4 without saying whether leaves count; they do."
+RouteDeviceNode:
+  type: object
+  description: "Push only to the recipient's last active device; without one known, every active device."
+  required:
+    - channel
+    - strategy
+  properties:
+    channel:
+      type: string
+      enum:
+        - push
+        - web_push
+    strategy:
+      type: string
+      const: last_active_device
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "A recipient without a known last active device gets the default fan out to every active device."
+RouteSingleNode:
+  type: object
+  description: "Try the nodes in order and stop at the first success. on_failure (the default) moves on only after a permanent failure, an exhausted retry budget or a skipped channel; a transient failure or an unknown outcome never moves it. after_delay also moves on when the current node is not delivered within the delay, which must be above zero."
+  required:
+    - single
+  properties:
+    single:
+      type: array
+      minItems: 1
+      items:
+        "$ref": "#/RouteNode"
+    trigger:
+      oneOf:
+        - type: string
+          const: on_failure
+        - type: object
+          required:
+            - after_delay
+          properties:
+            after_delay:
+              "$ref": "#/Duration"
+          additionalProperties: false
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "A channel the gates skip moves a single node on like a permanent failure."
+RouteAllNode:
+  type: object
+  description: Send to every node.
+  required:
+    - all
+  properties:
+    all:
+      type: array
+      minItems: 1
+      items:
+        "$ref": "#/RouteNode"
+  additionalProperties: false
+RouteLastActiveNode:
+  type: object
+  description: "Send to one channel: the recipient's last active channel of the list when it can be sent, else the first one of the list that can."
+  required:
+    - last_active
+  properties:
+    last_active:
+      type: array
+      minItems: 1
+      uniqueItems: true
+      items:
+        "$ref": "#/Channel"
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "Without a usable last active channel the list order decides; a skipped channel gives way to the next one, a permanent failure of the chosen one fails the node."
+RouteUserPreferenceNode:
+  type: object
+  description: "Send to one channel: the recipient's most preferred channel of the list when it can be sent, else the first one of the list that can."
+  required:
+    - user_preference
+  properties:
+    user_preference:
+      type: array
+      minItems: 1
+      uniqueItems: true
+      items:
+        "$ref": "#/Channel"
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "Without a usable preferred channel the list order decides; a skipped channel gives way to the next one, a permanent failure of the chosen one fails the node."
+RouteEscalateNode:
+  type: object
+  description: "Escalate unless the recipient engages: the first step opens at once, and each next step opens after the previous step's after unless a stop signal came; a step that fails moves on at once. Only reliable evidence stops it: in-app seen, read or clicked, a push SDK receipt, a human e-mail click or the customer's event of event_type. An e-mail open and a likely bot click never stop it. seen is also met by read and clicked, read by clicked. The timers run whatever the delivery outcome, unknown included."
+  required:
+    - escalate
+  properties:
+    escalate:
+      type: object
+      required:
+        - unless
+        - ladder
+      properties:
+        unless:
+          type: string
+          enum:
+            - seen
+            - read
+            - clicked
+            - event
+        event_type:
+          type: string
+          description: "Required with unless event, not allowed otherwise."
+          pattern: "^[a-z0-9][a-z0-9_.-]{0,127}$"
+        ladder:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - after
+              - node
+            properties:
+              after:
+                description: "Time to wait on this step for the stop signal before the next step opens; above zero."
+                "$ref": "#/Duration"
+              node:
+                "$ref": "#/RouteNode"
+            additionalProperties: false
+      additionalProperties: false
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "The spec writes a ladder of {after, node} without saying what after counts from; here the first step opens at once and after is the wait on that step. seen is met by read and clicked, read by clicked; event_type is required with unless event."
+Route:
+  type: object
+  description: "Named route policy. Not versioned: a change applies to every decision made after it; a notification keeps the tree it was created with."
+  required:
+    - object
+    - id
+    - key
+    - name
+    - tree
+    - state
+    - version
+    - created_at
+    - updated_at
+    - archived_at
+  properties:
+    object:
+      type: string
+      const: route
+    id:
+      "$ref": "#/Id_rte"
+    key:
+      "$ref": "#/RouteKey"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    tree:
+      "$ref": "#/RouteNode"
+    state:
+      "$ref": "#/RouteState"
+    version:
+      type: integer
+      minimum: 1
+      description: "Optimistic concurrency version; the ETag carries it."
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+    archived_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+RouteList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Route"
+RouteCreate:
+  type: object
+  description: Create a named route.
+  required:
+    - key
+    - name
+    - tree
+  properties:
+    key:
+      "$ref": "#/RouteKey"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    tree:
+      "$ref": "#/RouteNode"
+  additionalProperties: false
+RouteReplace:
+  type: object
+  description: Replace the name and tree of a route.
+  required:
+    - name
+    - tree
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    tree:
+      "$ref": "#/RouteNode"
+  additionalProperties: false
 CategoryState:
   type: string
   enum:
@@ -3183,6 +3429,7 @@ Category:
     - default_expires_in
     - frequency
     - digest_allowed
+    - default_route
     - state
     - builtin
     - version
@@ -3223,6 +3470,11 @@ Category:
     digest_allowed:
       type: boolean
       description: "Whether subscribers may choose a digest for this operational category. Social categories are always digestible."
+    default_route:
+      description: "Key of the route a channel step of this category's workflows sends through when the step names neither a route nor a channel. A step's own route or channel wins over it."
+      oneOf:
+        - "$ref": "#/RouteKey"
+        - type: "null"
     state:
       "$ref": "#/CategoryState"
     builtin:
@@ -3279,6 +3531,9 @@ CategoryCreate:
     digest_allowed:
       type: boolean
       description: Only operational categories may allow a digest.
+    default_route:
+      description: "Key of an active route; an unknown key is 422 validation_failed at /default_route (not_found), an archived route not_allowed."
+      "$ref": "#/RouteKey"
   additionalProperties: false
 CategoryPatch:
   type: object
@@ -3306,6 +3561,11 @@ CategoryPatch:
         - type: "null"
     digest_allowed:
       type: boolean
+    default_route:
+      description: "Key of an active route; null removes the default route."
+      oneOf:
+        - "$ref": "#/RouteKey"
+        - type: "null"
   additionalProperties: false
 CategorySubtenantSetting:
   type: object
@@ -8491,3 +8751,343 @@ EmailReputationClose:
       type: string
       minLength: 1
       maxLength: 500
+Id_top:
+  type: string
+  description: "Topic identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^top_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - top_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_tsb:
+  type: string
+  description: "Topic subscription identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^tsb_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - tsb_01j9zq3k4m5n6p7q8r9s0t1v2w
+TopicState:
+  type: string
+  description: "active, or archived: an archived topic takes no new subscription or child and is refused as a send target."
+  enum:
+    - active
+    - archived
+Topic:
+  type: object
+  description: "A topic (WF-51): an object subscribers subscribe to and events are sent to. A topic has at most one parent, which itself has none."
+  required:
+    - object
+    - id
+    - key
+    - parent
+    - state
+    - version
+    - created_at
+    - updated_at
+    - archived_at
+  properties:
+    object:
+      type: string
+      const: topic
+    id:
+      "$ref": "#/Id_top"
+    key:
+      "$ref": "#/TopicKey"
+    parent:
+      description: "Key of the parent topic; null for a top-level topic."
+      oneOf:
+        - "$ref": "#/TopicKey"
+        - type: "null"
+    state:
+      "$ref": "#/TopicState"
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+    archived_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+TopicCreate:
+  type: object
+  description: "Create a topic, optionally under an active top-level parent topic."
+  required:
+    - key
+  properties:
+    key:
+      "$ref": "#/TopicKey"
+    parent:
+      "$ref": "#/TopicKey"
+  additionalProperties: false
+TopicList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Topic"
+TopicSubscriptionState:
+  type: string
+  description: "active, or removed once unsubscribed or once the subscriber is erased; a removed subscription is kept."
+  enum:
+    - active
+    - removed
+TopicSubscription:
+  type: object
+  description: "A subscriber's subscription to a topic."
+  required:
+    - object
+    - id
+    - topic
+    - subscriber_id
+    - state
+    - created_at
+    - removed_at
+  properties:
+    object:
+      type: string
+      const: topic_subscription
+    id:
+      "$ref": "#/Id_tsb"
+    topic:
+      "$ref": "#/TopicKey"
+    subscriber_id:
+      description: "External id of the subscriber; null once the subscriber is erased."
+      oneOf:
+        - "$ref": "#/ExternalId"
+        - type: "null"
+    state:
+      "$ref": "#/TopicSubscriptionState"
+    created_at:
+      "$ref": "#/Timestamp"
+    removed_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+TopicSubscriptionList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/TopicSubscription"
+TopicSubscribers:
+  type: object
+  description: "Subscribers to subscribe to or unsubscribe from the topic, by external id; there is no attribute query (WF-54, E-67)."
+  required:
+    - subscribers
+  properties:
+    subscribers:
+      type: array
+      description: "1 to x-relay-limits topic.max_subscribers_per_request external ids."
+      minItems: 1
+      maxItems: 1000
+      items:
+        "$ref": "#/ExternalId"
+  additionalProperties: false
+
+Id_rec:
+  type: string
+  description: "Recurrence rule identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^rec_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - rec_01j9zq3k4m5n6p7q8r9s0t1v2w
+RecurrenceRule:
+  type: string
+  description: "An RRULE (RFC 5545) of the WF-61 subset, with or without a leading RRULE: (WF-61): FREQ=DAILY, WEEKLY or MONTHLY; INTERVAL 1-99; BYDAY as a list of days with WEEKLY and as one day with an ordinal 1-4 or -1 with MONTHLY (2TU, -1FR); BYMONTHDAY as one value 1-28 or -1 with MONTHLY; BYHOUR and BYMINUTE as one value each; COUNT 1-1000 or UNTIL as a UTC time (20311231T000000Z) at most 5 years ahead, never both. Every other part (SECONDLY, MINUTELY, HOURLY, YEARLY, BYSETPOS, BYWEEKNO, BYYEARDAY, BYMONTH, BYSECOND, WKST, several hours or minutes, EXDATE, RDATE) is a field error naming the part. Answers carry the canonical form, without INTERVAL=1."
+  minLength: 6
+  maxLength: 512
+  examples:
+    - "FREQ=WEEKLY;BYDAY=MO,TH;BYHOUR=9;BYMINUTE=0"
+    - "FREQ=MONTHLY;BYMONTHDAY=-1;BYHOUR=18;BYMINUTE=0;COUNT=12"
+LocalDateTime:
+  type: string
+  description: "A local wall-clock time without an offset, in the rule's time zone."
+  pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$"
+  examples:
+    - "2026-11-16T09:00:00"
+RecurrenceCreate:
+  type: object
+  description: "A recurrence rule (C-52, WF-48, WF-61): a published workflow sent to one subscriber (subscriber_id, the tenant's external id) or to one topic (topic) on the occurrences of rrule counted from the local dtstart. A subscriber rule runs in the subscriber's time zone (WF-45) and takes no timezone; a topic rule runs in timezone, else in the tenant's default_timezone. dtstart lies at most 5 years back or ahead and the rule must have an occurrence after now. data is the event data of every occurrence, checked against the workflow's event schema now and again at each occurrence; it is sealed and never shown again."
+  required:
+    - workflow
+    - rrule
+    - dtstart
+  properties:
+    workflow:
+      "$ref": "#/WorkflowKey"
+    subscriber_id:
+      "$ref": "#/ExternalId"
+    topic:
+      "$ref": "#/TopicKey"
+    rrule:
+      "$ref": "#/RecurrenceRule"
+    dtstart:
+      "$ref": "#/LocalDateTime"
+    timezone:
+      "$ref": "#/TimeZone"
+    data:
+      type: object
+      description: "Event data of every occurrence, at most event.max_data_bytes."
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "Body shape chosen by the contract (C-52 names the concept schedule; the resource is recurrences)."
+RecurrenceOccurrence:
+  type: object
+  description: "A recorded occurrence of a rule: sent with its event; missed (rule_id recurrence.missed) when it was due during an outage and was not the last due one or was more than PT1H late (WF-61); skipped with its rule_id (recurrence.topic_unavailable until topic fan-out exists, tenant.suspended); failed with the error code the send path answered."
+  required:
+    - occurrence_at
+    - outcome
+    - rule_id
+    - error_code
+    - event_id
+  properties:
+    occurrence_at:
+      "$ref": "#/Timestamp"
+    outcome:
+      type: string
+      enum:
+        - sent
+        - missed
+        - skipped
+        - failed
+    rule_id:
+      oneOf:
+        - type: string
+          maxLength: 128
+        - type: "null"
+    error_code:
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    event_id:
+      oneOf:
+        - "$ref": "#/Id_evt"
+        - type: "null"
+  additionalProperties: false
+Recurrence:
+  type: object
+  description: "A recurrence rule (C-52, WF-48, WF-49). active while it has a next occurrence; completed after its COUNT or UNTIL; cancelled by request or because its subscriber was erased (subject_erasure). next_occurrence_at is the UTC instant of the next occurrence, computed in next_occurrence_timezone; its timer fires within 60 seconds after it (deterministic jitter, WF-58). Each occurrence is sent with the workflow version published at that moment. data is not shown."
+  required:
+    - object
+    - id
+    - workflow
+    - subscriber_id
+    - topic
+    - rrule
+    - dtstart
+    - timezone
+    - state
+    - next_occurrence_at
+    - next_occurrence_timezone
+    - occurrence_count
+    - last_occurrence
+    - cancel_reason
+    - cancelled_at
+    - completed_at
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: recurrence
+    id:
+      "$ref": "#/Id_rec"
+    workflow:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          "$ref": "#/WorkflowKey"
+      additionalProperties: false
+    subscriber_id:
+      oneOf:
+        - "$ref": "#/ExternalId"
+        - type: "null"
+    topic:
+      oneOf:
+        - "$ref": "#/TopicKey"
+        - type: "null"
+    rrule:
+      "$ref": "#/RecurrenceRule"
+    dtstart:
+      type: string
+      pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$"
+    timezone:
+      oneOf:
+        - "$ref": "#/TimeZone"
+        - type: "null"
+    state:
+      type: string
+      enum:
+        - active
+        - completed
+        - cancelled
+    next_occurrence_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    next_occurrence_timezone:
+      oneOf:
+        - "$ref": "#/TimeZone"
+        - type: "null"
+    occurrence_count:
+      type: integer
+      minimum: 0
+    last_occurrence:
+      oneOf:
+        - "$ref": "#/RecurrenceOccurrence"
+        - type: "null"
+    cancel_reason:
+      oneOf:
+        - type: string
+          enum:
+            - request
+            - subject_erasure
+        - type: "null"
+    cancelled_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    completed_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+RecurrenceList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Recurrence"
+
+ThrottleKey:
+  type: string
+  description: "A tenant-wide throttle key as the throttle step renders it (WF-32); stored as a digest only."
+  minLength: 1
+  maxLength: 256
+ThrottleReset:
+  type: object
+  description: "An active throttle counter was reset (WF-32)."
+  required:
+    - object
+    - key
+  properties:
+    object:
+      type: string
+      const: throttle_reset
+    key:
+      "$ref": "#/ThrottleKey"
+  additionalProperties: false

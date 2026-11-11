@@ -10,6 +10,7 @@ defmodule RelayTest.Isolation do
       Relay.Api,
       Relay.Channels,
       Relay.Secrets,
+      Relay.Workflow,
       RelayTest.Api,
       RelayTest.IngestFixture
     ],
@@ -64,7 +65,10 @@ defmodule RelayTest.Isolation do
      %{"provider_account_id" => "pva_01j9zq3k4m5n6p7q8r9s0t1v2w", "conversation" => "U1"}},
     {"updateProviderAccount", %{"priority" => 5}},
     {"updateSenderIdentity", %{"country" => "TR"}},
-    {"updateChannelIdentity", %{"app_ref" => "com.example.isolation"}}
+    {"updateChannelIdentity", %{"app_ref" => "com.example.isolation"}},
+    {"addTopicSubscriptions", %{"subscribers" => ["isolation-subscriber"]}},
+    {"removeTopicSubscriptions", %{"subscribers" => ["isolation-subscriber"]}},
+    {"replaceRoute", %{"name" => "Isolation", "tree" => "email"}}
   ]
   @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
   @sms %{
@@ -103,6 +107,7 @@ defmodule RelayTest.Isolation do
       "version" => fn _scope -> "1" end,
       "mapping_id" => &mapping!/1,
       "category_key" => &category!/1,
+      "route_key" => &route!/1,
       "subtenant_id" => &subtenant!/1,
       "suppression_id" => &suppression!/1,
       "device_id" => &device!/1,
@@ -116,7 +121,10 @@ defmodule RelayTest.Isolation do
       "channel_identity_id" => &channel_identity!/1,
       "test_recipient_id" => &test_recipient!/1,
       "provider_invoice_id" => &provider_invoice!/1,
-      "export_id" => &export!/1
+      "export_id" => &export!/1,
+      "topic_key" => &topic!/1,
+      "recurrence_id" => &recurrence!/1,
+      "throttle_key" => &throttle!/1
     }
   end
 
@@ -418,6 +426,15 @@ defmodule RelayTest.Isolation do
     key
   end
 
+  @doc "Creates a named route in `scope` and returns its key."
+  @spec route!(Relay.Scope.t()) :: String.t()
+  def route!(scope) do
+    key = "iso_" <> random()
+    body = %{"key" => key, "name" => "Isolation", "tree" => %{"single" => ["push", "email"]}}
+    F.body(F.request(:post, "/v1/routes", owner(scope), body), 201)
+    key
+  end
+
   @doc "Creates a sub-tenant in `scope` and returns its identifier."
   @spec subtenant!(Relay.Scope.t()) :: String.t()
   def subtenant!(scope) do
@@ -447,11 +464,41 @@ defmodule RelayTest.Isolation do
     F.body(F.request(:post, "/v1/test_recipients", owner(scope), body), 201)["id"]
   end
 
+  @doc "Counts an event on a fresh throttle key in `scope`, so the key has an active window, and returns the key."
+  @spec throttle!(Relay.Scope.t()) :: String.t()
+  def throttle!(scope) do
+    key = "iso-" <> random()
+    step = %{"key" => key, "limit" => 5, "window" => "PT1H"}
+    {:ok, %{outcome: :allowed}} = Relay.Workflow.throttle_now(scope, step, %{key: key, ref: key})
+    key
+  end
+
   @doc "Requests a raw data export in `scope` and returns its identifier."
   @spec export!(Relay.Scope.t()) :: String.t()
   def export!(scope) do
     body = %{"kind" => "usage_records", "from" => "2026-10-01", "to" => "2026-11-01"}
     F.body(F.request(:post, "/v1/exports", owner(scope), body), 202)["id"]
+  end
+
+  @doc "Creates a topic in `scope` and returns its key."
+  @spec topic!(Relay.Scope.t()) :: String.t()
+  def topic!(scope) do
+    key = "iso:" <> random()
+    F.body(F.request(:post, "/v1/topics", owner(scope), %{"key" => key}), 201)["key"]
+  end
+
+  @doc "Defines a daily recurrence rule in `scope` for a new subscriber and returns its identifier."
+  @spec recurrence!(Relay.Scope.t()) :: String.t()
+  def recurrence!(scope) do
+    body = %{
+      "workflow" => workflow!(scope),
+      "subscriber_id" => subscriber!(scope),
+      "rrule" => "FREQ=DAILY;BYHOUR=9;BYMINUTE=0",
+      "dtstart" => "2026-11-01T09:00:00",
+      "data" => %{"order" => "A-1"}
+    }
+
+    F.body(F.request(:post, "/v1/recurrences", owner(scope), body), 201)["id"]
   end
 
   @doc "Records a provider invoice in `scope` and returns its identifier."

@@ -132,6 +132,12 @@
     "reason": "C-28, OP-7: a committed relay_fn function is dropped for its new signature as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   },
   {
+    "path": "priv/repo/migrations/20261211400200_create_route_functions.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WF-14, PC-57 (1): committed relay_fn category functions are dropped for their new signature with the default route as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
     "path": "priv/repo/migrations/20261103001400_extend_delivery_gate_and_erasure.exs",
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",

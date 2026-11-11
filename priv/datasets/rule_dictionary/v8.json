@@ -1,5 +1,5 @@
 {
-  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-8; WF-13; WF-37; WF-59",
+  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59",
   "rules": [
     {
       "id": "admission.aimd.l2",
@@ -104,6 +104,20 @@
       "description": {
         "en": "The request was refused because lane l3 is shedding load.",
         "tr": "İstek, l3 şeridi yük attığı için reddedildi."
+      }
+    },
+    {
+      "id": "audience.no_subscribers",
+      "reason": "no_subscribers",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-53",
+      "detail": [
+        "topic_ids"
+      ],
+      "description": {
+        "en": "Not sent to any topic subscriber because the topics of the send had no subscriber when it was accepted.",
+        "tr": "Gönderimin topic'lerinin kabul anında hiç abonesi olmadığı için hiçbir topic abonesine gönderilmedi."
       }
     },
     {
@@ -511,6 +525,67 @@
       }
     },
     {
+      "id": "content_dedup.same_content",
+      "reason": "duplicate_content",
+      "kind": "filter",
+      "outcome": "skip",
+      "decision": "WF-35",
+      "detail": [
+        "duplicate_of",
+        "window_ms"
+      ],
+      "description": {
+        "en": "Not sent because the same content went to the recipient on this channel a short while ago.",
+        "tr": "Aynı içerik kısa süre önce bu kanaldan alıcıya gittiği için gönderilmedi."
+      }
+    },
+    {
+      "id": "digest.density",
+      "reason": "digested",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "WF-30",
+      "detail": [
+        "category",
+        "limit",
+        "window"
+      ],
+      "description": {
+        "en": "Moved to a digest because the recipient received many notifications of this category in a short time.",
+        "tr": "Alıcı bu kategoride kısa sürede çok sayıda bildirim aldığı için özete alındı."
+      }
+    },
+    {
+      "id": "digest.quiet_hours",
+      "reason": "digested",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "PC-46",
+      "detail": [
+        "category",
+        "channel",
+        "release_at"
+      ],
+      "description": {
+        "en": "Collected into one digest released when the recipient's quiet hours end.",
+        "tr": "Alıcının sessiz saati bittiğinde gönderilecek tek bir özette toplandı."
+      }
+    },
+    {
+      "id": "digest.read",
+      "reason": "digest_read",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "WF-27",
+      "detail": [
+        "window_id"
+      ],
+      "description": {
+        "en": "The pending digest was cancelled because the recipient already read these activities.",
+        "tr": "Alıcı bu etkinlikleri zaten okuduğu için bekleyen özet iptal edildi."
+      }
+    },
+    {
       "id": "dnd.deferred",
       "reason": "dnd",
       "kind": "shaper",
@@ -537,6 +612,20 @@
       "description": {
         "en": "Postponed because the reputation circuit of the sending domain is stopped until a tenant administrator closes it.",
         "tr": "Gönderim alan adının itibar devresi durdurulduğu için, kiracı yöneticisi devreyi kapatana kadar ertelendi."
+      }
+    },
+    {
+      "id": "escalation.stopped",
+      "reason": "escalation_stopped",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "WF-21",
+      "detail": [
+        "signal"
+      ],
+      "description": {
+        "en": "The remaining escalation steps were cancelled because the recipient engaged with the notification.",
+        "tr": "Alıcı bildirimle etkileşime geçtiği için kalan yükseltme basamakları iptal edildi."
       }
     },
     {
@@ -1052,6 +1141,36 @@
       }
     },
     {
+      "id": "recurrence.missed",
+      "reason": "recurrence_missed",
+      "kind": "shaper",
+      "outcome": "skip",
+      "decision": "WF-61",
+      "detail": [
+        "recurrence_id",
+        "occurrence_at"
+      ],
+      "description": {
+        "en": "Not sent because this occurrence of the recurring notification fell due while it could not run and a later occurrence was also due, or it was more than an hour late.",
+        "tr": "Tekrar eden bildirimin bu tekrarı çalıştırılamadığı sırada zamanı geldiği ve ardından bir tekrar daha geldiği ya da bir saatten fazla geciktiği için gönderilmedi."
+      }
+    },
+    {
+      "id": "recurrence.topic_unavailable",
+      "reason": "target_unavailable",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-48",
+      "detail": [
+        "recurrence_id",
+        "topic"
+      ],
+      "description": {
+        "en": "Not sent because sending a recurring notification to a topic is not available yet.",
+        "tr": "Tekrar eden bildirimin topic'e gönderimi henüz kullanılamadığı için gönderilmedi."
+      }
+    },
+    {
       "id": "retry.budget_denied",
       "reason": "budget_denied",
       "kind": "terminal",
@@ -1133,6 +1252,48 @@
       "description": {
         "en": "Not retried because the outcome of the last attempt is unknown.",
         "tr": "Son denemenin sonucu bilinmediği için yeniden denenmedi."
+      }
+    },
+    {
+      "id": "route.channel_locked",
+      "reason": "channel_locked",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "PC-10",
+      "detail": [
+        "channel"
+      ],
+      "description": {
+        "en": "The channel was skipped because it cannot pass the gate of a locked category; the route moved on to the next channel.",
+        "tr": "Kanal kilitli kategorinin kapısından geçemediği için atlandı; rota sıradaki kanala geçti."
+      }
+    },
+    {
+      "id": "route.exhausted",
+      "reason": "route_exhausted",
+      "kind": "terminal",
+      "outcome": "fail",
+      "decision": "WF-15",
+      "detail": [
+        "route"
+      ],
+      "description": {
+        "en": "Not sent because every channel of the route failed permanently or was skipped.",
+        "tr": "Rotadaki her kanal kalıcı olarak başarısız olduğu ya da atlandığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "route.not_found",
+      "reason": "route_not_found",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-14",
+      "detail": [
+        "route"
+      ],
+      "description": {
+        "en": "Not sent because the route the step or its category names does not exist or is archived.",
+        "tr": "Adımın ya da kategorisinin adlandırdığı rota bulunmadığı ya da arşivlendiği için gönderilmedi."
       }
     },
     {
@@ -1343,6 +1504,22 @@
       "description": {
         "en": "Postponed to 10:00-18:00 in the tenant's time zone because the recipient's own time zone is unknown.",
         "tr": "Alıcının saat dilimi bilinmediği için kiracı saat diliminde 10:00-18:00 aralığına ertelendi."
+      }
+    },
+    {
+      "id": "throttle.limited",
+      "reason": "throttled",
+      "kind": "shaper",
+      "outcome": "skip",
+      "decision": "WF-32",
+      "detail": [
+        "key",
+        "limit",
+        "window_end"
+      ],
+      "description": {
+        "en": "Not sent because the throttle of this key had reached its limit in the current window.",
+        "tr": "Bu anahtarın throttle sınırı geçerli pencerede dolduğu için gönderilmedi."
       }
     },
     {

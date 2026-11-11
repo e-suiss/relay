@@ -1,70 +1,61 @@
 defmodule Relay.Workflow.Route do
   @moduledoc """
-  The route seam of a channel step (WF-13, WF-59 (4)). A channel step names one `channel` or a `route`: the key of a named route or an inline route tree. `plan/1` turns the step into what the runner opens: `{:channel, name}` for a plain channel, or for a route whose tree is one plain channel leaf (a bare channel name inside `single` or `all` lists of one node, at any depth), and `{:unavailable, rule_id}` for every other route, which the runner records as the step's outcome instead of skipping it silently. Route tree evaluation (strategies, fallback triggers, escalation, named routes) plugs in here.
+  The route seam of a channel step (WF-13, WF-14). The workflow run resolves the tree a step sends through once, when the notification is created, and copies it into the notification's plan (WF-59 (4), WF-7); a later change to a named route applies to new decisions only. It then asks `next/3` for the next actions every time a result of the route changes or its `wake_at` comes; see `Relay.Workflow.RouteTree` for the tree and its semantics.
 
-  `leaves/1` and `depth/1` measure an inline tree for the publication gate (depth at most 4, at most 10 leaves); `channels/1` lists the channel names a tree can reach.
+  Resolution order (WF-14): the step's own `route` (a route key or an inline tree), else the step's `channel`, else the default route of the workflow's category. A route key that is unknown or archived resolves to `{:skip, "route.not_found"}`: the notification is recorded with that rule and nothing is sent.
   """
 
-  @unavailable "workflow_run.route_unavailable"
+  alias Relay.Workflow.RouteStore
+  alias Relay.Workflow.RouteTree
 
-  @type plan :: {:channel, String.t()} | {:unavailable, String.t()}
+  @type source :: :step | :channel | :category
+  @type tree :: String.t() | map()
 
-  # WF-13
-  # WF-59
-  @doc "What the runner opens for a channel step."
-  @spec plan(map()) :: plan()
-  def plan(%{"channel" => channel}) when is_binary(channel), do: {:channel, channel}
-
-  def plan(%{"route" => %{} = tree}) do
-    case leaf(tree) do
-      {:ok, channel} -> {:channel, channel}
-      :none -> {:unavailable, @unavailable}
+  # WF-14
+  # WF-59 (4)
+  @doc "Resolves the tree of a channel step inside the caller's scoped transaction: the step's `route` (key or inline tree), else its `channel`, else the default route of `category_key`. Returns the tree with where it came from, or `{:skip, \"route.not_found\"}`."
+  @spec resolve(map(), String.t() | nil) :: {:ok, tree(), source()} | {:skip, String.t()}
+  def resolve(step, category_key) do
+    case step do
+      %{"route" => %{} = tree} -> {:ok, tree, :step}
+      %{"route" => key} when is_binary(key) -> named(key, :step)
+      %{"channel" => channel} when is_binary(channel) -> {:ok, channel, :channel}
+      _other -> category(category_key)
     end
   end
 
-  def plan(_step), do: {:unavailable, @unavailable}
+  defp category(nil), do: {:skip, "route.not_found"}
 
-  defp leaf(channel) when is_binary(channel), do: {:ok, channel}
-  defp leaf(%{"single" => [node]} = tree) when map_size(tree) == 1, do: leaf(node)
-  defp leaf(%{"all" => [node]}), do: leaf(node)
-  defp leaf(_node), do: :none
+  defp category(category_key) do
+    case RouteStore.category_default(category_key) do
+      nil -> {:skip, "route.not_found"}
+      key -> named(key, :category)
+    end
+  end
 
-  # WF-59
-  @doc "The number of channel leaves of an inline route tree."
-  @spec leaves(term()) :: non_neg_integer()
-  def leaves(node), do: node |> nodes() |> length()
+  defp named(key, source) do
+    case RouteStore.get(key) do
+      %{"state" => "active", "tree" => tree} -> {:ok, tree, source}
+      _missing -> {:skip, "route.not_found"}
+    end
+  end
 
-  # WF-59
-  @doc "The nesting depth of an inline route tree; a bare channel is depth 1."
-  @spec depth(term()) :: number()
-  def depth(node) when is_binary(node), do: 1
-  def depth(%{"channel" => _channel}), do: 1
-  def depth(%{"single" => list}) when is_list(list), do: 1 + max_depth(list)
-  def depth(%{"all" => list}) when is_list(list), do: 1 + max_depth(list)
-  def depth(%{"last_active" => _channels}), do: 1
-  def depth(%{"user_preference" => _channels}), do: 1
-
-  def depth(%{"escalate" => %{"ladder" => ladder}}) when is_list(ladder),
-    do: 1 + max_depth(Enum.map(ladder, & &1["node"]))
-
-  def depth(_node), do: 1
-
-  defp max_depth(list), do: list |> Enum.map(&depth/1) |> Enum.max(fn -> 0 end)
+  # WF-13
+  # WF-15
+  # WF-21
+  @doc "The next actions of a resolved tree; see `Relay.Workflow.RouteTree.next/3`."
+  @spec next(tree(), RouteTree.facts(), RouteTree.state()) ::
+          {:ok, RouteTree.plan()} | {:error, [RouteTree.field_error()]}
+  defdelegate next(tree, facts, state), to: RouteTree
 
   # WF-18
-  @doc "The channel names an inline route tree can reach."
+  # WF-59 (4)
+  @doc "Validates a tree; see `Relay.Workflow.RouteTree.validate/2`."
+  @spec validate(term(), keyword()) :: :ok | {:error, [RouteTree.field_error()]}
+  defdelegate validate(tree, opts \\ []), to: RouteTree
+
+  # WF-16
+  @doc "The channels a tree names, for the facts the caller gathers; see `Relay.Workflow.RouteTree.channels/1`."
   @spec channels(term()) :: [String.t()]
-  def channels(node), do: node |> nodes() |> Enum.uniq()
-
-  defp nodes(channel) when is_binary(channel), do: [channel]
-  defp nodes(%{"channel" => channel}) when is_binary(channel), do: [channel]
-  defp nodes(%{"single" => list}) when is_list(list), do: Enum.flat_map(list, &nodes/1)
-  defp nodes(%{"all" => list}) when is_list(list), do: Enum.flat_map(list, &nodes/1)
-  defp nodes(%{"last_active" => list}) when is_list(list), do: list
-  defp nodes(%{"user_preference" => list}) when is_list(list), do: list
-
-  defp nodes(%{"escalate" => %{"ladder" => ladder}}) when is_list(ladder),
-    do: Enum.flat_map(ladder, &nodes(&1["node"]))
-
-  defp nodes(_node), do: []
+  defdelegate channels(tree), to: RouteTree
 end

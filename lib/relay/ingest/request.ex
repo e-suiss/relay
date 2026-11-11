@@ -72,6 +72,8 @@ defmodule Relay.Ingest.Request do
            overrides: Map.get(body, "overrides", %{}),
            interruption: Map.get(body, "interruption"),
            links: Map.get(body, "links"),
+           correlation_id: Map.get(body, "correlation_id"),
+           item: Map.get(body, "item"),
            steps: Enum.map(narrowed, &subtype_rule(&1, Map.get(body, "security_subtype")))
          })}
       else

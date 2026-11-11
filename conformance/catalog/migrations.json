@@ -141,5 +141,7 @@
   {"file": "20261204000200_index_delivery_windows.exs", "sha256": "2382553dae7f17df9fa59f030cdafa2da1a5451826aec7698c7260cd2d955f00"},
   {"file": "20261204000300_extend_delivery_projection_axes.exs", "sha256": "dba7ba4140f3bcf4b3c0dff16e9a69a00f81f725a5525669f7a5de90237000c2"},
   {"file": "20261204000400_validate_delivery_window_and_engagement_checks.exs", "sha256": "7aa134b668734dd1cdfdaee2d9ac685d562e0c1b49bbf5d9ff003f9095908c7e"},
-  {"file": "20261204000500_register_delivery_windows.exs", "sha256": "e82bf4e732dba8501ce2e22033f6cbd3609001fa4d26ead32cb2b3af729cf41d"}
+  {"file": "20261204000500_register_delivery_windows.exs", "sha256": "e82bf4e732dba8501ce2e22033f6cbd3609001fa4d26ead32cb2b3af729cf41d"},
+  {"file": "20261206000000_add_event_item_and_correlation_id.exs", "sha256": "0f22552dfa9fbd43e04de7b64995c9417d79b55c28c92c2e1bdfe5947c3beb82"},
+  {"file": "20261206100000_announce_delivery_outcomes.exs", "sha256": "5705afa8e0f1baf4ce972be43878d798721f16de71694b76fb3fea0ba96b538c"}
 ]

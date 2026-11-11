@@ -11,7 +11,7 @@ defmodule Relay.Channels.Live.Whatsapp do
 
   `inbound/5` takes a verified webhook of a provider account (`X-Hub-Signature-256` over the raw body, CH-60) and applies each item:
 
-    * a message status is recorded once by its `wamid + status + timestamp` key as an inbound receipt and appended to the delivery's ledger with its whole `pricing` object; duplicates and out-of-order statuses are expected and the ledger moves only forward (`status_event/2` is the one place a status becomes a provider event, recorded through `Relay.Channels.Live.Events.record/2`). A failed status with `131050` writes the recipient's marketing opt-out (PC-43), and `131026` soft disables the address (CH-11);
+    * a message status is recorded once by its `wamid + status + timestamp` key as an inbound receipt with its processing job, before Meta is answered, and the delivery report batcher appends it to the delivery's ledger with its whole `pricing` object (WH-49, T-41); duplicates and out-of-order statuses are expected and the ledger moves only forward (`status_event/2` is the one place a status becomes a provider event, recorded through `Relay.Channels.Live.Events.record/2`). Once written, a failed status with `131050` writes the recipient's marketing opt-out (PC-43), and `131026` soft disables the address (CH-11);
     * an inbound message opens the recipient's window again;
     * a template status, category or edit updates the template (CH-57, TP-23);
     * `account_update` is announced as `whatsapp_account.updated` with its `violation_type`;
@@ -22,6 +22,7 @@ defmodule Relay.Channels.Live.Whatsapp do
   """
 
   alias Relay.Channels.Live.Events
+  alias Relay.Channels.Live.Receipts
   alias Relay.Channels.Live.Store
 
   require Logger
@@ -282,16 +283,33 @@ defmodule Relay.Channels.Live.Whatsapp do
 
   # CH-60
   # DS-12
+  # WH-49
+  # T-41
   defp status(ctx, event) do
-    with {delivery_id, _attempt_no} <- event.correlation,
-         {:ok, %{} = delivery} <- read_delivery(ctx.scope, delivery_id),
-         {:ok, {:recorded, receipt_id}} <- receipt(ctx, event.dedup_key),
-         {:ok, _recorded} <- Events.record(ctx.scope, status_event(event, receipt_id)) do
-      failed(ctx, delivery, event)
+    item = {:whatsapp, %{event: status_event(event, nil), dedup_key: event.dedup_key}}
+
+    with {_delivery_id, _attempt_no} <- event.correlation,
+         {:ok, %{recorded: 1}} <- Receipts.record(ctx.scope, ctx.account, [item], actor()) do
       :applied
     else
       _unknown_or_duplicate -> :ignored
     end
+  end
+
+  defp actor, do: :provider_webhook
+
+  # CH-11
+  # CH-59
+  # PC-43
+  @doc "Applies what a recorded failed WhatsApp status leads to, once the delivery report batcher has written it (`Relay.Channels.Live.Receipts`): `131050` writes the recipient's marketing opt-out, a never-retry code soft disables the address and a number in maintenance is marked unusable."
+  @spec after_status(Relay.Scope.t(), Relay.Id.t() | nil, map()) :: :ok
+  def after_status(%Relay.Scope{} = scope, account_id, %{delivery_id: delivery_id} = event) do
+    with {:ok, %{} = account} <- Relay.Channels.provider_account(scope, account_id),
+         {:ok, %{} = delivery} <- read_delivery(scope, delivery_id) do
+      failed(%{scope: scope, account: account}, delivery, event)
+    end
+
+    :ok
   end
 
   defp read_delivery(scope, delivery_id),

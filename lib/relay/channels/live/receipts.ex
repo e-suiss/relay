@@ -1,6 +1,6 @@
 defmodule Relay.Channels.Live.Receipts do
   @moduledoc """
-  The durable receipt path of SMS and e-mail provider webhooks (WH-49, L-17, INV-12, DS-22): receipt first, a fast `2xx`, processing from the queue.
+  The durable receipt path of provider events (WH-49, L-17, INV-12, DS-22): receipt first, a fast `2xx`, processing from the queue. It serves the SMS and e-mail provider webhooks, the SES event queue (`Relay.Channels.Live.SesQueue`), WhatsApp message statuses (their `wamid + status + timestamp` key is the receipt's event identifier, and a written failed status is followed by `Relay.Channels.Live.Whatsapp.after_status/3`) and the reconciliation's answers.
 
     1. `accept/4` verifies the request on its raw body with the account's verification secret (`Relay.Channels.provider_webhook/3`) and reads its items. Each item is one provider event: a delivery report that is not pending or an e-mail event that names a delivery.
     2. Each item is a receipt `(tenant, environment, provider, provider_event_id)`, unique in the database (INV-12): the provider's own event identifier when it sends one (`email:<id>`), otherwise the SHA-256 of the item without its personal fields and its actor (`sha256:<hex>`). The item is sealed with the tenant's data key as the receipt body (retention class `delivery_record`). A repeated event is counted on its receipt and processed no further. The receipts and their processing jobs (`Relay.Channels.Live.ReceiptWorker`, at most 100 receipts each, identifiers only, T-15) are committed in one transaction before the provider is answered.
@@ -12,6 +12,7 @@ defmodule Relay.Channels.Live.Receipts do
   alias Relay.Channels.Live.Events
   alias Relay.Channels.Live.ReceiptWorker
   alias Relay.Channels.Live.Store
+  alias Relay.Channels.Live.Whatsapp
   alias Relay.Scope
 
   @per_job 100
@@ -27,6 +28,9 @@ defmodule Relay.Channels.Live.Receipts do
   @recorded [:applied, :stale_ignored, :conflict_flagged]
 
   @type accepted :: %{recorded: non_neg_integer(), duplicates: non_neg_integer()}
+  @type item ::
+          Relay.Channels.webhook_item()
+          | {:whatsapp, %{event: Events.event(), dedup_key: String.t()}}
 
   # WH-49
   # INV-12
@@ -45,11 +49,12 @@ defmodule Relay.Channels.Live.Receipts do
   # DS-48
   # INV-12
   @doc "Commits the items a reconciliation read from a provider's status or event list API (`actor = provider_api`) as receipts with their jobs, exactly as a webhook's items, so an event already received through the webhook is a repeat and is counted, not written again."
-  @spec record(Scope.t(), map(), [Relay.Channels.webhook_item()], :provider_api) ::
+  @spec record(Scope.t(), map(), [item()], :provider_api | :provider_webhook) ::
           {:ok, accepted()} | {:error, :unavailable}
-  def record(%Scope{} = scope, %{"provider" => _provider} = account, items, :provider_api) do
+  def record(%Scope{} = scope, %{"provider" => _provider} = account, items, actor)
+      when actor in [:provider_api, :provider_webhook] do
     digest = :crypto.hash(:sha256, :erlang.term_to_binary(Enum.map(items, &encode/1)))
-    commit(scope, account, digest, items, :provider_api)
+    commit(scope, account, digest, items, actor)
   end
 
   defp commit(_scope, _account, _digest, [], _actor), do: {:ok, %{recorded: 0, duplicates: 0}}
@@ -154,6 +159,18 @@ defmodule Relay.Channels.Live.Receipts do
     }
   end
 
+  defp encode({:whatsapp, %{event: event}}) do
+    %{
+      "kind" => "whatsapp",
+      "delivery_id" => Relay.Id.to_string(event.delivery_id),
+      "event_code" => event.event_code,
+      "raw_code" => event.raw_code,
+      "occurred_at" => time(event.occurred_at),
+      "price" => event.price,
+      "detail" => event.detail
+    }
+  end
+
   defp encode({:email, event}) do
     %{
       "kind" => "email",
@@ -168,6 +185,8 @@ defmodule Relay.Channels.Live.Receipts do
       "diagnostic" => exposed(event.diagnostic)
     }
   end
+
+  defp event_id({:whatsapp, %{dedup_key: key}}, _encoded), do: String.slice(key, 0, 512)
 
   defp event_id({:email, %{id: id}}, _encoded) when is_binary(id) and id != "",
     do: String.slice("email:" <> id, 0, 512)
@@ -237,6 +256,29 @@ defmodule Relay.Channels.Live.Receipts do
       {:skipped, :no_classification} -> {:mark, row["id"], :processed, nil}
       {:skipped, reason} -> {:mark, row["id"], :rejected, Atom.to_string(reason)}
       _unreadable -> {:mark, row["id"], :rejected, "unreadable"}
+    end
+  end
+
+  defp item(_declarations, _table, row, {:ok, %{"kind" => "whatsapp"} = item}) do
+    case Relay.Id.parse(to_string(item["delivery_id"])) do
+      {:ok, delivery_id} ->
+        event = %{
+          delivery_id: delivery_id,
+          provider: row["provider"],
+          channel: "whatsapp",
+          event_code: to_string(item["event_code"]),
+          occurred_at: parse_time(item["occurred_at"]) || Relay.Clock.utc_now(),
+          actor: actor(item),
+          raw_code: item["raw_code"],
+          receipt_id: row["id"],
+          price: item["price"],
+          detail: item["detail"] || %{}
+        }
+
+        {:event, event, {:whatsapp, row["provider_account_id"], event}}
+
+      {:error, _invalid} ->
+        {:mark, row["id"], :rejected, "unreadable"}
     end
   end
 
@@ -318,6 +360,10 @@ defmodule Relay.Channels.Live.Receipts do
   defp follow(scope, {{%{} = event, actions}, {:ok, %{result: result}}})
        when result in @recorded,
        do: EmailEvents.apply_actions(scope, event, actions)
+
+  defp follow(scope, {{:whatsapp, account_id, event}, {:ok, %{result: result}}})
+       when result in @recorded,
+       do: Whatsapp.after_status(scope, account_id, event)
 
   defp follow(_scope, _post), do: :ok
 end

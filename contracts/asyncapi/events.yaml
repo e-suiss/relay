@@ -6469,6 +6469,7 @@ x-relay-event-names:
   - test_recipient.added
   - test_recipient.removed
   - test_recipient.verified
+  - throttle.reset
   - topic.archived
   - topic.created
   - topic.subscribed
@@ -6497,4 +6498,3 @@ x-relay-event-names:
   - workflow.promoted
   - workflow.publication_requested
   - workflow.published
-  - throttle.reset

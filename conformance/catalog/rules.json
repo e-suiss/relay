@@ -6515,8 +6515,8 @@
     "id": "DS-48",
     "section": "§14",
     "status": "policy_default",
-    "title": "",
-    "verify_stage": null
+    "title": "Reconciliation frequency: status API every 15 minutes, report API daily at 03:30 UTC",
+    "verify_stage": 7
   },
   {
     "acceptance": "pending",

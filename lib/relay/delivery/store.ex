@@ -462,11 +462,12 @@ defmodule Relay.Delivery.Store do
 
   # DS-30
   # DS-52
-  @doc "What the engagement of a delivery is classified with: its channel, delivery rank and acceptance time, the occurrence of its first provider delivery evidence (`delivered_at`, or `nil`) and its clicks that occurred since `since` as `{link, occurred_at}` in occurrence order; `nil` when there is no such delivery."
+  @doc "What the engagement of a delivery is classified with: its recipient, channel, delivery rank and acceptance time, the occurrence of its first provider delivery evidence (`delivered_at`, or `nil`) and its clicks that occurred since `since` as `{link, occurred_at}` in occurrence order; `nil` when there is no such delivery."
   @spec engagement(Relay.Id.t(), DateTime.t()) :: map() | nil
   def engagement(delivery_id, since) do
     sql = """
-    SELECT tenant_id, environment, id, channel::text AS channel, delivery_rank, accepted_at
+    SELECT tenant_id, environment, id, recipient_id, channel::text AS channel, delivery_rank,
+      accepted_at
     FROM relay.deliveries WHERE id = $1
     """
 

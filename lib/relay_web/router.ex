@@ -477,6 +477,9 @@ defmodule RelayWeb.Router do
     delete "/subscriber/devices/:device_id", DeviceController, :delete_mine,
       private: %{relay_operation: "deleteMyDevice"}
 
+    post "/subscriber/push_receipts", ReceiptController, :create_mine,
+      private: %{relay_operation: "recordMyPushReceipt"}
+
     get "/subscriber/test_recipients", TesterController, :mine,
       private: %{relay_operation: "listMyTestRecipients"}
 

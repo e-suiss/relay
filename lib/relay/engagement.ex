@@ -5,6 +5,8 @@ defmodule Relay.Engagement do
     * A click is classified `human` or `likely_bot` with the active `click_signals` data set (`Relay.Channels.classify_click/4`); the class, the deciding signal, the link number and the data set version are kept on the `engagement.clicked` entry. A human click is the recipient's own action (`actor = user`), a `reliable` engagement signal and e-mail delivery evidence: it raises the delivery to `delivered` when no provider evidence did (DS-31, DS-34). A likely bot click is recorded by Relay (`actor = relay`), is `unreliable` and changes nothing else.
     * An open is the `engagement.opened` entry with its `machine_open` flag (DS-32); it is never delivery evidence and never decision input, so it is always `unreliable`.
 
+  A push has no tracking endpoint: the mobile or web SDK posts its displayed and clicked receipts (`record_receipt/4`, DS-13), the only delivery evidence of a push.
+
   A click on a link Relay did not sign, or of another channel, records nothing; the redirect follows only a verified token. The URL is never kept in the ledger, only its link number.
   """
 
@@ -21,6 +23,7 @@ defmodule Relay.Engagement do
           required(:at_ms) => integer()
         }
   @default_window_ms 10_000
+  @push ["push", "web_push"]
 
   # CH-43
   # CH-44
@@ -91,7 +94,11 @@ defmodule Relay.Engagement do
       at_ms: request.at_ms,
       delivery_rank: if(human? and delivery["delivery_rank"] < 2, do: :delivered),
       detail: %{
-        "engagement" => "clicked",
+        "engagement" => %{
+          "kind" => "clicked",
+          "source" => "tracked_link",
+          "clicked_by" => Atom.to_string(class)
+        },
         "link" => link,
         "class" => Atom.to_string(class),
         "signal" => signal,
@@ -117,7 +124,6 @@ defmodule Relay.Engagement do
         at_ms: request.at_ms,
         delivery_rank: nil,
         detail: %{
-          "engagement" => "opened",
           "machine_open" => machine?,
           "signal" => signal,
           "decision_grade" => "unreliable",
@@ -133,6 +139,42 @@ defmodule Relay.Engagement do
       {:error, reason} -> {:error, reason}
     end
   end
+
+  # DS-13
+  # DS-8
+  @doc "Records an SDK receipt (`:displayed` or `:clicked`) of a push delivery of `subscriber_id` at the device's `occurred_at`, inside the caller's scoped transaction: a displayed receipt is the push's delivery evidence and raises the delivery to `delivered`, a clicked one is engagement only; both are `reliable` and recorded with `actor = client_sdk`. A delivery of another subscriber or channel is `:delivery_not_found`."
+  @spec record_receipt(Relay.Id.t(), Relay.Id.t(), :displayed | :clicked, DateTime.t()) ::
+          {:ok, atom()} | {:error, :delivery_not_found}
+  def record_receipt(subscriber_id, delivery_id, kind, %DateTime{} = occurred_at)
+      when kind in [:displayed, :clicked] do
+    case Relay.Delivery.engagement_in_scope(delivery_id, occurred_at) do
+      %{"recipient_id" => ^subscriber_id, "channel" => channel} = delivery
+      when channel in @push ->
+        displayed? = kind == :displayed
+
+        {:ok, entry} =
+          Relay.Delivery.ledger_entry(
+            id: Relay.Id.generate(),
+            delivery_id: delivery_id,
+            actor: :client_sdk,
+            event_type: "engagement." <> Atom.to_string(kind),
+            occurred_at: occurred_at,
+            delivery_rank: if(displayed? and delivery["delivery_rank"] < 2, do: :delivered),
+            detail: %{"engagement" => receipt_axis(kind), "decision_grade" => "reliable"}
+          )
+
+        {result, _rank, _version} = Relay.Delivery.append_ledger_in_scope(entry)
+        {:ok, result}
+
+      _other ->
+        {:error, :delivery_not_found}
+    end
+  end
+
+  defp receipt_axis(:displayed), do: %{"kind" => "seen", "source" => "client_sdk"}
+
+  defp receipt_axis(:clicked),
+    do: %{"kind" => "clicked", "source" => "client_sdk", "clicked_by" => "human"}
 
   defp signals do
     Relay.Datasets.decide(Relay.Datasets.installation_scope(), "click_signals", & &1)

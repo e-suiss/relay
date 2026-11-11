@@ -517,6 +517,109 @@ paths:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "Path and the logout reason are chosen by the contract."
+  "/v1/subscriber/push_receipts":
+    post:
+      operationId: recordMyPushReceipt
+      tags:
+        - devices
+      summary: Record a push receipt
+      description: "The mobile or web SDK reports that a push of the token's subscriber was displayed or clicked (actor client_sdk). A displayed receipt is the only delivery evidence of a push and raises the delivery to delivered; a clicked receipt is engagement and leaves delivery as it is. Both are recorded in the delivery's ledger and are decision input (DS-13, DS-12). A delivery of another subscriber or of another channel is 404. occurred_at is the device's time, never later than the server's."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/PushReceipt"
+      security:
+        - subscriber_bearer:
+            - "devices:write"
+      responses:
+        "202":
+          description: Recorded.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/PushReceiptRecorded"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - delivery_not_found
+      x-relay-scopes:
+        - "devices:write"
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: "DS-13 makes the SDK's displayed and clicked receipts a separate evidence level but names no surface; the receipt is posted with the subscriber's own token under its devices scope."
   "/v1/subscriber/test_recipients":
     get:
       operationId: listMyTestRecipients
@@ -750,6 +853,43 @@ components:
           x-relay-choice: true
         environment:
           "$ref": "./components/schemas.yaml#/Environment"
+      additionalProperties: false
+    PushReceipt:
+      type: object
+      description: "A push receipt of the SDK (DS-13)."
+      required:
+        - delivery_id
+        - receipt
+      properties:
+        delivery_id:
+          "$ref": "./components/schemas.yaml#/Id_dlv"
+        receipt:
+          type: string
+          enum:
+            - displayed
+            - clicked
+        occurred_at:
+          type: string
+          format: date-time
+      additionalProperties: false
+    PushReceiptRecorded:
+      type: object
+      required:
+        - object
+        - delivery_id
+        - receipt
+      properties:
+        object:
+          type: string
+          enum:
+            - push_receipt
+        delivery_id:
+          "$ref": "./components/schemas.yaml#/Id_dlv"
+        receipt:
+          type: string
+          enum:
+            - displayed
+            - clicked
       additionalProperties: false
 x-relay-family:
   - client

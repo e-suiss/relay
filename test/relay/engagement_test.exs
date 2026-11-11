@@ -41,6 +41,25 @@ defmodule Relay.EngagementTest do
     List.last(ledger)
   end
 
+  defp push! do
+    %{scope: scope, delivery_id: id} =
+      DeliveryFixture.sendable!(delivery: [channel: :push, target_kind: :device])
+
+    {:ok, %{"recipient_id" => recipient}} = Relay.Delivery.engagement(scope, id, now())
+    %{scope: scope, delivery_id: id, recipient: recipient}
+  end
+
+  defp now, do: Relay.Clock.utc_now()
+
+  defp receipt(scope, recipient, id, kind) do
+    {:ok, result} =
+      Relay.Repo.in_scope(scope, fn _status ->
+        Relay.Engagement.record_receipt(recipient, id, kind, now())
+      end)
+
+    result
+  end
+
   describe "DS-30 DS-31 DS-34 clicks" do
     test "DS-34: a human click is the user's delivery evidence and raises the delivery" do
       %{scope: scope, delivery_id: id} = DeliveryFixture.sendable!()
@@ -91,6 +110,28 @@ defmodule Relay.EngagementTest do
       assert {:ok, {_result, true}} = Relay.Engagement.record_open(open, proxy)
       assert rank(scope, id) == 0
       assert %{"actor" => "relay", "event_type" => "engagement.opened"} = last(scope, id)
+    end
+  end
+
+  describe "DS-13 push receipts" do
+    test "DS-13: only the SDK's displayed receipt is push delivery evidence" do
+      %{scope: scope, delivery_id: id, recipient: recipient} = push!()
+
+      assert {:ok, _result} = receipt(scope, recipient, id, :clicked)
+      assert rank(scope, id) == 0
+
+      assert {:ok, :applied} = receipt(scope, recipient, id, :displayed)
+      assert rank(scope, id) == 2
+      assert %{"actor" => "client_sdk", "event_type" => "engagement.displayed"} = last(scope, id)
+    end
+
+    test "DS-13: a receipt for another subscriber's or another channel's delivery is not found" do
+      %{scope: scope, delivery_id: id} = push!()
+      assert {:error, :delivery_not_found} = receipt(scope, Relay.Id.generate(), id, :displayed)
+
+      %{scope: email_scope, delivery_id: email} = DeliveryFixture.sendable!()
+      {:ok, %{"recipient_id" => owner}} = Relay.Delivery.engagement(email_scope, email, now())
+      assert {:error, :delivery_not_found} = receipt(email_scope, owner, email, :displayed)
     end
   end
 end

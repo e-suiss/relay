@@ -505,6 +505,17 @@ defmodule Relay.Delivery do
   def engagement(scope, delivery_id, since),
     do: Store.in_scope(scope, fn _status -> Store.engagement(delivery_id, since) end)
 
+  # DS-13
+  @doc "Reads what the engagement of a delivery is classified with inside the caller's scoped transaction; see `Relay.Delivery.Store.engagement/2`."
+  @spec engagement_in_scope(Relay.Id.t(), DateTime.t()) :: map() | nil
+  defdelegate engagement_in_scope(delivery_id, since), to: Store, as: :engagement
+
+  # DS-13
+  @doc "Appends a ledger entry inside the caller's scoped transaction; see `Relay.Delivery.Ledger.append/1`."
+  @spec append_ledger_in_scope(Ledger.t()) ::
+          {Ledger.result(), Ledger.rank() | nil, non_neg_integer() | nil}
+  defdelegate append_ledger_in_scope(entry), to: Ledger, as: :append
+
   @doc "Reads the ledger of a delivery."
   @spec ledger(Scope.t(), Relay.Id.t()) :: result([map()])
   def ledger(scope, delivery_id),

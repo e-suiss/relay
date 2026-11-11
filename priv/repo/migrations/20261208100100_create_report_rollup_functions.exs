@@ -15,11 +15,6 @@ defmodule Relay.Repo.Migrations.CreateReportRollupFunctions do
   # TN-18
   # OP-8
   def up do
-    execute("""
-    CREATE INDEX deliveries_created_at_index ON relay.deliveries
-      (tenant_id, environment, created_at)
-    """)
-
     execute(recompute())
     execute(scopes())
 

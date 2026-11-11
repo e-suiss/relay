@@ -102,7 +102,7 @@ defmodule RelayWeb.Api.ExportTest do
   describe "DS-37 CSV" do
     test "DS-37: fields are quoted by RFC 4180 and a formula is neutralised" do
       line = IO.iodata_to_binary(Store.csv_line(["a,b", "say \"hi\"", "=SUM(A1)", nil, 3, true]))
-      assert line == ~s("a,b","say ""hi""",'=SUM(A1),,3,true\r\n)
+      assert line == ~s|"a,b","say ""hi""",'=SUM(A1),,3,true\r\n|
     end
   end
 end

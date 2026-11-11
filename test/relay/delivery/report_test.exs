@@ -28,7 +28,7 @@ defmodule Relay.Delivery.ReportTest do
   defp delivered!(opts \\ []) do
     %{scope: scope, delivery_id: id} = fixture = DeliveryFixture.sendable!(opts)
     n = DeliveryFixture.started_attempt!(scope, id)
-    DeliveryFixture.finish(scope, id, n, :succeeded, delivery_rank: :delivered)
+    DeliveryFixture.finish(scope, id, n, :succeeded, delivery_rank: 2)
     fixture
   end
 

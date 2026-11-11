@@ -499,6 +499,12 @@
       "personal_columns": [],
       "tenant_close": "row kept",
       "subject_erasure": "not subject data"
+    },
+    {
+      "table": "provider_invoices",
+      "personal_columns": [],
+      "tenant_close": "row kept; invoice figures only",
+      "subject_erasure": "not subject data"
     }
   ],
   "locations": [

@@ -17,6 +17,11 @@ defmodule Relay.Sql.DeliveryAnnounceTest do
 
   defp types(notification), do: Enum.map(outbox(notification), &elem(&1, 0))
 
+  defp changes(notification) do
+    for {"delivery.status_changed", p} <- outbox(notification),
+        do: {p["previous_status"], p["status"]}
+  end
+
   defp cancel(delivery) do
     "cancelled" =
       one("SELECT relay_fn.delivery_cancel($1, 'ops.stop', $2, $3, $4, $5, $6)", [
@@ -36,6 +41,28 @@ defmodule Relay.Sql.DeliveryAnnounceTest do
   end
 
   describe "E-84 delivery.status_changed" do
+    test "E-84, DS-18: a DLR window step is announced as unknown_pending, then unknown" do
+      %{notification: n} = scenario!()
+      d = started(n, "sms")
+      accepted_at = DateTime.add(DateTime.utc_now(), -80 * 3600, :second)
+      ledger!(d, attempt_no: 1, event_type: "dlr.accepted", rank: 1, occurred_at: accepted_at)
+      window = %{"channel" => "sms", "provider" => nil, "short_ms" => 21_600_000}
+      windows = [Map.put(window, "long_ms", 259_200_000)]
+
+      assert [[^d, "sms", _provider, 2]] =
+               rows("SELECT * FROM relay_fn.delivery_windows_advance($1, 10)", [windows])
+
+      assert changes(n) == [
+               {"queued", "sent"},
+               {"sent", "unknown_pending"},
+               {"unknown_pending", "unknown"}
+             ]
+
+      ledger!(d, attempt_no: 1, event_type: "dlr.delivered", rank: 2)
+      assert List.last(changes(n)) == {"unknown", "delivered"}
+      assert_rebuilds(d)
+    end
+
     test "E-84, DS-14: every status transition is announced with the previous status" do
       %{notification: n} = scenario!()
       d = started(n, "sms")

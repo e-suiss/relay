@@ -95,6 +95,7 @@ defmodule Relay.Observability.RollupTest do
 
     test "OP-36: a step counts the window since the last one and saves where it stopped" do
       past = DateTime.to_iso8601(DateTime.add(Relay.Clock.utc_now(), -120, :second))
+
       context = %{
         name: "observability_rollup",
         node: "n",

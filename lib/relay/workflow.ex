@@ -660,10 +660,10 @@ defmodule Relay.Workflow do
     timer(scope, run["id"], nil, true)
   end
 
+  defp jsonable(%DateTime{} = at), do: DateTime.to_iso8601(at)
   defp jsonable(%{} = map), do: Map.new(map, fn {key, value} -> {key, jsonable(value)} end)
   defp jsonable(list) when is_list(list), do: Enum.map(list, &jsonable/1)
   defp jsonable(<<_::128>> = id), do: if(String.valid?(id), do: id, else: Relay.Id.to_string(id))
-  defp jsonable(%DateTime{} = at), do: DateTime.to_iso8601(at)
   defp jsonable(value), do: value
 
   # WF-29

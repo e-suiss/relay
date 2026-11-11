@@ -20,7 +20,7 @@ defmodule Relay.Ingest.EventStore do
   SELECT n.id, n.event_id, n.recipient_id, r.kind AS recipient_kind, n.subtenant_id,
     n.message_class, n.security_subtype, n.sender_type, n.dedup_key, n.state, n.close_rule_id,
     n.expires_at, n.duplicate_count, n.is_test, n.created_at, n.updated_at, w.key AS workflow_key,
-    v.version_no AS workflow_version,
+    v.version_no AS workflow_version, ev.correlation_id, ev.item,
     (SELECT jsonb_object_agg(s.status, s.n) FROM (
       SELECT #{@status} AS status, count(*) AS n FROM relay.deliveries d
       WHERE d.tenant_id = n.tenant_id AND d.environment = n.environment
@@ -33,6 +33,8 @@ defmodule Relay.Ingest.EventStore do
     AND w.id = n.workflow_id
   JOIN relay.workflow_versions v ON v.tenant_id = n.tenant_id AND v.environment = n.environment
     AND v.id = n.workflow_version_id
+  LEFT JOIN relay.events ev ON ev.tenant_id = n.tenant_id AND ev.environment = n.environment
+    AND ev.id = n.event_id
   """
 
   @delivery """
@@ -137,7 +139,8 @@ defmodule Relay.Ingest.EventStore do
   # OP-7
   # E-83
   # API-23
-  @doc "Records an accepted event with its encrypted payload, the sender's `interruption`, its encrypted `links` and the request's encrypted channel overrides."
+  # E-85
+  @doc "Records an accepted event with its encrypted payload, the sender's `interruption`, its encrypted `links`, the request's encrypted channel overrides and the sender's `correlation_id` and `item`."
   @spec event_accept(map()) :: {atom(), Relay.Id.t() | nil, DateTime.t() | nil}
   def event_accept(e) do
     [row] =
@@ -170,7 +173,9 @@ defmodule Relay.Ingest.EventStore do
         e.traceparent,
         e.interruption,
         e.links_ct,
-        Map.get(e, :overrides_ct)
+        Map.get(e, :overrides_ct),
+        Map.get(e, :correlation_id),
+        Map.get(e, :item)
       ])
 
     {Repo.code!(row["result"], [
@@ -412,7 +417,8 @@ defmodule Relay.Ingest.EventStore do
            """
            SELECT e.id, e.source, e.subtenant_id, e.dedup_key, e.cancellation_key, e.send_at,
              e.expires_at, e.priority, e.recipient_count, e.state, e.is_test, e.created_at,
-             e.cancelled_at, e.payload_created_at, w.key AS workflow_key,
+             e.cancelled_at, e.payload_created_at, e.correlation_id, e.item,
+             w.key AS workflow_key,
              v.version_no AS workflow_version
            FROM relay.events e
            JOIN relay.workflows w ON w.tenant_id = e.tenant_id AND w.environment = e.environment

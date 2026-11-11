@@ -121,6 +121,8 @@ defmodule Relay.Api.Views do
       "updated_at" => n["updated_at"]
     }
     |> put_unless_nil("deliveries", deliveries && Enum.map(deliveries, &delivery/1))
+    |> put_unless_nil("correlation_id", n["correlation_id"])
+    |> put_unless_nil("item", n["item"])
   end
 
   @doc "A cancellation result; the function's details carry plain identifiers."

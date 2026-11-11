@@ -47,6 +47,8 @@ defmodule Relay.Api.Queries do
       "cancelled_at" => e["cancelled_at"]
     }
     |> Views.put_unless_nil("metadata", open.("metadata_ct"))
+    |> Views.put_unless_nil("correlation_id", e["correlation_id"])
+    |> Views.put_unless_nil("item", e["item"])
   end
 
   defp accepted(n) do

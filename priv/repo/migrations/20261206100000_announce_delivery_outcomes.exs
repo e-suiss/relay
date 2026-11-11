@@ -211,8 +211,7 @@ defmodule Relay.Repo.Migrations.AnnounceDeliveryOutcomes do
         v_failed boolean;
         v_expired boolean;
       BEGIN
-        IF v_old = v_new
-          OR current_setting('relay.tenant_id', true) IS DISTINCT FROM NEW.tenant_id::text THEN
+        IF v_old = v_new THEN
           RETURN NULL;
         END IF;
         SELECT * INTO v_notification FROM relay.notifications n

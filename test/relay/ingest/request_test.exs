@@ -107,4 +107,16 @@ defmodule Relay.Ingest.RequestTest do
       assert [%{pointer: "/links/1/rel", code: "conflict"}] = details.errors
     end
   end
+
+  describe "E-83 item and correlation_id" do
+    test "E-83: the sender's item and correlation_id are kept as sent" do
+      digest = "sha256:" <> String.duplicate("a", 64)
+      item = %{"ref" => "order-1", "version" => "3", "digest" => digest}
+
+      assert {:ok, %{item: ^item, correlation_id: "work-42"}} =
+               check(%{"item" => item, "correlation_id" => "work-42"})
+
+      assert {:ok, %{item: nil, correlation_id: nil}} = check(%{})
+    end
+  end
 end

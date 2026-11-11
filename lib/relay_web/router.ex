@@ -199,6 +199,15 @@ defmodule RelayWeb.Router do
     post "/provider_accounts/:provider_account_id/verify", ChannelController, :verify_account,
       private: %{relay_operation: "verifyProviderAccount"}
 
+    get "/provider_invoices", ProviderInvoiceController, :index,
+      private: %{relay_operation: "listProviderInvoices"}
+
+    post "/provider_invoices", ProviderInvoiceController, :create,
+      private: %{relay_operation: "createProviderInvoice"}
+
+    get "/provider_invoices/:provider_invoice_id", ProviderInvoiceController, :show,
+      private: %{relay_operation: "getProviderInvoice"}
+
     get "/sender_identities", ChannelController, :senders,
       private: %{relay_operation: "listSenderIdentities"}
 

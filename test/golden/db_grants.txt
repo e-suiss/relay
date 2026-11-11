@@ -260,6 +260,11 @@ table relay.provider_accounts relay_archive SELECT
 table relay.provider_accounts relay_maint SELECT
 table relay.provider_accounts relay_owner INSERT,SELECT,UPDATE
 table relay.provider_accounts relay_report SELECT
+table relay.provider_invoices relay_app SELECT
+table relay.provider_invoices relay_archive SELECT
+table relay.provider_invoices relay_maint SELECT
+table relay.provider_invoices relay_owner INSERT,SELECT,UPDATE
+table relay.provider_invoices relay_report SELECT
 table relay.quota_counters relay_app SELECT
 table relay.quota_counters relay_archive SELECT
 table relay.quota_counters relay_maint SELECT

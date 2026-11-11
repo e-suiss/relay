@@ -52,6 +52,8 @@ spec:
                 path: queue-database-password
               - key: maint-password
                 path: maint-database-password
+              - key: report-password
+                path: report-database-password
         - name: migrator-password
           secret:
             secretName: {{ .Values.database.migratorPasswordSecret }}

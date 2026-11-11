@@ -136,6 +136,10 @@ table relay.events relay_archive SELECT
 table relay.events relay_maint SELECT
 table relay.events relay_owner INSERT,SELECT,UPDATE
 table relay.events relay_report SELECT
+table relay.exports relay_app SELECT
+table relay.exports relay_archive SELECT
+table relay.exports relay_maint SELECT
+table relay.exports relay_owner INSERT,SELECT,UPDATE
 table relay.fanout_slices relay_app SELECT
 table relay.fanout_slices relay_archive SELECT
 table relay.fanout_slices relay_maint SELECT
@@ -294,6 +298,16 @@ table relay.render_snapshots relay_archive SELECT
 table relay.render_snapshots relay_maint SELECT
 table relay.render_snapshots relay_owner INSERT,SELECT
 table relay.render_snapshots relay_report SELECT
+table relay.report_delivery_rollups relay_app SELECT
+table relay.report_delivery_rollups relay_archive SELECT
+table relay.report_delivery_rollups relay_maint SELECT
+table relay.report_delivery_rollups relay_owner INSERT,SELECT,UPDATE
+table relay.report_delivery_rollups relay_report SELECT
+table relay.report_skip_rollups relay_app SELECT
+table relay.report_skip_rollups relay_archive SELECT
+table relay.report_skip_rollups relay_maint SELECT
+table relay.report_skip_rollups relay_owner INSERT,SELECT,UPDATE
+table relay.report_skip_rollups relay_report SELECT
 table relay.role_assignments relay_app SELECT
 table relay.role_assignments relay_archive SELECT
 table relay.role_assignments relay_maint SELECT

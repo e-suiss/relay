@@ -15,6 +15,10 @@
   value: {{ required "database.maintUrl is required" .Values.database.maintUrl | quote }}
 - name: MAINT_DATABASE_PASSWORD_FILE
   value: /run/secrets/relay/maint-database-password
+- name: REPORT_DATABASE_URL
+  value: {{ required "database.reportUrl is required" .Values.database.reportUrl | quote }}
+- name: REPORT_DATABASE_PASSWORD_FILE
+  value: /run/secrets/relay/report-database-password
 - name: POOL_SIZE
   value: {{ .Values.database.poolSize | quote }}
 - name: VALKEY_URL

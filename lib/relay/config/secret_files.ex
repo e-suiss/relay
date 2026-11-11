@@ -10,10 +10,10 @@ defmodule Relay.Config.SecretFiles do
   alias Relay.Hygiene
   alias Relay.Redacted
 
-  @names [:repo, :queue_repo, :maint_repo, :audit_s3, :secret_key_base]
+  @names [:repo, :queue_repo, :maint_repo, :report_repo, :audit_s3, :secret_key_base]
   @timeout_ms 5_000
 
-  @type name :: :repo | :queue_repo | :maint_repo | :audit_s3 | :secret_key_base
+  @type name :: :repo | :queue_repo | :maint_repo | :report_repo | :audit_s3 | :secret_key_base
 
   @doc "Secret names a node can be configured with."
   @spec names() :: [name(), ...]

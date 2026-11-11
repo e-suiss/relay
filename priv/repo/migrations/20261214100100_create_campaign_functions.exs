@@ -21,8 +21,7 @@ defmodule Relay.Repo.Migrations.CreateCampaignFunctions do
     {"relay_fn.campaign_stage_bounds(uuid, bigint)", "relay_owner", ~w(relay_app)},
     {"relay_fn.campaign_stage_open(uuid, bigint, uuid)", "relay_owner", ~w(relay_app)},
     {"relay_fn.campaign_stage_wait(uuid, timestamptz)", "relay_owner", ~w(relay_app)},
-    {"relay_fn.campaign_member_mark(uuid, uuid, text, uuid, text)", "relay_owner",
-     ~w(relay_app)},
+    {"relay_fn.campaign_member_mark(uuid, uuid, text, uuid, text)", "relay_owner", ~w(relay_app)},
     {"relay_fn.campaign_pause(uuid, text)", "relay_owner", ~w(relay_app)},
     {"relay_fn.campaign_resume(uuid, text, bytea, #{@actor})", "relay_owner", ~w(relay_app)},
     {"relay_fn.campaign_close(uuid, text)", "relay_owner", ~w(relay_app)},
@@ -52,9 +51,27 @@ defmodule Relay.Repo.Migrations.CreateCampaignFunctions do
   def down, do: :ok
 
   defp statements do
-    [emit(), create(), members_add(), prepare(), prepare_progress(), prepared()] ++
-      [approve_samples(), approve_audience(), trigger(), stage_bounds(), stage_open()] ++
-      [stage_wait(), member_mark(), pause(), resume(), close(), cancel(), overrun(), rates()]
+    [
+      emit(),
+      create(),
+      members_add(),
+      prepare(),
+      prepare_progress(),
+      prepared(),
+      approve_samples(),
+      approve_audience(),
+      trigger(),
+      stage_bounds(),
+      stage_open(),
+      stage_wait(),
+      member_mark(),
+      pause(),
+      resume(),
+      close(),
+      cancel(),
+      overrun(),
+      rates()
+    ]
   end
 
   defp emit do

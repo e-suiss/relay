@@ -222,10 +222,7 @@ defmodule Relay.Api.Campaigns.Preparer do
   end
 
   defp estimate(scope, counts) do
-    totals =
-      counts
-      |> Enum.filter(&(&1["kind"] in ["send", "defer"]))
-      |> Enum.reduce(%{}, &add_count/2)
+    totals = Enum.reduce(counts, %{}, &add_count/2)
 
     pricer =
       case Relay.Channels.Live.usage_pricing() do
@@ -239,7 +236,10 @@ defmodule Relay.Api.Campaigns.Preparer do
 
   defp unpriced(_provider, _channel, _country, _category, _volume), do: :unpriced
 
-  defp add_count(row, acc), do: Map.update(acc, row["key"], row["count"], &(&1 + row["count"]))
+  defp add_count(%{"kind" => kind} = row, acc) when kind in ["send", "defer"],
+    do: Map.update(acc, row["key"], row["count"], &(&1 + row["count"]))
+
+  defp add_count(_drop, acc), do: acc
 
   defp price(scope, pricer, channel, count) do
     base = %{"channel" => channel, "count" => count}

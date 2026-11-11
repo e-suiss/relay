@@ -72,9 +72,8 @@ defmodule Relay.Api.Campaigns.Sender do
       ctx = context(scope, c)
       prepared = Enum.map(members, &{&1, prepare(ctx, c, data, external, &1)})
 
-      scope
-      |> Store.in_scope(fn _status -> accept_all(prepared, c, ctx) end)
-      |> finished(scope, c)
+      result = Store.in_scope(scope, fn _status -> accept_all(prepared, c, ctx) end)
+      finished(result, scope, c)
     end
   end
 

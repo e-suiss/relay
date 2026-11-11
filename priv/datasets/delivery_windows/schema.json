@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "delivery_windows",
+  "description": "The two-stage DLR windows of the channels that wait for a definite delivery event (DS-18, DS-19): after the provider accepted a delivery and no definite event came, the short window makes it unknown_pending and the long window makes it unknown. A row without a provider is the channel's window; a row with a provider adjusts it for that provider. The installation version holds the defaults; a tenant version adjusts them for the tenant. Every adjusted window stays between half and twice the channel's installation default, a short window is at least 15 minutes, a long window at most 14 days and never shorter than the short window (DS-50). Push, Web Push, in-app, messaging and webhook channels have no window (DS-13).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source_ref", "windows"],
+  "properties": {
+    "source_ref": {"type": "string", "minLength": 1, "maxLength": 512},
+    "windows": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["channel", "provider", "short_ms", "long_ms"],
+        "properties": {
+          "channel": {"enum": ["sms", "email", "whatsapp", "voice"]},
+          "provider": {
+            "oneOf": [
+              {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
+              {"type": "null"}
+            ]
+          },
+          "short_ms": {"type": "integer", "minimum": 900000, "maximum": 1209600000},
+          "long_ms": {"type": "integer", "minimum": 900000, "maximum": 1209600000}
+        }
+      }
+    }
+  }
+}

@@ -96,9 +96,9 @@ defmodule Relay.Channels.Live.Reconciliation do
   @spec status_round(Scope.t(), String.t(), String.t(), map()) ::
           {:ok, counts()} | {:error, term()}
   def status_round(%Scope{} = scope, provider, channel, settings) do
-    status = settings["status"]
-    min_age = Map.get(status["min_age_s"], channel, 0)
-    read = fn _status -> Store.open_deliveries(provider, channel, min_age, status["per_round"]) end
+    %{"min_age_s" => ages, "per_round" => limit} = settings["status"]
+    min_age = Map.get(ages, channel, 0)
+    read = fn _status -> Store.open_deliveries(provider, channel, min_age, limit) end
 
     with {:ok, rows} <- Store.in_scope(scope, read) do
       counts =
@@ -118,8 +118,8 @@ defmodule Relay.Channels.Live.Reconciliation do
          {:ok, credentials} <- credentials(scope, account) do
       answers = Enum.map(deliveries, &ask(scope, account, credentials, &1))
       items = Enum.flat_map(answers, &items/1)
-      asked = %{@zero | checked: length(deliveries)}
-      commit(scope, account, items, %{asked | unavailable: Enum.count(answers, &(&1 == :unavailable))})
+      counts = %{@zero | checked: length(deliveries)}
+      commit(scope, account, items, %{counts | unavailable: Enum.count(answers, &unavailable?/1)})
     else
       _unreadable -> %{@zero | checked: length(deliveries), unavailable: length(deliveries)}
     end
@@ -147,6 +147,8 @@ defmodule Relay.Channels.Live.Reconciliation do
       _unavailable -> :unavailable
     end
   end
+
+  defp unavailable?(answer), do: answer == :unavailable
 
   defp items({:reports, delivery_id, reports}) do
     key = "dlv-" <> Relay.Id.to_string(delivery_id)
@@ -180,7 +182,7 @@ defmodule Relay.Channels.Live.Reconciliation do
 
   defp report_account(scope, account, from, to) do
     with {:ok, credentials} <- credentials(scope, account),
-         {:ok, events} <- Relay.Channels.reconcile_events(account, credentials, from, to, @call_ms) do
+         {:ok, events} <- events(account, credentials, from, to) do
       items =
         for %{delivery_id: <<_::128>>, type: type} = event <- events,
             type != :ignored,
@@ -191,6 +193,9 @@ defmodule Relay.Channels.Live.Reconciliation do
       _unavailable -> %{@zero | checked: 1, unavailable: 1}
     end
   end
+
+  defp events(account, credentials, from, to),
+    do: Relay.Channels.reconcile_events(account, credentials, from, to, @call_ms)
 
   defp commit(scope, account, items, counts) do
     case Receipts.record(scope, account, items, :provider_api) do

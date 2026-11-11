@@ -17,8 +17,10 @@ defmodule RelayWeb.Telemetry do
 
   @impl true
   def init(_arg) do
+    metrics = alarm_metrics() ++ policy_metrics() ++ render_metrics() ++ reconciliation_metrics()
+
     children = [
-      {Peep, name: @reporter, metrics: alarm_metrics() ++ policy_metrics() ++ render_metrics()},
+      {Peep, name: @reporter, metrics: metrics},
       {:telemetry_poller, measurements: [], period: 10_000}
     ]
 
@@ -45,7 +47,7 @@ defmodule RelayWeb.Telemetry do
       summary("vm.total_run_queue_lengths.total"),
       summary("vm.total_run_queue_lengths.cpu"),
       summary("vm.total_run_queue_lengths.io")
-    ] ++ alarm_metrics() ++ policy_metrics() ++ render_metrics()
+    ] ++ alarm_metrics() ++ policy_metrics() ++ render_metrics() ++ reconciliation_metrics()
   end
 
   # DS-24
@@ -86,6 +88,49 @@ defmodule RelayWeb.Telemetry do
         event_name: [:relay, :templates, :locale_missing],
         tags: [:channel],
         description: "Deliveries pinned to the tenant's default locale instead of the recipient's"
+      )
+    ]
+  end
+
+  # DS-41
+  # DS-48
+  # T-63
+  @doc "The reconciliation metrics by channel, provider and mode, all from bounded sets: the deliveries asked about and the provider events found, already known and written (`drift`, the events the webhooks missed) per round, the calls that could not be answered, and the lag, the age of the oldest open delivery a status round asked about; exported on `/metrics` beside the alarms."
+  @spec reconciliation_metrics() :: [Telemetry.Metrics.t()]
+  def reconciliation_metrics do
+    tags = [:channel, :provider, :mode]
+    event = [:relay, :reconciliation, :round]
+
+    [
+      sum("relay.reconciliation.checked.total",
+        event_name: event,
+        measurement: :checked,
+        tags: tags,
+        description: "Deliveries or accounts a reconciliation round asked the provider about"
+      ),
+      sum("relay.reconciliation.found.total",
+        event_name: event,
+        measurement: :found,
+        tags: tags,
+        description: "Provider events a reconciliation round found"
+      ),
+      sum("relay.reconciliation.drift.total",
+        event_name: event,
+        measurement: :recorded,
+        tags: tags,
+        description: "Provider events a reconciliation round found that no webhook had brought"
+      ),
+      sum("relay.reconciliation.unavailable.total",
+        event_name: event,
+        measurement: :unavailable,
+        tags: tags,
+        description: "Provider calls of a reconciliation round that could not be answered"
+      ),
+      last_value("relay.reconciliation.lag.milliseconds",
+        event_name: event,
+        measurement: :lag_ms,
+        tags: tags,
+        description: "Age of the oldest open delivery the last status round asked about"
       )
     ]
   end

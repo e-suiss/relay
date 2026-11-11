@@ -136,5 +136,8 @@
   {"file": "20261127300000_create_test_recipients.exs", "sha256": "f4938b5e03adff651cf407710ac20ff7237e966bb03f7cf8b446d1cd64f0716c"},
   {"file": "20261127300100_create_test_recipient_functions.exs", "sha256": "d42fa6195c479d25e3b4d72a3d2992f623758057273a46136ab4d9d461a8b806"},
   {"file": "20261127300200_rebuild_reference_check_for_test_recipients.exs", "sha256": "08a01041ceb0601417b3dff50e449a8704fa19cb7baa8247feed3d62e20ff967"},
-  {"file": "20261128000100_create_provider_settings_check_scopes.exs", "sha256": "aacd345a4a1c5cbfb870aeba84687d5561688f4c215250dfd638761c3661c659"}
+  {"file": "20261128000100_create_provider_settings_check_scopes.exs", "sha256": "aacd345a4a1c5cbfb870aeba84687d5561688f4c215250dfd638761c3661c659"},
+  {"file": "20261205000100_register_reconciliation_dataset.exs", "sha256": "fd79e460e8135ea755f7ca304745daeb05f6533ac7a3315301a29b090b9ea2ab"},
+  {"file": "20261205000200_create_reconciliation_scopes.exs", "sha256": "1a626c90f149d40985960e8786682a2d854090080e5b6f4abaabedfa23ec5bed"},
+  {"file": "20261205000300_index_open_deliveries.exs", "sha256": "873e87dceff2f184038ea9639f7f2d384a6749dc2d502a6be87bc3536d72ba0d"}
 ]

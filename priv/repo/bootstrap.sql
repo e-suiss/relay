@@ -111,6 +111,7 @@ DECLARE
     "relay_ops.dead_letter_auto_replay_scopes": ["relay_worker"],
     "relay_ops.delivery_window_scopes": ["relay_worker"],
     "relay_ops.device_sweep_scopes": ["relay_worker"],
+    "relay_ops.digest_due_scopes": ["relay_worker"],
     "relay_ops.drr_take": ["relay_worker"],
     "relay_ops.drr_weights_refresh": ["relay_worker"],
     "relay_ops.kill_switch_scopes": ["relay_worker"],

@@ -12,6 +12,8 @@ defmodule Relay.Workflow.DigestWindowTest do
     config
   end
 
+  defp assert_at(actual, expected), do: assert(DateTime.compare(actual, expected) == :eq)
+
   defp state(first_s, last_s, count) do
     %{
       first_at: DateTime.add(@t0, first_s, :second),
@@ -24,34 +26,33 @@ defmodule Relay.Workflow.DigestWindowTest do
     test "WF-26: a sliding window fires at min(last + debounce, first + max_wait)" do
       config = config!(%{"mode" => "sliding", "debounce" => "PT30S", "max_wait" => "PT5M"})
 
-      assert Window.fire_at(config, state(0, 0, 1), nil) == DateTime.add(@t0, 30, :second)
-      assert Window.fire_at(config, state(0, 100, 4), nil) == DateTime.add(@t0, 130, :second)
-      assert Window.fire_at(config, state(0, 290, 9), nil) == DateTime.add(@t0, 300, :second)
+      assert_at(Window.fire_at(config, state(0, 0, 1), nil), DateTime.add(@t0, 30, :second))
+      assert_at(Window.fire_at(config, state(0, 100, 4), nil), DateTime.add(@t0, 130, :second))
+      assert_at(Window.fire_at(config, state(0, 290, 9), nil), DateTime.add(@t0, 300, :second))
     end
 
     test "WF-26: a fixed window lasts max_wait from its first event" do
       config = config!(%{"mode" => "fixed", "max_wait" => "PT10M"})
-      assert Window.fire_at(config, state(0, 500, 3), nil) == DateTime.add(@t0, 600, :second)
+      assert_at(Window.fire_at(config, state(0, 500, 3), nil), DateTime.add(@t0, 600, :second))
     end
 
     test "WF-26: reaching max_items fires the window at its last event" do
       step = %{"mode" => "fixed", "max_wait" => "PT1H", "max_items" => 3}
       config = config!(step)
 
-      assert Window.fire_at(config, state(0, 20, 2), nil) == DateTime.add(@t0, 3_600, :second)
-      assert Window.fire_at(config, state(0, 20, 3), nil) == DateTime.add(@t0, 20, :second)
+      assert_at(Window.fire_at(config, state(0, 20, 2), nil), DateTime.add(@t0, 3_600, :second))
+      assert_at(Window.fire_at(config, state(0, 20, 3), nil), DateTime.add(@t0, 20, :second))
     end
 
     test "WF-26: a scheduled window fires at the next local occurrence of its schedule" do
       config = config!(%{"mode" => "scheduled", "schedule" => "FREQ=DAILY;BYHOUR=9;BYMINUTE=30"})
 
-      assert Window.fire_at(config, state(0, 0, 1), "Europe/Istanbul") ==
-               ~U[2026-11-03 06:30:00Z]
+      zone = "Europe/Istanbul"
+      assert_at(Window.fire_at(config, state(0, 0, 1), zone), ~U[2026-11-03 06:30:00Z])
 
       weekly = config!(%{"mode" => "scheduled", "schedule" => "FREQ=WEEKLY;BYDAY=FR;BYHOUR=17"})
 
-      assert Window.fire_at(weekly, state(0, 0, 1), "Europe/Istanbul") ==
-               ~U[2026-11-06 14:00:00Z]
+      assert_at(Window.fire_at(weekly, state(0, 0, 1), zone), ~U[2026-11-06 14:00:00Z])
     end
 
     test "WF-26: the fields of a digest step are checked with pointers" do
@@ -90,7 +91,7 @@ defmodule Relay.Workflow.DigestWindowTest do
     test "INV-32: no window fires after 31 days from its first event" do
       config = %{config!(%{"mode" => "fixed", "max_wait" => "PT1M"}) | max_wait_ms: nil}
       config = Map.put(config, :release_at, DateTime.add(@t0, 40, :day))
-      assert Window.fire_at(config, state(0, 0, 1), nil) == DateTime.add(@t0, 31, :day)
+      assert_at(Window.fire_at(config, state(0, 0, 1), nil), DateTime.add(@t0, 31, :day))
       assert Window.max_open_ms() == 31 * 86_400_000
     end
   end
@@ -141,10 +142,10 @@ defmodule Relay.Workflow.DigestWindowTest do
 
       assert at == Window.release_at(scope, recipient, ends, "Europe/Istanbul", 900_000)
       assert DateTime.diff(at, ends, :millisecond) in 0..899_999
-      assert Window.release_at(scope, recipient, ends, "Europe/Istanbul", 0) == ends
+      assert_at(Window.release_at(scope, recipient, ends, "Europe/Istanbul", 0), ends)
 
       config = Window.release(at)
-      assert Window.fire_at(config, state(0, 0, 4), nil) == at
+      assert_at(Window.fire_at(config, state(0, 0, 4), nil), at)
     end
   end
 

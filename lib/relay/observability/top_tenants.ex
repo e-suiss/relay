@@ -1,6 +1,6 @@
 defmodule Relay.Observability.TopTenants do
   @moduledoc """
-  The counting window behind the bounded tenant label and the noisy neighbour shares. Jobs processed are counted per tenant and per queue, accepted API requests per API client, in one public ETS table written by the telemetry handlers. Every minute the window closes: the busiest tenants of the window (POLICY DEFAULT 20) keep their own label until the next close, every other tenant is `other`; the largest tenant share of each queue's processed jobs and the largest API client share of requests are emitted as `[:relay, :neighbours, :share]` with `%{share}` and `%{signal, queue}`, when the window saw at least 100 of them; then the window starts again. Tenant and client identifiers never leave this table except as the label of the busiest tenants.
+  The counting window behind the bounded tenant label and the noisy neighbour shares. Jobs processed are counted per tenant and per queue, accepted API requests per API client, in one protected ETS table that only this process writes; the telemetry handlers send it the counts, and its mailbox lives off the heap. Every minute the window closes: the busiest tenants of the window (POLICY DEFAULT 20) keep their own label until the next close, every other tenant is `other`; the largest tenant share of each queue's processed jobs and the largest API client share of requests are emitted as `[:relay, :neighbours, :share]` with `%{share}` and `%{signal, queue}`, when the window saw at least 100 of them; then the window starts again. Tenant and client identifiers never leave this table except as the label of the busiest tenants.
   """
 
   use GenServer
@@ -34,15 +34,13 @@ defmodule Relay.Observability.TopTenants do
   # TN-62
   @doc "Counts one processed job of a tenant in a queue."
   @spec count_job(String.t(), String.t()) :: :ok
-  def count_job(queue, tenant) do
-    bump({:tenant, tenant})
-    bump({:queue, queue, tenant})
-  end
+  def count_job(queue, tenant),
+    do: GenServer.cast(__MODULE__, {:bump, [{:tenant, tenant}, {:queue, queue, tenant}]})
 
   # TN-62
   @doc "Counts one API request of an API client."
   @spec count_client(String.t()) :: :ok
-  def count_client(client), do: bump({:client, client})
+  def count_client(client), do: GenServer.cast(__MODULE__, {:bump, [{:client, client}]})
 
   # OP-35 (3)
   # TN-62
@@ -52,7 +50,8 @@ defmodule Relay.Observability.TopTenants do
 
   @impl GenServer
   def init(nil) do
-    :ets.new(@counts, [:named_table, :public, :set, write_concurrency: true])
+    Process.flag(:message_queue_data, :off_heap)
+    :ets.new(@counts, [:named_table, :protected, :set])
     :ets.new(@top, [:named_table, :protected, :set, read_concurrency: true])
     :ok = Handlers.attach()
     {:ok, MapSet.new(), {:continue, :schedule}}
@@ -70,11 +69,10 @@ defmodule Relay.Observability.TopTenants do
   @impl GenServer
   def handle_call(:close, _from, keys), do: {:reply, :ok, close_window(keys)}
 
-  defp bump(key) do
-    _ = :ets.update_counter(@counts, key, 1, {key, 0})
-    :ok
-  rescue
-    ArgumentError -> :ok
+  @impl GenServer
+  def handle_cast({:bump, keys}, state) do
+    for key <- keys, do: :ets.update_counter(@counts, key, 1, {key, 0})
+    {:noreply, state}
   end
 
   defp close_window(previous) do

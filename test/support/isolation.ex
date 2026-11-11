@@ -40,6 +40,8 @@ defmodule RelayTest.Isolation do
      %{"preferences" => [%{"level" => "channel", "channel" => "sms", "value" => "opt_out"}]}},
     {"updateCategory", %{"name" => "Isolation"}},
     {"replaceCategorySubtenantSetting", %{"enabled" => false}},
+    {"replaceCategoryEmailTracking", %{"open_pixel" => false, "wrap_links" => false}},
+    {"replaceTemplateEmailTracking", %{"open_pixel" => false, "wrap_links" => false}},
     {"liftSuppression", %{"reason" => "isolation"}},
     {"registerSubscriberDevice",
      %{

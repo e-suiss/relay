@@ -54,9 +54,13 @@ defmodule RelayWeb.Endpoint do
   plug RelayWeb.Plugs.Trace
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
+  plug :method
   plug Plug.Head
   plug RelayWeb.Router
 
   # E-91
   defp forward(conn, _opts), do: Transport.forward(conn)
+
+  # DS-52
+  defp method(conn, _opts), do: put_private(conn, :relay_request_method, conn.method)
 end

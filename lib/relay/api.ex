@@ -69,6 +69,7 @@ defmodule Relay.Api do
       TestSends,
       ProviderInvoices,
       Reports,
-      Exports
+      Exports,
+      EmailTracking
     ]
 end

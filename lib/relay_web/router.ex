@@ -52,6 +52,15 @@ defmodule RelayWeb.Router do
     }
   end
 
+  pipeline :tracking do
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" => "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+      "cache-control" => "no-store",
+      "referrer-policy" => "no-referrer",
+      "x-robots-tag" => "noindex"
+    }
+  end
+
   scope "/", RelayWeb do
     pipe_through :api
 
@@ -74,6 +83,17 @@ defmodule RelayWeb.Router do
     pipe_through :downloads
 
     get "/:token", ExportDownloadController, :show
+  end
+
+  # CH-43
+  # CH-44
+  # DS-30
+  # DS-32
+  scope "/e", RelayWeb do
+    pipe_through :tracking
+
+    get "/c/:token", TrackingController, :click
+    get "/o/:token", TrackingController, :open
   end
 
   # CH-62
@@ -285,6 +305,18 @@ defmodule RelayWeb.Router do
     put "/categories/:category_key/subtenants/:subtenant_id", CategoryController, :put_setting,
       private: %{relay_operation: "replaceCategorySubtenantSetting"}
 
+    get "/categories/:category_key/email_tracking", EmailTrackingController, :show,
+      private: %{relay_operation: "getCategoryEmailTracking", relay_target: "category"}
+
+    put "/categories/:category_key/email_tracking", EmailTrackingController, :replace,
+      private: %{relay_operation: "replaceCategoryEmailTracking", relay_target: "category"}
+
+    get "/templates/:template_key/email_tracking", EmailTrackingController, :show,
+      private: %{relay_operation: "getTemplateEmailTracking", relay_target: "template"}
+
+    put "/templates/:template_key/email_tracking", EmailTrackingController, :replace,
+      private: %{relay_operation: "replaceTemplateEmailTracking", relay_target: "template"}
+
     get "/suppressions", SuppressionController, :index,
       private: %{relay_operation: "listSuppressions"}
 
@@ -485,6 +517,9 @@ defmodule RelayWeb.Router do
 
     delete "/subscriber/devices/:device_id", DeviceController, :delete_mine,
       private: %{relay_operation: "deleteMyDevice"}
+
+    post "/subscriber/push_receipts", ReceiptController, :create_mine,
+      private: %{relay_operation: "recordMyPushReceipt"}
 
     get "/subscriber/test_recipients", TesterController, :mine,
       private: %{relay_operation: "listMyTestRecipients"}

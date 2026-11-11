@@ -507,6 +507,37 @@ defmodule Relay.Delivery do
   defp text(nil), do: nil
   defp text(value), do: to_string(value)
 
+  # DS-30
+  # DS-52
+  @doc "Reads what the engagement of a delivery is classified with; see `Relay.Delivery.Store.engagement/2`."
+  @spec engagement(Scope.t(), Relay.Id.t(), DateTime.t()) :: result(map() | nil)
+  def engagement(scope, delivery_id, since),
+    do: Store.in_scope(scope, fn _status -> Store.engagement(delivery_id, since) end)
+
+  # DS-13
+  @doc "Reads what the engagement of a delivery is classified with inside the caller's scoped transaction; see `Relay.Delivery.Store.engagement/2`."
+  @spec engagement_in_scope(Relay.Id.t(), DateTime.t()) :: map() | nil
+  defdelegate engagement_in_scope(delivery_id, since), to: Store, as: :engagement
+
+  # DS-33
+  # E-84
+  @doc "Appends an engagement entry inside the caller's scoped transaction and announces the notification's first engagement of `announce` (`seen`, or `clicked` with `link_rel`), or nothing for `nil`; see `Relay.Delivery.Store.engagement_record/3`."
+  @spec record_engagement_in_scope(Ledger.t(), String.t() | nil, String.t() | nil) ::
+          Ledger.result()
+  def record_engagement_in_scope(%Ledger{} = entry, announce, link_rel),
+    do: Store.engagement_record(Ledger.params(entry), announce, link_rel)
+
+  # DS-33
+  # E-84
+  @doc "Appends an engagement entry in its own scoped transaction; see `record_engagement_in_scope/3`."
+  @spec record_engagement(Scope.t(), Ledger.t(), String.t() | nil, String.t() | nil) ::
+          result(Ledger.result())
+  def record_engagement(scope, %Ledger{} = entry, announce, link_rel) do
+    Store.in_scope(scope, fn _status ->
+      record_engagement_in_scope(entry, announce, link_rel)
+    end)
+  end
+
   @doc "Reads the ledger of a delivery."
   @spec ledger(Scope.t(), Relay.Id.t()) :: result([map()])
   def ledger(scope, delivery_id),

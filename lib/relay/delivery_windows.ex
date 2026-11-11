@@ -54,8 +54,7 @@ defmodule Relay.DeliveryWindows do
   """
   @spec resolve(map(), map() | nil) :: [window()]
   def resolve(%{} = installation, tenant) do
-    defaults =
-      for row <- rows(installation), row["provider"] == nil, into: %{}, do: {row["channel"], row}
+    defaults = defaults(installation)
 
     keyed =
       Map.new(rows(installation) ++ rows(tenant || %{}), &{{&1["channel"], &1["provider"]}, &1})
@@ -68,6 +67,54 @@ defmodule Relay.DeliveryWindows do
         :error -> []
       end
     end)
+  end
+
+  # DS-50
+  @doc "Checks a tenant's own windows against the installation version's content: each channel has an installation default, each window lies between half and twice that default and inside the 15 minute and 14 day limits, no long window is shorter than its short one and each channel and provider appears once. Returns `{index, field, code}` for every broken rule; empty when the windows hold."
+  @spec check(map(), [map()]) :: [{non_neg_integer(), String.t(), String.t()}]
+  def check(%{} = installation, rows) when is_list(rows) do
+    defaults = defaults(installation)
+
+    errors =
+      rows
+      |> Enum.with_index()
+      |> Enum.flat_map(fn {row, index} -> row_errors(row, index, defaults) end)
+
+    errors ++ duplicates(rows)
+  end
+
+  defp row_errors(row, index, defaults) do
+    case Map.fetch(defaults, row["channel"]) do
+      {:ok, default} ->
+        errors = Enum.flat_map(["short_ms", "long_ms"], &bounded(row, default, &1, index))
+        errors ++ ordered(row, index)
+
+      :error ->
+        [{index, "channel", "not_allowed"}]
+    end
+  end
+
+  defp bounded(row, default, field, index) do
+    low = max(div(default[field], 2), @floor_ms)
+    high = min(default[field] * 2, @ceiling_ms)
+    if row[field] in low..high//1, do: [], else: [{index, field, "not_allowed"}]
+  end
+
+  defp ordered(row, index),
+    do: if(row["long_ms"] >= row["short_ms"], do: [], else: [{index, "long_ms", "conflict"}])
+
+  defp duplicates(rows) do
+    rows
+    |> Enum.with_index()
+    |> Enum.reduce({MapSet.new(), []}, fn {row, index}, {seen, errors} ->
+      key = {row["channel"], row["provider"]}
+
+      if MapSet.member?(seen, key),
+        do: {seen, [{index, "provider", "conflict"} | errors]},
+        else: {MapSet.put(seen, key), errors}
+    end)
+    |> elem(1)
+    |> Enum.reverse()
   end
 
   # DS-18
@@ -109,6 +156,10 @@ defmodule Relay.DeliveryWindows do
       "short_ms" => short,
       "long_ms" => long
     }
+  end
+
+  defp defaults(content) do
+    for row <- rows(content), row["provider"] == nil, into: %{}, do: {row["channel"], row}
   end
 
   defp clamp(value, low, high), do: value |> max(low) |> min(high)

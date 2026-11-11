@@ -60,6 +60,7 @@ defmodule Relay.Api do
       Templates,
       TemplateAssets,
       Brand,
+      DeliveryWindows,
       Previews,
       Discovery,
       WhatsappTemplates,

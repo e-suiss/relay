@@ -7521,3 +7521,103 @@ WorkflowTestRequest:
     metadata:
       "$ref": "#/Metadata"
   additionalProperties: false
+DeliveryWindow:
+  type: object
+  description: "One DLR window: without a provider it is the channel's window, with a provider it adjusts the window for that provider. Times are milliseconds after the provider accepted the delivery."
+  required:
+    - channel
+    - provider
+    - short_ms
+    - long_ms
+  properties:
+    channel:
+      type: string
+      enum:
+        - sms
+        - email
+        - whatsapp
+        - voice
+    provider:
+      oneOf:
+        - type: string
+          pattern: "^[a-z][a-z0-9_]{0,63}$"
+        - type: "null"
+    short_ms:
+      type: integer
+      minimum: 900000
+      maximum: 1209600000
+    long_ms:
+      type: integer
+      minimum: 900000
+      maximum: 1209600000
+  additionalProperties: false
+DeliveryWindowInForce:
+  type: object
+  description: "A DLR window in force with the level it comes from."
+  required:
+    - channel
+    - provider
+    - short_ms
+    - long_ms
+    - source
+  properties:
+    channel:
+      type: string
+      enum:
+        - sms
+        - email
+        - whatsapp
+        - voice
+    provider:
+      oneOf:
+        - type: string
+        - type: "null"
+    short_ms:
+      type: integer
+      minimum: 0
+    long_ms:
+      type: integer
+      minimum: 0
+    source:
+      type: string
+      enum:
+        - installation
+        - tenant
+  additionalProperties: false
+DeliveryWindows:
+  type: object
+  required:
+    - object
+    - version
+    - windows
+    - tenant_windows
+  properties:
+    object:
+      type: string
+      const: delivery_windows
+    version:
+      description: "The number of the tenant's active delivery_windows version; null while the installation defaults apply alone."
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    windows:
+      type: array
+      items:
+        "$ref": "#/DeliveryWindowInForce"
+    tenant_windows:
+      type: array
+      items:
+        "$ref": "#/DeliveryWindow"
+  additionalProperties: false
+DeliveryWindowsReplace:
+  type: object
+  required:
+    - windows
+  properties:
+    windows:
+      type: array
+      maxItems: 64
+      items:
+        "$ref": "#/DeliveryWindow"
+  additionalProperties: false

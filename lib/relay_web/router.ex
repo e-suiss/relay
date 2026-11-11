@@ -266,6 +266,18 @@ defmodule RelayWeb.Router do
 
     get "/exports/:export_id", ExportController, :show, private: %{relay_operation: "getExport"}
 
+    get "/recurrences", RecurrenceController, :index,
+      private: %{relay_operation: "listRecurrences"}
+
+    post "/recurrences", RecurrenceController, :create,
+      private: %{relay_operation: "createRecurrence"}
+
+    get "/recurrences/:recurrence_id", RecurrenceController, :show,
+      private: %{relay_operation: "getRecurrence"}
+
+    post "/recurrences/:recurrence_id/cancel", RecurrenceController, :cancel,
+      private: %{relay_operation: "cancelRecurrence"}
+
     get "/sender_identities", ChannelController, :senders,
       private: %{relay_operation: "listSenderIdentities"}
 

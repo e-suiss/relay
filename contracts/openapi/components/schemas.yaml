@@ -8883,3 +8883,186 @@ TopicSubscribers:
       items:
         "$ref": "#/ExternalId"
   additionalProperties: false
+
+Id_rec:
+  type: string
+  description: "Recurrence rule identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^rec_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - rec_01j9zq3k4m5n6p7q8r9s0t1v2w
+RecurrenceRule:
+  type: string
+  description: "An RRULE (RFC 5545) of the WF-61 subset, with or without a leading RRULE: (WF-61): FREQ=DAILY, WEEKLY or MONTHLY; INTERVAL 1-99; BYDAY as a list of days with WEEKLY and as one day with an ordinal 1-4 or -1 with MONTHLY (2TU, -1FR); BYMONTHDAY as one value 1-28 or -1 with MONTHLY; BYHOUR and BYMINUTE as one value each; COUNT 1-1000 or UNTIL as a UTC time (20311231T000000Z) at most 5 years ahead, never both. Every other part (SECONDLY, MINUTELY, HOURLY, YEARLY, BYSETPOS, BYWEEKNO, BYYEARDAY, BYMONTH, BYSECOND, WKST, several hours or minutes, EXDATE, RDATE) is a field error naming the part. Answers carry the canonical form, without INTERVAL=1."
+  minLength: 6
+  maxLength: 512
+  examples:
+    - "FREQ=WEEKLY;BYDAY=MO,TH;BYHOUR=9;BYMINUTE=0"
+    - "FREQ=MONTHLY;BYMONTHDAY=-1;BYHOUR=18;BYMINUTE=0;COUNT=12"
+LocalDateTime:
+  type: string
+  description: "A local wall-clock time without an offset, in the rule's time zone."
+  pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}(:[0-9]{2})?$"
+  examples:
+    - "2026-11-16T09:00:00"
+RecurrenceCreate:
+  type: object
+  description: "A recurrence rule (C-52, WF-48, WF-61): a published workflow sent to one subscriber (subscriber_id, the tenant's external id) or to one topic (topic) on the occurrences of rrule counted from the local dtstart. A subscriber rule runs in the subscriber's time zone (WF-45) and takes no timezone; a topic rule runs in timezone, else in the tenant's default_timezone. dtstart lies at most 5 years back or ahead and the rule must have an occurrence after now. data is the event data of every occurrence, checked against the workflow's event schema now and again at each occurrence; it is sealed and never shown again."
+  required:
+    - workflow
+    - rrule
+    - dtstart
+  properties:
+    workflow:
+      "$ref": "#/WorkflowKey"
+    subscriber_id:
+      "$ref": "#/ExternalId"
+    topic:
+      "$ref": "#/TopicKey"
+    rrule:
+      "$ref": "#/RecurrenceRule"
+    dtstart:
+      "$ref": "#/LocalDateTime"
+    timezone:
+      "$ref": "#/TimeZone"
+    data:
+      type: object
+      description: "Event data of every occurrence, at most event.max_data_bytes."
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "Body shape chosen by the contract (C-52 names the concept schedule; the resource is recurrences)."
+RecurrenceOccurrence:
+  type: object
+  description: "A recorded occurrence of a rule: sent with its event; missed (rule_id recurrence.missed) when it was due during an outage and was not the last due one or was more than PT1H late (WF-61); skipped with its rule_id (recurrence.topic_unavailable until topic fan-out exists, tenant.suspended); failed with the error code the send path answered."
+  required:
+    - occurrence_at
+    - outcome
+    - rule_id
+    - error_code
+    - event_id
+  properties:
+    occurrence_at:
+      "$ref": "#/Timestamp"
+    outcome:
+      type: string
+      enum:
+        - sent
+        - missed
+        - skipped
+        - failed
+    rule_id:
+      oneOf:
+        - type: string
+          maxLength: 128
+        - type: "null"
+    error_code:
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    event_id:
+      oneOf:
+        - "$ref": "#/Id_evt"
+        - type: "null"
+  additionalProperties: false
+Recurrence:
+  type: object
+  description: "A recurrence rule (C-52, WF-48, WF-49). active while it has a next occurrence; completed after its COUNT or UNTIL; cancelled by request or because its subscriber was erased (subject_erasure). next_occurrence_at is the UTC instant of the next occurrence, computed in next_occurrence_timezone; its timer fires within 60 seconds after it (deterministic jitter, WF-58). Each occurrence is sent with the workflow version published at that moment. data is not shown."
+  required:
+    - object
+    - id
+    - workflow
+    - subscriber_id
+    - topic
+    - rrule
+    - dtstart
+    - timezone
+    - state
+    - next_occurrence_at
+    - next_occurrence_timezone
+    - occurrence_count
+    - last_occurrence
+    - cancel_reason
+    - cancelled_at
+    - completed_at
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: recurrence
+    id:
+      "$ref": "#/Id_rec"
+    workflow:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          "$ref": "#/WorkflowKey"
+      additionalProperties: false
+    subscriber_id:
+      oneOf:
+        - "$ref": "#/ExternalId"
+        - type: "null"
+    topic:
+      oneOf:
+        - "$ref": "#/TopicKey"
+        - type: "null"
+    rrule:
+      "$ref": "#/RecurrenceRule"
+    dtstart:
+      type: string
+      pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$"
+    timezone:
+      oneOf:
+        - "$ref": "#/TimeZone"
+        - type: "null"
+    state:
+      type: string
+      enum:
+        - active
+        - completed
+        - cancelled
+    next_occurrence_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    next_occurrence_timezone:
+      oneOf:
+        - "$ref": "#/TimeZone"
+        - type: "null"
+    occurrence_count:
+      type: integer
+      minimum: 0
+    last_occurrence:
+      oneOf:
+        - "$ref": "#/RecurrenceOccurrence"
+        - type: "null"
+    cancel_reason:
+      oneOf:
+        - type: string
+          enum:
+            - request
+            - subject_erasure
+        - type: "null"
+    cancelled_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    completed_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+RecurrenceList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Recurrence"

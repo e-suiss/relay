@@ -565,6 +565,20 @@
       "personal_columns": [],
       "tenant_close": "row kept",
       "subject_erasure": "not subject data"
+    },
+    {
+      "table": "recurrences",
+      "personal_columns": [
+        "data_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; row kept",
+      "subject_erasure": "a subscriber rule's data is sealed under the subject's recipient_profile key, so the erasure shreds it; the rule is cancelled with subject_erasure at its next timer and no later occurrence is sent; row kept"
+    },
+    {
+      "table": "recurrence_occurrences",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers, codes and times only; row kept"
     }
   ],
   "locations": [

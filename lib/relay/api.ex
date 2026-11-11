@@ -1,6 +1,6 @@
 defmodule Relay.Api do
   @moduledoc """
-  The core of the HTTP API edge: the contract read from `contracts/`, the error catalog and problem documents, API versions, request schema validation, signed pagination cursors, the API rate limit tiers and idempotent request execution, and the operations of the server API, which compose the contexts for each request: sending (`Events`, `CloudEvent`, `Cancels`), queries, subscribers and their devices, workflows, named routes, type mappings, kill switches, categories, preferences and consents, suppressions, templates, layouts, partials, brand fields and previews, WhatsApp templates, test sends with their test recipient list, and topics with their subscriptions; and the Relay discovery document. The web layer (`RelayWeb`) turns these into plugs and responses.
+  The core of the HTTP API edge: the contract read from `contracts/`, the error catalog and problem documents, API versions, request schema validation, signed pagination cursors, the API rate limit tiers and idempotent request execution, and the operations of the server API, which compose the contexts for each request: sending (`Events`, `CloudEvent`, `Cancels`), queries, subscribers and their devices, workflows, named routes, type mappings, kill switches, categories, preferences and consents, suppressions, templates, layouts, partials, brand fields and previews, WhatsApp templates, test sends with their test recipient list, topics with their subscriptions, and recurrence rules with the firing of their occurrences; and the Relay discovery document. The web layer (`RelayWeb`) turns these into plugs and responses.
   """
 
   use Boundary,
@@ -74,6 +74,7 @@ defmodule Relay.Api do
       ProviderInvoices,
       Reports,
       Exports,
+      Recurrences,
       EmailTracking,
       EmailReports,
       Topics

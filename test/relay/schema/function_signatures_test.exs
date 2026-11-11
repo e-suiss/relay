@@ -274,7 +274,10 @@ defmodule Relay.Schema.FunctionSignaturesTest do
       ~w(subscribed exists recipient_not_found topic_not_found topic_archived tenant_inactive),
     "relay_fn.topic_unsubscribe" =>
       ~w(unsubscribed already_unsubscribed not_subscribed recipient_not_found topic_not_found),
-    "relay_fn.audience_record" => ~w(recorded exists)
+    "relay_fn.audience_record" => ~w(recorded exists),
+    "relay_fn.recurrence_create" => ~w(created limit_reached),
+    "relay_fn.recurrence_cancel" => ~w(cancelled closed not_found),
+    "relay_fn.recurrence_fire" => ~w(advanced completed stale not_found)
   }
 
   defp functions do

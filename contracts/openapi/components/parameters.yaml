@@ -477,3 +477,10 @@ ExportId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_exp"
+RecurrenceId:
+  name: recurrence_id
+  in: path
+  description: "Recurrence rule identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_rec"

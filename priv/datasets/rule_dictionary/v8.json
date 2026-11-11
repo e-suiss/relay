@@ -1,5 +1,5 @@
 {
-  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10",
+  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61",
   "rules": [
     {
       "id": "admission.aimd.l2",
@@ -1077,6 +1077,36 @@
       "description": {
         "en": "The request was refused by the node's local rate filter.",
         "tr": "İstek düğümün yerel hız süzgeci tarafından reddedildi."
+      }
+    },
+    {
+      "id": "recurrence.missed",
+      "reason": "recurrence_missed",
+      "kind": "shaper",
+      "outcome": "skip",
+      "decision": "WF-61",
+      "detail": [
+        "recurrence_id",
+        "occurrence_at"
+      ],
+      "description": {
+        "en": "Not sent because this occurrence of the recurring notification fell due while it could not run and a later occurrence was also due, or it was more than an hour late.",
+        "tr": "Tekrar eden bildirimin bu tekrarı çalıştırılamadığı sırada zamanı geldiği ve ardından bir tekrar daha geldiği ya da bir saatten fazla geciktiği için gönderilmedi."
+      }
+    },
+    {
+      "id": "recurrence.topic_unavailable",
+      "reason": "target_unavailable",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-48",
+      "detail": [
+        "recurrence_id",
+        "topic"
+      ],
+      "description": {
+        "en": "Not sent because sending a recurring notification to a topic is not available yet.",
+        "tr": "Tekrar eden bildirimin topic'e gönderimi henüz kullanılamadığı için gönderilmedi."
       }
     },
     {

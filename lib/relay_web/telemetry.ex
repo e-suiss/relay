@@ -110,7 +110,7 @@ defmodule RelayWeb.Telemetry do
       ),
       last_value("relay.kill_switch.effect.seconds",
         event_name: [:relay, :kill_switch, :effective],
-        measurement: &(&1.duration_ms / 1000),
+        measurement: fn %{duration_ms: ms} -> ms / 1000 end,
         tags: [:platform],
         description: "Seconds from a kill switch stop to the last queued job paused"
       ),
@@ -181,7 +181,7 @@ defmodule RelayWeb.Telemetry do
       ),
       distribution("relay.provider.event_delay.seconds",
         event_name: [:relay, :provider, :event],
-        measurement: &(&1.delay_ms / 1000),
+        measurement: fn %{delay_ms: ms} -> ms / 1000 end,
         tags: [:channel, :provider],
         description: "Seconds from the provider handoff to the provider's delivery event"
       ),
@@ -242,7 +242,7 @@ defmodule RelayWeb.Telemetry do
     [
       last_value("relay.queue.oldest_job_age.seconds",
         event_name: [:relay, :load_shed, :delay],
-        measurement: &(&1.ms / 1000),
+        measurement: fn %{ms: ms} -> ms / 1000 end,
         tags: [:lane],
         description: "Age of the oldest job waiting in each lane"
       ),

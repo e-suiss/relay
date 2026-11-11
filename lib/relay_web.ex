@@ -12,7 +12,8 @@ defmodule RelayWeb do
       Relay.Channels,
       Relay.Api,
       Relay.Access,
-      Relay.Operators
+      Relay.Operators,
+      Relay.Observability
     ],
     exports: [
       Endpoint,

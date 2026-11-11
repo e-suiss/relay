@@ -17,6 +17,7 @@ defmodule Relay.Delivery do
   alias Relay.Delivery.RetryPolicy
   alias Relay.Delivery.Send
   alias Relay.Delivery.Store
+  alias Relay.Delivery.Usage.InvoiceStore
   alias Relay.Scope
 
   @system %Actor{kind: :system, ref: "relay:dead_letter_auto_replay", on_behalf_of_ref: "relay"}
@@ -553,4 +554,40 @@ defmodule Relay.Delivery do
   @spec usage_rows(Scope.t(), Date.t()) :: result([map()])
   def usage_rows(scope, day),
     do: Store.in_scope(scope, fn _status -> Relay.Delivery.Usage.Store.rows(day) end)
+
+  # OP-38
+  # OP-42
+  @doc "Records a provider invoice inside the caller's scoped transaction of `scope` and reconciles a new one at once with the usage records of its period; see `Relay.Delivery.Usage.InvoiceStore`."
+  @spec record_invoice(Scope.t(), map(), <<_::256>>, Actor.t()) ::
+          {:recorded | :exists | :conflict, Relay.Id.t()}
+  def record_invoice(%Scope{} = scope, attrs, digest, %Actor{} = actor) do
+    case InvoiceStore.record(attrs, digest, actor) do
+      {:recorded, id} ->
+        if InvoiceStore.check(id) == {:changed, :drift}, do: InvoiceStore.alarm(scope, [id])
+        {:recorded, id}
+
+      other ->
+        other
+    end
+  end
+
+  # OP-42
+  @doc "Reconciles a provider invoice again inside the caller's scoped transaction."
+  @spec check_invoice(Relay.Id.t()) ::
+          {:changed | :unchanged | :not_found, :matched | :drift | nil}
+  defdelegate check_invoice(id), to: InvoiceStore, as: :check
+
+  @doc "Reads a provider invoice inside the caller's scoped transaction, or `nil`."
+  @spec invoice(Relay.Id.t()) :: map() | nil
+  defdelegate invoice(id), to: InvoiceStore, as: :get
+
+  @doc "Reads a provider invoice in its own scoped transaction, or `nil`."
+  @spec get_invoice(Scope.t(), Relay.Id.t()) :: result(map() | nil)
+  def get_invoice(scope, id), do: Store.in_scope(scope, fn _status -> InvoiceStore.get(id) end)
+
+  # API-56
+  @doc "Lists provider invoices newest first from a decoded cursor in their own scoped transaction; at most `limit + 1` rows come back."
+  @spec list_invoices(Scope.t(), map() | nil, pos_integer()) :: result([map()])
+  def list_invoices(scope, cursor, limit),
+    do: Store.in_scope(scope, fn _status -> InvoiceStore.page(cursor, limit) end)
 end

@@ -144,8 +144,10 @@ defmodule Relay.CLI.DefinitionFile do
   @doc "Checks every file before anything is sent: its body against the contract schema of its kind, its key against its file name, and that no key appears twice in a kind. Every error is reported at once."
   @spec check([t()]) :: :ok | {:error, Failure.t()}
   def check(files) do
+    roots = for kind <- Enum.uniq(Enum.map(files, & &1.kind)), into: %{}, do: {kind, root(kind)}
+
     errors =
-      Enum.flat_map(files, &file_errors/1) ++
+      Enum.flat_map(files, &file_errors(&1, Map.fetch!(roots, &1.kind))) ++
         (files |> Enum.group_by(&{&1.kind, &1.key}) |> Enum.flat_map(&duplicates/1))
 
     case errors do
@@ -159,9 +161,9 @@ defmodule Relay.CLI.DefinitionFile do
     end
   end
 
-  defp file_errors(file) do
+  defp file_errors(file, root) do
     schema =
-      case Schema.validate(root(file.kind), file.body) do
+      case Schema.validate(root, file.body) do
         :ok -> []
         {:error, %Relay.Error{details: %{errors: errors}}} -> Enum.map(errors, &error(file, &1))
       end
@@ -188,19 +190,8 @@ defmodule Relay.CLI.DefinitionFile do
   defp error(file, %{pointer: pointer, code: code, detail: detail}),
     do: %{"file" => file.path, "pointer" => pointer, "code" => code, "detail" => detail}
 
-  defp root(kind) do
-    key = {__MODULE__, kind}
-
-    case :persistent_term.get(key, nil) do
-      nil ->
-        root = Schema.build(%{"$ref" => "#/$defs/schemas." <> Map.fetch!(@schemas, kind)})
-        :persistent_term.put(key, root)
-        root
-
-      root ->
-        root
-    end
-  end
+  defp root(kind),
+    do: Schema.build(%{"$ref" => "#/$defs/schemas." <> Map.fetch!(@schemas, kind)})
 
   defp invalid(path, detail) do
     failure = Failure.new(:invalid, "invalid_definition_file", "#{path}: #{detail}")

@@ -88,12 +88,7 @@ defmodule Relay.Timing do
   # WF-58
   @doc "Reads the tenant's control inside the caller's scoped transaction."
   @spec read() :: t()
-  def read do
-    case Relay.Repo.call!("relay_fn.setting_resolve", [nil, [@key]]) do
-      [%{"value" => value} | _rest] -> from_stored(value)
-      [] -> default()
-    end
-  end
+  def read, do: @key |> Relay.Timing.Store.setting() |> from_stored()
 
   # WF-42
   # WF-58

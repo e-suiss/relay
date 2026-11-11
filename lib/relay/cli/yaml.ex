@@ -77,5 +77,5 @@ defmodule Relay.CLI.Yaml do
   end
 
   defp pad(0), do: ""
-  defp pad(indent), do: :binary.copy(" ", indent)
+  defp pad(indent), do: String.duplicate(" ", indent)
 end

@@ -18,7 +18,9 @@ defmodule Relay.Trace.Jobs do
       %{"traceparent" => Relay.Trace.current(), "correlation_id" => metadata[:correlation_id]}
       |> Map.filter(fn {_key, value} -> is_binary(value) end)
 
-    if context == %{}, do: opts, else: Keyword.update(opts, :meta, context, &Map.merge(context, &1))
+    if context == %{},
+      do: opts,
+      else: Keyword.update(opts, :meta, context, &Map.merge(context, &1))
   end
 
   # OP-34

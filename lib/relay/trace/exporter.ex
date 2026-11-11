@@ -71,15 +71,15 @@ defmodule Relay.Trace.Exporter do
   def handle_call(:flush, _from, state), do: {:reply, send_all(), state}
 
   defp send_all do
-    case take() do
-      [] ->
+    case {take(), endpoint()} do
+      {[], _endpoint} ->
         :ok
 
-      _spans when is_nil(endpoint()) ->
+      {_spans, nil} ->
         :ok
 
-      spans ->
-        post(spans)
+      {spans, url} ->
+        post(url, spans)
         if length(spans) == @batch, do: send_all(), else: :ok
     end
   end
@@ -95,9 +95,9 @@ defmodule Relay.Trace.Exporter do
     end
   end
 
-  defp post(spans) do
+  defp post(endpoint, spans) do
     config = Application.get_env(:relay, Relay.Trace, [])
-    url = String.trim_trailing(endpoint(), "/") <> "/v1/traces"
+    url = String.trim_trailing(endpoint, "/") <> "/v1/traces"
     opts = [json: body(spans), receive_timeout: 5_000, retry: false]
 
     case Req.post(url, Keyword.merge(opts, Keyword.get(config, :http, []))) do

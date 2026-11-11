@@ -381,6 +381,8 @@ channels:
         "$ref": "#/components/messages/audit.recurrence.cancelled"
       audit.recurrence.created:
         "$ref": "#/components/messages/audit.recurrence.created"
+      audit.throttle.reset:
+        "$ref": "#/components/messages/audit.throttle.reset"
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
@@ -617,6 +619,7 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.export.downloaded"
       - "$ref": "#/channels/auditLog/messages/audit.recurrence.created"
       - "$ref": "#/channels/auditLog/messages/audit.recurrence.cancelled"
+      - "$ref": "#/channels/auditLog/messages/audit.throttle.reset"
   receiveAccessInbound:
     action: receive
     channel:
@@ -6307,6 +6310,24 @@ components:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "CH-61 warns the tenant at 90 percent of the tier; the event name and fields are chosen by the contract."
+    audit.throttle.reset:
+      name: throttle.reset
+      title: throttle.reset
+      summary: "An active throttle counter was reset through the API (WF-32, API-69)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: throttle
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
 x-relay-event-names:
   - address.disabled
   - agent.ceiling_exceeded
@@ -6476,3 +6497,4 @@ x-relay-event-names:
   - workflow.promoted
   - workflow.publication_requested
   - workflow.published
+  - throttle.reset

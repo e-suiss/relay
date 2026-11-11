@@ -1,5 +1,5 @@
 {
-  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61",
+  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46",
   "rules": [
     {
       "id": "admission.aimd.l2",
@@ -522,6 +522,67 @@
       "description": {
         "en": "Not sent because the recipient withdrew consent for marketing messages on this channel.",
         "tr": "Alıcı bu kanalda pazarlama iletilerine verdiği izni geri çektiği için gönderilmedi."
+      }
+    },
+    {
+      "id": "content_dedup.same_content",
+      "reason": "duplicate_content",
+      "kind": "filter",
+      "outcome": "skip",
+      "decision": "WF-35",
+      "detail": [
+        "duplicate_of",
+        "window_ms"
+      ],
+      "description": {
+        "en": "Not sent because the same content went to the recipient on this channel a short while ago.",
+        "tr": "Aynı içerik kısa süre önce bu kanaldan alıcıya gittiği için gönderilmedi."
+      }
+    },
+    {
+      "id": "digest.density",
+      "reason": "digested",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "WF-30",
+      "detail": [
+        "category",
+        "limit",
+        "window"
+      ],
+      "description": {
+        "en": "Moved to a digest because the recipient received many notifications of this category in a short time.",
+        "tr": "Alıcı bu kategoride kısa sürede çok sayıda bildirim aldığı için özete alındı."
+      }
+    },
+    {
+      "id": "digest.quiet_hours",
+      "reason": "digested",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "PC-46",
+      "detail": [
+        "category",
+        "channel",
+        "release_at"
+      ],
+      "description": {
+        "en": "Collected into one digest released when the recipient's quiet hours end.",
+        "tr": "Alıcının sessiz saati bittiğinde gönderilecek tek bir özette toplandı."
+      }
+    },
+    {
+      "id": "digest.read",
+      "reason": "digest_read",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "WF-27",
+      "detail": [
+        "window_id"
+      ],
+      "description": {
+        "en": "The pending digest was cancelled because the recipient already read these activities.",
+        "tr": "Alıcı bu etkinlikleri zaten okuduğu için bekleyen özet iptal edildi."
       }
     },
     {
@@ -1443,6 +1504,22 @@
       "description": {
         "en": "Postponed to 10:00-18:00 in the tenant's time zone because the recipient's own time zone is unknown.",
         "tr": "Alıcının saat dilimi bilinmediği için kiracı saat diliminde 10:00-18:00 aralığına ertelendi."
+      }
+    },
+    {
+      "id": "throttle.limited",
+      "reason": "throttled",
+      "kind": "shaper",
+      "outcome": "skip",
+      "decision": "WF-32",
+      "detail": [
+        "key",
+        "limit",
+        "window_end"
+      ],
+      "description": {
+        "en": "Not sent because the throttle of this key had reached its limit in the current window.",
+        "tr": "Bu anahtarın throttle sınırı geçerli pencerede dolduğu için gönderilmedi."
       }
     },
     {

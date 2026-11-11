@@ -10,6 +10,7 @@ defmodule RelayTest.Isolation do
       Relay.Api,
       Relay.Channels,
       Relay.Secrets,
+      Relay.Workflow,
       RelayTest.Api,
       RelayTest.IngestFixture
     ],
@@ -121,7 +122,8 @@ defmodule RelayTest.Isolation do
       "provider_invoice_id" => &provider_invoice!/1,
       "export_id" => &export!/1,
       "topic_key" => &topic!/1,
-      "recurrence_id" => &recurrence!/1
+      "recurrence_id" => &recurrence!/1,
+      "throttle_key" => &throttle!/1
     }
   end
 
@@ -459,6 +461,15 @@ defmodule RelayTest.Isolation do
   def test_recipient!(scope) do
     body = %{"subscriber_id" => subscriber!(scope)}
     F.body(F.request(:post, "/v1/test_recipients", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Counts an event on a fresh throttle key in `scope`, so the key has an active window, and returns the key."
+  @spec throttle!(Relay.Scope.t()) :: String.t()
+  def throttle!(scope) do
+    key = "iso-" <> random()
+    step = %{"key" => key, "limit" => 5, "window" => "PT1H"}
+    {:ok, %{outcome: :allowed}} = Relay.Workflow.throttle_now(scope, step, %{key: key, ref: key})
+    key
   end
 
   @doc "Requests a raw data export in `scope` and returns its identifier."

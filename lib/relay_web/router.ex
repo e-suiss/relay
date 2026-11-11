@@ -390,6 +390,9 @@ defmodule RelayWeb.Router do
     post "/workflows/:workflow_key/test", WorkflowController, :test_send,
       private: %{relay_operation: "sendWorkflowTest"}
 
+    post "/throttles/:throttle_key/reset", ThrottleController, :reset,
+      private: %{relay_operation: "resetThrottle"}
+
     get "/test_recipients", TesterController, :index,
       private: %{relay_operation: "listTestRecipients"}
 

@@ -13,13 +13,16 @@ defmodule Relay.Workflow do
 
   alias Relay.Actor
   alias Relay.Scope
+  alias Relay.Workflow.ContentDedup
   alias Relay.Workflow.Definition
+  alias Relay.Workflow.Digest
   alias Relay.Workflow.PublishGate
   alias Relay.Workflow.Recurrence
   alias Relay.Workflow.RecurrenceStore
   alias Relay.Workflow.Route
   alias Relay.Workflow.RouteStore
   alias Relay.Workflow.Store
+  alias Relay.Workflow.Throttle
 
   @gate %Actor{kind: :system, ref: "relay:publish_gate", on_behalf_of_ref: "relay"}
 
@@ -420,6 +423,80 @@ defmodule Relay.Workflow do
   end
 
   defp unavailable, do: Relay.Error.new(:service_unavailable, "try again", %{retry_after: 1})
+
+  # WF-26
+  # WF-27
+  # INV-3
+  @doc "Adds an event to its digest window inside the caller's scoped transaction; see `Relay.Workflow.Digest.add/2`."
+  @spec digest_add(Scope.t(), map()) :: {:ok, Digest.added()} | {:error, Relay.Error.t()}
+  defdelegate digest_add(scope, attrs), to: Digest, as: :add
+
+  # WF-26
+  # WF-59
+  @doc "Checks the fields of a `digest` step; see `Relay.Workflow.Digest.Window.config/2`."
+  @spec digest_config(map(), String.t()) ::
+          {:ok, Digest.Window.t()} | {:error, [Digest.Window.field_error(), ...]}
+  defdelegate digest_config(step, pointer \\ ""), to: Digest.Window, as: :config
+
+  # WF-27
+  @doc "Fires a digest window in its own transaction; see `Relay.Workflow.Digest.fire/2`."
+  @spec digest_fire(Scope.t(), Relay.Id.t()) :: {:ok, term()} | {:error, term()}
+  defdelegate digest_fire(scope, window_id), to: Digest, as: :fire
+
+  # WF-27
+  @doc "Applies a recipient's read signal to the pending digest windows of a notification; see `Relay.Workflow.Digest.read/3`."
+  @spec digest_read(Scope.t(), Relay.Id.t(), Relay.Id.t()) ::
+          {:ok, [{Relay.Id.t(), :cancelled | :read}]} | {:error, term()}
+  defdelegate digest_read(scope, recipient_id, notification_id), to: Digest, as: :read
+
+  # WF-30
+  @doc "Routes an event into a digest window past the recipient's density threshold; see `Relay.Workflow.Digest.density/2`."
+  @spec digest_density(Scope.t(), map()) ::
+          {:ok, :under | Digest.added()} | {:error, Relay.Error.t()}
+  defdelegate digest_density(scope, attrs), to: Digest, as: :density
+
+  # PC-46
+  @doc "Holds a delivery released at the end of quiet hours in its morning window; see `Relay.Workflow.Digest.quiet_hours/2`."
+  @spec digest_quiet_hours(Scope.t(), map()) ::
+          {:ok, :not_applicable | Digest.added()} | {:error, Relay.Error.t()}
+  defdelegate digest_quiet_hours(scope, attrs), to: Digest, as: :quiet_hours
+
+  # T-24
+  # TN-8
+  @doc "Fires the due digest windows of a scope; the virtual clock tick calls it after a step."
+  @spec run_due_digests(Scope.t()) :: :ok | {:error, term()}
+  defdelegate run_due_digests(scope), to: Digest, as: :run_due
+
+  # WF-32
+  # WF-59
+  @doc "Checks the fields of a `throttle` step; see `Relay.Workflow.Throttle.Window.config/2`."
+  @spec throttle_config(map(), String.t()) ::
+          {:ok, Throttle.Window.t()} | {:error, [Throttle.Window.field_error(), ...]}
+  defdelegate throttle_config(step, pointer \\ ""), to: Throttle, as: :config
+
+  # WF-32
+  @doc "Counts an event against a throttle step inside the caller's scoped transaction; see `Relay.Workflow.Throttle.hit/3`."
+  @spec throttle(Scope.t(), map(), map()) :: {:ok, Throttle.hit()} | {:error, Relay.Error.t()}
+  defdelegate throttle(scope, step, attrs), to: Throttle, as: :hit
+
+  # WF-32
+  @doc "Counts an event against a throttle step in its own transaction; see `Relay.Workflow.Throttle.hit_now/3`."
+  @spec throttle_now(Scope.t(), map(), map()) :: {:ok, Throttle.hit()} | {:error, term()}
+  defdelegate throttle_now(scope, step, attrs), to: Throttle, as: :hit_now
+
+  # WF-32
+  # API-69
+  @doc "Resets the active counter of a throttle key inside the caller's scoped transaction, audited."
+  @spec reset_throttle(Scope.t(), String.t(), Actor.t()) ::
+          {:ok, {:reset | :not_active, Relay.Id.t() | nil}} | {:error, Relay.Error.t()}
+  def reset_throttle(%Scope{} = scope, key, %Actor{} = actor),
+    do: Throttle.reset(scope, key, digest(scope, "throttle.reset", key), actor)
+
+  # WF-35
+  # WF-36
+  @doc "The content deduplication step of the delivery job, configured as `config :relay, Relay.Delivery, content_dedup: Module`: checks a rendered delivery for a content repeat and records a repeat as skipped; see `Relay.Workflow.ContentDedup.check/2`."
+  @spec content_dedup(Scope.t(), Relay.Id.t()) :: :send | :skipped | {:error, term()}
+  defdelegate content_dedup(scope, delivery_id), to: ContentDedup, as: :check
 
   defp with_parts(workflow) do
     Map.merge(workflow, %{

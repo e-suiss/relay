@@ -6512,6 +6512,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "DS-53",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "Billable event: a provider-reached attempt in the channel's unit; rejected, unsent and simulated attempts are not billable; test sends in their own rows",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
     "id": "IN-1",
     "section": "§15",
     "status": "frozen_technical",

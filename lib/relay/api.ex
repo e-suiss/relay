@@ -65,6 +65,7 @@ defmodule Relay.Api do
       WhatsappWebhooks,
       ChannelManagement,
       ChannelOperations,
-      TestSends
+      TestSends,
+      ProviderInvoices
     ]
 end

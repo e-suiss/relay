@@ -66,7 +66,8 @@
                  "lib/relay/platform/valkey/redix/forwarder.ex",
                  "lib/relay/platform/signal/hub.ex",
                  "lib/relay/observability/vm_monitor.ex",
-                 "lib/relay/observability/top_tenants.ex"
+                 "lib/relay/observability/top_tenants.ex",
+                 "lib/relay/trace/exporter.ex"
                ]
              }
            ]},

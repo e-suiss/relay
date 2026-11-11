@@ -28,7 +28,7 @@ defmodule Relay.Channels.Live.Store do
       """
       SELECT d.tenant_id, d.environment, d.id, d.channel::text AS channel, d.target_kind,
         d.target_id, d.recipient_id, d.provider, d.provider_account_id, d.traceparent, d.attempt_count,
-        n.message_class::text AS message_class, n.expires_at, n.is_test, e.send_mode::text AS send_mode,
+        d.accepted_at, n.message_class::text AS message_class, n.expires_at, n.is_test, e.send_mode::text AS send_mode,
         e.priority, n.subject_type, n.subject_id, p.locale, t.key AS template_key,
         v.sensitivity, c.key AS category_key, wv.definition->>'category' AS category,
         e.interruption, ac.access_client_id AS sender_ref, ep.overrides_ct,

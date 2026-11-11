@@ -57,7 +57,7 @@ defmodule Relay.Platform do
   # OP-69 (1)
   # T-32 (3)
   # T-34
-  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the node's credit block table, the node-local API filter table, the concurrency slot keeper, the signal hub, the load shedding watcher, the lane capacity sampler and the job queue; a worker node also runs the queue maintenance connection, the bulk write pool with its own role check and the outbox dispatcher. A failed role or ownership check stops the node."
+  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the node's credit block table, the node-local API filter table, the concurrency slot keeper, the signal hub, the load shedding watcher, the lane capacity sampler, the report pool with its own role check and the job queue; a worker node also runs the queue maintenance connection, the bulk write pool with its own role check and the outbox dispatcher. A failed role or ownership check stops the node."
   @spec children() :: [Supervisor.child_spec() | {module(), term()} | module()]
   def children do
     valkey = Application.fetch_env!(:relay, Valkey)
@@ -77,6 +77,10 @@ defmodule Relay.Platform do
     ] ++
       if(load_shed_watcher?(), do: [LoadShed.Watcher], else: []) ++
       if(capacity_sampler?(), do: [Capacity.Sampler], else: []) ++
+      if(Relay.ReportRepo.enabled?(),
+        do: [Relay.ReportRepo, Store.report_role_check_child()],
+        else: []
+      ) ++
       if(worker?,
         do: [Relay.QueueRepo, Relay.BulkRepo, Store.bulk_role_check_child()],
         else: []

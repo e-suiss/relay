@@ -577,6 +577,25 @@ defmodule Relay.Delivery do
   @spec get_invoice(Scope.t(), Relay.Id.t()) :: result(map() | nil)
   def get_invoice(scope, id), do: Store.in_scope(scope, fn _status -> InvoiceStore.get(id) end)
 
+  # DS-35
+  # OP-39
+  @doc "Recomputes the report rollups of `days` for every tenant scope; see `Relay.Delivery.Reports.Store.recompute_all/1`."
+  @spec recompute_reports([Date.t()]) :: non_neg_integer()
+  defdelegate recompute_reports(days), to: Relay.Delivery.Reports.Store, as: :recompute_all
+
+  # DS-35
+  @doc "Recomputes the report rollups of one UTC day in its own scoped transaction."
+  @spec recompute_report_day(Scope.t(), Date.t()) ::
+          result(%{deliveries: non_neg_integer(), skips: non_neg_integer()})
+  def recompute_report_day(scope, day),
+    do: Store.in_scope(scope, fn _status -> Relay.Delivery.Reports.Store.recompute(day) end)
+
+  # DS-35
+  # TN-18
+  @doc "Reads a report (`:deliveries`, `:skips` or `:costs`) of the UTC days `from` to `to` (exclusive) on the report pool; see `Relay.Delivery.Reports.Store.read/4`."
+  @spec report(Scope.t(), :deliveries | :skips | :costs, Date.t(), Date.t()) :: result([map()])
+  defdelegate report(scope, kind, from, to), to: Relay.Delivery.Reports.Store, as: :read
+
   # API-56
   @doc "Lists provider invoices newest first from a decoded cursor in their own scoped transaction; at most `limit + 1` rows come back."
   @spec list_invoices(Scope.t(), map() | nil, pos_integer()) :: result([map()])

@@ -505,6 +505,18 @@
       "personal_columns": [],
       "tenant_close": "row kept; invoice figures only",
       "subject_erasure": "not subject data"
+    },
+    {
+      "table": "report_delivery_rollups",
+      "personal_columns": [],
+      "tenant_close": "row kept; counts only",
+      "subject_erasure": "not subject data; counts only"
+    },
+    {
+      "table": "report_skip_rollups",
+      "personal_columns": [],
+      "tenant_close": "row kept; counts only",
+      "subject_erasure": "not subject data; counts only"
     }
   ],
   "locations": [

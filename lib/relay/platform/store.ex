@@ -8,7 +8,7 @@ defmodule Relay.Platform.Store do
   alias Relay.Repo
 
   @type query_fun :: (String.t(), list() -> {:ok, [[term()]]} | {:error, term()})
-  @type profile :: {:app, [Relay.Role.t()]} | :queue
+  @type profile :: {:app, [Relay.Role.t()]} | :queue | :report
   @type violation ::
           :privileged_role
           | :owns_objects
@@ -36,7 +36,12 @@ defmodule Relay.Platform.Store do
         }
 
   @logins %{api: "relay_api", socket: "relay_api", worker: "relay_worker"}
-  @statement_timeout_ms %{"relay_api" => 5_000, "relay_worker" => 30_000, "relay_queue" => 60_000}
+  @statement_timeout_ms %{
+    "relay_api" => 5_000,
+    "relay_worker" => 30_000,
+    "relay_queue" => 60_000,
+    "relay_report" => 300_000
+  }
   @min_server_version 180_000
   @ops_owner "relay_maint"
   @wipe "TRUNCATE"
@@ -112,6 +117,37 @@ defmodule Relay.Platform.Store do
   @doc "Supervisor start function of `bulk_role_check_child/0`: `:ignore` when the check passes."
   @spec start_bulk_role_check() :: :ignore | {:error, Relay.Error.t()}
   def start_bulk_role_check, do: Relay.BulkRepo.run(&start_role_check/0)
+
+  # OP-39
+  # TN-14
+  @doc "Child specification that checks the report pool `Relay.ReportRepo` while the supervision tree starts: its login is `relay_report`, it bypasses no row level security and writes no table; a failed check stops the node."
+  @spec report_role_check_child() :: Supervisor.child_spec()
+  def report_role_check_child do
+    %{
+      id: :relay_report_role_check,
+      start: {__MODULE__, :start_report_role_check, []},
+      restart: :temporary
+    }
+  end
+
+  @doc "Supervisor start function of `report_role_check_child/0`: `:ignore` when the check passes."
+  @spec start_report_role_check() :: :ignore | {:error, Relay.Error.t()}
+  def start_report_role_check, do: Relay.ReportRepo.run(&report_role_check/0)
+
+  defp report_role_check do
+    case role_check(&repo_query/2, :report) do
+      :ok ->
+        :ignore
+
+      {:error, error} ->
+        Logger.error("report pool role check failed; the node does not start",
+          code: error.code,
+          details: inspect(error.details)
+        )
+
+        {:error, error}
+    end
+  end
 
   # OP-69 (1)
   @doc "Checks that every function in the `relay_ops` schema is owned by `relay_maint`; the post-migration bootstrap (`Relay.Release.bootstrap/0`) hands them over."
@@ -256,6 +292,15 @@ defmodule Relay.Platform.Store do
     ]
   end
 
+  defp privileges(facts, :report) do
+    [
+      delete_or_truncate:
+        Enum.any?(facts.tables, fn {_, _, privs} -> "DELETE" in privs or @wipe in privs end),
+      writes_record_tables:
+        Enum.any?(facts.tables, fn {_, _, privs} -> "INSERT" in privs or "UPDATE" in privs end)
+    ]
+  end
+
   defp privileges(facts, :queue) do
     [
       delete_or_truncate:
@@ -272,6 +317,7 @@ defmodule Relay.Platform.Store do
 
   defp logins({:app, roles}), do: expected_logins(roles)
   defp logins(:queue), do: ["relay_queue"]
+  defp logins(:report), do: ["relay_report"]
 
   defp unsupported?(facts) do
     facts.server_version_num < @min_server_version or

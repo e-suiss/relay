@@ -63,7 +63,7 @@ defmodule Relay.Observability.RollupTest do
       %{delivery_id: id} = DeliveryFixture.sendable!()
       before = sum(rows(600), "gap", "accepted_enqueued")
 
-      Repo.query!(@lose_job, [Relay.Id.to_string(id)])
+      Relay.Repo.query!(@lose_job, [Relay.Id.to_string(id)])
 
       gaps = sum(rows(600), "gap", "accepted_enqueued")
       assert gaps >= 1 and gaps >= before

@@ -20,8 +20,7 @@ defmodule Relay.CLI.Yaml do
   def decode(content) when is_binary(content) do
     case YamlElixir.read_from_string(content) do
       {:ok, value} -> {:ok, value}
-      {:error, %{message: message}} when is_binary(message) -> {:error, message}
-      {:error, _reason} -> {:error, "the file is not YAML"}
+      {:error, error} -> {:error, "the file is not YAML: " <> Exception.message(error)}
     end
   rescue
     _exception -> {:error, "the file is not YAML"}

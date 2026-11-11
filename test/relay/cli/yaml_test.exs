@@ -28,7 +28,7 @@ defmodule Relay.CLI.YamlTest do
         "flags" => %{},
         "numbers" => [1, -2, 0, 2.5],
         "texts" => ["true", "null", "", "  padded ", "line\nbreak", "tab\tand \"quote\"", "#x"],
-        "unprintable" => "del\u007f next\u0085 sep  emoji 😀",
+        "unprintable" => "del\u007f next\u0085 sep\u2028 emoji 😀",
         "steps" => [
           %{"type" => "channel", "key" => "inbox", "template" => "welcome"},
           %{"type" => "condition", "branches" => [%{"when" => %{"eq" => [1, 1]}, "steps" => []}]},

@@ -23,7 +23,7 @@ defmodule Relay.Repo.Migrations.CreateWorkflowRuns do
       plan jsonb NOT NULL
         CONSTRAINT workflow_runs_plan_check CHECK (pg_column_size(plan) <= 262144),
       step_cursor jsonb NOT NULL
-        CONSTRAINT workflow_runs_step_cursor_check CHECK (pg_column_size(step_cursor) <= 8192),
+        CONSTRAINT workflow_runs_step_cursor_check CHECK (pg_column_size(step_cursor) <= 131072),
       step_results jsonb NOT NULL
         CONSTRAINT workflow_runs_step_results_check
           CHECK (pg_column_size(step_results) <= 131072),

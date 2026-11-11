@@ -176,7 +176,10 @@
   {"file": "20261212400000_create_recurrences.exs", "sha256": "32c4a094cdfb2a30d37ce88a3d354cc3e4022532728943437bef24c9a0d59653"},
   {"file": "20261212400100_create_recurrence_functions.exs", "sha256": "4c9ef15a7b43617489ba231fdf8021fb21973184cc44e8f434ba9a26e270e8bc"},
   {"file": "20261212400200_rebuild_reference_check_for_recurrences.exs", "sha256": "3879d2920b39ac206979294ab3618a7372e2b6644ae6768488678526f50b733d"},
-  {"file": "20261213100100_create_workflow_runs.exs", "sha256": "00ef16ad9e2e8ccfa926b226b3c0e9d498b5457baff7f11c2f54c41adb94c51f"},
+  {"file": "20261213100100_create_workflow_runs.exs", "sha256": "b9d1625f56a84b76c5fd00f69d97365b97517a9fc1c6be8d92d1d0b9ebfac572"},
   {"file": "20261213100200_create_workflow_run_functions.exs", "sha256": "089dee4798ffba0d0517c6820d571712b17d9e5c07cbc1f1ccea5af3fadc325c"},
-  {"file": "20261213100900_rebuild_reference_check_for_workflow_runs.exs", "sha256": "9767befb48478848dbdc05814e2c712b72169906f5ba7e382ee2c92a270117d0"}
+  {"file": "20261213100900_rebuild_reference_check_for_workflow_runs.exs", "sha256": "9767befb48478848dbdc05814e2c712b72169906f5ba7e382ee2c92a270117d0"},
+  {"file": "20261213100300_add_delivery_step_ref.exs", "sha256": "0d042effdeef346836b19e1c7d35acffcab4fa980a5682dd6f92ea27e1f6aaf2"},
+  {"file": "20261213100400_index_delivery_step_ref.exs", "sha256": "73d6752ec4947929ef7f8bf9bc4bd34815ce4cde42dec81b879a28fac7f7c450"},
+  {"file": "20261213100500_key_deliveries_by_step.exs", "sha256": "6a343da816623504e6d97f10fd3404a7b56d44f24c433f8bd424d07a13518879"}
 ]

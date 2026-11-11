@@ -82,6 +82,8 @@ config :relay, Relay.Platform.VirtualClock,
 
 config :relay, Relay.Workflow, resumer: Relay.Api.WorkflowRuns
 
+config :relay, Relay.Workflow.Digest, sink: Relay.Workflow
+
 config :relay, Relay.Platform.Outbox, dispatcher: true
 
 config :relay, Relay.Access,

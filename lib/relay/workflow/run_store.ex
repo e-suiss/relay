@@ -76,6 +76,36 @@ defmodule Relay.Workflow.RunStore do
   def by_notification(notification_id),
     do: one(@run <> " WHERE r.notification_id = $1", [notification_id])
 
+  # WF-29
+  @doc "Reads the run of the notification a delivery belongs to; `nil` when there is none."
+  @spec by_delivery(Relay.Id.t()) :: map() | nil
+  def by_delivery(delivery_id) do
+    one(
+      @run <>
+        " WHERE r.notification_id = (SELECT d.notification_id FROM relay.deliveries d WHERE d.id = $1)",
+      [delivery_id]
+    )
+  end
+
+  # WF-15
+  @doc "The running or waiting run whose routes opened a delivery; `nil` when there is none."
+  @spec routing_run(Relay.Id.t()) :: Relay.Id.t() | nil
+  def routing_run(delivery_id) do
+    """
+    SELECT r.tenant_id, r.environment, r.id FROM relay.workflow_runs r
+    JOIN relay.deliveries d ON d.tenant_id = r.tenant_id AND d.environment = r.environment
+      AND d.notification_id = r.notification_id
+    WHERE d.id = $1 AND r.state IN ('running', 'waiting')
+      AND r.step_cursor -> 'routes' <> '{}'::jsonb
+    """
+    |> Repo.scoped_query!([delivery_id])
+    |> maps()
+    |> case do
+      [%{"id" => id}] -> id
+      [] -> nil
+    end
+  end
+
   # WF-59 (5)
   @doc "Saves an advanced run under its version."
   @spec save(Relay.Id.t(), pos_integer(), map()) ::

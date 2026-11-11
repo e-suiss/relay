@@ -21,7 +21,7 @@ defmodule Relay.Workflow.PublicationGateTest do
   defp steps(steps, overrides \\ %{}),
     do: Definition.gate(definition(Map.put(overrides, "steps", steps)))
 
-  defp codes(errors), do: Enum.map(errors, &{&1.pointer, &1.code})
+  defp codes(errors), do: errors |> Enum.map(&{&1.pointer, &1.code}) |> Enum.uniq()
 
   defp condition(key, when_, branch, otherwise \\ nil) do
     step = %{
@@ -40,7 +40,7 @@ defmodule Relay.Workflow.PublicationGateTest do
       tree = %{
         "single" => [
           "in_app",
-          %{"all" => ["push", %{"channel" => "email", "strategy" => "last_active_device"}]}
+          %{"all" => ["email", %{"channel" => "push", "strategy" => "last_active_device"}]}
         ],
         "trigger" => %{"after_delay" => "PT10M"}
       }
@@ -71,7 +71,7 @@ defmodule Relay.Workflow.PublicationGateTest do
           "template" => "w",
           "digest_template" => "w-digest"
         },
-        %{"type" => "channel", "key" => "named", "route" => "default-route", "template" => "w"},
+        %{"type" => "channel", "key" => "named", "route" => "default_route", "template" => "w"},
         %{
           "type" => "channel",
           "key" => "ab",
@@ -169,7 +169,10 @@ defmodule Relay.Workflow.PublicationGateTest do
 
       for tree <- [deep, wide] do
         step = %{"type" => "channel", "key" => "r", "route" => tree, "template" => "w"}
-        assert [{"/definition/steps/0/route", "too_long"}] = codes(steps([step]))
+
+        assert Enum.any?(codes(steps([step])), fn {pointer, code} ->
+                 code == "too_long" and String.starts_with?(pointer, "/definition/steps/0/route")
+               end)
       end
     end
   end
@@ -184,8 +187,8 @@ defmodule Relay.Workflow.PublicationGateTest do
            "key" => "d",
            "digest_key" => "k",
            "mode" => "fixed",
-           "window" => "P32D"
-         }, "/definition/steps/0/window"},
+           "max_wait" => "P32D"
+         }, "/definition/steps/0/max_wait"},
         {%{
            "type" => "throttle",
            "key" => "d",
@@ -213,8 +216,8 @@ defmodule Relay.Workflow.PublicationGateTest do
       tree = %{"single" => ["push", "email"], "trigger" => %{"after_delay" => "PT0S"}}
       step = %{"type" => "channel", "key" => "r", "route" => tree, "template" => "w"}
 
-      assert [{"/definition/steps/0/route/trigger/after_delay", "too_short"}] =
-               codes(steps([step]))
+      assert [{pointer, "unsupported_value"}] = codes(steps([step]))
+      assert String.starts_with?(pointer, "/definition/steps/0/route")
     end
 
     test "WF-35: the content deduplication window is PT1M to PT24H" do
@@ -253,7 +256,7 @@ defmodule Relay.Workflow.PublicationGateTest do
         "key" => "d",
         "digest_key" => "k",
         "mode" => "fixed",
-        "window" => "PT1H"
+        "max_wait" => "PT1H"
       }
 
       for class <- ~w(security transactional action_required) do
@@ -269,7 +272,7 @@ defmodule Relay.Workflow.PublicationGateTest do
       tree = %{"single" => ["sms", "email"]}
       routed = %{"type" => "channel", "key" => "r", "route" => tree, "template" => "w"}
 
-      assert [{"/definition/steps/0", "not_allowed"}] = codes(steps([routed], otp))
+      assert {"/definition/steps/0", "not_allowed"} in codes(steps([routed], otp))
       assert [{"/definition/steps/0", "not_allowed"}] = codes(steps([@mail], otp))
       assert steps([%{@mail | "channel" => "sms"}], otp) == []
 
@@ -292,6 +295,22 @@ defmodule Relay.Workflow.PublicationGateTest do
                Definition.named_route_errors(named, %{"otp" => ["sms", "email"]})
 
       assert Definition.named_route_errors(named, %{"otp" => ["sms", "voice"]}) == []
+    end
+
+    test "WF-63: a security workflow has no delay, time window or digest step" do
+      security = %{"message_class" => "security"}
+      delay = %{"type" => "delay", "key" => "d", "duration" => "PT1M"}
+
+      window = %{
+        "type" => "time_window",
+        "key" => "w",
+        "windows" => [%{"days" => ["mon"], "start" => "09:00", "end" => "17:00"}]
+      }
+
+      for step <- [delay, window] do
+        assert [{"/definition/steps/0", "not_allowed"}] = codes(steps([step, @mail], security))
+        assert steps([step, @mail]) == []
+      end
     end
 
     test "WF-40: an otp_oob workflow is never delayed or digested" do

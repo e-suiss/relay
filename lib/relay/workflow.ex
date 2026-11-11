@@ -21,11 +21,13 @@ defmodule Relay.Workflow do
   alias Relay.Workflow.ContentDedup
   alias Relay.Workflow.Definition
   alias Relay.Workflow.Digest
+  alias Relay.Workflow.KeyTemplate
   alias Relay.Workflow.PublishGate
   alias Relay.Workflow.Recurrence
   alias Relay.Workflow.RecurrenceStore
   alias Relay.Workflow.Route
   alias Relay.Workflow.RouteStore
+  alias Relay.Workflow.RouteTree
   alias Relay.Workflow.Runner
   alias Relay.Workflow.RunStore
   alias Relay.Workflow.RunTimer
@@ -172,7 +174,8 @@ defmodule Relay.Workflow do
     Store.in_scope(scope, fn _status ->
       case Store.version(version_id) do
         %{"state" => "pending", "definition" => definition} ->
-          {outcome, errors} = gate_outcome(Definition.gate(definition))
+          errors = Definition.gate(definition) ++ named_routes(definition)
+          {outcome, errors} = gate_outcome(errors)
           digest = digest(scope, "workflow.published", Relay.Id.to_string(version_id))
           Store.publish_complete(version_id, outcome, errors, digest, @gate)
 
@@ -181,6 +184,23 @@ defmodule Relay.Workflow do
       end
     end)
   end
+
+  # WF-14
+  # WF-18
+  defp named_routes(definition) do
+    routes =
+      for {step, _pointer} <- step_entries(definition),
+          step["type"] == "channel",
+          key = step["route"],
+          is_binary(key),
+          into: %{},
+          do: {key, route_channels(RouteStore.get(key))}
+
+    Definition.named_route_errors(definition, routes)
+  end
+
+  defp route_channels(%{"state" => "active", "tree" => tree}), do: RouteTree.channels(tree)
+  defp route_channels(_missing_or_archived), do: nil
 
   defp gate_outcome([]), do: {:published, nil}
   defp gate_outcome(errors), do: {:rejected, Enum.map(errors, &stringify/1)}
@@ -302,22 +322,56 @@ defmodule Relay.Workflow do
   @spec evaluate_condition(Condition.t(), Condition.context()) :: boolean()
   defdelegate evaluate_condition(condition, context), to: Condition, as: :evaluate
 
+  # WF-14
+  # WF-7
+  @doc "Resolves the route tree of every channel step of a definition in its own read transaction (WF-14): `%{step_key => %{\"tree\" => tree}}`, or `%{\"skip\" => rule_id}` for a route that does not resolve. The run copies the result into the notification's plan, so a later change to a named route does not change it (WF-7)."
+  @spec prepare_routes(Scope.t(), Definition.t()) :: result(%{String.t() => map()})
+  def prepare_routes(%Scope{} = scope, definition) do
+    Store.in_scope(scope, fn _status -> routes(definition) end)
+  end
+
+  # WF-14
+  @doc "Resolves the route trees of a definition's channel steps inside the caller's scoped transaction; see `prepare_routes/2`."
+  @spec routes(Definition.t()) :: %{String.t() => map()}
+  def routes(definition) do
+    for %{step: %{"type" => "channel"} = step} <- Definition.entries(definition), into: %{} do
+      case Route.resolve(step, definition["category"]) do
+        {:ok, tree, _source} -> {step["key"], %{"tree" => tree}}
+        {:skip, rule_id} -> {step["key"], %{"skip" => rule_id}}
+      end
+    end
+  end
+
+  # WF-13
+  # WF-8
+  @doc "The channel steps of a definition with their resolved routes, one entry per channel a step's tree names: `{key, channel, template, digest_template}`."
+  @spec route_steps(Definition.t(), %{String.t() => map()}) :: [map()]
+  def route_steps(definition, routes) do
+    for %{step: %{"type" => "channel"} = step} <- Definition.entries(definition),
+        %{"tree" => tree} <- [Map.get(routes, step["key"])],
+        channel <- RouteTree.channels(tree),
+        do: %{
+          key: step["key"],
+          channel: channel,
+          template: step["template"],
+          digest_template: step["digest_template"]
+        }
+  end
+
   # WF-59 (5)
   # WF-41
   # WF-43
   @doc """
-  Creates the run of a new notification inside the caller's accepting transaction and advances it up to its first waiting step. `run` carries `:notification_id`, the pinned `:definition`, the `:plan` the resumer needs later (JSON, no personal data), the step `:context` (`t:Relay.Workflow.Step.context/0` without `:results` and `:outcomes`), `:now` (the business time base: `send_at` when the request has one) and the `:opener` of channel steps. Returns the openers' extras in step order.
+  Creates the run of a new notification inside the caller's accepting transaction and advances it up to its first wait. `run` carries `:notification_id`, `:recipient_id`, `:workflow_key`, `:message_class`, the pinned `:definition`, the `:plan` the resumer needs later (JSON, no personal data, with the resolved `routes`), the step `:context` (`t:Relay.Workflow.Step.context/0` with the plan's `:routes` and the `:facts` of a step's route, without `:results`, `:outcomes`, `:projection` and `:effects`), `:now` (the business time base: `send_at` when the request has one) and the `:opener` of route leaves. Returns the openers' extras in step order.
   """
   @spec start_run(Scope.t(), map()) :: {:ok, [term()]} | {:error, term()}
   def start_run(%Scope{} = scope, run) do
-    context = Map.put(run.context, :outcomes, &outcomes/1)
+    context = with_effects(scope, run.context, run)
 
     with {:ok, outcome} <-
            Runner.advance(run.definition, Runner.new(), context, run.now, run.opener) do
-      fields = fields(outcome)
-
       attrs =
-        Map.merge(fields, %{
+        Map.merge(fields(outcome), %{
           id: Relay.Id.generate(),
           notification_id: run.notification_id,
           plan: run.plan,
@@ -326,8 +380,8 @@ defmodule Relay.Workflow do
 
       case RunStore.start(attrs) do
         {:started, id} ->
-          :ok = timer(scope, id, fields.wake_at)
-          {:ok, fields.extras}
+          :ok = timer(scope, id, outcome.wake_at)
+          {:ok, outcome.extras}
 
         {other, _id} ->
           {:error, other}
@@ -335,22 +389,82 @@ defmodule Relay.Workflow do
     end
   end
 
-  # WF-43
-  # WF-6
-  @doc "Advances a waiting run whose wake time has come, in its own transaction; a run that is not due yet gets its timer again. Returns `:waiting`, `:completed`, `:not_due`, `:final`, `:raced` or `:not_found`."
-  @spec wake(Scope.t(), Relay.Id.t()) :: result(atom())
-  def wake(%Scope{} = scope, run_id) do
-    now = Relay.Clock.business_now(scope)
+  defp with_effects(scope, context, meta) do
+    Map.merge(context, %{
+      outcomes: &outcomes/1,
+      projection: &projection/1,
+      effects: %{
+        digest: &digest_effect(scope, context, meta, &1),
+        throttle: &throttle_effect(scope, context, meta, &1)
+      }
+    })
+  end
 
-    case RunStore.in_scope(scope, fn _status -> RunStore.get(run_id) end) do
-      {:ok, nil} -> {:ok, :not_found}
-      {:ok, %{"state" => "waiting"} = run} -> due(scope, run, now)
-      {:ok, _final} -> {:ok, :final}
-      {:error, _reason} = error -> error
+  # WF-26
+  # WF-27
+  defp digest_effect(scope, context, meta, step) do
+    Digest.add(scope, %{
+      recipient_id: meta.recipient_id,
+      notification_id: meta.notification_id,
+      message_class: meta.message_class,
+      scope_ref: "#{meta.workflow_key}:#{step["key"]}",
+      key: KeyTemplate.render(step["digest_key"], context),
+      step: step,
+      time_zone: context.time_zone,
+      origin: "step"
+    })
+  end
+
+  # WF-32
+  defp throttle_effect(scope, context, meta, step) do
+    fields = Map.put(step, "key", step["throttle_key"])
+
+    attrs = %{
+      key: KeyTemplate.render(step["throttle_key"], context),
+      ref: "#{Relay.Id.to_string(meta.notification_id)}:#{step["key"]}",
+      time_zone: context.time_zone,
+      until: until(step["until"], context.data)
+    }
+
+    Throttle.hit(scope, fields, attrs)
+  end
+
+  defp until(nil, _data), do: nil
+
+  defp until(pointer, data) do
+    segments = pointer |> String.split("/") |> tl()
+
+    with {:ok, text} when is_binary(text) <- Definition.get(data, segments),
+         {:ok, at, _offset} <- DateTime.from_iso8601(text) do
+      at
+    else
+      _missing -> nil
     end
   end
 
-  defp due(scope, run, now) do
+  # WF-43
+  # WF-6
+  @doc "Advances a run in its own transaction: a waiting run whose wake time has come, or with `force: true` (a delivery of one of its routes settled, a digest window fired) any running or waiting run; a waiting run that is not due gets its timer again. Returns `:waiting`, `:running`, `:completed`, `:not_due`, `:final`, `:raced` or `:not_found`."
+  @spec wake(Scope.t(), Relay.Id.t(), boolean()) :: result(atom())
+  def wake(%Scope{} = scope, run_id, force \\ false) do
+    now = Relay.Clock.business_now(scope)
+
+    case RunStore.in_scope(scope, fn _status -> RunStore.get(run_id) end) do
+      {:ok, nil} ->
+        {:ok, :not_found}
+
+      {:ok, %{"state" => state} = run} when state in ["waiting", "running"] ->
+        due(scope, run, now, force)
+
+      {:ok, _final} ->
+        {:ok, :final}
+
+      {:error, _reason} = error ->
+        error
+    end
+  end
+
+  defp due(scope, %{"state" => "waiting"} = run, now, false) do
     if DateTime.compare(run["wake_at"], now) == :gt do
       RunStore.in_scope(scope, fn _status ->
         :ok = timer(scope, run["id"], run["wake_at"])
@@ -360,6 +474,9 @@ defmodule Relay.Workflow do
       resume(scope, run, now)
     end
   end
+
+  defp due(scope, %{"state" => "running"} = run, now, false), do: resume(scope, run, now)
+  defp due(scope, run, now, true), do: resume(scope, run, now)
 
   defp resume(scope, %{"notification_state" => state} = run, _now) when state != "active" do
     rule = if state == "expired", do: "expiry.expires_at", else: "cancel.request"
@@ -391,26 +508,41 @@ defmodule Relay.Workflow do
     expected = run["version"]
 
     case RunStore.get(run["id"]) do
-      %{"state" => "waiting", "version" => ^expected} -> advance(scope, run, now, bind)
-      _changed -> :raced
+      %{"state" => state, "version" => ^expected} = current
+      when state in ["waiting", "running"] ->
+        advance(scope, current, now, bind)
+
+      _changed ->
+        :raced
     end
   end
 
   defp advance(scope, run, now, bind) do
-    state = %{"cursor" => run["step_cursor"], "results" => run["step_results"]}
+    state = Map.put(run["step_cursor"], "results", run["step_results"])
+    meta = meta(run)
 
     with {:ok, context, opener} <- bind.(),
-         context = Map.put(context, :outcomes, &outcomes/1),
+         context = with_effects(scope, context, meta),
          {:ok, outcome} <- Runner.advance(run["definition"], state, context, now, opener) do
       fields = fields(outcome)
-      :ok = timer(scope, run["id"], fields.wake_at)
-      saved(RunStore.save(run["id"], run["version"], fields), state_atom(fields.state))
+      :ok = timer(scope, run["id"], outcome.wake_at)
+      saved(RunStore.save(run["id"], run["version"], fields), state_atom(outcome.status))
     else
       {:error, reason} -> RunStore.rollback(reason)
     end
   end
 
+  defp meta(run) do
+    %{
+      recipient_id: run["recipient_id"],
+      notification_id: run["notification_id"],
+      message_class: run["message_class"],
+      workflow_key: run["workflow_key"]
+    }
+  end
+
   defp state_atom("waiting"), do: :waiting
+  defp state_atom("running"), do: :running
   defp state_atom("completed"), do: :completed
 
   defp saved({:saved, _version}, result), do: result
@@ -418,47 +550,131 @@ defmodule Relay.Workflow do
 
   defp resumer, do: :relay |> Application.fetch_env!(__MODULE__) |> Keyword.fetch!(:resumer)
 
-  defp fields({:waiting, at, state, extras}) do
-    %{
-      cursor: state["cursor"],
-      results: state["results"],
-      state: "waiting",
-      wake_at: at,
-      outcome: nil,
-      rule_id: nil,
-      extras: extras
-    }
-  end
+  defp fields(outcome) do
+    state = outcome.state
 
-  defp fields({:completed, outcome, rule_id, state, extras}) do
     %{
-      cursor: state["cursor"],
+      cursor: Map.delete(state, "results"),
       results: state["results"],
-      state: "completed",
-      wake_at: nil,
-      outcome: outcome,
-      rule_id: rule_id,
-      extras: extras
+      state: outcome.status,
+      wake_at: outcome.wake_at,
+      outcome: outcome.outcome,
+      rule_id: outcome.rule_id
     }
   end
 
   # WF-60
   defp outcomes(results) do
-    ids = for text <- Runner.delivery_ids(results), {:ok, id} <- [Relay.Id.parse(text)], do: id
+    Runner.outcomes(results, projection(Runner.delivery_ids(results)))
+  end
 
-    deliveries =
-      for {id, row} <- RunStore.deliveries(ids), into: %{}, do: {Relay.Id.to_string(id), row}
-
-    Runner.outcomes(results, deliveries)
+  defp projection(texts) do
+    ids = for text <- texts, {:ok, id} <- [Relay.Id.parse(text)], do: id
+    for {id, row} <- RunStore.deliveries(ids), into: %{}, do: {Relay.Id.to_string(id), row}
   end
 
   # T-24
   # WF-43
-  defp timer(_scope, _run_id, nil), do: :ok
+  defp timer(scope, run_id, at, force \\ false)
 
-  defp timer(scope, run_id, %DateTime{} = at) do
-    args = scope |> Scope.to_job_args() |> Map.put("run_id", Relay.Id.to_string(run_id))
-    Store.insert_job!(RunTimer.new(args, scheduled_at: Relay.Clock.wall_time(scope, at)))
+  defp timer(_scope, _run_id, nil, false), do: :ok
+
+  defp timer(scope, run_id, at, force) do
+    args =
+      scope
+      |> Scope.to_job_args()
+      |> Map.put("run_id", Relay.Id.to_string(run_id))
+      |> then(&if(force, do: Map.put(&1, "force", true), else: &1))
+
+    opts = if at, do: [scheduled_at: Relay.Clock.wall_time(scope, at)], else: []
+    Store.insert_job!(RunTimer.new(args, opts))
+  end
+
+  # WF-13
+  # WF-15
+  @doc "The settled step of the delivery job, configured as `config :relay, Relay.Delivery, settled: Module`: when a delivery's job run ends, the run of its notification evaluates its routes again through a forced timer job, so a fallback moves on a permanent failure (WF-15). Runs in its own transaction."
+  @spec delivery_settled(Scope.t(), Relay.Id.t()) :: :ok | {:error, term()}
+  def delivery_settled(%Scope{} = scope, delivery_id) do
+    result =
+      RunStore.in_scope(scope, fn _status ->
+        case RunStore.routing_run(delivery_id) do
+          nil -> :ok
+          run_id -> timer(scope, run_id, nil, true)
+        end
+      end)
+
+    case result do
+      {:ok, :ok} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # WF-27
+  # INV-3
+  @doc "The digest sink (`config :relay, Relay.Workflow.Digest, sink: Relay.Workflow`): inside the window's closing transaction, resumes the parked run of the anchor notification with the digest render data (`digest`) or the singular path (`single`) through a forced timer job, or ends it when the recipient read the activities first (`cancelled`)."
+  @spec digest_ready(Scope.t(), Digest.Sink.outcome()) :: :ok
+  def digest_ready(%Scope{} = scope, {kind, info}) do
+    case info.notification_id && RunStore.by_notification(info.notification_id) do
+      %{"step_cursor" => %{"parked" => key}} = run when is_binary(key) ->
+        unpark(scope, run, kind, info)
+
+      _none ->
+        :ok
+    end
+  end
+
+  defp unpark(_scope, run, :cancelled, _info) do
+    state = Map.put(run["step_cursor"], "parked", nil)
+
+    fields = %{
+      cursor: state,
+      results: run["step_results"],
+      state: "completed",
+      wake_at: nil,
+      outcome: "completed",
+      rule_id: nil
+    }
+
+    {:saved, _version} = RunStore.save(run["id"], run["version"], fields)
+    :ok
+  end
+
+  defp unpark(scope, run, kind, info) do
+    state =
+      Runner.unpark(
+        Map.put(run["step_cursor"], "results", run["step_results"]),
+        Atom.to_string(kind),
+        Map.get(info, :render)
+      )
+
+    fields = %{
+      cursor: Map.delete(state, "results"),
+      results: state["results"],
+      state: "running",
+      wake_at: nil,
+      outcome: nil,
+      rule_id: nil
+    }
+
+    {:saved, _version} = RunStore.save(run["id"], run["version"], fields)
+    timer(scope, run["id"], nil, true)
+  end
+
+  # WF-29
+  @doc "The digest render data of a delivery that a run opened with its step's `digest_template` after a window of two or more activities fired, inside the caller's scoped transaction; `nil` for any other delivery."
+  @spec digest_render(Relay.Id.t()) :: map() | nil
+  def digest_render(delivery_id) do
+    with %{"step_cursor" => %{"digest" => %{"kind" => "digest", "step" => key}}} = run <-
+           RunStore.by_delivery(delivery_id),
+         id = Relay.Id.to_string(delivery_id),
+         true <-
+           Enum.any?(run["step_results"], fn {_key, result} ->
+             result["digest"] == true and id in (result["deliveries"] || [])
+           end) do
+      run["step_results"][key]["render"]
+    else
+      _none -> nil
+    end
   end
 
   # WF-43

@@ -78,12 +78,12 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
       assert %{"state" => "completed", "outcome" => "completed"} = run!(ctx, id)
     end
 
-    test "WF-43: a delay is a waiting row with one timer and the later step opens when it wakes",
+    test "WF-43 WF-63: a delay is a waiting row with one timer and a reminder on the same channel opens when it wakes",
          ctx do
       workflow!(ctx, "later", [
         mail("first"),
         %{"type" => "delay", "key" => "wait", "duration" => "PT1H"},
-        inbox("second")
+        mail("second")
       ])
 
       {notification, id} = send!(ctx, "later")
@@ -100,7 +100,10 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
       assert {:ok, :completed} = Relay.Workflow.wake(ctx.scope, run["id"])
 
       channels = ctx |> deliveries(notification) |> Enum.map(& &1["channel"]) |> Enum.sort()
-      assert channels == ["email", "in_app"]
+      assert channels == ["email", "email"]
+
+      assert {:ok, :final} = Relay.Workflow.wake(ctx.scope, run["id"], true)
+      assert [_, _] = deliveries(ctx, notification)
       assert %{"state" => "completed", "step_results" => results} = run!(ctx, id)
       assert [_] = results["second"]["deliveries"]
       assert results["wait"]["outcome"] == "waited"
@@ -159,23 +162,86 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
       assert [%{"channel" => "in_app"}] = deliveries(ctx, other)
     end
 
-    test "WF-8: a step type that is not executable yet is recorded with its rule, not skipped silently",
+    test "WF-32: an event over the throttle limit ends its run skipped with throttle.limited",
          ctx do
       throttle = %{
         "type" => "throttle",
         "key" => "limit",
-        "throttle_key" => "{{data.order}}",
+        "throttle_key" => "order:{{data.order}}",
         "limit" => 1,
         "window" => "PT1H"
       }
 
       workflow!(ctx, "throttled", [throttle, mail("mail")])
-      {notification, id} = send!(ctx, "throttled")
+      {first, first_id} = send!(ctx, "throttled")
+      {second, second_id} = send!(ctx, "throttled")
 
-      assert [%{"channel" => "email"}] = deliveries(ctx, notification)
+      assert [%{"channel" => "email"}] = deliveries(ctx, first)
+      assert %{"state" => "completed", "outcome" => "completed"} = run!(ctx, first_id)
 
-      assert %{"outcome" => "skipped", "rule_id" => "workflow_run.step_unavailable"} =
-               run!(ctx, id)["step_results"]["limit"]
+      assert deliveries(ctx, second) == []
+
+      assert %{"outcome" => "stopped", "rule_id" => "throttle.limited", "step_results" => results} =
+               run!(ctx, second_id)
+
+      assert results["limit"]["throttled"] == true
+    end
+
+    test "WF-13 WF-15: a fallback route moves on when its first channel is skipped", ctx do
+      route = %{"single" => ["sms", "email"]}
+
+      step = %{
+        "type" => "channel",
+        "key" => "routed",
+        "route" => route,
+        "template" => "order-shipped"
+      }
+
+      workflow!(ctx, "fallback", [step])
+      {notification, id} = send!(ctx, "fallback")
+
+      channels = ctx |> deliveries(notification) |> Enum.map(&{&1["channel"], &1["status"]})
+      assert {"sms", "skipped"} in channels
+      assert {"email", "queued"} in channels
+
+      assert %{"step_cursor" => %{"routes" => %{"routed" => route_state}}} = run!(ctx, id)
+      assert Map.keys(route_state["leaves"]) |> Enum.sort() == ["/single/0", "/single/1"]
+    end
+
+    test "WF-10: a condition reads a declared recipient attribute", ctx do
+      check = %{
+        "type" => "condition",
+        "key" => "check",
+        "branches" => [
+          %{
+            "when" => %{"eq" => [%{"var" => "recipient.plan"}, "gold"]},
+            "steps" => [mail("gold")]
+          }
+        ],
+        "else" => [inbox("other")]
+      }
+
+      workflow!(ctx, "attributed", [check], %{"recipient_attributes" => %{"plan" => "string"}})
+
+      body = fn plan ->
+        %{
+          "workflow" => "attributed",
+          "to" => [
+            %{
+              "id" => "user-" <> TenantFixture.random(),
+              "email" => "ayse@example.com",
+              "attributes" => %{"plan" => plan}
+            }
+          ],
+          "data" => %{"order" => "A-1"}
+        }
+      end
+
+      for {plan, channel} <- [{"gold", "email"}, {"silver", "in_app"}] do
+        accepted = F.body(F.request(:post, "/v1/events", ctx.token, body.(plan)), 202)
+        [%{"notification_id" => notification}] = accepted["notifications"]
+        assert [%{"channel" => ^channel}] = deliveries(ctx, notification)
+      end
     end
 
     test "API-57: cancelling the notification cancels its waiting run", ctx do

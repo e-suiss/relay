@@ -231,7 +231,8 @@ defmodule Relay.Templates.Live do
           partials: partials,
           defaults: Store.defaults(delivery["subtenant_id"]),
           brand: TemplateStore.brand_resolve(delivery["subtenant_id"], version["id"]),
-          policy: TemplateStore.render_policy(delivery_id)
+          policy: TemplateStore.render_policy(delivery_id),
+          digest: Relay.Workflow.digest_render(delivery_id) || %{}
         }
       end
     end)
@@ -286,6 +287,7 @@ defmodule Relay.Templates.Live do
       time_zone: time_zone(delivery["timezone"], input.defaults["default_timezone"]),
       data: data,
       recipient: %{},
+      digest: Map.get(input, :digest, %{}),
       brand: brand(input.brand),
       helpers: helpers(input.brand, delivery["message_class"], locale),
       partials: partials(input.partials, locale),

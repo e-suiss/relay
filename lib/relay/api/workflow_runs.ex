@@ -40,6 +40,7 @@ defmodule Relay.Api.WorkflowRuns do
         "sender_type" => p.request.sender_type
       },
       "steps" => Enum.map(p.request.steps, &step/1),
+      "routes" => Map.get(p, :routes, %{}),
       "providers" => p.providers,
       "templates" => templates(p.templates)
     }
@@ -61,7 +62,13 @@ defmodule Relay.Api.WorkflowRuns do
         nil -> nil
       end
 
-    %{"key" => step.key, "channel" => step.channel, "template" => step.template, "skip" => skip}
+    %{
+      "key" => step.key,
+      "channel" => step.channel,
+      "template" => step.template,
+      "digest_template" => Map.get(step, :digest_template),
+      "skip" => skip
+    }
   end
 
   defp templates(templates) do
@@ -95,25 +102,84 @@ defmodule Relay.Api.WorkflowRuns do
 
   # WF-45
   # WF-60
-  @doc "The step context of a run at acceptance."
-  @spec context(Events.prepared(), map()) :: map()
-  def context(p, row) do
+  @doc "The step context of a run at acceptance, with the recipient's declared attributes read before the transaction (`attributes/3`)."
+  @spec context(Events.prepared(), map(), map()) :: map()
+  def context(p, row, attributes) do
     definition = p.workflow["definition"]
 
     %{
       data: p.request.data,
-      recipient: attributes(row, definition),
+      recipient: declared(row, attributes, definition),
       time_zone: zone(row, Map.get(p.templates, :default_timezone)),
       event_time: p.now,
       run_started_at: p.request.send_at || p.now,
-      message_class: p.message_class
+      message_class: p.message_class,
+      routes: Map.get(p, :routes, %{}),
+      facts: facts(p.request.security_subtype, p.templates)
     }
   end
 
-  defp attributes(row, definition) do
-    declared = Map.keys(definition["recipient_attributes"] || %{})
-    for name <- declared, name in @attributes, into: %{}, do: {name, row && row[name]}
+  # WF-13
+  # WF-16
+  # WF-18
+  defp facts(subtype, templates) do
+    fn step ->
+      variants =
+        case Map.get(templates, step["template"]) do
+          %{locales: locales} -> for {channel, [_ | _]} <- locales, do: channel
+          _unresolved -> :all
+        end
+
+      %{security_subtype: subtype, variants: variants}
+    end
   end
+
+  # WF-10
+  # WF-59
+  @doc "Reads the recipients' attributes a definition declares, outside any transaction: the attributes the request writes, else the subscriber's stored attributes, decrypted under its profile key. A definition that declares none reads nothing."
+  @spec attributes(Relay.Scope.t(), map(), [map()]) :: {:ok, [map()]} | {:error, Relay.Error.t()}
+  def attributes(scope, definition, recipients) do
+    if (definition["recipient_attributes"] || %{}) == %{},
+      do: {:ok, recipients},
+      else: {:ok, Enum.map(recipients, &Map.put(&1, :attributes, stored(scope, &1)))}
+  end
+
+  defp stored(_scope, %{fields: %{"attributes" => %{} = attributes}}), do: attributes
+
+  defp stored(scope, %{plan: %{existing: %{"id" => id}}}), do: stored(scope, id)
+
+  defp stored(scope, id) when is_binary(id) do
+    case Relay.Ingest.in_event_scope(scope, fn _status ->
+           Relay.Subscribers.personal_record(id)
+         end) do
+      {:ok, record} ->
+        Relay.Subscribers.open_personal(scope, record, ["attributes"])["attributes"] || %{}
+
+      {:error, _reason} ->
+        %{}
+    end
+  end
+
+  defp stored(_scope, _recipient), do: %{}
+
+  defp declared(row, attributes, definition) do
+    for {name, type} <- definition["recipient_attributes"] || %{}, into: %{} do
+      value = Map.get(attributes || %{}, name) || (name in @attributes && row && row[name]) || nil
+      {name, typed(type, value)}
+    end
+  end
+
+  defp typed("timestamp", text) when is_binary(text) do
+    case DateTime.from_iso8601(text) do
+      {:ok, at, _offset} -> at
+      {:error, _reason} -> nil
+    end
+  end
+
+  defp typed("string", value) when is_binary(value), do: value
+  defp typed("number", value) when is_number(value), do: value
+  defp typed("boolean", value) when is_boolean(value), do: value
+  defp typed(_type, _value), do: nil
 
   defp zone(row, tenant_zone) do
     Enum.find_value([row && row["timezone"], tenant_zone], fn name ->
@@ -128,7 +194,7 @@ defmodule Relay.Api.WorkflowRuns do
   # WF-7
   @doc "Prepares the waking of a run outside any transaction; the returned function, called inside the run's transaction, gives the step context and the opener."
   @spec resume(Relay.Scope.t(), map()) ::
-          {:ok, (-> {:ok, map(), (map(), String.t() -> term())})}
+          {:ok, (-> {:ok, map(), (map(), String.t(), String.t() -> term())})}
           | {:error, term()}
   def resume(scope, run) do
     plan = run["plan"]
@@ -162,7 +228,8 @@ defmodule Relay.Api.WorkflowRuns do
         is_test: plan["is_test"] == true
       }
 
-      {:ok, fn -> bind(with_device(p, run, plan), run, data) end}
+      attributes = if run_declares?(run), do: stored(scope, run["recipient_id"]), else: %{}
+      {:ok, fn -> bind(with_device(p, run, plan), run, data, attributes) end}
     end
   end
 
@@ -171,7 +238,9 @@ defmodule Relay.Api.WorkflowRuns do
 
   defp with_device(p, _run, _plan), do: p
 
-  defp bind(p, run, data) do
+  defp run_declares?(run), do: (run["definition"]["recipient_attributes"] || %{}) != %{}
+
+  defp bind(p, run, data, attributes) do
     recipient_id = run["recipient_id"]
     row = Events.device_locale(Relay.Subscribers.row(recipient_id), recipient_id)
     mismatch? = run["plan"]["mismatch"] == true
@@ -179,15 +248,17 @@ defmodule Relay.Api.WorkflowRuns do
 
     context = %{
       data: data,
-      recipient: attributes(row, run["definition"]),
+      recipient: declared(row, attributes, run["definition"]),
       time_zone: zone(row, p.templates.default_timezone),
       event_time: event_time(run["plan"]["event_time"]),
       run_started_at: run["started_at"],
-      message_class: p.message_class
+      message_class: p.message_class,
+      routes: run["plan"]["routes"] || %{},
+      facts: facts(p.request.security_subtype, p.templates)
     }
 
-    opener = fn step, channel ->
-      Events.open_step(p, notification_id, row, mismatch?, step, channel)
+    opener = fn step, channel, pointer ->
+      Events.open_step(p, notification_id, row, mismatch?, step, {channel, pointer})
     end
 
     {:ok, context, opener}
@@ -222,7 +293,13 @@ defmodule Relay.Api.WorkflowRuns do
         nil -> nil
       end
 
-    %{key: step["key"], channel: step["channel"], template: step["template"], skip: skip}
+    %{
+      key: step["key"],
+      channel: step["channel"],
+      template: step["template"],
+      digest_template: step["digest_template"],
+      skip: skip
+    }
   end
 
   defp decode_templates(templates) do

@@ -5,16 +5,16 @@ defmodule Relay.Workflow.Definition do
   The publication gate (`gate/1`) checks, with RFC 6901 field errors under `/definition`:
 
   * the definition against the contract schema; the event schema builds as JSON Schema 2020-12 without remote references;
-  * the step tree: at most 50 steps over the whole tree, branches nested at most 4 deep, step keys unique over the whole tree, an inline route tree at most 4 deep with at most 10 leaves (WF-59);
-  * the hard duration ceilings (WF-37): a delay at most P90D, digest windows and throttle windows at most P31D, a wait for an event at most P30D and more than zero, a content deduplication window from PT1M to PT24H, a time-based fallback trigger and an escalation step more than zero (WF-15);
+  * the step tree: at most 50 steps over the whole tree, branches nested at most 4 deep, step keys unique over the whole tree, and every inline route tree through `Relay.Workflow.RouteTree.validate/2` (shapes, durations above zero, depth and leaves, the subtype's channel rule; WF-13, WF-15, WF-18, WF-59 (4));
+  * the hard duration ceilings (WF-37): a delay at most P90D, digest windows and throttle windows at most P31D, a wait for an event at most P30D and more than zero, a content deduplication window from PT1M to PT24H;
   * every condition (WF-60, `Relay.Workflow.Condition`): its grammar and limits, declared recipient attributes, and references only to steps that run before it on its own path, never to a later step or one in another branch;
-  * a digest step is refused for the `security`, `transactional` and `action_required` classes (WF-28), a `digest_template` needs an earlier digest step on its path, a time window's start comes before its end, and every control pointer names a text, duration or number field (WF-4);
-  * a definition that declares the security subtype it serves: `otp_oob` sends no e-mail, neither as a channel nor in an inline route (WF-18), and has no delay, digest or time window (WF-40); `email_verification` sends only e-mail (WF-18). Named routes are checked by `named_route_errors/2` once routes are stored.
+  * a digest step is refused for the `security`, `transactional` and `action_required` classes (WF-28), and a `security` workflow has no delay, time window or digest step (WF-63, WF-41, WF-40); a `digest_template` needs an earlier digest step on its path, a time window's start comes before its end, and every control pointer names a text, duration or number field (WF-4);
+  * a definition that declares the security subtype it serves: `otp_oob` sends no e-mail, neither as a channel nor in an inline route (WF-18); `email_verification` sends only e-mail. The routes a step names by key are checked against the stored routes by `named_route_errors/2` when the gate runs (existence, and the subtype's channel rule).
   """
 
   alias Relay.Workflow.Condition
   alias Relay.Workflow.Duration
-  alias Relay.Workflow.Route
+  alias Relay.Workflow.RouteTree
 
   @dialect "https://json-schema.org/draft/2020-12/schema"
   @contract Path.expand("../../../contracts/workflow/definition.schema.json", __DIR__)
@@ -24,14 +24,13 @@ defmodule Relay.Workflow.Definition do
   @limits Relay.Limits.fetch!(["workflow"])
   @max_steps @limits["max_steps"]
   @max_branch_depth @limits["max_branch_depth"]
-  @route_depth @limits["route_max_depth"]
-  @route_leaves @limits["route_max_leaves"]
   @delay_max Relay.Limits.seconds!(["workflow", "delay_max"])
-  @digest_max Relay.Limits.seconds!(["workflow", "digest_window_max"])
-  @throttle_max Relay.Limits.seconds!(["workflow", "throttle_window_max"])
+  @digest_max Relay.Limits.seconds!(["digest", "max_window"])
+  @throttle_max Relay.Limits.seconds!(["throttle", "max_window"])
   @wait_max Relay.Limits.seconds!(["workflow", "wait_for_event_max"])
-  @dedup_min Relay.Limits.seconds!(["workflow", "content_dedup_window_min"])
-  @dedup_max Relay.Limits.seconds!(["workflow", "content_dedup_window_max"])
+  @dedup_min Relay.Limits.seconds!(["content_dedup", "min_window"])
+  @dedup_max Relay.Limits.seconds!(["content_dedup", "max_window"])
+  @untimed ~w(delay time_window digest)
   @undigested ~w(security transactional action_required)
   @structural ~w(type key)
 
@@ -166,6 +165,7 @@ defmodule Relay.Workflow.Definition do
       Enum.flat_map(entries, &step_errors(&1, definition)) ++
       dedup_errors(definition) ++
       control_errors(definition) ++
+      security_errors(definition, entries) ++
       subtype_errors(definition, entries)
   end
 
@@ -236,9 +236,9 @@ defmodule Relay.Workflow.Definition do
     |> Enum.reverse()
   end
 
-  defp step_errors(%{step: %{"type" => "channel"} = step} = entry, _definition) do
+  defp step_errors(%{step: %{"type" => "channel"} = step} = entry, definition) do
     Enum.concat([
-      route_errors(step["route"], entry.pointer <> "/route"),
+      route_errors(step["route"], entry.pointer <> "/route", definition),
       digest_template_errors(step, entry),
       variant_errors(step, entry.pointer)
     ])
@@ -260,7 +260,7 @@ defmodule Relay.Workflow.Definition do
         else: []
 
     windows =
-      Enum.flat_map(~w(window debounce max_wait), fn field ->
+      Enum.flat_map(~w(debounce max_wait), fn field ->
         max_errors(step[field], pointer <> "/" <> field, @digest_max, "P31D")
       end)
 
@@ -311,6 +311,22 @@ defmodule Relay.Workflow.Definition do
 
   defp step_errors(_entry, _definition), do: []
 
+  # WF-63
+  # WF-41
+  # WF-40
+  defp security_errors(%{"message_class" => "security"}, entries) do
+    for %{step: %{"type" => type}, pointer: pointer} <- entries,
+        type in @untimed,
+        do:
+          error(
+            pointer,
+            "not_allowed",
+            "a security workflow is never delayed, windowed or digested"
+          )
+  end
+
+  defp security_errors(_definition, _entries), do: []
+
   defp condition_scope(entry, definition, incoming?) do
     %{
       attributes: definition["recipient_attributes"] || %{},
@@ -334,60 +350,19 @@ defmodule Relay.Workflow.Definition do
 
   # WF-13
   # WF-15
-  # WF-59
-  defp route_errors(%{} = tree, pointer) do
-    depth = Route.depth(tree)
-    leaves = Route.leaves(tree)
-
-    [
-      {depth > @route_depth,
-       error(pointer, "too_long", "a route tree is at most #{@route_depth} deep")},
-      {leaves > @route_leaves,
-       error(pointer, "too_long", "a route tree has at most #{@route_leaves} leaves")}
-    ]
-    |> Enum.filter(&elem(&1, 0))
-    |> Enum.map(&elem(&1, 1))
-    |> Kernel.++(delay_errors(tree, pointer))
-  end
-
-  defp route_errors(_key_or_none, _pointer), do: []
-
-  defp delay_errors(%{"single" => list} = node, pointer) when is_list(list) do
-    trigger =
-      case node["trigger"] do
-        %{"after_delay" => delay} -> zero_errors(delay, pointer <> "/trigger/after_delay")
-        _on_failure -> []
-      end
-
-    trigger ++ list_delay_errors(list, pointer <> "/single")
-  end
-
-  defp delay_errors(%{"all" => list}, pointer) when is_list(list),
-    do: list_delay_errors(list, pointer <> "/all")
-
-  defp delay_errors(%{"escalate" => %{"ladder" => ladder}}, pointer) when is_list(ladder) do
-    ladder
-    |> Enum.with_index()
-    |> Enum.flat_map(fn {rung, index} ->
-      at = pointer <> "/escalate/ladder/#{index}"
-      zero_errors(rung["after"], at <> "/after") ++ delay_errors(rung["node"], at <> "/node")
-    end)
-  end
-
-  defp delay_errors(_node, _pointer), do: []
-
-  defp list_delay_errors(list, pointer) do
-    list
-    |> Enum.with_index()
-    |> Enum.flat_map(fn {node, index} -> delay_errors(node, pointer <> "/#{index}") end)
-  end
-
-  defp zero_errors(duration, pointer) do
-    case Duration.seconds(duration) do
-      {:ok, 0} -> [error(pointer, "too_short", "a time-based step is more than zero")]
-      _other -> []
+  # WF-18
+  # WF-59 (4)
+  defp route_errors(%{} = tree, pointer, definition) do
+    case RouteTree.validate(tree,
+           pointer: pointer,
+           security_subtype: definition["security_subtype"]
+         ) do
+      :ok -> []
+      {:error, errors} -> errors
     end
   end
+
+  defp route_errors(_key_or_none, _pointer, _definition), do: []
 
   defp digest_template_errors(%{"digest_template" => _template}, entry) do
     if Enum.any?(entry.earlier, &(elem(&1, 1) == "digest")),
@@ -513,14 +488,10 @@ defmodule Relay.Workflow.Definition do
   defp subtype_step_errors(%{step: %{"type" => "channel"} = step, pointer: pointer}, subtype),
     do: channel_subtype_errors(step_channels(step), subtype, pointer)
 
-  defp subtype_step_errors(%{step: %{"type" => type}, pointer: pointer}, "otp_oob")
-       when type in ~w(delay digest time_window),
-       do: [error(pointer, "not_allowed", "an otp_oob workflow is never delayed or digested")]
-
   defp subtype_step_errors(_entry, _subtype), do: []
 
   defp step_channels(%{"channel" => channel}), do: [channel]
-  defp step_channels(%{"route" => %{} = tree}), do: Route.channels(tree)
+  defp step_channels(%{"route" => %{} = tree}), do: RouteTree.channels(tree)
   defp step_channels(_step), do: []
 
   defp channel_subtype_errors(channels, "otp_oob", pointer) do
@@ -558,13 +529,19 @@ defmodule Relay.Workflow.Definition do
 
   # WF-8
   # WF-59
-  @doc "The channel steps of the whole step tree in order as `{key, channel, template}`; a step whose route is not a plain channel (`Route.plan/1`) is left out."
+  @doc "The channel steps of the whole step tree in order as `{key, channel, template}`, one entry per channel of a step's `channel` or inline route tree; a step that names a route key is left out (its tree is read from the route store, `Relay.Workflow.route_steps/2`)."
   @spec steps(t()) :: [%{key: String.t(), channel: String.t(), template: String.t()}]
   def steps(definition) do
     for %{step: %{"type" => "channel"} = step} <- entries(definition),
-        {:channel, channel} <- [Route.plan(step)],
+        tree <- inline(step),
+        channel <- RouteTree.channels(tree),
         do: %{key: step["key"], channel: channel, template: step["template"]}
   end
+
+  defp inline(%{"route" => %{} = tree}), do: [tree]
+  defp inline(%{"route" => _key}), do: []
+  defp inline(%{"channel" => channel}) when is_binary(channel), do: [channel]
+  defp inline(_step), do: []
 
   # WF-6
   @doc "The definition as a Mermaid flowchart: one node per step, a condition's branches and else and a wait's timeout as labelled edges, and every branch joining the step after its branching step."

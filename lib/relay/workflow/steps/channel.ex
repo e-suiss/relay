@@ -1,6 +1,6 @@
 defmodule Relay.Workflow.Steps.Channel do
   @moduledoc """
-  The channel step (WF-8, WF-13): opens the step's deliveries on the channel its `channel` or `route` resolves to through `Relay.Workflow.Route.plan/1`. A route the seam cannot resolve yet, and a step with A/B variants (WF-50), are recorded as `skipped` with their rule and the run goes on.
+  The channel step (WF-8, WF-13): hands the step to the run's route evaluation (`{:route, result}`), which sends through the tree the notification's plan holds for it (its `channel`, its `route` or the category's default route, WF-14). A step with A/B variants (WF-50) is recorded as `skipped` with `workflow_run.step_unavailable` until variants are built, and the run goes on.
   """
 
   @behaviour Relay.Workflow.Step
@@ -13,13 +13,5 @@ defmodule Relay.Workflow.Steps.Channel do
   def run(%{"variants" => [_ | _]}, _context, _now),
     do: {:continue, %{"outcome" => "skipped", "rule_id" => @unavailable}}
 
-  def run(step, _context, _now) do
-    case Relay.Workflow.Route.plan(step) do
-      {:channel, channel} ->
-        {:open, channel, %{"outcome" => "opened", "channel" => channel}}
-
-      {:unavailable, rule_id} ->
-        {:continue, %{"outcome" => "skipped", "rule_id" => rule_id}}
-    end
-  end
+  def run(_step, _context, _now), do: {:route, %{"outcome" => "routed"}}
 end

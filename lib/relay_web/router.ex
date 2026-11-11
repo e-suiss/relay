@@ -76,6 +76,12 @@ defmodule RelayWeb.Router do
     get "/:token", ExportDownloadController, :show
   end
 
+  # CH-46
+  # CH-87
+  scope "/tlsrpt/v1", RelayWeb do
+    post "/:tenant/:environment", TlsReportController, :create
+  end
+
   # CH-62
   # WH-49
   scope "/inbound/v1", RelayWeb do

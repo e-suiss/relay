@@ -873,6 +873,14 @@ defmodule Relay.Channels do
   def record_email_report(report, digest), do: ReportStore.record(report, digest)
 
   # CH-46
+  # CH-87
+  @doc "Appends a parsed report in a scope in its own transaction; see `Relay.Channels.Email.ReportStore.record/2`."
+  @spec store_email_report(Relay.Scope.t(), Reports.report(), digest()) ::
+          result({:recorded | :duplicate, Relay.Id.t()})
+  def store_email_report(scope, report, digest),
+    do: Store.in_scope(scope, fn _status -> ReportStore.record(report, digest) end)
+
+  # CH-46
   @doc "Reads the reports of a domain in a scope; see `Relay.Channels.Email.ReportStore.reports/4`."
   @spec email_reports(Relay.Scope.t(), String.t(), DateTime.t(), DateTime.t(), pos_integer()) ::
           result([map()])

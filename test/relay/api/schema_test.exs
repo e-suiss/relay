@@ -76,27 +76,21 @@ defmodule Relay.Api.SchemaTest do
   end
 
   describe "E-81 E-83 staged contract fields" do
-    test "E-81, E-83: a field of a later stage stays an unknown field until its stage is built" do
+    test "E-81, E-83: item and correlation_id are accepted once stage 7 is built" do
       event = %{"workflow" => "welcome", "to" => [%{"id" => "u-1"}]}
 
-      assert Contract.built_stage() == 6
+      assert Contract.built_stage() == 7
       assert :ok = Schema.validate_request("createEvent", "application/json", event)
 
       digest = "sha256:" <> String.duplicate("0", 64)
       item = %{"ref" => "order-1", "version" => "1", "digest" => digest}
-      later = Map.put(event, "item", item)
+      with_item = Map.put(event, "item", item)
 
-      assert {:error, %Relay.Error{code: :unknown_field} = error} =
-               Schema.validate_request("createEvent", "application/json", later)
-
-      assert {"/item", "not_allowed"} in pointers(error)
+      assert :ok = Schema.validate_request("createEvent", "application/json", with_item)
 
       batch = %{"events" => [Map.put(event, "correlation_id", "order-1")]}
 
-      assert {:error, %Relay.Error{code: :unknown_field} = error} =
-               Schema.validate_request("createEventBatch", "application/json", batch)
-
-      assert {"/events/0/correlation_id", "not_allowed"} in pointers(error)
+      assert :ok = Schema.validate_request("createEventBatch", "application/json", batch)
     end
 
     test "E-83, CH-65: interruption and links are accepted on single and batch events" do

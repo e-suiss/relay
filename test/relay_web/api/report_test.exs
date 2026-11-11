@@ -31,7 +31,7 @@ defmodule RelayWeb.Api.ReportTest do
     test "DS-35, DS-36: the delivery and skip reports answer the rollups of the period" do
       %{scope: scope, delivery_id: id} = DeliveryFixture.sendable!()
       n = DeliveryFixture.started_attempt!(scope, id)
-      DeliveryFixture.finish(scope, id, n, :succeeded, delivery_rank: :delivered)
+      DeliveryFixture.finish(scope, id, n, :succeeded, delivery_rank: 2)
       {:ok, _counts} = Relay.Delivery.recompute_report_day(scope, today())
       token = F.token(scope)
 

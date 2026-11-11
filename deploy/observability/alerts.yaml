@@ -483,13 +483,22 @@ groups:
           summary: "{{ $labels.provider }} accepted email for an hour without sending any delivery event"
           runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayespeventssilent
       - alert: RelayReconciliationLag
-        expr: max by (channel, provider) (relay_reconciliation_lag_seconds) > 1800
+        expr: max by (channel, provider) (relay_reconciliation_lag_milliseconds) > 1800000
+        for: 10m
         labels:
           severity: warning
           decision: DS-41
         annotations:
           summary: "Reconciliation of {{ $labels.channel }}/{{ $labels.provider }} is more than 30 minutes behind"
           runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayreconciliationlag
+      - alert: RelayReconciliationDrift
+        expr: sum by (channel, provider) (increase(relay_reconciliation_drift_total[1h])) > 0
+        labels:
+          severity: warning
+          decision: OP-42
+        annotations:
+          summary: "Reconciliation of {{ $labels.channel }}/{{ $labels.provider }} found deliveries whose projection differs from the provider"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayreconciliationdrift
   - name: relay-operations
     rules:
       - record: relay:queue_age_threshold_seconds

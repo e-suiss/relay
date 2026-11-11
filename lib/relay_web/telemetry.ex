@@ -135,7 +135,7 @@ defmodule RelayWeb.Telemetry do
   # OP-37 (7)
   # CH-47
   # MD-12
-  @doc "The delivery metrics that are always produced: the funnel and its gaps, skips by rule, duplicates, conflicts and late events, unknown outcomes and codes, provider event delay, reconciliation lag, clicks by kind and the extra alarm signals."
+  @doc "The delivery metrics that are always produced: the funnel and its gaps, skips by rule, duplicates, conflicts and late events, unknown outcomes and codes, provider event delay, clicks by kind and the extra alarm signals."
   @spec delivery_metrics() :: [Telemetry.Metrics.t()]
   def delivery_metrics do
     [
@@ -184,12 +184,6 @@ defmodule RelayWeb.Telemetry do
         measurement: fn %{delay_ms: ms} -> ms / 1000 end,
         tags: [:channel, :provider],
         description: "Seconds from the provider handoff to the provider's delivery event"
-      ),
-      last_value("relay.reconciliation.lag.seconds",
-        event_name: [:relay, :reconciliation, :lag],
-        measurement: :seconds,
-        tags: [:channel, :provider],
-        description: "Age of the oldest delivery waiting for reconciliation"
       ),
       sum("relay.engagement.click.total",
         event_name: [:relay, :engagement, :click],

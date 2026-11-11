@@ -2,6 +2,8 @@ defmodule Relay.Workflow do
   @moduledoc """
   Workflows, steps, routing, escalation and scheduling. Other contexts use only the functions of this module.
 
+  Recurrence rules (`Relay.Workflow.Recurrence`, C-52, WF-48, WF-49) are definitions of one workflow sent to a subscriber or a topic on the occurrences of an RRULE subset (`Relay.Workflow.RRule`, WF-61); the rule's next occurrence is a row column with a timer, never a waiting message (WF-43).
+
   In stage 3 a workflow is a registry entry with immutable versions (WF-5): a draft is replaced as a whole, a publication request moves it to the publication gate (`Relay.Workflow.PublishGate`), and a published version never changes (INV-48). Going back to an old version publishes its definition again as a new version (WF-6). A definition is data (C-40): its event schema, its message class and category, and its channel steps; nothing in it runs as customer code.
   """
 
@@ -11,6 +13,8 @@ defmodule Relay.Workflow do
   alias Relay.Scope
   alias Relay.Workflow.Definition
   alias Relay.Workflow.PublishGate
+  alias Relay.Workflow.Recurrence
+  alias Relay.Workflow.RecurrenceStore
   alias Relay.Workflow.Store
 
   @gate %Actor{kind: :system, ref: "relay:publish_gate", on_behalf_of_ref: "relay"}
@@ -208,6 +212,147 @@ defmodule Relay.Workflow do
   @doc "The active workflows whose published version sends the template key in a channel step, inside the caller's scoped transaction: each with its `key`, `version_no` and `event_schema`."
   @spec using_template(String.t()) :: [map()]
   defdelegate using_template(template_key), to: Store
+
+  # WF-48
+  # WF-61
+  @doc "Checks a new recurrence rule and computes its first occurrence and timer in its own read transaction; see `Relay.Workflow.Recurrence.plan/2`."
+  @spec plan_recurrence(Scope.t(), Recurrence.input()) ::
+          {:ok, Recurrence.planned()} | {:error, Relay.Error.t()}
+  def plan_recurrence(%Scope{} = scope, input) do
+    case RecurrenceStore.in_scope(scope, fn _status -> Recurrence.plan(scope, input) end) do
+      {:ok, result} -> result
+      {:error, _reason} -> {:error, unavailable()}
+    end
+  end
+
+  # WF-49
+  # WF-61
+  @doc "Records a planned recurrence rule inside the caller's scoped transaction; `:limit_reached` when the tenant environment already holds the most active rules."
+  @spec create_recurrence(map(), <<_::256>>, Actor.t()) :: :created | :limit_reached
+  def create_recurrence(attrs, digest, %Actor{} = actor),
+    do: RecurrenceStore.create(attrs, Recurrence.max_active(), digest, actor)
+
+  # WF-49
+  @doc "Cancels an active recurrence rule inside the caller's scoped transaction."
+  @spec cancel_recurrence(Relay.Id.t(), String.t(), <<_::256>>, Actor.t()) ::
+          :cancelled | :closed | :not_found
+  def cancel_recurrence(id, reason, digest, %Actor{} = actor),
+    do: RecurrenceStore.cancel(id, reason, digest, actor)
+
+  # WF-49
+  # OP-24
+  @doc "Cancels an active recurrence rule in its own transaction, as a timer does for a subscriber that was erased."
+  @spec cancel_recurrence(Scope.t(), Relay.Id.t(), String.t(), <<_::256>>, Actor.t()) ::
+          result(:cancelled | :closed | :not_found)
+  def cancel_recurrence(%Scope{} = scope, id, reason, digest, %Actor{} = actor) do
+    RecurrenceStore.in_scope(scope, fn _status ->
+      RecurrenceStore.cancel(id, reason, digest, actor)
+    end)
+  end
+
+  # WF-48
+  @doc "Reads a recurrence rule with its last occurrence inside the caller's scoped transaction, or `nil`."
+  @spec view_recurrence(Relay.Id.t()) :: map() | nil
+  def view_recurrence(id) do
+    case RecurrenceStore.get(id) do
+      nil -> nil
+      row -> hd(with_last([row]))
+    end
+  end
+
+  # WF-48
+  @doc "Reads a recurrence rule with its last occurrence in its own read transaction, or `nil`."
+  @spec get_recurrence(Scope.t(), Relay.Id.t()) :: result(map() | nil)
+  def get_recurrence(%Scope{} = scope, id),
+    do: RecurrenceStore.in_scope(scope, fn _status -> view_recurrence(id) end)
+
+  # API-56
+  @doc "Lists recurrence rules newest first from a decoded cursor, each with its last occurrence; at most `limit + 1` rows come back."
+  @spec list_recurrences(Scope.t(), map() | nil, pos_integer()) :: result([map()])
+  def list_recurrences(%Scope{} = scope, cursor, limit) do
+    RecurrenceStore.in_scope(scope, fn _status ->
+      with_last(RecurrenceStore.page(cursor, limit))
+    end)
+  end
+
+  # WF-61
+  @doc "The recorded occurrences of a recurrence rule, oldest first, at most `limit`, in its own read transaction."
+  @spec recurrence_occurrences(Scope.t(), Relay.Id.t(), pos_integer()) :: result([map()])
+  def recurrence_occurrences(%Scope{} = scope, id, limit),
+    do: RecurrenceStore.in_scope(scope, fn _status -> RecurrenceStore.occurrences(id, limit) end)
+
+  # WF-49
+  # WF-61
+  @doc "Works out what a recurrence rule has due at `now` in its own read transaction; see `Relay.Workflow.Recurrence.due/3`."
+  @spec due_recurrence(Scope.t(), Relay.Id.t(), DateTime.t()) ::
+          {:ok, Recurrence.due()} | {:error, Relay.Error.t()}
+  def due_recurrence(%Scope{} = scope, id, now) do
+    case RecurrenceStore.in_scope(scope, fn _status -> Recurrence.due(scope, id, now) end) do
+      {:ok, {:error, %Relay.Error{}} = error} -> error
+      {:ok, due} -> {:ok, due}
+      {:error, _reason} -> {:error, unavailable()}
+    end
+  end
+
+  # WF-49
+  # WF-61
+  @doc "Records the occurrences of a recurrence rule and moves it to its next occurrence inside the caller's scoped transaction; see `Relay.Workflow.RecurrenceStore.fire/4`."
+  @spec fire_recurrence(Relay.Id.t(), DateTime.t(), [map()], Recurrence.next() | nil) ::
+          :advanced | :completed | :stale | :not_found
+  defdelegate fire_recurrence(id, expected_next_at, occurrences, next),
+    to: RecurrenceStore,
+    as: :fire
+
+  # WF-49
+  # WF-61
+  @doc "Records the occurrences of a recurrence rule and moves it to its next occurrence in its own transaction; `job` builds the timer job of the next occurrence, queued in the same transaction."
+  @spec record_recurrence(
+          Scope.t(),
+          Relay.Id.t(),
+          DateTime.t(),
+          [map()],
+          Recurrence.next() | nil,
+          (Recurrence.next() -> Ecto.Changeset.t())
+        ) :: result(:advanced | :completed | :stale | :not_found)
+  def record_recurrence(%Scope{} = scope, id, expected_next_at, occurrences, next, job) do
+    RecurrenceStore.in_scope(scope, fn _status ->
+      result = RecurrenceStore.fire(id, expected_next_at, occurrences, next)
+      if result == :advanced, do: RecurrenceStore.insert_job!(job.(next))
+      result
+    end)
+  end
+
+  # WF-43
+  @doc "The identifiers of the active recurrence rules of a scope whose timer is due at `now`, in its own read transaction."
+  @spec due_recurrences(Scope.t(), DateTime.t(), pos_integer()) :: result([Relay.Id.t()])
+  def due_recurrences(%Scope{} = scope, now, limit),
+    do: RecurrenceStore.in_scope(scope, fn _status -> RecurrenceStore.due(now, limit) end)
+
+  # WF-43
+  @doc "The scopes with a recurrence timer due at least `min_age_ms` ago; see `Relay.Workflow.RecurrenceStore.due_scopes/2`."
+  @spec recurrence_due_scopes(non_neg_integer(), pos_integer()) :: [{Relay.Id.t(), String.t()}]
+  defdelegate recurrence_due_scopes(min_age_ms, limit), to: RecurrenceStore, as: :due_scopes
+
+  # WF-42
+  # WF-58
+  @doc "The timer instant of an occurrence; see `Relay.Workflow.Recurrence.fire_at/3`."
+  @spec recurrence_fire_at(Scope.t(), Relay.Id.t(), DateTime.t()) :: DateTime.t()
+  defdelegate recurrence_fire_at(scope, id, at), to: Recurrence, as: :fire_at
+
+  @doc "The UTC text of an occurrence instant; see `Relay.Workflow.Recurrence.iso/1`."
+  @spec recurrence_instant(DateTime.t()) :: String.t()
+  defdelegate recurrence_instant(at), to: Recurrence, as: :iso
+
+  @doc "Queues a job inside the caller's scoped transaction; rolls the transaction back when it is not queued."
+  @spec queue_job!(Ecto.Changeset.t()) :: :ok
+  defdelegate queue_job!(changeset), to: RecurrenceStore, as: :insert_job!
+
+  defp with_last(rows) do
+    last = RecurrenceStore.last_occurrences(Enum.map(rows, & &1["id"]))
+    Enum.map(rows, &Map.put(&1, "last_occurrence", Map.get(last, &1["id"])))
+  end
+
+  defp unavailable, do: Relay.Error.new(:service_unavailable, "try again", %{retry_after: 1})
 
   defp with_parts(workflow) do
     Map.merge(workflow, %{

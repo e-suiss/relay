@@ -363,6 +363,10 @@ channels:
         "$ref": "#/components/messages/audit.export.requested"
       audit.provider_invoice.recorded:
         "$ref": "#/components/messages/audit.provider_invoice.recorded"
+      audit.recurrence.cancelled:
+        "$ref": "#/components/messages/audit.recurrence.cancelled"
+      audit.recurrence.created:
+        "$ref": "#/components/messages/audit.recurrence.created"
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
@@ -590,6 +594,8 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.provider_invoice.recorded"
       - "$ref": "#/channels/auditLog/messages/audit.export.requested"
       - "$ref": "#/channels/auditLog/messages/audit.export.downloaded"
+      - "$ref": "#/channels/auditLog/messages/audit.recurrence.created"
+      - "$ref": "#/channels/auditLog/messages/audit.recurrence.cancelled"
   receiveAccessInbound:
     action: receive
     channel:
@@ -5668,6 +5674,42 @@ components:
       x-relay-stage: 7
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.recurrence.created:
+      name: recurrence.created
+      title: recurrence.created
+      summary: "A recurrence rule was defined (WF-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: recurrence
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.recurrence.cancelled:
+      name: recurrence.cancelled
+      title: recurrence.cancelled
+      summary: "A recurrence rule was cancelled, by request or because its subscriber was erased (WF-49, OP-24); the reason is request or subject_erasure."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: recurrence
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.export.downloaded:
       name: export.downloaded
       title: export.downloaded
@@ -6213,6 +6255,8 @@ x-relay-event-names:
   - quota.reserve_opened
   - quota.threshold_reached
   - quota_policy.changed
+  - recurrence.cancelled
+  - recurrence.created
   - role_assignment.created
   - role_assignment.revoked
   - secret_ref.registered

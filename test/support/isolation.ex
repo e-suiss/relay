@@ -115,7 +115,8 @@ defmodule RelayTest.Isolation do
       "channel_identity_id" => &channel_identity!/1,
       "test_recipient_id" => &test_recipient!/1,
       "provider_invoice_id" => &provider_invoice!/1,
-      "export_id" => &export!/1
+      "export_id" => &export!/1,
+      "recurrence_id" => &recurrence!/1
     }
   end
 
@@ -451,6 +452,20 @@ defmodule RelayTest.Isolation do
   def export!(scope) do
     body = %{"kind" => "usage_records", "from" => "2026-10-01", "to" => "2026-11-01"}
     F.body(F.request(:post, "/v1/exports", owner(scope), body), 202)["id"]
+  end
+
+  @doc "Defines a daily recurrence rule in `scope` for a new subscriber and returns its identifier."
+  @spec recurrence!(Relay.Scope.t()) :: String.t()
+  def recurrence!(scope) do
+    body = %{
+      "workflow" => workflow!(scope),
+      "subscriber_id" => subscriber!(scope),
+      "rrule" => "FREQ=DAILY;BYHOUR=9;BYMINUTE=0",
+      "dtstart" => "2026-11-01T09:00:00",
+      "data" => %{"order" => "A-1"}
+    }
+
+    F.body(F.request(:post, "/v1/recurrences", owner(scope), body), 201)["id"]
   end
 
   @doc "Records a provider invoice in `scope` and returns its identifier."

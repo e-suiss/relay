@@ -303,6 +303,14 @@ table relay.recipients relay_archive SELECT
 table relay.recipients relay_maint SELECT
 table relay.recipients relay_owner INSERT,SELECT,UPDATE
 table relay.recipients relay_report SELECT
+table relay.recurrence_occurrences relay_app SELECT
+table relay.recurrence_occurrences relay_archive SELECT
+table relay.recurrence_occurrences relay_maint SELECT
+table relay.recurrence_occurrences relay_owner INSERT,SELECT
+table relay.recurrences relay_app SELECT
+table relay.recurrences relay_archive SELECT
+table relay.recurrences relay_maint SELECT
+table relay.recurrences relay_owner INSERT,SELECT,UPDATE
 table relay.render_snapshots relay_app SELECT
 table relay.render_snapshots relay_archive SELECT
 table relay.render_snapshots relay_maint SELECT

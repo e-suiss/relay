@@ -138,6 +138,29 @@ defmodule Relay.Jitter do
     scale(digest, spread_ms)
   end
 
+  # WF-42
+  # WF-58
+  # WF-49
+  # L-43
+  @doc "Fire offset of the occurrence of a recurrence rule due at `occurrence_at` (ISO 8601 UTC text): `scale(h, spread_ms)`, in `[0, spread_ms)`; zero for a zero spread. Occurrences of many rules due at the same minute spread over the window instead of piling on it."
+  @spec recurrence(
+          Relay.Id.t(),
+          Relay.Environment.t(),
+          Relay.Id.t(),
+          String.t(),
+          non_neg_integer()
+        ) ::
+          non_neg_integer()
+  def recurrence(_tenant_id, _environment, _rule_id, occurrence_at, 0)
+      when is_binary(occurrence_at),
+      do: 0
+
+  def recurrence(tenant_id, environment, rule_id, occurrence_at, spread_ms)
+      when is_binary(occurrence_at) and is_integer(spread_ms) and spread_ms > 0 do
+    digest = h("recurrence", [id(tenant_id), env(environment), id(rule_id), occurrence_at])
+    scale(digest, spread_ms)
+  end
+
   # T-30
   @doc "Backoff of a crashed job attempt: `scale(h, min(300000, 1000 · 2^attempt) + 1)`."
   @spec crash_backoff(non_neg_integer(), non_neg_integer()) :: non_neg_integer()

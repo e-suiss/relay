@@ -263,7 +263,10 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.export_complete" => ~w(completed not_pending not_found),
     "relay_fn.export_fail" => ~w(failed not_pending not_found),
     "relay_fn.export_download" => ~w(ready expired not_ready not_found),
-    "relay_fn.email_report_record" => ~w(recorded duplicate)
+    "relay_fn.email_report_record" => ~w(recorded duplicate),
+    "relay_fn.recurrence_create" => ~w(created limit_reached),
+    "relay_fn.recurrence_cancel" => ~w(cancelled closed not_found),
+    "relay_fn.recurrence_fire" => ~w(advanced completed stale not_found)
   }
 
   defp functions do

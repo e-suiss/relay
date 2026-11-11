@@ -1702,6 +1702,49 @@ codes:
     description: "No raw data export with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404."
     type: "{base_url}/v1/errors/export_not_found"
     choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: recurrence_not_found
+    family: resource
+    status: 404
+    title: Recurrence rule not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No recurrence rule with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/recurrence_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: recurrence_closed
+    family: workflow
+    status: 409
+    title: Recurrence rule is over
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The recurrence rule is completed or cancelled; a rule that is over does not change (WF-49)."
+    type: "{base_url}/v1/errors/recurrence_closed"
+    choice_note: "Code name and status chosen by the contract."
+  - code: recurrence_limit_reached
+    family: workflow
+    status: 422
+    title: Recurrence rule limit reached
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - limit
+    choice: true
+    description: "The tenant environment already holds its limit of active recurrence rules (WF-61, 100000, POLICY DEFAULT). Cancel rules first."
+    type: "{base_url}/v1/errors/recurrence_limit_reached"
+    choice_note: "Code name and status chosen by the contract; the ceiling is POLICY DEFAULT (WF-61)."
   - code: provider_account_archived
     family: channel
     status: 409

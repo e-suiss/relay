@@ -57,4 +57,18 @@ defmodule RelayWeb.Api.NotificationController do
       {:error, error} -> Response.problem(conn, error)
     end
   end
+
+  # DS-28
+  # X-12
+  @spec decisions(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def decisions(conn, %{"subscriber_id" => external_id}) do
+    with {:ok, page} <- Work.page(conn),
+         {:ok, filters} <- Queries.decision_filters(conn.query_params) do
+      %{scope: scope, operation: operation} = conn.assigns
+      answer = Queries.decisions(scope, external_id, filters, page, operation.endpoint)
+      Work.answer(conn, answer)
+    else
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
 end

@@ -113,6 +113,7 @@ defmodule RelayWeb.Api.RecurrencesTest do
 
       assert [[scheduled_at]] = timers(ctx.scope, body["id"])
       expected = Relay.Clock.wall_time(ctx.scope, row["fire_at"])
+      scheduled_at = DateTime.from_naive!(scheduled_at, "Etc/UTC")
       assert abs(DateTime.diff(scheduled_at, expected, :millisecond)) < 1_000
 
       assert get!(ctx.token, body["id"])["id"] == body["id"]

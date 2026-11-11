@@ -21,7 +21,7 @@ defmodule Relay.Channels.Live.Store do
   end
 
   # T-15
-  @doc "Reads what the channel step needs of a delivery: its channel, target kind and target (the one device of a test send), recipient, requested provider, class and security subtype, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity, the category key, the sender's `interruption` and the Access client of the event's API client (the sender of a critical Grant question, CH-84), and for the channel overrides the event's sealed request overrides with their key and the pinned version's workflow overrides and steps; `nil` when there is no such delivery."
+  @doc "Reads what the channel step needs of a delivery: its channel, target kind and target (the one device of a test send), recipient, requested provider, class and security subtype, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity, the category key, the sender's `interruption` and the Access client of the event's API client (the sender of a critical Grant question, CH-84), and for the channel overrides the event's sealed request overrides with their key and the pinned version's workflow overrides and channel steps (over the whole step tree), and the workflow's key for its send mode; `nil` when there is no such delivery."
   @spec delivery(Relay.Id.t()) :: map() | nil
   def delivery(delivery_id) do
     one(
@@ -34,7 +34,8 @@ defmodule Relay.Channels.Live.Store do
         v.sensitivity, c.key AS category_key, wv.definition->>'category' AS category,
         e.interruption, ac.access_client_id AS sender_ref, ep.overrides_ct,
         ep.key_id AS payload_key_id, wv.definition->'overrides' AS workflow_overrides,
-        wv.definition->'steps' AS steps
+        jsonb_path_query_array(wv.definition -> 'steps', 'strict $.** ? (@.type == "channel")')
+          AS steps, wf.key AS workflow_key
       FROM relay.deliveries d
       JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
         AND n.id = d.notification_id
@@ -53,6 +54,8 @@ defmodule Relay.Channels.Live.Store do
         AND c.id = t.category_id
       LEFT JOIN relay.workflow_versions wv ON wv.tenant_id = e.tenant_id
         AND wv.environment = e.environment AND wv.id = e.workflow_version_id
+      LEFT JOIN relay.workflows wf ON wf.tenant_id = e.tenant_id
+        AND wf.environment = e.environment AND wf.id = e.workflow_id
       LEFT JOIN relay.api_clients ac ON ac.tenant_id = e.tenant_id
         AND ac.environment = e.environment AND ac.id = e.api_client_id
       WHERE d.id = $1

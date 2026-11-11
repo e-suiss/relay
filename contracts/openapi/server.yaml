@@ -3368,6 +3368,130 @@ paths:
       x-relay-weight: 10
       x-relay-idempotency: required
       x-relay-step-up: false
+  "/v1/workflows/{workflow_key}/manager":
+    post:
+      operationId: setWorkflowManager
+      tags:
+        - workflows
+      summary: Change the workflow manager
+      description: "Changes the single manager of the workflow between panel and code (WF-4) under If-Match; audited as workflow.manager_changed. A code-managed workflow's structure is not changed from the panel, which edits only the fields the definition lists in controls and its text fields. Setting the manager the workflow already has answers 200 unchanged."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/WorkflowKey"
+        - "$ref": "./components/parameters.yaml#/IfMatch"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/WorkflowManager"
+      security:
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The workflow with its manager.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Workflow"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "412":
+          "$ref": "./components/responses.yaml#/PreconditionFailed"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "428":
+          "$ref": "./components/responses.yaml#/PreconditionRequired"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - workflow_not_found
+        - precondition_failed
+        - precondition_required
+        - resource_conflict
+      x-relay-scopes:
+        - config
+      x-relay-role: tenant_admin
+      x-relay-weight: 10
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: "WF-4 makes the change of manager an explicit, audited action but names no endpoint or role; it is a POST action on the workflow for a tenant_admin."
   "/v1/workflows/{workflow_key}/versions":
     get:
       operationId: listWorkflowVersions
@@ -3549,6 +3673,95 @@ paths:
       x-relay-step-up: false
       x-relay-choice: true
       x-relay-choice-note: Single-version read added next to the version list.
+  "/v1/workflows/{workflow_key}/versions/{version}/mermaid":
+    get:
+      operationId: getWorkflowVersionMermaid
+      tags:
+        - workflows
+      summary: Export a published version as Mermaid
+      description: "Returns the published version as a Mermaid flowchart (WF-6): one node per step, a condition's branches and else and a wait's timeout as labelled edges, every branch joining the step after its branching step."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/WorkflowKey"
+        - "$ref": "./components/parameters.yaml#/WorkflowVersion"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The flowchart.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "text/plain":
+              schema:
+                type: string
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - workflow_not_found
+        - workflow_version_not_found
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: "WF-6 names a Mermaid export but no endpoint; it is a text/plain read under the version, next to the version read."
   "/v1/workflows/{workflow_key}/versions/{version}/promote":
     post:
       operationId: promoteWorkflowVersion
@@ -16756,5 +16969,28 @@ x-relay-limits:
     max_test_recipients: 5
     verification_window: P7D
     max_notifications_per_day: 100
+  workflow:
+    max_steps: 50
+    max_branch_depth: 4
+    max_branches: 10
+    route_max_depth: 4
+    route_max_leaves: 10
+    variants_min: 2
+    variants_max: 10
+    delay_max: P90D
+    digest_window_max: P31D
+    digest_max_items_min: 2
+    digest_max_items_max: 1000
+    digest_render_max: 50
+    throttle_window_max: P31D
+    throttle_limit_max: 10000
+    wait_for_event_max: P30D
+    content_dedup_window_min: PT1M
+    content_dedup_window_max: PT24H
+    condition_max_nodes: 64
+    condition_max_depth: 8
+    condition_max_bytes: 4096
+    condition_max_string_bytes: 256
+    condition_max_list: 100
   x-relay-choice-note: "Values are POLICY DEFAULT and tenant-adjustable; other_write weight 1 and connector_message_max_bytes are contract choices."
 x-relay-error-catalog: "../errors.yaml"

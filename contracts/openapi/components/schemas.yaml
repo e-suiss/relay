@@ -2123,35 +2123,11 @@ SubscriberDeletion:
         - type: "null"
   additionalProperties: false
 ChannelStep:
-  type: object
-  description: "Channel step: sends to one channel using one template. Route policies, variants and escalation come in a later stage."
-  required:
-    - type
-    - key
-    - channel
-    - template
-  properties:
-    type:
-      type: string
-      const: channel
-    key:
-      type: string
-      description: Step key, unique within the workflow.
-      pattern: "^[a-z][a-z0-9_]{0,63}$"
-    channel:
-      "$ref": "#/Channel"
-    template:
-      type: string
-      description: Template key the step renders.
-      pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-      maxLength: 100
-    overrides:
-      "$ref": "#/Overrides"
-      description: "Overrides of this step, keyed by the step's own channel; another channel is 422 validation_failed. Precedence is request, step, workflow, tenant default; a raw block cannot set a policy field (policy_field_not_overridable)."
-      x-relay-stage: 6
-      x-relay-choice: true
-      x-relay-choice-note: "The spec names a step level of overrides but no field; the step and the definition carry an overrides field of the request's shape."
-  additionalProperties: false
+  description: "Channel step: sends to one channel or to a route policy using one template. The shape is the workflow definition contract's channel step."
+  "$ref": "../../workflow/definition.schema.json#/$defs/channel_step"
+WorkflowStep:
+  description: "One step of a workflow definition: channel, delay, digest, throttle, condition, wait_for_event, time_window or webhook (WF-8, WF-59). The shape is the workflow definition contract's step."
+  "$ref": "../../workflow/definition.schema.json#/$defs/step"
 WorkflowDefinition:
   type: object
   description: Workflow definition. The same definition is accepted by the file format and the SDK compiler.
@@ -2175,13 +2151,18 @@ WorkflowDefinition:
       pattern: "^[a-z][a-z0-9_]{0,63}$"
     message_class:
       "$ref": "#/MessageClass"
+    security_subtype:
+      "$ref": "../../workflow/definition.schema.json#/$defs/security_subtype"
     event_schema:
       type: object
       description: "JSON Schema 2020-12 for event data; incoming data is validated against it at accept time."
+    recipient_attributes:
+      "$ref": "../../workflow/definition.schema.json#/$defs/recipient_attributes"
     steps:
       type: array
+      description: "The step tree; at most 50 steps over the whole tree, branches nested at most 4 deep, step keys unique over the tree (checked by the publication gate)."
       items:
-        "$ref": "#/ChannelStep"
+        "$ref": "#/WorkflowStep"
       minItems: 1
       maxItems: 50
     overrides:
@@ -2190,6 +2171,10 @@ WorkflowDefinition:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The spec names a workflow level of overrides but no field; the definition carries an overrides field of the request's shape."
+    content_dedup:
+      "$ref": "../../workflow/definition.schema.json#/$defs/content_dedup"
+    controls:
+      "$ref": "../../workflow/definition.schema.json#/$defs/controls"
   additionalProperties: false
   x-relay-choice: true
   x-relay-choice-note: "Until tenant categories exist (later stage), the definition declares message_class next to category; afterwards the class must match the category's class."
@@ -2215,13 +2200,18 @@ WorkflowDefinitionRequest:
       pattern: "^[a-z][a-z0-9_]{0,63}$"
     message_class:
       "$ref": "#/MessageClass"
+    security_subtype:
+      "$ref": "../../workflow/definition.schema.json#/$defs/security_subtype"
     event_schema:
       type: object
       description: "JSON Schema 2020-12 for event data; incoming data is validated against it at accept time."
+    recipient_attributes:
+      "$ref": "../../workflow/definition.schema.json#/$defs/recipient_attributes"
     steps:
       type: array
+      description: "The step tree; at most 50 steps over the whole tree, branches nested at most 4 deep, step keys unique over the tree (checked by the publication gate)."
       items:
-        "$ref": "#/ChannelStep"
+        "$ref": "#/WorkflowStep"
       minItems: 1
       maxItems: 50
     overrides:
@@ -2230,6 +2220,10 @@ WorkflowDefinitionRequest:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The spec names a workflow level of overrides but no field; the definition carries an overrides field of the request's shape."
+    content_dedup:
+      "$ref": "../../workflow/definition.schema.json#/$defs/content_dedup"
+    controls:
+      "$ref": "../../workflow/definition.schema.json#/$defs/controls"
   additionalProperties: false
   x-relay-choice: true
   x-relay-choice-note: "Until tenant categories exist (later stage), the definition declares message_class next to category; afterwards the class must match the category's class."
@@ -2310,7 +2304,7 @@ Workflow:
       enum:
         - panel
         - code
-      description: "Single manager of the workflow; managed_by rules come in a later stage."
+      description: "Single manager of the workflow (WF-4): a code-managed workflow's structure is not changed from the panel, which edits only the definition's controls fields; changing the manager is an explicit, audited action (POST /v1/workflows/{workflow_key}/manager)."
     published_version:
       oneOf:
         - type: integer
@@ -2398,6 +2392,18 @@ WorkflowVersionList:
           type: array
           items:
             "$ref": "#/WorkflowVersion"
+WorkflowManager:
+  type: object
+  description: "The single manager of a workflow (WF-4)."
+  required:
+    - managed_by
+  properties:
+    managed_by:
+      type: string
+      enum:
+        - panel
+        - code
+  additionalProperties: false
 PublishRequest:
   type: object
   description: Optional publication note recorded in the audit log.

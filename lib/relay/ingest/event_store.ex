@@ -404,6 +404,23 @@ defmodule Relay.Ingest.EventStore do
     id
   end
 
+  # WF-59 (5)
+  @doc "Reads the sealed data of an event (`data_ct`, `key_id` and `erased_at` of its payload), or `nil`."
+  @spec event_data(Relay.Id.t()) :: map() | nil
+  def event_data(event_id) do
+    one(
+      """
+      SELECT e.tenant_id, e.environment, p.data_ct, p.key_id, p.erased_at
+      FROM relay.events e
+      LEFT JOIN relay.event_payloads p ON p.tenant_id = e.tenant_id
+        AND p.environment = e.environment AND p.event_id = e.id
+        AND p.created_at = e.payload_created_at
+      WHERE e.id = $1
+      """,
+      [event_id]
+    )
+  end
+
   @doc "Reads an event with its workflow reference and the notifications it accepted, or `nil`."
   @spec event(Relay.Id.t()) :: map() | nil
   def event(id) do

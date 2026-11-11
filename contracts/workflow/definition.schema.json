@@ -1,0 +1,458 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Relay workflow definition",
+  "description": "The one definition format of a workflow (WF-3, WF-59): the visual editor, the file format (JSON, or YAML as another spelling of the same data) and the SDK all produce it, and the API and the CLI push accept it. Limits that JSON Schema cannot express (the total number of steps over the whole tree, the branch depth, route tree depth and leaves, duration ceilings, unique step keys, condition size and references) are checked by the publication gate; their values are the contract's x-relay-limits.workflow.",
+  "type": "object",
+  "required": ["name", "category", "event_schema", "steps"],
+  "properties": {
+    "name": {"type": "string", "minLength": 1, "maxLength": 200},
+    "description": {"type": "string", "maxLength": 2000},
+    "category": {"$ref": "#/$defs/category_key"},
+    "message_class": {"$ref": "#/$defs/message_class"},
+    "security_subtype": {"$ref": "#/$defs/security_subtype"},
+    "event_schema": {
+      "type": "object",
+      "description": "JSON Schema 2020-12 of the event data; incoming data is validated against it at accept time."
+    },
+    "recipient_attributes": {"$ref": "#/$defs/recipient_attributes"},
+    "steps": {"$ref": "#/$defs/steps"},
+    "overrides": {"$ref": "#/$defs/overrides"},
+    "content_dedup": {"$ref": "#/$defs/content_dedup"},
+    "controls": {"$ref": "#/$defs/controls"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "category_key": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
+    "message_class": {
+      "type": "string",
+      "enum": ["security", "transactional", "operational", "social", "marketing", "system", "action_required"]
+    },
+    "security_subtype": {
+      "type": "string",
+      "enum": ["otp_oob", "email_verification"],
+      "description": "The security subtype the workflow serves, for the publication gate: an otp_oob workflow sends no e-mail and is never delayed or digested, an email_verification workflow sends only e-mail (WF-18, WF-40).",
+      "x-relay-choice": true,
+      "x-relay-choice-note": "WF-18 refuses an otp_oob route with e-mail at publication, but the subtype belongs to the request; a security workflow may declare the subtype it serves so the gate can check it. The request's subtype still decides at run time."
+    },
+    "channel": {
+      "type": "string",
+      "enum": ["push", "web_push", "email", "sms", "voice", "whatsapp", "slack", "teams", "telegram", "discord", "in_app", "webhook"]
+    },
+    "step_key": {
+      "type": "string",
+      "description": "Step key, unique over the whole step tree.",
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "template_key": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 100},
+    "route_key": {
+      "type": "string",
+      "description": "Key of a named route.",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 100,
+      "x-relay-choice": true,
+      "x-relay-choice-note": "The spec names a route key but not its character set; it follows the workflow and template key slugs."
+    },
+    "endpoint_key": {
+      "type": "string",
+      "description": "Key of a tenant event destination.",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 100,
+      "x-relay-choice": true,
+      "x-relay-choice-note": "The spec names an event destination key but not its character set; it follows the workflow and template key slugs."
+    },
+    "event_type": {"type": "string", "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$", "maxLength": 128},
+    "duration": {
+      "type": "string",
+      "description": "ISO 8601 duration of weeks, days, hours, minutes and seconds; years and months have no fixed length and are refused.",
+      "pattern": "^P(?!$)([0-9]+W)?([0-9]+D)?(T(?=[0-9])([0-9]+H)?([0-9]+M)?([0-9]+S)?)?$"
+    },
+    "data_pointer": {
+      "type": "string",
+      "description": "RFC 6901 pointer into the event data to an RFC 3339 timestamp field.",
+      "pattern": "^(/([^~/]|~[01])*)+$",
+      "maxLength": 256,
+      "x-relay-choice": true,
+      "x-relay-choice-note": "The spec says a pointer into the event data; the pointer is RFC 6901, relative to the event data."
+    },
+    "template_string": {
+      "type": "string",
+      "description": "A string with {{data.…}} placeholders, rendered with the event data.",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "local_time": {"type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"},
+    "weekday": {"type": "string", "enum": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]},
+    "overrides": {
+      "type": "object",
+      "description": "Channel-keyed overrides of the request's shape (the API Overrides schema); precedence is request, step, workflow, tenant default."
+    },
+    "recipient_attributes": {
+      "type": "object",
+      "description": "Recipient attributes a condition may read, by name and type.",
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]{0,63}$"},
+      "additionalProperties": {"type": "string", "enum": ["string", "number", "boolean", "timestamp"]},
+      "maxProperties": 50,
+      "x-relay-choice": true,
+      "x-relay-choice-note": "The spec does not bound the number of declared attributes; at most 50."
+    },
+    "content_dedup": {
+      "type": "object",
+      "description": "Content deduplication of this workflow: the same recipient, channel and content inside the window is not sent again (WF-35); the window is PT1M to PT24H.",
+      "required": ["window"],
+      "properties": {"window": {"$ref": "#/$defs/duration"}},
+      "additionalProperties": false
+    },
+    "controls": {
+      "type": "array",
+      "description": "RFC 6901 pointers into the definition of the fields a code-managed workflow lets the panel edit: text, duration and number fields only, never adding, removing or reordering steps (WF-4).",
+      "items": {"type": "string", "pattern": "^(/([^~/]|~[01])*)+$", "maxLength": 512},
+      "maxItems": 100,
+      "uniqueItems": true,
+      "x-relay-choice": true,
+      "x-relay-choice-note": "The spec does not bound the number of control fields; at most 100."
+    },
+    "steps": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/step"},
+      "minItems": 1,
+      "maxItems": 50
+    },
+    "branch_steps": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/step"},
+      "maxItems": 50
+    },
+    "step": {
+      "type": "object",
+      "required": ["type", "key"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["channel", "delay", "digest", "throttle", "condition", "wait_for_event", "time_window", "webhook"]
+        },
+        "key": {"$ref": "#/$defs/step_key"}
+      },
+      "allOf": [
+        {"if": {"properties": {"type": {"const": "channel"}}}, "then": {"$ref": "#/$defs/channel_step"}},
+        {"if": {"properties": {"type": {"const": "delay"}}}, "then": {"$ref": "#/$defs/delay_step"}},
+        {"if": {"properties": {"type": {"const": "digest"}}}, "then": {"$ref": "#/$defs/digest_step"}},
+        {"if": {"properties": {"type": {"const": "throttle"}}}, "then": {"$ref": "#/$defs/throttle_step"}},
+        {"if": {"properties": {"type": {"const": "condition"}}}, "then": {"$ref": "#/$defs/condition_step"}},
+        {"if": {"properties": {"type": {"const": "wait_for_event"}}}, "then": {"$ref": "#/$defs/wait_for_event_step"}},
+        {"if": {"properties": {"type": {"const": "time_window"}}}, "then": {"$ref": "#/$defs/time_window_step"}},
+        {"if": {"properties": {"type": {"const": "webhook"}}}, "then": {"$ref": "#/$defs/webhook_step"}}
+      ]
+    },
+    "channel_step": {
+      "type": "object",
+      "description": "Sends to one channel or to a route policy, by route key or inline route tree (WF-13), with an optional digest template and A/B variants (WF-50).",
+      "required": ["type", "key", "template"],
+      "properties": {
+        "type": {"const": "channel"},
+        "key": {"$ref": "#/$defs/step_key"},
+        "channel": {"$ref": "#/$defs/channel"},
+        "route": {
+          "oneOf": [
+            {"$ref": "#/$defs/route_key"},
+            {"$ref": "#/$defs/route_tree"}
+          ]
+        },
+        "template": {"$ref": "#/$defs/template_key"},
+        "digest_template": {
+          "$ref": "#/$defs/template_key",
+          "description": "Template of a digest window that carries at least two events; only after a digest step."
+        },
+        "variants": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/variant"},
+          "minItems": 2,
+          "maxItems": 10
+        },
+        "overrides": {"$ref": "#/$defs/overrides"}
+      },
+      "oneOf": [
+        {"required": ["channel"], "not": {"required": ["route"]}},
+        {"required": ["route"], "not": {"required": ["channel"]}}
+      ],
+      "additionalProperties": false
+    },
+    "variant": {
+      "type": "object",
+      "required": ["key", "weight", "template"],
+      "properties": {
+        "key": {"$ref": "#/$defs/step_key"},
+        "weight": {"type": "integer", "minimum": 1, "maximum": 100},
+        "template": {"$ref": "#/$defs/template_key"}
+      },
+      "additionalProperties": false
+    },
+    "route_tree": {
+      "description": "An inline route tree: a node that is not a bare channel name.",
+      "not": {"type": "string"},
+      "$ref": "#/$defs/route_node"
+    },
+    "route_node": {
+      "description": "A route tree node: a channel name, a channel with the last active device strategy, a single (fallback) or all (fan out) list of nodes, a last active or user preference channel choice, or an escalation ladder (WF-13, WF-21).",
+      "oneOf": [
+        {"$ref": "#/$defs/channel"},
+        {
+          "type": "object",
+          "required": ["channel", "strategy"],
+          "properties": {
+            "channel": {"$ref": "#/$defs/channel"},
+            "strategy": {"const": "last_active_device"}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["single"],
+          "properties": {
+            "single": {"type": "array", "items": {"$ref": "#/$defs/route_node"}, "minItems": 1, "maxItems": 10},
+            "trigger": {
+              "oneOf": [
+                {"const": "on_failure"},
+                {
+                  "type": "object",
+                  "required": ["after_delay"],
+                  "properties": {"after_delay": {"$ref": "#/$defs/duration"}},
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["all"],
+          "properties": {
+            "all": {"type": "array", "items": {"$ref": "#/$defs/route_node"}, "minItems": 1, "maxItems": 10}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["last_active"],
+          "properties": {
+            "last_active": {"type": "array", "items": {"$ref": "#/$defs/channel"}, "minItems": 1, "maxItems": 10}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["user_preference"],
+          "properties": {
+            "user_preference": {"type": "array", "items": {"$ref": "#/$defs/channel"}, "minItems": 1, "maxItems": 10}
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["escalate"],
+          "properties": {
+            "escalate": {
+              "type": "object",
+              "required": ["unless", "ladder"],
+              "properties": {
+                "unless": {"type": "string", "enum": ["seen", "read", "clicked", "event"]},
+                "event_type": {"$ref": "#/$defs/event_type"},
+                "ladder": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["after", "node"],
+                    "properties": {
+                      "after": {"$ref": "#/$defs/duration"},
+                      "node": {"$ref": "#/$defs/route_node"}
+                    },
+                    "additionalProperties": false
+                  },
+                  "minItems": 1,
+                  "maxItems": 10
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "delay_step": {
+      "type": "object",
+      "description": "Waits a duration (at most P90D) or until a timestamp of the event data (WF-37).",
+      "required": ["type", "key"],
+      "properties": {
+        "type": {"const": "delay"},
+        "key": {"$ref": "#/$defs/step_key"},
+        "duration": {"$ref": "#/$defs/duration"},
+        "until": {"$ref": "#/$defs/data_pointer"}
+      },
+      "oneOf": [
+        {"required": ["duration"], "not": {"required": ["until"]}},
+        {"required": ["until"], "not": {"required": ["duration"]}}
+      ],
+      "additionalProperties": false
+    },
+    "digest_step": {
+      "type": "object",
+      "description": "Collects events over one window and folds them into one notification (WF-26); the window is at most P31D.",
+      "required": ["type", "key", "digest_key", "mode"],
+      "properties": {
+        "type": {"const": "digest"},
+        "key": {"$ref": "#/$defs/step_key"},
+        "digest_key": {
+          "$ref": "#/$defs/template_string",
+          "description": "Opaque grouping key; the recipient is always part of it.",
+          "x-relay-choice": true,
+          "x-relay-choice-note": "WF-26 names the grouping key key, which is also the step key field; the grouping key is digest_key."
+        },
+        "mode": {"type": "string", "enum": ["fixed", "sliding", "scheduled"]},
+        "window": {
+          "$ref": "#/$defs/duration",
+          "description": "Fixed window length from the first event (mode fixed).",
+          "x-relay-choice": true,
+          "x-relay-choice-note": "WF-26 names a fixed duration for mode fixed but no field; it is window."
+        },
+        "debounce": {"$ref": "#/$defs/duration"},
+        "max_wait": {"$ref": "#/$defs/duration"},
+        "schedule": {
+          "type": "string",
+          "description": "Calendar of mode scheduled, from the WF-61 RRULE subset with FREQ DAILY or WEEKLY only, in the recipient's time zone.",
+          "pattern": "^FREQ=(DAILY|WEEKLY)(;[A-Z]+=[A-Z0-9,+-]+)*$",
+          "maxLength": 256
+        },
+        "max_items": {"type": "integer", "minimum": 2, "maximum": 1000},
+        "leading": {"type": "string", "enum": ["immediate", "none"]},
+        "render": {
+          "type": "object",
+          "description": "How many of the first and the last activities the template sees, at most 50 each.",
+          "properties": {
+            "first": {"type": "integer", "minimum": 0, "maximum": 50},
+            "last": {"type": "integer", "minimum": 0, "maximum": 50}
+          },
+          "additionalProperties": false,
+          "x-relay-choice": true,
+          "x-relay-choice-note": "WF-59 bounds the rendered activities to the first and last 50 but names no field; it is render.first and render.last."
+        }
+      },
+      "allOf": [
+        {"if": {"properties": {"mode": {"const": "fixed"}}}, "then": {"required": ["window"]}},
+        {"if": {"properties": {"mode": {"const": "sliding"}}}, "then": {"required": ["debounce", "max_wait"]}},
+        {"if": {"properties": {"mode": {"const": "scheduled"}}}, "then": {"required": ["schedule"]}}
+      ],
+      "additionalProperties": false
+    },
+    "throttle_step": {
+      "type": "object",
+      "description": "Lets at most limit events through per key and window (WF-32); the key is tenant wide, the window is at most P31D.",
+      "required": ["type", "key", "throttle_key", "limit"],
+      "properties": {
+        "type": {"const": "throttle"},
+        "key": {"$ref": "#/$defs/step_key"},
+        "throttle_key": {
+          "$ref": "#/$defs/template_string",
+          "x-relay-choice": true,
+          "x-relay-choice-note": "WF-59 names the throttle key key, which is also the step key field; the throttle key is throttle_key."
+        },
+        "limit": {"type": "integer", "minimum": 1, "maximum": 10000},
+        "window": {"$ref": "#/$defs/duration"},
+        "until": {"$ref": "#/$defs/data_pointer"},
+        "calendar": {"type": "string", "enum": ["day", "week"]}
+      },
+      "oneOf": [
+        {"required": ["window"], "not": {"anyOf": [{"required": ["until"]}, {"required": ["calendar"]}]}},
+        {"required": ["until"], "not": {"anyOf": [{"required": ["window"]}, {"required": ["calendar"]}]}},
+        {"required": ["calendar"], "not": {"anyOf": [{"required": ["window"]}, {"required": ["until"]}]}}
+      ],
+      "additionalProperties": false
+    },
+    "condition_step": {
+      "type": "object",
+      "description": "Branches on the first branch whose condition holds, else on else; the flow goes on with the step after the condition step (WF-10, WF-60).",
+      "required": ["type", "key", "branches"],
+      "properties": {
+        "type": {"const": "condition"},
+        "key": {"$ref": "#/$defs/step_key"},
+        "branches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["when", "steps"],
+            "properties": {
+              "when": {"$ref": "#/$defs/condition"},
+              "steps": {"$ref": "#/$defs/branch_steps"}
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 10
+        },
+        "else": {"$ref": "#/$defs/branch_steps"}
+      },
+      "additionalProperties": false
+    },
+    "wait_for_event_step": {
+      "type": "object",
+      "description": "Waits for an event of a type with a correlation key and an optional second-stage match condition; the timeout is required and at most P30D, and on_timeout runs when it passes (WF-12).",
+      "required": ["type", "key", "event_type", "correlation_key", "timeout"],
+      "properties": {
+        "type": {"const": "wait_for_event"},
+        "key": {"$ref": "#/$defs/step_key"},
+        "event_type": {"$ref": "#/$defs/event_type"},
+        "correlation_key": {"$ref": "#/$defs/template_string"},
+        "match": {"$ref": "#/$defs/condition"},
+        "timeout": {"$ref": "#/$defs/duration"},
+        "on_timeout": {"$ref": "#/$defs/branch_steps"}
+      },
+      "additionalProperties": false
+    },
+    "time_window_step": {
+      "type": "object",
+      "description": "Holds the flow until the next open window in the recipient's time zone (WF-45).",
+      "required": ["type", "key", "windows"],
+      "properties": {
+        "type": {"const": "time_window"},
+        "key": {"$ref": "#/$defs/step_key"},
+        "windows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["days", "start", "end"],
+            "properties": {
+              "days": {"type": "array", "items": {"$ref": "#/$defs/weekday"}, "minItems": 1, "maxItems": 7, "uniqueItems": true},
+              "start": {"$ref": "#/$defs/local_time"},
+              "end": {"$ref": "#/$defs/local_time"}
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 14
+        }
+      },
+      "additionalProperties": false
+    },
+    "webhook_step": {
+      "type": "object",
+      "description": "Delivers a signed event to a tenant event destination through the shared delivery engine (WF-11).",
+      "required": ["type", "key", "endpoint", "event_type"],
+      "properties": {
+        "type": {"const": "webhook"},
+        "key": {"$ref": "#/$defs/step_key"},
+        "endpoint": {"$ref": "#/$defs/endpoint_key"},
+        "event_type": {"$ref": "#/$defs/event_type"}
+      },
+      "additionalProperties": false
+    },
+    "condition": {
+      "type": "object",
+      "description": "A WF-60 condition: one operator and its operands. Its grammar, paths and limits are checked by the publication gate.",
+      "minProperties": 1,
+      "maxProperties": 1,
+      "propertyNames": {
+        "enum": ["eq", "ne", "lt", "lte", "gt", "gte", "in", "not_in", "contains", "starts_with", "ends_with", "exists", "all", "any", "not"]
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 defmodule Relay.Api.Schema do
   @moduledoc """
-  JSON Schema 2020-12 validation of request bodies against the contract. The contract's schema documents are folded into one `$defs` table with their references rewritten (`./components/schemas.yaml#/Name` becomes `#/$defs/schemas.Name`), so a request or response schema builds into one self-contained root. Request roots are built once, on first use, and published together. Properties of a stage later than the built one are left out (`Relay.Api.Contract.built/1`), so they stay unknown fields until their stage is built.
+  JSON Schema 2020-12 validation of request bodies against the contract. The contract's schema documents are folded into one `$defs` table with their references rewritten (`./components/schemas.yaml#/Name` becomes `#/$defs/schemas.Name`, and a definition of the workflow definition contract `contracts/workflow/definition.schema.json` becomes `#/$defs/workflow.name`, its overrides being the API's `Overrides`), so a request or response schema builds into one self-contained root. Request roots are built once, on first use, and published together. Properties of a stage later than the built one are left out (`Relay.Api.Contract.built/1`), so they stay unknown fields until their stage is built.
 
   Every error is reported, not only the first (API-37), as an RFC 6901 pointer and a field error subcode. A property that the schema does not declare is an unknown field (`not_allowed`): when any is found the problem is `unknown_field`, otherwise `validation_failed` (API-8).
   """
@@ -9,6 +9,7 @@ defmodule Relay.Api.Schema do
 
   @dialect "https://json-schema.org/draft/2020-12/schema"
   @schema_files ~w(schemas problem)
+  @workflow_file Path.expand("../../../contracts/workflow/definition.schema.json", __DIR__)
   @key {__MODULE__, :requests}
   @too_long [:maxLength, :maxItems, :maxProperties, :maximum, :exclusiveMaximum]
   @too_short [:minLength, :minItems, :minProperties, :minimum, :exclusiveMinimum]
@@ -28,6 +29,9 @@ defmodule Relay.Api.Schema do
             "./" <> rest ->
               [doc, pointer] = String.split(rest, ".yaml#/", parts: 2)
               "#/$defs/" <> doc <> "." <> pointer
+
+            "../../workflow/definition.schema.json#/$defs/" <> name ->
+              "#/$defs/workflow." <> name
           end
 
         map
@@ -46,14 +50,47 @@ defmodule Relay.Api.Schema do
     end
   end
 
+  @external_resource @workflow_file
+
+  workflow_rewrite = fn workflow_rewrite, value ->
+    case value do
+      %{"$ref" => "#/$defs/" <> name} = map ->
+        map
+        |> Map.delete("$ref")
+        |> Map.new(fn {k, v} -> {k, workflow_rewrite.(workflow_rewrite, v)} end)
+        |> Map.put("$ref", "#/$defs/workflow." <> name)
+
+      map when is_map(map) ->
+        Map.new(map, fn {k, v} -> {k, workflow_rewrite.(workflow_rewrite, v)} end)
+
+      list when is_list(list) ->
+        Enum.map(list, &workflow_rewrite.(workflow_rewrite, &1))
+
+      other ->
+        other
+    end
+  end
+
+  # WF-59
+  workflow_defs =
+    for {name, schema} <- @workflow_file |> File.read!() |> Jason.decode!() |> Map.fetch!("$defs"),
+        into: %{} do
+      case name do
+        "overrides" -> {"workflow.overrides", %{"$ref" => "#/$defs/schemas.Overrides"}}
+        _other -> {"workflow." <> name, workflow_rewrite.(workflow_rewrite, schema)}
+      end
+    end
+
   # E-81
-  defs =
+  contract_defs =
     for name <- @schema_files,
         {schema_name, schema} <- Contract.documents()[name],
         is_map(schema),
         into: %{} do
       {name <> "." <> schema_name, rewrite.(rewrite, Contract.built(schema), name)}
     end
+
+  defs = Map.merge(contract_defs, workflow_defs)
 
   requests =
     for op <- Contract.operations(),

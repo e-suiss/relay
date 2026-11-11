@@ -187,6 +187,8 @@ channels:
         "$ref": "#/components/messages/audit.workflow.publication_requested"
       audit.workflow.promoted:
         "$ref": "#/components/messages/audit.workflow.promoted"
+      audit.workflow.manager_changed:
+        "$ref": "#/components/messages/audit.workflow.manager_changed"
       audit.event_type_mapping.changed:
         "$ref": "#/components/messages/audit.event_type_mapping.changed"
       audit.send_mode.changed:
@@ -502,6 +504,7 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.workflow.drafted"
       - "$ref": "#/channels/auditLog/messages/audit.workflow.publication_requested"
       - "$ref": "#/channels/auditLog/messages/audit.workflow.promoted"
+      - "$ref": "#/channels/auditLog/messages/audit.workflow.manager_changed"
       - "$ref": "#/channels/auditLog/messages/audit.event_type_mapping.changed"
       - "$ref": "#/channels/auditLog/messages/audit.send_mode.changed"
       - "$ref": "#/channels/auditLog/messages/audit.quota_policy.changed"
@@ -3556,6 +3559,22 @@ components:
                   const: workflow_version
       x-relay-surface: audit
       x-relay-stage: 3
+    audit.workflow.manager_changed:
+      name: workflow.manager_changed
+      title: workflow.manager_changed
+      summary: "The single manager of a workflow was changed between panel and code (WF-4)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: workflow
+      x-relay-surface: audit
+      x-relay-stage: 8
     audit.event_type_mapping.changed:
       name: event_type_mapping.changed
       title: event_type_mapping.changed
@@ -6275,6 +6294,7 @@ x-relay-event-names:
   - whatsapp_tier.threshold_reached
   - workflow.created
   - workflow.drafted
+  - workflow.manager_changed
   - workflow.promoted
   - workflow.publication_requested
   - workflow.published

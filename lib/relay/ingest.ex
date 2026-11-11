@@ -207,6 +207,10 @@ defmodule Relay.Ingest do
   @spec delivery(Relay.Id.t()) :: map() | nil
   defdelegate delivery(id), to: EventStore
 
+  @doc "Reads the decision chains of notifications' deliveries; see `Relay.Ingest.EventStore.decision_chains/1`."
+  @spec decision_chains([Relay.Id.t()]) :: [map()]
+  defdelegate decision_chains(notification_ids), to: EventStore
+
   @doc "Lists the deliveries of a notification; see `Relay.Ingest.EventStore.deliveries/3`."
   @spec deliveries(Relay.Id.t(), map() | nil, pos_integer()) :: [map()]
   defdelegate deliveries(notification_id, cursor, limit), to: EventStore

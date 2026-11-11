@@ -43,13 +43,22 @@ defmodule Relay.CLI.Args do
     sample: :string
   ]
 
+  @logs [
+    limit: :integer,
+    follow: :boolean,
+    deliveries: :boolean,
+    since: :string,
+    until: :string,
+    why: :boolean
+  ]
+
   @commands %{
     "trigger" => {@event, 1, 1},
     "preview" => {@event ++ @preview, 1, 1},
     "pull" => {[dir: :string], 0, :many},
     "push" => {[dir: :string, publish: :boolean, note: :string], 0, :many},
     "promote" => {[version: :integer, note: :string], 1, 1},
-    "logs" => {@filters ++ [limit: :integer, follow: :boolean, deliveries: :boolean], 0, 0},
+    "logs" => {@filters ++ @logs, 0, 0},
     "listen" => {@filters ++ [forward_to: :string], 0, 0}
   }
 
@@ -93,7 +102,9 @@ defmodule Relay.CLI.Args do
     pull [workflow...]          Write workflow definitions to files (--dir, default workflows)
     push [file...]              Write workflow files as drafts (--dir, --publish, --note)
     promote <workflow>          Publish the test version of a workflow in live (--version)
-    logs                        Show recent notifications (--follow, --deliveries, --limit)
+    logs                        Show recent notifications (--follow, --deliveries, --limit,
+                                --since, --until); --why --subscriber <id> explains why
+                                a subscriber did or did not get them
     listen --forward-to <url>   Forward new notifications to a local URL
     kill-switch list            List kill switches (--include-released)
     kill-switch get <id>        Show a kill switch

@@ -10,7 +10,8 @@ defmodule Relay.Repo.Migrations.AddCategoryDensity do
 
     execute(~S"""
     ALTER TABLE relay.categories ADD CONSTRAINT categories_density_check
-      CHECK (density IS NULL OR (jsonb_typeof(density) = 'object'
+      CHECK (density IS NULL OR (pg_column_size(density) <= 1024
+        AND jsonb_typeof(density) = 'object'
         AND COALESCE(jsonb_typeof(density -> 'limit'), '') = 'number'
         AND COALESCE(jsonb_typeof(density -> 'window'), '') = 'string'
         AND COALESCE(density ->> 'per', '') IN ('recipient', 'device'))) NOT VALID

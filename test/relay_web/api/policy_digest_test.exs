@@ -139,7 +139,7 @@ defmodule RelayWeb.Api.PolicyDigestTest do
 
       delivery = delivery!(ctx.token, "maintenance", external_id)
       assert %{"status" => "queued", "rule_id" => "quiet_hours.deferred"} = delivery
-      assert [_job] = F.delivery_jobs(delivery["id"])
+      assert ["defer", "quiet_hours.deferred", %DateTime{}] = decision(ctx.scope, delivery)
     end
   end
 

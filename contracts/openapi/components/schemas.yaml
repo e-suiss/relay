@@ -990,6 +990,12 @@ Event:
       type: object
     metadata:
       "$ref": "#/Metadata"
+    correlation_id:
+      "$ref": "#/CorrelationId"
+      x-relay-stage: 7
+    item:
+      "$ref": "#/ItemRef"
+      x-relay-stage: 7
     is_test:
       type: boolean
     created_at:
@@ -1099,6 +1105,10 @@ CloudEvent:
     tracestate:
       type: string
       maxLength: 512
+    correlationid:
+      "$ref": "#/CorrelationId"
+      description: "The sender's correlation identifier; mapped to correlation_id of the event."
+      x-relay-stage: 7
   additionalProperties: false
   x-relay-choice: true
   x-relay-choice-note: "Only the listed attributes are accepted; any other extension attribute is rejected with unknown_field, and data must be a JSON object."
@@ -1356,6 +1366,12 @@ Notification:
       type: boolean
     metadata:
       "$ref": "#/Metadata"
+    correlation_id:
+      "$ref": "#/CorrelationId"
+      x-relay-stage: 7
+    item:
+      "$ref": "#/ItemRef"
+      x-relay-stage: 7
     created_at:
       "$ref": "#/Timestamp"
     updated_at:

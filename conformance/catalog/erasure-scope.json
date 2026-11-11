@@ -489,6 +489,12 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "email_reputation_circuits",
+      "personal_columns": [],
+      "tenant_close": "row kept; a sending domain's circuit state and counts only",
+      "subject_erasure": "not subject data"
+    },
+    {
       "table": "test_recipients",
       "personal_columns": [],
       "tenant_close": "row kept; identifiers only",

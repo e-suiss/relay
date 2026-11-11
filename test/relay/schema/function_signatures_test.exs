@@ -253,6 +253,8 @@ defmodule Relay.Schema.FunctionSignaturesTest do
       ~w(added exists limit_reached recipient_not_found device_not_found),
     "relay_fn.test_recipient_confirm" => ~w(verified already_verified expired not_found),
     "relay_fn.test_recipient_remove" => ~w(removed already_removed not_found),
+    "relay_fn.email_reputation_transition" => ~w(changed unchanged),
+    "relay_fn.email_reputation_close" => ~w(closed not_stopped not_found),
     "relay_fn.test_send_consume" => ~w(consumed exhausted),
     "relay_fn.provider_invoice_record" => ~w(recorded exists conflict),
     "relay_fn.provider_invoice_check" => ~w(changed unchanged not_found),

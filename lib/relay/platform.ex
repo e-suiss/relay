@@ -19,6 +19,7 @@ defmodule Relay.Platform do
   alias Relay.Platform.OutboxStore
   alias Relay.Platform.Queue
   alias Relay.Platform.RateLimit
+  alias Relay.Platform.ReputationWindow
   alias Relay.Platform.Signal
   alias Relay.Platform.SlidingSet
   alias Relay.Platform.Store
@@ -319,6 +320,18 @@ defmodule Relay.Platform do
           {:ok, non_neg_integer()} | {:error, Relay.Error.t()}
   def sliding_set_add(scope, path, window_ms, member, opts \\ []),
     do: SlidingSet.add(scope, path, window_ms, member, opts)
+
+  # CH-87
+  @doc "Adds events to a sending domain's reputation window and returns its totals before them; see `Relay.Platform.ReputationWindow.record/6`."
+  @spec reputation_window(
+          Relay.Scope.t(),
+          String.t(),
+          ReputationWindow.event() | nil,
+          non_neg_integer(),
+          map()
+        ) :: {:ok, ReputationWindow.totals()} | {:error, Relay.Error.t()}
+  def reputation_window(scope, domain, event, count, params),
+    do: ReputationWindow.record(scope, domain, event, count, params)
 
   # TN-17
   # T-9 (7)

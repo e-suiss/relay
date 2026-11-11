@@ -5664,6 +5664,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "CH-87",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "PC-1",
     "section": "§13",
     "status": "canonical_invariant",

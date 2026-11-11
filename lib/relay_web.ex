@@ -10,6 +10,7 @@ defmodule RelayWeb do
       Relay.Tenancy.KillSwitch,
       Relay.Datasets,
       Relay.Channels,
+      Relay.EmailReputation,
       Relay.Api,
       Relay.Access,
       Relay.Operators

@@ -48,6 +48,12 @@ channels:
         "$ref": "#/components/messages/webhook.channel_adapter.deprecated"
       webhook.provider_account.settings_mismatched:
         "$ref": "#/components/messages/webhook.provider_account.settings_mismatched"
+      webhook.email_reputation.warning:
+        "$ref": "#/components/messages/webhook.email_reputation.warning"
+      webhook.email_reputation.stopped:
+        "$ref": "#/components/messages/webhook.email_reputation.stopped"
+      webhook.email_reputation.resumed:
+        "$ref": "#/components/messages/webhook.email_reputation.resumed"
       webhook.webhook.attempt_exhausted:
         "$ref": "#/components/messages/webhook.webhook.attempt_exhausted"
       webhook.webhook_endpoint.disabled:
@@ -117,6 +123,12 @@ channels:
         "$ref": "#/components/messages/operations.provider.unknown_code"
       webhook.provider_account.settings_mismatched:
         "$ref": "#/components/messages/webhook.provider_account.settings_mismatched"
+      webhook.email_reputation.warning:
+        "$ref": "#/components/messages/webhook.email_reputation.warning"
+      webhook.email_reputation.stopped:
+        "$ref": "#/components/messages/webhook.email_reputation.stopped"
+      webhook.email_reputation.resumed:
+        "$ref": "#/components/messages/webhook.email_reputation.resumed"
       operations.push_priority.threshold_reached:
         "$ref": "#/components/messages/operations.push_priority.threshold_reached"
       webhook.quota.threshold_reached:
@@ -277,6 +289,8 @@ channels:
         "$ref": "#/components/messages/audit.suppression.added"
       audit.suppression.lifted:
         "$ref": "#/components/messages/audit.suppression.lifted"
+      audit.email_reputation.closed:
+        "$ref": "#/components/messages/audit.email_reputation.closed"
       audit.test_recipient.added:
         "$ref": "#/components/messages/audit.test_recipient.added"
       audit.test_recipient.verified:
@@ -411,6 +425,9 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.messaging_installation.completed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.channel_adapter.deprecated"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.provider_account.settings_mismatched"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.email_reputation.warning"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.email_reputation.stopped"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.email_reputation.resumed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook.attempt_exhausted"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.disabled"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.recovered"
@@ -448,6 +465,9 @@ operations:
       - "$ref": "#/channels/operations/messages/webhook.killswitch.auto_paused"
       - "$ref": "#/channels/operations/messages/operations.provider.unknown_code"
       - "$ref": "#/channels/operations/messages/webhook.provider_account.settings_mismatched"
+      - "$ref": "#/channels/operations/messages/webhook.email_reputation.warning"
+      - "$ref": "#/channels/operations/messages/webhook.email_reputation.stopped"
+      - "$ref": "#/channels/operations/messages/webhook.email_reputation.resumed"
       - "$ref": "#/channels/operations/messages/operations.push_priority.threshold_reached"
       - "$ref": "#/channels/operations/messages/webhook.quota.threshold_reached"
       - "$ref": "#/channels/operations/messages/webhook.quota.reserve_opened"
@@ -533,6 +553,7 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.category_subtenant_setting.changed"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.added"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.lifted"
+      - "$ref": "#/channels/auditLog/messages/audit.email_reputation.closed"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.added"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.verified"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.removed"
@@ -1654,6 +1675,147 @@ components:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The spec asks for a tenant warning when a provider API is deprecated (CH-4) but names no event; the name and payload are chosen by the contract."
+    webhook.email_reputation.warning:
+      name: email_reputation.warning
+      title: email_reputation.warning
+      summary: "An e-mail sending domain of the tenant reached a warning threshold of its reputation circuit: the bounce rate over sent mail or the complaint rate over mail delivered to the inbox in the sliding window (CH-41, CH-37, CH-87)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: email_reputation.warning
+                data:
+                  type: object
+                  required:
+                    - domain
+                  properties:
+                    domain:
+                      type: string
+                      maxLength: 253
+                    rates:
+                      type: object
+                      properties:
+                        sent:
+                          type: integer
+                          minimum: 0
+                        delivered:
+                          type: integer
+                          minimum: 0
+                        bounces:
+                          type: integer
+                          minimum: 0
+                        complaints:
+                          type: integer
+                          minimum: 0
+                        bounce_bp:
+                          type: integer
+                          minimum: 0
+                        complaint_bp:
+                          type: integer
+                          minimum: 0
+                      additionalProperties: false
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 7
+      x-relay-also:
+        - operations
+    webhook.email_reputation.stopped:
+      name: email_reputation.stopped
+      title: email_reputation.stopped
+      summary: "An e-mail sending domain of the tenant reached a stop threshold on at least the minimum volume; its sends are deferred with email.reputation_stopped until a tenant administrator closes the circuit. The circuit never closes by itself (CH-41, CH-87)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: email_reputation.stopped
+                data:
+                  type: object
+                  required:
+                    - domain
+                  properties:
+                    domain:
+                      type: string
+                      maxLength: 253
+                    rates:
+                      type: object
+                      properties:
+                        sent:
+                          type: integer
+                          minimum: 0
+                        delivered:
+                          type: integer
+                          minimum: 0
+                        bounces:
+                          type: integer
+                          minimum: 0
+                        complaints:
+                          type: integer
+                          minimum: 0
+                        bounce_bp:
+                          type: integer
+                          minimum: 0
+                        complaint_bp:
+                          type: integer
+                          minimum: 0
+                      additionalProperties: false
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 7
+      x-relay-also:
+        - operations
+    webhook.email_reputation.resumed:
+      name: email_reputation.resumed
+      title: email_reputation.resumed
+      summary: "A tenant administrator closed the stopped reputation circuit of an e-mail sending domain with step-up; its deferred sends go out again (CH-41, CH-87)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: email_reputation.resumed
+                data:
+                  type: object
+                  required:
+                    - domain
+                  properties:
+                    domain:
+                      type: string
+                      maxLength: 253
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-stage: 7
+      x-relay-also:
+        - operations
+    audit.email_reputation.closed:
+      name: email_reputation.closed
+      title: email_reputation.closed
+      summary: "A tenant administrator closed the stopped reputation circuit of an e-mail sending domain with step-up (CH-41, CH-87)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: email_reputation
+      x-relay-surface: audit
+      x-relay-stage: 7
     webhook.provider_account.settings_mismatched:
       name: provider_account.settings_mismatched
       title: provider_account.settings_mismatched
@@ -5988,6 +6150,10 @@ x-relay-event-names:
   - delivery.status_changed
   - device.reassigned
   - device.unregistered
+  - email_reputation.closed
+  - email_reputation.resumed
+  - email_reputation.stopped
+  - email_reputation.warning
   - event_type_mapping.changed
   - export.downloaded
   - export.requested

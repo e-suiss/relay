@@ -14,6 +14,7 @@ defmodule Relay.Channels do
   alias Relay.Channels.Email.Bounce
   alias Relay.Channels.Email.Event
   alias Relay.Channels.Email.Intake
+  alias Relay.Channels.Email.Reputation
   alias Relay.Channels.Inbound
   alias Relay.Channels.Limits
   alias Relay.Channels.Outcome
@@ -834,6 +835,28 @@ defmodule Relay.Channels do
       |> Keyword.get(:critical_grant, Relay.Channels.Push.AccessGrant)
 
     CriticalGrant.decide(module, query)
+  end
+
+  # CH-87
+  @doc "The sending domain of a request's e-mail; see `Relay.Channels.Email.sending_domain/1`."
+  @spec email_domain(Request.t()) :: {:ok, String.t()} | :error
+  def email_domain(%Request{} = request), do: Relay.Channels.Email.sending_domain(request)
+
+  # CH-41
+  # CH-37
+  # CH-87
+  @doc """
+  Decides a reputation circuit of `state` after adding `count` events of `event` to a window whose totals (`sent`, `delivered`, `bounces`, `complaints`, `now_ms`) were read before them, under the `reputation` parameters of the `email_reputation` data set (`Relay.Channels.Email.Reputation`). Returns the new state, the transitions to announce and the window's rates after the events; a stopped circuit stays stopped.
+  """
+  @spec reputation_decide(Reputation.state(), map(), Reputation.event(), pos_integer(), map()) ::
+          {Reputation.state(), [Reputation.transition()], Reputation.rates()}
+  def reputation_decide(state, totals, event, count, params) do
+    bucket_ms = max(div(params["window_ms"], params["buckets"]), 1)
+    counts = {totals.sent, totals.delivered, totals.bounces, totals.complaints}
+    buckets = %{div(totals.now_ms, bucket_ms) => counts}
+    circuit = %{Reputation.new() | state: state, buckets: buckets}
+    {circuit, transitions} = Reputation.record(circuit, event, totals.now_ms, params, count)
+    {circuit.state, transitions, Reputation.rates(circuit, totals.now_ms, params)}
   end
 
   # CH-2

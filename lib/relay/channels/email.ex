@@ -119,6 +119,18 @@ defmodule Relay.Channels.Email do
     end
   end
 
+  # CH-87
+  @doc "The sending domain of a request's e-mail: the domain of its stream's sender identity, by the message class and the content's optional `\"category\"`; `:error` when the stream names none."
+  @spec sending_domain(Request.t()) :: {:ok, String.t()} | :error
+  def sending_domain(%Request{} = request) do
+    category = text(content(request.content), "category")
+
+    case sender(config(request), request.message_class || "", category) do
+      {:ok, %{domain: domain}} -> {:ok, String.downcase(domain, :ascii)}
+      {:error, _error} -> :error
+    end
+  end
+
   # API-23
   defp from_override(sender, %Request{overrides: %{"from" => from}})
        when is_binary(from) and from != "",

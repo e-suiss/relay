@@ -622,6 +622,12 @@ defmodule RelayWeb.Router do
          :rotate_secret,
          private: %{relay_operation: "rotateChannelIdentitySecret"}
 
+    get "/email_reputation", ReputationController, :index,
+      private: %{relay_operation: "listEmailReputationCircuits"}
+
+    post "/email_reputation/:domain/close", ReputationController, :close,
+      private: %{relay_operation: "closeEmailReputationCircuit"}
+
     get "/audit_log", SupportController, :audit_log,
       private: %{relay_operation: "listAuditRecords"}
 

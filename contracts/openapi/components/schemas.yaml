@@ -8087,3 +8087,81 @@ ExportCreate:
       type: string
       format: date
   additionalProperties: false
+EmailReputationCircuit:
+  type: object
+  description: "The reputation circuit of a sending domain (CH-41, CH-87)."
+  additionalProperties: false
+  required:
+    - object
+    - domain
+    - state
+    - rates
+    - warned_at
+    - stopped_at
+    - closed_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      enum:
+        - email_reputation_circuit
+    domain:
+      type: string
+      maxLength: 253
+    state:
+      type: string
+      enum:
+        - ok
+        - warning
+        - stopped
+    rates:
+      description: "The window's counts and rates in basis points at the last change: bounces over sent mail, complaints over mail delivered to the inbox."
+      oneOf:
+        - type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+        - type: "null"
+    warned_at:
+      oneOf:
+        - type: string
+          format: date-time
+        - type: "null"
+    stopped_at:
+      oneOf:
+        - type: string
+          format: date-time
+        - type: "null"
+    closed_at:
+      oneOf:
+        - type: string
+          format: date-time
+        - type: "null"
+    updated_at:
+      type: string
+      format: date-time
+EmailReputationCircuitList:
+  type: object
+  additionalProperties: false
+  required:
+    - object
+    - data
+  properties:
+    object:
+      type: string
+      enum:
+        - list
+    data:
+      type: array
+      items:
+        "$ref": "#/EmailReputationCircuit"
+EmailReputationClose:
+  type: object
+  additionalProperties: false
+  required:
+    - reason
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 500

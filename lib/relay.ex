@@ -42,6 +42,7 @@ defmodule Relay do
       Limits,
       ChannelParameters,
       ChannelDeclarations,
+      DeliveryWindows,
       RuleDictionary,
       Release,
       Worker,

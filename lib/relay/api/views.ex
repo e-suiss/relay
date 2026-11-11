@@ -90,9 +90,11 @@ defmodule Relay.Api.Views do
        else: nil
   end
 
-  defp failure(%{"failure_kind" => kind, "failure_class" => class})
-       when kind in ["failed", "bounced"] and class != nil,
-       do: %{"kind" => kind, "class" => class, "retryable" => class == "transient"}
+  defp failure(%{"failure_kind" => kind, "failure_class" => class} = d)
+       when kind in ["failed", "bounced"] and class != nil do
+    %{"kind" => kind, "class" => class, "retryable" => class == "transient"}
+    |> put_unless_nil("code", d["failure_reason"])
+  end
 
   defp failure(_d), do: nil
 

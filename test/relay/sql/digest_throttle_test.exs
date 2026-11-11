@@ -10,7 +10,7 @@ defmodule Relay.Sql.DigestThrottleTest do
   @reset "SELECT * FROM relay_fn.throttle_reset($1, $2, $3, $4, $5, $6)"
   @check "SELECT result, duplicate_of FROM relay_fn.content_dedup_check($1, $2)"
   @advance "SELECT * FROM relay_fn.virtual_clock_advance($1, $2, $3, $4, $5, $6)"
-  @category "SELECT * FROM relay_fn.category_create($1, $2, $3, $4, false, true, '{}', NULL, NULL, NULL, NULL, false, $5, $6, $7, $8, $9)"
+  @category "SELECT * FROM relay_fn.category_create($1, $2, $3, $4, false, true, '{}', NULL, NULL, NULL, NULL, false, NULL, $5, $6, $7, $8, $9)"
   @create "SELECT * FROM relay_fn.template_create($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)"
   @publish "SELECT * FROM relay_fn.template_publish($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)"
   @pin "SELECT relay_fn.delivery_plan_pin($1, $2, $3, $4, $5, $6)"

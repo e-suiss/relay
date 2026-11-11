@@ -33,8 +33,6 @@ defmodule RelayWeb.Telemetry do
 
   @impl true
   def init(_arg) do
-    metrics = alarm_metrics() ++ policy_metrics() ++ render_metrics() ++ reconciliation_metrics()
-
     children = [
       {Peep, name: @reporter, metrics: exported_metrics()},
       {:telemetry_poller, measurements: [{Relay.Observability, :vm_sample, []}], period: 10_000}

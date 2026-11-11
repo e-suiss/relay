@@ -97,7 +97,8 @@ defmodule Relay.Channels.Adapter do
               {:ok, [report()]} | {:error, atom()}
 
   @doc "Asks the provider's status endpoint about a sent message for reconciliation and reads its reports."
-  @callback delivery_status(Relay.Channels.Request.t()) :: {:ok, [report()]} | :not_received | :unavailable
+  @callback delivery_status(Relay.Channels.Request.t()) ::
+              {:ok, [report()]} | :not_received | :unavailable
 
   @doc "Reads the e-mail events of an account (`account`, its `credentials`, the call's `timeout_ms`) between `from` and `to` from the provider's event list API."
   @callback report_events(reconcile()) :: {:ok, [Relay.Channels.Email.Event.t()]} | :unavailable

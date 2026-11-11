@@ -117,6 +117,11 @@ table relay.devices relay_archive SELECT
 table relay.devices relay_maint SELECT
 table relay.devices relay_owner INSERT,SELECT,UPDATE
 table relay.devices relay_report SELECT
+table relay.email_reports relay_app SELECT
+table relay.email_reports relay_archive SELECT
+table relay.email_reports relay_maint SELECT
+table relay.email_reports relay_owner INSERT,SELECT
+table relay.email_reports relay_report SELECT
 table relay.erasure_log relay_app SELECT
 table relay.erasure_log relay_archive SELECT
 table relay.erasure_log relay_maint SELECT

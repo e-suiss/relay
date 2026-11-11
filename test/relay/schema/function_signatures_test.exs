@@ -253,7 +253,8 @@ defmodule Relay.Schema.FunctionSignaturesTest do
       ~w(added exists limit_reached recipient_not_found device_not_found),
     "relay_fn.test_recipient_confirm" => ~w(verified already_verified expired not_found),
     "relay_fn.test_recipient_remove" => ~w(removed already_removed not_found),
-    "relay_fn.test_send_consume" => ~w(consumed exhausted)
+    "relay_fn.test_send_consume" => ~w(consumed exhausted),
+    "relay_fn.email_report_record" => ~w(recorded duplicate)
   }
 
   defp functions do

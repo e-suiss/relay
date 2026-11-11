@@ -489,6 +489,12 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "email_reports",
+      "personal_columns": [],
+      "tenant_close": "row kept; reports carry mail server addresses and counts only",
+      "subject_erasure": "not subject data"
+    },
+    {
       "table": "test_recipients",
       "personal_columns": [],
       "tenant_close": "row kept; identifiers only",

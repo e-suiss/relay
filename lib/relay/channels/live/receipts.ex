@@ -266,18 +266,19 @@ defmodule Relay.Channels.Live.Receipts do
   defp email(provider, item) do
     with {:ok, type} <- Map.fetch(@types, item["type"]),
          {:ok, delivery_id} <- Relay.Id.parse(to_string(item["delivery_id"])) do
-      event = Relay.Channels.email_event(%{
-        provider: provider,
-        type: type,
-        code: to_string(item["code"]),
-        id: item["id"],
-        delivery_id: delivery_id,
-        provider_message_id: item["provider_message_id"],
-        recipient: redacted(item["recipient"]),
-        occurred_at: parse_time(item["occurred_at"]),
-        status: item["status"],
-        diagnostic: redacted(item["diagnostic"])
-      })
+      event =
+        Relay.Channels.email_event(%{
+          provider: provider,
+          type: type,
+          code: to_string(item["code"]),
+          id: item["id"],
+          delivery_id: delivery_id,
+          provider_message_id: item["provider_message_id"],
+          recipient: redacted(item["recipient"]),
+          occurred_at: parse_time(item["occurred_at"]),
+          status: item["status"],
+          diagnostic: redacted(item["diagnostic"])
+        })
 
       {:ok, event}
     end

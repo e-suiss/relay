@@ -81,6 +81,7 @@ defmodule Relay.Delivery.WindowSweepTest do
 
       assert :ok = WindowSweep.run_due(scope)
       assert %{"status" => "unknown_pending", "window_stage" => 1} = delivery(scope, id)
+
       assert [%{"event_type" => "delivery.unknown_pending", "actor" => "relay"}] =
                events(scope, id)
 

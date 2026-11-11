@@ -173,6 +173,17 @@ defmodule Relay.Delivery.ProjectionAxesTest do
     end
   end
 
+  describe "OP-6 the ledger before the paid send" do
+    test "OP-6: an SMS attempt is in the ledger, committed, before its provider call" do
+      %{scope: scope, delivery_id: id} = DeliveryFixture.sendable!(delivery: [channel: :sms])
+      attempt = DeliveryFixture.started_attempt!(scope, id)
+      {:ok, ledger} = Relay.Delivery.ledger(scope, id)
+
+      assert %{"actor" => "relay", "attempt_no" => ^attempt} =
+               Enum.find(ledger, &(&1["event_type"] == "attempt.started"))
+    end
+  end
+
   describe "DS-10 unknown provider codes" do
     test "DS-10, DS-46: an event code without evidence is only written to the ledger", %{
       scope: scope,

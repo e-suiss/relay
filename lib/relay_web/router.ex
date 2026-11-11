@@ -377,6 +377,26 @@ defmodule RelayWeb.Router do
     post "/test_recipients/:test_recipient_id/remove", TesterController, :remove,
       private: %{relay_operation: "removeTestRecipient"}
 
+    # WF-51
+    get "/topics", TopicController, :index, private: %{relay_operation: "listTopics"}
+    post "/topics", TopicController, :create, private: %{relay_operation: "createTopic"}
+    get "/topics/:topic_key", TopicController, :show, private: %{relay_operation: "getTopic"}
+
+    post "/topics/:topic_key/archive", TopicController, :archive,
+      private: %{relay_operation: "archiveTopic"}
+
+    get "/topics/:topic_key/subscriptions", TopicController, :subscriptions,
+      private: %{relay_operation: "listTopicSubscriptions"}
+
+    post "/topics/:topic_key/subscriptions", TopicController, :subscribe,
+      private: %{relay_operation: "addTopicSubscriptions"}
+
+    post "/topics/:topic_key/subscriptions/remove", TopicController, :unsubscribe,
+      private: %{relay_operation: "removeTopicSubscriptions"}
+
+    get "/subscribers/:subscriber_id/subscriptions", TopicController, :subscriber,
+      private: %{relay_operation: "listSubscriberSubscriptions"}
+
     get "/templates", TemplateController, :index, private: %{relay_operation: "listTemplates"}
     post "/templates", TemplateController, :create, private: %{relay_operation: "createTemplate"}
 

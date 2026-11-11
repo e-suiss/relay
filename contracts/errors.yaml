@@ -1801,3 +1801,47 @@ codes:
     description: "No sending domain of this tenant and environment has a reputation circuit that left ok. Resources of other tenants and environments also return 404."
     type: "{base_url}/v1/errors/email_reputation_not_found"
     choice_note: "Code name and status chosen by the contract (CH-87)."
+  - code: topic_not_found
+    family: resource
+    status: 404
+    title: Topic not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No topic with this key is visible in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/topic_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: topic_archived
+    family: resource
+    status: 409
+    title: Topic is archived
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The topic is archived: it takes no new subscription and no child topic, and a send naming it is refused with recipient_invalid."
+    type: "{base_url}/v1/errors/topic_archived"
+    choice_note: "Code name and status chosen by the contract (WF-51)."
+  - code: audience_too_large
+    family: recipient
+    status: 422
+    title: Audience is too large for an event
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - limit
+      - actual
+    choice: true
+    description: "The recipients an event reaches, its direct recipients and the frozen subscribers of its topics counted once each, are more than x-relay-limits event.max_recipients. A larger list or topic audience is sent as a campaign (API-35)."
+    type: "{base_url}/v1/errors/audience_too_large"
+    choice_note: "Code name chosen by the contract; the bound is the event's recipient limit (WF-52, API-35)."

@@ -46,6 +46,7 @@ defmodule Relay.Api.Events do
   # API-27
   # WF-7
   # API-81
+  # WF-52
   @doc "Prepares a native event request outside any transaction. `opts`: `:source` (`:api` or `:cloudevents`), `:cloudevent` (its attributes) and `:dedup_key`."
   @spec prepare(context(), map(), keyword()) :: {:ok, prepared()} | {:error, Relay.Error.t()}
   def prepare(%{scope: scope} = ctx, body, opts \\ []) do
@@ -64,6 +65,7 @@ defmodule Relay.Api.Events do
              now: Relay.Clock.utc_now(),
              agent: Map.get(ctx, :agent, false)
            }),
+         {:ok, request} <- Relay.Topics.expand(scope, request),
          :ok <- event_data(workflow, request.data),
          :ok <- simulated(scope, request.targets),
          {:ok, providers} <- overrides(scope, workflow, request, tenant.settings),
@@ -430,6 +432,7 @@ defmodule Relay.Api.Events do
     with :ok <- lock(prepared),
          :ok <- quota(prepared),
          {:ok, event} <- event(prepared),
+         :ok <- Relay.Topics.record(prepared.request, event.id),
          prepared = templates(prepared),
          {:ok, notifications} <- notifications(prepared, event, ctx) do
       {:ok,

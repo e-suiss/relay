@@ -263,7 +263,15 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.export_complete" => ~w(completed not_pending not_found),
     "relay_fn.export_fail" => ~w(failed not_pending not_found),
     "relay_fn.export_download" => ~w(ready expired not_ready not_found),
-    "relay_fn.email_report_record" => ~w(recorded duplicate)
+    "relay_fn.email_report_record" => ~w(recorded duplicate),
+    "relay_fn.topic_create" =>
+      ~w(created key_conflict parent_not_found too_deep parent_archived tenant_inactive),
+    "relay_fn.topic_archive" => ~w(archived already_archived not_found),
+    "relay_fn.topic_subscribe" =>
+      ~w(subscribed exists recipient_not_found topic_not_found topic_archived tenant_inactive),
+    "relay_fn.topic_unsubscribe" =>
+      ~w(unsubscribed already_unsubscribed not_subscribed recipient_not_found topic_not_found),
+    "relay_fn.audience_record" => ~w(recorded exists)
   }
 
   defp functions do

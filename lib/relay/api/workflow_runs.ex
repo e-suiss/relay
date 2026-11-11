@@ -129,7 +129,7 @@ defmodule Relay.Api.WorkflowRuns do
   # WF-7
   @doc "Prepares the waking of a run outside any transaction; the returned function, called inside the run's transaction, gives the step context and the opener."
   @spec resume(Relay.Scope.t(), map()) ::
-          {:ok, (-> {:ok, map(), (map(), String.t() -> term())} | {:error, term()})}
+          {:ok, (-> {:ok, map(), (map(), String.t() -> term())})}
           | {:error, term()}
   def resume(scope, run) do
     plan = run["plan"]

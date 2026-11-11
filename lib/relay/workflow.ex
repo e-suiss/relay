@@ -274,7 +274,7 @@ defmodule Relay.Workflow do
           result(String.t() | :workflow_not_found | :version_not_found)
   def mermaid(%Scope{} = scope, key, version_no) do
     case get_version(scope, key, version_no) do
-      {:ok, %{"definition" => definition}} -> {:ok, Definition.mermaid(definition)}
+      {:ok, %{} = version} -> {:ok, Definition.mermaid(version["definition"])}
       other -> other
     end
   end

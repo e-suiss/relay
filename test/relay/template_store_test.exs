@@ -21,7 +21,7 @@ defmodule Relay.TemplateStoreTest do
   defp category!(actor) do
     params =
       [Relay.Id.generate(), "orders", "Orders", "transactional", false, true, %{}] ++
-        [nil, nil, nil, nil, false, TenantFixture.digest() | Actor.params(actor)]
+        [nil, nil, nil, nil, false, nil, TenantFixture.digest() | Actor.params(actor)]
 
     [%{"result" => "created"}] = Repo.call!("relay_fn.category_create", params)
     :ok

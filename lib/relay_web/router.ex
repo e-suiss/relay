@@ -341,6 +341,16 @@ defmodule RelayWeb.Router do
     post "/suppressions/:suppression_id/lift", SuppressionController, :lift,
       private: %{relay_operation: "liftSuppression"}
 
+    get "/routes", RouteController, :index, private: %{relay_operation: "listRoutes"}
+    post "/routes", RouteController, :create, private: %{relay_operation: "createRoute"}
+    get "/routes/:route_key", RouteController, :show, private: %{relay_operation: "getRoute"}
+
+    put "/routes/:route_key", RouteController, :replace,
+      private: %{relay_operation: "replaceRoute"}
+
+    post "/routes/:route_key/archive", RouteController, :archive,
+      private: %{relay_operation: "archiveRoute"}
+
     get "/workflows", WorkflowController, :index, private: %{relay_operation: "listWorkflows"}
     post "/workflows", WorkflowController, :create, private: %{relay_operation: "createWorkflow"}
 

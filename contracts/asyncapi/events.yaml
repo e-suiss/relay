@@ -285,6 +285,12 @@ channels:
         "$ref": "#/components/messages/audit.category.archived"
       audit.category_subtenant_setting.changed:
         "$ref": "#/components/messages/audit.category_subtenant_setting.changed"
+      audit.route.created:
+        "$ref": "#/components/messages/audit.route.created"
+      audit.route.replaced:
+        "$ref": "#/components/messages/audit.route.replaced"
+      audit.route.archived:
+        "$ref": "#/components/messages/audit.route.archived"
       audit.suppression.added:
         "$ref": "#/components/messages/audit.suppression.added"
       audit.suppression.lifted:
@@ -551,6 +557,9 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.category.lock_changed"
       - "$ref": "#/channels/auditLog/messages/audit.category.archived"
       - "$ref": "#/channels/auditLog/messages/audit.category_subtenant_setting.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.route.created"
+      - "$ref": "#/channels/auditLog/messages/audit.route.replaced"
+      - "$ref": "#/channels/auditLog/messages/audit.route.archived"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.added"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.lifted"
       - "$ref": "#/channels/auditLog/messages/audit.email_reputation.closed"
@@ -5092,6 +5101,60 @@ components:
       x-relay-stage: 4
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.route.created:
+      name: route.created
+      title: route.created
+      summary: "A named route was created with its tree."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: route
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.route.replaced:
+      name: route.replaced
+      title: route.replaced
+      summary: "The name or tree of a named route was replaced; the change applies to decisions made after it."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: route
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.route.archived:
+      name: route.archived
+      title: route.archived
+      summary: "A named route was archived; the row stays."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: route
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.category_subtenant_setting.changed:
       name: category_subtenant_setting.changed
       title: category_subtenant_setting.changed
@@ -6215,6 +6278,9 @@ x-relay-event-names:
   - quota_policy.changed
   - role_assignment.created
   - role_assignment.revoked
+  - route.archived
+  - route.created
+  - route.replaced
   - secret_ref.registered
   - secret_ref.retired
   - send_mode.changed

@@ -169,10 +169,13 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.quota_policy_set" =>
       ~w(created updated removed unchanged version_conflict invalid_caps),
     "relay_fn.category_create" =>
-      ~w(created key_conflict lock_not_allowed default_forbidden invalid_settings tenant_inactive),
+      ~w(created key_conflict lock_not_allowed default_forbidden invalid_settings route_not_found route_archived tenant_inactive),
     "relay_fn.category_update" =>
-      ~w(updated unchanged not_found archived version_conflict lock_not_allowed default_forbidden invalid_settings),
+      ~w(updated unchanged not_found archived version_conflict lock_not_allowed default_forbidden invalid_settings route_not_found route_archived),
     "relay_fn.category_archive" => ~w(archived already_archived not_found builtin),
+    "relay_fn.route_create" => ~w(created key_conflict tenant_inactive),
+    "relay_fn.route_replace" => ~w(replaced unchanged not_found archived version_conflict),
+    "relay_fn.route_archive" => ~w(archived already_archived in_use not_found),
     "relay_fn.category_subtenant_put" =>
       ~w(created updated unchanged not_found archived subtenant_not_found default_forbidden invalid_settings),
     "relay_fn.preference_set" =>

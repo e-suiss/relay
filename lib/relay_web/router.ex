@@ -285,6 +285,12 @@ defmodule RelayWeb.Router do
     put "/categories/:category_key/subtenants/:subtenant_id", CategoryController, :put_setting,
       private: %{relay_operation: "replaceCategorySubtenantSetting"}
 
+    post "/email_reports", EmailReportController, :create,
+      private: %{relay_operation: "uploadEmailReport"}
+
+    get "/email_reports/summary", EmailReportController, :summary,
+      private: %{relay_operation: "getEmailReportSummary"}
+
     get "/suppressions", SuppressionController, :index,
       private: %{relay_operation: "listSuppressions"}
 

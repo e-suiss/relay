@@ -2,7 +2,7 @@ defmodule Relay.Channels.Live.Events do
   @moduledoc """
   Records an event a provider reports after the call: a delivery receipt, a bounce, a complaint, a read, a status query answer (DS-10, DS-6, INV-5). It is the entry point of every adapter's webhook or receipt handler, which verifies the request first (`Relay.Channels.verify_*`) and then passes the event here.
 
-  The event code is looked up in the provider's `channel_event_evidence` rows of the active declarations; an event code without a row is rejected (DS-10 (1)). The row decides the ledger entry: `sets_delivery` raises the delivery axis, `sets_failure` sets the failure axis, `after_delivered` says what a failure after delivery means (DS-6) and `scope: attempt` binds the event to the delivery's latest attempt. A provider code given with the event is classified through the adapter's mapping; a code without a mapping is `unknown` and raises `provider.unknown_code` (CH-8). Group and detail both reach the append-only ledger as a `provider.reported` entry with the event code, the raw code and, when the provider sends one, its raw price object (CH-18). The entry carries the current trace context, the event's own trace, and a short `provider event` span links it to the delivery's trace (OP-34); an event of a delivery the provider accepted emits `[:relay, :provider, :event]` with the delay since the acceptance (DS-41, CH-47). The row's `side_effect` and `decision_grade` are returned for the caller: a side effect such as `add_suppression` or `deactivate_device` is the caller's to apply, and only a `reliable` event may feed an engagement decision.
+  The event code is looked up in the provider's `channel_event_evidence` rows of the active declarations; an event code without a row is rejected (DS-10 (1)) and never changes the projection: it is written to the ledger as `provider.unknown_code` with its raw code, and raises the `provider.unknown_code` event and the alarm (DS-10 (2)). The row decides the ledger entry: `sets_delivery` raises the delivery axis, `sets_failure` sets the failure axis, `after_delivered` says what a failure after delivery means (DS-6) and `scope: attempt` binds the event to the delivery's latest attempt. A provider code given with the event is classified through the adapter's mapping; a code without a mapping is `unknown` and raises `provider.unknown_code` (CH-8). Group and detail both reach the append-only ledger as a `provider.reported` entry with the event code, the raw code and, when the provider sends one, its raw price object (CH-18). The entry carries the current trace context, the event's own trace, and a short `provider event` span links it to the delivery's trace (OP-34); an event of a delivery the provider accepted emits `[:relay, :provider, :event]` with the delay since the acceptance (DS-41, CH-47). The row's `side_effect` and `decision_grade` are returned for the caller: a side effect such as `add_suppression` or `deactivate_device` is the caller's to apply, and only a `reliable` event may feed an engagement decision.
   """
 
   alias Relay.ChannelDeclarations
@@ -40,6 +40,7 @@ defmodule Relay.Channels.Live.Events do
 
   # DS-10
   # DS-6
+  # DS-46
   # CH-8
   # CH-18
   @doc "Records a provider event of a delivery; see the module documentation. Returns the ledger result with the evidence row's side effect and decision grade, `{:error, :unknown_event}` for an event code without an evidence row and `{:error, :delivery_not_found}`."
@@ -49,14 +50,36 @@ defmodule Relay.Channels.Live.Events do
     read = fn _status -> Store.delivery(delivery_id) end
 
     with {:ok, declarations} <- Relay.Datasets.channel_declarations(),
-         {:ok, row} <- evidence(declarations, event),
          {:ok, %{} = delivery} <- Store.in_scope(scope, read) do
-      class = classify(scope, declarations, event)
-      append(scope, event, row, delivery, class)
+      case evidence(declarations, event) do
+        {:ok, row} -> append(scope, event, row, delivery, classify(scope, declarations, event))
+        {:error, :unknown_event} -> unknown(scope, event)
+      end
     else
       {:ok, nil} -> {:error, :delivery_not_found}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  defp unknown(scope, event) do
+    code = Map.get(event, :raw_code) || event.event_code
+    _ = Relay.Channels.report_unknown_code(scope, event.provider, event.channel, code)
+
+    {:ok, entry} =
+      Relay.Delivery.ledger_entry(
+        id: Relay.Id.generate(),
+        delivery_id: event.delivery_id,
+        actor: Map.get(event, :actor, :provider_webhook),
+        event_type: "provider.unknown_code",
+        occurred_at: Map.get_lazy(event, :occurred_at, &Relay.Clock.utc_now/0),
+        raw_code: String.slice(code, 0, 128),
+        provider: event.provider,
+        provider_seq: Map.get(event, :provider_seq),
+        detail: detail(event)
+      )
+
+    _ = Relay.Delivery.append_ledger(scope, entry)
+    {:error, :unknown_event}
   end
 
   defp evidence(declarations, event) do

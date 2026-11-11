@@ -55,13 +55,15 @@ config :relay, Oban,
     {Oban.Plugins.Cron,
      crontab: [
        {"*/5 * * * *", Relay.Agents.WaitpointSweep},
+       {"*/5 * * * *", Relay.Delivery.WindowSweep},
        {"17 * * * *", Relay.Devices.Sweep},
        {"20 0 * * *", Relay.Delivery.UsageDay},
        {"41 * * * *", Relay.Channels.Live.SettingsSweep}
      ]}
   ]
 
-config :relay, Relay.Platform.VirtualClock, due: [{Relay.Agents, :run_due, []}]
+config :relay, Relay.Platform.VirtualClock,
+  due: [{Relay.Agents, :run_due, []}, {Relay.Delivery.WindowSweep, :run_due, []}]
 
 config :relay, Relay.Platform.Outbox, dispatcher: true
 

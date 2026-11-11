@@ -143,6 +143,7 @@ defmodule RelayWeb.Api.CategoriesTest do
 
       long = category("news", "marketing", %{"density" => %{density | "window" => "P2D"}})
       problem = F.body(create(ctx.token, long), 422)
+
       assert [%{"pointer" => "/density/window", "code" => "unsupported_value"}] =
                problem["errors"]
 

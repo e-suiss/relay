@@ -501,6 +501,30 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "digest_windows",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers, a key digest, timing and counts only",
+      "subject_erasure": "identifiers only; the activities' content stays in the event payloads, which the erasure covers"
+    },
+    {
+      "table": "digest_items",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers and an actor digest only",
+      "subject_erasure": "identifiers only; the activities' content stays in the event payloads, which the erasure covers"
+    },
+    {
+      "table": "throttle_counters",
+      "personal_columns": [],
+      "tenant_close": "row kept; a key digest, its window and counts only",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "throttle_hits",
+      "personal_columns": [],
+      "tenant_close": "row kept; digests and an outcome only",
+      "subject_erasure": "not subject data"
+    },
+    {
       "table": "test_recipients",
       "personal_columns": [],
       "tenant_close": "row kept; identifiers only",

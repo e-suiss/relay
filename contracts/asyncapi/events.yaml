@@ -361,6 +361,8 @@ channels:
         "$ref": "#/components/messages/audit.export.downloaded"
       audit.export.requested:
         "$ref": "#/components/messages/audit.export.requested"
+      audit.throttle.reset:
+        "$ref": "#/components/messages/audit.throttle.reset"
       audit.provider_invoice.recorded:
         "$ref": "#/components/messages/audit.provider_invoice.recorded"
   accessInbound:
@@ -590,6 +592,7 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.provider_invoice.recorded"
       - "$ref": "#/channels/auditLog/messages/audit.export.requested"
       - "$ref": "#/channels/auditLog/messages/audit.export.downloaded"
+      - "$ref": "#/channels/auditLog/messages/audit.throttle.reset"
   receiveAccessInbound:
     action: receive
     channel:
@@ -5686,6 +5689,24 @@ components:
       x-relay-stage: 7
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.throttle.reset:
+      name: throttle.reset
+      title: throttle.reset
+      summary: "An active throttle counter was reset through the API (WF-32, API-69)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: throttle
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.push_critical.changed:
       name: push_critical.changed
       title: push_critical.changed
@@ -6254,6 +6275,7 @@ x-relay-event-names:
   - test_recipient.added
   - test_recipient.removed
   - test_recipient.verified
+  - throttle.reset
   - user.deleted
   - user.reactivated
   - user.suspended

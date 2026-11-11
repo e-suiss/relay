@@ -8485,3 +8485,21 @@ EmailReputationClose:
       type: string
       minLength: 1
       maxLength: 500
+ThrottleKey:
+  type: string
+  description: "A tenant-wide throttle key as the throttle step renders it (WF-32); stored as a digest only."
+  minLength: 1
+  maxLength: 256
+ThrottleReset:
+  type: object
+  description: "An active throttle counter was reset (WF-32)."
+  required:
+    - object
+    - key
+  properties:
+    object:
+      type: string
+      const: throttle_reset
+    key:
+      "$ref": "#/ThrottleKey"
+  additionalProperties: false

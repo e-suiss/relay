@@ -463,3 +463,10 @@ ExportId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_exp"
+ThrottleKey:
+  name: throttle_key
+  in: path
+  description: "The rendered throttle key, percent-encoded."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/ThrottleKey"

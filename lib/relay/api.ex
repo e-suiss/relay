@@ -73,6 +73,7 @@ defmodule Relay.Api do
       Reports,
       Exports,
       EmailTracking,
-      EmailReports
+      EmailReports,
+      Throttles
     ]
 end

@@ -144,5 +144,6 @@
   {"file": "20261204000500_register_delivery_windows.exs", "sha256": "e82bf4e732dba8501ce2e22033f6cbd3609001fa4d26ead32cb2b3af729cf41d"},
   {"file": "20261206000000_add_event_item_and_correlation_id.exs", "sha256": "0f22552dfa9fbd43e04de7b64995c9417d79b55c28c92c2e1bdfe5947c3beb82"},
   {"file": "20261206100000_announce_delivery_outcomes.exs", "sha256": "5705afa8e0f1baf4ce972be43878d798721f16de71694b76fb3fea0ba96b538c"},
+  {"file": "20261206500000_apply_delivery_window_status.exs", "sha256": "b8da8628970f3cc0119909f58675cb7aa601110e11fae7f0999dc39608ee817e"},
   {"file": "20261209000100_create_observability_rollup_function.exs", "sha256": "b39ea69e093e338efb5276657a880cbb00e7a6367b9282926f320ebbc133bd20"}
 ]

@@ -524,6 +524,12 @@ defmodule RelayWeb.Router do
     put "/delivery_windows", DeliveryWindowsController, :replace,
       private: %{relay_operation: "replaceDeliveryWindows"}
 
+    get "/timing_settings", TimingSettingsController, :show,
+      private: %{relay_operation: "getTimingSettings"}
+
+    put "/timing_settings", TimingSettingsController, :replace,
+      private: %{relay_operation: "setTimingSettings"}
+
     get "/event_type_mappings", MappingController, :index,
       private: %{relay_operation: "listEventTypeMappings"}
 

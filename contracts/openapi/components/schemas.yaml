@@ -687,6 +687,8 @@ EventRequest:
       "$ref": "#/SecuritySubtype"
     on_expire:
       "$ref": "#/OnExpire"
+    timing_precision:
+      "$ref": "#/TimingPrecision"
     cancellation_key:
       type: string
       description: "Optional cancellation key; need not be unique."
@@ -785,6 +787,8 @@ BatchEventRequest:
       "$ref": "#/SecuritySubtype"
     on_expire:
       "$ref": "#/OnExpire"
+    timing_precision:
+      "$ref": "#/TimingPrecision"
     cancellation_key:
       type: string
       description: "Optional cancellation key; need not be unique."
@@ -8561,6 +8565,67 @@ EmailTracking:
         type: string
         enum:
           - open_pixel_unreliable
+TimingPrecision:
+  type: string
+  description: "strict: the deterministic jitter of this send is zero; it is scheduled at send_at and released at the end of a deferral exactly (WF-42, WF-58)."
+  enum:
+    - strict
+  x-relay-choice: true
+  x-relay-choice-note: "WF-42 lets a tenant choose an exact time with a strict mode but API-20 names no field; a request field timing_precision with the single value strict is chosen."
+TimingSpreads:
+  type: object
+  additionalProperties: false
+  required:
+    - release_spread
+    - scheduled_spread
+  properties:
+    release_spread:
+      "$ref": "#/Duration"
+    scheduled_spread:
+      "$ref": "#/Duration"
+TimingSettings:
+  type: object
+  description: "The tenant's jitter control (WF-42, WF-58): the spreads in force, the precision and the ceilings a tenant may shrink the spreads within."
+  additionalProperties: false
+  required:
+    - object
+    - release_spread
+    - scheduled_spread
+    - timing_precision
+    - ceilings
+  properties:
+    object:
+      type: string
+      enum:
+        - timing_settings
+    release_spread:
+      "$ref": "#/Duration"
+      description: "Spread of deliveries released at the end of quiet hours, a weekly schedule, dnd_until or the PC-48 window."
+    scheduled_spread:
+      "$ref": "#/Duration"
+      description: "Spread of a single send_at and of the timer of a recurrence occurrence."
+    timing_precision:
+      type: string
+      enum:
+        - jittered
+        - strict
+      description: "strict zeroes both spreads for every send of the environment."
+    ceilings:
+      "$ref": "#/TimingSpreads"
+TimingSettingsWrite:
+  type: object
+  description: "Full replacement of the jitter control; a spread left out takes its ceiling and timing_precision jittered."
+  additionalProperties: false
+  properties:
+    release_spread:
+      "$ref": "#/Duration"
+    scheduled_spread:
+      "$ref": "#/Duration"
+    timing_precision:
+      type: string
+      enum:
+        - jittered
+        - strict
 EmailTrackingWrite:
   type: object
   additionalProperties: false

@@ -6,7 +6,7 @@ defmodule Relay.Policy.Snapshot do
   * `tenant_id`, `environment`, `recipient_id`, `delivery_id`: identifiers for the jitter digest and the counters.
   * `channel`: the delivery's channel.
   * `target`: the channel target: `address` (`:present`, `:absent`, `:disabled`), the device's OS notification `permission` (`:granted`, `:denied`, `:unknown`) and the device `platform` (`:ios`, `:android`, `:web` or `nil`).
-  * `notification`: `message_class`, `security_subtype` (`:otp_oob`, `:email_verification` or `nil`), the requested `priority` (`nil` for none), `expires_at` (`nil` for none), `on_expire` (`:drop` or `:inbox_only`, WF-39), `workflow_key`, `scope_key`, `sender_kind` and `scope`, the sub-tenant match (`:match`, `:mismatch` or `:unreadable`).
+  * `notification`: `message_class`, `security_subtype` (`:otp_oob`, `:email_verification` or `nil`), the requested `priority` (`nil` for none), `expires_at` (`nil` for none), `on_expire` (`:drop` or `:inbox_only`, WF-39), `timing_precision` (`:jittered` or `:strict`, WF-58), `workflow_key`, `scope_key`, `sender_kind` and `scope`, the sub-tenant match (`:match`, `:mismatch` or `:unreadable`).
   * `category`: the category with the sub-tenant settings already applied (PC-57 (2)): `key`, `locked`, `enabled`, `channel_defaults` (channel → `:on | :off`), `frequency` (`nil` or `limit`, `window_ms` and `fate`, each may be `nil`), `digest_allowed` and `subtenant_override` (true when a sub-tenant setting was applied).
   * `preferences`: the recipient's values for this delivery at each level: `category_channel`, `channel`, `workflow` and `scope_key`, each `:opt_in`, `:opt_out` or `:unset`.
   * `profile`: the recipient's preference profile: `time_zone` (`nil` for none), `quiet_hours` (ranges), `schedule` (ranges of availability, `nil` for none), `dnd_until` (`nil` for none), `email_in_quiet_hours` and `digest`.
@@ -88,6 +88,7 @@ defmodule Relay.Policy.Snapshot do
           priority: priority() | nil,
           expires_at: DateTime.t() | nil,
           on_expire: :drop | :inbox_only,
+          timing_precision: :jittered | :strict,
           workflow_key: String.t() | nil,
           scope_key: String.t() | nil,
           sender_kind: :human | :system | :agent,

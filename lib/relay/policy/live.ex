@@ -278,6 +278,7 @@ defmodule Relay.Policy.Live do
             priority: context["priority"],
             expires_at: context["expires_at"],
             on_expire: context["on_expire"],
+            timing_precision: context["timing_precision"],
             sender_type: context["sender_type"]
           }),
         scope_match: :match,

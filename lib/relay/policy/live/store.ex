@@ -9,7 +9,7 @@ defmodule Relay.Policy.Live.Store do
   SELECT d.id, d.channel::text AS channel, d.decision, d.provider_account_id,
     n.id AS notification_id, n.recipient_id, n.subtenant_id, n.message_class::text AS message_class,
     n.security_subtype, n.sender_type, n.expires_at, n.workflow_id, e.priority, e.api_client_id,
-    e.on_expire,
+    e.on_expire, e.timing_precision,
     w.key AS workflow_key, v.category AS category_key
   FROM relay.deliveries d
   JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment

@@ -185,5 +185,7 @@
   {"file": "20261214700000_add_category_density.exs", "sha256": "ce247da78288f22e2631ca725a686fb994e275bf95034582db08d89ea6ddcfa8"},
   {"file": "20261214700100_create_category_density_functions.exs", "sha256": "ccf8d39f77150f5dc8d1deba0fece0adbf9701e87615ca569baf0ad55667842c"},
   {"file": "20261214700200_validate_category_density_checks.exs", "sha256": "37293a8414b753daab826609ccb82e9ad93eb144228964ffe7f61446a2b9c01b"},
-  {"file": "20261214700300_index_digest_items_by_delivery.exs", "sha256": "64e990f5ef71e124171512c60d1c07a20c9e897452d9437785893c64d30efd75"}
+  {"file": "20261214700300_index_digest_items_by_delivery.exs", "sha256": "64e990f5ef71e124171512c60d1c07a20c9e897452d9437785893c64d30efd75"},
+  {"file": "20261214800000_add_event_timing_precision.exs", "sha256": "5f64a9f56846859229fa6fc98b8e5bec74c4498650a74ab4c7005267efe6b59f"},
+  {"file": "20261214800100_validate_event_timing_precision_check.exs", "sha256": "623fec4521cd4c9442bebbb63c4481ef6a82193150650264b287dd0b32af383b"}
 ]

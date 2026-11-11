@@ -7,6 +7,7 @@ defmodule RelayWeb.ExportDownloadController do
 
   # DS-37
   # TN-18
+  @doc "Answers the export behind a signed download token."
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"token" => token}) do
     case Relay.Api.Exports.download(token) do

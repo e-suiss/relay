@@ -535,15 +535,21 @@ RecipientObject:
   additionalProperties: false
 TopicTarget:
   type: object
-  description: "Topic target. Topics are introduced in a later stage; until then a topic target is rejected with validation_failed (unsupported_value)."
+  description: "Topic target (WF-51, WF-52). The event reaches the active subscribers of the topic and, for a child topic, of its active parent, frozen when the event is accepted; a subscriber reached through several topics or also named directly gets one notification. The topic matches by key only, with no wildcard or context condition (WF-53). An unknown topic is recipient_not_found and an archived one recipient_invalid, both with the target's pointer; an event whose topics reach no subscriber is still accepted and its frozen audience is recorded with rule audience.no_subscribers. All recipients together are at most x-relay-limits event.max_recipients (422 audience_too_large); a larger audience is a campaign."
   required:
     - topic
   properties:
     topic:
-      type: string
-      description: Topic key.
-      pattern: "^[a-z0-9][a-z0-9_.:-]{0,127}$"
+      "$ref": "#/TopicKey"
   additionalProperties: false
+TopicKey:
+  type: string
+  description: "The tenant's key of a topic, such as project:42 or project:42.task:7."
+  pattern: "^[a-z0-9][a-z0-9_.:-]{0,127}$"
+  examples:
+    - "project:42"
+  x-relay-choice: true
+  x-relay-choice-note: "Character set and length are chosen by the contract."
 RecipientTarget:
   description: "A plain string is an identity-only reference: the subscriber must exist or the request fails with recipient_not_found. An object upserts. A topic object targets a topic."
   oneOf:
@@ -8485,3 +8491,141 @@ EmailReputationClose:
       type: string
       minLength: 1
       maxLength: 500
+Id_top:
+  type: string
+  description: "Topic identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^top_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - top_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_tsb:
+  type: string
+  description: "Topic subscription identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^tsb_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - tsb_01j9zq3k4m5n6p7q8r9s0t1v2w
+TopicState:
+  type: string
+  description: "active, or archived: an archived topic takes no new subscription or child and is refused as a send target."
+  enum:
+    - active
+    - archived
+Topic:
+  type: object
+  description: "A topic (WF-51): an object subscribers subscribe to and events are sent to. A topic has at most one parent, which itself has none."
+  required:
+    - object
+    - id
+    - key
+    - parent
+    - state
+    - version
+    - created_at
+    - updated_at
+    - archived_at
+  properties:
+    object:
+      type: string
+      const: topic
+    id:
+      "$ref": "#/Id_top"
+    key:
+      "$ref": "#/TopicKey"
+    parent:
+      description: "Key of the parent topic; null for a top-level topic."
+      oneOf:
+        - "$ref": "#/TopicKey"
+        - type: "null"
+    state:
+      "$ref": "#/TopicState"
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+    archived_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+TopicCreate:
+  type: object
+  description: "Create a topic, optionally under an active top-level parent topic."
+  required:
+    - key
+  properties:
+    key:
+      "$ref": "#/TopicKey"
+    parent:
+      "$ref": "#/TopicKey"
+  additionalProperties: false
+TopicList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Topic"
+TopicSubscriptionState:
+  type: string
+  description: "active, or removed once unsubscribed or once the subscriber is erased; a removed subscription is kept."
+  enum:
+    - active
+    - removed
+TopicSubscription:
+  type: object
+  description: "A subscriber's subscription to a topic."
+  required:
+    - object
+    - id
+    - topic
+    - subscriber_id
+    - state
+    - created_at
+    - removed_at
+  properties:
+    object:
+      type: string
+      const: topic_subscription
+    id:
+      "$ref": "#/Id_tsb"
+    topic:
+      "$ref": "#/TopicKey"
+    subscriber_id:
+      description: "External id of the subscriber; null once the subscriber is erased."
+      oneOf:
+        - "$ref": "#/ExternalId"
+        - type: "null"
+    state:
+      "$ref": "#/TopicSubscriptionState"
+    created_at:
+      "$ref": "#/Timestamp"
+    removed_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+TopicSubscriptionList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/TopicSubscription"
+TopicSubscribers:
+  type: object
+  description: "Subscribers to subscribe to or unsubscribe from the topic, by external id; there is no attribute query (WF-54, E-67)."
+  required:
+    - subscribers
+  properties:
+    subscribers:
+      type: array
+      description: "1 to x-relay-limits topic.max_subscribers_per_request external ids."
+      minItems: 1
+      maxItems: 1000
+      items:
+        "$ref": "#/ExternalId"
+  additionalProperties: false

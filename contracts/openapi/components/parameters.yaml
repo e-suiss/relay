@@ -426,6 +426,13 @@ ChannelIdentityId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_chi"
+TopicKey:
+  name: topic_key
+  in: path
+  description: "Topic key (URL-encoded)."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/TopicKey"
 TestRecipientId:
   name: test_recipient_id
   in: path

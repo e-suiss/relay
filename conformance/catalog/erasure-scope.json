@@ -535,6 +535,30 @@
       "personal_columns": [],
       "tenant_close": "row kept; the content is cleared when the export expires",
       "subject_erasure": "the CSV holds identifiers, codes and counts only and its content is cleared 7 days after it was written; row kept"
+    },
+    {
+      "table": "topics",
+      "personal_columns": [],
+      "tenant_close": "row kept; tenant keys only",
+      "subject_erasure": "not subject data; tenant topic keys only"
+    },
+    {
+      "table": "topic_subscriptions",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers only",
+      "subject_erasure": "identifiers only; the subject's subscriptions become removed when the subscriber is erased; row kept"
+    },
+    {
+      "table": "audiences",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers and counts only",
+      "subject_erasure": "not subject data; identifiers and counts only"
+    },
+    {
+      "table": "audience_members",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers only",
+      "subject_erasure": "recipient and topic identifiers only; no personal fields; row kept"
     }
   ],
   "locations": [

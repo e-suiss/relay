@@ -297,6 +297,14 @@ channels:
         "$ref": "#/components/messages/audit.test_recipient.verified"
       audit.test_recipient.removed:
         "$ref": "#/components/messages/audit.test_recipient.removed"
+      audit.topic.created:
+        "$ref": "#/components/messages/audit.topic.created"
+      audit.topic.archived:
+        "$ref": "#/components/messages/audit.topic.archived"
+      audit.topic.subscribed:
+        "$ref": "#/components/messages/audit.topic.subscribed"
+      audit.topic.unsubscribed:
+        "$ref": "#/components/messages/audit.topic.unsubscribed"
       audit.template.created:
         "$ref": "#/components/messages/audit.template.created"
       audit.template.updated:
@@ -557,6 +565,10 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.added"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.verified"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.removed"
+      - "$ref": "#/channels/auditLog/messages/audit.topic.created"
+      - "$ref": "#/channels/auditLog/messages/audit.topic.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.topic.subscribed"
+      - "$ref": "#/channels/auditLog/messages/audit.topic.unsubscribed"
       - "$ref": "#/channels/auditLog/messages/audit.template.created"
       - "$ref": "#/channels/auditLog/messages/audit.template.updated"
       - "$ref": "#/channels/auditLog/messages/audit.template.drafted"
@@ -5200,6 +5212,78 @@ components:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.topic.created:
+      name: topic.created
+      title: topic.created
+      summary: "A topic was created (WF-51)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: topic
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.topic.archived:
+      name: topic.archived
+      title: topic.archived
+      summary: "A topic was archived; it and its subscriptions are kept."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: topic
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.topic.subscribed:
+      name: topic.subscribed
+      title: topic.subscribed
+      summary: "Subscribers were subscribed to a topic in one request."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: topic
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.topic.unsubscribed:
+      name: topic.unsubscribed
+      title: topic.unsubscribed
+      summary: "Subscribers were unsubscribed from a topic in one request; the subscriptions are kept as removed."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: topic
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.template.created:
       name: template.created
       title: template.created
@@ -6254,6 +6338,10 @@ x-relay-event-names:
   - test_recipient.added
   - test_recipient.removed
   - test_recipient.verified
+  - topic.archived
+  - topic.created
+  - topic.subscribed
+  - topic.unsubscribed
   - user.deleted
   - user.reactivated
   - user.suspended

@@ -38,6 +38,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
     {"quota_policies", "security_reserve_bp"}
   ]
   @later_stage_references [
+    {"audiences", "source_id"},
     {"dead_letters", "provider_account_id"},
     {"deliveries", "provider_account_id"},
     {"deliveries", "target_id"},

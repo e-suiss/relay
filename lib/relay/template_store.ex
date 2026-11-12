@@ -453,10 +453,17 @@ defmodule Relay.TemplateStore do
 
   # TP-41
   # INV-46
-  @doc "Fails a delivery for a render failure (`:missing_variable`, `:render_timeout`, `:output_too_large` or `:schema_violation`) with its ledger event and the `notification.render_failed` event; there is no retry."
+  # IN-49
+  @doc "Fails a delivery for a render failure (`:missing_variable`, `:render_timeout`, `:output_too_large`, `:schema_violation` or, for an inbox item over the published limits, `:inbox_item_too_large`) with its ledger event and the `notification.render_failed` event; there is no retry."
   @spec render_fail(Relay.Id.t(), atom(), map()) :: atom()
   def render_fail(delivery_id, reason, detail \\ %{})
-      when reason in [:missing_variable, :render_timeout, :output_too_large, :schema_violation] do
+      when reason in [
+             :missing_variable,
+             :render_timeout,
+             :output_too_large,
+             :schema_violation,
+             :inbox_item_too_large
+           ] do
     params = [delivery_id, Atom.to_string(reason), detail]
     [row] = Repo.call!("relay_fn.delivery_render_fail", params)
 

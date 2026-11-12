@@ -11,7 +11,8 @@ defmodule Relay.Api.Cancels do
 
   # API-57
   # API-59
-  @doc "Cancels an event inside the request's transaction."
+  # IN-16
+  @doc "Cancels an event inside the request's transaction; its delivered inbox items are retracted."
   @spec event(Relay.Id.t(), String.t() | nil, Relay.Actor.t()) :: answer()
   def event(event_id, reason, actor) do
     id = Relay.Id.generate()
@@ -22,12 +23,14 @@ defmodule Relay.Api.Cancels do
 
       row ->
         _ = Relay.Workflow.cancel_runs(%{event_id: event_id})
+        _ = Relay.Inbox.retract(event_id, nil)
         {:ok, {200, [], Views.cancellation(id, row)}}
     end
   end
 
   # API-57
-  @doc "Cancels a notification inside the request's transaction."
+  # IN-16
+  @doc "Cancels a notification inside the request's transaction; its delivered inbox item is retracted."
   @spec notification(Relay.Id.t(), String.t() | nil, Relay.Actor.t()) :: answer()
   def notification(notification_id, reason, actor) do
     id = Relay.Id.generate()
@@ -38,6 +41,7 @@ defmodule Relay.Api.Cancels do
 
       row ->
         _ = Relay.Workflow.cancel_runs(%{notification_id: notification_id})
+        _ = Relay.Inbox.retract(nil, [notification_id])
         {:ok, {200, [], Views.cancellation(id, row)}}
     end
   end
@@ -70,7 +74,26 @@ defmodule Relay.Api.Cancels do
       end
 
     _ = runs(body, recipients)
+    _ = retract(body, row)
     {:ok, {200, [], Views.cancellation(id, Map.update!(row, "not_found", &(&1 + unknown)))}}
+  end
+
+  # IN-16
+  # API-59
+  defp retract(%{"channels" => [_ | _] = channels}, row) do
+    if "in_app" in channels, do: retract(%{}, row), else: 0
+  end
+
+  defp retract(_body, row) do
+    ids =
+      for %{"notification_id" => text} <- row["details"] || [],
+          {:ok, id} <- [Relay.Id.parse(text)],
+          do: id
+
+    case ids do
+      [] -> 0
+      ids -> ids |> Enum.uniq() |> then(&Relay.Inbox.retract(nil, &1))
+    end
   end
 
   # WF-59 (5)

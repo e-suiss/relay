@@ -1,6 +1,6 @@
 defmodule Relay.Channels.Live do
   @moduledoc """
-  The channel step of the delivery job (`Relay.Delivery.Send`, configured as `config :relay, Relay.Delivery, channel: Module`): it hands a rendered delivery to its provider and records the outcome.
+  The channel step of the delivery job (`Relay.Delivery.Send`, configured as `config :relay, Relay.Delivery, channel: Module`): it hands a rendered delivery to its provider and records the outcome. An `in_app` delivery has no provider: its rendered content is written to the recipient's inbox by `Relay.Inbox.Live.deliver/3`, whose commit is the delivery's `delivered` evidence (IN-2).
 
     1. The route. On the `test` plane and in `shadow` mode the fake provider answers (X-25, API-62, CH-72); the send mode is the event's own mode (test only), then the tenant's `send_mode.category.<category>.channel.<channel>`, `send_mode.channel.<channel>` and `send_mode` settings for the workflow's category, then the installation default. The route is narrowed to the provider the delivery was accepted with (API-23) and, under the tenant's `channels.domestic_only` policy, to accounts processing data in that country (CH-6, TN-58). The delivery's channel overrides are its event's sealed request overrides over the pinned workflow version's step (the step of the delivery's channel and template) and workflow overrides (API-23); they reach the adapter as the request's `overrides`, and an `overrides.email.from` is checked again against the chosen account's verified sender identities, or the delivery is skipped with `channel.sender_unapproved`. Otherwise only a verified provider account whose adapter is activated takes traffic (`Relay.Channels.routes/4`, CH-14, INV-43); without one the delivery is held with `channel.no_route` and the job comes back later. The circuit breakers pick the first account that may be called; a rejection moves to the next account and, when every one is open, the job waits without counting an attempt (CH-13, T-25).
     2. The target. An address channel reads the recipient's active address; a device channel reads the recipient's permitted devices from `Relay.Devices` and takes the most recently seen one of the route's provider platform (CH-28); a recipient whose devices are all without permission is skipped with `channel.no_permission`, one without a device with `channel.no_address`. A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
@@ -20,6 +20,7 @@ defmodule Relay.Channels.Live do
       Relay.Datasets,
       Relay.Devices,
       Relay.EmailReputation,
+      Relay.Inbox.Live,
       Relay.Ingest,
       Relay.Messaging,
       Relay.Platform,
@@ -63,6 +64,7 @@ defmodule Relay.Channels.Live do
   @spec deliver(Scope.t(), Relay.Id.t(), map()) :: result()
   def deliver(%Scope{} = scope, delivery_id, args) when is_map(args) do
     with {:ok, %{} = delivery} <- Store.in_scope(scope, fn _ -> Store.delivery(delivery_id) end),
+         :provider <- target_kind(delivery),
          {:ok, overrides} <- overrides(scope, delivery),
          {:ok, declarations} <- Relay.Datasets.channel_declarations(),
          {:ok, parameters} <- Relay.Datasets.channel_parameters(),
@@ -79,9 +81,32 @@ defmodule Relay.Channels.Live do
       admit(ctx, route)
     else
       {:ok, nil} -> :ok
+      {:inbox, delivery} -> inbox(scope, delivery)
       {:hold, rule_id} -> hold(scope, delivery_id, rule_id)
       {:skip, rule_id} -> skip(scope, delivery_id, rule_id)
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # IN-2
+  defp target_kind(%{"channel" => "in_app"} = delivery), do: {:inbox, delivery}
+  defp target_kind(_delivery), do: :provider
+
+  # IN-2
+  # TP-50
+  # IN-49
+  defp inbox(scope, delivery) do
+    case renderer().prepare(scope, delivery["id"]) do
+      {:rendered, content} -> inboxed(scope, delivery, content)
+      {:error, reason} -> {:error, reason}
+      _failed_or_done -> :ok
+    end
+  end
+
+  defp inboxed(scope, delivery, content) do
+    case Relay.Inbox.Live.deliver(scope, delivery, content) do
+      {:skip, rule_id} -> skip(scope, delivery["id"], rule_id)
+      result -> result
     end
   end
 

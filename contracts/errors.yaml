@@ -1986,4 +1986,32 @@ codes:
     choice: true
     description: "No throttle key of this tenant and environment has an active window. Keys of other tenants and environments also return 404."
     type: "{base_url}/v1/errors/throttle_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."  - code: inbox_item_not_found
+    family: resource
+    status: 404
+    title: Inbox item not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No visible inbox item of the token's subscriber has this identifier: it does not exist, belongs to another subscriber, or was hidden, retracted or expired. Items of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/inbox_item_not_found"
     choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: inbox_item_conflict
+    family: resource
+    status: 409
+    title: Inbox item changed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - current
+    choice: true
+    description: "An unread, unarchive or unsnooze intent named a base_state_version that is no longer the item's: the item changed on another device. current carries the item's current state; the client accepts it and shows a notice only when the user made the reverse change on screen (IN-12, IN-13)."
+    type: "{base_url}/v1/errors/inbox_item_conflict"
+    choice_note: "IN-12 fixes the 409 with the current state; the code name is chosen by the contract."

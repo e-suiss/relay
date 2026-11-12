@@ -629,6 +629,21 @@ defmodule RelayWeb.Router do
 
     post "/subscriber/test_recipients/:test_recipient_id/confirm", TesterController, :confirm,
       private: %{relay_operation: "confirmMyTestRecipient"}
+
+    get "/subscriber/inbox/items", InboxController, :index,
+      private: %{relay_operation: "listMyInboxItems"}
+
+    get "/subscriber/inbox/items/:item_id", InboxController, :show,
+      private: %{relay_operation: "getMyInboxItem"}
+
+    post "/subscriber/inbox/items/:item_id/intents", InboxController, :intent,
+      private: %{relay_operation: "applyMyInboxIntent"}
+
+    get "/subscriber/inbox/counters", InboxController, :counters,
+      private: %{relay_operation: "getMyInboxCounters"}
+
+    get "/subscriber/inbox/changes", InboxController, :changes,
+      private: %{relay_operation: "listMyInboxChanges"}
   end
 
   # API-78

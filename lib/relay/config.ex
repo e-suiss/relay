@@ -52,6 +52,7 @@ defmodule Relay.Config do
     Relay.Workflow,
     Relay.Workflow.Digest,
     Relay.Agents,
+    Relay.Inbox,
     Oban
   ]
   @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.ReportRepo, Relay.Platform.MaintRepo]

@@ -3,7 +3,7 @@ jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema"
 info:
   title: Relay Subscriber API
   version: "2026-11-01"
-  description: "Client family used by browsers, mobile apps and UI components with a Relay subscriber token. This file holds the token exchange, preferences and device registration; the inbox is added in a later stage. Clients never hold secret credentials and can never send events. JSON in UTF-8, snake_case fields, RFC 3339 UTC times, ISO 8601 durations, amounts and large integers as strings. Unknown fields are rejected with 422 unknown_field at every depth, including overrides; null clears a field and an absent field is left untouched. HTTPS only (TLS 1.2 or later, HSTS). Every response carries Request-Id and Relay-Version. Errors are RFC 9457 problem details whose type resolves to /v1/errors/{code} on the same region. The token exchange is an OAuth endpoint and takes no Idempotency-Key; later write endpoints require one (24 hours, fixed). Relay delivers at least once and, with durable idempotency, processes effectively once. Identifiers are opaque, prefixed and time ordered (x-relay-id-prefixes). Resources of other tenants and environments return 404. Health endpoints are not part of this API."
+  description: "Client family used by browsers, mobile apps and UI components with a Relay subscriber token. This file holds the token exchange, preferences, device registration and the inbox. Clients never hold secret credentials and can never send events. JSON in UTF-8, snake_case fields, RFC 3339 UTC times, ISO 8601 durations, amounts and large integers as strings. Unknown fields are rejected with 422 unknown_field at every depth, including overrides; null clears a field and an absent field is left untouched. HTTPS only (TLS 1.2 or later, HSTS). Every response carries Request-Id and Relay-Version. Errors are RFC 9457 problem details whose type resolves to /v1/errors/{code} on the same region. The token exchange is an OAuth endpoint and takes no Idempotency-Key; later write endpoints require one (24 hours, fixed). Relay delivers at least once and, with durable idempotency, processes effectively once. Identifiers are opaque, prefixed and time ordered (x-relay-id-prefixes). Resources of other tenants and environments return 404. Health endpoints are not part of this API."
   license:
     name: Apache-2.0
     identifier: Apache-2.0
@@ -20,6 +20,8 @@ tags:
     description: "The subscriber's own preferences and profile (scope preferences)."
   - name: devices
     description: "The subscriber's own push devices (scope devices:write)."
+  - name: inbox
+    description: "The subscriber's own inbox: items, counters, changes and state intents (scopes inbox:read and inbox:write)."
 paths:
   "/v1/subscriber/token":
     post:
@@ -783,6 +785,467 @@ paths:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The confirmation with the subscriber's own token is the verification flow chosen by the contract (API-61)."
+  "/v1/subscriber/inbox/items":
+    get:
+      operationId: listMyInboxItems
+      tags:
+        - inbox
+      summary: List my inbox items
+      description: "A keyset page of the token subscriber's visible items, newest activity first (IN-30): no offset and no page count. status picks the tab: inbox (default; neither archived, snoozed, hidden nor expired), unread, archived, snoozed or all visible; category and tag narrow it. The first page, without starting_after, also carries the counters and the stream cursor and is the cold sync: a client opens the realtime stream first, buffers it, reads this page, then applies the buffer by item id and state_version (IN-28, IN-29). Hidden, retracted and expired items are never listed; their rows stay (IN-44, IN-17)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - name: status
+          in: query
+          description: Tab of the list.
+          required: false
+          schema:
+            type: string
+            enum:
+              - inbox
+              - unread
+              - archived
+              - snoozed
+              - all
+            default: inbox
+        - name: category
+          in: query
+          description: Category key the items carry.
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+        - name: tag
+          in: query
+          description: Tag the items carry.
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+      security:
+        - subscriber_bearer:
+            - "inbox:read"
+      responses:
+        "200":
+          description: A page of items.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/InboxItemList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+      x-relay-scopes:
+        - "inbox:read"
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "Path, the tab parameter and the counters and stream cursor on the first page are chosen by the contract (IN-29, IN-30)."
+  "/v1/subscriber/inbox/items/{item_id}":
+    get:
+      operationId: getMyInboxItem
+      tags:
+        - inbox
+      summary: Get one of my inbox items
+      description: "One visible item of the token subscriber with its rendered content as it was sent (IN-4): the template is never run again. A hidden, retracted or expired item and another subscriber's item are 404 inbox_item_not_found. The id and state_version always travel together (IN-5)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/InboxItemId"
+      security:
+        - subscriber_bearer:
+            - "inbox:read"
+      responses:
+        "200":
+          description: The item.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/InboxItem"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - inbox_item_not_found
+      x-relay-scopes:
+        - "inbox:read"
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "Path chosen by the contract; the subscriber comes from the token."
+  "/v1/subscriber/inbox/items/{item_id}/intents":
+    post:
+      operationId: applyMyInboxIntent
+      tags:
+        - inbox
+      summary: Send a state intent for one of my inbox items
+      description: "The client sends an intent, never a state (IN-12): seen, read, archive and hide are monotone and apply unconditionally and idempotently; unread, unarchive and unsnooze apply only when base_state_version is the item's current state_version, else 409 inbox_item_conflict with the current state, which the client accepts (IN-13). read also marks seen (IN-9). snooze takes snooze_until, a future time within 366 days; the item leaves the list until then and comes back by itself. hide is terminal for the user; the row stays (IN-44). The server stamps every change (IN-11), raises state_version and writes the counters and the stream update in the same transaction (IN-18, IN-25). client_seq is echoed back for the client's offline queue; client times are never trusted."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/InboxItemId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/InboxIntent"
+      security:
+        - subscriber_bearer:
+            - "inbox:write"
+      responses:
+        "200":
+          description: Applied or unchanged.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/InboxIntentResult"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - inbox_item_not_found
+        - inbox_item_conflict
+      x-relay-scopes:
+        - "inbox:write"
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "One intent per request, the path and the snooze bound of 366 days are chosen by the contract; unsnooze is treated as a reverse intent like unread and unarchive."
+  "/v1/subscriber/inbox/counters":
+    get:
+      operationId: getMyInboxCounters
+      tags:
+        - inbox
+      summary: Get my inbox counters
+      description: "The token subscriber's absolute counters computed on the server (IN-18, IN-19): unseen, unread and total over the inbox tab, and version, which grows with every change. A client ignores counters older than its own. Apps ask for them unconditionally when they come to the foreground (IN-21)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      security:
+        - subscriber_bearer:
+            - "inbox:read"
+      responses:
+        "200":
+          description: The counters.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/InboxCounters"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+      x-relay-scopes:
+        - "inbox:read"
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "Path chosen by the contract."
+  "/v1/subscriber/inbox/changes":
+    get:
+      operationId: listMyInboxChanges
+      tags:
+        - inbox
+      summary: List my inbox changes since a cursor
+      description: "The delta sync (IN-29): the items created, updated and removed (hidden, retracted or expired) after the stream cursor since, in stream order, at most limit (default and most 500), each created or updated one with its full view and each removed one with its state only, the next cursor and the counters. has_more says another page follows; truncated says more than 500 changes wait and the client goes back to a cold sync. A cursor of an earlier epoch or outside the stream answers resync_required with the current cursor (IN-22). The cursor is the same text a realtime transport uses as its event identifier."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - name: since
+          in: query
+          description: Stream cursor of the last change the client applied.
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - name: limit
+          in: query
+          description: Most changes in the answer.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 500
+      security:
+        - subscriber_bearer:
+            - "inbox:read"
+      responses:
+        "200":
+          description: The changes.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/InboxChanges"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+      x-relay-scopes:
+        - "inbox:read"
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "Path and the stream cursor form (unsigned, opaque, base64url of epoch and sequence; it names a position only and every read checks the token) are chosen by the contract."
 components:
   securitySchemes:
     subscriber_bearer:
@@ -890,6 +1353,410 @@ components:
           enum:
             - displayed
             - clicked
+      additionalProperties: false
+    InboxItemState:
+      type: object
+      description: "The state of an inbox item without its content (IN-9 … IN-11): the identifier and state_version always travel together (IN-5). read is effective when the read stamp is newer than the unread stamp and the last activity, archived when the archive stamp is newer than the unarchive stamp; a cumulative update makes the item unseen and unread again."
+      required:
+        - id
+        - state_version
+        - seen
+        - read
+        - archived
+        - hidden
+        - expired
+        - snoozed_until
+        - seen_at
+        - read_at
+        - archived_at
+      properties:
+        id:
+          "$ref": "./components/schemas.yaml#/Id_inb"
+        state_version:
+          type: integer
+          minimum: 1
+        seen:
+          type: boolean
+        read:
+          type: boolean
+        archived:
+          type: boolean
+        hidden:
+          type: boolean
+          description: "Hidden by the user or retracted by the sender; terminal for the user."
+        expired:
+          type: boolean
+        snoozed_until:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        seen_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        read_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        archived_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+      additionalProperties: false
+    InboxItem:
+      type: object
+      description: "An inbox item, a topic with activities (IN-4): its content as rendered when it was sent, never rendered again, its category, tags, severity and group key, the activity and actor counts of a digest that updates it, and its state. Field limits are x-relay-limits inbox (IN-49). Content that can no longer be read, as after an erasure, is null."
+      required:
+        - object
+        - id
+        - state_version
+        - seen
+        - read
+        - archived
+        - hidden
+        - expired
+        - snoozed_until
+        - seen_at
+        - read_at
+        - archived_at
+        - created_at
+        - last_activity_at
+        - category
+        - tags
+        - severity
+        - group_key
+        - title
+        - body
+        - avatar_url
+        - url
+        - actions
+        - data
+        - locale
+        - dir
+        - activity_count
+        - actor_count
+        - expires_at
+      properties:
+        object:
+          type: string
+          enum:
+            - inbox_item
+        id:
+          "$ref": "./components/schemas.yaml#/Id_inb"
+        state_version:
+          type: integer
+          minimum: 1
+        seen:
+          type: boolean
+        read:
+          type: boolean
+        archived:
+          type: boolean
+        hidden:
+          type: boolean
+        expired:
+          type: boolean
+        snoozed_until:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        seen_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        read_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        archived_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        created_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        last_activity_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        category:
+          oneOf:
+            - type: string
+              maxLength: 128
+            - type: "null"
+        tags:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+            maxLength: 64
+        severity:
+          oneOf:
+            - type: string
+              maxLength: 32
+            - type: "null"
+          x-relay-choice: true
+          x-relay-choice-note: "IN-4 names severity without its values or source; it is null until they are decided."
+        group_key:
+          oneOf:
+            - type: string
+              maxLength: 128
+            - type: "null"
+        title:
+          oneOf:
+            - type: string
+            - type: "null"
+        body:
+          oneOf:
+            - type: string
+            - type: "null"
+        avatar_url:
+          oneOf:
+            - type: string
+            - type: "null"
+        url:
+          oneOf:
+            - type: string
+            - type: "null"
+          description: "The target of the item: the event's primary link (E-83)."
+        actions:
+          type: array
+          maxItems: 3
+          description: "Action buttons. A button is never an approval; on an approval item it only links to the Access approval surface (IN-6)."
+          items:
+            type: object
+            required:
+              - label
+              - url
+            properties:
+              label:
+                type: string
+              url:
+                type: string
+            additionalProperties: false
+        data:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            required:
+              - key
+              - value
+            properties:
+              key:
+                type: string
+              value:
+                type: string
+            additionalProperties: false
+        locale:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Locale"
+            - type: "null"
+        dir:
+          oneOf:
+            - type: string
+              enum:
+                - ltr
+                - rtl
+                - auto
+            - type: "null"
+        activity_count:
+          type: integer
+          minimum: 1
+        actor_count:
+          type: integer
+          minimum: 0
+        expires_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+      additionalProperties: false
+    InboxCounters:
+      type: object
+      description: "Absolute counters computed on the server and written in the same transaction as the items (IN-18, IN-19): unseen (the default badge source), unread and total over the inbox tab. version grows with every change; a client ignores counters whose version is not newer than its own. A badge is never sent as an increment."
+      required:
+        - object
+        - unseen
+        - unread
+        - total
+        - version
+      properties:
+        object:
+          type: string
+          enum:
+            - inbox_counters
+        unseen:
+          type: integer
+          minimum: 0
+        unread:
+          type: integer
+          minimum: 0
+        total:
+          type: integer
+          minimum: 0
+        version:
+          type: integer
+          minimum: 0
+      additionalProperties: false
+    InboxItemList:
+      type: object
+      description: "A keyset page of items. The first page (without starting_after) also carries counters and the stream cursor to continue from with the changes endpoint or a realtime transport."
+      required:
+        - object
+        - data
+        - has_more
+        - next_cursor
+        - previous_cursor
+      properties:
+        object:
+          type: string
+          enum:
+            - list
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/InboxItem"
+        has_more:
+          type: boolean
+        next_cursor:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Cursor"
+            - type: "null"
+        previous_cursor:
+          type: "null"
+        counters:
+          "$ref": "#/components/schemas/InboxCounters"
+        cursor:
+          type: string
+          maxLength: 64
+          description: Stream cursor of the moment the page was read.
+      additionalProperties: false
+    InboxChange:
+      type: object
+      description: "One item change after the cursor: created and updated changes carry the full item, removed ones (hidden, retracted, expired) the item's state only."
+      required:
+        - type
+        - item_id
+        - state_version
+        - cursor
+        - item
+      properties:
+        type:
+          type: string
+          enum:
+            - created
+            - updated
+            - removed
+        item_id:
+          "$ref": "./components/schemas.yaml#/Id_inb"
+        state_version:
+          type: integer
+          minimum: 1
+        cursor:
+          type: string
+          maxLength: 64
+        item:
+          anyOf:
+            - "$ref": "#/components/schemas/InboxItem"
+            - "$ref": "#/components/schemas/InboxItemState"
+      additionalProperties: false
+    InboxChanges:
+      type: object
+      description: "The delta sync answer (IN-29)."
+      required:
+        - object
+        - changes
+        - cursor
+        - has_more
+        - truncated
+        - resync_required
+        - counters
+      properties:
+        object:
+          type: string
+          enum:
+            - inbox_changes
+        changes:
+          type: array
+          maxItems: 500
+          items:
+            "$ref": "#/components/schemas/InboxChange"
+        cursor:
+          type: string
+          maxLength: 64
+          description: Stream cursor to continue from.
+        has_more:
+          type: boolean
+        truncated:
+          type: boolean
+          description: More than 500 changes wait; go back to a cold sync.
+        resync_required:
+          type: boolean
+          description: "The cursor's epoch or position no longer holds (IN-22); go back to a cold sync from cursor."
+        resync_reason:
+          type: string
+          enum:
+            - epoch_changed
+            - position_out_of_range
+        counters:
+          "$ref": "#/components/schemas/InboxCounters"
+      additionalProperties: false
+    InboxIntent:
+      type: object
+      description: "A state intent (IN-12). base_state_version is required in effect for unread, unarchive and unsnooze: without the current version they are a conflict."
+      required:
+        - op
+      properties:
+        op:
+          type: string
+          enum:
+            - seen
+            - read
+            - unread
+            - archive
+            - unarchive
+            - hide
+            - snooze
+            - unsnooze
+        base_state_version:
+          type: integer
+          minimum: 1
+        client_seq:
+          type: integer
+          minimum: 0
+          description: "The client's offline queue sequence; echoed back, never interpreted (IN-13)."
+        snooze_until:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+      additionalProperties: false
+    InboxIntentResult:
+      type: object
+      required:
+        - object
+        - item_id
+        - op
+        - client_seq
+        - result
+        - state
+        - counters
+      properties:
+        object:
+          type: string
+          enum:
+            - inbox_intent_result
+        item_id:
+          "$ref": "./components/schemas.yaml#/Id_inb"
+        op:
+          type: string
+        client_seq:
+          oneOf:
+            - type: integer
+            - type: "null"
+        result:
+          type: string
+          enum:
+            - applied
+            - unchanged
+        state:
+          "$ref": "#/components/schemas/InboxItemState"
+        counters:
+          "$ref": "#/components/schemas/InboxCounters"
       additionalProperties: false
 x-relay-family:
   - client

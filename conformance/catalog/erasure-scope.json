@@ -641,6 +641,24 @@
       "personal_columns": [],
       "tenant_close": "row kept",
       "subject_erasure": "identifiers, codes and times only; row kept"
+    },
+    {
+      "table": "inbox_items",
+      "personal_columns": ["content_ct"],
+      "tenant_close": "tenant keys destroyed; row kept",
+      "subject_erasure": "content is encrypted under the recipient's notification_content or commercial_message subject key, which is destroyed; the row and its state are kept and the content reads as null"
+    },
+    {
+      "table": "inbox_item_deliveries",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "no personal fields; identifiers only"
+    },
+    {
+      "table": "inbox_counters",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "no personal fields; counts only"
     }
   ],
   "locations": [

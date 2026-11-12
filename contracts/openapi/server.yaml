@@ -19778,6 +19778,12 @@ x-relay-id-prefixes:
     stage: 8
     x-relay-choice: true
     x-relay-choice-note: Prefix chosen by the contract.
+  - prefix: inb_
+    concept: Inbox item
+    table: inbox_items
+    stage: 9
+    x-relay-choice: true
+    x-relay-choice-note: Prefix chosen by the contract.
 x-relay-api-versions:
   supported:
     - "2026-11-01"
@@ -19892,4 +19898,20 @@ x-relay-limits:
   timing:
     release_jitter_spread: PT15M
     scheduled_jitter_spread: PT60S
+  inbox:
+    title_max_bytes: 512
+    body_max_bytes: 8192
+    actions_max: 3
+    action_label_max_bytes: 64
+    action_url_max_bytes: 2048
+    data_rows_max: 10
+    data_key_max_bytes: 64
+    data_value_max_bytes: 256
+    avatar_url_max_bytes: 2048
+    tags_max: 10
+    tag_max_bytes: 64
+    group_key_max_bytes: 128
+    item_max_bytes: 16384
+    realtime_item_max_bytes: 8192
+    changes_max: 500
 x-relay-error-catalog: "../errors.yaml"

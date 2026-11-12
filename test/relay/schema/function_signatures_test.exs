@@ -299,7 +299,12 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.campaign_cancel" => ~w(cancelled already_closed not_found),
     "relay_fn.campaign_overrun" => ~w(reported already_reported),
     "relay_fn.campaign_members_add" => ~w(added not_draft too_large not_found),
-    "relay_fn.campaign_close" => ~w(closed already_closed not_running not_done not_found)
+    "relay_fn.campaign_close" => ~w(closed already_closed not_running not_done not_found),
+    "relay_fn.inbox_deliver" =>
+      ~w(created updated exists delivery_not_found not_in_app recipient_inactive),
+    "relay_fn.inbox_intent" => ~w(applied unchanged conflict invalid not_found),
+    "relay_fn.inbox_retract" => ~w(retracted),
+    "relay_fn.inbox_timer_fire" => ~w(fired not_due not_found)
   }
 
   defp functions do

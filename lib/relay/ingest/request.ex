@@ -66,6 +66,7 @@ defmodule Relay.Ingest.Request do
            dedup_key: Map.get(body, "dedup_key"),
            security_subtype: Map.get(body, "security_subtype"),
            on_expire: Map.get(body, "on_expire"),
+           timing_precision: Map.get(body, "timing_precision"),
            cancellation_key: Map.get(body, "cancellation_key"),
            retention_none: Map.get(body, "retention") == "none",
            metadata: Map.get(body, "metadata"),

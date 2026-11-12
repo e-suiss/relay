@@ -928,7 +928,7 @@
       "type": "object",
       "description": "Waits for an event of a type with a correlation key and an optional second-stage match condition; the timeout is required and at most P30D, and on_timeout runs when it passes (WF-12).",
       "x-relay-choice": true,
-      "x-relay-choice-note": "The spec does not say which incoming events are offered to waits. An accepted CloudEvent is offered to the waits of each of its recipients with its type as the event type and its correlationid (the request's correlation_id) as the correlation key; a native event request carries no event type and is not offered. The match condition reads incoming.… only; an event buffered before the wait opened resolves a wait without match at once and stays buffered for a wait with match. A correlation key that renders empty or outside 1 to 256 printable ASCII characters, and a waitpoint limit, skip the step with workflow_run.wait_refused.",
+      "x-relay-choice-note": "The spec does not say which incoming events are offered to waits. An accepted CloudEvent is offered to the waits of each of its recipients with its type as the event type and its correlationid (the request's correlation_id) as the correlation key; a native event request carries no event type and is not offered. The match condition reads incoming.… only; an event buffered before the wait opened resolves a wait without match at once and stays buffered for a wait with match. A correlation key that renders empty or outside 1 to 256 printable ASCII characters, and a waitpoint limit, count as an immediate timeout: the step records timed_out with workflow_run.wait_refused and on_timeout runs.",
       "required": [
         "type",
         "key",

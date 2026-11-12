@@ -234,9 +234,15 @@
     "reason": "WF-30, PC-57 (1): committed relay_fn category functions are dropped for their new signature with the density threshold as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   },
   {
-    "path": "priv/repo/migrations/20261214800400_open_subscriber_event_waits.exs",
+    "path": "priv/repo/migrations/20261214900400_open_subscriber_event_waits.exs",
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "WF-12: the committed relay_fn.waitpoint_open and relay_fn.waitpoint_event_offer are replaced as their owner, relay_owner, which relay_migrator may SET but does not inherit, so a subscriber's event wait can carry its second-stage condition; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261214900500_erase_subscriber_event_waits.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WF-12, OP-24: the committed relay_fn.subject_erase is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit, so the event waits of an erased subscriber are cancelled and cleared like an agent's; the role is reset in the same migration transaction"
   }
 ]

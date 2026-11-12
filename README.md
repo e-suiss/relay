@@ -121,10 +121,13 @@ relay trigger welcome --to user-4821 --data '{"first_name": "Ayşe"}'
 relay preview welcome --to user-4821 --data-file data.json   # dry run, test only
 relay logs --follow                                          # watch new notifications
 relay listen --forward-to http://localhost:3000/relay        # forward them to your app
-relay pull && relay push --publish                           # workflows as files
+relay pull --format yaml                                     # routes, templates, workflows as files
+relay push --publish                                         # files back as published drafts
 relay promote welcome --yes                                  # test version to live
 relay kill-switch engage --scope workflow --ref welcome --reason "bad copy" --ttl PT1H
 ```
+
+`pull` writes `relay/routes/`, `relay/templates/` and `relay/workflows/`, one JSON or YAML file per definition with sorted keys, so a git diff shows only what changed. `push` checks every file against the definition schema before it sends anything and reports each error with its JSON Pointer; a workflow the files manage becomes code-managed, and a panel-managed workflow is left alone unless `--manage-as-code` is given.
 
 Every command accepts `--json` and then prints one JSON object with an `exit_code` field. Exit codes are stable: `0` success, `1` unexpected error, `2` usage error, `3` authentication or authorization, `4` not found, `5` validation or conflict, `6` rate limit or quota, `7` server or connection, `8` live change not confirmed. A command that changes the live environment asks for confirmation, or takes `--yes`. Run `relay help` for every option, including profiles in `~/.config/relay/config.json`.
 

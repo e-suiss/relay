@@ -180,7 +180,7 @@
         "default_response_ct"
       ],
       "tenant_close": "tenant data key destroyed; row kept",
-      "subject_erasure": "content, claim text and default response set to null with fields_erased_at when the subject is the waiter or a responder; open and stalled waitpoints are cancelled with reason subject_erasure"
+      "subject_erasure": "content, claim text and default response set to null with fields_erased_at when the subject is the waiter (an agent, or the subscriber of a workflow event wait) or a responder; open and stalled waitpoints are cancelled with reason subject_erasure"
     },
     {
       "table": "waitpoint_responders",

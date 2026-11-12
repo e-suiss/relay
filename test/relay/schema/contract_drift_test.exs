@@ -48,6 +48,7 @@ defmodule Relay.Schema.ContractDriftTest do
     {"relay.events", "events_source_check", {"schemas", ["Event", "properties", "source"]}},
     {"relay.events", "events_sender_type_check", {"schemas", ["Actor", "properties", "type"]}},
     {"relay.events", "events_priority_check", {"schemas", ["Priority"]}},
+    {"relay.events", "events_timing_precision_check", {"schemas", ["TimingPrecision"]}},
     {"relay.events", "events_security_subtype_check", {"schemas", ["SecuritySubtype"]}},
     {"relay.events", "events_on_expire_check", {"schemas", ["OnExpire"]}},
     {"relay.events", "events_interruption_check", {"schemas", ["Interruption"]}},

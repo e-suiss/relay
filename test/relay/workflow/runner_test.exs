@@ -215,20 +215,25 @@ defmodule Relay.Workflow.RunnerTest do
       assert %{"outcome" => "timed_out", "timed_out" => true} = late["results"]["reply"]
     end
 
-    test "WF-12: an early event resolves the wait at once and an unusable key is recorded with its rule" do
+    test "WF-12: an early event resolves the wait at once and a wait that cannot open times out at once" do
       wait = %{
         "type" => "wait_for_event",
         "key" => "reply",
         "event_type" => "ticket.replied",
         "correlation_key" => "{{data.missing}}",
-        "timeout" => "PT1H"
+        "timeout" => "PT1H",
+        "on_timeout" => [mail("nudge")]
       }
 
-      assert {:ok, %{status: "completed", state: state, extras: [{"b", "email"}]}} =
+      assert {:ok,
+              %{status: "completed", state: state, extras: [{"nudge", "email"}, {"b", "email"}]}} =
                run([wait, mail("b")])
 
-      assert %{"outcome" => "skipped", "rule_id" => "workflow_run.wait_refused"} =
-               state["results"]["reply"]
+      assert %{
+               "outcome" => "timed_out",
+               "timed_out" => true,
+               "rule_id" => "workflow_run.wait_refused"
+             } = state["results"]["reply"]
 
       early = %{
         digest: fn _step -> {:error, :unused} end,

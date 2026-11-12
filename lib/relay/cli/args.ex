@@ -52,12 +52,14 @@ defmodule Relay.CLI.Args do
     why: :boolean
   ]
 
+  @push [publish: :boolean, note: :string, accept_warnings: :boolean, manage_as_code: :boolean]
+
   @commands %{
     "trigger" => {@event, 1, 1},
     "preview" => {@event ++ @preview, 1, 1},
-    "pull" => {[dir: :string], 0, :many},
-    "push" => {[dir: :string, publish: :boolean, note: :string], 0, :many},
-    "promote" => {[version: :integer, note: :string], 1, 1},
+    "pull" => {[dir: :string, kind: :keep, format: :string], 0, :many},
+    "push" => {@push ++ [dir: :string, kind: :keep], 0, :many},
+    "promote" => {@push ++ [kind: :string, all: :boolean, version: :integer], 0, :many},
     "logs" => {@filters ++ @logs, 0, 0},
     "listen" => {@filters ++ [forward_to: :string], 0, 0}
   }
@@ -99,9 +101,10 @@ defmodule Relay.CLI.Args do
     trigger <workflow>          Send an event to a workflow
     preview <workflow>          Dry-run an event in the test environment; with --template
                                 render a template, with --steps preview the workflow steps
-    pull [workflow...]          Write workflow definitions to files (--dir, default workflows)
-    push [file...]              Write workflow files as drafts (--dir, --publish, --note)
-    promote <workflow>          Publish the test version of a workflow in live (--version)
+    pull [key...]               Write the route, template and workflow definitions of the
+                                environment to files under --dir (default relay)
+    push [file...]              Write definition files back as drafts; --publish publishes them
+    promote <key...> | --all    Publish definitions of test in live (--kind, --version)
     logs                        Show recent notifications (--follow, --deliveries, --limit,
                                 --since, --until); --why --subscriber <id> explains why
                                 a subscriber did or did not get them
@@ -121,6 +124,18 @@ defmodule Relay.CLI.Args do
 
   Preview options: --template <key>, --steps, --channel <channel> (repeatable),
   --locale <tag>, --version draft|live|<n>, --sample schema_examples|masked_recent|boundary
+
+  Definition options (pull, push, promote):
+    --dir <path>                Directory of routes/, templates/ and workflows/ (default relay)
+    --kind route|template|workflow   Only this kind; repeatable for pull and push,
+                                one kind for promote (default workflow)
+    --format json|yaml          Format of new files written by pull (default json)
+    --publish                   push: publish each written draft
+    --note <text>               Publication note
+    --accept-warnings           Publish templates despite warning findings
+    --manage-as-code            Make code the single manager of a panel-managed workflow
+    --all                       promote: every published definition of test
+    --version <n>               promote: this version of one template or workflow
 
   Filters (logs, listen): --workflow <key>, --subscriber <id>, --status <status>,
   --interval <seconds> (polling interval, default 2)

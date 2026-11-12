@@ -2,7 +2,7 @@ defmodule Relay.Workflow.Steps.WaitForEvent do
   @moduledoc """
   The event wait step (WF-12, AG-13, AG-14): opens, through the run's `wait` effect, an event waitpoint of the run's recipient for the step's `event_type` and its rendered `correlation_key`, with the step's `match` as the second-stage condition and a deadline of the step's `timeout` (at most P30D) from the business time base. A waitpoint is a row and a timer (C-8, WF-43), so the run parks without holding anything.
 
-  An event buffered in the recipient's mailbox before the wait opened resolves a wait without a `match` at once and the run goes on with `matched`. Otherwise the run parks until the waitpoint closes: a matching event resumes it with `matched`, the deadline with `timed_out` and the step's `on_timeout` steps (`Relay.Workflow.Runner.resume_wait/3`). A correlation key that renders empty or outside the waitpoint's printable ASCII range, and a waitpoint the store refuses (a limit, an inactive recipient), record `skipped` with `workflow_run.wait_refused` and the reason, and the run goes on.
+  An event buffered in the recipient's mailbox before the wait opened resolves a wait without a `match` at once and the run goes on with `matched`. Otherwise the run parks until the waitpoint closes: a matching event resumes it with `matched`, the deadline with `timed_out` and the step's `on_timeout` steps (`Relay.Workflow.Runner.resume_wait/3`). A correlation key that renders empty or outside the waitpoint's printable ASCII range, and a waitpoint the store refuses (a limit, an inactive recipient), count as an immediate timeout (WF-12's timeout branch is mandatory): the step records `timed_out` with `workflow_run.wait_refused` and the reason, its `on_timeout` steps run, and the run goes on.
   """
 
   @behaviour Relay.Workflow.Step
@@ -23,7 +23,7 @@ defmodule Relay.Workflow.Steps.WaitForEvent do
       at = DateTime.add(now, seconds, :second)
       wait(context.effects.wait.(%{step: step, correlation_key: key, expires_at: at}), at)
     else
-      _invalid -> {:continue, refused("correlation_key_invalid")}
+      _invalid -> refused("correlation_key_invalid")
     end
   end
 
@@ -39,10 +39,13 @@ defmodule Relay.Workflow.Steps.WaitForEvent do
          "expires_at" => DateTime.to_iso8601(at)
        }}
 
-  defp wait({:ok, %{state: :refused, reason: reason}}, _at), do: {:continue, refused(reason)}
+  defp wait({:ok, %{state: :refused, reason: reason}}, _at), do: refused(reason)
   defp wait({:error, reason}, _at), do: {:error, reason}
 
-  defp refused(reason), do: %{"outcome" => "skipped", "rule_id" => @refused, "reason" => reason}
+  defp refused(reason),
+    do:
+      {:branch, ["on_timeout"],
+       %{"outcome" => "timed_out", "timed_out" => true, "rule_id" => @refused, "reason" => reason}}
 
   defp text(<<_::128>> = id), do: Relay.Id.to_string(id)
 

@@ -69,7 +69,7 @@ defmodule Relay.MixProject do
       {:ex_cldr_messages, "2.0.1"},
       {:ex_cldr_currencies, "2.17.2"},
       {:ex_cldr_calendars, "2.4.4"},
-      {:yaml_elixir, "~> 2.12.2", runtime: false},
+      {:yaml_elixir, "~> 2.12.2"},
       {:boundary, "~> 0.11", runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},

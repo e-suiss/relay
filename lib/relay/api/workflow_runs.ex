@@ -37,7 +37,9 @@ defmodule Relay.Api.WorkflowRuns do
         "send_mode" => p.request.send_mode,
         "priority" => p.request.priority,
         "security_subtype" => p.request.security_subtype,
-        "sender_type" => p.request.sender_type
+        "sender_type" => p.request.sender_type,
+        "on_expire" => p.request.on_expire,
+        "timing_precision" => p.request.timing_precision
       },
       "steps" => Enum.map(p.request.steps, &step/1),
       "routes" => Map.get(p, :routes, %{}),
@@ -275,6 +277,8 @@ defmodule Relay.Api.WorkflowRuns do
       priority: request["priority"],
       security_subtype: request["security_subtype"],
       sender_type: request["sender_type"],
+      on_expire: request["on_expire"],
+      timing_precision: request["timing_precision"],
       steps: Enum.map(plan["steps"] || [], &decode_step/1)
     }
   end

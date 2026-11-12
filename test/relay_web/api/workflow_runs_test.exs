@@ -344,6 +344,26 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
       assert %{"matched" => true, "outcome" => "matched"} = run!(ctx, id)["step_results"]["reply"]
     end
 
+    test "WF-12 OP-24: erasing the subscriber cancels its open event wait", ctx do
+      RelayTest.TenantFixture.retention_periods!()
+      workflow!(ctx, "erased-waits", [wait_step(), mail("after")])
+      {_notification, id} = send!(ctx, "erased-waits")
+      run = run!(ctx, id)
+      {:ok, waitpoint_id} = Relay.Id.parse(run["step_results"]["reply"]["waitpoint_id"])
+
+      actor = %Relay.Actor{
+        kind: :operator,
+        ref: "op-1",
+        on_behalf_of_ref: "op-1",
+        access_record_ref: "acc-rec-1"
+      }
+
+      assert {:ok, :erased, _cancelled} =
+               Relay.Keys.Erasure.erase_subject(ctx.scope, run["recipient_id"], "dsr-wait", actor)
+
+      assert {:ok, %{state: "cancelled"}} = Relay.Agents.get_waitpoint(ctx.scope, waitpoint_id)
+    end
+
     test "WF-12: a wait that times out runs on_timeout and goes on", ctx do
       wait = Map.put(wait_step(), "on_timeout", [inbox("nudge")])
       workflow!(ctx, "nudges", [wait, mail("after")])

@@ -2,7 +2,7 @@ defmodule Relay.Api.Events do
   @moduledoc """
   The send operations (API-19 … API-34, OP-7, DS-36). An event is prepared outside any transaction (`prepare/3`): its workflow version is resolved and frozen (WF-7), the request's field rules and the event schema are checked (API-20, API-27), the recipients' writes are prepared with their keys (API-21) and the payload is sealed under the tenant data key. It is then accepted inside the request's idempotency transaction (`accept/2`), so the idempotency claim, the event, its notifications and deliveries with their opening ledger events, the queue jobs, the quota counters and the outbox events commit together or not at all.
 
-  Every notification has one workflow run (WF-59 (5), `Relay.Workflow.start_run/2`): at acceptance the run is created and advanced in the same transaction up to its first waiting step, and each channel step it reaches opens its delivery here (`open_step/6`), exactly as a workflow of channel steps alone always did; a later step opens its delivery when the run wakes (`Relay.Api.WorkflowRuns`). A request's `send_at` is the run's time base (WF-41).
+  Every notification has one workflow run (WF-59 (5), `Relay.Workflow.start_run/2`): at acceptance the run is created and advanced in the same transaction up to its first waiting step, and each channel step it reaches opens its delivery here (`open_step/6`), exactly as a workflow of channel steps alone always did; a later step opens its delivery when the run wakes (`Relay.Api.WorkflowRuns`). A request's `send_at` is the run's time base (WF-41), except in the `security` class, which is never scheduled: its `send_at` is not applied and the answer warns `send_at_ignored` (WF-40). The job of a scheduled delivery fires after `send_at` by the WF-58 scheduled jitter, which never reaches `expires_at` and is zero for `timing_precision: strict` or a strict tenant (`Relay.Timing`).
 
   Policy outcomes are decisions, not errors (C-4, MD-12, DS-26): every delivery is opened and the policy lattice decides it at once (`Relay.Policy.Live`, PC-58 (2)): a gate or filter skips it, a shaper defers it to `deferred_until` and queues its job for then, and an expiry closes it, each recorded with its reason, rule and detail and announced as `notification.suppressed` (DS-24, DS-27). The class comes from the workflow's category (PC-57 (3)), the priority is clamped to the class ceiling with a `priority_clamped` warning (API-22, PC-58 (7)) and a request without `expires_at` gets the category's or the class default (PC-57 (4)). A matching kill switch pauses the delivery at acceptance and queues no job (TN-40), the send mode `off` and an unknown sub-tenant skip it with a rule (OP-51, API-25), and a suspended subscriber's deliveries are skipped with `subscriber.suspended` (TN-73): the send is accepted and no delivery is sent. Before the lattice, each delivery's template is resolved with sub-tenant inheritance and its cell chosen for the recipient's locale (`Relay.Templates.Live`): a channel without a variant, a locale chain without a cell and a template without a live version skip the delivery with their template rule, and otherwise the template, layout and partial versions and the locale are pinned with the delivery (TP-50, TP-11, TP-26, WF-16). In `dry_run` the template step and the lattice run and the answer carries each channel's decision; nothing is opened, pinned or counted (PC-58 (8)). A durable write failure is `503` (INV-2).
   """
@@ -80,6 +80,7 @@ defmodule Relay.Api.Events do
          {:ok, subtenant} <- subtenant(scope, request.tenant, Map.get(ctx, :subtenant_id)),
          {:ok, category} <- subtenant_category(scope, workflow, category, subtenant) do
       request = clamp(request, body, category.message_class)
+      request = immediate(request, category.message_class)
       now = Relay.Clock.business_now(scope)
 
       {:ok,
@@ -139,6 +140,20 @@ defmodule Relay.Api.Events do
     do: category(scope, workflow, id)
 
   defp subtenant_category(_scope, _workflow, category, _subtenant), do: {:ok, category}
+
+  # WF-40
+  # WF-41
+  defp immediate(%{send_at: %DateTime{}} = request, :security) do
+    warning = %{
+      "code" => "send_at_ignored",
+      "pointer" => "/send_at",
+      "detail" => "the security class is sent at once"
+    }
+
+    %{request | send_at: nil, warnings: request.warnings ++ [warning]}
+  end
+
+  defp immediate(request, _class), do: request
 
   # API-22
   # PC-58 (7)
@@ -305,7 +320,7 @@ defmodule Relay.Api.Events do
     key = workflow["key"]
     modes = Enum.flat_map(steps, &Relay.Ingest.send_mode_keys(key, category, &1.channel))
     providers = Enum.map(steps, &"overrides.#{&1.channel}.provider")
-    keys = Enum.uniq([@domestic | modes ++ providers])
+    keys = Enum.uniq([@domestic, Relay.Timing.key() | modes ++ providers])
 
     read = fn _status -> %{settings: Relay.Ingest.settings(keys)} end
 
@@ -548,6 +563,7 @@ defmodule Relay.Api.Events do
       priority: r.priority,
       security_subtype: r.security_subtype,
       on_expire: r.on_expire,
+      timing_precision: r.timing_precision,
       send_at: r.send_at,
       expires_at: r.expires_at,
       retention_none: r.retention_none,
@@ -882,6 +898,8 @@ defmodule Relay.Api.Events do
           security_subtype: p.request.security_subtype,
           priority: p.request.priority,
           expires_at: p.expires_at,
+          on_expire: p.request.on_expire,
+          timing_precision: p.request.timing_precision,
           sender_type: p.request.sender_type
         }),
       frequency: Map.get(p.frequency, {row["id"], channel}, @no_readings)
@@ -940,7 +958,7 @@ defmodule Relay.Api.Events do
 
   defp after_open(p, notification_id, id, {:send, _info} = result) do
     _ = Live.record(id, result)
-    enqueue(p, notification_id, id, p.request.send_at)
+    enqueue(p, notification_id, id, scheduled(p, id))
   end
 
   defp after_open(p, notification_id, id, {:defer, _reason, _rule, until, _detail} = result) do
@@ -949,12 +967,32 @@ defmodule Relay.Api.Events do
   end
 
   defp after_open(p, notification_id, id, {:error, _input_unavailable}),
-    do: enqueue(p, notification_id, id, p.request.send_at)
+    do: enqueue(p, notification_id, id, scheduled(p, id))
 
   defp after_open(_p, _notification_id, id, skip_or_expire) do
     _ = Live.record(id, skip_or_expire)
     {:ok, []}
   end
+
+  # WF-42
+  # WF-58
+  defp scheduled(%{request: %{send_at: nil}}, _delivery_id), do: nil
+
+  defp scheduled(%{request: %{send_at: at}} = p, delivery_id) do
+    stored = p |> Map.get(:settings, %{}) |> Map.get(Relay.Timing.key())
+    control = Relay.Timing.from_stored(stored)
+    precision = Relay.Timing.precision(Map.get(p.request, :timing_precision))
+    spread = open_spread(Relay.Timing.spread(control, :scheduled, precision), at, p.expires_at)
+    text = DateTime.to_iso8601(%{at | microsecond: {0, 0}})
+    %{tenant_id: tenant_id, environment: environment} = p.scope
+    offset = Relay.Jitter.scheduled(tenant_id, environment, delivery_id, text, spread)
+    DateTime.add(at, offset, :millisecond)
+  end
+
+  defp open_spread(spread, _at, nil), do: spread
+
+  defp open_spread(spread, at, expires_at),
+    do: max(min(spread, DateTime.diff(expires_at, at, :millisecond)), 0)
 
   defp open(p, notification_id, row, step, delivery_id) do
     delivery = %{

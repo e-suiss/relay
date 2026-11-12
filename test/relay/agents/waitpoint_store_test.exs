@@ -194,10 +194,10 @@ defmodule Relay.Agents.WaitpointStoreTest do
           sql_error(
             """
             INSERT INTO relay.waitpoints (tenant_id, environment, id, kind, waiter_kind, waiter_ref,
-              waiter_mailbox_id, match_event_type, correlation_key, opened_at, expires_at, state,
+              waiter_mailbox_id, match_event_type, correlation_digest, opened_at, expires_at, state,
               state_changed_at, created_at, updated_at)
             SELECT tenant_id, environment, $2, 'event', waiter_kind, waiter_ref, waiter_mailbox_id,
-              match_event_type, correlation_key, now(), now() + interval '1 hour', 'open', now(),
+              match_event_type, correlation_digest, now(), now() + interval '1 hour', 'open', now(),
               now(), now()
             FROM relay.waitpoints WHERE id = $1
             """,
@@ -205,7 +205,7 @@ defmodule Relay.Agents.WaitpointStoreTest do
           )
 
         assert error.postgres.code == :unique_violation
-        assert error.postgres.constraint == "waitpoints_active_key"
+        assert error.postgres.constraint == "waitpoints_active_digest_key"
       end)
     end
   end

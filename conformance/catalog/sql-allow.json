@@ -250,5 +250,11 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "WF-12, OP-24: the committed relay_fn.subject_erase is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit, so the event waits of an erased subscriber are cancelled and cleared like an agent's; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261216400200_match_waitpoints_by_correlation_digest.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "AG-65: committed waitpoint and mailbox relay_fn functions are dropped for their new signature over correlation digests as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   }
 ]

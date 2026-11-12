@@ -789,7 +789,7 @@ components:
           maxLength: 256
         correlationid:
           type: string
-          description: "The sender's correlation_id; for waitpoint events the value of the creation request. Absent when none was given. Use A only."
+          description: "The sender's correlation_id; absent when none was given and on every waitpoint event, which never carries a correlation key (AG-65). Use A only."
           minLength: 1
           maxLength: 128
           pattern: "^[\\x20-\\x7E]+$"

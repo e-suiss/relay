@@ -407,6 +407,40 @@ defmodule Relay.Workflow do
     end
   end
 
+  # AG-65
+  # WF-12
+  @doc """
+  Computes, outside any transaction, the correlation digests a run's event waits need (`Relay.Agents.Correlation`): the pair of an incoming event's type and correlation key when both are valid, and for every `wait_for_event` step of `definition` its event type and the correlation key rendered against each of `contexts` (`:data` and `:recipient`). Returns a map keyed by `{event_type, key}` that the step context carries as `:correlation_digests`; a wait whose rendered key is missing from it is refused with `correlation_digest_unavailable`.
+  """
+  @spec correlation_digests(Scope.t(), map(), [map()], {term(), term()} | nil) ::
+          {:ok, %{{String.t(), String.t()} => [binary(), ...]}} | {:error, term()}
+  def correlation_digests(%Scope{} = scope, definition, contexts, incoming) do
+    waits = for %{"type" => "wait_for_event"} = step <- walk(definition["steps"]), do: step
+
+    pairs =
+      for context <- contexts,
+          step <- waits,
+          key = KeyTemplate.render(step["correlation_key"], context),
+          pair?(step["event_type"], key),
+          do: {step["event_type"], key}
+
+    pairs = if incoming_pair?(incoming), do: [incoming | pairs], else: pairs
+
+    if pairs == [], do: {:ok, %{}}, else: waiter().correlation_digest_map(scope, pairs)
+  end
+
+  defp walk(%{} = map), do: [map | Enum.flat_map(Map.values(map), &walk/1)]
+  defp walk(list) when is_list(list), do: Enum.flat_map(list, &walk/1)
+  defp walk(_other), do: []
+
+  defp incoming_pair?({type, key}), do: pair?(type, key)
+  defp incoming_pair?(_none), do: false
+
+  defp pair?(type, key) do
+    is_binary(type) and type != "" and byte_size(type) <= 128 and
+      Relay.Workflow.Steps.WaitForEvent.key?(key)
+  end
+
   defp with_effects(scope, context, meta) do
     Map.merge(context, %{
       outcomes: &outcomes/1,
@@ -414,7 +448,7 @@ defmodule Relay.Workflow do
       effects: %{
         digest: &digest_effect(scope, context, meta, &1),
         throttle: &throttle_effect(scope, context, meta, &1),
-        wait: &wait_effect(scope, meta, &1)
+        wait: &wait_effect(scope, context, meta, &1)
       }
     })
   end
@@ -450,14 +484,22 @@ defmodule Relay.Workflow do
 
   # WF-12
   # AG-13
-  defp wait_effect(scope, meta, %{step: step, correlation_key: key, expires_at: at}) do
+  # AG-65
+  defp wait_effect(scope, context, meta, %{step: step, correlation_key: key} = wait) do
+    case Map.get(context, :correlation_digests, %{})[{step["event_type"], key}] do
+      [_ | _] = digests -> open_wait(scope, meta, Map.put(wait, :correlation_digests, digests))
+      _missing -> {:ok, %{state: :refused, reason: "correlation_digest_unavailable"}}
+    end
+  end
+
+  defp open_wait(scope, meta, %{step: step, correlation_digests: digests, expires_at: at}) do
     attrs = %{
       id: Relay.Id.generate(),
       kind: :event,
       waiter_kind: :subscriber,
       waiter_ref: meta.recipient_id,
       match_event_type: step["event_type"],
-      correlation_key: key,
+      correlation_digests: digests,
       condition: step["match"],
       expires_at: at,
       tags: [@run_tag <> Relay.Id.to_string(meta.run_id)]
@@ -482,11 +524,13 @@ defmodule Relay.Workflow do
          %{incoming: %{event_type: type, correlation_key: key} = incoming} = run
        )
        when is_binary(type) and is_binary(key) do
-    if Relay.Workflow.Steps.WaitForEvent.key?(key) and type != "" and byte_size(type) <= 128 do
+    digests = Map.get(run.context, :correlation_digests, %{})[{type, key}]
+
+    if is_list(digests) and digests != [] do
       event = %{
         event_id: incoming.event_id,
         event_type: type,
-        correlation_key: key,
+        correlation_digests: digests,
         waiter_kind: :subscriber,
         waiter_ref: run.recipient_id,
         payload_digest: :crypto.hash(:sha256, Jason.encode!(incoming.data))

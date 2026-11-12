@@ -12758,25 +12758,13 @@ paths:
       tags:
         - agents
       summary: "List waitpoints"
-      description: "Pages through the waitpoints of this environment, newest first. match_type and correlation_key filter together; state, waiter and tag narrow further."
+      description: "Pages through the waitpoints of this environment, newest first; state, waiter and tag narrow the page. A waitpoint is not looked up by its correlation key, which the API takes only at creation (AG-65)."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
-        - name: match_type
-          in: query
-          description: "Event type the waitpoint matches; given together with correlation_key."
-          required: false
-          schema:
-            "$ref": "./components/schemas.yaml#/EventName"
-        - name: correlation_key
-          in: query
-          description: "Correlation key the waitpoint matches; given together with match_type."
-          required: false
-          schema:
-            "$ref": "./components/schemas.yaml#/CorrelationKey"
         - name: state
           in: query
           description: "Waitpoint state."

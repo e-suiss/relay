@@ -2,12 +2,13 @@ defmodule Relay.Access.SubscriberToken do
   @moduledoc """
   The subscriber token (C-17, E-23, E-24, API-45, TN-25, IN-41, IN-42). `exchange/3` is the only way to obtain one: the client presents its end user's Access access token (RFC 8693) with a DPoP proof of the token's key for the exchange request; Relay verifies both exactly as on the server API (`Relay.Access.verify_access_token/2`, E-93: `at+jwt`, `aud` Relay's Access `client_id`, `cnf.jkt` bound proof) and requires the `sid` of the end user's Access session, which a service token never carries; it takes tenant and environment from the Access client registration the token was issued to (never from the request; API-79 (4)), matches the subscriber by the Access pairwise `sub` as its `external_id` and creates an inbox-only subscriber when there is none. A suspended subscriber gets no token, and its tokens no longer verify (`auth_subscriber_suspended`, TN-73). When the Access link is not fully established (`:stale` included) no token is issued (E-75).
 
-  The token is a JWS (ES256) signed in the key store under the key named by `config :relay, Relay.Access, subscriber_token_key: label` (TN-63), valid for the contract's `subscriber_token_lifetime_seconds`, with the scopes `inbox:read`, `inbox:write`, `preferences`, `devices:write` and `presence:write` (API-79 (9)). It names the subscriber and the environment; the tenant travels sealed under the region KEK, so the client never sees it (TN-25). `verify/2` accepts only such a token: an Access token is never a subscriber credential (E-25).
+  The token is a JWS (ES256) signed in the key store under the current subscriber token key, whose label is the `kid` (`Relay.Access.SubscriberTokenKeys`, TN-63, IN-51); a token verifies under the current key or, for two token lifetimes after a rotation, the previous one, valid for the contract's `subscriber_token_lifetime_seconds`, with the scopes `inbox:read`, `inbox:write`, `preferences`, `devices:write` and `presence:write` (API-79 (9)). It names the subscriber and the environment; the tenant travels sealed under the region KEK, so the client never sees it (TN-25). `verify/2` accepts only such a token: an Access token is never a subscriber credential (E-25).
   """
 
   alias Relay.Access.Clients
   alias Relay.Access.Jose
   alias Relay.Access.Link
+  alias Relay.Access.SubscriberTokenKeys
   alias Relay.Access.Token
   alias Relay.AccessClaims
   alias Relay.Scope
@@ -19,7 +20,12 @@ defmodule Relay.Access.SubscriberToken do
   @aad "relay.subscriber_token.v1:"
 
   @type audiences :: %{issuer: String.t(), audience: String.t()}
-  @type verified :: %{scope: Scope.t(), subscriber_id: Relay.Id.t(), scopes: [String.t()]}
+  @type verified :: %{
+          scope: Scope.t(),
+          subscriber_id: Relay.Id.t(),
+          scopes: [String.t()],
+          kid: String.t()
+        }
 
   @doc "Every subscriber token scope."
   @spec scopes() :: [String.t(), ...]
@@ -152,14 +158,15 @@ defmodule Relay.Access.SubscriberToken do
   end
 
   # IN-42
+  # IN-51
   # TN-25
   # TN-63
   defp issue(scope, subscriber_id, scopes, audiences) do
-    label = key_label()
     environment = Relay.Environment.dump(scope.environment)
     now = now()
 
-    with {:ok, kek} <- Relay.Keys.kek_label(),
+    with {:ok, label} <- SubscriberTokenKeys.current_label(),
+         {:ok, kek} <- Relay.Keys.kek_label(),
          {:ok, sealed} <- seal(kek, environment, scope.tenant_id) do
       header = %{"alg" => "ES256", "typ" => "relay-subscriber+jwt", "kid" => label}
 
@@ -200,7 +207,8 @@ defmodule Relay.Access.SubscriberToken do
   # IN-41
   # API-76 (2)
   # TN-73
-  @doc "Verifies a subscriber token for `audiences` and returns its scope, subscriber and scopes; an Access token or any other token is `auth_invalid_token`, and the token of a suspended subscriber is `auth_subscriber_suspended`."
+  # IN-51
+  @doc "Verifies a subscriber token for `audiences` and returns its scope, subscriber, scopes and signing key label (`kid`), which must be the current key or the previous key within its window; an Access token or any other token is `auth_invalid_token`, and the token of a suspended subscriber is `auth_subscriber_suspended`."
   @spec verify(String.t(), audiences()) :: {:ok, verified()} | {:error, Relay.Error.t()}
   def verify(token, audiences) when is_binary(token) do
     with {:ok, verified} <- signed(token, audiences),
@@ -209,9 +217,9 @@ defmodule Relay.Access.SubscriberToken do
   end
 
   defp signed(token, audiences) do
-    label = key_label()
-
-    with {:ok, %{"kid" => ^label, "alg" => "ES256"}} <- Jose.peek_header(token),
+    with {:ok, %{"kid" => label, "alg" => "ES256"}} when is_binary(label) <-
+           Jose.peek_header(token),
+         {:ok, true} <- SubscriberTokenKeys.accepted?(label),
          {:ok, point} <- Relay.Keys.public_key(:es256, label),
          key = %{kid: label, alg: "ES256", type: :es256, public: point},
          expectation = %{issuer: audiences.issuer, audience: audiences.audience, now: now()},
@@ -219,9 +227,12 @@ defmodule Relay.Access.SubscriberToken do
          {:ok, scope} <- unseal(claims),
          {:ok, subscriber_id} <- Relay.ExternalId.decode(claims["sub"], ["sub"]) do
       scopes = claims["scope"] |> to_string() |> String.split(" ", trim: true)
-      {:ok, %{scope: scope, subscriber_id: subscriber_id, scopes: scopes}}
+      {:ok, %{scope: scope, subscriber_id: subscriber_id, scopes: scopes, kid: label}}
     else
-      {:error, %Relay.Error{code: :auth_expired_token} = error} -> {:error, error}
+      {:error, %Relay.Error{code: code} = error}
+      when code in [:auth_expired_token, :service_unavailable] ->
+        {:error, error}
+
       _other -> {:error, Relay.Error.new(:auth_invalid_token, "not a Relay subscriber token")}
     end
   end
@@ -236,9 +247,6 @@ defmodule Relay.Access.SubscriberToken do
   end
 
   defp unseal(_claims), do: :error
-
-  defp key_label,
-    do: Keyword.get(Relay.Access.config(), :subscriber_token_key, "subscriber-token")
 
   defp field(pointer, code, detail) do
     Relay.Error.new(:validation_failed, detail, %{

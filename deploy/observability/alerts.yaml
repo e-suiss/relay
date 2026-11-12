@@ -627,3 +627,11 @@ groups:
         annotations:
           summary: "Dirty CPU scheduler work has been queued for five minutes"
           runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaydirtyschedulerqueue
+      - alert: RelaySubscriberTokenKeyRotationDue
+        expr: time() - max(relay_access_subscriber_token_key_activated_timestamp_seconds) > 90 * 86400
+        labels:
+          severity: ticket
+          decision: IN-51
+        annotations:
+          summary: "The subscriber token signing key has not been rotated for 90 days"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysubscribertokenkeyrotationdue

@@ -369,3 +369,15 @@ tests:
             exp_annotations:
               summary: "Reconciliation of sms/twilio is more than 30 minutes behind"
               runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayreconciliationlag
+  - interval: 1m
+    input_series:
+      - series: 'relay_access_subscriber_token_key_activated_timestamp_seconds'
+        values: "-7776100+0x10"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: RelaySubscriberTokenKeyRotationDue
+        exp_alerts:
+          - exp_labels: {severity: ticket, decision: IN-51}
+            exp_annotations:
+              summary: "The subscriber token signing key has not been rotated for 90 days"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysubscribertokenkeyrotationdue

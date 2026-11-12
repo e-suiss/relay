@@ -123,6 +123,7 @@ defmodule Relay.Api.Events do
     data = request.data
     WorkflowRuns.correlation_digests(scope, workflow["definition"], data, attributes, incoming)
   end
+
   # WF-56
   # WF-57
   # PC-49

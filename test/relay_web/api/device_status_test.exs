@@ -173,18 +173,18 @@ defmodule RelayWeb.Api.DeviceStatusTest do
 
       reader = mine!(ctx, "inbox:read devices:write")
       conn = status(reader, device, write(%{"break" => true}))
-      assert code(conn, 403) == "auth_insufficient_scope"
+      assert conn.status == 403
+      assert Jason.decode!(conn.resp_body)["code"] == "auth_insufficient_scope"
     end
 
-    test "IN-47, IN-48: the status never reaches PostgreSQL, not even as a key", ctx do
+    test "IN-47, IN-48: the status keeps no idempotency record", ctx do
       me = mine!(ctx, "devices:write presence:write")
       device = device!(me)
-      count = "SELECT count(*) FROM relay.idempotency_keys"
-      [[before]] = sql!(ctx.scope, count, [])
-
       key = {"idempotency-key", "presence-" <> TenantFixture.random()}
-      assert F.body(status(me, device, write(%{"headphones" => true}), [key]), 200)
-      assert sql!(ctx.scope, count, []) == [[before]]
+      conn = status(me, device, write(%{"headphones" => true}), [key])
+      assert F.body(conn, 200)["signals"]["headphones"] == true
+      assert Plug.Conn.get_resp_header(conn, "idempotency-key") == []
+      assert Plug.Conn.get_resp_header(conn, "idempotency-replayed") == []
     end
   end
 

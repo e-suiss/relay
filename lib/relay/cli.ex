@@ -1,11 +1,11 @@
 defmodule Relay.CLI do
   @moduledoc """
-  The `relay` command line tool. It is a client of the public Relay HTTP API for local development, workflow files, previews, logs and kill switches: it signs in with an Access access token obtained with the OAuth 2.0 client credentials grant and never reaches server internals.
+  The `relay` command line tool. It is a client of the public Relay HTTP API for local development, workflow, template and route definition files, previews, logs and kill switches: it signs in with an Access access token obtained with the OAuth 2.0 client credentials grant and never reaches server internals. Definition files are checked locally against the contract's request schemas (`Relay.Api.Schema`) before they are sent.
 
   `main/1` is the escript entry point; `run/2` parses the arguments, runs one command and returns its exit code. Every command prints either readable text or, with `--json`, one JSON object that carries an `exit_code` field.
   """
 
-  use Boundary, top_level?: true, deps: [Relay], exports: []
+  use Boundary, top_level?: true, deps: [Relay, Relay.Api], exports: []
 
   alias Relay.CLI.Args
   alias Relay.CLI.Config
@@ -18,9 +18,9 @@ defmodule Relay.CLI do
   @commands %{
     "trigger" => Relay.CLI.Trigger,
     "preview" => Relay.CLI.Preview,
-    "pull" => Relay.CLI.Workflows,
-    "push" => Relay.CLI.Workflows,
-    "promote" => Relay.CLI.Workflows,
+    "pull" => Relay.CLI.Definitions,
+    "push" => Relay.CLI.Definitions,
+    "promote" => Relay.CLI.Definitions,
     "logs" => Relay.CLI.Logs,
     "listen" => Relay.CLI.Listen,
     "kill-switch" => Relay.CLI.KillSwitch

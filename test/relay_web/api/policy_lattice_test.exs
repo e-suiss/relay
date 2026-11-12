@@ -144,6 +144,9 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
     F.body(F.request(:get, path, token), 200)["data"]
   end
 
+  defp timing!(token, body),
+    do: F.body(F.request(:put, "/v1/timing_settings", token, body), 200)
+
   defp delivery!(token, workflow, to, extra \\ %{}) do
     [delivery] = deliveries(token, send!(token, workflow, to, extra))
     delivery
@@ -433,6 +436,36 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
 
       assert run!(scope, delivery) == {:snooze, 300}
       assert ["send", nil, nil] = decision(scope, delivery)
+    end
+
+    test "WF-42 WF-58: a strict send or a strict tenant releases a deferral exactly at its end",
+         ctx do
+      category!(ctx.scope, "ops", "operational")
+      workflow!(ctx.scope, ctx.token, "maintenance", "ops", "operational", ["push"])
+
+      strict_send = device!(ctx.token, subscriber!(ctx.token))
+      ends = quiet!(ctx.scope, strict_send)
+      strict = %{"timing_precision" => "strict"}
+      delivery = delivery!(ctx.token, "maintenance", strict_send, strict)
+
+      assert ["defer", "quiet_hours.deferred", %DateTime{} = until] =
+               decision(ctx.scope, delivery)
+
+      assert DateTime.diff(until, ends, :millisecond) == 0
+
+      assert %{"release_spread" => "PT1M"} = timing!(ctx.token, %{"release_spread" => "PT1M"})
+      shrunk = device!(ctx.token, subscriber!(ctx.token))
+      ends = quiet!(ctx.scope, shrunk)
+      delivery = delivery!(ctx.token, "maintenance", shrunk)
+      assert ["defer", _rule, %DateTime{} = until] = decision(ctx.scope, delivery)
+      assert DateTime.diff(until, ends, :millisecond) in 0..59_999
+
+      assert %{"timing_precision" => "strict"} = timing!(ctx.token, strict)
+      strict_tenant = device!(ctx.token, subscriber!(ctx.token))
+      ends = quiet!(ctx.scope, strict_tenant)
+      delivery = delivery!(ctx.token, "maintenance", strict_tenant)
+      assert ["defer", _rule, %DateTime{} = until] = decision(ctx.scope, delivery)
+      assert DateTime.diff(until, ends, :millisecond) == 0
     end
 
     test "PC-46, PC-49: a deferral with no allowed instant before expires_at expires", ctx do

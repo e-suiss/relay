@@ -2,7 +2,7 @@ defmodule Relay.Policy.Live.Inputs do
   @moduledoc """
   Builds the input snapshot of one lattice evaluation from the database in one read path, inside the caller's scoped transaction (PC-58 (1)): the category with its sub-tenant setting applied (PC-57 (2)), the recipient's preference values at each level, the profile, the consent copy of the delivery's brand and channel (PC-59 (1)), the address state and its suppression (PC-59 (2)), on a push channel the recipient's devices (CH-28), the tenant's zone and the tenant and sub-tenant suspension. The frequency readings come later, outside the transaction (`Relay.Policy.FrequencyCounter`).
 
-  A workflow whose category has no row yet is evaluated with the workflow's class and the class defaults. The suppression target digest is the address's blind index (`address` purpose) under the current and the next key. The release jitter spread is WF-58's PT15M.
+  A workflow whose category has no row yet is evaluated with the workflow's class and the class defaults. The suppression target digest is the address's blind index (`address` purpose) under the current and the next key. The release jitter spread is WF-58's PT15M, shrunk or zeroed by the tenant's jitter control and zeroed by a send's `timing_precision: strict` (`Relay.Timing`).
 
   On `push` and `web_push` the target is read from the recipient's devices that are not disabled (`Relay.Devices`), the same rule the channel step uses: no device on the channel is an absent target (`channel.no_address`), devices of which none is permitted for the class are a denied permission (`channel.no_permission`), and otherwise the permission is granted and the platform is the one of the most recently seen permitted device (`apns` is `ios`, `web_push` is `web`, the others `android`).
   """
@@ -40,7 +40,6 @@ defmodule Relay.Policy.Live.Inputs do
   @address_kinds %{email: "email", sms: "phone", voice: "phone", whatsapp: "phone"}
   @device_channels [:push, :web_push]
   @days %{"mon" => 1, "tue" => 2, "wed" => 3, "thu" => 4, "fri" => 5, "sat" => 6, "sun" => 7}
-  @jitter_spread_ms 900_000
 
   @type category :: %{
           required(:key) => String.t(),
@@ -170,8 +169,15 @@ defmodule Relay.Policy.Live.Inputs do
       country_time_zones: nil,
       frequency: base.frequency,
       global_cap: nil,
-      jitter_spread_ms: @jitter_spread_ms
+      jitter_spread_ms: release_spread(base.notification)
     )
+  end
+
+  # WF-42
+  # WF-58
+  defp release_spread(notification) do
+    precision = Map.get(notification, :timing_precision)
+    Relay.Timing.spread(Relay.Timing.read(), :release, precision)
   end
 
   @doc "The notification fields of a snapshot from the stored names."
@@ -182,6 +188,8 @@ defmodule Relay.Policy.Live.Inputs do
       security_subtype: Map.get(@subtypes, fields.security_subtype),
       priority: priority(fields.priority),
       expires_at: fields.expires_at,
+      on_expire: if(Map.get(fields, :on_expire) == "inbox_only", do: :inbox_only, else: :drop),
+      timing_precision: Relay.Timing.precision(Map.get(fields, :timing_precision)),
       sender_kind: Map.get(@senders, fields.sender_type, :system)
     }
   end

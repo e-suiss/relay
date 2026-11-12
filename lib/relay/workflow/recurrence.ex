@@ -3,7 +3,7 @@ defmodule Relay.Workflow.Recurrence do
   Recurrence rules (C-52, WF-48, WF-49, WF-61). A rule sends one workflow to one subscriber or to one topic on the occurrences of an RRULE (`Relay.Workflow.RRule`) counted from a local start time. It is a definition row whose next occurrence is a column with a timer (C-8, WF-43): no message waits for it and no job runs until it is due. Each occurrence is sent with the version of the workflow published at that moment (WF-49).
 
   * **Time zone.** A subscriber rule runs in the subscriber's zone (WF-45): the zone of the subscriber's profile, else the tenant's `default_timezone`. A topic rule runs in its own `timezone`, else the tenant's `default_timezone` (WF-61). The zone is resolved again whenever the next occurrence is computed, and the zone used is kept with it.
-  * **Jitter.** The timer of an occurrence fires `Relay.Jitter.recurrence/5` after it, within the `recurrence.jitter_spread` limit (PT60S, WF-58), so rules due at the same minute spread over it instead of piling on the write path (WF-42, L-43).
+  * **Jitter.** The timer of an occurrence fires `Relay.Jitter.recurrence/5` after it, within the `recurrence.jitter_spread` limit (PT60S, WF-58), shrunk or zeroed by the tenant's jitter control (`Relay.Timing`), so rules due at the same minute spread over it instead of piling on the write path (WF-42, L-43).
   * **Missed occurrences.** When a timer runs late, every occurrence since the rule's next one up to now is due. Only the last of them is sent, and only when it is at most `recurrence.missed_grace` (PT1H) late; the others are recorded `missed` with `recurrence.missed` (WF-61). At most 1000 due occurrences are recorded in one run.
   * **Limits.** `UNTIL` and `DTSTART` lie at most `recurrence.max_until_years` (5) years ahead and `DTSTART` at most as many years back; a tenant environment holds at most `recurrence.max_active_per_environment` (100000) active rules (PD).
   """
@@ -138,10 +138,11 @@ defmodule Relay.Workflow.Recurrence do
 
   # WF-42
   # WF-58
-  @doc "The timer instant of an occurrence of rule `id`: the occurrence plus its deterministic jitter."
+  @doc "The timer instant of an occurrence of rule `id`, inside the caller's scoped transaction: the occurrence plus its deterministic jitter, within the spread the tenant's jitter control leaves (`Relay.Timing`)."
   @spec fire_at(Relay.Scope.t(), Relay.Id.t(), DateTime.t()) :: DateTime.t()
   def fire_at(scope, id, at) do
-    offset = Relay.Jitter.recurrence(scope.tenant_id, scope.environment, id, iso(at), @spread_ms)
+    spread = min(@spread_ms, Relay.Timing.spread(Relay.Timing.read(), :scheduled, nil))
+    offset = Relay.Jitter.recurrence(scope.tenant_id, scope.environment, id, iso(at), spread)
     DateTime.add(at, offset, :millisecond)
   end
 

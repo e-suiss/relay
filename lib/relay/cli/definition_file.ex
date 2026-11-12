@@ -57,7 +57,7 @@ defmodule Relay.CLI.DefinitionFile do
   # X-33
   # WF-59
   @doc "The bytes of a definition file: the body with sorted keys, as JSON or YAML according to the file's extension."
-  @spec render(Path.t(), map()) :: iodata()
+  @spec render(Path.t(), map()) :: iolist()
   def render(path, body) do
     case Map.fetch!(@extensions, Path.extname(path)) do
       :json -> [body |> ordered() |> Jason.encode!(pretty: true), ?\n]

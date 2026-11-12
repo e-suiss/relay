@@ -244,12 +244,14 @@ defmodule Relay.Api.Inbox do
   # IN-38
   # IN-35
   defp signal(scope, subscriber_id, "read", :applied, {counters, notification_id}),
-    do: Relay.Devices.propagate_read(scope, subscriber_id, notification_id, counters)
+    do: Relay.Devices.propagate_read(scope, subscriber_id, notification_id, badge(counters))
 
   defp signal(scope, subscriber_id, _op, :applied, {counters, _notification_id}),
-    do: Relay.Devices.sync(scope, subscriber_id, counters)
+    do: Relay.Devices.sync(scope, subscriber_id, badge(counters))
 
   defp signal(_scope, _subscriber_id, _op, _code, _changed), do: :ok
+
+  defp badge(counters), do: Map.take(counters, [:version, :unseen, :unread])
 
   defp intent_view(item_id, intent, body, code, state, counters) do
     %{

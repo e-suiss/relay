@@ -39,7 +39,9 @@ defmodule Relay.Api.WorkflowRuns do
         "security_subtype" => p.request.security_subtype,
         "sender_type" => p.request.sender_type,
         "on_expire" => p.request.on_expire,
-        "timing_precision" => p.request.timing_precision
+        "timing_precision" => p.request.timing_precision,
+        "timing" => Map.get(p.request, :timing),
+        "max_defer_until" => iso(Map.get(p.request, :max_defer_until))
       },
       "steps" => Enum.map(p.request.steps, &step/1),
       "routes" => Map.get(p, :routes, %{}),
@@ -279,9 +281,14 @@ defmodule Relay.Api.WorkflowRuns do
       sender_type: request["sender_type"],
       on_expire: request["on_expire"],
       timing_precision: request["timing_precision"],
+      timing: request["timing"],
+      max_defer_until: event_time(request["max_defer_until"]),
       steps: Enum.map(plan["steps"] || [], &decode_step/1)
     }
   end
+
+  defp iso(nil), do: nil
+  defp iso(%DateTime{} = at), do: DateTime.to_iso8601(at)
 
   defp decode_step(step) do
     skip =

@@ -20,6 +20,8 @@ tags:
     description: "The subscriber's own preferences and profile (scope preferences)."
   - name: devices
     description: "The subscriber's own push devices (scope devices:write)."
+  - name: presence
+    description: "The short-lived status signals of the subscriber's own devices (scope presence:write)."
   - name: realtime
     description: "The subscriber's inbox stream over SSE and long-poll (scope inbox:read); the WebSocket transport is in the AsyncAPI catalog."
 paths:
@@ -519,6 +521,178 @@ paths:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "Path and the logout reason are chosen by the contract."
+  "/v1/subscriber/devices/status":
+    get:
+      operationId: getMyDeviceStatus
+      tags:
+        - presence
+      summary: Read the status of my devices
+      description: "The device status snapshot of the token subscriber's own clients (IN-47): every device that is not disabled, most recently seen first, with each signal of dictionary v1 as true, false or unknown. A signal is unknown when it expired, was never written or the short-lived store cannot be read. The status is held only for its time to live and has no history."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      security:
+        - subscriber_bearer:
+            - "inbox:read"
+        - subscriber_bearer:
+            - "presence:write"
+      responses:
+        "200":
+          description: The status of the subscriber's devices.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/DeviceStatusList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+      x-relay-scopes:
+        - "inbox:read"
+        - "presence:write"
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "Path, the list shape and reading with inbox:read or presence:write are chosen by the contract; the subscriber comes from the token. An agent's presence:read is not served here."
+  "/v1/subscriber/devices/{device_id}/status":
+    patch:
+      operationId: updateMyDeviceStatus
+      tags:
+        - presence
+      summary: Write the status of my device
+      description: "Writes the changed status signals of one of the token subscriber's own devices (IN-47, IN-53): only the keys that changed, each a boolean of dictionary v1, with a time to live of PT5M by default that Relay cuts at PT15M. A key or value outside the dictionary is 422 unknown_field. A device writes at most once per second; the next write in that second is 429. The status is kept only on the short-lived store, never in the database, the inbox, the delivery record or the archive, and reaches no other recipient and no server API (IN-48). Another subscriber's or a disabled device is device_not_found. Writing the same signals again is harmless, so no Idempotency-Key is taken."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/DeviceId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/DeviceStatusWrite"
+      security:
+        - subscriber_bearer:
+            - "presence:write"
+      responses:
+        "200":
+          description: The device's status after the write.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/DeviceStatus"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - device_not_found
+      x-relay-scopes:
+        - "presence:write"
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "Path, PATCH with the changed keys, the version field and taking no Idempotency-Key (an idempotency record would put the status in the database, IN-47) are chosen by the contract; the device must be the token subscriber's own."
   "/v1/subscriber/push_receipts":
     post:
       operationId: recordMyPushReceipt
@@ -1030,6 +1204,103 @@ components:
           x-relay-choice: true
         environment:
           "$ref": "./components/schemas.yaml#/Environment"
+      additionalProperties: false
+    DeviceStatusWrite:
+      type: object
+      description: "The changed status signals of a device (IN-53)."
+      required:
+        - version
+        - signals
+      properties:
+        version:
+          type: string
+          enum:
+            - v1
+          description: "The signal dictionary version; an older version stays accepted for at least 12 months after a newer one."
+        signals:
+          type: object
+          description: "Only the signals that changed, each true or false. A key or value outside the dictionary is 422 unknown_field."
+          minProperties: 1
+          properties:
+            worn:
+              description: "A wearable is worn."
+            locked:
+              description: "The screen is locked."
+            headphones:
+              description: "Headphones are connected."
+            focus:
+              description: "A focus mode is on."
+            break:
+              description: "The recipient's own device or agent reports a natural break."
+          additionalProperties: false
+          x-relay-choice: true
+          x-relay-choice-note: "IN-53 makes a value outside the dictionary unknown_field, so the values carry no type here and are checked as booleans by the operation."
+        ttl:
+          description: "Time to live of the written signals; PT5M by default, cut at PT15M, at least PT1S."
+          "$ref": "./components/schemas.yaml#/Duration"
+      additionalProperties: false
+    DeviceStatus:
+      type: object
+      description: "The status of one device (IN-47)."
+      required:
+        - object
+        - device_id
+        - version
+        - signals
+      properties:
+        object:
+          type: string
+          enum:
+            - device_status
+        device_id:
+          "$ref": "./components/schemas.yaml#/Id_dev"
+        version:
+          type: string
+          enum:
+            - v1
+        signals:
+          type: object
+          required:
+            - worn
+            - locked
+            - headphones
+            - focus
+            - break
+          properties:
+            worn:
+              "$ref": "#/components/schemas/DeviceSignal"
+            locked:
+              "$ref": "#/components/schemas/DeviceSignal"
+            headphones:
+              "$ref": "#/components/schemas/DeviceSignal"
+            focus:
+              "$ref": "#/components/schemas/DeviceSignal"
+            break:
+              "$ref": "#/components/schemas/DeviceSignal"
+          additionalProperties: false
+      additionalProperties: false
+    DeviceSignal:
+      description: "true or false while the signal is fresh; unknown when it expired, was never written or cannot be read."
+      oneOf:
+        - type: boolean
+        - type: string
+          enum:
+            - unknown
+    DeviceStatusList:
+      type: object
+      required:
+        - object
+        - data
+      properties:
+        object:
+          type: string
+          enum:
+            - list
+        data:
+          type: array
+          maxItems: 20
+          items:
+            "$ref": "#/components/schemas/DeviceStatus"
       additionalProperties: false
     PushReceipt:
       type: object

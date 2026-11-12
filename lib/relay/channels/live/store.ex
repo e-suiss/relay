@@ -21,7 +21,7 @@ defmodule Relay.Channels.Live.Store do
   end
 
   # T-15
-  @doc "Reads what the channel step needs of a delivery: its channel, target kind and target (the one device of a test send), recipient, requested provider, class and security subtype, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity, the category key, the sender's `interruption` and the Access client of the event's API client (the sender of a critical Grant question, CH-84), and for the channel overrides the event's sealed request overrides with their key and the pinned version's workflow overrides and channel steps (over the whole step tree), and the workflow's key for its send mode; `nil` when there is no such delivery."
+  @doc "Reads what the channel step needs of a delivery: its channel, target kind and target (the one device of a test send), recipient, requested provider, class and security subtype, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity, the category key, the sender's `interruption` and the Access client of the event's API client (the sender of a critical Grant question, CH-84), and for the channel overrides the event's sealed request overrides with their key and the pinned version's workflow overrides and channel steps (over the whole step tree), and the workflow's key for its send mode, and whether the notification also has an `in_app` delivery its realtime connection carries (IN-40); `nil` when there is no such delivery."
   @spec delivery(Relay.Id.t()) :: map() | nil
   def delivery(delivery_id) do
     one(
@@ -35,7 +35,10 @@ defmodule Relay.Channels.Live.Store do
         e.interruption, ac.access_client_id AS sender_ref, ep.overrides_ct,
         ep.key_id AS payload_key_id, wv.definition->'overrides' AS workflow_overrides,
         jsonb_path_query_array(wv.definition -> 'steps', 'strict $.** ? (@.type == "channel")')
-          AS steps, wf.key AS workflow_key
+          AS steps, wf.key AS workflow_key,
+        EXISTS (SELECT 1 FROM relay.deliveries i WHERE i.tenant_id = d.tenant_id
+          AND i.environment = d.environment AND i.notification_id = d.notification_id
+          AND i.channel = 'in_app') AS realtime_carried
       FROM relay.deliveries d
       JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
         AND n.id = d.notification_id

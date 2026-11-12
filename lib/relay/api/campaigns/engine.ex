@@ -103,8 +103,8 @@ defmodule Relay.Api.Campaigns.Engine do
 
   defp reread(scope, c) do
     case Campaigns.read(scope, c["id"]) do
-      {:ok, fresh} -> fresh
-      {:error, _error} -> c
+      {:ok, %{} = fresh} -> fresh
+      _other -> c
     end
   end
 

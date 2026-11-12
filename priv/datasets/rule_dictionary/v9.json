@@ -1794,6 +1794,21 @@
         "en": "This workflow step was skipped because its step type is not available yet.",
         "tr": "Bu workflow adımı, adım türü henüz kullanılamadığı için atlandı."
       }
+    },
+    {
+      "id": "workflow_run.wait_refused",
+      "reason": "wait_refused",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-12",
+      "detail": [
+        "step",
+        "reason"
+      ],
+      "description": {
+        "en": "This event wait could not be opened, so it was treated as timed out and its timeout branch ran: its correlation key is empty or invalid, or a waitpoint limit was reached.",
+        "tr": "Bu olay bekleme adımı açılamadığı için zaman aşımına uğramış sayıldı ve zaman aşımı dalı çalıştı: korelasyon anahtarı boş ya da geçersiz veya bir bekleme noktası sınırına ulaşıldı."
+      }
     }
   ]
 }

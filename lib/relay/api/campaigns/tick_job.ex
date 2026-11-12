@@ -6,8 +6,7 @@ defmodule Relay.Api.Campaigns.TickJob do
   use Relay.Worker,
     queue: :maintenance,
     max_attempts: 20,
-    timeout: 300_000,
-    unique: [period: 50, keys: [:campaign_id], states: [:available, :scheduled]]
+    timeout: 300_000
 
   @every_s 60
 

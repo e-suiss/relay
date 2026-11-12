@@ -1,5 +1,5 @@
 {
-  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59",
+  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59; WF-52",
   "rules": [
     {
       "id": "admission.aimd.l2",
@@ -553,6 +553,21 @@
       "description": {
         "en": "Moved to a digest because the recipient received many notifications of this category in a short time.",
         "tr": "Alıcı bu kategoride kısa sürede çok sayıda bildirim aldığı için özete alındı."
+      }
+    },
+    {
+      "id": "digest.folded",
+      "reason": "digested",
+      "kind": "shaper",
+      "outcome": "skip",
+      "decision": "PC-46",
+      "detail": [
+        "window_id",
+        "digest_of"
+      ],
+      "description": {
+        "en": "Not sent on its own because it went out inside a digest with another notification of this category.",
+        "tr": "Bu kategorideki başka bir bildirimle birlikte bir özetin içinde gönderildiği için ayrıca gönderilmedi."
       }
     },
     {
@@ -1141,6 +1156,21 @@
       }
     },
     {
+      "id": "recurrence.audience_too_large",
+      "reason": "audience_too_large",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-52",
+      "detail": [
+        "recurrence_id",
+        "topic"
+      ],
+      "description": {
+        "en": "Not sent because the topic of the recurring notification has more subscribers than one event can reach.",
+        "tr": "Tekrar eden bildirimin topic'inde bir olayın ulaşabileceğinden fazla abone olduğu için gönderilmedi."
+      }
+    },
+    {
       "id": "recurrence.missed",
       "reason": "recurrence_missed",
       "kind": "shaper",
@@ -1168,7 +1198,8 @@
       "description": {
         "en": "Not sent because sending a recurring notification to a topic is not available yet.",
         "tr": "Tekrar eden bildirimin topic'e gönderimi henüz kullanılamadığı için gönderilmedi."
-      }
+      },
+      "deprecated": true
     },
     {
       "id": "retry.budget_denied",

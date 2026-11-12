@@ -49,6 +49,40 @@ defmodule Relay.Workflow.Digest.Store do
   LIMIT 1
   """
 
+  @holds """
+  SELECT 1
+  FROM relay.digest_items i
+  JOIN relay.digest_windows w ON w.tenant_id = i.tenant_id AND w.environment = i.environment
+    AND w.id = i.window_id
+  WHERE i.tenant_id = relay_private.ctx_tenant_id()
+    AND i.environment = relay_private.ctx_environment() AND i.window_id = $1
+    AND i.delivery_id = $2 AND w.state = 'open' AND NOT i.sent_alone
+  """
+
+  @deliveries """
+  SELECT i.delivery_id
+  FROM relay.digest_items i
+  WHERE i.tenant_id = relay_private.ctx_tenant_id()
+    AND i.environment = relay_private.ctx_environment() AND i.window_id = $1
+    AND i.delivery_id IS NOT NULL AND NOT i.sent_alone
+  ORDER BY i.seq
+  """
+
+  @anchored """
+  SELECT w.id
+  FROM relay.digest_items i
+  JOIN relay.digest_windows w ON w.tenant_id = i.tenant_id AND w.environment = i.environment
+    AND w.id = i.window_id
+  WHERE i.tenant_id = relay_private.ctx_tenant_id()
+    AND i.environment = relay_private.ctx_environment() AND i.delivery_id = $1
+    AND NOT i.sent_alone AND w.state = 'fired' AND w.origin = ANY($2)
+    AND NOT EXISTS (SELECT 1 FROM relay.digest_items e
+      WHERE e.tenant_id = i.tenant_id AND e.environment = i.environment
+        AND e.window_id = i.window_id AND NOT e.sent_alone AND e.seq < i.seq)
+  ORDER BY w.closed_at DESC
+  LIMIT 1
+  """
+
   # TN-13 (2)
   @doc "Runs work in a transaction scoped to `scope`; see `Relay.Repo.in_scope/3`."
   @spec in_scope(Relay.Scope.t(), (atom() -> term())) :: {:ok, term()} | {:error, term()}
@@ -184,6 +218,30 @@ defmodule Relay.Workflow.Digest.Store do
   def anchor(window_id) do
     case select(@anchor, [window_id]) do
       [row] -> %{notification_id: row["notification_id"], delivery_id: row["delivery_id"]}
+      [] -> nil
+    end
+  end
+
+  # PC-46
+  # WF-30
+  @doc "Returns true if the delivery waits as an item of the open window."
+  @spec holds?(Relay.Id.t(), Relay.Id.t()) :: boolean()
+  def holds?(window_id, delivery_id), do: select(@holds, [window_id, delivery_id]) != []
+
+  # PC-46
+  # WF-30
+  @doc "The deliveries a window holds, oldest first."
+  @spec deliveries(Relay.Id.t()) :: [Relay.Id.t()]
+  def deliveries(window_id) do
+    for row <- select(@deliveries, [window_id]), do: row["delivery_id"]
+  end
+
+  # WF-29
+  @doc "The last fired window of one of `origins` that the delivery anchors, or `nil`."
+  @spec anchored(Relay.Id.t(), [String.t()]) :: map() | nil
+  def anchored(delivery_id, origins) do
+    case select(@anchored, [delivery_id, origins]) do
+      [%{"id" => id}] -> window(id)
       [] -> nil
     end
   end

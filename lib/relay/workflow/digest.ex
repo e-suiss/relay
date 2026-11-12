@@ -4,7 +4,7 @@ defmodule Relay.Workflow.Digest do
 
   `add/2` answers the role of the caller's run: `:anchor` (the first digested item; the run waits and sends the digest when the window fires), `:folded` (the item is in the digest; the run ends here) or `:sent_alone` (the first event of a `leading: immediate` window; the run sends it now and the window collects the repeats). The timer job, `Relay.Workflow.Digest.Timer`, fires the window when it is due; an early wake-up reschedules itself, and the sweep (`Relay.Workflow.Digest.Sweep`) plans and fires open windows whose timer was lost. Firing never sends an empty digest; a window of one activity hands over the anchor notification itself for its singular template; two or more hand over the digest render data, cumulative since the recipient last read the key (WF-29). The outcome goes to the configured sink (`Relay.Workflow.Digest.Sink`) in the closing transaction. A read signal cancels the pending windows of a notification's keys (WF-27).
 
-  The same windows carry the density threshold (WF-30), routing a recipient's further events of a category into a window once the threshold is passed, and the morning burst guard (PC-46), holding a recipient's `social` and `marketing` deliveries released at the end of quiet hours in one window released with deterministic jitter.
+  The same windows carry the density threshold (WF-30), routing a recipient's further events of a category into a window once the threshold is passed, the morning burst guard (PC-46), holding a recipient's `social` and `marketing` deliveries released at the end of quiet hours in one window released with deterministic jitter, and the `digest` fate of the frequency cap (PC-50, PC-58 (6)), holding a recipient's capped deliveries of a category and channel in one window released when a slot frees. The policy lattice holds deliveries in these windows (`held` in the answer of `add/2` is true when the caller's delivery waits in an open window); their outcomes go to the configured release (`config :relay, Relay.Workflow.Digest, release: Module`, the same `digest_ready/2` callback) with the window's `origin` and every held delivery under `deliveries`, oldest first, instead of the run sink.
   """
 
   alias Relay.Scope
@@ -15,13 +15,15 @@ defmodule Relay.Workflow.Digest do
 
   @due_batch 100
   @quiet_classes ~w(social marketing)
+  @held_origins ~w(density quiet_hours frequency)
 
   @type role :: :anchor | :folded | :sent_alone
   @type added :: %{
           role: role(),
           window_id: Relay.Id.t(),
           generation: pos_integer(),
-          fire_at: DateTime.t() | nil
+          fire_at: DateTime.t() | nil,
+          held: boolean()
         }
 
   # WF-26
@@ -44,12 +46,11 @@ defmodule Relay.Workflow.Digest do
 
   # WF-30
   @doc """
-  Routes an event into a digest window once the recipient's density threshold is passed, inside the caller's scoped transaction. `attrs` carries `:threshold` (`%{"limit" => n, "window" => duration}`), `:category`, optionally `:device_id`, `:ref` (the event's unique reference, so a retry counts once) and the attributes of `add/2` for the window of the category. Below the threshold the event is not digested: `{:ok, :under}`.
+  Routes an event into a digest window once the recipient's density threshold is passed, inside the caller's scoped transaction. `attrs` carries `:threshold` (`%{"limit" => n, "window" => duration}`), `:category`, optionally `:device` (the device reference the threshold counts per), optionally `:channel` (the window is then the category's on that channel), `:ref` (the event's unique reference, so a retry counts once) and the attributes of `add/2` for the window. Below the threshold the event is not digested: `{:ok, :under}`.
   """
   @spec density(Scope.t(), map()) :: {:ok, :under | added()} | {:error, Relay.Error.t()}
   def density(%Scope{} = scope, attrs) do
-    device = Map.get(attrs, :device_id)
-    parts = [id_text(attrs.recipient_id), attrs.category, device && id_text(device)]
+    parts = [id_text(attrs.recipient_id), attrs.category, Map.get(attrs, :device)]
 
     with :ok <- digestible(attrs.message_class),
          {:ok, hit} <- Throttle.count(scope, {"density", parts}, attrs.ref, attrs.threshold) do
@@ -71,6 +72,29 @@ defmodule Relay.Workflow.Digest do
     if to_string(class) in @quiet_classes,
       do: add(scope, quiet_attrs(attrs)),
       else: {:ok, :not_applicable}
+  end
+
+  # PC-50
+  # PC-58 (6)
+  @doc """
+  Holds a delivery that the frequency cap meets with its `digest` fate in the window of the recipient's category and channel, released at `:release_at` when the window opens (the jittered time a slot frees), inside the caller's scoped transaction. `attrs`: `:recipient_id`, `:notification_id`, `:delivery_id`, `:message_class`, `:category`, `:channel`, `:release_at`.
+  """
+  @spec frequency(Scope.t(), map()) :: {:ok, added()} | {:error, Relay.Error.t()}
+  def frequency(%Scope{} = scope, attrs), do: add(scope, frequency_attrs(attrs))
+
+  # WF-29
+  # PC-46
+  # WF-30
+  @doc "The digest render data of a delivery that anchors a fired window of the policy lattice (density, quiet hours or frequency) of two or more activities, inside the caller's scoped transaction; `nil` for any other delivery."
+  @spec held_render(Relay.Id.t()) :: map() | nil
+  def held_render(delivery_id) do
+    case Store.anchored(delivery_id, @held_origins) do
+      %{cumulative_count: count} = window when count > 1 ->
+        Window.render(window, Store.items(window, 50))
+
+      _none ->
+        nil
+    end
   end
 
   # WF-27
@@ -198,9 +222,24 @@ defmodule Relay.Workflow.Digest do
        role: role(written, attrs.notification_id),
        window_id: written.window_id,
        generation: written.generation,
-       fire_at: fire_at
+       fire_at: fire_at || pending_at(written),
+       held: held?(written, Map.get(attrs, :delivery_id))
      }}
   end
+
+  defp pending_at(%{result: :exists, window_id: window_id}) do
+    case Store.window(window_id) do
+      %{state: "open", fire_at: at, deadline_at: deadline} -> at || deadline
+      _closed -> nil
+    end
+  end
+
+  defp pending_at(_written), do: nil
+
+  defp held?(_written, nil), do: false
+  defp held?(%{sent_alone: true}, _delivery_id), do: false
+  defp held?(%{result: :exists, window_id: id}, delivery_id), do: Store.holds?(id, delivery_id)
+  defp held?(_written, _delivery_id), do: true
 
   defp role(%{sent_alone: true}, _notification_id), do: :sent_alone
 
@@ -257,20 +296,32 @@ defmodule Relay.Workflow.Digest do
 
   defp outcome(window_id) do
     window = Store.window(window_id)
-    info = info(window_id)
+    info = info(window_id, window)
 
     if window.cumulative_count == 1,
       do: {:single, info},
       else: {:digest, Map.put(info, :render, Window.render(window, Store.items(window, 50)))}
   end
 
-  defp info(window_id) do
+  defp info(window_id), do: info(window_id, Store.window(window_id))
+
+  defp info(window_id, window) do
     anchor = Store.anchor(window_id) || %{notification_id: nil, delivery_id: nil}
-    Map.put(anchor, :window_id, window_id)
+    info = Map.put(anchor, :window_id, window_id)
+
+    case window do
+      %{origin: origin} when origin in @held_origins ->
+        Map.merge(info, %{origin: origin, deliveries: Store.deliveries(window_id)})
+
+      _step ->
+        info
+    end
   end
 
-  defp sink(scope, outcome) do
-    case :relay |> Application.get_env(__MODULE__, []) |> Keyword.get(:sink) do
+  defp sink(scope, {_kind, info} = outcome) do
+    key = if Map.has_key?(info, :origin), do: :release, else: :sink
+
+    case :relay |> Application.get_env(__MODULE__, []) |> Keyword.get(key) do
       nil -> :ok
       module -> module.digest_ready(scope, outcome)
     end
@@ -291,8 +342,15 @@ defmodule Relay.Workflow.Digest do
     attrs |> Map.merge(extra) |> Map.put(:config, Window.release(at))
   end
 
+  defp frequency_attrs(%{release_at: at} = attrs) do
+    key = Enum.join([attrs.category, attrs.channel], "/")
+    extra = %{origin: "frequency", scope_ref: "frequency", key: key}
+    attrs |> Map.merge(extra) |> Map.put(:config, Window.release(at))
+  end
+
   defp density_attrs(attrs) do
-    Map.merge(attrs, %{origin: "density", scope_ref: "density", key: attrs.category})
+    key = Enum.join([attrs.category | List.wrap(Map.get(attrs, :channel))], "/")
+    Map.merge(attrs, %{origin: "density", scope_ref: "density", key: key})
   end
 
   defp id_text(<<_::128>> = id), do: Relay.Id.to_string(id)

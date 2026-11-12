@@ -71,6 +71,11 @@ defmodule RelayWeb.Api.RecurrencesTest do
     rows
   end
 
+  defp scoped(scope, sql, params) do
+    {:ok, rows} = Repo.in_scope(scope, fn _status -> Repo.scoped_query!(sql, params).rows end)
+    rows
+  end
+
   defp timers(scope, external) do
     Repo.query!(
       "SELECT scheduled_at FROM relay_queue.oban_jobs WHERE worker = $1 AND args->>'recurrence_id' = $2 AND args->>'tenant_id' = $3 ORDER BY id",
@@ -298,17 +303,38 @@ defmodule RelayWeb.Api.RecurrencesTest do
       assert done["completed_at"] != nil
     end
 
-    test "WF-48: a topic rule's occurrence is recorded skipped until topic fan-out exists", ctx do
+    test "WF-48, WF-52: a topic rule's occurrence goes to the topic's frozen audience", ctx do
+      F.body(F.request(:post, "/v1/topics", ctx.token, %{"key" => "proj-9"}), 201)
+      members = [subscriber!(ctx.token), subscriber!(ctx.token)]
+      subscribe = %{"subscribers" => members}
+      F.body(F.request(:post, "/v1/topics/proj-9/subscriptions", ctx.token, subscribe), 200)
+
       body = created!(ctx.token, rule(%{"topic" => "proj-9"}))
       {:ok, row} = Relay.Workflow.get_recurrence(ctx.scope, id(body["id"]))
 
       advance_to!(ctx.scope, row["fire_at"])
       assert :ok = Recurrences.fire(ctx.scope, id(body["id"]))
 
-      assert [%{"outcome" => "skipped", "rule_id" => "recurrence.topic_unavailable"}] =
-               occurrences(ctx.scope, body["id"])
+      assert [%{"outcome" => "sent", "event_id" => event_id}] = occurrences(ctx.scope, body["id"])
 
+      sql = "SELECT count(*) FROM relay.notifications n WHERE n.event_id = $1"
+      assert scoped(ctx.scope, sql, [event_id]) == [[2]]
       assert get!(ctx.token, body["id"])["state"] == "active"
+    end
+
+    test "WF-53: a topic rule's occurrence without subscribers is sent to nobody and recorded",
+         ctx do
+      F.body(F.request(:post, "/v1/topics", ctx.token, %{"key" => "proj-0"}), 201)
+      body = created!(ctx.token, rule(%{"topic" => "proj-0"}))
+      {:ok, row} = Relay.Workflow.get_recurrence(ctx.scope, id(body["id"]))
+
+      advance_to!(ctx.scope, row["fire_at"])
+      assert :ok = Recurrences.fire(ctx.scope, id(body["id"]))
+
+      assert [%{"outcome" => "sent", "event_id" => event_id}] = occurrences(ctx.scope, body["id"])
+
+      sql = "SELECT a.rule_id FROM relay.audiences a WHERE a.source_id = $1"
+      assert scoped(ctx.scope, sql, [event_id]) == [["audience.no_subscribers"]]
     end
 
     test "WF-49: a cancelled rule sends nothing more and cannot be cancelled again", ctx do

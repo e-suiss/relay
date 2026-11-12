@@ -182,9 +182,13 @@
   {"file": "20261213100300_add_delivery_step_ref.exs", "sha256": "54705a02f232ec4bc7f22b13f5ec480dbe9673238df77c4198284c60abeeccf7"},
   {"file": "20261213100400_index_delivery_step_ref.exs", "sha256": "73d6752ec4947929ef7f8bf9bc4bd34815ce4cde42dec81b879a28fac7f7c450"},
   {"file": "20261213100500_key_deliveries_by_step.exs", "sha256": "6a343da816623504e6d97f10fd3404a7b56d44f24c433f8bd424d07a13518879"},
-  {"file": "20261214100000_create_report_variant_rollups.exs", "sha256": "430a6471496b11c34e53302e2f99b0b689653c6fd8c8c39ce6131efbbab0b8db"},
-  {"file": "20261214100100_create_report_variant_function.exs", "sha256": "db7815512c4c8dfbb9ad008f4706e49d3bb94275d114bb7e963ea12ab232fbeb"},
-  {"file": "20261214100200_wake_runs_on_delivery_outcomes.exs", "sha256": "a82f3f2d8534baa4edb01e4818ac788dc795c026d0a0ca6e76f96641718aaf3b"},
-  {"file": "20261214100300_allow_subscriber_waiters.exs", "sha256": "a5e19fa79757d284ff34d526b77b4de4d62085f1e5ed993564000ecc0b0b12d7"},
-  {"file": "20261214100400_open_subscriber_event_waits.exs", "sha256": "59c996596c63cdbc9aeb6c5fa96d65d519ab9cf7db2fcff44b2498b0ae1c0492"}
+  {"file": "20261214700000_add_category_density.exs", "sha256": "ce247da78288f22e2631ca725a686fb994e275bf95034582db08d89ea6ddcfa8"},
+  {"file": "20261214700100_create_category_density_functions.exs", "sha256": "ccf8d39f77150f5dc8d1deba0fece0adbf9701e87615ca569baf0ad55667842c"},
+  {"file": "20261214700200_validate_category_density_checks.exs", "sha256": "37293a8414b753daab826609ccb82e9ad93eb144228964ffe7f61446a2b9c01b"},
+  {"file": "20261214700300_index_digest_items_by_delivery.exs", "sha256": "64e990f5ef71e124171512c60d1c07a20c9e897452d9437785893c64d30efd75"},
+  {"file": "20261214800000_create_report_variant_rollups.exs", "sha256": "430a6471496b11c34e53302e2f99b0b689653c6fd8c8c39ce6131efbbab0b8db"},
+  {"file": "20261214800100_create_report_variant_function.exs", "sha256": "db7815512c4c8dfbb9ad008f4706e49d3bb94275d114bb7e963ea12ab232fbeb"},
+  {"file": "20261214800200_wake_runs_on_delivery_outcomes.exs", "sha256": "a82f3f2d8534baa4edb01e4818ac788dc795c026d0a0ca6e76f96641718aaf3b"},
+  {"file": "20261214800300_allow_subscriber_waiters.exs", "sha256": "a5e19fa79757d284ff34d526b77b4de4d62085f1e5ed993564000ecc0b0b12d7"},
+  {"file": "20261214800400_open_subscriber_event_waits.exs", "sha256": "59c996596c63cdbc9aeb6c5fa96d65d519ab9cf7db2fcff44b2498b0ae1c0492"}
 ]

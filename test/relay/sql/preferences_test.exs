@@ -1,8 +1,8 @@
 defmodule Relay.Sql.PreferencesTest do
   use Relay.SqlCase, async: false
 
-  @create "SELECT * FROM relay_fn.category_create($1, $2, $3, $4, $5, $6, $7, $8::text::interval, $9, $10::text::interval, $11, $12, NULL, $13, $14, $15, $16, $17)"
-  @update "SELECT * FROM relay_fn.category_update($1, $2, $3, $4, $5, $6::text::interval, $7, $8::text::interval, $9, $10, NULL, $11, $12, $13, $14, $15, $16)"
+  @create "SELECT * FROM relay_fn.category_create($1, $2, $3, $4, $5, $6, $7, $8::text::interval, $9, $10::text::interval, $11, $12, NULL, NULL, $13, $14, $15, $16, $17)"
+  @update "SELECT * FROM relay_fn.category_update($1, $2, $3, $4, $5, $6::text::interval, $7, $8::text::interval, $9, $10, NULL, NULL, $11, $12, $13, $14, $15, $16)"
   @subtenant "SELECT * FROM relay_fn.category_subtenant_put($1, $2, $3, $4, $5, $6::text::interval, $7, $8::text::interval, $9, $10, $11, $12, $13, $14)"
   @archive "SELECT * FROM relay_fn.category_archive($1, $2, $3, $4, $5, $6)"
   @set "SELECT * FROM relay_fn.preference_set($1, $2, $3, $4, $5, $6, $7, 'acc_user_1')"

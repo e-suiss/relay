@@ -353,6 +353,37 @@ defmodule Relay.Workflow.RunnerTest do
                ["dlv-r/single/0", "dlv-r/single/1"]
     end
 
+    test "PC-46 WF-15: a leaf folded into a policy digest counts as delivered and does not move a single on" do
+      tree = %{"single" => ["sms", "email"]}
+      step = %{"type" => "channel", "key" => "r", "route" => tree, "template" => "w"}
+
+      assert {:ok, %{state: state}} = run([step])
+
+      folded = %{
+        projection: fn _ids ->
+          %{"dlv-r/single/0" => %{"status" => "skipped", "rule_id" => "digest.folded"}}
+        end
+      }
+
+      assert {:ok, %{status: "completed", state: state, extras: []}} =
+               Runner.advance(
+                 %{"steps" => [step]},
+                 state,
+                 context([step], folded),
+                 @now,
+                 opener()
+               )
+
+      assert state["results"]["r"]["deliveries"] == ["dlv-r/single/0"]
+
+      view =
+        Runner.outcomes(state["results"], %{
+          "dlv-r/single/0" => %{"status" => "skipped", "rule_id" => "digest.folded"}
+        })
+
+      assert %{"delivered" => true, "skipped" => false} = view["r"]
+    end
+
     test "WF-14: a route that does not resolve is recorded with its rule" do
       step = %{"type" => "channel", "key" => "r", "route" => "missing", "template" => "w"}
       skip = %{routes: %{"r" => %{"skip" => "route.not_found"}}}

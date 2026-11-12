@@ -5,7 +5,7 @@ defmodule Relay.Workflow.Runner do
   `advance/5` is pure apart from the callbacks it is given. It first evaluates every running route again, then runs the steps from the cursor on, each through its module (`Relay.Workflow.Step`), until a step waits, parks, ends the run or the tree ends:
 
   * a channel step's `{:route, result}` evaluates the tree the notification's plan holds for the step (WF-7) with `Relay.Workflow.RouteTree.next/3`: each leaf to open goes to the opener with its RFC 6901 pointer, which opens its delivery in the caller's transaction and returns the delivery identifiers and its own extras; a leaf to skip and an escalation that stopped are recorded under their pointer; the route keeps running with its `wake_at` while it is not delivered, exhausted or stopped and can still open a leaf (a route whose every leaf is open and that has no timer is `settled`), and the cursor goes on at once;
-  * a route is evaluated again whenever the run wakes: at its `wake_at` (an `after_delay` fallback, an escalation step) and when one of its deliveries settles, with the leaf statuses and the reliable engagement evidence of the delivery projection (WF-15, WF-21, WF-22);
+  * a route is evaluated again whenever the run wakes: at its `wake_at` (an `after_delay` fallback, an escalation step) and when one of its deliveries settles, with the leaf statuses and the reliable engagement evidence of the delivery projection (WF-15, WF-21, WF-22); a delivery the policy lattice folded into a digest (`digest.folded`, PC-46) counts as delivered, so it does not move a `single` route on;
   * `{:park, result}` holds the cursor after the step until the caller resumes the run (a digest anchor waiting for its window, WF-27, or an open event wait, WF-12, resumed by `resume_wait/3` with `matched` or with `timed_out` and its `on_timeout` steps); `{:end, result}` ends the run completed (a folded digest item);
   * a channel step with A/B variants (WF-50) evaluates its route with the template of the variant its result records;
   * every other instruction only moves the cursor; when a branch list ends, the run goes on with the step after its branching step.
@@ -21,6 +21,7 @@ defmodule Relay.Workflow.Runner do
 
   @max_moves 500
   @unavailable "workflow_run.route_unavailable"
+  @folded "digest.folded"
 
   @type frame :: %{String.t() => term()}
   @type state :: %{String.t() => term()}
@@ -244,7 +245,7 @@ defmodule Relay.Workflow.Runner do
   defp settle(step, route, next, extras, projection, {context, now, opener, rounds}) do
     fresh = leaf_deliveries(next) -- leaf_deliveries(route)
     seen = if fresh == [] or rounds == 0, do: %{}, else: context.projection.(fresh)
-    ended? = Enum.any?(Map.values(seen), &(status(&1["status"]) in [:failed, :skipped]))
+    ended? = Enum.any?(Map.values(seen), &(row_status(&1) in [:failed, :skipped]))
 
     if ended? and next["status"] in ["running", "settled"] do
       merged = Map.merge(projection, seen)
@@ -342,9 +343,13 @@ defmodule Relay.Workflow.Runner do
 
     case rows do
       [] -> %{status: if(ids == [], do: :skipped, else: :pending), at: time(at)}
-      [row | _rest] -> %{status: status(row["status"]), at: time(at), evidence: evidence(row)}
+      [row | _rest] -> %{status: row_status(row), at: time(at), evidence: evidence(row)}
     end
   end
+
+  # PC-46
+  defp row_status(%{"rule_id" => @folded}), do: :delivered
+  defp row_status(row), do: status(row["status"])
 
   defp status("delivered"), do: :delivered
   defp status(failed) when failed in ["failed", "expired"], do: :failed
@@ -475,11 +480,16 @@ defmodule Relay.Workflow.Runner do
       {key,
        %{
          "delivered" =>
-           Enum.any?(rows, &(&1["status"] == "delivered" or &1["seen"] or &1["read"])),
+           Enum.any?(
+             rows,
+             &(&1["status"] == "delivered" or &1["seen"] or &1["read"] or
+                 &1["rule_id"] == @folded)
+           ),
          "failed" => "failed" in statuses,
          "skipped" =>
            result["outcome"] == "skipped" or
-             (rows != [] and Enum.all?(statuses, &(&1 == "skipped"))),
+             (rows != [] and
+                Enum.all?(rows, &(&1["status"] == "skipped" and &1["rule_id"] != @folded))),
          "seen" => Enum.any?(rows, & &1["seen"]),
          "read" => Enum.any?(rows, & &1["read"]),
          "clicked" => Enum.any?(rows, & &1["clicked"]),

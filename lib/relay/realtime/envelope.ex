@@ -23,7 +23,7 @@ defmodule Relay.Realtime.Envelope do
     envelope = %{
       "t" => type,
       "v" => @version,
-      "ts" => now |> DateTime.truncate(:millisecond) |> DateTime.to_iso8601(),
+      "ts" => timestamp(now),
       "d" => data,
       "counters" => counters(counters)
     }
@@ -36,4 +36,7 @@ defmodule Relay.Realtime.Envelope do
   @spec counters(Source.counters()) :: %{String.t() => non_neg_integer()}
   def counters(%{unseen: unseen, unread: unread, total: total, version: version}),
     do: %{"unseen" => unseen, "unread" => unread, "total" => total, "version" => version}
+
+  defp timestamp(%DateTime{microsecond: {us, _precision}} = now),
+    do: DateTime.to_iso8601(%{now | microsecond: {div(us, 1_000) * 1_000, 3}})
 end

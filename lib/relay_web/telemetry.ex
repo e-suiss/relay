@@ -75,6 +75,7 @@ defmodule RelayWeb.Telemetry do
       delivery_metrics() ++
       operations_metrics() ++
       reconciliation_metrics() ++
+      inbox_metrics() ++
       vm_metrics()
   end
 
@@ -228,6 +229,28 @@ defmodule RelayWeb.Telemetry do
   # OP-35 (3)
   # OP-37 (1)
   # OP-37 (2)
+  # IN-18
+  # IN-21
+  # OP-42
+  @doc "The inbox counter metrics: counters the reconciliation found drifted and fixed, by source (`nightly` or `report`), and the clients' inconsistency reports by result (`consistent` or `repaired`), whose repaired share is the inconsistency rate."
+  @spec inbox_metrics() :: [Telemetry.Metrics.t()]
+  def inbox_metrics do
+    [
+      sum("relay.inbox.counter_drift.total",
+        event_name: [:relay, :inbox, :counter_drift],
+        measurement: :count,
+        tags: [:source],
+        description: "Inbox counters the reconciliation found drifted from the items and fixed"
+      ),
+      sum("relay.inbox.inconsistency_reports.total",
+        event_name: [:relay, :inbox, :inconsistency_report],
+        measurement: :count,
+        tags: [:result],
+        description: "Client reports of inconsistent inbox counters, by reconciliation result"
+      )
+    ]
+  end
+
   # T-6
   # T-68 (3)
   # TN-62

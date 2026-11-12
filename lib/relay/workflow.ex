@@ -1145,6 +1145,14 @@ defmodule Relay.Workflow do
           {:ok, [{Relay.Id.t(), :cancelled | :read}]} | {:error, term()}
   defdelegate digest_read(scope, recipient_id, notification_id), to: Digest, as: :read
 
+  # WF-27
+  @doc "Applies a recipient's read signal to the pending digest windows of a notification inside the caller's transaction; see `Relay.Workflow.Digest.read_in_scope/3`."
+  @spec digest_read_in_scope(Scope.t(), Relay.Id.t(), Relay.Id.t()) ::
+          [{Relay.Id.t(), :cancelled | :read}]
+  defdelegate digest_read_in_scope(scope, recipient_id, notification_id),
+    to: Digest,
+    as: :read_in_scope
+
   # WF-30
   @doc "Routes an event into a digest window past the recipient's density threshold; see `Relay.Workflow.Digest.density/2`."
   @spec digest_density(Scope.t(), map()) ::

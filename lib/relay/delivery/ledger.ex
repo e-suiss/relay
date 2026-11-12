@@ -15,7 +15,8 @@ defmodule Relay.Delivery.Ledger do
              delivery.dead_lettered delivery.replay_opened delivery.uncertain
              provider.reported provider.unknown_code
              attempt.started attempt.succeeded attempt.failed attempt.unknown
-             engagement.opened engagement.clicked engagement.displayed)
+             engagement.opened engagement.clicked engagement.displayed engagement.seen
+             engagement.read engagement.archived)
   @failure_kinds [:skipped, :failed, :bounced, :expired, :cancelled]
   @after_delivered [:valid, :stale, :conflict]
   @engagement_kinds [:seen, :read, :clicked, :archived]

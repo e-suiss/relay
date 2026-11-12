@@ -216,6 +216,8 @@ defmodule Relay.Inbox.Live do
   @spec open(Scope.t(), [map()]) :: [map() | nil]
   def open(%Scope{} = scope, rows), do: Enum.map(rows, &open_row(scope, &1))
 
+  defp open_row(_scope, %{"content_ct" => nil}), do: nil
+
   defp open_row(scope, row) do
     field = field(scope, row["recipient_id"], Map.fetch!(@classes, row["retention_class"]))
 

@@ -33,7 +33,8 @@ defmodule Relay.Delivery.LedgerEntryTest do
                   delivery.dead_lettered delivery.replay_opened delivery.uncertain
                   provider.reported provider.unknown_code
                   attempt.started attempt.succeeded attempt.failed attempt.unknown
-                  engagement.opened engagement.clicked engagement.displayed)
+                  engagement.opened engagement.clicked engagement.displayed engagement.seen
+                  engagement.read engagement.archived)
     end
 
     test "C-32: values outside the closed sets are refused" do

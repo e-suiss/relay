@@ -9259,6 +9259,179 @@ Id_inb:
   pattern: "^inb_[0-7][0-9a-hjkmnp-tv-z]{25}$"
   examples:
     - inb_01j9zq3k4m5n6p7q8r9s0t1v2w
+InboxAnnouncementCreate:
+  type: object
+  description: "An announcement for an audience (IN-3)."
+  required:
+    - audience
+    - content
+  properties:
+    audience:
+      type: string
+      enum:
+        - tenant
+        - subtenant
+        - topic
+    subtenant:
+      "$ref": "#/Id_stn"
+    topic:
+      type: string
+      maxLength: 128
+    category:
+      type: string
+      minLength: 1
+      maxLength: 128
+    tags:
+      type: array
+      maxItems: 10
+      items:
+        type: string
+        maxLength: 64
+    severity:
+      type: string
+      pattern: "^[a-z_]{1,32}$"
+    content:
+      type: object
+      description: "Rendered content, checked against x-relay-limits inbox (IN-49)."
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+        avatar_url:
+          type: string
+        url:
+          type: string
+        actions:
+          type: array
+          maxItems: 3
+          items:
+            type: object
+            required:
+              - label
+              - url
+            properties:
+              label:
+                type: string
+              url:
+                type: string
+            additionalProperties: false
+        data:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            required:
+              - key
+              - value
+            properties:
+              key:
+                type: string
+              value:
+                type: string
+            additionalProperties: false
+      additionalProperties: false
+    locale:
+      "$ref": "#/Locale"
+    dir:
+      type: string
+      enum:
+        - ltr
+        - rtl
+        - auto
+    expires_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+InboxAnnouncement:
+  type: object
+  required:
+    - object
+    - id
+    - audience
+    - subtenant
+    - topic
+    - category
+    - tags
+    - severity
+    - content
+    - locale
+    - dir
+    - state
+    - published_at
+    - expires_at
+    - closed_at
+  properties:
+    object:
+      type: string
+      enum:
+        - inbox_announcement
+    id:
+      "$ref": "#/Id_ann"
+    audience:
+      type: string
+      enum:
+        - tenant
+        - subtenant
+        - topic
+    subtenant:
+      oneOf:
+        - "$ref": "#/Id_stn"
+        - type: "null"
+    topic:
+      oneOf:
+        - type: string
+        - type: "null"
+    category:
+      oneOf:
+        - type: string
+        - type: "null"
+    tags:
+      type: array
+      items:
+        type: string
+    severity:
+      oneOf:
+        - type: string
+        - type: "null"
+    content:
+      type: object
+    locale:
+      oneOf:
+        - type: string
+        - type: "null"
+    dir:
+      oneOf:
+        - type: string
+        - type: "null"
+    state:
+      type: string
+      enum:
+        - active
+        - retracted
+        - expired
+    published_at:
+      "$ref": "#/Timestamp"
+    expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    closed_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+Id_ann:
+  type: string
+  description: "Inbox announcement identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^ann_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - ann_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_ibk:
+  type: string
+  description: "Inbox bulk operation identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^ibk_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - ibk_01j9zq3k4m5n6p7q8r9s0t1v2w
 CampaignState:
   type: string
   description: "draft while its audience is built; preparing while the dry evaluation runs; prepared until it is triggered; running and paused while it sends; completed when every member was accepted, partial when members were rejected or expired at the deadline, cancelled when it was cancelled (T-23)."

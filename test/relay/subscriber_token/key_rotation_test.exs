@@ -3,6 +3,7 @@ defmodule Relay.SubscriberToken.KeyRotationTest do
 
   import Plug.Conn
 
+  alias Relay.Access.Cache
   alias Relay.Access.SubscriberTokenKeys
   alias RelayTest.Api
   alias RelayTest.Dpop
@@ -18,8 +19,8 @@ defmodule Relay.SubscriberToken.KeyRotationTest do
 
   setup do
     :ok = FakeAccess.install!()
-    Relay.Access.Cache.delete(@cache)
-    on_exit(fn -> Relay.Access.Cache.delete(@cache) end)
+    Cache.delete(@cache)
+    on_exit(fn -> Cache.delete(@cache) end)
     tenant = TenantFixture.tenant!()
     app = FakeAccess.client!(tenant.test, ["read"])
     %{access_tenant: tenant.attrs.access_tenant_id, app: app}

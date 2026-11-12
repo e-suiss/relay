@@ -403,6 +403,9 @@ table relay.stream_heads relay_report SELECT
 table relay.subject_keys relay_app SELECT
 table relay.subject_keys relay_maint SELECT
 table relay.subject_keys relay_owner INSERT,SELECT,UPDATE
+table relay.subscriber_token_keys relay_app SELECT
+table relay.subscriber_token_keys relay_maint INSERT,SELECT,UPDATE
+table relay.subscriber_token_keys relay_owner SELECT
 table relay.subtenants relay_app SELECT
 table relay.subtenants relay_archive SELECT
 table relay.subtenants relay_maint SELECT

@@ -1,6 +1,6 @@
 defmodule Relay.Agents.Correlation do
   @moduledoc """
-  The stored form of a correlation key (AG-65). A correlation key is a free value of the tenant and may carry personal data, while waitpoints and mailbox records are immutable and outlive subject erasure, so the key is never stored in clear: a waitpoint, a buffered early event and a subscriber's event wait keep `HMAC-SHA256` of the canonical encoding of the event type and the key, computed inside the key store under the tenant × environment blind index key (`Relay.Tenancy.blind_index_digests/3`, purpose `correlation`, TN-63), and the first matching stage (AG-14) compares those digests.
+  The stored form of a correlation key (AG-65). A correlation key is a free value of the tenant and may carry personal data, while waitpoints and mailbox records are immutable and outlive subject erasure, so the key is never stored in clear: a waitpoint, a buffered early event and a subscriber's event wait keep `HMAC-SHA256` of the canonical encoding of the event type and the key, computed inside the key store under the tenant × environment blind index key through the index step configured as `config :relay, Relay.Agents, blind_index: Module`, by default `Relay.Tenancy`, whose `blind_index_digests/3` it calls (purpose `correlation`, TN-63), and the first matching stage (AG-14) compares those digests.
 
   While a blind index key is rotated a key has one digest per readable key, the current key first: a new row stores the first, matching and the advisory lock use all of them. The key store is called outside any transaction, so the digests are computed before the transaction that opens a waitpoint or offers an event.
   """
@@ -8,6 +8,7 @@ defmodule Relay.Agents.Correlation do
   alias Relay.Agents.WaitpointStore
 
   @purpose "correlation"
+  @index Relay.Tenancy
 
   @type digest :: <<_::256>>
   @type pair :: {String.t(), String.t()}
@@ -22,7 +23,7 @@ defmodule Relay.Agents.Correlation do
       when is_binary(event_type) and is_binary(key) do
     index = %{tenant_id: scope.tenant_id, environment: scope.environment, purpose: @purpose}
 
-    case Relay.Tenancy.blind_index_digests(index, Relay.Canonical.encode!([event_type, key])) do
+    case index_step().blind_index_digests(index, Relay.Canonical.encode!([event_type, key])) do
       {:ok, entries} -> {:ok, Enum.map(entries, &elem(&1, 1))}
       {:error, %Relay.Error{} = error} -> {:error, error}
     end
@@ -41,6 +42,9 @@ defmodule Relay.Agents.Correlation do
       {:ok, %{scanned: length(rows), updated: updated}}
     end
   end
+
+  defp index_step,
+    do: :relay |> Application.get_env(Relay.Agents, []) |> Keyword.get(:blind_index, @index)
 
   defp fill(_scope, [], _digests), do: {:ok, 0}
 

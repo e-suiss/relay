@@ -10,14 +10,12 @@ defmodule Relay.Access.SubscriberTokenKeys do
   require Logger
 
   alias Relay.Access.Cache
-  alias Relay.Repo
+  alias Relay.Access.SubscriberTokenKeyStore
 
   @cache {__MODULE__, :snapshot}
-  @escape :subscriber_token_keys
   @ttl_ms 5_000
   @rotation_days 90
   @lifetime_s Relay.Limits.fetch!(["subscriber_token_lifetime_seconds"])
-  @read "SELECT label, state, activated_at, verify_until FROM relay.subscriber_token_keys WHERE state IN ('current', 'previous')"
 
   @type key :: %{label: String.t(), activated_at: DateTime.t() | nil}
   @type previous :: %{label: String.t(), verify_until: DateTime.t()}
@@ -140,8 +138,8 @@ defmodule Relay.Access.SubscriberTokenKeys do
   end
 
   defp load do
-    case Repo.unscoped_query(@escape, @read, []) do
-      {:ok, %{rows: rows}} ->
+    case SubscriberTokenKeyStore.active() do
+      {:ok, rows} ->
         snapshot = from_rows(rows)
         :ok = Cache.put(@cache, snapshot, @ttl_ms)
         report(snapshot)
@@ -180,7 +178,7 @@ defmodule Relay.Access.SubscriberTokenKeys do
 
   defp changed do
     Cache.delete(@cache)
-    seq = System.os_time(:millisecond)
+    seq = DateTime.to_unix(Relay.Clock.utc_now(), :millisecond)
 
     case Relay.Platform.publish_signal(topic(), seq) do
       :ok -> :ok
@@ -188,8 +186,7 @@ defmodule Relay.Access.SubscriberTokenKeys do
     end
   end
 
-  defp call(function, params),
-    do: Repo.call_unscoped!(@escape, "relay_ops.subscriber_token_key_" <> function, params)
+  defp call(function, params), do: SubscriberTokenKeyStore.call(function, params)
 
   defp default_label,
     do: Keyword.get(Relay.Access.config(), :subscriber_token_key, "subscriber-token")

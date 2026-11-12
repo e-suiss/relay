@@ -3,7 +3,7 @@ defmodule Relay.Agents do
   Waitpoints, agent mailboxes and agent protocols. Other contexts use only the functions of this module.
   """
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Tenancy], exports: []
+  use Boundary, top_level?: true, deps: [Relay], exports: []
 
   alias Relay.Agents.Correlation
   alias Relay.Agents.Waitpoint

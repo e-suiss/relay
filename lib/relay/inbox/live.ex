@@ -36,7 +36,7 @@ defmodule Relay.Inbox.Live do
   @doc "Writes the inbox item of a rendered `in_app` delivery from its rendered content (the renderer's content document or its output); returns `:ok`, `{:skip, rule_id}` when the recipient is no longer an active subscriber, or `{:error, reason}` when an input cannot be read, so the job retries."
   @spec deliver(Scope.t(), map(), binary() | map()) :: result()
   def deliver(%Scope{} = scope, %{"id" => delivery_id} = delivery, content) do
-    with {:ok, %{policy: policy, digest: digest}} <- inputs(scope, delivery_id),
+    with {:ok, policy, digest} <- inputs(scope, delivery_id),
          {:ok, item} <- item(content) do
       meta = meta(digest)
 
@@ -56,7 +56,7 @@ defmodule Relay.Inbox.Live do
     end
 
     case Store.in_scope(scope, read) do
-      {:ok, %{policy: %{"result" => "ok"}} = inputs} -> {:ok, inputs}
+      {:ok, %{policy: %{"result" => "ok"} = policy, digest: digest}} -> {:ok, policy, digest}
       {:ok, _not_found} -> {:error, {:input_unavailable, :render_policy}}
       {:error, _reason} -> {:error, {:input_unavailable, :render_policy}}
     end

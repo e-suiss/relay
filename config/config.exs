@@ -40,7 +40,8 @@ config :relay, Relay.Platform.Leadership,
     {"kill_switch_paused_expiry", Relay.Tenancy.KillSwitch.Expiry, []},
     {"access_link_refresh", Relay.Access.Refresh, []},
     {"tenant_suspension_activator", Relay.Operators.SuspensionActivator, []},
-    {"observability_rollup", Relay.Observability.Rollup, []}
+    {"observability_rollup", Relay.Observability.Rollup, []},
+    {"inbox_maintenance", Relay.Inbox.Maintenance, []}
   ]
 
 config :relay, Relay.Audit,

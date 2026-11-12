@@ -128,7 +128,8 @@ defmodule RelayTest.Isolation do
       "topic_key" => &topic!/1,
       "recurrence_id" => &recurrence!/1,
       "throttle_key" => &throttle!/1,
-      "campaign_id" => &campaign!/1
+      "campaign_id" => &campaign!/1,
+      "announcement_id" => &announcement!/1
     }
   end
 
@@ -505,6 +506,13 @@ defmodule RelayTest.Isolation do
     }
 
     F.body(F.request(:post, "/v1/campaigns", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Publishes a tenant-wide inbox announcement in `scope` and returns its identifier."
+  @spec announcement!(Relay.Scope.t()) :: String.t()
+  def announcement!(scope) do
+    body = %{"audience" => "tenant", "content" => %{"title" => "Isolation"}}
+    F.body(F.request(:post, "/v1/inbox/announcements", owner(scope), body), 201)["id"]
   end
 
   @doc "Defines a daily recurrence rule in `scope` for a new subscriber and returns its identifier."

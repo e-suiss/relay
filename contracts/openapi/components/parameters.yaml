@@ -450,10 +450,26 @@ TestRecipientId:
 InboxItemId:
   name: item_id
   in: path
-  description: "Inbox item identifier."
+  description: "Inbox item identifier, or the identifier of an announcement merged into the inbox."
   required: true
   schema:
-    "$ref": "./schemas.yaml#/Id_inb"
+    oneOf:
+      - "$ref": "./schemas.yaml#/Id_inb"
+      - "$ref": "./schemas.yaml#/Id_ann"
+InboxBulkId:
+  name: bulk_id
+  in: path
+  description: "Inbox bulk operation identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_ibk"
+InboxAnnouncementId:
+  name: announcement_id
+  in: path
+  description: "Inbox announcement identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_ann"
 ProviderInvoiceId:
   name: provider_invoice_id
   in: path

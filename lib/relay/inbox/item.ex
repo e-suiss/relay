@@ -186,6 +186,7 @@ defmodule Relay.Inbox.Item do
     |> state_view(now)
     |> Map.merge(%{
       "object" => "inbox_item",
+      "kind" => "personal",
       "created_at" => row["created_at"],
       "last_activity_at" => row["last_activity_at"],
       "category" => row["category"],

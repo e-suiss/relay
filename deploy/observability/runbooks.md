@@ -319,3 +319,9 @@ Every alert rule in `alerts.yaml` links here with its `runbook_url`. Each entry 
 - **Meaning:** The key that signs subscriber tokens has been current for more than 90 days, the rotation period.
 - **Check:** Read the current key and its activation with `Relay.Release.SubscriberTokenKey.status()`.
 - **Action:** Create a new P-256 key pair in the key store (`deploy/hsm-keys.sh`) and rotate to it with `Relay.Release.SubscriberTokenKey.rotate/1`; the previous key keeps verifying for two token lifetimes.
+
+## RelayInboxCounterDrift
+
+- **Meaning:** The nightly reconciliation found inbox counters that differed from the recipients' items and fixed them; badges were wrong until then.
+- **Check:** Compare `relay_inbox_counter_drift_total` by source with recent deploys and with `relay_inbox_inconsistency_reports_total{result="repaired"}`.
+- **Action:** Find the write path that changed items without its counters; the reconciliation keeps fixing drifted counters meanwhile.

@@ -258,6 +258,12 @@
     "reason": "IN-44, OP-9: the no-delete triggers reject TRUNCATE on inbox items, their partitions, their delivery links and the counters"
   },
   {
+    "path": "priv/repo/migrations/20261216500000_create_inbox_operation_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "IN-44, OP-9: the no-delete triggers reject TRUNCATE on inbox announcements, their recipient states, the read marks and the bulk operations"
+  },
+  {
     "path": "priv/repo/migrations/20261216100200_allow_inbox_render_failure.exs",
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",

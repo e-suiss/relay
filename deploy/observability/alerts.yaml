@@ -635,3 +635,11 @@ groups:
         annotations:
           summary: "The subscriber token signing key has not been rotated for 90 days"
           runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysubscribertokenkeyrotationdue
+      - alert: RelayInboxCounterDrift
+        expr: sum(increase(relay_inbox_counter_drift_total{source="nightly"}[1d])) > 0
+        labels:
+          severity: warning
+          decision: IN-18
+        annotations:
+          summary: "The nightly inbox reconciliation found counters that drifted from their items"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayinboxcounterdrift

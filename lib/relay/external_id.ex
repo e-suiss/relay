@@ -70,7 +70,9 @@ defmodule Relay.ExternalId do
     {"rte", "routes"},
     {"rec", "recurrences"},
     {"cmp", "campaigns"},
-    {"inb", "inbox_items"}
+    {"inb", "inbox_items"},
+    {"ann", "inbox_announcements"},
+    {"ibk", "inbox_bulk_operations"}
   ]
   @by_prefix Map.new(@tables)
 

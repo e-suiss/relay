@@ -1598,6 +1598,364 @@ paths:
       x-relay-stage: 9
       x-relay-choice: true
       x-relay-choice-note: "Path and the stream cursor form (unsigned, opaque, base64url of epoch and sequence; it names a position only and every read checks the token) are chosen by the contract."
+  "/v1/subscriber/inbox/read_all":
+    post:
+      operationId: markAllMyInboxRead
+      tags:
+        - inbox
+      summary: Mark all my inbox items read
+      description: "Marks every unread item of the inbox tab read, or only those of category (X-17, IN-14, IN-50): the cut-off is the server time of the request, so an item that arrives later stays unread. The items are read in one transaction with a new state_version each, the counters are written again in the same transaction and one inbox.items_bulk_updated and one inbox.counters_changed are published. Announcements of the scope published before the cut-off are read through one read mark of the subscriber and the scope; no row is written per announcement. Nothing is archived. Undo is a short client buffer before the request is sent (IN-15)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/InboxReadAll"
+      security:
+        - subscriber_bearer:
+            - "inbox:write"
+      responses:
+        "200":
+          description: Marked read.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/InboxReadAllResult"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+      x-relay-scopes:
+        - "inbox:write"
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "IN-50 fixes the mechanism and the semantics; the path and the answer are chosen by the contract."
+  "/v1/subscriber/inbox/bulk":
+    post:
+      operationId: startMyInboxBulk
+      tags:
+        - inbox
+      summary: Start a bulk action on my inbox items
+      description: "Starts an asynchronous bulk action (IN-14): read, archive or hide every item of the subscriber that matches filter (status, category and tag as in the list) and was created before the request. It runs in chunks, each chunk one transaction that publishes inbox.items_bulk_updated with the counters; the answer is 202 with the operation, whose progress the client reads until its state is completed. Announcements are not part of a bulk action."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/InboxBulkRequest"
+      security:
+        - subscriber_bearer:
+            - "inbox:write"
+      responses:
+        "202":
+          description: Started.
+          headers:
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/InboxBulkOperation"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+      x-relay-scopes:
+        - "inbox:write"
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "IN-14 requires an asynchronous, chunked action with progress; the path, the chunk size (x-relay-limits inbox.bulk_chunk_size) and the status resource are chosen by the contract."
+  "/v1/subscriber/inbox/bulk/{bulk_id}":
+    get:
+      operationId: getMyInboxBulk
+      tags:
+        - inbox
+      summary: Get a bulk action on my inbox items
+      description: "The progress of one of the subscriber's bulk actions: matched and updated items so far and its state, running or completed (IN-14)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/InboxBulkId"
+      security:
+        - subscriber_bearer:
+            - "inbox:read"
+      responses:
+        "200":
+          description: The operation.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/InboxBulkOperation"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - inbox_bulk_operation_not_found
+      x-relay-scopes:
+        - "inbox:read"
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "Path chosen by the contract."
+  "/v1/subscriber/inbox/counters/inconsistency":
+    post:
+      operationId: reportMyInboxInconsistency
+      tags:
+        - inbox
+      summary: Report my inbox counters inconsistent
+      description: "The client reports that the counters do not match the items it lists (IN-21); the server reconciles the subscriber's counters with its items at once and answers whether they were consistent or repaired, with the current counters. Repaired counters are published like any counter change. The rate of reports is a metric."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      security:
+        - subscriber_bearer:
+            - "inbox:read"
+      responses:
+        "200":
+          description: Reconciled.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/InboxReconciliation"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+      x-relay-scopes:
+        - "inbox:read"
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "IN-21 requires the report and the reconciliation; the path and the answer are chosen by the contract."
 components:
   securitySchemes:
     subscriber_bearer:
@@ -1886,7 +2244,9 @@ components:
         - archived_at
       properties:
         id:
-          "$ref": "./components/schemas.yaml#/Id_inb"
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Id_inb"
+            - "$ref": "./components/schemas.yaml#/Id_ann"
         state_version:
           type: integer
           minimum: 1
@@ -1956,8 +2316,16 @@ components:
           type: string
           enum:
             - inbox_item
+        kind:
+          type: string
+          enum:
+            - personal
+            - announcement
+          description: "personal for an item written for the subscriber, announcement for a record of its audience merged at read time (IN-3)."
         id:
-          "$ref": "./components/schemas.yaml#/Id_inb"
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Id_inb"
+            - "$ref": "./components/schemas.yaml#/Id_ann"
         state_version:
           type: integer
           minimum: 1
@@ -2160,7 +2528,9 @@ components:
             - updated
             - removed
         item_id:
-          "$ref": "./components/schemas.yaml#/Id_inb"
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Id_inb"
+            - "$ref": "./components/schemas.yaml#/Id_ann"
         state_version:
           type: integer
           minimum: 1
@@ -2230,6 +2600,7 @@ components:
             - hide
             - snooze
             - unsnooze
+            - click
         base_state_version:
           type: integer
           minimum: 1
@@ -2256,7 +2627,9 @@ components:
           enum:
             - inbox_intent_result
         item_id:
-          "$ref": "./components/schemas.yaml#/Id_inb"
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Id_inb"
+            - "$ref": "./components/schemas.yaml#/Id_ann"
         op:
           type: string
         client_seq:
@@ -2270,6 +2643,133 @@ components:
             - unchanged
         state:
           "$ref": "#/components/schemas/InboxItemState"
+        counters:
+          "$ref": "#/components/schemas/InboxCounters"
+      additionalProperties: false
+    InboxReadAll:
+      type: object
+      description: "The scope of mark all read: the whole inbox, or one category."
+      properties:
+        category:
+          type: string
+          minLength: 1
+          maxLength: 128
+      additionalProperties: false
+    InboxReadAllResult:
+      type: object
+      required:
+        - object
+        - scope
+        - category
+        - updated
+        - cut_off
+        - counters
+      properties:
+        object:
+          type: string
+          enum:
+            - inbox_read_all_result
+        scope:
+          type: string
+          enum:
+            - all
+            - category
+        category:
+          oneOf:
+            - type: string
+              maxLength: 128
+            - type: "null"
+        updated:
+          type: integer
+          minimum: 0
+          description: Items marked read; announcements are read through the read mark.
+        cut_off:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        counters:
+          "$ref": "#/components/schemas/InboxCounters"
+      additionalProperties: false
+    InboxBulkRequest:
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          enum:
+            - read
+            - archive
+            - hide
+        filter:
+          type: object
+          properties:
+            status:
+              type: string
+              enum:
+                - inbox
+                - unread
+                - archived
+                - snoozed
+                - all
+            category:
+              type: string
+              minLength: 1
+              maxLength: 128
+            tag:
+              type: string
+              minLength: 1
+              maxLength: 64
+          additionalProperties: false
+      additionalProperties: false
+    InboxBulkOperation:
+      type: object
+      required:
+        - object
+        - id
+        - action
+        - state
+        - matched
+        - updated
+      properties:
+        object:
+          type: string
+          enum:
+            - inbox_bulk_operation
+        id:
+          "$ref": "./components/schemas.yaml#/Id_ibk"
+        action:
+          type: string
+          enum:
+            - read
+            - archive
+            - hide
+        state:
+          type: string
+          enum:
+            - running
+            - completed
+        matched:
+          type: integer
+          minimum: 0
+        updated:
+          type: integer
+          minimum: 0
+      additionalProperties: false
+    InboxReconciliation:
+      type: object
+      required:
+        - object
+        - result
+        - counters
+      properties:
+        object:
+          type: string
+          enum:
+            - inbox_reconciliation
+        result:
+          type: string
+          enum:
+            - consistent
+            - repaired
         counters:
           "$ref": "#/components/schemas/InboxCounters"
       additionalProperties: false

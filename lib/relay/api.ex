@@ -84,6 +84,7 @@ defmodule Relay.Api do
       Topics,
       Throttles,
       Campaigns,
-      Inbox
+      Inbox,
+      Announcements
     ]
 end

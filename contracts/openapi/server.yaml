@@ -10960,6 +10960,291 @@ paths:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The remove action path is chosen by the contract."
+  "/v1/inbox/announcements":
+    post:
+      operationId: createInboxAnnouncement
+      tags:
+        - send
+      summary: Publish an inbox announcement
+      description: "Publishes one announcement record for the tenant's environment (audience tenant), for a sub-tenant (audience subtenant, subtenant) or for the subscribers of a topic (audience topic, topic) (IN-3, C-70, API-35). No row is written per recipient: every recipient in the audience sees it merged into its inbox at read time, in its counters and in its delta, and its own state is written only when it acts on it. The content is rendered by the sender and kept within the published inbox limits (IN-49). An expires_at ends it by itself (IN-17). A sub-tenant audience reaches the recipients that have an inbox item in that sub-tenant. Audited as inbox_announcement.published."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/InboxAnnouncementCreate"
+      security:
+        - access_bearer:
+            - publish
+      responses:
+        "201":
+          description: Published.
+          headers:
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/InboxAnnouncement"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+      x-relay-scopes:
+        - publish
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "IN-3 fixes one record merged at read time; the path, the audience form, the topic as the list audience and the sub-tenant membership through the recipient's items of that sub-tenant are chosen by the contract."
+  "/v1/inbox/announcements/{announcement_id}":
+    get:
+      operationId: getInboxAnnouncement
+      tags:
+        - send
+      summary: Get an inbox announcement
+      description: "Returns an announcement record with its audience, content and state: active, retracted or expired."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/InboxAnnouncementId"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - publish
+      responses:
+        "200":
+          description: The announcement.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/InboxAnnouncement"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - inbox_announcement_not_found
+      x-relay-scopes:
+        - read
+        - publish
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "Path chosen by the contract."
+  "/v1/inbox/announcements/{announcement_id}/retract":
+    post:
+      operationId: retractInboxAnnouncement
+      tags:
+        - send
+      summary: Retract an inbox announcement
+      description: "Retracts an announcement: it leaves every list and counter of its audience at once and readers see it removed in their delta (IN-16). Retracting a retracted or expired announcement answers it unchanged. Audited as inbox_announcement.retracted."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/InboxAnnouncementId"
+      security:
+        - access_bearer:
+            - publish
+      responses:
+        "200":
+          description: Retracted.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/InboxAnnouncement"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - inbox_announcement_not_found
+      x-relay-scopes:
+        - publish
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "Path chosen by the contract."
   "/v1/topics":
     get:
       operationId: listTopics
@@ -19970,6 +20255,18 @@ x-relay-id-prefixes:
     stage: 9
     x-relay-choice: true
     x-relay-choice-note: Prefix chosen by the contract.
+  - prefix: ann_
+    concept: Inbox announcement
+    table: inbox_announcements
+    stage: 9
+    x-relay-choice: true
+    x-relay-choice-note: Prefix chosen by the contract.
+  - prefix: ibk_
+    concept: Inbox bulk operation
+    table: inbox_bulk_operations
+    stage: 9
+    x-relay-choice: true
+    x-relay-choice-note: Prefix chosen by the contract.
 x-relay-api-versions:
   supported:
     - "2026-11-01"
@@ -20106,6 +20403,15 @@ x-relay-limits:
     item_max_bytes: 16384
     realtime_item_max_bytes: 8192
     changes_max: 500
+    snapshot_per_recipient_per_minute: 30
+    snapshot_per_tenant_per_minute: 3000
+    bulk_chunk_size: 200
+    retention:
+      visible_items: 1000
+      active_days: 90
+      archive_days: 365
+    x-relay-choice: true
+    x-relay-choice-note: "IN-49 sets the field limits and the realtime threshold, IN-29 the 500 changes, IN-52 the snapshot rates and IN-44/OP-22 the retention defaults. The bulk chunk size is a contract choice; the tenant's inbox.retention setting may only lower the retention defaults until the Appendix C upper bounds for inbox content are set."
   realtime:
     accept_per_second: 200
     accept_burst: 400

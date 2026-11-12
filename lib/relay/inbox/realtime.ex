@@ -38,7 +38,8 @@ defmodule Relay.Inbox.Realtime do
   def messages(%{changes: changes, counters: counters, cursor: cursor}, ts) do
     items =
       for change <- changes do
-        position = Cursor.encode(%{epoch: cursor.epoch, seq: change.seq})
+        fallback = %{epoch: cursor.epoch, seq: change.seq}
+        position = Cursor.encode(Map.get(change, :position, fallback))
         {position, envelope(type(change), body(change), counters, ts)}
       end
 

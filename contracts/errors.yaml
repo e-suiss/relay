@@ -2029,3 +2029,31 @@ codes:
     choice: false
     description: "A browser opened a realtime WebSocket or SSE connection whose Origin header is not on the allowed origins of the subscriber token's tenant environment (exact match, no wildcards). The WebSocket handshake is refused with this problem, and an open connection that loses its origin is closed with 1008 and this reason. A client that sends no Origin header is not affected (IN-54)."
     type: "{base_url}/v1/errors/realtime_origin_not_allowed"
+  - code: inbox_bulk_operation_not_found
+    family: resource
+    status: 404
+    title: Inbox bulk operation not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No bulk operation of the token's subscriber has this identifier. Operations of other subscribers, tenants and environments also return 404."
+    type: "{base_url}/v1/errors/inbox_bulk_operation_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: inbox_announcement_not_found
+    family: resource
+    status: 404
+    title: Inbox announcement not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No announcement of this tenant and environment has this identifier. Announcements of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/inbox_announcement_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."

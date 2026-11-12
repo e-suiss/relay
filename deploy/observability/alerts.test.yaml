@@ -381,3 +381,15 @@ tests:
             exp_annotations:
               summary: "The subscriber token signing key has not been rotated for 90 days"
               runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysubscribertokenkeyrotationdue
+  - interval: 1m
+    input_series:
+      - series: 'relay_inbox_counter_drift_total{source="nightly"}'
+        values: "0 0 3 3 3 3 3 3"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: RelayInboxCounterDrift
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: IN-18}
+            exp_annotations:
+              summary: "The nightly inbox reconciliation found counters that drifted from their items"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayinboxcounterdrift

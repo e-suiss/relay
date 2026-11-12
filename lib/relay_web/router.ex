@@ -434,6 +434,15 @@ defmodule RelayWeb.Router do
       private: %{relay_operation: "removeTestRecipient"}
 
     # WF-51
+    post "/inbox/announcements", AnnouncementController, :create,
+      private: %{relay_operation: "createInboxAnnouncement"}
+
+    get "/inbox/announcements/:announcement_id", AnnouncementController, :show,
+      private: %{relay_operation: "getInboxAnnouncement"}
+
+    post "/inbox/announcements/:announcement_id/retract", AnnouncementController, :retract,
+      private: %{relay_operation: "retractInboxAnnouncement"}
+
     get "/topics", TopicController, :index, private: %{relay_operation: "listTopics"}
     post "/topics", TopicController, :create, private: %{relay_operation: "createTopic"}
     get "/topics/:topic_key", TopicController, :show, private: %{relay_operation: "getTopic"}
@@ -656,6 +665,18 @@ defmodule RelayWeb.Router do
 
     get "/subscriber/inbox/changes", InboxController, :changes,
       private: %{relay_operation: "listMyInboxChanges"}
+
+    post "/subscriber/inbox/read_all", InboxController, :read_all,
+      private: %{relay_operation: "markAllMyInboxRead"}
+
+    post "/subscriber/inbox/bulk", InboxController, :start_bulk,
+      private: %{relay_operation: "startMyInboxBulk"}
+
+    get "/subscriber/inbox/bulk/:bulk_id", InboxController, :bulk,
+      private: %{relay_operation: "getMyInboxBulk"}
+
+    post "/subscriber/inbox/counters/inconsistency", InboxController, :inconsistency,
+      private: %{relay_operation: "reportMyInboxInconsistency"}
 
     get "/realtime/events", RealtimeController, :events,
       private: %{relay_operation: "streamRealtimeEvents"}

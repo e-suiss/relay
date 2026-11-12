@@ -659,6 +659,30 @@
       "personal_columns": [],
       "tenant_close": "row kept",
       "subject_erasure": "no personal fields; counts only"
+    },
+    {
+      "table": "inbox_announcements",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "a tenant record for an audience; no subject's personal fields"
+    },
+    {
+      "table": "inbox_announcement_states",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers and the recipient's own state times only; row kept"
+    },
+    {
+      "table": "inbox_read_marks",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers, a category key and a time only; row kept"
+    },
+    {
+      "table": "inbox_bulk_operations",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers, the list filter and counts only; row kept"
     }
   ],
   "locations": [

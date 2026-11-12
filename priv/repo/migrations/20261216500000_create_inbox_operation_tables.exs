@@ -236,7 +236,8 @@ defmodule Relay.Repo.Migrations.CreateInboxOperationTables do
   end
 
   defp scoped(table) do
-    grants = for {privileges, roles} <- @grants, do: "GRANT #{privileges} ON relay.#{table} TO #{roles}"
+    grants =
+      for {privileges, roles} <- @grants, do: "GRANT #{privileges} ON relay.#{table} TO #{roles}"
 
     [
       "ALTER TABLE relay.#{table} ENABLE ROW LEVEL SECURITY",

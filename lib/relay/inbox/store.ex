@@ -258,7 +258,7 @@ defmodule Relay.Inbox.Store do
   end
 
   @doc "The scope of the caller's transaction."
-  @spec current_scope() :: Relay.Scope.t()
+  @spec current_scope() :: Relay.Scope.t() | nil
   def current_scope, do: Repo.current_scope()
 
   # IN-50

@@ -395,6 +395,7 @@ defmodule Relay.Inbox do
 
       {:ok, row} ->
         now = Relay.Clock.utc_now()
+
         if Announcement.removed?(row, now),
           do: :not_found,
           else: {:ok, Announcement.view(row, now)}
@@ -696,6 +697,7 @@ defmodule Relay.Inbox do
   def read_all(%Relay.Scope{} = scope, subscriber_id, category) do
     result = Store.read_all(subscriber_id, category)
     digest_read!(scope, subscriber_id, result.notification_ids)
+
     %{
       updated: result.updated,
       counters: merged_counters(scope, subscriber_id),

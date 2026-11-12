@@ -178,6 +178,7 @@ defmodule Relay.Api.Announcements do
 
   defp field(pointer, code, detail) do
     error = %{pointer: pointer, code: code, detail: detail}
+
     Relay.Error.new(:validation_failed, "the announcement breaks a field rule", %{errors: [error]})
   end
 end

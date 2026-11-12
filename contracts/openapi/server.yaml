@@ -19823,6 +19823,12 @@ x-relay-limits:
     stale_after: P30D
     inactive_disable_after: P270D
     sweep_batch_max: 1000
+    status_ttl_default: PT5M
+    status_ttl_max: PT15M
+    status_writes_per_second: 1
+    sync_coalesce: PT60S
+    sync_per_hour_ios: 3
+    sync_ttl_android: PT60S
   template:
     max_source_bytes: 262144
     max_loops: 10

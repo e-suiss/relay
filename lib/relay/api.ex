@@ -49,6 +49,7 @@ defmodule Relay.Api do
       Duration,
       Subscribers,
       Devices,
+      Presence,
       Messaging,
       Workflows,
       Routes,

@@ -2,7 +2,7 @@ defmodule Relay.Api.Events do
   @moduledoc """
   The send operations (API-19 … API-34, OP-7, DS-36). An event is prepared outside any transaction (`prepare/3`): its workflow version is resolved and frozen (WF-7), the request's field rules and the event schema are checked (API-20, API-27), the recipients' writes are prepared with their keys (API-21) and the payload is sealed under the tenant data key. It is then accepted inside the request's idempotency transaction (`accept/2`), so the idempotency claim, the event, its notifications and deliveries with their opening ledger events, the queue jobs, the quota counters and the outbox events commit together or not at all.
 
-  Every notification has one workflow run (WF-59 (5), `Relay.Workflow.start_run/2`): at acceptance the run is created and advanced in the same transaction up to its first waiting step, and each channel step it reaches opens its delivery here (`open_step/6`), exactly as a workflow of channel steps alone always did; a later step opens its delivery when the run wakes (`Relay.Api.WorkflowRuns`). A request's `send_at` is the run's time base (WF-41), except in the `security` class, which is never scheduled: its `send_at` is not applied and the answer warns `send_at_ignored` (WF-40). The job of a scheduled delivery fires after `send_at` by the WF-58 scheduled jitter, which never reaches `expires_at` and is zero for `timing_precision: strict` or a strict tenant (`Relay.Timing`).
+  Every notification has one workflow run (WF-59 (5), `Relay.Workflow.start_run/2`): at acceptance the run is created and advanced in the same transaction up to its first waiting step, and each channel step it reaches opens its delivery here (`open_step/6`), exactly as a workflow of channel steps alone always did; a later step opens its delivery when the run wakes (`Relay.Api.WorkflowRuns`). A request's `send_at` is the run's time base (WF-41), except in the `security` class, which is never scheduled: its `send_at` is not applied and the answer warns `send_at_ignored` (WF-40). The job of a scheduled delivery fires after `send_at` by the WF-58 scheduled jitter, which never reaches `expires_at` and is zero for `timing_precision: strict` or a strict tenant (`Relay.Timing`). A request with `timing: next_break` keeps its `max_defer` instant on the event, which may not pass the notification's `expires_at`, its class default included (WF-56, PC-49); every delivery of the notification then waits for the recipient's next break in the policy lattice.
 
   Policy outcomes are decisions, not errors (C-4, MD-12, DS-26): every delivery is opened and the policy lattice decides it at once (`Relay.Policy.Live`, PC-58 (2)): a gate or filter skips it, a shaper defers it to `deferred_until` and queues its job for then, and an expiry closes it, each recorded with its reason, rule and detail and announced as `notification.suppressed` (DS-24, DS-27). The class comes from the workflow's category (PC-57 (3)), the priority is clamped to the class ceiling with a `priority_clamped` warning (API-22, PC-58 (7)) and a request without `expires_at` gets the category's or the class default (PC-57 (4)). A matching kill switch pauses the delivery at acceptance and queues no job (TN-40), the send mode `off` and an unknown sub-tenant skip it with a rule (OP-51, API-25), and a suspended subscriber's deliveries are skipped with `subscriber.suspended` (TN-73): the send is accepted and no delivery is sent. Before the lattice, each delivery's template is resolved with sub-tenant inheritance and its cell chosen for the recipient's locale (`Relay.Templates.Live`): a channel without a variant, a locale chain without a cell and a template without a live version skip the delivery with their template rule, and otherwise the template, layout and partial versions and the locale are pinned with the delivery (TP-50, TP-11, TP-26, WF-16). In `dry_run` the template step and the lattice run and the answer carries each channel's decision; nothing is opened, pinned or counted (PC-58 (8)). A durable write failure is `503` (INV-2).
   """
@@ -79,10 +79,12 @@ defmodule Relay.Api.Events do
          {:ok, payload} <- payload(scope, request, cloudevent),
          {:ok, digests} <- digests(scope, workflow, request, recipients, cloudevent),
          {:ok, subtenant} <- subtenant(scope, request.tenant, Map.get(ctx, :subtenant_id)),
-         {:ok, category} <- subtenant_category(scope, workflow, category, subtenant) do
+         {:ok, category} <- subtenant_category(scope, workflow, category, subtenant),
+         :ok <- max_defer(request, category, Relay.Clock.business_now(scope)) do
       request = clamp(request, body, category.message_class)
       request = immediate(request, category.message_class)
       now = Relay.Clock.business_now(scope)
+      expires_at = expires_at(request, category, now)
 
       {:ok,
        %{
@@ -94,7 +96,7 @@ defmodule Relay.Api.Events do
          policy: category,
          message_class: class,
          now: now,
-         expires_at: expires_at(request, category, now),
+         expires_at: expires_at,
          frequency: frequency(scope, category, recipients, request.steps),
          request: request,
          providers: providers,
@@ -121,6 +123,21 @@ defmodule Relay.Api.Events do
     data = request.data
     WorkflowRuns.correlation_digests(scope, workflow["definition"], data, attributes, incoming)
   end
+  # WF-56
+  # WF-57
+  # PC-49
+  defp max_defer(%{max_defer_until: %DateTime{} = until} = request, category, now) do
+    if DateTime.compare(until, expires_at(request, category, now)) == :gt do
+      detail = "max_defer cannot pass expires_at"
+      error = %{pointer: "/max_defer", code: "conflict", detail: detail}
+      message = "the request breaks a field rule"
+      {:error, Relay.Error.new(:validation_failed, message, %{errors: [error]})}
+    else
+      :ok
+    end
+  end
+
+  defp max_defer(_request, _category, _now), do: :ok
 
   # WF-14
   # WF-7
@@ -574,6 +591,8 @@ defmodule Relay.Api.Events do
       security_subtype: r.security_subtype,
       on_expire: r.on_expire,
       timing_precision: r.timing_precision,
+      timing: Map.get(r, :timing),
+      max_defer_until: Map.get(r, :max_defer_until),
       send_at: r.send_at,
       expires_at: r.expires_at,
       retention_none: r.retention_none,
@@ -910,7 +929,10 @@ defmodule Relay.Api.Events do
           expires_at: p.expires_at,
           on_expire: p.request.on_expire,
           timing_precision: p.request.timing_precision,
-          sender_type: p.request.sender_type
+          sender_type: p.request.sender_type,
+          timing: Map.get(p.request, :timing),
+          max_defer_until: Map.get(p.request, :max_defer_until),
+          timing_released: false
         }),
       frequency: Map.get(p.frequency, {row["id"], channel}, @no_readings)
     }

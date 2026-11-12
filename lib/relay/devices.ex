@@ -7,12 +7,19 @@ defmodule Relay.Devices do
   * Disabling is a soft delete (state, `deleted_at`, `disabled_reason`) that emits `device.unregistered`; nothing is physically deleted and preferences are never touched (C-23, CH-31, INV-14). A permanent target failure whose provider timestamp is older than the device's last registration leaves the device in place (CH-11).
   * The sweep marks devices not seen for `devices.stale_after` stale and disables devices not seen for `devices.inactive_disable_after` with `inactive`; it never runs without an upper bound (CH-31, OP-44).
   * Only devices whose permission allows the message class are targets; when a subscriber has devices but none is permitted the caller skips with `no_permission` and the route moves on (CH-28).
+  * A device reports its own short-lived status signals (`Relay.Devices.Presence`, IN-47, IN-48, IN-53); they live on Valkey only, and a break transition among them releases the recipient's `next_break` deliveries (WF-56).
+  * Whether a device holds an active realtime connection is asked of the realtime registry's short-lived record (`Relay.Devices.Connections`, IN-40); such a device gets no push for a notification its connection carries and no sync signal.
+  * A counter change reaches the mobile devices as a sync signal (`sync/4`) and a read on one device reaches the others as a read signal (`propagate_read/5`), both sent by `Relay.Devices.SignalJob` (`Relay.Devices.Signals`, IN-35, IN-38, IN-52). The badge number of a push is the count the counter write returned, in its platform form (`badge/3`, IN-20).
 
   Functions documented to run inside the caller's scoped transaction say so; the others open their own and must not be called inside one.
   """
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Tenancy], exports: []
+  use Boundary, top_level?: true, deps: [Relay, Relay.Platform, Relay.Tenancy], exports: []
 
+  alias Relay.Devices.Badge
+  alias Relay.Devices.Connections
+  alias Relay.Devices.Presence
+  alias Relay.Devices.Signals
   alias Relay.Devices.Store
   alias Relay.Devices.Token
   alias Relay.Scope
@@ -44,6 +51,15 @@ defmodule Relay.Devices do
           has_more: boolean()
         }
   @type ref :: {:device, Relay.Id.t()} | {:token, String.t()}
+  @type counters :: %{
+          optional(:version) => non_neg_integer(),
+          optional(:unseen) => non_neg_integer(),
+          optional(:unread) => non_neg_integer(),
+          optional(:uncertain) => boolean()
+        }
+
+  @doc "Sends one sync signal to a device; the channel step implements it (`Relay.Channels.Live`). `target` is a push target, `signal` a `t:Relay.Devices.Signals.signal/0`."
+  @callback send_signal(Scope.t(), target(), Signals.signal()) :: :ok | {:error, term()}
 
   # CH-74
   @doc "The contract's active device limit per subscriber."
@@ -294,5 +310,121 @@ defmodule Relay.Devices do
         _other -> false
       end
     end)
+  end
+
+  # IN-47
+  # IN-53
+  @doc "The signal names of a device status dictionary version, or `nil` for a version that does not exist."
+  @spec status_signals(String.t()) :: [String.t()] | nil
+  defdelegate status_signals(version), to: Presence, as: :signals
+
+  # IN-53
+  @doc "The default and the longest time to live of a device status signal, in milliseconds."
+  @spec status_ttl_ms() :: %{default: pos_integer(), max: pos_integer()}
+  def status_ttl_ms, do: %{default: Presence.default_ttl_ms(), max: Presence.max_ttl_ms()}
+
+  # IN-47
+  # IN-53
+  # WF-56
+  @doc """
+  Writes the changed status signals of one of the subscriber's own devices with their time to live in milliseconds, cut at the ceiling. The device is read in its own transaction: a device of another subscriber, a disabled or an unknown one is `{:error, :device_not_found}`. The status itself goes to Valkey only. Answers the device's signals after the write and whether the write was a break transition; `{:error, :rate_limited}` for a second write within the device's interval and `{:error, :unavailable}` when Valkey or the database cannot be reached.
+  """
+  @spec status_write(Scope.t(), Relay.Id.t(), Relay.Id.t(), map(), pos_integer()) ::
+          {:ok, Presence.written()}
+          | {:error, :device_not_found | :rate_limited | :unavailable}
+  def status_write(%Scope{} = scope, subscriber_id, device_id, changes, ttl_ms) do
+    case Store.in_scope(scope, fn _status -> Store.get(device_id) end) do
+      {:ok, %{"recipient_id" => ^subscriber_id, "state" => state}} when state != "disabled" ->
+        Presence.write(scope, device_id, changes, ttl_ms)
+
+      {:ok, _other} ->
+        {:error, :device_not_found}
+
+      {:error, _reason} ->
+        {:error, :unavailable}
+    end
+  end
+
+  # IN-47
+  @doc "The status signals of the subscriber's devices that are not disabled, most recently seen first: each device's identifier, platform and signals; a signal is `:unknown` when it expired, was never written or Valkey cannot be read."
+  @spec status(Scope.t(), Relay.Id.t()) :: {:ok, [map()]} | {:error, term()}
+  def status(%Scope{} = scope, subscriber_id) do
+    with {:ok, rows} <- list(scope, subscriber_id) do
+      {:ok, Enum.map(rows, &device_status(scope, &1))}
+    end
+  end
+
+  defp device_status(scope, row) do
+    %{device_id: row["id"], platform: row["platform"], signals: Presence.read(scope, row["id"])}
+  end
+
+  # IN-40
+  @doc "Whether a device of a subscriber holds an active realtime connection; see `Relay.Devices.Connections.connected?/3`."
+  @spec connected?(Scope.t(), Relay.Id.t(), Relay.Id.t()) :: boolean()
+  defdelegate connected?(scope, subscriber_id, device_id), to: Connections
+
+  # IN-20
+  @doc "The badge members of a push to a device of `platform` for the counters a counter write returned, counting `unseen` or `unread`; see `Relay.Devices.Badge`."
+  @spec badge(String.t(), counters() | nil, :unseen | :unread) :: map()
+  def badge(platform, counters, source \\ :unseen),
+    do: Badge.members(platform, Badge.count(counters, source))
+
+  # IN-35
+  # IN-52
+  # T-15
+  @doc """
+  Queues a sync signal to the mobile devices of a subscriber after its counters changed (IN-35). `counters` is the result of the counter write itself; only its `version` travels. Call it inside the transaction that wrote the counters, so the job commits with them; `except_device_id:` leaves out the device the change came from.
+  """
+  @spec sync(Scope.t(), Relay.Id.t(), counters(), keyword()) ::
+          {:ok, Oban.Job.t()} | {:error, term()}
+  def sync(%Scope{} = scope, subscriber_id, counters, opts \\ []) do
+    attrs = %{
+      counter_version: version(counters),
+      except_device_id: Keyword.get(opts, :except_device_id)
+    }
+
+    queue_signal(scope, subscriber_id, :sync, attrs)
+  end
+
+  # IN-38
+  # IN-35
+  # T-15
+  @doc """
+  Propagates a read to the subscriber's other devices (IN-38). The inbox calls it when an item's read state changes on one device, inside the transaction that wrote the state and the counters, with the counters that write returned; only their `version` travels. It queues one `Relay.Devices.SignalJob`: an Android device gets a read signal naming the notification, so the SDK cancels the shown notification at once; an iOS device gets a throttled sync signal, after which the SDK removes it; a device with an active realtime connection gets the change on its connection instead. `except_device_id:` leaves out the device the read came from.
+  """
+  @spec propagate_read(Scope.t(), Relay.Id.t(), Relay.Id.t(), counters(), keyword()) ::
+          {:ok, Oban.Job.t()} | {:error, term()}
+  def propagate_read(%Scope{} = scope, subscriber_id, notification_id, counters, opts \\ []) do
+    attrs = %{
+      counter_version: version(counters),
+      notification_id: notification_id,
+      except_device_id: Keyword.get(opts, :except_device_id)
+    }
+
+    queue_signal(scope, subscriber_id, :read, attrs)
+  end
+
+  defp queue_signal(scope, subscriber_id, kind, attrs) do
+    scope
+    |> Signals.job_args(subscriber_id, kind, attrs)
+    |> Relay.Devices.SignalJob.new()
+    |> Oban.insert()
+  end
+
+  defp version(%{version: n}) when is_integer(n) and n >= 0, do: n
+  defp version(%{"version" => n}) when is_integer(n) and n >= 0, do: n
+  defp version(_counters), do: nil
+
+  # IN-35
+  # IN-38
+  # IN-52
+  @doc "Runs a queued signal with its job arguments: reads the subscriber's mobile devices and sends each its signal; see `Relay.Devices.Signals.run/4`."
+  @spec run_signal(Scope.t(), Relay.Id.t(), map()) ::
+          {:ok, %{Relay.Id.t() => Signals.outcome()}} | {:error, term()}
+  def run_signal(%Scope{} = scope, subscriber_id, args) do
+    with {:ok, rows} <- read(scope, subscriber_id, Signals.platforms()),
+         {:ok, targets} <- open(scope, rows) do
+      {:ok, Signals.run(scope, subscriber_id, targets, args)}
+    end
   end
 end

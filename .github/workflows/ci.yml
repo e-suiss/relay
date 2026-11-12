@@ -33,13 +33,50 @@ jobs:
             priv/plts
           key: mix-${{ runner.os }}-${{ hashFiles('.tool-versions', 'mix.lock') }}
           restore-keys: mix-${{ runner.os }}-
+      - run: docker compose -f deploy/compose.yaml up -d --wait postgres valkey minio
+      - run: mix deps.get --check-locked
+      - run: mix compile --warnings-as-errors
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            native/pkcs11_port/target
+            native/mjml_port/target
+          key: cargo-release-${{ runner.os }}-${{ hashFiles('native/*/Cargo.lock', 'native/*/rust-toolchain.toml') }}
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends softhsm2 opensc
+      - run: rustup toolchain install
+        working-directory: native/pkcs11_port
+      - run: rustup toolchain install
+        working-directory: native/mjml_port
+      - run: native/build.sh
+      - run: mix test --include integration --warnings-as-errors
+
+  static:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      MIX_ENV: test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - id: mix-cache
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: |
+            deps
+            _build
+            priv/plts
+          key: mix-${{ runner.os }}-${{ hashFiles('.tool-versions', 'mix.lock') }}
+          restore-keys: mix-${{ runner.os }}-
       - run: docker compose -f deploy/compose.yaml config -q
       - run: docker run --rm --entrypoint promtool -v "$PWD/deploy/observability:/etc/prometheus:ro" prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e check config /etc/prometheus/prometheus.yaml
       - run: docker run --rm --entrypoint promtool -v "$PWD/deploy/observability:/etc/prometheus:ro" -w /etc/prometheus prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e test rules alerts.test.yaml
       - run: helm lint --strict deploy/helm/relay -f deploy/helm/ci-values.yaml
       - run: helm template relay deploy/helm/relay -f deploy/helm/ci-values.yaml > /dev/null
       - run: if helm template relay deploy/helm/relay > /dev/null 2>&1; then exit 1; fi
-      - run: docker compose -f deploy/compose.yaml up -d --wait postgres valkey minio
       - run: mix deps.get --check-locked
       - run: mix deps.unlock --check-unused
       - run: mix format --check-formatted
@@ -60,20 +97,6 @@ jobs:
             priv/plts
           key: mix-${{ runner.os }}-${{ hashFiles('.tool-versions', 'mix.lock') }}
       - run: mix docs --warnings-as-errors
-      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
-        with:
-          path: |
-            ~/.cargo/registry
-            native/pkcs11_port/target
-            native/mjml_port/target
-          key: cargo-release-${{ runner.os }}-${{ hashFiles('native/*/Cargo.lock', 'native/*/rust-toolchain.toml') }}
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends softhsm2 opensc
-      - run: rustup toolchain install
-        working-directory: native/pkcs11_port
-      - run: rustup toolchain install
-        working-directory: native/mjml_port
-      - run: native/build.sh
-      - run: mix test --include integration --warnings-as-errors
 
   contracts:
     runs-on: ubuntu-24.04

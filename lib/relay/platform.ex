@@ -9,6 +9,7 @@ defmodule Relay.Platform do
   alias Relay.Platform.Backend
   alias Relay.Platform.Capacity
   alias Relay.Platform.Concurrency
+  alias Relay.Platform.ConnectionSet
   alias Relay.Platform.Fairness.Job
   alias Relay.Platform.Fairness.Queueing
   alias Relay.Platform.Fanout
@@ -320,6 +321,42 @@ defmodule Relay.Platform do
           {:ok, non_neg_integer()} | {:error, Relay.Error.t()}
   def sliding_set_add(scope, path, window_ms, member, opts \\ []),
     do: SlidingSet.add(scope, path, window_ms, member, opts)
+
+  # IN-52
+  @doc "Adds a member to a connection set, removing the lowest members beyond `max`; see `Relay.Platform.ConnectionSet.join/6`."
+  @spec connection_set_join(
+          Relay.Scope.t(),
+          ConnectionSet.path(),
+          String.t(),
+          pos_integer(),
+          pos_integer()
+        ) :: {:ok, {non_neg_integer(), non_neg_integer()}} | {:error, Relay.Error.t()}
+  def connection_set_join(scope, path, member, ttl_ms, max),
+    do: ConnectionSet.join(scope, path, member, ttl_ms, max)
+
+  # IN-52
+  @doc "Refreshes a connection set member; see `Relay.Platform.ConnectionSet.touch/5`."
+  @spec connection_set_touch(Relay.Scope.t(), ConnectionSet.path(), String.t(), pos_integer()) ::
+          :ok | :gone | {:error, Relay.Error.t()}
+  def connection_set_touch(scope, path, member, ttl_ms),
+    do: ConnectionSet.touch(scope, path, member, ttl_ms)
+
+  @doc "Removes a connection set member; see `Relay.Platform.ConnectionSet.leave/5`."
+  @spec connection_set_leave(Relay.Scope.t(), ConnectionSet.path(), String.t(), pos_integer()) ::
+          :ok | {:error, Relay.Error.t()}
+  def connection_set_leave(scope, path, member, ttl_ms),
+    do: ConnectionSet.leave(scope, path, member, ttl_ms)
+
+  # IN-40
+  @doc "True when a live connection set member ends with `suffix`; see `Relay.Platform.ConnectionSet.any_suffix?/5`."
+  @spec connection_set_any_suffix?(
+          Relay.Scope.t(),
+          ConnectionSet.path(),
+          String.t(),
+          pos_integer()
+        ) :: {:ok, boolean()} | {:error, Relay.Error.t()}
+  def connection_set_any_suffix?(scope, path, suffix, ttl_ms),
+    do: ConnectionSet.any_suffix?(scope, path, suffix, ttl_ms)
 
   # CH-87
   @doc "Adds events to a sending domain's reputation window and returns its totals before them; see `Relay.Platform.ReputationWindow.record/6`."

@@ -629,6 +629,12 @@ defmodule RelayWeb.Router do
 
     post "/subscriber/test_recipients/:test_recipient_id/confirm", TesterController, :confirm,
       private: %{relay_operation: "confirmMyTestRecipient"}
+
+    get "/realtime/events", RealtimeController, :events,
+      private: %{relay_operation: "streamRealtimeEvents"}
+
+    get "/realtime/poll", RealtimeController, :poll,
+      private: %{relay_operation: "pollRealtimeEvents"}
   end
 
   # API-78

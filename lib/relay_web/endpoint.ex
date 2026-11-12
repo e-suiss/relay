@@ -42,6 +42,16 @@ defmodule RelayWeb.Endpoint do
     websocket: [connect_info: [session: {RelayWeb.Operator.Panel, :session_options, []}]],
     longpoll: false
 
+  # IN-23
+  # IN-32
+  socket "/v1/realtime", RelayWeb.Realtime.Transport,
+    auth_token: true,
+    websocket: [
+      connect_info: [:auth_token],
+      error_handler: {RelayWeb.Realtime.Transport, :handle_error, []}
+    ],
+    longpoll: false
+
   plug :forward
   plug Plug.Static, at: "/", from: :relay, gzip: false, only: RelayWeb.static_paths()
 

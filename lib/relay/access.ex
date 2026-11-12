@@ -368,6 +368,11 @@ defmodule Relay.Access do
           {:ok, SubscriberToken.verified()} | {:error, Relay.Error.t()}
   defdelegate verify_subscriber_token(token, audiences), to: SubscriberToken, as: :verify
 
+  # IN-33
+  @doc "The system signal topic on which API client and tenant status changes are announced; see `Relay.Access.Clients.topic/0`."
+  @spec client_changes_topic() :: String.t()
+  def client_changes_topic, do: Clients.topic()
+
   # E-10
   # E-11
   # TN-9

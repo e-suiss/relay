@@ -79,8 +79,8 @@ defmodule Relay.Access.SubscriberTokenKeys do
           {:ok, map()} | {:error, Relay.Error.t()}
   def rotate(label, actor, reason)
       when is_binary(label) and is_binary(actor) and is_binary(reason) do
-    with :ok <- in_key_store(label),
-         [row] <- call("rotate", [label, default_label(), window_s(), actor, reason]) do
+    with :ok <- in_key_store(label) do
+      [row] = call("rotate", [label, default_label(), window_s(), actor, reason])
       rotated(row, label)
     end
   end

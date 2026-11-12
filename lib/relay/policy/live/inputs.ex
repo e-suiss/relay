@@ -180,7 +180,7 @@ defmodule Relay.Policy.Live.Inputs do
     Relay.Timing.spread(Relay.Timing.read(), :release, precision)
   end
 
-  @doc "The notification fields of a snapshot from the stored names."
+  @doc "The notification fields of a snapshot from the stored names; `timing`, `max_defer_until` and `timing_released` give the `next_break` of a `timing: next_break` send (WF-56)."
   @spec notification(map()) :: map()
   def notification(fields) do
     %{
@@ -190,9 +190,16 @@ defmodule Relay.Policy.Live.Inputs do
       expires_at: fields.expires_at,
       on_expire: if(Map.get(fields, :on_expire) == "inbox_only", do: :inbox_only, else: :drop),
       timing_precision: Relay.Timing.precision(Map.get(fields, :timing_precision)),
-      sender_kind: Map.get(@senders, fields.sender_type, :system)
+      sender_kind: Map.get(@senders, fields.sender_type, :system),
+      next_break: next_break(fields)
     }
   end
+
+  # WF-56
+  defp next_break(%{timing: "next_break", max_defer_until: %DateTime{} = until} = fields),
+    do: %{until: until, released: Map.get(fields, :timing_released) == true}
+
+  defp next_break(_fields), do: nil
 
   # PC-12
   # PC-13

@@ -197,5 +197,8 @@
   {"file": "20261215100000_create_campaigns.exs", "sha256": "dfae3bc6e1868481489667c007c0e5694299f1f70c39aea4694bf2a162b0202a"},
   {"file": "20261215100100_create_campaign_functions.exs", "sha256": "4dc8333bbfaa00a8620ff00e531f3b02b63e69d745a5221f07038da5c00d1d57"},
   {"file": "20261215100200_extend_kill_switch_campaign_scope.exs", "sha256": "70f897c8f453785c78a6f7beca0680c9343d8e4b10830784d9fa6eae4a275835"},
-  {"file": "20261215100300_rebuild_reference_check_for_campaigns.exs", "sha256": "591062b1829ebf666bcb365ee23ee64413bf464de260ae5517f921ba631635af"}
+  {"file": "20261215100300_rebuild_reference_check_for_campaigns.exs", "sha256": "591062b1829ebf666bcb365ee23ee64413bf464de260ae5517f921ba631635af"},
+  {"file": "20261216300000_add_next_break_timing.exs", "sha256": "d793fc6fc5f25c5bfb1119973327cc64cf65b1f0e1cdf86bbcbcfa2b48d19e49"},
+  {"file": "20261216300100_index_next_break_deliveries.exs", "sha256": "6a7147f7dfd96f338b0de009b38e092ff6f89e354b58e7935afa5f53006576cd"},
+  {"file": "20261216300200_validate_next_break_checks.exs", "sha256": "03f7d1f28917faeb78d928f91fbef1cffa213f78a28c1f539b2d25d052a44bab"}
 ]

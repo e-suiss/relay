@@ -18,6 +18,7 @@ defmodule Relay.Channels.Request do
     * `provider_message_id`: the provider's identifier of the message an earlier attempt sent, for a reconciliation status query (`c:Relay.Channels.Adapter.delivery_status/1`), otherwise `nil`.
     * `update`: on a channel that updates messages, the provider message reference of the earlier message about the same subject in the same conversation, which the adapter edits in place instead of posting a new one (CH-23), or `nil`.
     * `tracking`: on e-mail the open and click tracking plan of the message (`Relay.Channels.Email.Tracking.plan/1`, CH-43, DS-29), `nil` for none.
+    * `signal`: for a sync signal to a mobile device instead of a delivery (IN-35, IN-38), its `kind` (`:sync` or `:read`), `counter_version`, `notification_id` and `ttl_s`; `nil` for a delivery. A signal carries no content and no push policy.
   """
 
   @enforce_keys [
@@ -52,7 +53,8 @@ defmodule Relay.Channels.Request do
     product: "standard",
     update: nil,
     tracking: nil,
-    provider_message_id: nil
+    provider_message_id: nil,
+    signal: nil
   ]
 
   @type target :: %{
@@ -84,6 +86,7 @@ defmodule Relay.Channels.Request do
           product: String.t(),
           update: String.t() | nil,
           tracking: %{open_pixel: boolean(), wrap_links: boolean()} | nil,
-          provider_message_id: String.t() | nil
+          provider_message_id: String.t() | nil,
+          signal: map() | nil
         }
 end

@@ -7,6 +7,7 @@ defmodule Relay.Policy.Engine do
   3. Filters, all of which must allow: the tenant's category switch (3a), the category × channel value or its default (3b, which a `scope_key` value overrides), the general channel switch, the workflow value (3c), a `scope_key` mute (3d) and, for `action_required`, which is never deferred, the weekly availability schedule (3e).
   4. Expiry: a delivery at or past `expires_at` expires; a `security` notification sent with `on_expire: inbox_only` keeps only its `in_app` delivery, which lands in the inbox (WF-39).
   5. Shapers, for `transactional`, `operational`, `social` and `marketing` only: the availability schedule, the tenant zone window of PC-48, quiet hours, `dnd_until`, then the frequency cap. A blocked delivery is deferred to the next allowed instant within eight days and before `expires_at`, plus the WF-42 release jitter, or expires when there is none (PC-46).
+  5a. The next break (WF-56, WF-57), between `dnd_until` and the frequency cap, for a notification sent with `timing: next_break` on a channel quiet hours apply to: until its break is released it is deferred with `next_break.deferred` to the end of the recipient's next quiet hours (with the release jitter) or to its `max_defer` instant, whichever comes first; at that instant, or when a device status break transition released it earlier, it passes the lattice again and quiet hours stay a hard limit. An `action_required` notification takes this step only when the sender asked for it, and then quiet hours apply to it as well. The deferral detail never carries a device status value (IN-48).
 
   Results:
 
@@ -62,6 +63,7 @@ defmodule Relay.Policy.Engine do
   @pc48_classes [:marketing, :social]
   @pc48_window [%{days: [1, 2, 3, 4, 5, 6, 7], from: ~T[10:00:00], to: ~T[18:00:00]}]
   @horizon_days 8
+  @break :next_break_deferred
 
   # PC-8
   # PC-58 (1)
@@ -274,6 +276,11 @@ defmodule Relay.Policy.Engine do
   # WF-41
   # INV-24
   # PC-53
+  # WF-57
+  defp shape(%{notification: %{message_class: :action_required}} = s) do
+    if deferred?(s), do: shape_break(s), else: deliver(s, nil, :exempt)
+  end
+
   defp shape(%{notification: %{message_class: class}} = s) when class not in @deferrable,
     do: deliver(s, nil, :exempt)
 
@@ -283,11 +290,80 @@ defmodule Relay.Policy.Engine do
       constraints = constraints(s, profile, tz)
 
       case Window.blocking(s.now, zone, constraints) do
-        nil -> frequency(s, tz, constraints)
+        nil -> next_break(s, profile, tz, fn -> frequency(s, tz, constraints) end)
         name -> defer(s, name, s.now, tz, constraints, %{})
       end
     end
   end
+
+  # WF-57
+  # PC-46
+  defp shape_break(s) do
+    with {:ok, profile} <- readable(s.profile, :profile),
+         {:ok, {zone, _source} = tz} <- zone(s) do
+      constraints = if quiet_channel?(s.channel, profile), do: quiet(profile), else: []
+
+      case Window.blocking(s.now, zone, constraints) do
+        nil -> next_break(s, profile, tz, fn -> deliver(s, tz, :exempt) end)
+        name -> defer(s, name, s.now, tz, constraints, %{})
+      end
+    end
+  end
+
+  defp quiet(profile) do
+    if ranges?(profile.quiet_hours),
+      do: [{:quiet_hours_deferred, {:quiet, profile.quiet_hours}}],
+      else: []
+  end
+
+  defp deferred?(%{notification: notification}), do: is_map(Map.get(notification, :next_break))
+
+  # WF-56
+  # WF-43
+  # PC-45
+  # PC-46
+  # IN-48
+  defp next_break(s, profile, tz, go) do
+    with %{released: false, until: %DateTime{} = until} <- Map.get(s.notification, :next_break),
+         true <- quiet_channel?(s.channel, profile),
+         :lt <- DateTime.compare(s.now, until) do
+      wait_break(s, profile, tz, until)
+    else
+      _immediate_released_or_due -> go.()
+    end
+  end
+
+  defp wait_break(s, profile, {zone, _source} = tz, until) do
+    wake = wake(s, profile, zone, until)
+    extra = %{max_defer_until: until, local_until: iso_local(wake, zone)}
+    {:defer, Rules.reason(@break), Rules.id(@break), wake, Map.merge(zone_detail(s, tz), extra)}
+  end
+
+  defp wake(s, profile, zone, until) do
+    case quiet_end(s.now, until, zone, profile.quiet_hours) do
+      {:ok, at} ->
+        jitter = release(s, at, zone, quiet(profile), until)
+        earliest(DateTime.add(at, jitter, :millisecond), until)
+
+      :none ->
+        until
+    end
+  end
+
+  defp quiet_end(now, until, zone, ranges) do
+    starts = [{:quiet_start, {:only, ranges}}]
+    ends = [{:quiet_end, {:quiet, ranges}}]
+
+    with true <- ranges?(ranges),
+         {:ok, start} <- Window.next_allowed(now, until, zone, starts),
+         {:ok, stop} <- Window.next_allowed(start, until, zone, ends) do
+      {:ok, stop}
+    else
+      _none -> :none
+    end
+  end
+
+  defp earliest(a, b), do: if(DateTime.compare(a, b) == :gt, do: b, else: a)
 
   # PC-45
   # PC-48

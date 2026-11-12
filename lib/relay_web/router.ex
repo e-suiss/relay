@@ -618,8 +618,14 @@ defmodule RelayWeb.Router do
     post "/subscriber/devices", DeviceController, :create_mine,
       private: %{relay_operation: "registerMyDevice"}
 
+    get "/subscriber/devices/status", DeviceController, :status_mine,
+      private: %{relay_operation: "getMyDeviceStatus"}
+
     delete "/subscriber/devices/:device_id", DeviceController, :delete_mine,
       private: %{relay_operation: "deleteMyDevice"}
+
+    patch "/subscriber/devices/:device_id/status", DeviceController, :update_status_mine,
+      private: %{relay_operation: "updateMyDeviceStatus"}
 
     post "/subscriber/push_receipts", ReceiptController, :create_mine,
       private: %{relay_operation: "recordMyPushReceipt"}

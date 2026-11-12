@@ -180,6 +180,8 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.route_replace" => ~w(replaced unchanged not_found archived version_conflict),
     "relay_fn.route_archive" => ~w(archived already_archived in_use not_found),
     "relay_fn.event_timing_precision_set" => ~w(set unchanged not_found),
+    "relay_fn.event_timing_set" => ~w(set unchanged not_found),
+    "relay_fn.delivery_break_release" => ~w(released unchanged not_found),
     "relay_fn.category_subtenant_put" =>
       ~w(created updated unchanged not_found archived subtenant_not_found default_forbidden invalid_settings),
     "relay_fn.preference_set" =>

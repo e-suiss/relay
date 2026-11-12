@@ -209,5 +209,10 @@
   {"file": "20261216400100_index_waitpoint_correlation_digests.exs", "sha256": "4c535aef4fc5c2d88394f3cfe2c6c691f48a0f93c305f91ba5017cf74657da5a"},
   {"file": "20261216400200_match_waitpoints_by_correlation_digest.exs", "sha256": "33091f959c797398c0cce1ffb80487d6506dd07fd3c72ebfc303dbe1dbc81789"},
   {"file": "20261216400300_validate_correlation_digest_checks.exs", "sha256": "365380ace435cf0decf7f4e8227552f0be64f5dddb8376ccd7cc36cf0823c089"},
-  {"file": "20261216400400_create_subscriber_token_keys.exs", "sha256": "5e23d9c76dbc2729944904755eb7951d58de0c13f8a24047b110f84cdbd10d20"}
+  {"file": "20261216400400_create_subscriber_token_keys.exs", "sha256": "5e23d9c76dbc2729944904755eb7951d58de0c13f8a24047b110f84cdbd10d20"},
+  {"file": "20261216500000_create_inbox_operation_tables.exs", "sha256": "2777ed072b575d8e81940a8446eb467f574c9a8ab500346f727fa3f9d320ad9b"},
+  {"file": "20261216500100_create_inbox_operation_functions.exs", "sha256": "14c05ef7484d95e1ed2597d609eeda018e956ca4b19677e6e7e37b8a898db1ba"},
+  {"file": "20261216500200_index_inbox_items_for_operations.exs", "sha256": "db42025cbb3ea361f69063f3ab9cb9095bb8fa0f8e0b3daca80b35173b2a62c1"},
+  {"file": "20261216500300_validate_inbox_operation_checks.exs", "sha256": "cf5a2891f377324d6f194b1c8a4eb0b0551e46c50a297c27cd4e685fdab479f5"},
+  {"file": "20261216500400_rebuild_reference_check_for_inbox_operations.exs", "sha256": "5ca5707d59ffcf42849bd8b58144c22c13fd89075bbd5ffc9f37293679c6d3ac"}
 ]

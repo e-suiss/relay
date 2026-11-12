@@ -118,14 +118,19 @@ defmodule Relay.Workflow.Digest do
   @spec read(Scope.t(), Relay.Id.t(), Relay.Id.t()) ::
           {:ok, [{Relay.Id.t(), :cancelled | :read}]} | {:error, term()}
   def read(%Scope{} = scope, recipient_id, notification_id) do
-    Store.in_scope(scope, fn _status ->
-      changed = Store.read(recipient_id, notification_id)
+    Store.in_scope(scope, fn _status -> read_in_scope(scope, recipient_id, notification_id) end)
+  end
 
-      for {window_id, :cancelled} <- changed,
-          do: :ok = sink(scope, {:cancelled, info(window_id)})
+  # WF-27
+  @doc "Applies a recipient's read signal for a notification inside the caller's transaction scoped to `scope`; see `read/3`."
+  @spec read_in_scope(Scope.t(), Relay.Id.t(), Relay.Id.t()) :: [{Relay.Id.t(), atom()}]
+  def read_in_scope(%Scope{} = scope, recipient_id, notification_id) do
+    changed = Store.read(recipient_id, notification_id)
 
-      changed
-    end)
+    for {window_id, :cancelled} <- changed,
+        do: :ok = sink(scope, {:cancelled, info(window_id)})
+
+    changed
   end
 
   # T-24

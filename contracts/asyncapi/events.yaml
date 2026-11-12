@@ -333,6 +333,10 @@ channels:
         "$ref": "#/components/messages/audit.topic.subscribed"
       audit.topic.unsubscribed:
         "$ref": "#/components/messages/audit.topic.unsubscribed"
+      audit.inbox_announcement.published:
+        "$ref": "#/components/messages/audit.inbox_announcement.published"
+      audit.inbox_announcement.retracted:
+        "$ref": "#/components/messages/audit.inbox_announcement.retracted"
       audit.template.created:
         "$ref": "#/components/messages/audit.template.created"
       audit.template.updated:
@@ -624,6 +628,8 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.topic.archived"
       - "$ref": "#/channels/auditLog/messages/audit.topic.subscribed"
       - "$ref": "#/channels/auditLog/messages/audit.topic.unsubscribed"
+      - "$ref": "#/channels/auditLog/messages/audit.inbox_announcement.published"
+      - "$ref": "#/channels/auditLog/messages/audit.inbox_announcement.retracted"
       - "$ref": "#/channels/auditLog/messages/audit.template.created"
       - "$ref": "#/channels/auditLog/messages/audit.template.updated"
       - "$ref": "#/channels/auditLog/messages/audit.template.drafted"
@@ -5400,6 +5406,42 @@ components:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.inbox_announcement.published:
+      name: inbox_announcement.published
+      title: inbox_announcement.published
+      summary: "An inbox announcement was published for its audience (IN-3)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: inbox_announcement
+      x-relay-surface: audit
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.inbox_announcement.retracted:
+      name: inbox_announcement.retracted
+      title: inbox_announcement.retracted
+      summary: "An inbox announcement was retracted (IN-16)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: inbox_announcement
+      x-relay-surface: audit
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.topic.created:
       name: topic.created
       title: topic.created
@@ -6728,6 +6770,8 @@ x-relay-event-names:
   - inbox.item_created
   - inbox.item_updated
   - inbox.items_bulk_updated
+  - inbox_announcement.published
+  - inbox_announcement.retracted
   - killswitch.auto_paused
   - killswitch.bulk_cancelled
   - killswitch.engaged

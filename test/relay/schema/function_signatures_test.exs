@@ -306,7 +306,20 @@ defmodule Relay.Schema.FunctionSignaturesTest do
       ~w(created updated exists delivery_not_found not_in_app recipient_inactive),
     "relay_fn.inbox_intent" => ~w(applied unchanged conflict invalid not_found),
     "relay_fn.inbox_retract" => ~w(retracted),
-    "relay_fn.inbox_timer_fire" => ~w(fired not_due not_found)
+    "relay_fn.inbox_timer_fire" => ~w(fired not_due not_found),
+    "relay_fn.inbox_read_all" => ~w(applied),
+    "relay_fn.inbox_bulk_start" => ~w(created),
+    "relay_fn.inbox_bulk_chunk" => ~w(chunk completed already_completed not_found),
+    "relay_fn.inbox_engage" => ~w(recorded not_found),
+    "relay_fn.inbox_reconcile" => ~w(consistent repaired),
+    "relay_fn.inbox_reconcile_changed" => ~w(checked),
+    "relay_fn.inbox_trim" => ~w(trimmed within),
+    "relay_fn.inbox_retire_due" => ~w(retired none_due),
+    "relay_fn.inbox_announcement_create" =>
+      ~w(created tenant_inactive subtenant_not_found topic_not_found),
+    "relay_fn.inbox_announcement_retract" => ~w(retracted already_closed not_found),
+    "relay_fn.inbox_announcement_expire" => ~w(expired not_due already_closed not_found),
+    "relay_fn.inbox_announcement_intent" => ~w(applied unchanged conflict invalid not_found)
   }
 
   defp functions do

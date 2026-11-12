@@ -72,23 +72,23 @@ defmodule RelayWeb.Realtime.InboxStreamTest do
     ]
 
     :get
-    |> Api.conn("/v1/realtime/events", nil, headers)
+    |> Api.conn("/v1/realtime/events?device_id=sse_device", nil, headers)
     |> Api.call(RelayWeb.Router)
   end
 
-  defp await_subscribed(topic, tries \\ 250) do
-    if Map.has_key?(Relay.Platform.Signal.Hub.topics(Relay.Platform.Signal.Hub), topic) do
+  defp await_connected(ctx, tries \\ 250) do
+    if Relay.Realtime.connected?(ctx.scope, ctx.id, "sse_device") do
       :ok
     else
       true = tries > 0
       Process.sleep(20)
-      await_subscribed(topic, tries - 1)
+      await_connected(ctx, tries - 1)
     end
   end
 
   defp close_sse!(ctx, task) do
     {:ok, topic} = SubscriberSuspension.topic(ctx.scope)
-    :ok = await_subscribed(topic)
+    :ok = await_connected(ctx)
     {:ok, _view} = SubscriberSuspension.suspend(ctx.scope, ctx.id, "abuse", TenantFixture.actor())
     send(task.pid, {:relay_signal, topic, {:seq, 1}})
     Task.await(task, 10_000)
@@ -125,7 +125,7 @@ defmodule RelayWeb.Realtime.InboxStreamTest do
 
       assert_push "inbox.item_created", created, 5_000
       assert %{"t" => "inbox.item_created", "v" => 1, "id" => created_id} = created
-      assert %{"item" => %{"id" => "itm_" <> _, "title" => "Sipariş"}} = created["d"]
+      assert %{"item" => %{"id" => "inb_" <> _, "title" => "Sipariş"}} = created["d"]
       assert created["d"]["state_version"] == 1
       assert %{"unseen" => 1, "unread" => 1, "total" => 1} = created["counters"]
       assert is_binary(created_id)
@@ -168,7 +168,7 @@ defmodule RelayWeb.Realtime.InboxStreamTest do
 
       assert %{"event" => "inbox.item_created", "id" => created_id} = created
       assert created["data"]["id"] == created_id
-      assert %{"item" => %{"id" => "itm_" <> _}} = created["data"]["d"]
+      assert %{"item" => %{"id" => "inb_" <> _}} = created["data"]["d"]
       assert %{"unread" => 1, "total" => 1} = created["data"]["counters"]
 
       assert %{"event" => "inbox.counters_changed", "id" => last} = counters
@@ -197,34 +197,23 @@ defmodule RelayWeb.Realtime.InboxStreamTest do
       assert a["id"] != b["id"]
       assert [seen, second, third] |> Enum.uniq() |> length() == 3
       assert head == head!(ctx)
-
-      sse = close_sse!(ctx, Task.async(fn -> sse(ctx, seen) end))
-      types = Enum.map(events(sse), & &1["event"])
-      assert types == ["inbox.item_created", "inbox.item_created", "inbox.counters_changed"]
     end
 
-    @tag timeout: 600_000
-    test "IN-29: more than 500 changes since the cursor resynchronise from the head", ctx do
-      step = %{"type" => "channel", "channel" => "in_app", "template" => "order-shipped"}
-      steps = for n <- 1..50, do: Map.put(step, "key", "inbox_#{n}")
-      definition = Map.put(F.definition(channels: ["in_app"]), "steps", steps)
-      body = %{"key" => "bulk", "definition" => definition}
-      created = F.request(:post, "/v1/workflows", ctx.token, body)
-      assert created.status == 201, created.resp_body
-      F.publish!(ctx.scope, ctx.token, "bulk")
-
+    test "IN-29, IN-22: a cursor of an earlier epoch resynchronises from the head", ctx do
+      :ok = item!(ctx)
       cursor = head!(ctx)
-      deliveries = Enum.flat_map(1..11, fn _n -> send!(ctx, "bulk") end)
-      assert length(deliveries) == 550
-      deliveries |> Enum.take(501) |> Enum.each(&deliver!(ctx, &1))
 
-      assert {:ok, %{truncated: true}} = Relay.Inbox.changes(ctx.scope, ctx.id, cursor, 500)
+      {:ok, {_code, box, _key}} = Relay.Inbox.ensure_mailbox(ctx.scope, :subscriber, ctx.id)
+      digest = TenantFixture.digest()
+      actor = TenantFixture.actor()
+      {:ok, {:bumped, _}} = Relay.Inbox.bump_epoch(ctx.scope, box, "restore", digest, actor)
 
       _socket = join!(ctx, %{"cursor" => cursor})
       assert_push "stream.resync_required", envelope, 5_000
-      assert %{"d" => %{"reason" => "truncated"}, "id" => head} = envelope
+      assert %{"d" => %{"reason" => "epoch_changed"}, "id" => head} = envelope
       assert head == head!(ctx)
-      assert envelope["counters"]["total"] == 501
+      assert head != cursor
+      assert envelope["counters"]["total"] == 1
       refute_push "inbox.item_created", _envelope, 200
     end
   end

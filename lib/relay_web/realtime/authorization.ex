@@ -10,6 +10,7 @@ defmodule RelayWeb.Realtime.Authorization do
   alias Relay.Api.RealtimeOrigins
   alias Relay.Api.Tenant
   alias Relay.Operators.SubscriberSuspension
+  alias Relay.Operators.Suspension
   alias RelayWeb.Auth.Subscriber
 
   @bearer ~r/\A[Bb]earer +([A-Za-z0-9\-._~+\/]+=*)\z/
@@ -60,7 +61,7 @@ defmodule RelayWeb.Realtime.Authorization do
   @spec topics(Relay.Scope.t()) :: [String.t()]
   def topics(scope) do
     scoped =
-      for {:ok, topic} <- [SubscriberSuspension.topic(scope), Tenant.status_topic(scope)],
+      for {:ok, topic} <- [SubscriberSuspension.topic(scope), Suspension.status_topic(scope)],
           do: topic
 
     scoped ++ shared_topics()

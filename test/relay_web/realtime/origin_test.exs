@@ -4,6 +4,7 @@ defmodule RelayWeb.Realtime.OriginTest do
   import Phoenix.ChannelTest
 
   alias Relay.Operators.SubscriberSuspension
+  alias Relay.Operators.Suspension
   alias RelayTest.Api
   alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F
@@ -45,10 +46,11 @@ defmodule RelayWeb.Realtime.OriginTest do
     protocol = "phoenix, base64url.bearer.phx." <> Base.encode64(token, padding: false)
     conn = Phoenix.ConnTest.build_conn(:get, "/v1/realtime/websocket?vsn=2.0.0")
 
-    [{"sec-websocket-protocol", protocol} | headers]
-    |> Enum.reduce(conn, fn {name, value}, acc -> Plug.Conn.put_req_header(acc, name, value) end)
-    |> @endpoint.call(@endpoint.init([]))
+    conn = Enum.reduce([{"sec-websocket-protocol", protocol} | headers], conn, &put_header/2)
+    @endpoint.call(conn, @endpoint.init([]))
   end
+
+  defp put_header({name, value}, conn), do: Plug.Conn.put_req_header(conn, name, value)
 
   defp code(conn), do: Jason.decode!(conn.resp_body)["code"]
 
@@ -74,16 +76,9 @@ defmodule RelayWeb.Realtime.OriginTest do
   end
 
   defp suspend_tenant!(ctx) do
-    change = %{
-      status: "suspended",
-      reason: "abuse",
-      expected_version: nil,
-      record_digest: TenantFixture.digest()
-    }
-
-    {:ok, {:changed, _version}} =
-      Relay.Tenancy.set_tenant_status(ctx.tenant.live, change, TenantFixture.actor())
-
+    :ok = TenantFixture.suspension_policy!()
+    attrs = %{ground: "abuse", reason: "spam", subtenant_id: nil}
+    {:ok, _row} = Suspension.suspend(ctx.tenant.id, attrs, TenantFixture.actor(), "stepup")
     :ok
   end
 
@@ -115,14 +110,14 @@ defmodule RelayWeb.Realtime.OriginTest do
 
       many = for n <- 1..21, do: "https://app#{n}.example.com"
       refused = F.body(put_origins(ctx, many), 422)
-      assert %{"pointer" => "/origins", "code" => "too_long"} in refused["errors"]
+      assert [%{"pointer" => "/origins", "code" => "too_long"}] = refused["errors"]
 
       assert %{"origins" => []} = F.body(F.request(:get, "/v1/realtime_origins", ctx.token), 200)
     end
   end
 
   describe "IN-54 origin check on connect" do
-    test "IN-54: a WebSocket handshake from an origin not on the list is refused with 403", ctx do
+    test "IN-54: a WebSocket handshake from an origin not on the list is 403", ctx do
       {token, _id} = RealtimeFixture.token!(ctx, RealtimeFixture.subject())
 
       refused = handshake(token, [{"origin", @app}])
@@ -152,6 +147,7 @@ defmodule RelayWeb.Realtime.OriginTest do
 
       assert {:ok, _socket} =
                connect(Socket, %{}, connect_info: %{auth_token: token, origin: @app})
+
       assert {:ok, _socket} = connect(Socket, %{}, connect_info: %{auth_token: token})
     end
 
@@ -182,7 +178,7 @@ defmodule RelayWeb.Realtime.OriginTest do
 
       {:ok, socket} = connect(Socket, %{}, connect_info: %{auth_token: token, origin: @app})
       {:ok, _reply, socket} = subscribe_and_join(socket, "inbox", %{})
-      {:ok, status} = Relay.Tenancy.status_topic(ctx.scope)
+      {:ok, status} = Suspension.status_topic(ctx.scope)
 
       send(socket.channel_pid, {:relay_signal, status, {:seq, 1}})
       refute_receive {:relay_realtime_close, _code, _reason}, 200
@@ -201,7 +197,7 @@ defmodule RelayWeb.Realtime.OriginTest do
       {:ok, socket} = connect(Socket, %{}, connect_info: %{auth_token: token})
       {:ok, _reply, socket} = subscribe_and_join(socket, "inbox", %{})
       ref = Process.monitor(socket.channel_pid)
-      {:ok, topic} = Relay.Tenancy.status_topic(ctx.scope)
+      {:ok, topic} = Suspension.status_topic(ctx.scope)
       :ok = await_up(topic)
 
       :ok = suspend_tenant!(ctx)
@@ -215,7 +211,7 @@ defmodule RelayWeb.Realtime.OriginTest do
 
     test "IN-33: the tenant status signal closes an open SSE stream", ctx do
       {token, _id} = RealtimeFixture.token!(ctx, RealtimeFixture.subject())
-      {:ok, topic} = Relay.Tenancy.status_topic(ctx.scope)
+      {:ok, topic} = Suspension.status_topic(ctx.scope)
       task = Task.async(fn -> sse(token, []) end)
       :ok = await_subscribed(topic)
 
@@ -227,8 +223,8 @@ defmodule RelayWeb.Realtime.OriginTest do
 
     test "IN-33: a realtime connection listens on the tenant status topic of its environment",
          ctx do
-      {:ok, test_topic} = Relay.Tenancy.status_topic(ctx.tenant.test)
-      {:ok, live_topic} = Relay.Tenancy.status_topic(ctx.tenant.live)
+      {:ok, test_topic} = Suspension.status_topic(ctx.tenant.test)
+      {:ok, live_topic} = Suspension.status_topic(ctx.tenant.live)
 
       assert test_topic in RelayWeb.Realtime.Authorization.topics(ctx.tenant.test)
       assert live_topic in RelayWeb.Realtime.Authorization.topics(ctx.tenant.live)

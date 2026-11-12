@@ -50,11 +50,6 @@ defmodule Relay.Api.Tenant do
   defp origins(origins) when is_list(origins), do: origins
   defp origins(_none), do: []
 
-  # IN-33
-  @doc "The signal topic of the tenant's status changes in `scope`'s environment; see `Relay.Tenancy.status_topic/1`."
-  @spec status_topic(Relay.Scope.t()) :: {:ok, String.t()} | {:error, Relay.Error.t()}
-  defdelegate status_topic(scope), to: Relay.Tenancy
-
   # API-52
   @doc "Pins the tenant to `version` unless a version is pinned already; audited as `api_version.pinned`."
   @spec pin(Relay.Scope.t(), String.t(), Relay.Actor.t()) ::

@@ -157,9 +157,11 @@ defmodule RelayWeb.Realtime.InboxChannelTest do
   describe "IN-33 INV-42 TN-10 authorization continuity" do
     test "IN-33, TN-10: suspending the subscriber closes its open connection from the server",
          ctx do
+      Process.flag(:trap_exit, true)
       {token, id} = RealtimeFixture.token!(ctx, RealtimeFixture.subject())
       socket = token |> connect!() |> join!()
-      ref = Process.monitor(socket.channel_pid)
+      pid = socket.channel_pid
+      ref = Process.monitor(pid)
       {:ok, topic} = SubscriberSuspension.topic(ctx.scope)
       :ok = await_up(topic)
 
@@ -167,6 +169,7 @@ defmodule RelayWeb.Realtime.InboxChannelTest do
 
       assert_receive {:relay_realtime_close, 1008, "auth_subscriber_suspended"}, 5_000
       assert_receive {:DOWN, ^ref, :process, _pid, {:shutdown, :closed}}, 1_000
+      assert_receive {:EXIT, ^pid, {:shutdown, :closed}}, 1_000
 
       assert {:error, %Relay.Error{code: :auth_subscriber_suspended}} =
                connect(Socket, %{}, connect_info: %{auth_token: token})

@@ -4,7 +4,7 @@ defmodule RelayWeb.Auth do
 
   * No credential or no proof is `401 auth_missing_credentials`, a malformed one (another scheme, more than one proof) `401 auth_malformed_credentials`; every 401 of a server operation carries a `WWW-Authenticate: DPoP` challenge.
   * Invalid credentials are limited per client IP (`throttle_invalid/1`); past the limit the answer is `429 rate_limited`.
-  * A missing scope is `403 auth_insufficient_scope` with `required_scope` and `granted_scopes`; the other environment's operation is `403 auth_environment_mismatch`.
+  * A missing scope is `403 auth_insufficient_scope`, with `required_scope` and `granted_scopes` for an API client credential; the other environment's operation is `403 auth_environment_mismatch`.
   * `Relay-Tenant` and `Relay-Environment` belong to operator sessions; with an API client credential they are `422 validation_failed`.
   * A subscriber operation accepts only a Relay subscriber token as `Authorization: Bearer` (`RelayWeb.Auth.Subscriber`); its principal names the subscriber, and the token of a suspended subscriber is `403 auth_subscriber_suspended`.
 
@@ -186,17 +186,21 @@ defmodule RelayWeb.Auth do
 
   defp scopes(_principal, %{scopes: []}), do: :ok
 
-  defp scopes(%Principal{scopes: granted}, %{scopes: [required | _] = accepted}) do
-    if Enum.any?(accepted, &(&1 in granted)) do
-      :ok
-    else
-      {:error,
-       Relay.Error.new(:auth_insufficient_scope, "the API client lacks the scope", %{
-         required_scope: required,
-         granted_scopes: granted
-       })}
-    end
+  defp scopes(%Principal{scopes: granted} = principal, %{scopes: accepted}) do
+    if Enum.any?(accepted, &(&1 in granted)),
+      do: :ok,
+      else: {:error, insufficient(principal, accepted)}
   end
+
+  defp insufficient(%Principal{subscriber_id: nil, scopes: granted}, [required | _]) do
+    Relay.Error.new(:auth_insufficient_scope, "the API client lacks the scope", %{
+      required_scope: required,
+      granted_scopes: granted
+    })
+  end
+
+  defp insufficient(_subscriber, _accepted),
+    do: Relay.Error.new(:auth_insufficient_scope, "the subscriber token lacks the scope")
 
   @doc "The configured verifier module."
   @spec verifier() :: module()

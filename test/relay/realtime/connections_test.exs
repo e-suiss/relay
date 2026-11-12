@@ -6,7 +6,7 @@ defmodule Relay.Realtime.ConnectionsTest do
   @moduletag :integration
 
   setup do
-    %{scope: Relay.Scope.new!(:crypto.strong_rand_bytes(16), "live"), id: Relay.Id.generate()}
+    %{scope: Relay.Scope.new!(Relay.Id.generate(), "live"), id: Relay.Id.generate()}
   end
 
   defp join!(ctx, device_id) do

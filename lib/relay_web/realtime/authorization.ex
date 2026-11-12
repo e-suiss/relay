@@ -62,7 +62,7 @@ defmodule RelayWeb.Realtime.Authorization do
   @spec bearer(Plug.Conn.t()) :: String.t() | nil
   def bearer(conn) do
     with [value] <- Plug.Conn.get_req_header(conn, "authorization"),
-         [_, token] <- Regex.run(@bearer, value) do
+         [_, token] when is_binary(token) <- Regex.run(@bearer, value) do
       token
     else
       _ -> nil

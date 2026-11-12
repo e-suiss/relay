@@ -194,7 +194,7 @@ defmodule Relay.Inbox do
       {code, _version} ->
         row = Store.announcement(subscriber_id, id)
         state = Announcement.state_view(row, Relay.Clock.utc_now())
-        {code, state, merged_counters(scope, subscriber_id), nil}
+        {code, state, merged_counters(subscriber_id), nil}
     end
   end
 
@@ -220,7 +220,7 @@ defmodule Relay.Inbox do
         row = Store.item(subscriber_id, item_id)
         engaged(scope, subscriber_id, row, op, code)
         state = Item.state_view(row, Relay.Clock.utc_now())
-        {code, state, merged_counters(scope, subscriber_id), row["notification_id"]}
+        {code, state, merged_counters(subscriber_id), row["notification_id"]}
     end
   end
 
@@ -286,9 +286,9 @@ defmodule Relay.Inbox do
   @doc "The subscriber's absolute, versioned counters over its items and the announcements of its audience: `unseen`, `unread`, `total` and `version`."
   @spec counters(Relay.Scope.t(), Relay.Id.t()) :: {:ok, counters()} | {:error, term()}
   def counters(%Relay.Scope{} = scope, subscriber_id),
-    do: Store.in_scope(scope, fn _status -> merged_counters(scope, subscriber_id) end)
+    do: Store.in_scope(scope, fn _status -> merged_counters(subscriber_id) end)
 
-  defp merged_counters(scope, subscriber_id) do
+  defp merged_counters(subscriber_id) do
     personal = Store.counters(subscriber_id)
     extra = Announcement.counts(Store.announcements(subscriber_id), Relay.Clock.utc_now())
 
@@ -318,7 +318,7 @@ defmodule Relay.Inbox do
     read = fn _status ->
       head = Store.head(subscriber_id)
       ann_head = Store.announcement_head()
-      counters = merged_counters(scope, subscriber_id)
+      counters = merged_counters(subscriber_id)
       rows = Store.list(subscriber_id, filters, opts[:after], limit + 1)
       announcements = Store.announcements(subscriber_id, content: true)
       {head, ann_head, counters, rows, announcements}
@@ -436,7 +436,7 @@ defmodule Relay.Inbox do
     read = fn _status ->
       head = Store.head(subscriber_id)
       ann_head = Store.announcement_head()
-      counters = merged_counters(scope, subscriber_id)
+      counters = merged_counters(subscriber_id)
 
       case position(cursor, head, ann_head) do
         :ok ->
@@ -700,7 +700,7 @@ defmodule Relay.Inbox do
 
     %{
       updated: result.updated,
-      counters: merged_counters(scope, subscriber_id),
+      counters: merged_counters(subscriber_id),
       cut_off: result.cut_off
     }
   end
@@ -776,7 +776,7 @@ defmodule Relay.Inbox do
     if result == :repaired,
       do: :telemetry.execute([:relay, :inbox, :counter_drift], %{count: 1}, %{source: :report})
 
-    {result, merged_counters(scope, subscriber_id)}
+    {result, merged_counters(subscriber_id)}
   end
 
   # IN-18
@@ -880,7 +880,7 @@ defmodule Relay.Inbox do
 
   # IN-35
   defp sync!(scope, recipient_id) do
-    counters = merged_counters(scope, recipient_id)
+    counters = merged_counters(recipient_id)
 
     {:ok, _job} = Relay.Devices.sync(scope, recipient_id, counters)
     :ok

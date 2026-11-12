@@ -64,3 +64,24 @@ POST /v1/events/batch added the new `timing_ignored` enum value to the `results/
 POST /v1/events/batch added the new `timing_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `207`
 POST /v1/events/batch added the new `timing_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `422`
 POST /v1/workflows/{workflow_key}/test added the new `timing_ignored` enum value to the `warnings/items/code` response property for the response status `202`
+GET /v1/subscriber/inbox/changes added `#/components/schemas/Id_inb, #/components/schemas/Id_ann` to the `changes/items/item/anyOf[#/components/schemas/InboxItemState]/id` response property `oneOf` list for the response status `200`
+GET /v1/subscriber/inbox/changes added `#/components/schemas/Id_inb, #/components/schemas/Id_ann` to the `changes/items/item/anyOf[#/components/schemas/InboxItem]/id` response property `oneOf` list for the response status `200`
+GET /v1/subscriber/inbox/changes added `#/components/schemas/Id_inb, #/components/schemas/Id_ann` to the `changes/items/item_id` response property `oneOf` list for the response status `200`
+GET /v1/subscriber/inbox/changes the `changes/items/item/anyOf[#/components/schemas/InboxItemState]/id` response's property pattern `^inb_[0-7][0-9a-hjkmnp-tv-z]{25}$` was removed for the status `200`
+GET /v1/subscriber/inbox/changes the `changes/items/item/anyOf[#/components/schemas/InboxItem]/id` response's property pattern `^inb_[0-7][0-9a-hjkmnp-tv-z]{25}$` was removed for the status `200`
+GET /v1/subscriber/inbox/changes the `changes/items/item_id` response's property pattern `^inb_[0-7][0-9a-hjkmnp-tv-z]{25}$` was removed for the status `200`
+GET /v1/subscriber/inbox/changes the `changes/items/item/anyOf[#/components/schemas/InboxItemState]/id` response's property `type` changed from `string` to `any` for status `200`
+GET /v1/subscriber/inbox/changes the `changes/items/item/anyOf[#/components/schemas/InboxItem]/id` response's property `type` changed from `string` to `any` for status `200`
+GET /v1/subscriber/inbox/changes the `changes/items/item_id` response's property `type` changed from `string` to `any` for status `200`
+GET /v1/subscriber/inbox/items added `#/components/schemas/Id_inb, #/components/schemas/Id_ann` to the `data/items/id` response property `oneOf` list for the response status `200`
+GET /v1/subscriber/inbox/items the `data/items/id` response's property pattern `^inb_[0-7][0-9a-hjkmnp-tv-z]{25}$` was removed for the status `200`
+GET /v1/subscriber/inbox/items the `data/items/id` response's property `type` changed from `string` to `any` for status `200`
+GET /v1/subscriber/inbox/items/{item_id} added `#/components/schemas/Id_inb, #/components/schemas/Id_ann` to the `id` response property `oneOf` list for the response status `200`
+GET /v1/subscriber/inbox/items/{item_id} the `id` response's property pattern `^inb_[0-7][0-9a-hjkmnp-tv-z]{25}$` was removed for the status `200`
+GET /v1/subscriber/inbox/items/{item_id} the `id` response's property `type` changed from `string` to `any` for status `200`
+POST /v1/subscriber/inbox/items/{item_id}/intents added `#/components/schemas/Id_inb, #/components/schemas/Id_ann` to the `item_id` response property `oneOf` list for the response status `200`
+POST /v1/subscriber/inbox/items/{item_id}/intents added `#/components/schemas/Id_inb, #/components/schemas/Id_ann` to the `state/id` response property `oneOf` list for the response status `200`
+POST /v1/subscriber/inbox/items/{item_id}/intents the `item_id` response's property pattern `^inb_[0-7][0-9a-hjkmnp-tv-z]{25}$` was removed for the status `200`
+POST /v1/subscriber/inbox/items/{item_id}/intents the `state/id` response's property pattern `^inb_[0-7][0-9a-hjkmnp-tv-z]{25}$` was removed for the status `200`
+POST /v1/subscriber/inbox/items/{item_id}/intents the `item_id` response's property `type` changed from `string` to `any` for status `200`
+POST /v1/subscriber/inbox/items/{item_id}/intents the `state/id` response's property `type` changed from `string` to `any` for status `200`

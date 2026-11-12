@@ -22,6 +22,8 @@ tags:
     description: "The subscriber's own push devices (scope devices:write)."
   - name: presence
     description: "The short-lived status signals of the subscriber's own devices (scope presence:write)."
+  - name: realtime
+    description: "The subscriber's inbox stream over SSE and long-poll (scope inbox:read); the WebSocket transport is in the AsyncAPI catalog."
 paths:
   "/v1/subscriber/token":
     post:
@@ -957,6 +959,181 @@ paths:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The confirmation with the subscriber's own token is the verification flow chosen by the contract (API-61)."
+  "/v1/realtime/events":
+    get:
+      operationId: streamRealtimeEvents
+      tags:
+        - realtime
+      summary: Stream my inbox events (SSE)
+      description: "The token subscriber's inbox stream as Server-Sent Events, the same stream and the same events as the WebSocket channel inbox at /v1/realtime/websocket (IN-23); the envelopes and event types are in the AsyncAPI catalog (channel inboxRealtime). Each SSE event names the envelope type in event, carries the envelope as JSON in data and the envelope id, an opaque cursor, in id; a reconnect with Last-Event-ID resumes after it, and without it the stream starts at the head with the current counters. A cursor the stream can no longer serve, or more than 500 changes since it, yields stream.resync_required and the stream continues from the head; the client then synchronises over the inbox REST API. The stream is read-only and the server decides what it carries from the token (IN-31, IN-32). The connection closes when the token expires, when the subscriber or tenant is suspended and when newer connections of the subscriber push it out (at most 10 per subscriber); the client reconnects with a fresh token. A node accepts at most 200 new connections a second (burst 400); beyond that it answers 503 with a Retry-After of 1 to 5 seconds. A comment line keeps an idle stream open every 25 seconds."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - name: Last-Event-ID
+          in: header
+          required: false
+          description: The id of the last event the client received; the stream resumes after it.
+          schema:
+            type: string
+            maxLength: 512
+        - name: device_id
+          in: query
+          required: false
+          description: "The subscriber's device holding the connection; while it is connected, push for the same notification is not sent to it (IN-40)."
+          schema:
+            type: string
+            maxLength: 64
+      security:
+        - subscriber_bearer:
+            - "inbox:read"
+      responses:
+        "200":
+          description: The event stream.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "text/event-stream":
+              schema:
+                type: string
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+      x-relay-scopes:
+        - "inbox:read"
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "IN-23 names SSE with Last-Event-ID but no path; /v1/realtime/events is chosen. The device_id parameter, the keep-alive comment interval and the 503 answer of an overloaded node (the SSE form of IN-52's WebSocket close 1013) are contract choices."
+  "/v1/realtime/poll":
+    get:
+      operationId: pollRealtimeEvents
+      tags:
+        - realtime
+      summary: Long-poll my inbox events
+      description: "The last-resort transport of the inbox stream (IN-23): the same envelopes as the SSE and WebSocket transports, as a JSON list with the cursor to send next. With a cursor and nothing newer the request waits up to 25 seconds for the next change and then answers an empty list; without a cursor it answers at once with the current counters and the head cursor. A cursor the stream can no longer serve yields stream.resync_required with the head cursor. The request is read-only; history is read over the inbox REST API (IN-31, IN-32)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - name: cursor
+          in: query
+          required: false
+          description: The id of the last envelope the client received.
+          schema:
+            type: string
+            maxLength: 512
+      security:
+        - subscriber_bearer:
+            - "inbox:read"
+      responses:
+        "200":
+          description: The envelopes after the cursor and the next cursor.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/RealtimePoll"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+      x-relay-scopes:
+        - "inbox:read"
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: "IN-23 names long-poll as the last fallback but no path; /v1/realtime/poll, its JSON shape and the 25 second wait are contract choices."
 components:
   securitySchemes:
     subscriber_bearer:
@@ -1161,6 +1338,72 @@ components:
           enum:
             - displayed
             - clicked
+      additionalProperties: false
+    RealtimePoll:
+      type: object
+      description: "The envelopes of a long-poll and the cursor to send next."
+      required:
+        - events
+        - cursor
+      properties:
+        events:
+          type: array
+          maxItems: 501
+          items:
+            "$ref": "#/components/schemas/RealtimeEnvelope"
+        cursor:
+          type: string
+          maxLength: 512
+      additionalProperties: false
+    RealtimeEnvelope:
+      type: object
+      description: "The realtime envelope {t, v, ts, d} with counters on every message and the resume cursor id; the AsyncAPI catalog (channel inboxRealtime) has the body of each type."
+      required:
+        - t
+        - v
+        - ts
+        - d
+        - counters
+      properties:
+        t:
+          type: string
+          enum:
+            - inbox.item_created
+            - inbox.item_updated
+            - inbox.items_bulk_updated
+            - inbox.counters_changed
+            - stream.resync_required
+        v:
+          type: integer
+          minimum: 1
+        ts:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        id:
+          type: string
+          maxLength: 512
+        d:
+          type: object
+        counters:
+          type: object
+          required:
+            - unseen
+            - unread
+            - total
+            - version
+          properties:
+            unseen:
+              type: integer
+              minimum: 0
+            unread:
+              type: integer
+              minimum: 0
+            total:
+              type: integer
+              minimum: 0
+            version:
+              type: integer
+              minimum: 0
+          additionalProperties: false
       additionalProperties: false
 x-relay-family:
   - client

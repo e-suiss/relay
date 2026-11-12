@@ -404,6 +404,10 @@ defmodule Relay.Access do
   @doc "The system signal topic that fires when a subscriber token key is rotated or retired."
   @spec subscriber_token_keys_topic() :: String.t()
   defdelegate subscriber_token_keys_topic(), to: SubscriberTokenKeys, as: :topic
+  # IN-33
+  @doc "The system signal topic on which API client and tenant status changes are announced; see `Relay.Access.Clients.topic/0`."
+  @spec client_changes_topic() :: String.t()
+  def client_changes_topic, do: Clients.topic()
 
   # E-10
   # E-11

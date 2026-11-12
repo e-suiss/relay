@@ -38,7 +38,11 @@ defmodule Relay.Repo.Migrations.MatchWaitpointsByCorrelationDigest do
     Enum.each(@old_owned, &execute("DROP FUNCTION #{&1}"))
     execute("RESET ROLE")
     execute("DROP FUNCTION relay_private.waitpoint_lock(text, text)")
-    Enum.each([lock(), append(), open(), offer(), resolve_by_event(), plain(), fill()], &execute/1)
+
+    Enum.each(
+      [lock(), append(), open(), offer(), resolve_by_event(), plain(), fill()],
+      &execute/1
+    )
 
     for {signature, owner, grantees} <- @functions do
       execute("REVOKE ALL ON FUNCTION #{signature} FROM PUBLIC")

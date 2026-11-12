@@ -11,7 +11,10 @@ defmodule Relay.Repo.Migrations.AddCorrelationDigests do
     end
 
     execute("ALTER TABLE relay.waitpoints ALTER COLUMN correlation_key DROP NOT NULL")
-    execute("ALTER TABLE relay.waitpoint_unmatched_events ALTER COLUMN correlation_key DROP NOT NULL")
+
+    execute(
+      "ALTER TABLE relay.waitpoint_unmatched_events ALTER COLUMN correlation_key DROP NOT NULL"
+    )
 
     execute("""
     ALTER TABLE relay.waitpoints ADD CONSTRAINT waitpoints_correlation_digest_check

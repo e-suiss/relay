@@ -233,7 +233,8 @@ defmodule Relay.Access.SubscriberToken do
       when code in [:auth_expired_token, :service_unavailable] ->
         {:error, error}
 
-      _other -> {:error, Relay.Error.new(:auth_invalid_token, "not a Relay subscriber token")}
+      _other ->
+        {:error, Relay.Error.new(:auth_invalid_token, "not a Relay subscriber token")}
     end
   end
 

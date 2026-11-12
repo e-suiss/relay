@@ -88,7 +88,8 @@ defmodule Relay.SubscriberToken.KeyRotationTest do
                SubscriberTokenKeys.rotate("subscriber-token", "operator-1", "back")
     end
 
-    test "IN-51, IN-33: an emergency retirement stops the previous key at once and is kept", ctx do
+    test "IN-51, IN-33: an emergency retirement stops the previous key at once and is kept",
+         ctx do
       old = token(ctx)
       {:ok, _} = SubscriberTokenKeys.rotate("subscriber-token-3", "operator-1", "compromise")
 

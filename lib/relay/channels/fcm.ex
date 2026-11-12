@@ -22,6 +22,8 @@ defmodule Relay.Channels.Fcm do
 
   @origin {:https, "fcm.googleapis.com", 443}
   @check_topic "relay-settings-check"
+  @signal_ttl_s 60
+  @signal_collapse "relay_sync"
 
   @impl Relay.Channels.Adapter
   def provider, do: "fcm"
@@ -32,7 +34,19 @@ defmodule Relay.Channels.Fcm do
   # CH-24
   # TN-30
   # INV-40
+  # IN-35
+  # IN-38
   @impl Relay.Channels.Adapter
+  def deliver(%Request{signal: %{} = signal} = request) do
+    with {:ok, settings} <- Common.settings(request, ["project_id"]),
+         {:ok, source} <- source(settings),
+         {:ok, message, ignored} <- Fcm.message(signal_message(request, signal)) do
+      call(request, settings, source, message, ignored)
+    else
+      {:error, reason} -> Common.rejection(reason)
+    end
+  end
+
   def deliver(%Request{push: %{} = push} = request) do
     with {:ok, settings} <- Common.settings(request, ["project_id"]),
          {:ok, source} <- source(settings),
@@ -171,6 +185,36 @@ defmodule Relay.Channels.Fcm do
       {:error, :not_configured}
     end
   end
+
+  # IN-35
+  # IN-38
+  # IN-52
+  defp signal_message(request, signal) do
+    data =
+      %{
+        "relay_sync" => "1",
+        "relay_counter_version" => text(Map.get(signal, :counter_version)),
+        "relay_read" => read(signal)
+      }
+      |> Map.reject(fn {_key, value} -> is_nil(value) end)
+
+    %{
+      token: Relay.Redacted.expose(request.target.value),
+      fcm_priority: :normal,
+      ttl: "#{Map.get(signal, :ttl_s) || @signal_ttl_s}s",
+      collapse_key: @signal_collapse,
+      data: data,
+      data_only: true
+    }
+  end
+
+  defp text(nil), do: nil
+  defp text(n) when is_integer(n), do: Integer.to_string(n)
+
+  defp read(%{kind: :read, notification_id: <<_::128>> = id}),
+    do: Relay.ExternalId.encode("ntf", id)
+
+  defp read(_signal), do: nil
 
   defp ttl(push) do
     case Ttl.fcm(push.expires_at, push.now) do

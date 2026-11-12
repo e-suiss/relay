@@ -52,3 +52,11 @@ POST /v1/events/batch added the new `send_at_ignored` enum value to the `results
 POST /v1/events/batch added the new `send_at_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `207`
 POST /v1/events/batch added the new `send_at_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `422`
 POST /v1/workflows/{workflow_key}/test added the new `send_at_ignored` enum value to the `warnings/items/code` response property for the response status `202`
+POST /v1/events added the new `timing_ignored` enum value to the `oneOf[#/components/schemas/BatchResult]/results/items/event/warnings/items/code` response property for the response status `202`
+POST /v1/events added the new `timing_ignored` enum value to the `oneOf[#/components/schemas/EventAccepted]/warnings/items/code` response property for the response status `202`
+POST /v1/events added the new `timing_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `207`
+POST /v1/events added the new `timing_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `422`
+POST /v1/events/batch added the new `timing_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `202`
+POST /v1/events/batch added the new `timing_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `207`
+POST /v1/events/batch added the new `timing_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `422`
+POST /v1/workflows/{workflow_key}/test added the new `timing_ignored` enum value to the `warnings/items/code` response property for the response status `202`

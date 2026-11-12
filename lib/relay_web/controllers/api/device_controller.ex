@@ -5,6 +5,7 @@ defmodule RelayWeb.Api.DeviceController do
 
   alias Relay.Api.Devices
   alias Relay.Api.Preferences
+  alias Relay.Api.Presence
   alias RelayWeb.Api.Response
   alias RelayWeb.Api.Work
 
@@ -99,6 +100,26 @@ defmodule RelayWeb.Api.DeviceController do
       {:error, error} ->
         Response.problem(conn, error)
     end
+  end
+
+  # IN-47
+  # IN-53
+  @spec update_status_mine(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def update_status_mine(conn, %{"device_id" => device_id}) do
+    %{scope: scope, principal: principal, body: body} = conn.assigns
+    id = principal.subscriber_id
+
+    case Work.path_id(device_id, "dev", :device_not_found) do
+      {:ok, device} -> Work.answer(conn, Presence.write(scope, id, device, body))
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
+
+  # IN-47
+  @spec status_mine(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def status_mine(conn, _params) do
+    %{scope: scope, principal: principal} = conn.assigns
+    Work.answer(conn, Presence.read(scope, principal.subscriber_id))
   end
 
   defp mine(conn, id) do

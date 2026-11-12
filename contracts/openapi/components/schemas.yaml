@@ -490,7 +490,8 @@ Warning:
       enum:
         - priority_clamped
         - send_at_ignored
-      description: "Warning code. send_at_ignored: the security class is never scheduled; the send_at of a security request is not applied and the notification is sent at once (WF-40, WF-41)."
+        - timing_ignored
+      description: "Warning code. send_at_ignored: the security class is never scheduled; the send_at of a security request is not applied and the notification is sent at once (WF-40, WF-41). timing_ignored: the security class (OTP included) never waits for a break; timing next_break is not applied (WF-56)."
       x-relay-choice: true
       x-relay-choice-note: "WF-41 passes the security class straight through scheduling without naming how the sender learns it; the request is accepted and a send_at_ignored warning is returned."
     pointer:
@@ -689,6 +690,10 @@ EventRequest:
       "$ref": "#/OnExpire"
     timing_precision:
       "$ref": "#/TimingPrecision"
+    timing:
+      "$ref": "#/Timing"
+    max_defer:
+      "$ref": "#/MaxDefer"
     cancellation_key:
       type: string
       description: "Optional cancellation key; need not be unique."
@@ -789,6 +794,10 @@ BatchEventRequest:
       "$ref": "#/OnExpire"
     timing_precision:
       "$ref": "#/TimingPrecision"
+    timing:
+      "$ref": "#/Timing"
+    max_defer:
+      "$ref": "#/MaxDefer"
     cancellation_key:
       type: string
       description: "Optional cancellation key; need not be unique."
@@ -8572,6 +8581,19 @@ TimingPrecision:
     - strict
   x-relay-choice: true
   x-relay-choice-note: "WF-42 lets a tenant choose an exact time with a strict mode but API-20 names no field; a request field timing_precision with the single value strict is chosen."
+Timing:
+  type: string
+  description: "When the notification is delivered (WF-56, E-77). immediate (default): at once. next_break: at the recipient's next natural break, the first of a break transition its devices report (break set, focus mode ended, screen unlocked) or the end of its quiet hours, and at the latest at max_defer; at the break the delivery passes the policy lattice again and quiet hours stay a hard limit. Applies to the channels quiet hours apply to; the inbox item is written at once. Ignored in the security class with a timing_ignored warning. In action_required it applies only when sent explicitly (WF-57)."
+  enum:
+    - immediate
+    - next_break
+  x-relay-choice: true
+  x-relay-choice-note: "WF-56 names the values; that next_break leaves in_app and the channels quiet hours do not apply to undelayed follows PC-45 and is chosen by the contract."
+MaxDefer:
+  description: "Required with timing next_break and refused without it: the longest wait for the break, a fixed-length ISO 8601 duration above zero counted from send_at or the request time. Its instant may not pass expires_at or the class default expiry (422 validation_failed, pointer /max_defer)."
+  "$ref": "#/Duration"
+  x-relay-choice: true
+  x-relay-choice-note: "WF-56 names max_defer without its form; a duration counted from send_at or the request time is chosen by the contract."
 TimingSpreads:
   type: object
   additionalProperties: false

@@ -388,6 +388,21 @@
         },
         "overrides": {
           "$ref": "#/$defs/overrides"
+        },
+        "timing": {
+          "enum": [
+            "immediate",
+            "next_break"
+          ],
+          "description": "When the step's delivery goes (WF-56): next_break waits for the recipient's next break, at the latest max_defer after the delivery opens; a send request's own timing takes precedence. Ignored in the security class.",
+          "x-relay-choice": true,
+          "x-relay-choice-note": "WF-56 names the field for the request and the workflow step; that the request's timing wins over the step's is chosen by the contract."
+        },
+        "max_defer": {
+          "$ref": "#/$defs/duration",
+          "description": "Required with timing next_break and refused without it: the longest wait for the break, above zero and at most P30D, counted from the delivery's opening; the notification's expires_at still ends it first (WF-56).",
+          "x-relay-choice": true,
+          "x-relay-choice-note": "WF-56 bounds max_defer only by expires_at, which a step cannot know; counting from the delivery's opening and the P30D ceiling of a wait (WF-37) are chosen by the contract."
         }
       },
       "oneOf": [

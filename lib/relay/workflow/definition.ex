@@ -7,6 +7,7 @@ defmodule Relay.Workflow.Definition do
   * the definition against the contract schema; the event schema builds as JSON Schema 2020-12 without remote references;
   * the step tree: at most 50 steps over the whole tree, branches nested at most 4 deep, step keys unique over the whole tree, and every inline route tree through `Relay.Workflow.RouteTree.validate/2` (shapes, durations above zero, depth and leaves, the subtype's channel rule; WF-13, WF-15, WF-18, WF-59 (4));
   * the hard duration ceilings (WF-37): a delay at most P90D, digest windows and throttle windows at most P31D, a wait for an event at most P30D and more than zero, a content deduplication window from PT1M to PT24H;
+  * a channel step's `timing: next_break` needs `max_defer`, above zero and at most P30D, and `max_defer` needs `next_break` (WF-56);
   * every condition (WF-60, `Relay.Workflow.Condition`): its grammar and limits, declared recipient attributes, and references only to steps that run before it on its own path, never to a later step or one in another branch;
   * a digest step is refused for the `security`, `transactional` and `action_required` classes (WF-28), and a `security` workflow has no delay, time window or digest step (WF-63, WF-41, WF-40) and no `content_dedup` (WF-36); a `digest_template` needs an earlier digest step on its path, a time window's start comes before its end, and every control pointer names a text, duration or number field (WF-4);
   * a definition that declares the security subtype it serves: `otp_oob` sends no e-mail, neither as a channel nor in an inline route (WF-18); `email_verification` sends only e-mail. The routes a step names by key are checked against the stored routes by `named_route_errors/2` when the gate runs (existence, and the subtype's channel rule).
@@ -240,7 +241,8 @@ defmodule Relay.Workflow.Definition do
     Enum.concat([
       route_errors(step["route"], entry.pointer <> "/route", definition),
       digest_template_errors(step, entry),
-      variant_errors(step, entry.pointer)
+      variant_errors(step, entry.pointer),
+      timing_errors(step, entry.pointer)
     ])
   end
 
@@ -351,6 +353,19 @@ defmodule Relay.Workflow.Definition do
   end
 
   defp prefix(errors, at), do: Enum.map(errors, &%{&1 | pointer: at <> &1.pointer})
+
+  # WF-56
+  defp timing_errors(%{"timing" => "next_break"} = step, pointer) do
+    case step["max_defer"] do
+      nil -> [error(pointer <> "/max_defer", "required", "timing next_break needs max_defer")]
+      max_defer -> max_errors(max_defer, pointer <> "/max_defer", @wait_max, "P30D")
+    end
+  end
+
+  defp timing_errors(%{"max_defer" => _max_defer}, pointer),
+    do: [error(pointer <> "/max_defer", "not_allowed", "only timing next_break has max_defer")]
+
+  defp timing_errors(_step, _pointer), do: []
 
   defp max_errors(nil, _pointer, _max, _text), do: []
 

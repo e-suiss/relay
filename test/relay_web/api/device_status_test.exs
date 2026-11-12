@@ -234,6 +234,28 @@ defmodule RelayWeb.Api.DeviceStatusTest do
       assert {:send, _info} = Relay.Policy.Live.job(ctx.scope, id)
     end
 
+    test "WF-56: a channel step's next_break defers its delivery when the send has none", ctx do
+      [step] = F.definition(channels: ["push"])["steps"]
+      timed = Map.merge(step, %{"timing" => "next_break", "max_defer" => "PT2H"})
+      definition = Map.put(F.definition(channels: ["push"]), "steps", [timed])
+      :ok = F.category_of!(ctx.token, definition)
+      :ok = F.template!(ctx.scope, "order-shipped", definition["category"])
+
+      body = %{"key" => "order-shipped", "definition" => definition}
+      F.body(F.request(:post, "/v1/workflows", ctx.token, body), 201)
+      F.publish!(ctx.scope, ctx.token, "order-shipped")
+
+      me = mine!(ctx, "devices:write presence:write")
+      device!(me)
+      delivery = delivery!(ctx, send!(ctx, "order-shipped", me.external_id, %{}), "push")
+      id = internal(delivery["id"], ["dlv"])
+
+      assert {:defer, until} = Relay.Policy.Live.job(ctx.scope, id)
+      assert ["defer", "next_break.deferred", recorded, nil] = decision(ctx.scope, delivery)
+      assert DateTime.compare(recorded, until) == :eq
+      assert DateTime.diff(until, Relay.Clock.business_now(ctx.scope)) in 7_000..7_200
+    end
+
     test "WF-56, E-77: the security class ignores next_break with timing_ignored", ctx do
       opts = [channels: ["push"], message_class: "security"]
       F.workflow!(ctx.scope, ctx.token, "login-alert", opts)

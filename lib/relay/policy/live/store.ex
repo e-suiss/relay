@@ -8,6 +8,9 @@ defmodule Relay.Policy.Live.Store do
   @context """
   SELECT d.id, d.channel::text AS channel, d.decision, d.provider_account_id,
     d.decision_rule_id, d.deferred_until, d.timing_released_at, e.timing, e.max_defer_until,
+    st.timing AS step_timing,
+    CASE WHEN st.timing = 'next_break' THEN d.created_at + st.max_defer::interval END
+      AS step_max_defer_until,
     n.id AS notification_id, n.recipient_id, n.subtenant_id, n.message_class::text AS message_class,
     n.security_subtype, n.sender_type, n.expires_at, n.workflow_id, e.priority, e.api_client_id,
     e.on_expire, e.timing_precision,
@@ -21,6 +24,12 @@ defmodule Relay.Policy.Live.Store do
     AND w.id = n.workflow_id
   LEFT JOIN relay.workflow_versions v ON v.tenant_id = n.tenant_id
     AND v.environment = n.environment AND v.id = n.workflow_version_id
+  LEFT JOIN LATERAL (
+    SELECT c ->> 'timing' AS timing, c ->> 'max_defer' AS max_defer
+    FROM jsonb_path_query(v.definition -> 'steps', 'strict $.** ? (@.type == "channel")') c
+    WHERE c ->> 'key' = split_part(d.step_ref, '/', 1)
+    LIMIT 1
+  ) st ON true
   WHERE d.id = $1
   """
 

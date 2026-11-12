@@ -4,7 +4,7 @@ defmodule Relay.Policy.Live do
 
   Every skip and expiry is recorded on the delivery with its reason, rule and detail, with a ledger event and a `notification.suppressed` outbox event in the same transaction; a deferral is a `delivery.deferred` ledger event and the delivery stays `queued` with `deferred_until` (DS-24, DS-26, DS-27). An input that cannot be read records nothing and the job retries (INV-43); only the frequency counter fails open (INV-45). At acceptance and in the job, a deferral by quiet hours of a `social` or `marketing` delivery, a frequency cap met with the `digest` fate and a send past the category's density threshold hold the delivery in a digest window instead (`Relay.Policy.Live.Hold`, PC-46, PC-50, WF-30): it is recorded as deferred with its digest rule until the window fires and its job ends; the window's release (`digest_ready/2`, configured as `config :relay, Relay.Workflow.Digest, release: Relay.Policy.Live`) queues it again. Counters are read outside every transaction and counted only for a delivery the lattice sends, by its identifier. Each recorded decision emits `[:relay, :policy, :decision]` telemetry with its kind and reason. `config :relay, Relay.Policy.Live, frequency_counter: […]` passes options to `Relay.Policy.FrequencyCounter`.
 
-  A delivery sent with `timing: next_break` (WF-56, WF-57) waits as a deferral with `next_break.deferred` and its job snoozes until the deferral ends (WF-43). Its break is released, once and durably, when that deferral or a quiet hours deferral of it has run out at the next evaluation, or at once when a device of the recipient reports a break transition (`break_reached/2`, IN-53); a released delivery passes the lattice like any other.
+  A delivery sent with `timing: next_break`, or opened by a channel step that has it while the send request gives none (WF-56, WF-57), waits as a deferral with `next_break.deferred` and its job snoozes until the deferral ends (WF-43). Its break is released, once and durably, when that deferral or a quiet hours deferral of it has run out at the next evaluation, or at once when a device of the recipient reports a break transition (`break_reached/2`, IN-53); a released delivery passes the lattice like any other.
   """
 
   use Boundary,
@@ -298,8 +298,8 @@ defmodule Relay.Policy.Live do
             on_expire: context["on_expire"],
             timing_precision: context["timing_precision"],
             sender_type: context["sender_type"],
-            timing: context["timing"],
-            max_defer_until: context["max_defer_until"],
+            timing: timing(context),
+            max_defer_until: context["max_defer_until"] || context["step_max_defer_until"],
             timing_released: released?(context, now)
           }),
         scope_match: :match,
@@ -320,17 +320,24 @@ defmodule Relay.Policy.Live do
   end
 
   # WF-56
+  defp timing(%{"timing" => "next_break"}), do: "next_break"
+  defp timing(%{"timing" => nil, "step_timing" => "next_break"}), do: "next_break"
+  defp timing(_context), do: nil
+
+  # WF-56
   # WF-43
   # PC-46
-  defp released?(%{"timing" => "next_break"} = context, now) do
+  defp released?(context, now) do
+    if timing(context) == "next_break", do: release(context, now), else: false
+  end
+
+  defp release(context, now) do
     cond do
       match?(%DateTime{}, context["timing_released_at"]) -> true
       due?(context, now) -> Store.break_release(context["id"]) in [:released, :unchanged]
       true -> false
     end
   end
-
-  defp released?(_context, _now), do: false
 
   defp due?(%{"decision_rule_id" => rule, "deferred_until" => %DateTime{} = until}, now)
        when rule in @break_ends,

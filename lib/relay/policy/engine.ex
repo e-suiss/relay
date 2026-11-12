@@ -290,7 +290,7 @@ defmodule Relay.Policy.Engine do
       constraints = constraints(s, profile, tz)
 
       case Window.blocking(s.now, zone, constraints) do
-        nil -> next_break(s, profile, tz, fn -> frequency(s, tz, constraints) end)
+        nil -> next_break(s, profile, tz, {:frequency, constraints})
         name -> defer(s, name, s.now, tz, constraints, %{})
       end
     end
@@ -304,7 +304,7 @@ defmodule Relay.Policy.Engine do
       constraints = if quiet_channel?(s.channel, profile), do: quiet(profile), else: []
 
       case Window.blocking(s.now, zone, constraints) do
-        nil -> next_break(s, profile, tz, fn -> deliver(s, tz, :exempt) end)
+        nil -> next_break(s, profile, tz, :exempt)
         name -> defer(s, name, s.now, tz, constraints, %{})
       end
     end
@@ -323,15 +323,18 @@ defmodule Relay.Policy.Engine do
   # PC-45
   # PC-46
   # IN-48
-  defp next_break(s, profile, tz, go) do
+  defp next_break(s, profile, tz, next) do
     with %{released: false, until: %DateTime{} = until} <- Map.get(s.notification, :next_break),
          true <- quiet_channel?(s.channel, profile),
          :lt <- DateTime.compare(s.now, until) do
       wait_break(s, profile, tz, until)
     else
-      _immediate_released_or_due -> go.()
+      _immediate_released_or_due -> go(s, tz, next)
     end
   end
+
+  defp go(s, tz, {:frequency, constraints}), do: frequency(s, tz, constraints)
+  defp go(s, tz, :exempt), do: deliver(s, tz, :exempt)
 
   defp wait_break(s, profile, {zone, _source} = tz, until) do
     wake = wake(s, profile, zone, until)

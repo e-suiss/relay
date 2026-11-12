@@ -80,7 +80,7 @@ config :relay, Relay.Platform.VirtualClock,
     {Relay.Workflow, :run_due, []}
   ]
 
-config :relay, Relay.Workflow, resumer: Relay.Api.WorkflowRuns
+config :relay, Relay.Workflow, resumer: Relay.Api.WorkflowRuns, waiter: Relay.Agents
 
 config :relay, Relay.Workflow.Digest, sink: Relay.Workflow
 

@@ -13,7 +13,7 @@ defmodule Relay.Workflow do
   Recurrence rules (`Relay.Workflow.Recurrence`, C-52, WF-48, WF-49) are definitions of one workflow sent to a subscriber or a topic on the occurrences of an RRULE subset (`Relay.Workflow.RRule`, WF-61); the rule's next occurrence is a row column with a timer, never a waiting message (WF-43).
   """
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Agents], exports: []
+  use Boundary, top_level?: true, deps: [Relay], exports: []
 
   alias Relay.Actor
   alias Relay.Scope
@@ -378,7 +378,7 @@ defmodule Relay.Workflow do
   @doc """
   Creates the run of a new notification inside the caller's accepting transaction and advances it up to its first wait. `run` carries `:notification_id`, `:recipient_id`, `:workflow_key`, `:message_class`, the pinned `:definition`, the `:plan` the resumer needs later (JSON, no personal data, with the resolved `routes`), the step `:context` (`t:Relay.Workflow.Step.context/0` with the plan's `:routes` and the `:facts` of a step's route, without `:results`, `:outcomes`, `:projection` and `:effects`), `:now` (the business time base: `send_at` when the request has one) and the `:opener` of route leaves. Returns the openers' extras in step order.
 
-  An accepted event that carries an event type (a CloudEvent's `type`) and a correlation key (`correlation_id`) is first offered, in the same transaction, to the event waits of the recipient's other runs (`:incoming` with `:event_type`, `:correlation_key`, `:event_id` and `:data`, WF-12): the first stage matches the type and the key exactly, the second evaluates a wait's `match` condition against the event data as `incoming.…`, and an event that resolves no wait is buffered in the recipient's mailbox, where a wait that opens later finds it.
+  An accepted event that carries an event type (a CloudEvent's `type`) and a correlation key (`correlation_id`) is first offered, in the same transaction and through the configured waiter (`config :relay, Relay.Workflow, waiter: Relay.Agents`), to the event waits of the recipient's other runs (`:incoming` with `:event_type`, `:correlation_key`, `:event_id` and `:data`, WF-12): the first stage matches the type and the key exactly, the second evaluates a wait's `match` condition against the event data as `incoming.…`, and an event that resolves no wait is buffered in the recipient's mailbox, where a wait that opens later finds it.
   """
   @spec start_run(Scope.t(), map()) :: {:ok, [term()]} | {:error, term()}
   def start_run(%Scope{} = scope, run) do
@@ -463,7 +463,7 @@ defmodule Relay.Workflow do
       tags: [@run_tag <> Relay.Id.to_string(meta.run_id)]
     }
 
-    case Relay.Agents.open_waitpoint_in(scope, attrs) do
+    case waiter().open_waitpoint_in(scope, attrs) do
       %{result: :opened, waitpoint_id: id, early: {:resolved_by_event, :resolved}} ->
         {:ok, %{state: :matched, waitpoint_id: id}}
 
@@ -493,7 +493,7 @@ defmodule Relay.Workflow do
       }
 
       context = %{incoming: incoming.data}
-      _offered = Relay.Agents.offer_event_in(scope, event, &accepts?(&1, context))
+      _offered = waiter().offer_event_in(scope, event, &accepts?(&1, context))
       :ok
     else
       :ok
@@ -664,6 +664,9 @@ defmodule Relay.Workflow do
   defp saved({other, _version}, _result), do: RunStore.rollback(other)
 
   defp resumer, do: :relay |> Application.fetch_env!(__MODULE__) |> Keyword.fetch!(:resumer)
+
+  # WF-12
+  defp waiter, do: :relay |> Application.fetch_env!(__MODULE__) |> Keyword.fetch!(:waiter)
 
   defp fields(outcome) do
     state = outcome.state

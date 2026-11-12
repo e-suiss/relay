@@ -482,8 +482,8 @@ defmodule Relay.Workflow.Runner do
          "delivered" =>
            Enum.any?(
              rows,
-             &(&1["status"] == "delivered" or &1["seen"] or &1["read"] or
-                 &1["rule_id"] == @folded)
+             &(&1["status"] == "delivered" or &1["rule_id"] == @folded or &1["seen"] == true or
+                 &1["read"] == true)
            ),
          "failed" => "failed" in statuses,
          "skipped" =>

@@ -7,6 +7,7 @@
 # OP-63
 # E-98
 # E-100
+# IN-51
 set -eu
 
 usage() {
@@ -17,7 +18,9 @@ Creates the stage-1 keys in a PKCS#11 token with pkcs11-tool. Keys that already
 exist under their label are left untouched, so the script can be rerun.
 
   audit-checkpoint   Ed25519 key pair that signs audit checkpoints
-  subscriber-token   P-256 key pair that signs subscriber tokens
+  subscriber-token   P-256 key pair that signs subscriber tokens; to rotate it, rerun
+                     with KEY_STORE_SUBSCRIBER_TOKEN_LABEL set to a new label, then
+                     run Relay.Release.SubscriberTokenKey.rotate/1 with that label
   access-client      P-256 key pair of Relay's Access client: client assertions and
                      DPoP proofs (register its public key with Relay's Access
                      client)

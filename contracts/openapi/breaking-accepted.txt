@@ -52,6 +52,10 @@ POST /v1/events/batch added the new `send_at_ignored` enum value to the `results
 POST /v1/events/batch added the new `send_at_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `207`
 POST /v1/events/batch added the new `send_at_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `422`
 POST /v1/workflows/{workflow_key}/test added the new `send_at_ignored` enum value to the `warnings/items/code` response property for the response status `202`
+POST /v1/waitpoints removed the required property `match/correlation_key` from the response with the `201` status
+GET /v1/waitpoints/{waitpoint_id} removed the required property `match/correlation_key` from the response with the `200` status
+POST /v1/waitpoints/{waitpoint_id}/cancel removed the required property `match/correlation_key` from the response with the `200` status
+POST /v1/waitpoints/{waitpoint_id}/heartbeat removed the required property `match/correlation_key` from the response with the `200` status,
 POST /v1/events added the new `timing_ignored` enum value to the `oneOf[#/components/schemas/BatchResult]/results/items/event/warnings/items/code` response property for the response status `202`
 POST /v1/events added the new `timing_ignored` enum value to the `oneOf[#/components/schemas/EventAccepted]/warnings/items/code` response property for the response status `202`
 POST /v1/events added the new `timing_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `207`

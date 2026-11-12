@@ -5827,7 +5827,7 @@ Responder:
   x-relay-choice-note: "The object shape of a responder reference is chosen by the contract."
 WaitpointMatch:
   type: object
-  description: "First-stage exact match: event type and correlation key."
+  description: "First-stage exact match: event type and correlation key. The correlation key is taken only here, at creation; Relay stores only its keyed digest and never returns it in a response, an event or a log (AG-65)."
   required:
     - type
     - correlation_key
@@ -5836,6 +5836,15 @@ WaitpointMatch:
       "$ref": "#/EventName"
     correlation_key:
       "$ref": "#/CorrelationKey"
+  additionalProperties: false
+WaitpointMatchView:
+  type: object
+  description: "First-stage exact match of a stored waitpoint: the event type only; the correlation key given at creation is never returned (AG-65)."
+  required:
+    - type
+  properties:
+    type:
+      "$ref": "#/EventName"
   additionalProperties: false
 EscalationTier:
   type: object
@@ -6059,7 +6068,7 @@ Waitpoint:
     waiter:
       "$ref": "#/Waiter"
     match:
-      "$ref": "#/WaitpointMatch"
+      "$ref": "#/WaitpointMatchView"
     condition:
       type: object
       description: "Second-stage condition, at most 16 kB."

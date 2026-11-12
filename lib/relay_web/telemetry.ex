@@ -392,6 +392,7 @@ defmodule RelayWeb.Telemetry do
   # T-17
   # T-86
   # PC-50
+  # IN-51
   @doc "The stage 1 alarm metrics."
   @spec alarm_metrics() :: [Telemetry.Metrics.t()]
   def alarm_metrics do
@@ -407,6 +408,11 @@ defmodule RelayWeb.Telemetry do
         measurement: :leaderless,
         tags: [:task],
         description: "1 while a singleton task has had no leader for five minutes"
+      ),
+      last_value("relay.access.subscriber_token_key.activated.timestamp_seconds",
+        event_name: [:relay, :access, :subscriber_token_key],
+        measurement: :activated_at,
+        description: "Activation time of the current subscriber token signing key"
       ),
       last_value("relay.audit.checkpoint_overdue.timestamp_seconds",
         event_name: [:relay, :audit, :overdue],

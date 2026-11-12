@@ -2,7 +2,7 @@ defmodule RelayWeb.Realtime.Authorization do
   @moduledoc """
   Who may hold a realtime connection, checked on connect and again whenever the authorization may have changed (IN-33, INV-42, TN-10): a Relay subscriber token that verifies (an Access token never does, E-25; a suspended subscriber's token no longer does, TN-73), carries `inbox:read` (IN-32) and belongs to an active tenant. The grant names the token's scope, subscriber, scopes and expiry; the client never names a topic, a tenant or a subscriber.
 
-  A connection listens on `topics/1` for the events that can withdraw a grant (a subscriber suspension in its tenant environment, an API client or tenant status change) and checks its token again when one fires.
+  A connection listens on `topics/1` for the events that can withdraw a grant (a subscriber suspension in its tenant environment, an API client or tenant status change, a rotation or retirement of the subscriber token keys, IN-51) and checks its token again when one fires.
   """
 
   alias Relay.Api.Tenant
@@ -52,10 +52,24 @@ defmodule RelayWeb.Realtime.Authorization do
   @spec topics(Relay.Scope.t()) :: [String.t()]
   def topics(scope) do
     case SubscriberSuspension.topic(scope) do
-      {:ok, topic} -> [topic, Relay.Access.client_changes_topic()]
-      {:error, _} -> [Relay.Access.client_changes_topic()]
+      {:ok, topic} -> [topic | shared_topics()]
+      {:error, _} -> shared_topics()
     end
   end
+
+  # IN-51
+  @doc "Rereads the subscriber token keys when `topic` is their signal, so the next check sees a retired key at once."
+  @spec refresh_keys(String.t()) :: :ok
+  def refresh_keys(topic) do
+    if topic == Relay.Access.subscriber_token_keys_topic() do
+      _ = Relay.Access.subscriber_token_key_accepted?("", fresh: true)
+    end
+
+    :ok
+  end
+
+  defp shared_topics,
+    do: [Relay.Access.client_changes_topic(), Relay.Access.subscriber_token_keys_topic()]
 
   # API-45
   @doc "The bearer token of a request, or `nil`."

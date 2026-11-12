@@ -77,6 +77,7 @@ defmodule Relay.Api.Events do
          {:ok, recipients} <- recipients(scope, request.targets),
          {:ok, recipients} <- WorkflowRuns.attributes(scope, workflow["definition"], recipients),
          {:ok, payload} <- payload(scope, request, cloudevent),
+         {:ok, digests} <- digests(scope, workflow, request, recipients, cloudevent),
          {:ok, subtenant} <- subtenant(scope, request.tenant, Map.get(ctx, :subtenant_id)),
          {:ok, category} <- subtenant_category(scope, workflow, category, subtenant),
          :ok <- max_defer(request, category, Relay.Clock.business_now(scope)) do
@@ -109,9 +110,18 @@ defmodule Relay.Api.Events do
          ce_key_digest: ce_digest(cloudevent),
          dedup_key: request.dedup_key || Keyword.get(opts, :dedup_key),
          traceparent: (cloudevent && cloudevent["traceparent"]) || Map.get(ctx, :traceparent),
-         api_client_id: api_client(Map.get(ctx, :api_client_id))
+         api_client_id: api_client(Map.get(ctx, :api_client_id)),
+         correlation_digests: digests
        }}
     end
+  end
+
+  # AG-65
+  defp digests(scope, workflow, request, recipients, cloudevent) do
+    attributes = Enum.map(recipients, &Map.get(&1, :attributes, %{}))
+    incoming = {cloudevent && cloudevent["type"], request.correlation_id}
+    data = request.data
+    WorkflowRuns.correlation_digests(scope, workflow["definition"], data, attributes, incoming)
   end
 
   # WF-56

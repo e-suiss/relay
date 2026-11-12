@@ -51,7 +51,7 @@ defmodule Relay.Agents.WaitpointStore do
         wp.waiter_ref,
         Map.get(wp, :mailbox_id),
         wp.match_event_type,
-        wp.correlation_key,
+        wp.correlation_digests,
         Map.get(wp, :condition),
         Map.get(wp, :response_schema),
         Map.get(wp, :responder_ids, []),
@@ -86,7 +86,7 @@ defmodule Relay.Agents.WaitpointStore do
           Repo.call!("relay_fn.waitpoint_event_offer", [
             Map.get(event, :event_id),
             event.event_type,
-            event.correlation_key,
+            event.correlation_digests,
             event |> Map.get(:waiter_kind) |> kind_text(),
             Map.get(event, :waiter_ref),
             Map.get(event, :record_id),
@@ -101,15 +101,17 @@ defmodule Relay.Agents.WaitpointStore do
   end
 
   # C-72
-  @doc "Resolves an event waitpoint with a mailbox record."
-  @spec resolve_by_event(Relay.Id.t(), Relay.Id.t(), Relay.Id.t() | nil) ::
+  # AG-65
+  @doc "Resolves an event waitpoint with a mailbox record; an early record must carry one of `correlation_digests`, or the waitpoint's own digest when they are `nil`."
+  @spec resolve_by_event(Relay.Id.t(), Relay.Id.t(), Relay.Id.t() | nil, [binary()] | nil) ::
           :resolved | :expired | :already_terminal | :not_found
-  def resolve_by_event(waitpoint_id, record_id, source_event_id) do
+  def resolve_by_event(waitpoint_id, record_id, source_event_id, correlation_digests \\ nil) do
     [row] =
       Repo.call!("relay_fn.waitpoint_resolve_by_event", [
         waitpoint_id,
         record_id,
-        source_event_id
+        source_event_id,
+        correlation_digests
       ])
 
     Repo.code!(row["waitpoint_resolve_by_event"], [
@@ -223,6 +225,34 @@ defmodule Relay.Agents.WaitpointStore do
         do: {row["tenant_id"], row["environment"]}
   end
 
+  # AG-65
+  @doc "Rows of the established scope that still hold a correlation key in clear, as `{source, id, created_at, event_type, correlation_key}` with the source `:waitpoint` or `:mailbox_record`; at most `limit` of each source."
+  @spec plain_batch(pos_integer()) :: [
+          {:waitpoint | :mailbox_record, Relay.Id.t(), DateTime.t(), String.t(), String.t()}
+        ]
+  def plain_batch(limit) do
+    for row <- Repo.call!("relay_fn.correlation_plain_batch", [limit]) do
+      {Repo.code!(row["source"], [:waitpoint, :mailbox_record]), row["id"], row["created_at"],
+       row["event_type"], row["correlation_key"]}
+    end
+  end
+
+  # AG-65
+  @doc "Replaces the clear correlation keys of rows, given as `{source, id, created_at, digest}`, by their digests; a row already converted is left alone. Returns the number of rows converted."
+  @spec digest_fill([{:waitpoint | :mailbox_record, Relay.Id.t(), DateTime.t(), binary()}]) ::
+          non_neg_integer()
+  def digest_fill(rows) do
+    [row] =
+      Repo.call!("relay_fn.correlation_digest_fill", [
+        Enum.map(rows, &Atom.to_string(elem(&1, 0))),
+        Enum.map(rows, &elem(&1, 1)),
+        Enum.map(rows, &elem(&1, 2)),
+        Enum.map(rows, &elem(&1, 3))
+      ])
+
+    row["correlation_digest_fill"]
+  end
+
   defp kind_text(nil), do: nil
   defp kind_text(kind) when is_atom(kind), do: Atom.to_string(kind)
 
@@ -237,7 +267,6 @@ defmodule Relay.Agents.WaitpointStore do
       waiter_ref: row["waiter_ref"],
       mailbox_id: row["waiter_mailbox_id"],
       match_event_type: row["match_event_type"],
-      correlation_key: row["correlation_key"],
       condition: row["condition"],
       state: row["state"],
       opened_at: row["opened_at"],

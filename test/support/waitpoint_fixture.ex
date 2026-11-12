@@ -98,6 +98,7 @@ defmodule RelayTest.WaitpointFixture do
       for {name, _} <- defaults do
         case {name, Keyword.fetch!(args, name)} do
           {:expires_at, {:in, ms}} -> business_now(ms)
+          {:correlation_key, key} -> [ck(key)]
           {_, value} -> value
         end
       end
@@ -107,6 +108,11 @@ defmodule RelayTest.WaitpointFixture do
       params
     )
   end
+
+  @doc "The stand-in correlation digest the SQL-level helpers store for a correlation key (AG-65): its SHA-256; `nil` stays `nil`."
+  @spec ck(String.t() | nil) :: binary() | nil
+  def ck(nil), do: nil
+  def ck(key) when is_binary(key), do: :crypto.hash(:sha256, key)
 
   @doc "Business time of the current context moved by `ms` milliseconds."
   @spec business_now(integer()) :: DateTime.t()
@@ -149,7 +155,7 @@ defmodule RelayTest.WaitpointFixture do
       [
         Keyword.get(opts, :event_id, id()),
         event_type,
-        correlation_key,
+        [ck(correlation_key)],
         Keyword.get(opts, :waiter_kind),
         Keyword.get(opts, :waiter_ref),
         Keyword.get(opts, :record_id, id()),
@@ -185,7 +191,7 @@ defmodule RelayTest.WaitpointFixture do
         mailbox_id,
         Keyword.get(opts, :kind, "message"),
         Keyword.get(opts, :event_type, "inbox.message"),
-        Keyword.get(opts, :correlation_key),
+        opts |> Keyword.get(:correlation_key) |> ck(),
         Keyword.get(opts, :payload_ct),
         Keyword.get(opts, :payload_key_id),
         digest()

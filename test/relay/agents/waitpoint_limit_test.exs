@@ -5,6 +5,8 @@ defmodule Relay.Agents.WaitpointLimitTest do
 
   alias Relay.Agents.Waitpoint
 
+  @resolve "SELECT relay_fn.waitpoint_resolve_by_event($1, $2, $3, NULL)"
+
   setup do
     s = setup!()
     agent = member!(s, "agent")
@@ -73,8 +75,7 @@ defmodule Relay.Agents.WaitpointLimitTest do
       assert counter() == 3
       assert mailbox_open(resolved) == 3
 
-      "resolved" =
-        one("SELECT relay_fn.waitpoint_resolve_by_event($1, $2, NULL)", [resolved, id()])
+      "resolved" = one(@resolve, [resolved, id(), nil])
 
       ["resolved", _] =
         respond(answered,

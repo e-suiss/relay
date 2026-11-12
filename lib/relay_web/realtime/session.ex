@@ -77,7 +77,7 @@ defmodule RelayWeb.Realtime.Session do
   def handle(%__MODULE__{} = session, {:relay_signal, topic, event}) do
     cond do
       Feed.signal?(session.feed, topic) -> catch_up(session)
-      topic in session.auth_topics -> reauthorize(session, event)
+      topic in session.auth_topics -> reauthorize(session, refreshed(topic, event))
       true -> :unknown
     end
   end
@@ -135,6 +135,11 @@ defmodule RelayWeb.Realtime.Session do
         Process.send_after(self(), {:relay_realtime, :retry}, retry_ms)
         {:ok, session, []}
     end
+  end
+
+  defp refreshed(topic, event) do
+    :ok = Authorization.refresh_keys(topic)
+    event
   end
 
   defp reauthorize(session, :poll) do

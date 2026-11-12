@@ -7000,6 +7000,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "IN-51",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
     "id": "IN-52",
     "section": "§15",
     "status": "frozen_technical",
@@ -7933,6 +7941,14 @@
     "status": "frozen_technical",
     "title": "",
     "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-65",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
   },
   {
     "acceptance": "pending",

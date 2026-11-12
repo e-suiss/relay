@@ -7,7 +7,8 @@ defmodule Relay.Schema.SchemaSecurityTest do
   @installation_tables ~w(access_event_receipts access_link api_client_generation
                           audit_checkpoint_publications audit_checkpoints audit_leaves datasets
                           installation kill_switch_generation load_shed_events operator_sessions
-                          operators partition_policies schema_migrations singleton_tasks)
+                          operators partition_policies schema_migrations singleton_tasks
+                          subscriber_token_keys)
   @append_only ~w(audit_checkpoint_publications audit_checkpoints audit_leaves audit_log
                   cancellations consents dataset_versions delivery_events erasure_log
                   load_shed_events preference_changes render_snapshots usage_records

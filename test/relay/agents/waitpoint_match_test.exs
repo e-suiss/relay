@@ -3,6 +3,8 @@ defmodule Relay.Agents.WaitpointMatchTest do
 
   import RelayTest.WaitpointFixture
 
+  @resolve "SELECT relay_fn.waitpoint_resolve_by_event($1, $2, $3, NULL)"
+
   setup do
     s = setup!()
     responder = member!(s, "subscriber")
@@ -58,7 +60,7 @@ defmodule Relay.Agents.WaitpointMatchTest do
 
     test "AG-14: a closed waitpoint no longer matches", ctx do
       id = event_waitpoint(ctx, ctx.agent, "order-4")
-      "resolved" = one("SELECT relay_fn.waitpoint_resolve_by_event($1, $2, NULL)", [id, id()])
+      "resolved" = one(@resolve, [id, id(), nil])
 
       assert [["unmatched", nil, nil]] = offer("order.paid", "order-4")
     end
@@ -69,8 +71,7 @@ defmodule Relay.Agents.WaitpointMatchTest do
       record = id()
       [["matched", ^id, nil]] = offer("order.paid", "order-5", event_id: event)
 
-      assert one("SELECT relay_fn.waitpoint_resolve_by_event($1, $2, $3)", [id, record, event]) ==
-               "resolved"
+      assert one(@resolve, [id, record, event]) == "resolved"
 
       assert waitpoint(id, "resolved_by_event_id") == event
       assert waitpoint(id, "resolved_by_record_id") == record
@@ -78,8 +79,7 @@ defmodule Relay.Agents.WaitpointMatchTest do
       assert one("SELECT event_type FROM relay.mailbox_records WHERE id = $1", [record]) ==
                "waitpoint.resolved"
 
-      assert one("SELECT relay_fn.waitpoint_resolve_by_event($1, $2, $3)", [id, id(), event]) ==
-               "already_terminal"
+      assert one(@resolve, [id, id(), event]) == "already_terminal"
     end
 
     test "AG-14: a question that matches is returned for its answer, not resolved", ctx do
@@ -89,13 +89,12 @@ defmodule Relay.Agents.WaitpointMatchTest do
       assert [["matched", ^id, nil]] = offer("agent.answer", "q-1")
       assert waitpoint(id, "state") == "open"
 
-      assert error_message("SELECT relay_fn.waitpoint_resolve_by_event($1, $2, NULL)", [id, id()]) =~
-               "invalid_argument"
+      assert error_message(@resolve, [id, id(), nil]) =~ "invalid_argument"
     end
 
     test "AG-14: an event waitpoint takes no responders and is not answered", ctx do
       assert error_message(
-               "SELECT * FROM relay_fn.waitpoint_open($1, 'event', 'agent', $2, NULL, 'order.paid', 'k', NULL, NULL, $3, NULL, NULL, NULL, NULL, NULL, $4, NULL, NULL, NULL, NULL, NULL, 10, 10, NULL)",
+               "SELECT * FROM relay_fn.waitpoint_open($1, 'event', 'agent', $2, NULL, 'order.paid', ARRAY[sha256('k'::bytea)], NULL, NULL, $3, NULL, NULL, NULL, NULL, NULL, $4, NULL, NULL, NULL, NULL, NULL, 10, 10, NULL)",
                [id(), ctx.agent, [ctx.responder], business_now(60_000)]
              ) =~ "invalid_argument"
 

@@ -32,6 +32,7 @@ defmodule Relay.Access do
   alias Relay.Access.PlatformTenant
   alias Relay.Access.Realms
   alias Relay.Access.SubscriberToken
+  alias Relay.Access.SubscriberTokenKeys
   alias Relay.Access.Token
   alias Relay.Access.Usage
   alias Relay.AccessClaims
@@ -368,6 +369,41 @@ defmodule Relay.Access do
           {:ok, SubscriberToken.verified()} | {:error, Relay.Error.t()}
   defdelegate verify_subscriber_token(token, audiences), to: SubscriberToken, as: :verify
 
+  # IN-51
+  @doc "Makes a key pair of the key store the current subscriber token key; see `Relay.Access.SubscriberTokenKeys.rotate/3`."
+  @spec rotate_subscriber_token_key(String.t(), String.t(), String.t()) ::
+          {:ok, map()} | {:error, Relay.Error.t()}
+  defdelegate rotate_subscriber_token_key(label, actor, reason),
+    to: SubscriberTokenKeys,
+    as: :rotate
+
+  # IN-51
+  # IN-33
+  @doc "Retires the previous subscriber token key at once; see `Relay.Access.SubscriberTokenKeys.retire_previous/2`."
+  @spec retire_previous_subscriber_token_key(String.t(), String.t()) ::
+          {:ok, map()} | {:error, Relay.Error.t()}
+  defdelegate retire_previous_subscriber_token_key(actor, reason),
+    to: SubscriberTokenKeys,
+    as: :retire_previous
+
+  # IN-51
+  @doc "The subscriber token keys and when the next rotation is due; see `Relay.Access.SubscriberTokenKeys.status/0`."
+  @spec subscriber_token_key_status() :: {:ok, map()} | {:error, Relay.Error.t()}
+  defdelegate subscriber_token_key_status(), to: SubscriberTokenKeys, as: :status
+
+  # IN-51
+  # IN-33
+  @doc "Whether tokens signed under `kid` still verify; the realtime layer calls it with `fresh: true` when the `subscriber_token_keys_topic/0` signal fires and closes the connections whose `kid` no longer verifies. See `Relay.Access.SubscriberTokenKeys.accepted?/2`."
+  @spec subscriber_token_key_accepted?(String.t(), keyword()) ::
+          {:ok, boolean()} | {:error, Relay.Error.t()}
+  defdelegate subscriber_token_key_accepted?(kid, opts \\ []),
+    to: SubscriberTokenKeys,
+    as: :accepted?
+
+  # IN-51
+  @doc "The system signal topic that fires when a subscriber token key is rotated or retired."
+  @spec subscriber_token_keys_topic() :: String.t()
+  defdelegate subscriber_token_keys_topic(), to: SubscriberTokenKeys, as: :topic
   # IN-33
   @doc "The system signal topic on which API client and tenant status changes are announced; see `Relay.Access.Clients.topic/0`."
   @spec client_changes_topic() :: String.t()

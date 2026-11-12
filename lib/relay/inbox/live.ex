@@ -199,6 +199,18 @@ defmodule Relay.Inbox.Live do
     end
   end
 
+  # IN-24
+  # TN-17
+  @doc "The signal topic of a stream key in a scope, on which the outbox dispatcher publishes the stream's head after commit."
+  @spec signal_topic(Scope.t(), String.t()) :: {:ok, String.t()} | {:error, term()}
+  def signal_topic(%Scope{} = scope, stream_key) do
+    Relay.Platform.signal_topic(
+      Scope.tenant_text(scope),
+      Relay.Environment.dump(scope.environment),
+      ["stream" | String.split(stream_key, ":")]
+    )
+  end
+
   # IN-44
   @doc "Unseals the content of item rows, in order; a row whose content no longer opens gives `nil`. Runs outside any transaction."
   @spec open(Scope.t(), [map()]) :: [map() | nil]

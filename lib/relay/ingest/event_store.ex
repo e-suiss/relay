@@ -135,7 +135,8 @@ defmodule Relay.Ingest.EventStore do
   # API-23
   # E-85
   # WF-58
-  @doc "Records an accepted event with its encrypted payload, the sender's `interruption`, its encrypted `links`, the request's encrypted channel overrides, the sender's `correlation_id` and `item` and, for `timing_precision: strict`, its precision (`relay_fn.event_timing_precision_set`, in the same transaction)."
+  # WF-56
+  @doc "Records an accepted event with its encrypted payload, the sender's `interruption`, its encrypted `links`, the request's encrypted channel overrides, the sender's `correlation_id` and `item` and, for `timing_precision: strict`, its precision (`relay_fn.event_timing_precision_set`, in the same transaction) and, for `timing: next_break`, its timing and `max_defer` instant (`relay_fn.event_timing_set`, WF-56)."
   @spec event_accept(map()) :: {atom(), Relay.Id.t() | nil, DateTime.t() | nil}
   def event_accept(e) do
     [row] =
@@ -184,8 +185,19 @@ defmodule Relay.Ingest.EventStore do
         :subtenant_suspended
       ])
 
-    timing({code, row["event_id"], row["created_at"]}, Map.get(e, :timing_precision))
+    {code, row["event_id"], row["created_at"]}
+    |> timing(Map.get(e, :timing_precision))
+    |> next_break(Map.get(e, :timing), Map.get(e, :max_defer_until))
   end
+
+  # WF-56
+  defp next_break({:accepted, id, _at} = result, "next_break", %DateTime{} = until) do
+    [row] = Repo.call!("relay_fn.event_timing_set", [id, "next_break", until])
+    _set = Repo.code!(row["event_timing_set"], [:set, :unchanged, :not_found])
+    result
+  end
+
+  defp next_break(result, _timing, _until), do: result
 
   defp timing({:accepted, id, _at} = result, "strict") do
     [row] = Repo.call!("relay_fn.event_timing_precision_set", [id, "strict"])

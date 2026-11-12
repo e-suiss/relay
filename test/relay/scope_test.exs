@@ -68,7 +68,8 @@ defmodule Relay.ScopeTest do
                :reconciliation_discovery,
                :recurrence_due_discovery,
                :digest_window_discovery,
-               :workflow_run_due_discovery
+               :workflow_run_due_discovery,
+               :subscriber_token_keys
              ]
     end
 

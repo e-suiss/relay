@@ -272,13 +272,21 @@ defmodule Relay.InboxTest do
     end
 
     test "IN-26, IN-27: realtime messages carry the counters and the item", ctx do
-      {:ok, page} = Relay.Inbox.changes(ctx.scope, ctx.subscriber.id, %{epoch: 1, seq: 0})
+      {:ok, page} = Relay.Inbox.delta(ctx.scope, ctx.subscriber.id, %{epoch: 1, seq: 0})
       messages = Relay.Inbox.realtime_messages(page)
 
       assert [{_cursor, created}, {_tail, counters}] = messages
       assert %{"t" => "inbox.item_created", "v" => 1, "counters" => %{"total" => 1}} = created
       assert created["d"]["item"]["title"] == "Sipariş"
       assert counters["t"] == "inbox.counters_changed"
+
+      {:ok, head} = Relay.Inbox.cursor(ctx.scope, ctx.subscriber.id)
+      start = Relay.Inbox.encode_cursor(%{epoch: 1, seq: 0})
+      {:ok, source} = Relay.Inbox.changes(ctx.scope, ctx.subscriber.id, start, 100)
+      assert [%{t: "inbox.item_created"}, %{t: "inbox.counters_changed"}] = source.changes
+      assert source.cursor == head
+      assert {:ok, topic} = Relay.Inbox.signal_topic(ctx.scope, ctx.subscriber.id)
+      assert is_binary(topic)
     end
 
     test "IN-43: a server token is refused on the client surface", ctx do

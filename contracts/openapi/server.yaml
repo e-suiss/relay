@@ -12758,25 +12758,13 @@ paths:
       tags:
         - agents
       summary: "List waitpoints"
-      description: "Pages through the waitpoints of this environment, newest first. match_type and correlation_key filter together; state, waiter and tag narrow further."
+      description: "Pages through the waitpoints of this environment, newest first; state, waiter and tag narrow the page. A waitpoint is not looked up by its correlation key, which the API takes only at creation (AG-65)."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
-        - name: match_type
-          in: query
-          description: "Event type the waitpoint matches; given together with correlation_key."
-          required: false
-          schema:
-            "$ref": "./components/schemas.yaml#/EventName"
-        - name: correlation_key
-          in: query
-          description: "Correlation key the waitpoint matches; given together with match_type."
-          required: false
-          schema:
-            "$ref": "./components/schemas.yaml#/CorrelationKey"
         - name: state
           in: query
           description: "Waitpoint state."
@@ -19841,6 +19829,12 @@ x-relay-limits:
     stale_after: P30D
     inactive_disable_after: P270D
     sweep_batch_max: 1000
+    status_ttl_default: PT5M
+    status_ttl_max: PT15M
+    status_writes_per_second: 1
+    sync_coalesce: PT60S
+    sync_per_hour_ios: 3
+    sync_ttl_android: PT60S
   template:
     max_source_bytes: 262144
     max_loops: 10
@@ -19914,4 +19908,19 @@ x-relay-limits:
     item_max_bytes: 16384
     realtime_item_max_bytes: 8192
     changes_max: 500
+  realtime:
+    accept_per_second: 200
+    accept_burst: 400
+    retry_after_seconds:
+      min: 1
+      max: 5
+    max_connections_per_subscriber: 10
+    max_changes_per_read: 500
+    connection_ttl_seconds: 45
+    heartbeat_seconds: 15
+    keepalive_seconds: 25
+    long_poll_wait_seconds: 25
+    reauthorize_interval_seconds: 60
+    x-relay-choice: true
+    x-relay-choice-note: "IN-52 sets the accept rate, burst, Retry-After range and connections per subscriber; IN-29 the 500 changes per read. The connection record lifetime and heartbeat (IN-40), the SSE keep-alive comment interval, the long-poll wait and the re-authorization interval while signals are unavailable (IN-33) are contract choices."
 x-relay-error-catalog: "../errors.yaml"

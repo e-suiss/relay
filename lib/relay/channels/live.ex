@@ -3,7 +3,7 @@ defmodule Relay.Channels.Live do
   The channel step of the delivery job (`Relay.Delivery.Send`, configured as `config :relay, Relay.Delivery, channel: Module`): it hands a rendered delivery to its provider and records the outcome. An `in_app` delivery has no provider: its rendered content is written to the recipient's inbox by `Relay.Inbox.Live.deliver/3`, whose commit is the delivery's `delivered` evidence (IN-2).
 
     1. The route. On the `test` plane and in `shadow` mode the fake provider answers (X-25, API-62, CH-72); the send mode is the event's own mode (test only), then the tenant's `send_mode.category.<category>.channel.<channel>`, `send_mode.channel.<channel>` and `send_mode` settings for the workflow's category, then the installation default. The route is narrowed to the provider the delivery was accepted with (API-23) and, under the tenant's `channels.domestic_only` policy, to accounts processing data in that country (CH-6, TN-58). The delivery's channel overrides are its event's sealed request overrides over the pinned workflow version's step (the step of the delivery's channel and template) and workflow overrides (API-23); they reach the adapter as the request's `overrides`, and an `overrides.email.from` is checked again against the chosen account's verified sender identities, or the delivery is skipped with `channel.sender_unapproved`. Otherwise only a verified provider account whose adapter is activated takes traffic (`Relay.Channels.routes/4`, CH-14, INV-43); without one the delivery is held with `channel.no_route` and the job comes back later. The circuit breakers pick the first account that may be called; a rejection moves to the next account and, when every one is open, the job waits without counting an attempt (CH-13, T-25).
-    2. The target. An address channel reads the recipient's active address; a device channel reads the recipient's permitted devices from `Relay.Devices` and takes the most recently seen one of the route's provider platform (CH-28); a recipient whose devices are all without permission is skipped with `channel.no_permission`, one without a device with `channel.no_address`. A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
+    2. The target. An address channel reads the recipient's active address; a device channel reads the recipient's permitted devices from `Relay.Devices` and takes the most recently seen one of the route's provider platform (CH-28); a recipient whose devices are all without permission is skipped with `channel.no_permission`, one without a device with `channel.no_address`. A device that holds an active realtime connection (`Relay.Devices.connected?/3`) is left out when the notification also has an `in_app` delivery, which its connection carries; when every device of the route's platform holds one the delivery is skipped with `channel.realtime_connected` (IN-40). A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
     3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50). On `push` and `web_push` the push policy is decided from the active `push_priority_map` before the attempt opens (`Relay.Channels.push_policy/2`: platform priority, interruption level, collapse keys, content-free mode and lock screen text; CH-19, CH-23, CH-33, CH-65, CH-67) and handed to the adapter; its recorded reasons (`priority_clamped`, `interruption_clamped`, `critical_not_granted`, `interruption_platform_lowered`, `override_ignored`) are emitted as `[:relay, :push, :policy]`. The requested level is the event's `interruption`; for `critical` the tenant's opening, the template's declaration and the platform entitlement of the route's provider are read, and the recipient's Grant is asked only when the first two hold (`Relay.Channels.critical_grant/1`, CH-84). When the provider accepts a push it is counted for the high priority monitor and a `critical` one is audited (`Relay.PushPolicy`, CH-20, CH-22). On SMS and voice the route keeps only the accounts of the message class's traffic, `security` or `standard`, so an OTP never shares an account or a credit pool with a campaign (CH-53), and a `+90` number only the BTK-authorized providers, or the delivery is skipped with `channel.tr_route_unauthorized` (CH-51). Before the attempt `Relay.Channels.sms_preflight/7`, with the renderer's SMS measurement, checks the sender identity's rules for the class (CH-50), the TR route and the explicit encoding (CH-48), and names the provider product (CH-53); a broken rule skips the delivery with its `rule_id`. On WhatsApp, `Relay.Channels.Live.Whatsapp.prepare/4` then applies the number's availability, the customer service window, the template's approval and the tier count (CH-57, CH-58, CH-61).
     4. The reputation and provider limits. An e-mail of a sending domain whose reputation circuit is stopped is held with `email.reputation_stopped` until a tenant administrator closes the circuit, and a sent e-mail is counted in its domain's window (`Relay.EmailReputation`, CH-87). The provider limits (CH-17): the account, sender and recipient layers of the provider's declared limits, stricter than the provider's and in the channel's unit, each a GCRA decision (`Relay.Channels.Limits`); a denial snoozes the job for its `retry_after` without opening an attempt. A shared account's quota carries the lane ceiling (T-33, TN-53), and a 429 lowers the account's rate until successes raise it again (AIMD, `Relay.Channels.Throttle`); the provider's `Retry-After` still plans the retry.
     5. The attempt. It is opened with the provider idempotency key that stays the same across the logical send (INV-13, OP-6 (4)) and marked started in its own transaction before the call (INV-55, CH-10). The credential is read from the secret backend for this call only, so a rotation applies at the next call (TN-26). The call is bounded by the three timeout layers (CH-9).
@@ -33,6 +33,8 @@ defmodule Relay.Channels.Live do
       Relay.Webhooks
     ],
     exports: []
+
+  @behaviour Relay.Devices
 
   alias Relay.ChannelDeclarations
   alias Relay.Channels.Live.EmailEvents
@@ -171,6 +173,50 @@ defmodule Relay.Channels.Live do
       {:error, :unknown_provider} -> :unpriced
     end
   end
+
+  # IN-35
+  # IN-38
+  # X-25
+  # TN-26
+  @impl Relay.Devices
+  @doc "Sends one sync signal (`Relay.Devices.Signals`) to a device through the first verified `push` account of the device's platform, with the account's credential read for this call only. A signal is not a delivery: no attempt or ledger entry is written and a failure is not retried. On the `test` plane nothing leaves Relay. `{:error, :no_route}` when no account of the platform takes traffic."
+  @spec send_signal(Scope.t(), Relay.Devices.target(), map()) :: :ok | {:error, term()}
+  def send_signal(%Scope{environment: :test}, _target, _signal), do: :ok
+
+  def send_signal(%Scope{} = scope, target, signal) do
+    policy = %{draw: 0, provider: target.platform, domestic_country: nil}
+
+    with {:ok, declarations} <- Relay.Datasets.channel_declarations(),
+         {:ok, {accounts, _rest}} <- Relay.Channels.routes(scope, "push", declarations, policy),
+         %{} = account <- Enum.find(accounts, &(&1["provider"] == target.platform)),
+         {:ok, adapter} <- Relay.Channels.activated_adapter(declarations, account["provider"]) do
+      signalled(adapter.deliver(signal_request(scope, account, target, signal)))
+    else
+      nil -> {:error, :no_route}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp signal_request(scope, account, target, signal) do
+    Relay.Channels.request(%{
+      scope: scope,
+      delivery_id: signal.id,
+      attempt_no: 1,
+      channel: "push",
+      provider: account["provider"],
+      idempotency_key: "sig-" <> Relay.Id.to_string(signal.id),
+      target: %{kind: :device, id: target.id, value: target.token, device: meta(target)},
+      timeout_ms: @call_ms,
+      credentials: credentials(scope, account),
+      account: account,
+      ttl_s: signal.ttl_s,
+      message_class: "system",
+      signal: signal
+    })
+  end
+
+  defp signalled({:accepted, _detail}), do: :ok
+  defp signalled(other), do: {:error, other}
 
   # CH-60
   @doc "Verifies and applies an inbound WhatsApp Cloud API webhook of a provider account; see `Relay.Channels.Live.Whatsapp.inbound/5`."
@@ -418,11 +464,27 @@ defmodule Relay.Channels.Live do
     recipient_id = delivery["recipient_id"]
 
     case Relay.Devices.targets(scope, recipient_id, channel, delivery["message_class"]) do
-      {:ok, targets} -> pinned(only(targets, delivery), account)
+      {:ok, targets} -> unconnected(scope, delivery, account, only(targets, delivery))
       {:skip, reason} -> device_skip(account, reason)
       {:error, _reason} -> fallback(account, :device)
     end
   end
+
+  # IN-40
+  defp unconnected(scope, %{"realtime_carried" => true} = delivery, account, targets) do
+    connected? = &Relay.Devices.connected?(scope, delivery["recipient_id"], &1.id)
+    {connected, kept} = Enum.split_with(targets, connected?)
+    routed = Enum.filter(targets, &routed?(&1, account))
+
+    if connected != [] and routed != [] and Enum.all?(routed, &(&1 in connected)),
+      do: {:skip, "channel.realtime_connected"},
+      else: pinned(kept, account)
+  end
+
+  defp unconnected(_scope, _delivery, account, targets), do: pinned(targets, account)
+
+  defp routed?(_target, %{"provider" => "fake"}), do: true
+  defp routed?(target, account), do: target.platform == account["provider"]
 
   # API-61
   defp only(targets, %{"is_test" => true, "target_id" => <<_::128>> = id}),

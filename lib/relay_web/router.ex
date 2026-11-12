@@ -618,8 +618,14 @@ defmodule RelayWeb.Router do
     post "/subscriber/devices", DeviceController, :create_mine,
       private: %{relay_operation: "registerMyDevice"}
 
+    get "/subscriber/devices/status", DeviceController, :status_mine,
+      private: %{relay_operation: "getMyDeviceStatus"}
+
     delete "/subscriber/devices/:device_id", DeviceController, :delete_mine,
       private: %{relay_operation: "deleteMyDevice"}
+
+    patch "/subscriber/devices/:device_id/status", DeviceController, :update_status_mine,
+      private: %{relay_operation: "updateMyDeviceStatus"}
 
     post "/subscriber/push_receipts", ReceiptController, :create_mine,
       private: %{relay_operation: "recordMyPushReceipt"}
@@ -644,6 +650,12 @@ defmodule RelayWeb.Router do
 
     get "/subscriber/inbox/changes", InboxController, :changes,
       private: %{relay_operation: "listMyInboxChanges"}
+
+    get "/realtime/events", RealtimeController, :events,
+      private: %{relay_operation: "streamRealtimeEvents"}
+
+    get "/realtime/poll", RealtimeController, :poll,
+      private: %{relay_operation: "pollRealtimeEvents"}
   end
 
   # API-78

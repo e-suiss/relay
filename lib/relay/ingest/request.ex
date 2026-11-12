@@ -8,6 +8,7 @@ defmodule Relay.Ingest.Request do
   * Raw provider blocks cannot set policy fields (`422 policy_field_not_overridable`, API-23). The provider and `overrides.email.from` are checked against the verified routes by the send operation (`403 channel_not_configured`).
   * A per-request `send_mode` is accepted only in the test environment (`403 auth_environment_mismatch`, API-62, API-76).
   * A recipient is a plain identifier (it must exist), an object with only `id` (an inbox-only subscriber) or an object with contact details (an explicit upsert, API-21) or a topic (`{topic}`), which the send operation expands into its frozen subscribers (WF-52).
+  * `timing: next_break` defers the send to the recipient's next break (WF-56, WF-57): it needs `max_defer`, a fixed-length duration above zero counted from `send_at` or now, whose instant may not pass `expires_at`; `max_defer` without `next_break` is refused. In the `security` class the field is ignored, the send is immediate and the answer warns `timing_ignored`.
   * The sender's `interruption` is kept as sent; the push policy lowers it at send time (CH-65, CH-84). Every `links` `href` is an absolute `https` URI (`422 link_scheme_not_allowed`) and every `rel` is unique in the request (E-83).
   """
 
@@ -17,6 +18,8 @@ defmodule Relay.Ingest.Request do
   @ceilings %{"marketing" => "normal"}
   @rank %{"low" => 0, "normal" => 1, "high" => 2}
   @raw_channels ~w(push web_push whatsapp)
+  @duration ~r/\AP(?!\z)(?:(\d+)W)?(?:(\d+)D)?(?:T(?=\d)(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?\z/
+  @units [604_800, 86_400, 3_600, 60, 1]
   @policy_fields ~w(interruption_level interruption-level priority push_type push-type
                     apns-priority apns-push-type apns_priority apns_push_type critical
                     time_sensitive time-sensitive urgency importance)
@@ -37,6 +40,7 @@ defmodule Relay.Ingest.Request do
   # IN-46
   # API-62
   # E-83
+  # WF-56
   @doc "Checks a decoded send request against its workflow version (`message_class`, `steps`), the `environment`, `now` and whether the credential is an agent's (`agent`, PC-57 (7)); returns the normalised request or the first failing rule's error."
   @spec check(map(), map()) :: {:ok, map()} | {:error, Relay.Error.t()}
   def check(
@@ -49,18 +53,22 @@ defmodule Relay.Ingest.Request do
          {:ok, times} <- times(body, now) do
       {priority, warnings} = priority(Map.get(body, "priority", "normal"), class)
       narrowed = narrow(steps, Map.get(body, "channels"))
+      {timing, timing_errors} = timing(body, class, times, now)
 
       errors =
         data_errors(body) ++
           class_errors(body, class, times) ++
-          retention_errors(body, class, narrowed) ++ rel_errors(Map.get(body, "links", []))
+          retention_errors(body, class, narrowed) ++
+          rel_errors(Map.get(body, "links", [])) ++ timing_errors
 
       if errors == [] do
         {:ok,
          Map.merge(times, %{
+           timing: timing.timing,
+           max_defer_until: timing.max_defer_until,
            targets: Enum.map(Map.get(body, "to", []), &target/1),
            priority: priority,
-           warnings: warnings,
+           warnings: warnings ++ timing.warnings,
            sender_type: sender_type(body, ctx),
            actor: Map.get(body, "actor"),
            tenant: Map.get(body, "tenant"),
@@ -219,6 +227,74 @@ defmodule Relay.Ingest.Request do
   end
 
   defp order(_send_at, _expires_at), do: []
+
+  # WF-56
+  # WF-57
+  # E-77
+  defp timing(%{"timing" => "next_break"}, "security", _times, _now) do
+    warning = %{
+      "code" => "timing_ignored",
+      "pointer" => "/timing",
+      "detail" => "the security class is sent at once"
+    }
+
+    {%{timing: nil, max_defer_until: nil, warnings: [warning]}, []}
+  end
+
+  defp timing(%{"timing" => "next_break"} = body, _class, times, now) do
+    base = times.send_at || now
+
+    case duration_s(Map.get(body, "max_defer")) do
+      nil ->
+        {none(), [field("/max_defer", "required", "timing next_break needs max_defer")]}
+
+      :error ->
+        {none(), [field("/max_defer", "invalid_format", "a fixed-length ISO 8601 duration")]}
+
+      0 ->
+        {none(), [field("/max_defer", "too_short", "max_defer is above zero")]}
+
+      seconds ->
+        until = DateTime.add(base, seconds, :second)
+        {%{timing: "next_break", max_defer_until: until, warnings: []}, within(until, times)}
+    end
+  end
+
+  defp timing(body, _class, _times, _now) do
+    if Map.has_key?(body, "max_defer"),
+      do: {none(), [field("/max_defer", "not_allowed", "only timing next_break has max_defer")]},
+      else: {none(), []}
+  end
+
+  defp none, do: %{timing: nil, max_defer_until: nil, warnings: []}
+
+  defp within(until, %{expires_at: %DateTime{} = expires_at}) do
+    if DateTime.compare(until, expires_at) == :gt,
+      do: [field("/max_defer", "conflict", "max_defer cannot pass expires_at")],
+      else: []
+  end
+
+  defp within(_until, _times), do: []
+
+  defp duration_s(nil), do: nil
+
+  defp duration_s(text) when is_binary(text) do
+    case Regex.run(@duration, text) do
+      [_ | parts] ->
+        parts
+        |> Kernel.++(List.duplicate("", length(@units) - length(parts)))
+        |> Enum.zip(@units)
+        |> Enum.reduce(0, fn
+          {"", _unit}, acc -> acc
+          {digits, unit}, acc -> acc + String.to_integer(digits) * unit
+        end)
+
+      nil ->
+        :error
+    end
+  end
+
+  defp duration_s(_text), do: :error
 
   # API-22
   defp priority(requested, class) do

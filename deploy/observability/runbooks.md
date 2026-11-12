@@ -313,3 +313,9 @@ Every alert rule in `alerts.yaml` links here with its `runbook_url`. Each entry 
 - **Meaning:** Dirty CPU scheduler work has been queued for five minutes.
 - **Check:** Check native code calls and their durations.
 - **Action:** Reduce dirty work on the send path.
+
+## RelaySubscriberTokenKeyRotationDue
+
+- **Meaning:** The key that signs subscriber tokens has been current for more than 90 days, the rotation period.
+- **Check:** Read the current key and its activation with `Relay.Release.SubscriberTokenKey.status()`.
+- **Action:** Create a new P-256 key pair in the key store (`deploy/hsm-keys.sh`) and rotate to it with `Relay.Release.SubscriberTokenKey.rotate/1`; the previous key keeps verifying for two token lifetimes.

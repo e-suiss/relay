@@ -147,10 +147,12 @@ defmodule Relay.Inbox do
   # IN-9
   # INV-7
   @doc """
-  Applies one state intent of a subscriber to one item inside the caller's transaction scoped to `scope`. Returns `{:applied | :unchanged | :conflict, state, counters}` with the item's state view after the intent (for `:conflict`, the current one), `:invalid` for an unusable `snooze_until` and `:not_found`.
+  Applies one state intent of a subscriber to one item inside the caller's transaction scoped to `scope`. Returns `{:applied | :unchanged | :conflict, state, counters, notification_id}` with the item's state view after the intent (for `:conflict`, the current one), the counters that write left and the item's notification, `:invalid` for an unusable `snooze_until` and `:not_found`.
   """
   @spec apply_intent(Relay.Scope.t(), Relay.Id.t(), Relay.Id.t(), intent()) ::
-          {:applied | :unchanged | :conflict, map(), counters()} | :invalid | :not_found
+          {:applied | :unchanged | :conflict, map(), counters(), Relay.Id.t()}
+          | :invalid
+          | :not_found
   def apply_intent(%Relay.Scope{} = scope, subscriber_id, item_id, %{op: op} = intent)
       when op in @ops do
     base = Map.get(intent, :base_state_version)
@@ -168,7 +170,8 @@ defmodule Relay.Inbox do
           do: schedule(scope, subscriber_id, item_id, until)
 
         row = Store.item(subscriber_id, item_id)
-        {code, Item.state_view(row, Relay.Clock.utc_now()), Store.counters(subscriber_id)}
+        state = Item.state_view(row, Relay.Clock.utc_now())
+        {code, state, Store.counters(subscriber_id), row["notification_id"]}
     end
   end
 
@@ -264,11 +267,11 @@ defmodule Relay.Inbox do
   # IN-29
   # INV-35
   @doc """
-  The delta sync of a subscriber: the items created, updated and removed (hidden, retracted or expired) after `cursor`, in stream order, at most `limit` (1 to 500), each with its full view (`removed` ones with their state view only), the next cursor and the counters. `has_more` says another page follows; `truncated` says more than 500 changes wait, so the reader should start over with a cold sync instead of paging. A `nil` cursor, another epoch or a position outside the stream is `{:resync_required, %{reason, cursor, counters}}` with the current position.
+  The delta sync of a subscriber: the items created, updated and removed (hidden, retracted or expired) after `cursor`, in stream order, at most `limit` (1 to 500), each with its full view (`removed` ones with their state view only), the next cursor and the counters. `has_more` says another page follows; `truncated` says more than 500 changes wait, so the reader should start over with a cold sync instead of paging. A `nil` cursor, another epoch or a position outside the stream is `{:resync_required, %{reason, cursor, counters}}` with the current position. `changes/4` is its realtime source form.
   """
-  @spec changes(Relay.Scope.t(), Relay.Id.t(), Cursor.t() | nil, pos_integer()) ::
+  @spec delta(Relay.Scope.t(), Relay.Id.t(), Cursor.t() | nil, pos_integer()) ::
           {:ok, page()} | {:resync_required, map()} | {:error, term()}
-  def changes(%Relay.Scope{} = scope, subscriber_id, cursor, limit \\ 500) do
+  def delta(%Relay.Scope{} = scope, subscriber_id, cursor, limit \\ 500) do
     cap = Item.limits()["changes_max"]
     limit = limit |> max(1) |> min(cap)
 
@@ -349,9 +352,62 @@ defmodule Relay.Inbox do
 
   defp change_type(_row, false, _epoch, _since), do: :updated
 
+  # IN-22
+  # IN-24
+  @doc "The signal topic of the subscriber's stream, on which the outbox dispatcher announces every committed change; it opens the subscriber's mailbox when it has none."
+  @spec signal_topic(Relay.Scope.t(), Relay.Id.t()) :: {:ok, String.t()} | {:error, term()}
+  def signal_topic(%Relay.Scope{} = scope, subscriber_id) do
+    case Mailbox.ensure(scope, :subscriber, subscriber_id) do
+      {:ok, {code, _mailbox_id, stream_key}} when code in [:created, :exists] ->
+        opener().signal_topic(scope, stream_key)
+
+      {:ok, other} ->
+        {:error, other}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  # IN-22
+  @doc "The opaque cursor of the subscriber's stream head: reading from it returns only later changes."
+  @spec cursor(Relay.Scope.t(), Relay.Id.t()) :: {:ok, String.t()} | {:error, term()}
+  def cursor(%Relay.Scope{} = scope, subscriber_id) do
+    case Store.in_scope(scope, fn _status -> Store.head(subscriber_id) end) do
+      {:ok, head} -> {:ok, Cursor.encode(%{epoch: head.epoch, seq: head.seq})}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # IN-22
+  # IN-26
+  # IN-29
+  @doc "The realtime source form of `delta/4`: at most `limit` messages after the opaque `cursor`, each `%{t, d, cursor}` in stream order, the next cursor and whether more than 500 changes wait; a cursor that no longer holds is `{:resync_required, reason}`."
+  @spec changes(Relay.Scope.t(), Relay.Id.t(), String.t(), pos_integer()) ::
+          {:ok, %{changes: [map()], cursor: String.t(), truncated: boolean()}}
+          | {:resync_required, String.t()}
+          | {:error, term()}
+  def changes(%Relay.Scope{} = scope, subscriber_id, cursor, limit) when is_binary(cursor) do
+    case Cursor.decode(cursor) do
+      {:ok, position} -> source_page(delta(scope, subscriber_id, position, limit))
+      :error -> {:resync_required, "position_out_of_range"}
+    end
+  end
+
+  defp source_page({:ok, page}) do
+    changes =
+      for {position, message} <- realtime_messages(page),
+          do: %{t: message["t"], d: message["d"], cursor: position}
+
+    {:ok, %{changes: changes, cursor: Cursor.encode(page.cursor), truncated: page.truncated}}
+  end
+
+  defp source_page({:resync_required, info}), do: {:resync_required, info.reason}
+  defp source_page({:error, reason}), do: {:error, reason}
+
   # IN-26
   # IN-27
-  @doc "The realtime messages of a delta page, each with its stream cursor; see `Relay.Inbox.Realtime.messages/2`."
+  @doc "The realtime messages of a `delta/4` page, each with its stream cursor; see `Relay.Inbox.Realtime.messages/2`."
   @spec realtime_messages(page()) :: [{String.t(), map()}]
   def realtime_messages(page), do: Realtime.messages(page, Relay.Clock.utc_now())
 

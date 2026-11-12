@@ -152,7 +152,13 @@ channels:
   inboxRealtime:
     address: "/v1/realtime"
     title: inboxRealtime
-    description: "Subscriber inbox stream. Every inbox change is a sequenced event of the subscriber's stream; the event identifier is the stream cursor that GET /v1/subscriber/inbox/changes takes as since. Topic names, event names and the envelope are one set."
+    description: "The subscriber's inbox stream; topic names, event names and the envelope are one set (IN-26). It is carried equally by a Phoenix Channels WebSocket at /v1/realtime/websocket (the subscriber token as the channels client authToken, carried in Sec-WebSocket-Protocol; optional connect parameter device_id), by SSE at GET /v1/realtime/events (Last-Event-ID) and by long-poll at GET /v1/realtime/poll (IN-23). The only topic is inbox: the subscriber token decides what it carries and the topic names neither tenant nor subscriber; any other topic is refused (IN-32). The join parameter cursor resumes after the envelope id the client last saw. The WebSocket pushes each envelope with its type as the event name. The channel is read-only (IN-31): every client message is refused with reason read_only, except auth.refresh with {token}, a fresh subscriber token for the same subscriber that moves the connection's expiry. The server closes the WebSocket with 1008 and the reason auth_expired_token, auth_subscriber_suspended, auth_tenant_suspended, auth_invalid_token or connection_limit (more than 10 connections of the subscriber close the oldest), and with 1013 and the reason retry-after=<1..5> when the node accepts no more new connections (IN-33, IN-52)."
+    x-relay-topics:
+      - inbox
+    x-relay-client-messages:
+      - auth.refresh
+    x-relay-choice: true
+    x-relay-choice-note: "The WebSocket path, the auth.refresh message, the close codes and reasons and the envelope id carrying the resume cursor are contract choices within IN-23, IN-26, IN-31 and IN-52."
     messages:
       realtime.inbox.item_created:
         "$ref": "#/components/messages/realtime.inbox.item_created"
@@ -789,7 +795,7 @@ components:
           maxLength: 256
         correlationid:
           type: string
-          description: "The sender's correlation_id; for waitpoint events the value of the creation request. Absent when none was given. Use A only."
+          description: "The sender's correlation_id; absent when none was given and on every waitpoint event, which never carries a correlation key (AG-65). Use A only."
           minLength: 1
           maxLength: 128
           pattern: "^[\\x20-\\x7E]+$"
@@ -842,7 +848,7 @@ components:
           maxProperties: 1
     RealtimeEnvelope:
       type: object
-      description: "Realtime envelope {t, v, ts, d}; every message carries counters."
+      description: "Realtime envelope {t, v, ts, d}; every message carries counters, and id, when present, is the opaque cursor right after the message (the SSE event id and the resume cursor of every transport). No tenant identifier is part of an envelope."
       required:
         - t
         - v
@@ -858,6 +864,9 @@ components:
           description: Schema version of the message type.
         ts:
           "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+        id:
+          type: string
+          maxLength: 512
         d:
           type: object
         counters:

@@ -39,7 +39,9 @@ defmodule Relay.Api.WorkflowRuns do
         "security_subtype" => p.request.security_subtype,
         "sender_type" => p.request.sender_type,
         "on_expire" => p.request.on_expire,
-        "timing_precision" => p.request.timing_precision
+        "timing_precision" => p.request.timing_precision,
+        "timing" => Map.get(p.request, :timing),
+        "max_defer_until" => iso(Map.get(p.request, :max_defer_until))
       },
       "steps" => Enum.map(p.request.steps, &step/1),
       "routes" => Map.get(p, :routes, %{}),
@@ -120,8 +122,26 @@ defmodule Relay.Api.WorkflowRuns do
       message_class: p.message_class,
       routes: Map.get(p, :routes, %{}),
       variants: Relay.Workflow.variants(definition, p.workflow["key"], row["id"]),
-      facts: facts()
+      facts: facts(),
+      correlation_digests: Map.get(p, :correlation_digests, %{})
     }
+  end
+
+  # AG-65
+  # WF-12
+  @doc "Computes, outside any transaction, the correlation digests of a run's event waits and of the incoming event (`Relay.Workflow.correlation_digests/4`), rendering each wait's key against the event data and the attributes of each recipient."
+  @spec correlation_digests(Relay.Scope.t(), map(), term(), [map() | nil], tuple() | nil) ::
+          {:ok, map()} | {:error, Relay.Error.t()}
+  def correlation_digests(scope, definition, data, attributes, incoming) do
+    contexts =
+      for attrs <- Enum.uniq(attributes),
+          do: %{data: data, recipient: declared(nil, attrs, definition)}
+
+    case Relay.Workflow.correlation_digests(scope, definition, contexts, incoming) do
+      {:ok, digests} -> {:ok, digests}
+      {:error, %Relay.Error{} = error} -> {:error, error}
+      {:error, _reason} -> {:error, Relay.Error.new(:service_unavailable, "digests unavailable")}
+    end
   end
 
   # WF-13
@@ -194,9 +214,13 @@ defmodule Relay.Api.WorkflowRuns do
     plan = run["plan"]
     subtenant = if run["subtenant_id"], do: {:ok, run["subtenant_id"]}, else: nil
 
+    attributes = if run_declares?(run), do: stored(scope, run["recipient_id"]), else: %{}
+
     with {:ok, data} <- data(scope, run["event_id"]),
          {:ok, policy} <- category(scope, plan, run["subtenant_id"]),
-         {:ok, settings, installation} <- settings(scope, run["workflow_key"], plan) do
+         {:ok, settings, installation} <- settings(scope, run["workflow_key"], plan),
+         {:ok, digests} <-
+           correlation_digests(scope, run["definition"], data, [attributes], nil) do
       p = %{
         scope: scope,
         workflow: %{
@@ -219,10 +243,10 @@ defmodule Relay.Api.WorkflowRuns do
         installation_mode: installation,
         subtenant: subtenant,
         traceparent: plan["traceparent"],
-        is_test: plan["is_test"] == true
+        is_test: plan["is_test"] == true,
+        correlation_digests: digests
       }
 
-      attributes = if run_declares?(run), do: stored(scope, run["recipient_id"]), else: %{}
       {:ok, fn -> bind(with_device(p, run, plan), run, data, attributes) end}
     end
   end
@@ -249,7 +273,8 @@ defmodule Relay.Api.WorkflowRuns do
       message_class: p.message_class,
       routes: run["plan"]["routes"] || %{},
       variants: run["plan"]["variants"] || %{},
-      facts: facts()
+      facts: facts(),
+      correlation_digests: p.correlation_digests
     }
 
     opener = fn step, channel, pointer ->
@@ -279,9 +304,14 @@ defmodule Relay.Api.WorkflowRuns do
       sender_type: request["sender_type"],
       on_expire: request["on_expire"],
       timing_precision: request["timing_precision"],
+      timing: request["timing"],
+      max_defer_until: event_time(request["max_defer_until"]),
       steps: Enum.map(plan["steps"] || [], &decode_step/1)
     }
   end
+
+  defp iso(nil), do: nil
+  defp iso(%DateTime{} = at), do: DateTime.to_iso8601(at)
 
   defp decode_step(step) do
     skip =

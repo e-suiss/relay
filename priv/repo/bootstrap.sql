@@ -144,6 +144,8 @@ DECLARE
     "relay_ops.singleton_acquire": ["relay_worker"],
     "relay_ops.singleton_save": ["relay_worker"],
     "relay_ops.subscriber_tenants": ["relay_worker"],
+    "relay_ops.subscriber_token_key_retire": ["relay_app"],
+    "relay_ops.subscriber_token_key_rotate": ["relay_app"],
     "relay_ops.support_delegation_active": ["relay_app"],
     "relay_ops.tenant_create": ["relay_app"],
     "relay_ops.tenant_lookup": ["relay_app"],

@@ -120,7 +120,7 @@ defmodule Relay.Api.Inbox do
   def changes(scope, subscriber_id, query) do
     with {:ok, cursor} <- since(query["since"]),
          {:ok, limit} <- limit(query["limit"]) do
-      case Relay.Inbox.changes(scope, subscriber_id, cursor, limit) do
+      case Relay.Inbox.delta(scope, subscriber_id, cursor, limit) do
         {:ok, page} -> {:ok, {200, [], changes_view(page)}}
         {:resync_required, info} -> {:ok, {200, [], resync_view(info)}}
         {:error, _reason} -> {:error, unavailable()}
@@ -222,13 +222,14 @@ defmodule Relay.Api.Inbox do
           answer()
   def intent(scope, subscriber_id, item_id, intent, body) do
     case Relay.Inbox.apply_intent(scope, subscriber_id, item_id, intent) do
-      {:conflict, state, _counters} ->
+      {:conflict, state, _counters, _notification_id} ->
         {:error,
          Relay.Error.new(:inbox_item_conflict, "the item changed on another device", %{
            current: state
          })}
 
-      {code, state, counters} ->
+      {code, state, counters, notification_id} ->
+        _ = signal(scope, subscriber_id, intent.op, code, {counters, notification_id})
         {:ok, {200, [], intent_view(item_id, intent, body, code, state, counters)}}
 
       :invalid ->
@@ -239,6 +240,16 @@ defmodule Relay.Api.Inbox do
         {:error, not_found()}
     end
   end
+
+  # IN-38
+  # IN-35
+  defp signal(scope, subscriber_id, "read", :applied, {counters, notification_id}),
+    do: Relay.Devices.propagate_read(scope, subscriber_id, notification_id, counters)
+
+  defp signal(scope, subscriber_id, _op, :applied, {counters, _notification_id}),
+    do: Relay.Devices.sync(scope, subscriber_id, counters)
+
+  defp signal(_scope, _subscriber_id, _op, _code, _changed), do: :ok
 
   defp intent_view(item_id, intent, body, code, state, counters) do
     %{

@@ -79,6 +79,7 @@ defmodule Relay.Api do
       TimingSettings,
       EmailReports,
       Topics,
-      Throttles
+      Throttles,
+      Campaigns
     ]
 end

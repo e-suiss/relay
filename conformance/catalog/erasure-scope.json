@@ -573,6 +573,32 @@
       "subject_erasure": "the CSV holds identifiers, codes and counts only and its content is cleared 7 days after it was written; row kept"
     },
     {
+      "table": "campaigns",
+      "personal_columns": [
+        "data_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; row kept",
+      "subject_erasure": "the campaign data is the tenant's content for every recipient and is sealed under the tenant data key; row kept"
+    },
+    {
+      "table": "campaign_members",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers and states only; the recipient's personal fields live in its subscriber record; row kept"
+    },
+    {
+      "table": "campaign_stages",
+      "personal_columns": [],
+      "tenant_close": "row kept; counts only",
+      "subject_erasure": "not subject data; counts only"
+    },
+    {
+      "table": "campaign_preview_counts",
+      "personal_columns": [],
+      "tenant_close": "row kept; counts only",
+      "subject_erasure": "not subject data; counts only"
+    },
+    {
       "table": "topics",
       "personal_columns": [],
       "tenant_close": "row kept; tenant keys only",

@@ -20,6 +20,8 @@ config :relay, Relay.Platform.Valkey,
 
 config :relay, Relay.Platform.Signal, poll_interval_ms: 1_000
 
+config :relay, Relay.Platform.Fanout, sources: %{"campaign" => Relay.Api.Campaigns.SendSource}
+
 config :relay, Relay.Platform.Leadership,
   enabled: true,
   tasks: [

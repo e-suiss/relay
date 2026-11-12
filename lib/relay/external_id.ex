@@ -68,7 +68,8 @@ defmodule Relay.ExternalId do
     {"top", "topics"},
     {"tsb", "topic_subscriptions"},
     {"rte", "routes"},
-    {"rec", "recurrences"}
+    {"rec", "recurrences"},
+    {"cmp", "campaigns"}
   ]
   @by_prefix Map.new(@tables)
 

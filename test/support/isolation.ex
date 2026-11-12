@@ -68,7 +68,10 @@ defmodule RelayTest.Isolation do
     {"updateChannelIdentity", %{"app_ref" => "com.example.isolation"}},
     {"addTopicSubscriptions", %{"subscribers" => ["isolation-subscriber"]}},
     {"removeTopicSubscriptions", %{"subscribers" => ["isolation-subscriber"]}},
-    {"replaceRoute", %{"name" => "Isolation", "tree" => "email"}}
+    {"replaceRoute", %{"name" => "Isolation", "tree" => "email"}},
+    {"addCampaignRecipients", %{"recipients" => ["iso-campaign"]}},
+    {"approveCampaignSamples", %{"samples_digest" => String.duplicate("0", 64)}},
+    {"cancelCampaign", %{"reason" => "isolation"}}
   ]
   @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
   @sms %{
@@ -124,7 +127,8 @@ defmodule RelayTest.Isolation do
       "export_id" => &export!/1,
       "topic_key" => &topic!/1,
       "recurrence_id" => &recurrence!/1,
-      "throttle_key" => &throttle!/1
+      "throttle_key" => &throttle!/1,
+      "campaign_id" => &campaign!/1
     }
   end
 
@@ -485,6 +489,22 @@ defmodule RelayTest.Isolation do
   def topic!(scope) do
     key = "iso:" <> random()
     F.body(F.request(:post, "/v1/topics", owner(scope), %{"key" => key}), 201)["key"]
+  end
+
+  @doc "Creates a draft campaign in `scope` and returns its identifier."
+  @spec campaign!(Relay.Scope.t()) :: String.t()
+  def campaign!(scope) do
+    deadline = DateTime.add(Relay.Clock.utc_now(), 86_400, :second)
+
+    body = %{
+      "name" => "Isolation",
+      "workflow" => workflow!(scope),
+      "data" => %{"order" => "I-1"},
+      "expected_count" => 1,
+      "deadline" => DateTime.to_iso8601(deadline)
+    }
+
+    F.body(F.request(:post, "/v1/campaigns", owner(scope), body), 201)["id"]
   end
 
   @doc "Defines a daily recurrence rule in `scope` for a new subscriber and returns its identifier."

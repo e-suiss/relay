@@ -116,7 +116,8 @@ defmodule Relay.Schema.ContractDriftTest do
     {"relay.whatsapp_templates", "whatsapp_templates_category_check",
      {"schemas", ["WhatsappTemplateCategory"]}},
     {"relay.whatsapp_templates", "whatsapp_templates_meta_category_check",
-     {"schemas", ["WhatsappTemplateCategory"]}}
+     {"schemas", ["WhatsappTemplateCategory"]}},
+    {"relay.campaigns", "campaigns_state_check", {"schemas", ["CampaignState"]}}
   ]
 
   defp values(definition), do: ~r/'([^']*)'/ |> Regex.scan(definition) |> Enum.map(&List.last/1)

@@ -48,6 +48,20 @@ channels:
         "$ref": "#/components/messages/webhook.channel_adapter.deprecated"
       webhook.provider_account.settings_mismatched:
         "$ref": "#/components/messages/webhook.provider_account.settings_mismatched"
+      webhook.campaign.prepared:
+        "$ref": "#/components/messages/webhook.campaign.prepared"
+      webhook.campaign.paused:
+        "$ref": "#/components/messages/webhook.campaign.paused"
+      webhook.campaign.resumed:
+        "$ref": "#/components/messages/webhook.campaign.resumed"
+      webhook.campaign.expired:
+        "$ref": "#/components/messages/webhook.campaign.expired"
+      webhook.campaign.completed:
+        "$ref": "#/components/messages/webhook.campaign.completed"
+      webhook.campaign.partial:
+        "$ref": "#/components/messages/webhook.campaign.partial"
+      webhook.campaign.cancelled:
+        "$ref": "#/components/messages/webhook.campaign.cancelled"
       webhook.email_reputation.warning:
         "$ref": "#/components/messages/webhook.email_reputation.warning"
       webhook.email_reputation.stopped:
@@ -373,6 +387,16 @@ channels:
         "$ref": "#/components/messages/audit.push_critical.used"
       audit.push_priority.threshold_reached:
         "$ref": "#/components/messages/audit.push_priority.threshold_reached"
+      audit.campaign.samples_approved:
+        "$ref": "#/components/messages/audit.campaign.samples_approved"
+      audit.campaign.audience_approved:
+        "$ref": "#/components/messages/audit.campaign.audience_approved"
+      audit.campaign.triggered:
+        "$ref": "#/components/messages/audit.campaign.triggered"
+      audit.campaign.resumed:
+        "$ref": "#/components/messages/audit.campaign.resumed"
+      audit.campaign.cancelled:
+        "$ref": "#/components/messages/audit.campaign.cancelled"
       audit.export.downloaded:
         "$ref": "#/components/messages/audit.export.downloaded"
       audit.export.requested:
@@ -447,6 +471,13 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.messaging_installation.completed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.channel_adapter.deprecated"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.provider_account.settings_mismatched"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.prepared"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.paused"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.resumed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.expired"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.completed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.partial"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.cancelled"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.email_reputation.warning"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.email_reputation.stopped"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.email_reputation.resumed"
@@ -618,6 +649,11 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.push_critical.used"
       - "$ref": "#/channels/auditLog/messages/audit.push_priority.threshold_reached"
       - "$ref": "#/channels/auditLog/messages/audit.provider_invoice.recorded"
+      - "$ref": "#/channels/auditLog/messages/audit.campaign.samples_approved"
+      - "$ref": "#/channels/auditLog/messages/audit.campaign.audience_approved"
+      - "$ref": "#/channels/auditLog/messages/audit.campaign.triggered"
+      - "$ref": "#/channels/auditLog/messages/audit.campaign.resumed"
+      - "$ref": "#/channels/auditLog/messages/audit.campaign.cancelled"
       - "$ref": "#/channels/auditLog/messages/audit.export.requested"
       - "$ref": "#/channels/auditLog/messages/audit.export.downloaded"
       - "$ref": "#/channels/auditLog/messages/audit.recurrence.created"
@@ -649,6 +685,54 @@ operations:
       - "$ref": "#/channels/accessOutbound/messages/access.delivery.paused"
 components:
   schemas:
+    CampaignEventData:
+      type: object
+      description: "The thin payload of a campaign event: the campaign's identifier, state and counts."
+      required:
+        - campaign_id
+        - state
+      properties:
+        campaign_id:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum:
+            - draft
+            - preparing
+            - prepared
+            - running
+            - paused
+            - completed
+            - partial
+            - cancelled
+        audience_count:
+          type: integer
+          minimum: 0
+        expected_count:
+          type: integer
+          minimum: 1
+        accepted_count:
+          type: integer
+          minimum: 0
+        rejected_count:
+          type: integer
+          minimum: 0
+        expired_count:
+          type: integer
+          minimum: 0
+        cancelled_count:
+          type: integer
+          minimum: 0
+        pause_rule_id:
+          type:
+            - string
+            - "null"
+        close_rule_id:
+          type:
+            - string
+            - "null"
+      additionalProperties: false
     CloudEventEnvelope:
       type: object
       description: CloudEvents 1.0 structured envelope shared by Relay and Access (common Suiss webhook profile).
@@ -5825,6 +5909,236 @@ components:
       x-relay-stage: 7
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    webhook.campaign.prepared:
+      name: campaign.prepared
+      title: campaign.prepared
+      summary: "A campaign's preparation ended: its audience and workflow version are frozen and its preview and cost estimate are ready (WF-44, X-14)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.prepared
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    webhook.campaign.paused:
+      name: campaign.paused
+      title: campaign.paused
+      summary: "A running campaign paused: under its campaign kill switch, by its channel alarm (campaign.ramp_alarm), after a workflow version change (campaign.workflow_changed) or an exhausted quota (campaign.quota_exhausted); pause_rule_id names the rule (WF-62, TN-40)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.paused
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    webhook.campaign.resumed:
+      name: campaign.resumed
+      title: campaign.resumed
+      summary: "A paused campaign runs again: its kill switch was released or a tenant administrator resumed it (OP-47)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.resumed
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    webhook.campaign.expired:
+      name: campaign.expired
+      title: campaign.expired
+      summary: "A campaign reached its deadline with members left; they are counted in expired_count and are not sent (WF-34)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.expired
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    webhook.campaign.completed:
+      name: campaign.completed
+      title: campaign.completed
+      summary: "Every member of a campaign was accepted (T-23)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.completed
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    webhook.campaign.partial:
+      name: campaign.partial
+      title: campaign.partial
+      summary: "A campaign closed with members rejected or expired at the deadline (T-23)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.partial
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    webhook.campaign.cancelled:
+      name: campaign.cancelled
+      title: campaign.cancelled
+      summary: "A campaign was cancelled; the members not yet sent are counted in cancelled_count (WF-44)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.cancelled
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    audit.campaign.samples_approved:
+      name: campaign.samples_approved
+      title: campaign.samples_approved
+      summary: "The sample renders of a campaign were approved by their digest (WF-62)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: campaign
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.campaign.audience_approved:
+      name: campaign.audience_approved
+      title: campaign.audience_approved
+      summary: "A tenant administrator approved a campaign audience above 1.5 times its expected count (WF-62, OP-37)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: campaign
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.campaign.triggered:
+      name: campaign.triggered
+      title: campaign.triggered
+      summary: "A campaign was triggered (WF-44)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: campaign
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.campaign.resumed:
+      name: campaign.resumed
+      title: campaign.resumed
+      summary: "A paused campaign was resumed; the reason says by whom and why (OP-47)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: campaign
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.campaign.cancelled:
+      name: campaign.cancelled
+      title: campaign.cancelled
+      summary: "A campaign was cancelled; the reason is the caller's (WF-44)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: campaign
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.export.requested:
       name: export.requested
       title: export.requested
@@ -6360,6 +6674,16 @@ x-relay-event-names:
   - audit_log.read
   - blind_index_key.registered
   - blind_index_key.rotation_started
+  - campaign.audience_approved
+  - campaign.cancelled
+  - campaign.completed
+  - campaign.expired
+  - campaign.partial
+  - campaign.paused
+  - campaign.prepared
+  - campaign.resumed
+  - campaign.samples_approved
+  - campaign.triggered
   - category.archived
   - category.created
   - category.lock_changed

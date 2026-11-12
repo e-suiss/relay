@@ -104,6 +104,19 @@ defmodule Relay.Topics do
     end
   end
 
+  # WF-52
+  # API-35
+  @doc "The recipients a topic reaches now, its active subscribers and, for a child topic, its active parent's, each once in identifier order and at most `limit`, read inside the caller's scoped transaction; `:unknown` or `:archived` for a topic that cannot be sent to."
+  @spec recipients(String.t(), pos_integer()) :: {:ok, [Relay.Id.t()]} | :unknown | :archived
+  def recipients(key, limit) do
+    case Audience.check([{key, 0}], Store.resolve([key])) do
+      {:ok, topics} -> {:ok, topics |> Audience.all_paths() |> recipient_ids(limit)}
+      {:error, refused, _errors} -> refused
+    end
+  end
+
+  defp recipient_ids(paths, limit), do: Enum.map(Store.members(paths, limit), &elem(&1, 0))
+
   defp freeze(scope, request, named) do
     keys = named |> Enum.map(&elem(&1, 0)) |> Enum.uniq()
     direct = Enum.count(request.targets, &(not match?({:topic, _key}, &1)))

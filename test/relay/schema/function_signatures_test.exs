@@ -282,7 +282,24 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.audience_record" => ~w(recorded exists),
     "relay_fn.recurrence_create" => ~w(created limit_reached),
     "relay_fn.recurrence_cancel" => ~w(cancelled closed not_found),
-    "relay_fn.recurrence_fire" => ~w(advanced completed stale not_found)
+    "relay_fn.recurrence_fire" => ~w(advanced completed stale not_found),
+    "relay_fn.campaign_create" => ~w(created tenant_inactive),
+    "relay_fn.campaign_prepare" => ~w(preparing not_draft deadline_passed empty not_found),
+    "relay_fn.campaign_prepare_progress" => ~w(recorded stale not_preparing),
+    "relay_fn.campaign_prepared" => ~w(prepared not_preparing),
+    "relay_fn.campaign_approve_samples" => ~w(approved not_prepared not_found),
+    "relay_fn.campaign_approve_audience" => ~w(approved not_required not_prepared not_found),
+    "relay_fn.campaign_trigger" =>
+      ~w(triggered samples_unapproved samples_changed audience_unapproved deadline_passed not_prepared not_found),
+    "relay_fn.campaign_stage_open" => ~w(opened already_open not_running not_found),
+    "relay_fn.campaign_stage_wait" => ~w(waiting not_running),
+    "relay_fn.campaign_member_mark" => ~w(marked not_pending not_running not_found),
+    "relay_fn.campaign_pause" => ~w(paused not_running),
+    "relay_fn.campaign_resume" => ~w(resumed not_paused not_found),
+    "relay_fn.campaign_cancel" => ~w(cancelled already_closed not_found),
+    "relay_fn.campaign_overrun" => ~w(reported already_reported),
+    "relay_fn.campaign_members_add" => ~w(added not_draft too_large not_found),
+    "relay_fn.campaign_close" => ~w(closed already_closed not_running not_done not_found)
   }
 
   defp functions do

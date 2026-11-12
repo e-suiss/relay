@@ -434,6 +434,17 @@ defmodule Relay.Platform do
   @spec get_fanout(Relay.Scope.t(), Relay.Id.t()) :: {:ok, map() | nil} | {:error, term()}
   def get_fanout(scope, fanout_id), do: Fanout.get(scope, fanout_id)
 
+  # T-23 (2)
+  # T-91
+  @doc "The fan-out model of an audience size; see `Relay.Platform.Fanout.mode/1`."
+  @spec fanout_mode(non_neg_integer()) :: :normal | :bulk | :campaign
+  def fanout_mode(count), do: Fanout.mode(count)
+
+  # T-23
+  @doc "The slice size of a fan-out; see `Relay.Platform.Fanout.default_sizes/0`."
+  @spec fanout_slice_size() :: pos_integer()
+  def fanout_slice_size, do: Fanout.default_sizes().slice_size
+
   # TN-8
   # X-27
   @doc "Advances the virtual clock of a `test` scope; see `Relay.Platform.VirtualClock.advance/4`."

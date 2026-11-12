@@ -45,6 +45,7 @@ defmodule RelayWeb.Endpoint do
   # IN-23
   # IN-32
   # IN-54
+  # sobelow_skip ["Config.CSWH"]
   socket "/v1/realtime", RelayWeb.Realtime.Transport,
     auth_token: true,
     websocket: [

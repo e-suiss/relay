@@ -109,10 +109,23 @@ defmodule RelayWeb.Api.CampaignsTest do
       assert code(conn, 422) == "unknown_field"
     end
 
-    test "API-35: a topic audience fails preparation until topic expansion exists", ctx do
-      campaign = created!(ctx.token, %{"topic" => "release-notes"})
+    test "WF-52, API-35: a topic audience is frozen from its subscribers at preparation", ctx do
+      key = "release-" <> TenantFixture.random()
+      F.body(F.request(:post, "/v1/topics", ctx.token, %{"key" => key}), 201)
+      subscribers = %{"subscribers" => [subscriber!(ctx.token), subscriber!(ctx.token)]}
+      F.request(:post, "/v1/topics/#{key}/subscriptions", ctx.token, subscribers)
+
+      campaign = created!(ctx.token, %{"topic" => key})
       assert campaign["audience"]["kind"] == "topic"
-      assert code(post(ctx.token, campaign["id"], "prepare"), 422) == "campaign_topic_unavailable"
+
+      part = %{"recipients" => [subscriber!(ctx.token)]}
+      assert code(post(ctx.token, campaign["id"], "recipients", part), 409) == "resource_conflict"
+
+      prepared = F.body(post(ctx.token, campaign["id"], "prepare"), 202)
+      assert prepared["audience"]["count"] == 2
+
+      unknown = created!(ctx.token, %{"topic" => "missing-" <> key})
+      assert code(post(ctx.token, unknown["id"], "prepare"), 404) == "topic_not_found"
     end
 
     test "API-35, TN-15: another tenant's campaign is 404", ctx do

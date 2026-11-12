@@ -111,6 +111,9 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.waitpoint_timer_fire" =>
       ~w(expired stalled escalation_due not_due already_terminal not_found),
     "relay_fn.waitpoint_cancel" => ~w(cancelled already_terminal not_found),
+    "relay_fn.workflow_run_start" => ~w(started exists notification_not_found),
+    "relay_fn.workflow_run_save" => ~w(saved version_conflict already_final not_found),
+    "relay_fn.workflow_manager_set" => ~w(changed unchanged version_conflict not_found),
     "relay_fn.fanout_create" => ~w(created exists invalid_bounds tenant_inactive),
     "relay_fn.fanout_slice_begin" =>
       ~w(begun resumed cancelled paused already_terminal not_found),
@@ -169,10 +172,14 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.quota_policy_set" =>
       ~w(created updated removed unchanged version_conflict invalid_caps),
     "relay_fn.category_create" =>
-      ~w(created key_conflict lock_not_allowed default_forbidden invalid_settings tenant_inactive),
+      ~w(created key_conflict lock_not_allowed default_forbidden invalid_settings route_not_found route_archived tenant_inactive),
     "relay_fn.category_update" =>
-      ~w(updated unchanged not_found archived version_conflict lock_not_allowed default_forbidden invalid_settings),
+      ~w(updated unchanged not_found archived version_conflict lock_not_allowed default_forbidden invalid_settings route_not_found route_archived),
     "relay_fn.category_archive" => ~w(archived already_archived not_found builtin),
+    "relay_fn.route_create" => ~w(created key_conflict tenant_inactive),
+    "relay_fn.route_replace" => ~w(replaced unchanged not_found archived version_conflict),
+    "relay_fn.route_archive" => ~w(archived already_archived in_use not_found),
+    "relay_fn.event_timing_precision_set" => ~w(set unchanged not_found),
     "relay_fn.category_subtenant_put" =>
       ~w(created updated unchanged not_found archived subtenant_not_found default_forbidden invalid_settings),
     "relay_fn.preference_set" =>
@@ -264,6 +271,17 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.export_fail" => ~w(failed not_pending not_found),
     "relay_fn.export_download" => ~w(ready expired not_ready not_found),
     "relay_fn.email_report_record" => ~w(recorded duplicate),
+    "relay_fn.topic_create" =>
+      ~w(created key_conflict parent_not_found too_deep parent_archived tenant_inactive),
+    "relay_fn.topic_archive" => ~w(archived already_archived not_found),
+    "relay_fn.topic_subscribe" =>
+      ~w(subscribed exists recipient_not_found topic_not_found topic_archived tenant_inactive),
+    "relay_fn.topic_unsubscribe" =>
+      ~w(unsubscribed already_unsubscribed not_subscribed recipient_not_found topic_not_found),
+    "relay_fn.audience_record" => ~w(recorded exists),
+    "relay_fn.recurrence_create" => ~w(created limit_reached),
+    "relay_fn.recurrence_cancel" => ~w(cancelled closed not_found),
+    "relay_fn.recurrence_fire" => ~w(advanced completed stale not_found),
     "relay_fn.campaign_create" => ~w(created tenant_inactive),
     "relay_fn.campaign_prepare" => ~w(preparing not_draft deadline_passed empty not_found),
     "relay_fn.campaign_prepare_progress" => ~w(recorded stale not_preparing),

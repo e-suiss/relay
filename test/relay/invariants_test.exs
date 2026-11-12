@@ -71,7 +71,7 @@ defmodule Relay.InvariantsTest do
       for {name, columns} <- [
             {"notifications_dedup_key_key", "(tenant_id, environment, dedup_key, recipient_id)"},
             {"deliveries_target_key",
-             "(tenant_id, environment, notification_id, channel, target_key)"},
+             "(tenant_id, environment, notification_id, channel, target_key, step_ref)"},
             {"webhook_receipts_provider_event_id_key",
              "(tenant_id, environment, provider, provider_event_id)"}
           ] do

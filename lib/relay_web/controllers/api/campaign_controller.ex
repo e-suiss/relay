@@ -35,37 +35,44 @@ defmodule RelayWeb.Api.CampaignController do
   # X-14
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, params) do
-    with_id(conn, params, &Work.answer(conn, Campaigns.get(conn.assigns.scope, &1)))
+    case path_id(params) do
+      {:ok, id} -> Work.answer(conn, Campaigns.get(conn.assigns.scope, id))
+      {:error, error} -> Response.problem(conn, error)
+    end
   end
 
   # WF-52
   @spec recipients(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def recipients(conn, params) do
-    with_id(conn, params, fn id ->
-      case Campaigns.plan_recipients(conn.assigns.scope, conn.assigns.body) do
-        {:ok, bidxs} -> Work.idempotent(conn, fn _ -> Campaigns.add_recipients(id, bidxs) end)
-        {:error, error} -> Response.problem(conn, error)
-      end
-    end)
+    with {:ok, id} <- path_id(params),
+         {:ok, bidxs} <- Campaigns.plan_recipients(conn.assigns.scope, conn.assigns.body) do
+      Work.idempotent(conn, fn _status -> Campaigns.add_recipients(id, bidxs) end)
+    else
+      {:error, error} -> Response.problem(conn, error)
+    end
   end
 
   # WF-44
+  # WF-52
   @spec prepare(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def prepare(conn, params) do
     scope = conn.assigns.scope
 
-    with_id(conn, params, fn id ->
-      case Campaigns.plan_prepare(scope, id) do
-        {:ok, plan} -> Work.idempotent(conn, fn _status -> Campaigns.prepare(scope, plan) end)
-        {:error, error} -> Response.problem(conn, error)
-      end
-    end)
+    with {:ok, id} <- path_id(params),
+         {:ok, plan} <- Campaigns.plan_prepare(scope, id) do
+      Work.idempotent(conn, fn _status -> Campaigns.prepare(scope, plan) end)
+    else
+      {:error, error} -> Response.problem(conn, error)
+    end
   end
 
   # WF-62
   @spec samples(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def samples(conn, params) do
-    with_id(conn, params, &Work.answer(conn, Campaigns.samples(conn.assigns.scope, &1)))
+    case path_id(params) do
+      {:ok, id} -> Work.answer(conn, Campaigns.samples(conn.assigns.scope, id))
+      {:error, error} -> Response.problem(conn, error)
+    end
   end
 
   # WF-62
@@ -74,17 +81,12 @@ defmodule RelayWeb.Api.CampaignController do
     scope = conn.assigns.scope
     actor = Work.actor(conn)
 
-    with_id(conn, params, fn id ->
-      case Campaigns.plan_approve(scope, id, conn.assigns.body) do
-        {:ok, digest} ->
-          Work.idempotent(conn, fn _status ->
-            Campaigns.approve_samples(scope, id, digest, actor)
-          end)
-
-        {:error, error} ->
-          Response.problem(conn, error)
-      end
-    end)
+    with {:ok, id} <- path_id(params),
+         {:ok, digest} <- Campaigns.plan_approve(scope, id, conn.assigns.body) do
+      Work.idempotent(conn, fn _status -> Campaigns.approve_samples(scope, id, digest, actor) end)
+    else
+      {:error, error} -> Response.problem(conn, error)
+    end
   end
 
   # WF-44
@@ -94,15 +96,12 @@ defmodule RelayWeb.Api.CampaignController do
     scope = conn.assigns.scope
     actor = Work.actor(conn)
 
-    with_id(conn, params, fn id ->
-      case Campaigns.plan_trigger(scope, id) do
-        {:ok, digest} ->
-          Work.idempotent(conn, fn _status -> Campaigns.trigger(scope, id, digest, actor) end)
-
-        {:error, error} ->
-          Response.problem(conn, error)
-      end
-    end)
+    with {:ok, id} <- path_id(params),
+         {:ok, digest} <- Campaigns.plan_trigger(scope, id) do
+      Work.idempotent(conn, fn _status -> Campaigns.trigger(scope, id, digest, actor) end)
+    else
+      {:error, error} -> Response.problem(conn, error)
+    end
   end
 
   # WF-44
@@ -111,17 +110,17 @@ defmodule RelayWeb.Api.CampaignController do
     %{scope: scope, body: body} = conn.assigns
     actor = Work.actor(conn)
 
-    with_id(conn, params, fn id ->
-      Work.idempotent(conn, fn _status -> Campaigns.cancel(scope, id, body, actor) end)
-    end)
+    case path_id(params) do
+      {:ok, id} ->
+        Work.idempotent(conn, fn _status -> Campaigns.cancel(scope, id, body, actor) end)
+
+      {:error, error} ->
+        Response.problem(conn, error)
+    end
   end
 
-  defp with_id(conn, params, fun) do
+  defp path_id(params) do
     text = Map.get(params, "campaign_id", "")
-
-    case Work.path_id(text, Campaigns.prefix(), :campaign_not_found) do
-      {:ok, id} -> fun.(id)
-      {:error, error} -> Response.problem(conn, error)
-    end
+    Work.path_id(text, Campaigns.prefix(), :campaign_not_found)
   end
 end

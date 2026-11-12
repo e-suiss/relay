@@ -292,6 +292,13 @@ CategoryKey:
   required: true
   schema:
     "$ref": "./schemas.yaml#/CategoryKey"
+RouteKey:
+  name: route_key
+  in: path
+  description: Route key.
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/RouteKey"
 SubtenantId:
   name: subtenant_id
   in: path
@@ -426,6 +433,13 @@ ChannelIdentityId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_chi"
+TopicKey:
+  name: topic_key
+  in: path
+  description: "Topic key (URL-encoded)."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/TopicKey"
 TestRecipientId:
   name: test_recipient_id
   in: path
@@ -463,6 +477,21 @@ ExportId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_exp"
+RecurrenceId:
+  name: recurrence_id
+  in: path
+  description: "Recurrence rule identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_rec"
+
+ThrottleKey:
+  name: throttle_key
+  in: path
+  description: "The rendered throttle key, percent-encoded."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/ThrottleKey"
 CampaignId:
   name: campaign_id
   in: path

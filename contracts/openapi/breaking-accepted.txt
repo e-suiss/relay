@@ -1,0 +1,54 @@
+POST /v1/workflows request property `definition/steps/items/type` was restricted to a list of enum values
+POST /v1/workflows the `type` response property const value `channel` was removed for the status `201`
+POST /v1/workflows added the new `channel` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `201`
+POST /v1/workflows added the new `condition` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `201`
+POST /v1/workflows added the new `delay` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `201`
+POST /v1/workflows added the new `digest` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `201`
+POST /v1/workflows added the new `throttle` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `201`
+POST /v1/workflows added the new `time_window` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `201`
+POST /v1/workflows added the new `wait_for_event` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `201`
+POST /v1/workflows added the new `webhook` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `201`
+POST /v1/workflows removed the required property `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/channel` from the response with the `201` status
+POST /v1/workflows removed the required property `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/template` from the response with the `201` status
+GET /v1/workflows/{workflow_key} the `type` response property const value `channel` was removed for the status `200`
+GET /v1/workflows/{workflow_key} added the new `channel` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key} added the new `condition` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key} added the new `delay` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key} added the new `digest` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key} added the new `throttle` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key} added the new `time_window` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key} added the new `wait_for_event` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key} added the new `webhook` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key} removed the required property `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/channel` from the response with the `200` status
+GET /v1/workflows/{workflow_key} removed the required property `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/template` from the response with the `200` status
+PUT /v1/workflows/{workflow_key} request property `definition/steps/items/type` was restricted to a list of enum values
+PUT /v1/workflows/{workflow_key} the `type` response property const value `channel` was removed for the status `200`
+PUT /v1/workflows/{workflow_key} added the new `channel` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+PUT /v1/workflows/{workflow_key} added the new `condition` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+PUT /v1/workflows/{workflow_key} added the new `delay` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+PUT /v1/workflows/{workflow_key} added the new `digest` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+PUT /v1/workflows/{workflow_key} added the new `throttle` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+PUT /v1/workflows/{workflow_key} added the new `time_window` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+PUT /v1/workflows/{workflow_key} added the new `wait_for_event` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+PUT /v1/workflows/{workflow_key} added the new `webhook` enum value to the `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/type` response property for the response status `200`
+PUT /v1/workflows/{workflow_key} removed the required property `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/channel` from the response with the `200` status
+PUT /v1/workflows/{workflow_key} removed the required property `draft/oneOf[#/components/schemas/WorkflowDefinition]/steps/items/template` from the response with the `200` status
+GET /v1/workflows/{workflow_key}/versions/{version} the `type` response property const value `channel` was removed for the status `200`
+GET /v1/workflows/{workflow_key}/versions/{version} added the new `channel` enum value to the `definition/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key}/versions/{version} added the new `condition` enum value to the `definition/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key}/versions/{version} added the new `delay` enum value to the `definition/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key}/versions/{version} added the new `digest` enum value to the `definition/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key}/versions/{version} added the new `throttle` enum value to the `definition/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key}/versions/{version} added the new `time_window` enum value to the `definition/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key}/versions/{version} added the new `wait_for_event` enum value to the `definition/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key}/versions/{version} added the new `webhook` enum value to the `definition/steps/items/type` response property for the response status `200`
+GET /v1/workflows/{workflow_key}/versions/{version} removed the required property `definition/steps/items/channel` from the response with the `200` status
+GET /v1/workflows/{workflow_key}/versions/{version} removed the required property `definition/steps/items/template` from the response with the `200` status
+POST /v1/events added the new `send_at_ignored` enum value to the `oneOf[#/components/schemas/BatchResult]/results/items/event/warnings/items/code` response property for the response status `202`
+POST /v1/events added the new `send_at_ignored` enum value to the `oneOf[#/components/schemas/EventAccepted]/warnings/items/code` response property for the response status `202`
+POST /v1/events added the new `send_at_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `207`
+POST /v1/events added the new `send_at_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `422`
+POST /v1/events/batch added the new `send_at_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `202`
+POST /v1/events/batch added the new `send_at_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `207`
+POST /v1/events/batch added the new `send_at_ignored` enum value to the `results/items/event/warnings/items/code` response property for the response status `422`
+POST /v1/workflows/{workflow_key}/test added the new `send_at_ignored` enum value to the `warnings/items/code` response property for the response status `202`

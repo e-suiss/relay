@@ -1,0 +1,388 @@
+{
+  "version": "relay.rrule.v1",
+  "notes": "WF-61 subset expanded from a local DTSTART in an IANA zone. A nonexistent local time moves forward to the first valid instant after the gap; an ambiguous one is its first (earlier) instant. DTSTART counts only when it matches the rule. at is UTC.",
+  "expansions": [
+    {
+      "id": "R1",
+      "rrule": "FREQ=DAILY;BYHOUR=2;BYMINUTE=30;COUNT=4",
+      "dtstart": "2026-03-27T02:30:00",
+      "zone": "Europe/Berlin",
+      "limit": 10,
+      "note": "spring forward gap on 2026-03-29",
+      "expected": [
+        {
+          "local": "2026-03-27T02:30:00",
+          "at": "2026-03-27T01:30:00Z"
+        },
+        {
+          "local": "2026-03-28T02:30:00",
+          "at": "2026-03-28T01:30:00Z"
+        },
+        {
+          "local": "2026-03-29T02:30:00",
+          "at": "2026-03-29T01:00:00Z"
+        },
+        {
+          "local": "2026-03-30T02:30:00",
+          "at": "2026-03-30T00:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "rrule": "FREQ=DAILY;BYHOUR=2;BYMINUTE=30;COUNT=3",
+      "dtstart": "2026-10-24T02:30:00",
+      "zone": "Europe/Berlin",
+      "limit": 10,
+      "note": "fall back overlap on 2026-10-25",
+      "expected": [
+        {
+          "local": "2026-10-24T02:30:00",
+          "at": "2026-10-24T00:30:00Z"
+        },
+        {
+          "local": "2026-10-25T02:30:00",
+          "at": "2026-10-25T00:30:00Z"
+        },
+        {
+          "local": "2026-10-26T02:30:00",
+          "at": "2026-10-26T01:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "rrule": "FREQ=WEEKLY;BYDAY=SU;BYHOUR=2;BYMINUTE=30",
+      "dtstart": "2026-03-01T02:30:00",
+      "zone": "America/New_York",
+      "limit": 3,
+      "note": "spring forward gap on 2026-03-08",
+      "expected": [
+        {
+          "local": "2026-03-01T02:30:00",
+          "at": "2026-03-01T07:30:00Z"
+        },
+        {
+          "local": "2026-03-08T02:30:00",
+          "at": "2026-03-08T07:00:00Z"
+        },
+        {
+          "local": "2026-03-15T02:30:00",
+          "at": "2026-03-15T06:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "rrule": "FREQ=WEEKLY;BYDAY=SU;BYHOUR=1;BYMINUTE=30;COUNT=3",
+      "dtstart": "2026-10-25T01:30:00",
+      "zone": "America/New_York",
+      "limit": 10,
+      "note": "fall back overlap on 2026-11-01",
+      "expected": [
+        {
+          "local": "2026-10-25T01:30:00",
+          "at": "2026-10-25T05:30:00Z"
+        },
+        {
+          "local": "2026-11-01T01:30:00",
+          "at": "2026-11-01T05:30:00Z"
+        },
+        {
+          "local": "2026-11-08T01:30:00",
+          "at": "2026-11-08T06:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "rrule": "FREQ=MONTHLY;BYDAY=-1FR;BYHOUR=9;BYMINUTE=0;COUNT=6",
+      "dtstart": "2026-01-01T09:00:00",
+      "zone": "America/New_York",
+      "limit": 10,
+      "expected": [
+        {
+          "local": "2026-01-30T09:00:00",
+          "at": "2026-01-30T14:00:00Z"
+        },
+        {
+          "local": "2026-02-27T09:00:00",
+          "at": "2026-02-27T14:00:00Z"
+        },
+        {
+          "local": "2026-03-27T09:00:00",
+          "at": "2026-03-27T13:00:00Z"
+        },
+        {
+          "local": "2026-04-24T09:00:00",
+          "at": "2026-04-24T13:00:00Z"
+        },
+        {
+          "local": "2026-05-29T09:00:00",
+          "at": "2026-05-29T13:00:00Z"
+        },
+        {
+          "local": "2026-06-26T09:00:00",
+          "at": "2026-06-26T13:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "R6",
+      "rrule": "FREQ=MONTHLY;INTERVAL=2;BYMONTHDAY=-1;BYHOUR=18;BYMINUTE=0;COUNT=5",
+      "dtstart": "2026-01-15T08:00:00",
+      "zone": "Europe/Berlin",
+      "limit": 10,
+      "expected": [
+        {
+          "local": "2026-01-31T18:00:00",
+          "at": "2026-01-31T17:00:00Z"
+        },
+        {
+          "local": "2026-03-31T18:00:00",
+          "at": "2026-03-31T16:00:00Z"
+        },
+        {
+          "local": "2026-05-31T18:00:00",
+          "at": "2026-05-31T16:00:00Z"
+        },
+        {
+          "local": "2026-07-31T18:00:00",
+          "at": "2026-07-31T16:00:00Z"
+        },
+        {
+          "local": "2026-09-30T18:00:00",
+          "at": "2026-09-30T16:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "R7",
+      "rrule": "FREQ=MONTHLY;COUNT=6",
+      "dtstart": "2026-01-31T10:00:00",
+      "zone": "Europe/Berlin",
+      "limit": 10,
+      "note": "months without a 31st have no occurrence",
+      "expected": [
+        {
+          "local": "2026-01-31T10:00:00",
+          "at": "2026-01-31T09:00:00Z"
+        },
+        {
+          "local": "2026-03-31T10:00:00",
+          "at": "2026-03-31T08:00:00Z"
+        },
+        {
+          "local": "2026-05-31T10:00:00",
+          "at": "2026-05-31T08:00:00Z"
+        },
+        {
+          "local": "2026-07-31T10:00:00",
+          "at": "2026-07-31T08:00:00Z"
+        },
+        {
+          "local": "2026-08-31T10:00:00",
+          "at": "2026-08-31T08:00:00Z"
+        },
+        {
+          "local": "2026-10-31T10:00:00",
+          "at": "2026-10-31T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "R8",
+      "rrule": "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE,FR;COUNT=7",
+      "dtstart": "2026-11-11T07:15:00",
+      "zone": "Europe/Berlin",
+      "limit": 10,
+      "note": "DTSTART on a Wednesday counts because it matches",
+      "expected": [
+        {
+          "local": "2026-11-11T07:15:00",
+          "at": "2026-11-11T06:15:00Z"
+        },
+        {
+          "local": "2026-11-13T07:15:00",
+          "at": "2026-11-13T06:15:00Z"
+        },
+        {
+          "local": "2026-11-23T07:15:00",
+          "at": "2026-11-23T06:15:00Z"
+        },
+        {
+          "local": "2026-11-25T07:15:00",
+          "at": "2026-11-25T06:15:00Z"
+        },
+        {
+          "local": "2026-11-27T07:15:00",
+          "at": "2026-11-27T06:15:00Z"
+        },
+        {
+          "local": "2026-12-07T07:15:00",
+          "at": "2026-12-07T06:15:00Z"
+        },
+        {
+          "local": "2026-12-09T07:15:00",
+          "at": "2026-12-09T06:15:00Z"
+        }
+      ]
+    },
+    {
+      "id": "R9",
+      "rrule": "FREQ=DAILY;INTERVAL=3;UNTIL=20261120T080000Z",
+      "dtstart": "2026-11-11T09:00:00",
+      "zone": "Europe/Berlin",
+      "limit": 10,
+      "expected": [
+        {
+          "local": "2026-11-11T09:00:00",
+          "at": "2026-11-11T08:00:00Z"
+        },
+        {
+          "local": "2026-11-14T09:00:00",
+          "at": "2026-11-14T08:00:00Z"
+        },
+        {
+          "local": "2026-11-17T09:00:00",
+          "at": "2026-11-17T08:00:00Z"
+        },
+        {
+          "local": "2026-11-20T09:00:00",
+          "at": "2026-11-20T08:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "R10",
+      "rrule": "FREQ=MONTHLY;BYDAY=2TU;BYHOUR=8;BYMINUTE=0;COUNT=4",
+      "dtstart": "2026-02-10T08:00:00",
+      "zone": "America/New_York",
+      "limit": 10,
+      "note": "DST starts between the February and March occurrences",
+      "expected": [
+        {
+          "local": "2026-02-10T08:00:00",
+          "at": "2026-02-10T13:00:00Z"
+        },
+        {
+          "local": "2026-03-10T08:00:00",
+          "at": "2026-03-10T12:00:00Z"
+        },
+        {
+          "local": "2026-04-14T08:00:00",
+          "at": "2026-04-14T12:00:00Z"
+        },
+        {
+          "local": "2026-05-12T08:00:00",
+          "at": "2026-05-12T12:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "R11",
+      "rrule": "FREQ=WEEKLY;BYDAY=TU;COUNT=2",
+      "dtstart": "2026-11-11T09:00:00",
+      "zone": "Europe/Berlin",
+      "limit": 10,
+      "note": "DTSTART on a Wednesday does not match BYDAY=TU",
+      "expected": [
+        {
+          "local": "2026-11-17T09:00:00",
+          "at": "2026-11-17T08:00:00Z"
+        },
+        {
+          "local": "2026-11-24T09:00:00",
+          "at": "2026-11-24T08:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "R12",
+      "rrule": "FREQ=DAILY;BYHOUR=2;BYMINUTE=0;COUNT=3",
+      "dtstart": "2026-03-28T02:00:00",
+      "zone": "Europe/Berlin",
+      "limit": 10,
+      "note": "02:00 is the first nonexistent minute",
+      "expected": [
+        {
+          "local": "2026-03-28T02:00:00",
+          "at": "2026-03-28T01:00:00Z"
+        },
+        {
+          "local": "2026-03-29T02:00:00",
+          "at": "2026-03-29T01:00:00Z"
+        },
+        {
+          "local": "2026-03-30T02:00:00",
+          "at": "2026-03-30T00:00:00Z"
+        }
+      ]
+    }
+  ],
+  "next": [
+    {
+      "id": "N1",
+      "rrule": "FREQ=DAILY;BYHOUR=9;BYMINUTE=0",
+      "dtstart": "2024-01-01T09:00:00",
+      "zone": "Europe/Berlin",
+      "after": "2026-07-01T12:00:00Z",
+      "expected": {
+        "local": "2026-07-02T09:00:00",
+        "at": "2026-07-02T07:00:00Z"
+      }
+    },
+    {
+      "id": "N2",
+      "rrule": "FREQ=WEEKLY;INTERVAL=3;BYDAY=TH",
+      "dtstart": "2025-01-02T17:00:00",
+      "zone": "America/New_York",
+      "after": "2026-11-11T00:00:00Z",
+      "expected": {
+        "local": "2026-11-26T17:00:00",
+        "at": "2026-11-26T22:00:00Z"
+      }
+    },
+    {
+      "id": "N3",
+      "rrule": "FREQ=MONTHLY;INTERVAL=5;BYMONTHDAY=28",
+      "dtstart": "2025-02-28T06:30:00",
+      "zone": "America/New_York",
+      "after": "2026-12-01T00:00:00Z",
+      "expected": {
+        "local": "2027-03-28T06:30:00",
+        "at": "2027-03-28T10:30:00Z"
+      }
+    },
+    {
+      "id": "N4",
+      "rrule": "FREQ=DAILY;COUNT=3",
+      "dtstart": "2026-11-01T10:00:00",
+      "zone": "Europe/Berlin",
+      "after": "2026-11-11T00:00:00Z",
+      "expected": null
+    },
+    {
+      "id": "N5",
+      "rrule": "FREQ=DAILY;BYHOUR=2;BYMINUTE=30",
+      "dtstart": "2026-01-01T02:30:00",
+      "zone": "Europe/Berlin",
+      "after": "2026-03-28T01:30:00Z",
+      "expected": {
+        "local": "2026-03-29T02:30:00",
+        "at": "2026-03-29T01:00:00Z"
+      }
+    },
+    {
+      "id": "N6",
+      "rrule": "FREQ=DAILY",
+      "dtstart": "2026-11-11T09:00:00",
+      "zone": "Europe/Berlin",
+      "after": "2026-11-11T08:00:00Z",
+      "expected": {
+        "local": "2026-11-12T09:00:00",
+        "at": "2026-11-12T08:00:00Z"
+      }
+    }
+  ]
+}

@@ -7,7 +7,7 @@ defmodule Relay.Ingest.Request do
   * `priority` is clamped to the class ceiling with a `priority_clamped` warning (API-22); `channels` only narrows the workflow's steps.
   * Raw provider blocks cannot set policy fields (`422 policy_field_not_overridable`, API-23). The provider and `overrides.email.from` are checked against the verified routes by the send operation (`403 channel_not_configured`).
   * A per-request `send_mode` is accepted only in the test environment (`403 auth_environment_mismatch`, API-62, API-76).
-  * A recipient is a plain identifier (it must exist), an object with only `id` (an inbox-only subscriber) or an object with contact details (an explicit upsert, API-21); a topic is refused until topics exist.
+  * A recipient is a plain identifier (it must exist), an object with only `id` (an inbox-only subscriber) or an object with contact details (an explicit upsert, API-21) or a topic (`{topic}`), which the send operation expands into its frozen subscribers (WF-52).
   * The sender's `interruption` is kept as sent; the push policy lowers it at send time (CH-65, CH-84). Every `links` `href` is an absolute `https` URI (`422 link_scheme_not_allowed`) and every `rel` is unique in the request (E-83).
   """
 
@@ -22,7 +22,10 @@ defmodule Relay.Ingest.Request do
                     time_sensitive time-sensitive urgency importance)
 
   @type target ::
-          {:require, String.t()} | {:inbox_only, String.t()} | {:implicit, String.t(), map()}
+          {:require, String.t()}
+          | {:inbox_only, String.t()}
+          | {:implicit, String.t(), map()}
+          | {:topic, String.t()}
   @type step :: %{key: String.t(), channel: String.t(), template: String.t(), skip: term()}
 
   # API-20
@@ -49,8 +52,7 @@ defmodule Relay.Ingest.Request do
       errors =
         data_errors(body) ++
           class_errors(body, class, times) ++
-          retention_errors(body, class, narrowed) ++
-          target_errors(Map.get(body, "to", [])) ++ rel_errors(Map.get(body, "links", []))
+          retention_errors(body, class, narrowed) ++ rel_errors(Map.get(body, "links", []))
 
       if errors == [] do
         {:ok,
@@ -64,6 +66,7 @@ defmodule Relay.Ingest.Request do
            dedup_key: Map.get(body, "dedup_key"),
            security_subtype: Map.get(body, "security_subtype"),
            on_expire: Map.get(body, "on_expire"),
+           timing_precision: Map.get(body, "timing_precision"),
            cancellation_key: Map.get(body, "cancellation_key"),
            retention_none: Map.get(body, "retention") == "none",
            metadata: Map.get(body, "metadata"),
@@ -269,15 +272,12 @@ defmodule Relay.Ingest.Request do
 
   defp retention_errors(_body, _class, _steps), do: []
 
-  defp target_errors(targets) do
-    for {%{"topic" => _topic}, index} <- Enum.with_index(targets),
-        do: field("/to/#{index}", "unsupported_value", "topics are not available yet")
-  end
-
   # API-21
+  # WF-51
   @doc "Classifies one recipient target of a send request."
   @spec target(String.t() | map()) :: target()
   def target(id) when is_binary(id), do: {:require, id}
+  def target(%{"topic" => key}) when is_binary(key), do: {:topic, key}
   def target(%{"id" => id} = object) when map_size(object) == 1, do: {:inbox_only, id}
   def target(%{"id" => id} = object), do: {:implicit, id, Map.delete(object, "id")}
 

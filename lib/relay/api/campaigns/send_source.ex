@@ -3,6 +3,7 @@ defmodule Relay.Api.Campaigns.SendSource do
   The fan-out source of a campaign stage (`source_kind` `campaign`, T-23): a page is the stage's members in identifier order inside the slice's range, and a sub-batch queues one `Relay.Api.Campaigns.SendJob` for its first and last member on the campaign's lane, in the sub-batch's transaction. A sub-batch of a campaign that is no longer running or paused queues nothing.
   """
 
+  alias Relay.Api.Campaigns
   alias Relay.Api.Campaigns.SendJob
   alias Relay.Api.Campaigns.Store
 
@@ -35,7 +36,7 @@ defmodule Relay.Api.Campaigns.SendSource do
   defp enqueue(scope, c, from, to, count) do
     args =
       scope
-      |> Relay.Api.Campaigns.job_args(c["id"])
+      |> Campaigns.job_args(c["id"])
       |> Map.merge(%{"from" => Relay.Id.to_string(from), "to" => Relay.Id.to_string(to)})
 
     job = %{

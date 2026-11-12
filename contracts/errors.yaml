@@ -470,6 +470,48 @@ codes:
     choice: false
     description: The workflow has no published version in this environment.
     type: "{base_url}/v1/errors/workflow_not_published"
+  - code: route_policy_not_found
+    family: workflow
+    status: 404
+    title: Route policy not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No route with this key exists in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/route_policy_not_found"
+    choice_note: "Resource lookup code; the per-resource name is chosen by the contract."
+  - code: route_policy_archived
+    family: workflow
+    status: 409
+    title: Route policy is archived
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The route is archived and can no longer be replaced or named as a category's default route."
+    type: "{base_url}/v1/errors/route_policy_archived"
+    choice_note: "Code name and status chosen by the contract."
+  - code: route_policy_in_use
+    family: workflow
+    status: 409
+    title: Route policy is in use
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "An active category names the route as its default route; change the category's default route before archiving it."
+    type: "{base_url}/v1/errors/route_policy_in_use"
+    choice_note: "Code name and status chosen by the contract."
   - code: event_type_not_mapped
     family: workflow
     status: 422
@@ -1702,6 +1744,49 @@ codes:
     description: "No raw data export with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404."
     type: "{base_url}/v1/errors/export_not_found"
     choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: recurrence_not_found
+    family: resource
+    status: 404
+    title: Recurrence rule not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No recurrence rule with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/recurrence_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: recurrence_closed
+    family: workflow
+    status: 409
+    title: Recurrence rule is over
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The recurrence rule is completed or cancelled; a rule that is over does not change (WF-49)."
+    type: "{base_url}/v1/errors/recurrence_closed"
+    choice_note: "Code name and status chosen by the contract."
+  - code: recurrence_limit_reached
+    family: workflow
+    status: 422
+    title: Recurrence rule limit reached
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - limit
+    choice: true
+    description: "The tenant environment already holds its limit of active recurrence rules (WF-61, 100000, POLICY DEFAULT). Cancel rules first."
+    type: "{base_url}/v1/errors/recurrence_limit_reached"
+    choice_note: "Code name and status chosen by the contract; the ceiling is POLICY DEFAULT (WF-61)."
   - code: campaign_not_found
     family: resource
     status: 404
@@ -1715,20 +1800,6 @@ codes:
     choice: true
     description: "No campaign with this identifier is visible in this tenant and environment. Resources of other tenants and environments also return 404."
     type: "{base_url}/v1/errors/campaign_not_found"
-    choice_note: "Campaign codes are chosen by the contract (API-35, WF-62)."
-  - code: campaign_topic_unavailable
-    family: workflow
-    status: 422
-    title: Topic audiences are not available
-    retryable: false
-    retry_after:
-      kind: none
-      seconds: null
-      max_seconds: null
-    extensions: []
-    choice: true
-    description: "The campaign's audience is a topic and topic expansion is not available yet; send a recipient list."
-    type: "{base_url}/v1/errors/campaign_topic_unavailable"
     choice_note: "Campaign codes are chosen by the contract (API-35, WF-62)."
   - code: campaign_samples_changed
     family: workflow
@@ -1857,3 +1928,62 @@ codes:
     description: "No sending domain of this tenant and environment has a reputation circuit that left ok. Resources of other tenants and environments also return 404."
     type: "{base_url}/v1/errors/email_reputation_not_found"
     choice_note: "Code name and status chosen by the contract (CH-87)."
+  - code: topic_not_found
+    family: resource
+    status: 404
+    title: Topic not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No topic with this key is visible in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/topic_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: topic_archived
+    family: resource
+    status: 409
+    title: Topic is archived
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The topic is archived: it takes no new subscription and no child topic, and a send naming it is refused with recipient_invalid."
+    type: "{base_url}/v1/errors/topic_archived"
+    choice_note: "Code name and status chosen by the contract (WF-51)."
+  - code: audience_too_large
+    family: recipient
+    status: 422
+    title: Audience is too large for an event
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions:
+      - limit
+      - actual
+    choice: true
+    description: "The recipients an event reaches, its direct recipients and the frozen subscribers of its topics counted once each, are more than x-relay-limits event.max_recipients. A larger list or topic audience is sent as a campaign (API-35)."
+    type: "{base_url}/v1/errors/audience_too_large"
+    choice_note: "Code name chosen by the contract; the bound is the event's recipient limit (WF-52, API-35)."
+
+  - code: throttle_not_found
+    family: resource
+    status: 404
+    title: Throttle not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No throttle key of this tenant and environment has an active window. Keys of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/throttle_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."

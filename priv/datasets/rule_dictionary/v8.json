@@ -1,5 +1,5 @@
 {
-  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-34; WF-44; WF-62; X-14",
+  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59; WF-52",
   "rules": [
     {
       "id": "admission.aimd.l2",
@@ -107,6 +107,20 @@
       }
     },
     {
+      "id": "audience.no_subscribers",
+      "reason": "no_subscribers",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-53",
+      "detail": [
+        "topic_ids"
+      ],
+      "description": {
+        "en": "Not sent to any topic subscriber because the topics of the send had no subscriber when it was accepted.",
+        "tr": "Gönderimin topic'lerinin kabul anında hiç abonesi olmadığı için hiçbir topic abonesine gönderilmedi."
+      }
+    },
+    {
       "id": "breaker.provider",
       "reason": "provider_unavailable",
       "kind": "shaper",
@@ -134,103 +148,6 @@
       "description": {
         "en": "The send waits because the circuit breaker of this tenant at the provider is open.",
         "tr": "Gönderim, bu kiracının sağlayıcıdaki devre kesicisi açık olduğu için bekliyor."
-      }
-    },
-    {
-      "id": "campaign.cancelled",
-      "reason": "campaign_cancelled",
-      "kind": "terminal",
-      "outcome": "cancel",
-      "decision": "WF-44",
-      "detail": [
-        "campaign_id"
-      ],
-      "description": {
-        "en": "Not sent because the campaign was cancelled before this recipient's turn.",
-        "tr": "Kampanya bu alıcının sırası gelmeden iptal edildiği için gönderilmedi."
-      }
-    },
-    {
-      "id": "campaign.deadline_expired",
-      "reason": "campaign_deadline",
-      "kind": "terminal",
-      "outcome": "expire",
-      "decision": "WF-34",
-      "detail": [
-        "campaign_id"
-      ],
-      "description": {
-        "en": "Not sent because the campaign reached its deadline before this recipient's turn; the send rate is never raised above the provider limits to meet it.",
-        "tr": "Kampanya bu alıcının sırası gelmeden son teslim tarihine ulaştığı için gönderilmedi; tarihe yetişmek için hız sağlayıcı limitinin üstüne çıkarılmaz."
-      }
-    },
-    {
-      "id": "campaign.preview_unavailable",
-      "reason": "input_unavailable",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "X-14",
-      "detail": [
-        "channel"
-      ],
-      "description": {
-        "en": "Counted as dropped in the campaign preview because a policy input could not be read during the dry run.",
-        "tr": "Kampanya önizlemesinde bir politika girdisi okunamadığı için düşmüş sayıldı."
-      }
-    },
-    {
-      "id": "campaign.quota_exhausted",
-      "reason": "quota",
-      "kind": "admission",
-      "outcome": "pause",
-      "decision": "WF-44",
-      "detail": [
-        "campaign_id"
-      ],
-      "description": {
-        "en": "The campaign paused because the tenant's quota is exhausted; a tenant administrator resumes it.",
-        "tr": "Kiracının kotası tükendiği için kampanya duraklatıldı; kiracı yöneticisi yeniden başlatır."
-      }
-    },
-    {
-      "id": "campaign.ramp_alarm",
-      "reason": "channel_alarm",
-      "kind": "gate",
-      "outcome": "pause",
-      "decision": "WF-62",
-      "detail": [
-        "campaign_id",
-        "channel"
-      ],
-      "description": {
-        "en": "The campaign paused by itself because a channel's permanent failure or complaint rate passed its alarm threshold; a tenant administrator resumes it.",
-        "tr": "Bir kanalın kalıcı hata ya da şikâyet oranı alarm eşiğini aştığı için kampanya kendiliğinden duraklatıldı; kiracı yöneticisi yeniden başlatır."
-      }
-    },
-    {
-      "id": "campaign.recipient_unavailable",
-      "reason": "recipient_unavailable",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "WF-44",
-      "detail": [],
-      "description": {
-        "en": "Not sent because the campaign recipient's subscriber no longer exists.",
-        "tr": "Kampanya alıcısının abonesi artık bulunmadığı için gönderilmedi."
-      }
-    },
-    {
-      "id": "campaign.workflow_changed",
-      "reason": "workflow_changed",
-      "kind": "gate",
-      "outcome": "pause",
-      "decision": "WF-44",
-      "detail": [
-        "campaign_id"
-      ],
-      "description": {
-        "en": "The campaign paused because the published workflow version is no longer the one its preparation froze.",
-        "tr": "Yayımlanmış workflow sürümü hazırlıkta dondurulan sürüm olmadığı için kampanya duraklatıldı."
       }
     },
     {
@@ -608,6 +525,82 @@
       }
     },
     {
+      "id": "content_dedup.same_content",
+      "reason": "duplicate_content",
+      "kind": "filter",
+      "outcome": "skip",
+      "decision": "WF-35",
+      "detail": [
+        "duplicate_of",
+        "window_ms"
+      ],
+      "description": {
+        "en": "Not sent because the same content went to the recipient on this channel a short while ago.",
+        "tr": "Aynı içerik kısa süre önce bu kanaldan alıcıya gittiği için gönderilmedi."
+      }
+    },
+    {
+      "id": "digest.density",
+      "reason": "digested",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "WF-30",
+      "detail": [
+        "category",
+        "limit",
+        "window"
+      ],
+      "description": {
+        "en": "Moved to a digest because the recipient received many notifications of this category in a short time.",
+        "tr": "Alıcı bu kategoride kısa sürede çok sayıda bildirim aldığı için özete alındı."
+      }
+    },
+    {
+      "id": "digest.folded",
+      "reason": "digested",
+      "kind": "shaper",
+      "outcome": "skip",
+      "decision": "PC-46",
+      "detail": [
+        "window_id",
+        "digest_of"
+      ],
+      "description": {
+        "en": "Not sent on its own because it went out inside a digest with another notification of this category.",
+        "tr": "Bu kategorideki başka bir bildirimle birlikte bir özetin içinde gönderildiği için ayrıca gönderilmedi."
+      }
+    },
+    {
+      "id": "digest.quiet_hours",
+      "reason": "digested",
+      "kind": "shaper",
+      "outcome": "defer",
+      "decision": "PC-46",
+      "detail": [
+        "category",
+        "channel",
+        "release_at"
+      ],
+      "description": {
+        "en": "Collected into one digest released when the recipient's quiet hours end.",
+        "tr": "Alıcının sessiz saati bittiğinde gönderilecek tek bir özette toplandı."
+      }
+    },
+    {
+      "id": "digest.read",
+      "reason": "digest_read",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "WF-27",
+      "detail": [
+        "window_id"
+      ],
+      "description": {
+        "en": "The pending digest was cancelled because the recipient already read these activities.",
+        "tr": "Alıcı bu etkinlikleri zaten okuduğu için bekleyen özet iptal edildi."
+      }
+    },
+    {
       "id": "dnd.deferred",
       "reason": "dnd",
       "kind": "shaper",
@@ -634,6 +627,20 @@
       "description": {
         "en": "Postponed because the reputation circuit of the sending domain is stopped until a tenant administrator closes it.",
         "tr": "Gönderim alan adının itibar devresi durdurulduğu için, kiracı yöneticisi devreyi kapatana kadar ertelendi."
+      }
+    },
+    {
+      "id": "escalation.stopped",
+      "reason": "escalation_stopped",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "WF-21",
+      "detail": [
+        "signal"
+      ],
+      "description": {
+        "en": "The remaining escalation steps were cancelled because the recipient engaged with the notification.",
+        "tr": "Alıcı bildirimle etkileşime geçtiği için kalan yükseltme basamakları iptal edildi."
       }
     },
     {
@@ -1149,6 +1156,52 @@
       }
     },
     {
+      "id": "recurrence.audience_too_large",
+      "reason": "audience_too_large",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-52",
+      "detail": [
+        "recurrence_id",
+        "topic"
+      ],
+      "description": {
+        "en": "Not sent because the topic of the recurring notification has more subscribers than one event can reach.",
+        "tr": "Tekrar eden bildirimin topic'inde bir olayın ulaşabileceğinden fazla abone olduğu için gönderilmedi."
+      }
+    },
+    {
+      "id": "recurrence.missed",
+      "reason": "recurrence_missed",
+      "kind": "shaper",
+      "outcome": "skip",
+      "decision": "WF-61",
+      "detail": [
+        "recurrence_id",
+        "occurrence_at"
+      ],
+      "description": {
+        "en": "Not sent because this occurrence of the recurring notification fell due while it could not run and a later occurrence was also due, or it was more than an hour late.",
+        "tr": "Tekrar eden bildirimin bu tekrarı çalıştırılamadığı sırada zamanı geldiği ve ardından bir tekrar daha geldiği ya da bir saatten fazla geciktiği için gönderilmedi."
+      }
+    },
+    {
+      "id": "recurrence.topic_unavailable",
+      "reason": "target_unavailable",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-48",
+      "detail": [
+        "recurrence_id",
+        "topic"
+      ],
+      "description": {
+        "en": "Not sent because sending a recurring notification to a topic is not available yet.",
+        "tr": "Tekrar eden bildirimin topic'e gönderimi henüz kullanılamadığı için gönderilmedi."
+      },
+      "deprecated": true
+    },
+    {
       "id": "retry.budget_denied",
       "reason": "budget_denied",
       "kind": "terminal",
@@ -1230,6 +1283,48 @@
       "description": {
         "en": "Not retried because the outcome of the last attempt is unknown.",
         "tr": "Son denemenin sonucu bilinmediği için yeniden denenmedi."
+      }
+    },
+    {
+      "id": "route.channel_locked",
+      "reason": "channel_locked",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "PC-10",
+      "detail": [
+        "channel"
+      ],
+      "description": {
+        "en": "The channel was skipped because it cannot pass the gate of a locked category; the route moved on to the next channel.",
+        "tr": "Kanal kilitli kategorinin kapısından geçemediği için atlandı; rota sıradaki kanala geçti."
+      }
+    },
+    {
+      "id": "route.exhausted",
+      "reason": "route_exhausted",
+      "kind": "terminal",
+      "outcome": "fail",
+      "decision": "WF-15",
+      "detail": [
+        "route"
+      ],
+      "description": {
+        "en": "Not sent because every channel of the route failed permanently or was skipped.",
+        "tr": "Rotadaki her kanal kalıcı olarak başarısız olduğu ya da atlandığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "route.not_found",
+      "reason": "route_not_found",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-14",
+      "detail": [
+        "route"
+      ],
+      "description": {
+        "en": "Not sent because the route the step or its category names does not exist or is archived.",
+        "tr": "Adımın ya da kategorisinin adlandırdığı rota bulunmadığı ya da arşivlendiği için gönderilmedi."
       }
     },
     {
@@ -1443,6 +1538,22 @@
       }
     },
     {
+      "id": "throttle.limited",
+      "reason": "throttled",
+      "kind": "shaper",
+      "outcome": "skip",
+      "decision": "WF-32",
+      "detail": [
+        "key",
+        "limit",
+        "window_end"
+      ],
+      "description": {
+        "en": "Not sent because the throttle of this key had reached its limit in the current window.",
+        "tr": "Bu anahtarın throttle sınırı geçerli pencerede dolduğu için gönderilmedi."
+      }
+    },
+    {
       "id": "waitpoint.closed",
       "reason": "waitpoint_unmatched",
       "kind": "gate",
@@ -1527,6 +1638,64 @@
       "description": {
         "en": "Not sent because the recipient's 24-hour WhatsApp customer service window is closed and the content has no approved template.",
         "tr": "Alıcının 24 saatlik WhatsApp müşteri hizmeti penceresi kapalı olduğu ve içerikte onaylı şablon bulunmadığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "workflow_run.delay_out_of_range",
+      "reason": "delay_out_of_range",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "WF-37",
+      "detail": [
+        "step",
+        "until"
+      ],
+      "description": {
+        "en": "The workflow stopped because its delay step would wait more than 90 days.",
+        "tr": "Workflow, bekle adımı 90 günden uzun bekleyeceği için durdu."
+      }
+    },
+    {
+      "id": "workflow_run.delay_until_missing",
+      "reason": "delay_until_missing",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "WF-59",
+      "detail": [
+        "step"
+      ],
+      "description": {
+        "en": "The workflow stopped because the event has no readable time for its delay step.",
+        "tr": "Workflow, olayda bekle adımı için okunabilir bir zaman olmadığı için durdu."
+      }
+    },
+    {
+      "id": "workflow_run.route_unavailable",
+      "reason": "route_unavailable",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-13",
+      "detail": [
+        "step"
+      ],
+      "description": {
+        "en": "Not sent because this step's route policy cannot be evaluated yet.",
+        "tr": "Bu adımın rota politikası henüz değerlendirilemediği için gönderilmedi."
+      }
+    },
+    {
+      "id": "workflow_run.step_unavailable",
+      "reason": "step_unavailable",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "WF-8",
+      "detail": [
+        "step",
+        "type"
+      ],
+      "description": {
+        "en": "This workflow step was skipped because its step type is not available yet.",
+        "tr": "Bu workflow adımı, adım türü henüz kullanılamadığı için atlandı."
       }
     }
   ]

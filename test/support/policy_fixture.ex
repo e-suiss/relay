@@ -53,6 +53,8 @@ defmodule Relay.Policy.Fixture do
         security_subtype: nil,
         priority: nil,
         expires_at: DateTime.add(now(), 1, :day),
+        on_expire: :drop,
+        timing_precision: :jittered,
         workflow_key: "order-shipped",
         scope_key: nil,
         sender_kind: :system,

@@ -134,7 +134,8 @@ defmodule Relay.Ingest.EventStore do
   # E-83
   # API-23
   # E-85
-  @doc "Records an accepted event with its encrypted payload, the sender's `interruption`, its encrypted `links`, the request's encrypted channel overrides and the sender's `correlation_id` and `item`."
+  # WF-58
+  @doc "Records an accepted event with its encrypted payload, the sender's `interruption`, its encrypted `links`, the request's encrypted channel overrides, the sender's `correlation_id` and `item` and, for `timing_precision: strict`, its precision (`relay_fn.event_timing_precision_set`, in the same transaction)."
   @spec event_accept(map()) :: {atom(), Relay.Id.t() | nil, DateTime.t() | nil}
   def event_accept(e) do
     [row] =
@@ -172,16 +173,27 @@ defmodule Relay.Ingest.EventStore do
         Map.get(e, :item)
       ])
 
-    {Repo.code!(row["result"], [
-       :accepted,
-       :tenant_inactive,
-       :workflow_not_published,
-       :version_not_current,
-       :send_mode_not_allowed,
-       :send_at_invalid,
-       :subtenant_suspended
-     ]), row["event_id"], row["created_at"]}
+    code =
+      Repo.code!(row["result"], [
+        :accepted,
+        :tenant_inactive,
+        :workflow_not_published,
+        :version_not_current,
+        :send_mode_not_allowed,
+        :send_at_invalid,
+        :subtenant_suspended
+      ])
+
+    timing({code, row["event_id"], row["created_at"]}, Map.get(e, :timing_precision))
   end
+
+  defp timing({:accepted, id, _at} = result, "strict") do
+    [row] = Repo.call!("relay_fn.event_timing_precision_set", [id, "strict"])
+    _set = Repo.code!(row["event_timing_precision_set"], [:set, :unchanged, :not_found])
+    result
+  end
+
+  defp timing(result, _precision), do: result
 
   # API-26
   @doc "Clears the event data of a `security_subtype` or `retention: none` event once all its deliveries are terminal."
@@ -402,6 +414,23 @@ defmodule Relay.Ingest.EventStore do
       )
 
     id
+  end
+
+  # WF-59 (5)
+  @doc "Reads the sealed data of an event (`data_ct`, `key_id` and `erased_at` of its payload), or `nil`."
+  @spec event_data(Relay.Id.t()) :: map() | nil
+  def event_data(event_id) do
+    one(
+      """
+      SELECT e.tenant_id, e.environment, p.data_ct, p.key_id, p.erased_at
+      FROM relay.events e
+      LEFT JOIN relay.event_payloads p ON p.tenant_id = e.tenant_id
+        AND p.environment = e.environment AND p.event_id = e.id
+        AND p.created_at = e.payload_created_at
+      WHERE e.id = $1
+      """,
+      [event_id]
+    )
   end
 
   @doc "Reads an event with its workflow reference and the notifications it accepted, or `nil`."

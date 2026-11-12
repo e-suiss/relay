@@ -291,6 +291,18 @@ defmodule RelayWeb.Router do
 
     get "/exports/:export_id", ExportController, :show, private: %{relay_operation: "getExport"}
 
+    get "/recurrences", RecurrenceController, :index,
+      private: %{relay_operation: "listRecurrences"}
+
+    post "/recurrences", RecurrenceController, :create,
+      private: %{relay_operation: "createRecurrence"}
+
+    get "/recurrences/:recurrence_id", RecurrenceController, :show,
+      private: %{relay_operation: "getRecurrence"}
+
+    post "/recurrences/:recurrence_id/cancel", RecurrenceController, :cancel,
+      private: %{relay_operation: "cancelRecurrence"}
+
     get "/sender_identities", ChannelController, :senders,
       private: %{relay_operation: "listSenderIdentities"}
 
@@ -366,6 +378,16 @@ defmodule RelayWeb.Router do
     post "/suppressions/:suppression_id/lift", SuppressionController, :lift,
       private: %{relay_operation: "liftSuppression"}
 
+    get "/routes", RouteController, :index, private: %{relay_operation: "listRoutes"}
+    post "/routes", RouteController, :create, private: %{relay_operation: "createRoute"}
+    get "/routes/:route_key", RouteController, :show, private: %{relay_operation: "getRoute"}
+
+    put "/routes/:route_key", RouteController, :replace,
+      private: %{relay_operation: "replaceRoute"}
+
+    post "/routes/:route_key/archive", RouteController, :archive,
+      private: %{relay_operation: "archiveRoute"}
+
     get "/workflows", WorkflowController, :index, private: %{relay_operation: "listWorkflows"}
     post "/workflows", WorkflowController, :create, private: %{relay_operation: "createWorkflow"}
 
@@ -378,11 +400,17 @@ defmodule RelayWeb.Router do
     post "/workflows/:workflow_key/publish", WorkflowController, :publish,
       private: %{relay_operation: "publishWorkflow"}
 
+    post "/workflows/:workflow_key/manager", WorkflowController, :set_manager,
+      private: %{relay_operation: "setWorkflowManager"}
+
     get "/workflows/:workflow_key/versions", WorkflowController, :versions,
       private: %{relay_operation: "listWorkflowVersions"}
 
     get "/workflows/:workflow_key/versions/:version", WorkflowController, :version,
       private: %{relay_operation: "getWorkflowVersion"}
+
+    get "/workflows/:workflow_key/versions/:version/mermaid", WorkflowController, :mermaid,
+      private: %{relay_operation: "getWorkflowVersionMermaid"}
 
     post "/workflows/:workflow_key/versions/:version/promote", WorkflowController, :promote,
       private: %{relay_operation: "promoteWorkflowVersion"}
@@ -393,6 +421,9 @@ defmodule RelayWeb.Router do
     post "/workflows/:workflow_key/test", WorkflowController, :test_send,
       private: %{relay_operation: "sendWorkflowTest"}
 
+    post "/throttles/:throttle_key/reset", ThrottleController, :reset,
+      private: %{relay_operation: "resetThrottle"}
+
     get "/test_recipients", TesterController, :index,
       private: %{relay_operation: "listTestRecipients"}
 
@@ -401,6 +432,26 @@ defmodule RelayWeb.Router do
 
     post "/test_recipients/:test_recipient_id/remove", TesterController, :remove,
       private: %{relay_operation: "removeTestRecipient"}
+
+    # WF-51
+    get "/topics", TopicController, :index, private: %{relay_operation: "listTopics"}
+    post "/topics", TopicController, :create, private: %{relay_operation: "createTopic"}
+    get "/topics/:topic_key", TopicController, :show, private: %{relay_operation: "getTopic"}
+
+    post "/topics/:topic_key/archive", TopicController, :archive,
+      private: %{relay_operation: "archiveTopic"}
+
+    get "/topics/:topic_key/subscriptions", TopicController, :subscriptions,
+      private: %{relay_operation: "listTopicSubscriptions"}
+
+    post "/topics/:topic_key/subscriptions", TopicController, :subscribe,
+      private: %{relay_operation: "addTopicSubscriptions"}
+
+    post "/topics/:topic_key/subscriptions/remove", TopicController, :unsubscribe,
+      private: %{relay_operation: "removeTopicSubscriptions"}
+
+    get "/subscribers/:subscriber_id/subscriptions", TopicController, :subscriber,
+      private: %{relay_operation: "listSubscriberSubscriptions"}
 
     get "/templates", TemplateController, :index, private: %{relay_operation: "listTemplates"}
     post "/templates", TemplateController, :create, private: %{relay_operation: "createTemplate"}
@@ -497,6 +548,12 @@ defmodule RelayWeb.Router do
 
     put "/delivery_windows", DeliveryWindowsController, :replace,
       private: %{relay_operation: "replaceDeliveryWindows"}
+
+    get "/timing_settings", TimingSettingsController, :show,
+      private: %{relay_operation: "getTimingSettings"}
+
+    put "/timing_settings", TimingSettingsController, :replace,
+      private: %{relay_operation: "setTimingSettings"}
 
     get "/event_type_mappings", MappingController, :index,
       private: %{relay_operation: "listEventTypeMappings"}

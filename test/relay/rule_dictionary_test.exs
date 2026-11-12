@@ -5,8 +5,8 @@ defmodule Relay.RuleDictionaryTest do
   alias Relay.RuleDictionary
 
   @events "contracts/asyncapi/events.yaml"
-  @settings ~w(send_mode.category. send_mode.channel. email.tracking.category.
-               email.tracking.template.t_)
+  @settings ~w(send_mode.category. send_mode.channel. send_mode.workflow.
+               email.tracking.category. email.tracking.template.t_)
   @double ~r/"([a-z][a-z0-9_]*\.(?:[a-z0-9_.:-]|#\{[^}"]*\})*)"(\s*(?:<>|\|\|))?/
   @single ~r/'([a-z][a-z0-9_]*\.[a-z0-9_.:-]*)'(\s*(?:<>|\|\|))?/
   @file_name ~r/\.(ya?ml|json|exs?|sql|md|txt)$/

@@ -201,6 +201,8 @@ channels:
         "$ref": "#/components/messages/audit.workflow.publication_requested"
       audit.workflow.promoted:
         "$ref": "#/components/messages/audit.workflow.promoted"
+      audit.workflow.manager_changed:
+        "$ref": "#/components/messages/audit.workflow.manager_changed"
       audit.event_type_mapping.changed:
         "$ref": "#/components/messages/audit.event_type_mapping.changed"
       audit.send_mode.changed:
@@ -299,6 +301,12 @@ channels:
         "$ref": "#/components/messages/audit.category.archived"
       audit.category_subtenant_setting.changed:
         "$ref": "#/components/messages/audit.category_subtenant_setting.changed"
+      audit.route.created:
+        "$ref": "#/components/messages/audit.route.created"
+      audit.route.replaced:
+        "$ref": "#/components/messages/audit.route.replaced"
+      audit.route.archived:
+        "$ref": "#/components/messages/audit.route.archived"
       audit.suppression.added:
         "$ref": "#/components/messages/audit.suppression.added"
       audit.suppression.lifted:
@@ -311,6 +319,14 @@ channels:
         "$ref": "#/components/messages/audit.test_recipient.verified"
       audit.test_recipient.removed:
         "$ref": "#/components/messages/audit.test_recipient.removed"
+      audit.topic.created:
+        "$ref": "#/components/messages/audit.topic.created"
+      audit.topic.archived:
+        "$ref": "#/components/messages/audit.topic.archived"
+      audit.topic.subscribed:
+        "$ref": "#/components/messages/audit.topic.subscribed"
+      audit.topic.unsubscribed:
+        "$ref": "#/components/messages/audit.topic.unsubscribed"
       audit.template.created:
         "$ref": "#/components/messages/audit.template.created"
       audit.template.updated:
@@ -387,6 +403,12 @@ channels:
         "$ref": "#/components/messages/audit.export.requested"
       audit.provider_invoice.recorded:
         "$ref": "#/components/messages/audit.provider_invoice.recorded"
+      audit.recurrence.cancelled:
+        "$ref": "#/components/messages/audit.recurrence.cancelled"
+      audit.recurrence.created:
+        "$ref": "#/components/messages/audit.recurrence.created"
+      audit.throttle.reset:
+        "$ref": "#/components/messages/audit.throttle.reset"
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
@@ -533,6 +555,7 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.workflow.drafted"
       - "$ref": "#/channels/auditLog/messages/audit.workflow.publication_requested"
       - "$ref": "#/channels/auditLog/messages/audit.workflow.promoted"
+      - "$ref": "#/channels/auditLog/messages/audit.workflow.manager_changed"
       - "$ref": "#/channels/auditLog/messages/audit.event_type_mapping.changed"
       - "$ref": "#/channels/auditLog/messages/audit.send_mode.changed"
       - "$ref": "#/channels/auditLog/messages/audit.quota_policy.changed"
@@ -582,12 +605,19 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.category.lock_changed"
       - "$ref": "#/channels/auditLog/messages/audit.category.archived"
       - "$ref": "#/channels/auditLog/messages/audit.category_subtenant_setting.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.route.created"
+      - "$ref": "#/channels/auditLog/messages/audit.route.replaced"
+      - "$ref": "#/channels/auditLog/messages/audit.route.archived"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.added"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.lifted"
       - "$ref": "#/channels/auditLog/messages/audit.email_reputation.closed"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.added"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.verified"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.removed"
+      - "$ref": "#/channels/auditLog/messages/audit.topic.created"
+      - "$ref": "#/channels/auditLog/messages/audit.topic.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.topic.subscribed"
+      - "$ref": "#/channels/auditLog/messages/audit.topic.unsubscribed"
       - "$ref": "#/channels/auditLog/messages/audit.template.created"
       - "$ref": "#/channels/auditLog/messages/audit.template.updated"
       - "$ref": "#/channels/auditLog/messages/audit.template.drafted"
@@ -626,6 +656,9 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.campaign.cancelled"
       - "$ref": "#/channels/auditLog/messages/audit.export.requested"
       - "$ref": "#/channels/auditLog/messages/audit.export.downloaded"
+      - "$ref": "#/channels/auditLog/messages/audit.recurrence.created"
+      - "$ref": "#/channels/auditLog/messages/audit.recurrence.cancelled"
+      - "$ref": "#/channels/auditLog/messages/audit.throttle.reset"
   receiveAccessInbound:
     action: receive
     channel:
@@ -3640,6 +3673,22 @@ components:
                   const: workflow_version
       x-relay-surface: audit
       x-relay-stage: 3
+    audit.workflow.manager_changed:
+      name: workflow.manager_changed
+      title: workflow.manager_changed
+      summary: "The single manager of a workflow was changed between panel and code (WF-4)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: workflow
+      x-relay-surface: audit
+      x-relay-stage: 8
     audit.event_type_mapping.changed:
       name: event_type_mapping.changed
       title: event_type_mapping.changed
@@ -5176,6 +5225,60 @@ components:
       x-relay-stage: 4
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.route.created:
+      name: route.created
+      title: route.created
+      summary: "A named route was created with its tree."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: route
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.route.replaced:
+      name: route.replaced
+      title: route.replaced
+      summary: "The name or tree of a named route was replaced; the change applies to decisions made after it."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: route
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.route.archived:
+      name: route.archived
+      title: route.archived
+      summary: "A named route was archived; the row stays."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: route
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.category_subtenant_setting.changed:
       name: category_subtenant_setting.changed
       title: category_subtenant_setting.changed
@@ -5282,6 +5385,78 @@ components:
                   const: test_recipient
       x-relay-surface: audit
       x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.topic.created:
+      name: topic.created
+      title: topic.created
+      summary: "A topic was created (WF-51)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: topic
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.topic.archived:
+      name: topic.archived
+      title: topic.archived
+      summary: "A topic was archived; it and its subscriptions are kept."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: topic
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.topic.subscribed:
+      name: topic.subscribed
+      title: topic.subscribed
+      summary: "Subscribers were subscribed to a topic in one request."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: topic
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.topic.unsubscribed:
+      name: topic.unsubscribed
+      title: topic.unsubscribed
+      summary: "Subscribers were unsubscribed from a topic in one request; the subscriptions are kept as removed."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: topic
+      x-relay-surface: audit
+      x-relay-stage: 8
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.template.created:
@@ -5982,6 +6157,42 @@ components:
       x-relay-stage: 7
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.recurrence.created:
+      name: recurrence.created
+      title: recurrence.created
+      summary: "A recurrence rule was defined (WF-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: recurrence
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.recurrence.cancelled:
+      name: recurrence.cancelled
+      title: recurrence.cancelled
+      summary: "A recurrence rule was cancelled, by request or because its subscriber was erased (WF-49, OP-24); the reason is request or subject_erasure."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: recurrence
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.export.downloaded:
       name: export.downloaded
       title: export.downloaded
@@ -6432,6 +6643,24 @@ components:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "CH-61 warns the tenant at 90 percent of the tier; the event name and fields are chosen by the contract."
+    audit.throttle.reset:
+      name: throttle.reset
+      title: throttle.reset
+      summary: "An active throttle counter was reset through the API (WF-32, API-69)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: throttle
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
 x-relay-event-names:
   - address.disabled
   - agent.ceiling_exceeded
@@ -6537,8 +6766,13 @@ x-relay-event-names:
   - quota.reserve_opened
   - quota.threshold_reached
   - quota_policy.changed
+  - recurrence.cancelled
+  - recurrence.created
   - role_assignment.created
   - role_assignment.revoked
+  - route.archived
+  - route.created
+  - route.replaced
   - secret_ref.registered
   - secret_ref.retired
   - send_mode.changed
@@ -6578,6 +6812,11 @@ x-relay-event-names:
   - test_recipient.added
   - test_recipient.removed
   - test_recipient.verified
+  - throttle.reset
+  - topic.archived
+  - topic.created
+  - topic.subscribed
+  - topic.unsubscribed
   - user.deleted
   - user.reactivated
   - user.suspended
@@ -6599,6 +6838,7 @@ x-relay-event-names:
   - whatsapp_tier.threshold_reached
   - workflow.created
   - workflow.drafted
+  - workflow.manager_changed
   - workflow.promoted
   - workflow.publication_requested
   - workflow.published

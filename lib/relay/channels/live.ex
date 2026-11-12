@@ -248,7 +248,14 @@ defmodule Relay.Channels.Live do
   defp installation(_scope, _delivery, accounts), do: {:ok, accounts}
 
   defp settings(scope, delivery) do
-    keys = [@domestic | Relay.Ingest.send_mode_keys(category(delivery), delivery["channel"])]
+    keys = [
+      @domestic
+      | Relay.Ingest.send_mode_keys(
+          delivery["workflow_key"],
+          category(delivery),
+          delivery["channel"]
+        )
+    ]
 
     case Store.in_scope(scope, fn _ -> Store.settings(keys) end) do
       {:ok, settings} -> settings
@@ -271,7 +278,10 @@ defmodule Relay.Channels.Live do
       end
 
     mode = delivery["send_mode"]
-    Relay.Ingest.send_mode(mode, settings, category(delivery), channel, installation) == :shadow
+    workflow = delivery["workflow_key"]
+
+    Relay.Ingest.send_mode(mode, settings, workflow, category(delivery), channel, installation) ==
+      :shadow
   end
 
   # CH-13

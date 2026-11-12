@@ -5,7 +5,7 @@ defmodule Relay.Policy.Engine do
   1. Gates, which nothing passes (INV-15): kill switch and tenant suspension (1a), suppression (1b), refusal (1c), compliance (1d), the channel's technical state and the OTP subtype channel rule (1e), sub-tenant scope (1f).
   2. Exemption: a locked category skips the filters, never a gate. `security` is always locked; `system` has no preference surface.
   3. Filters, all of which must allow: the tenant's category switch (3a), the category × channel value or its default (3b, which a `scope_key` value overrides), the general channel switch, the workflow value (3c), a `scope_key` mute (3d) and, for `action_required`, which is never deferred, the weekly availability schedule (3e).
-  4. Expiry: a delivery at or past `expires_at` expires.
+  4. Expiry: a delivery at or past `expires_at` expires; a `security` notification sent with `on_expire: inbox_only` keeps only its `in_app` delivery, which lands in the inbox (WF-39).
   5. Shapers, for `transactional`, `operational`, `social` and `marketing` only: the availability schedule, the tenant zone window of PC-48, quiet hours, `dnd_until`, then the frequency cap. A blocked delivery is deferred to the next allowed instant within eight days and before `expires_at`, plus the WF-42 release jitter, or expires when there is none (PC-46).
 
   Results:
@@ -257,6 +257,13 @@ defmodule Relay.Policy.Engine do
   # PC-49
   # WF-38
   defp expiry(%{notification: %{expires_at: nil}}), do: :pass
+
+  # WF-39
+  defp expiry(%{
+         channel: :in_app,
+         notification: %{message_class: :security, on_expire: :inbox_only}
+       }),
+       do: :pass
 
   defp expiry(%{notification: %{expires_at: expires_at}, now: now}) do
     if DateTime.compare(now, expires_at) == :lt,

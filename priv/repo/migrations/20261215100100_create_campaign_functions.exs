@@ -162,7 +162,7 @@ defmodule Relay.Repo.Migrations.CreateCampaignFunctions do
         RETURN QUERY SELECT 'not_found'::text, 0::bigint, 0::bigint;
         RETURN;
       END IF;
-      IF v_row.state <> 'draft' OR v_row.audience_kind <> 'list' THEN
+      IF v_row.state <> 'draft' THEN
         RETURN QUERY SELECT 'not_draft'::text, 0::bigint, 0::bigint;
         RETURN;
       END IF;

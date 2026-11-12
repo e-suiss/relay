@@ -3,7 +3,7 @@ defmodule Relay.Api.Campaigns do
   Campaigns on the server API (API-35, WF-44, WF-34, WF-62, X-14, OP-47, T-23): a large list or topic send through its own endpoint, prepared first and then triggered.
 
     * A campaign names a published workflow, the event `data` its templates render, a required `deadline` at most P31D ahead and the `expected_count` the tenant declares. Its audience is a list of subscriber identifiers given at creation or added in parts of at most 5,000 while it is a draft, or a topic; there is no attribute query (WF-54). The data is sealed under the tenant data key. A `security` workflow is not a campaign.
-    * Preparation freezes the audience and the workflow version, then a chain of jobs evaluates every member's channels in a dry run of the policy lattice: the recipients it reaches, the channel deliveries it would send or defer, the ones it drops by `rule_id`, and the cost estimate from the active provider's price table (X-14). Each member's `dedup_key` was fixed when it was added (WF-44). A topic audience fails preparation with `campaign_topic_unavailable` until topic expansion exists.
+    * Preparation freezes the audience and the workflow version, then a chain of jobs evaluates every member's channels in a dry run of the policy lattice: the recipients it reaches, the channel deliveries it would send or defer, the ones it drops by `rule_id`, and the cost estimate from the active provider's price table (X-14). Each member's `dedup_key` was fixed when it was added (WF-44). A topic audience is frozen at preparation from the topic's active subscribers and, for a child topic, its active parent's (`Relay.Topics.recipients/2`, WF-52).
     * The five members first in identifier order are the deterministic render samples; their workflow preview is approved by its digest, and the trigger renders them again and refuses a changed set (WF-62). A frozen audience above 1.5 times `expected_count` needs a tenant administrator's approval on the operator surface.
     * The trigger only sends: its stages open as fan-outs of the campaign's lane (`Relay.Platform.create_fanout/2`, T-23, T-91), each sub-batch a send job that accepts one event per member with the member's `dedup_key` and `expires_at` at the deadline, so the lattice, quotas, rate and provider limits apply as to any event and the send rate is never raised to meet the deadline (WF-34). An audience above 100,000 opens 1 % → 10 % → 100 %, PT15M apart (WF-62). The progress is the campaign record; a running campaign pauses under its campaign kill switch and resumes when the switch is released, and pauses by itself when a channel passes its alarm threshold, after which a tenant administrator resumes it (OP-47). At the deadline the members left are counted `expired` and `campaign.expired` is published. A campaign can be cancelled at any time.
   """
@@ -19,6 +19,8 @@ defmodule Relay.Api.Campaigns do
 
   @prefix "cmp"
   @closed ~w(completed partial cancelled)
+  @max_audience 10_000_000
+  @part 5_000
 
   @type answer :: {:ok, {100..599, [{String.t(), String.t()}], map()}} | {:error, Relay.Error.t()}
   @type planned :: map()
@@ -105,7 +107,7 @@ defmodule Relay.Api.Campaigns do
   @doc "Adds a part of a draft list audience inside the request's transaction: how many were added, were already listed and have no subscriber."
   @spec add_recipients(Relay.Id.t(), [binary()]) :: answer()
   def add_recipients(id, bidxs) do
-    case add(id, bidxs) do
+    case listed(Store.get(id), bidxs) do
       {:ok, {added, duplicates, not_found}} ->
         body = %{
           "object" => "campaign_recipients",
@@ -123,11 +125,21 @@ defmodule Relay.Api.Campaigns do
     end
   end
 
+  defp listed(%{"audience_kind" => "topic"}, _bidxs),
+    do: {:error, conflict("a topic audience is frozen from its topic")}
+
+  defp listed(%{"id" => id}, bidxs), do: add(id, bidxs)
+  defp listed(nil, _bidxs), do: {:error, not_found()}
+
   defp add(_id, []), do: {:ok, {0, 0, 0}}
 
   defp add(id, bidxs) do
     recipients = bidxs |> Relay.Subscribers.resolve_indexes() |> Enum.uniq()
     not_found = max(length(bidxs) - length(recipients), 0)
+    add_ids(id, recipients, not_found)
+  end
+
+  defp add_ids(id, recipients, not_found) do
     ids = Enum.map(recipients, &Plan.member_id(id, &1))
     keys = Enum.map(recipients, &Plan.dedup_key(id, &1))
 
@@ -175,35 +187,51 @@ defmodule Relay.Api.Campaigns do
 
   # WF-44
   # API-35
-  @doc "Reads what a preparation freezes outside any transaction: the campaign's published workflow; a topic audience is `campaign_topic_unavailable`."
+  @doc "Reads what a preparation freezes outside any transaction: the campaign's published workflow and its topic."
   @spec plan_prepare(Relay.Scope.t(), Relay.Id.t()) :: {:ok, planned()} | error()
   def plan_prepare(scope, id) do
     with {:ok, c} <- read(scope, id), do: plan_draft(scope, c)
   end
 
   defp plan_draft(scope, %{"state" => "draft"} = c) do
-    with :ok <- list_audience(c),
-         {:ok, workflow} <- workflow(scope, c["workflow_key"]),
+    with {:ok, workflow} <- workflow(scope, c["workflow_key"]),
          :ok <- campaign_class(workflow) do
-      {:ok, %{id: c["id"], workflow: workflow}}
+      {:ok, %{id: c["id"], workflow: workflow, topic: c["topic_key"]}}
     end
   end
 
-  defp plan_draft(_scope, c), do: {:ok, %{id: c["id"], workflow: nil}}
-
-  defp list_audience(%{"audience_kind" => "topic"}) do
-    message = "topic audiences are not available yet; send a recipient list"
-    {:error, Relay.Error.new(:campaign_topic_unavailable, message)}
-  end
-
-  defp list_audience(_campaign), do: :ok
+  defp plan_draft(_scope, c), do: {:ok, %{id: c["id"], workflow: nil, topic: nil}}
 
   # WF-44
   @doc "Freezes a draft campaign inside the request's transaction and queues its preparation; `202` with its view."
   @spec prepare(Relay.Scope.t(), planned()) :: answer()
   def prepare(_scope, %{workflow: nil}), do: {:error, conflict("the campaign is not a draft")}
 
-  def prepare(scope, %{id: id, workflow: w}) do
+  def prepare(scope, %{id: id, workflow: w} = plan) do
+    with :ok <- freeze_topic(id, plan.topic) do
+      frozen(scope, id, w)
+    end
+  end
+
+  # WF-52
+  # WF-53
+  defp freeze_topic(_id, nil), do: :ok
+
+  defp freeze_topic(id, key) do
+    case Relay.Topics.recipients(key, @max_audience) do
+      {:ok, recipients} -> add_parts(id, Enum.chunk_every(recipients, @part))
+      :unknown -> {:error, Relay.Error.new(:topic_not_found, "no topic has this key")}
+      :archived -> {:error, Relay.Error.new(:topic_archived, "the topic is archived")}
+    end
+  end
+
+  defp add_parts(_id, []), do: :ok
+
+  defp add_parts(id, [part | rest]) do
+    with {:ok, _counts} <- add_ids(id, part, 0), do: add_parts(id, rest)
+  end
+
+  defp frozen(scope, id, w) do
     case Store.prepare(id, w["workflow_id"], w["version_no"], w["message_class"]) do
       :preparing -> queued(PrepareJob.new(job_args(scope, id)), id)
       :not_found -> {:error, not_found()}

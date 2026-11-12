@@ -534,101 +534,340 @@ defmodule Relay.CLITest do
     end
   end
 
-  describe "workflow files" do
+  @route %{
+    "key" => "standard",
+    "name" => "Standard",
+    "tree" => %{"single" => ["in_app", "email"]}
+  }
+  @template_definition %{
+    "default_locale" => "tr",
+    "cells" => %{"in_app" => %{"tr" => %{"title" => "Merhaba", "body" => "Hoş geldin"}}}
+  }
+  @template %{
+    "key" => "welcome-inbox",
+    "name" => "Welcome",
+    "category" => "account",
+    "definition" => @template_definition
+  }
+  @definition %{
+    "name" => "Welcome",
+    "category" => "account",
+    "event_schema" => %{"type" => "object"},
+    "steps" => [
+      %{
+        "type" => "channel",
+        "key" => "inbox",
+        "route" => "standard",
+        "template" => "welcome-inbox"
+      }
+    ]
+  }
+
+  defp put_file(dir, relative, body) do
+    path = Path.join(dir, relative)
+    File.mkdir_p!(Path.dirname(path))
+    File.write!(path, Relay.CLI.DefinitionFile.render(path, body))
+    path
+  end
+
+  defp calls, do: for(r <- api_requests(), do: {r.method, r.path})
+
+  defp by_token(test, live) do
+    fn conn ->
+      case Plug.Conn.get_req_header(conn, "authorization") do
+        ["DPoP test-token"] -> answer(conn, :test, test)
+        ["DPoP live-token"] -> answer(conn, :live, live)
+      end
+    end
+  end
+
+  defp answer(conn, environment, responses) when is_list(responses) do
+    key = {:answer, conn.method, conn.request_path, environment}
+    count = Process.get(key, 0)
+    Process.put(key, count + 1)
+    Enum.at(responses, count, List.last(responses))
+  end
+
+  defp answer(_conn, _environment, response), do: response
+
+  defp promote_env do
+    env(%{
+      "RELAY_TEST_CLIENT_ID" => "cli_test",
+      "RELAY_TEST_CLIENT_SECRET" => "test-secret",
+      "RELAY_LIVE_CLIENT_ID" => "cli_live",
+      "RELAY_LIVE_CLIENT_SECRET" => "live-secret"
+    })
+  end
+
+  defp issue(conn), do: {200, %{"access_token" => client(conn), "token_type" => "DPoP"}}
+
+  defp published(version) do
+    publication = %{"status" => "published", "version" => version}
+    %{"key" => "welcome", "last_publication" => publication}
+  end
+
+  describe "definition files" do
     @tag :tmp_dir
-    test "X-33: pull writes each workflow to a file and push writes it back as a draft",
+    test "X-33, WF-3: pull writes routes, templates and workflows as sorted files",
          %{tmp_dir: dir} do
-      draft = %{"name" => "Welcome", "steps" => []}
-      workflow = %{"object" => "workflow", "key" => "welcome", "draft" => draft}
+      template = %{
+        "key" => "welcome-inbox",
+        "name" => "Welcome",
+        "category" => "account",
+        "state" => "active",
+        "protected" => false,
+        "subtenant" => nil,
+        "draft" => nil,
+        "live_version" => 2
+      }
+
+      archived = %{"key" => "old", "name" => "Old", "tree" => "email", "state" => "archived"}
+      producer = %{template | "key" => "producer-otp", "protected" => true}
+      workflow = %{"key" => "welcome", "managed_by" => "code", "state" => "active"}
 
       routes = %{
-        {"GET", "/v1/workflows"} => {200, list([workflow])},
-        {"GET", "/v1/workflows/welcome"} => {200, [{"etag", ~s("3")}], workflow}
+        {"GET", "/v1/routes"} => {200, list([Map.put(@route, "state", "active"), archived])},
+        {"GET", "/v1/templates"} => {200, list([template, producer])},
+        {"GET", "/v1/templates/welcome-inbox/versions/2"} =>
+          {200, %{"version" => 2, "definition" => @template_definition}},
+        {"GET", "/v1/workflows"} => {200, list([Map.put(workflow, "draft", @definition)])}
       }
+
+      put_file(dir, "routes/standard.yaml", %{"key" => "standard"})
 
       assert {0, out, ""} = cli(["pull", "--dir", dir], routes)
-      assert out =~ "pulled welcome (draft)"
-      path = Path.join(dir, "welcome.json")
-      assert %{"key" => "welcome", "definition" => ^draft} = Jason.decode!(File.read!(path))
+      assert out =~ "pulled route standard (route) -> #{dir}/routes/standard.yaml"
+      assert out =~ "pulled template welcome-inbox (version 2) -> #{dir}/templates/"
+      assert out =~ "pulled workflow welcome (draft, managed by code) -> #{dir}/workflows/"
+      refute out =~ "producer-otp"
+      refute out =~ "old"
 
-      changed = %{draft | "name" => "Welcome!"}
-      File.write!(path, Jason.encode!(%{"key" => "welcome", "definition" => changed}))
+      {:ok, route} = Relay.CLI.Yaml.decode(File.read!(Path.join(dir, "routes/standard.yaml")))
+      assert route == @route
 
-      routes =
-        Map.merge(routes, %{
-          {"PUT", "/v1/workflows/welcome"} => {200, [{"etag", ~s("4")}], workflow},
-          {"POST", "/v1/workflows/welcome/publish"} =>
-            {202, %{"workflow_key" => "welcome", "publication" => %{"status" => "pending"}}}
-        })
+      template_text = File.read!(Path.join(dir, "templates/welcome-inbox.json"))
+      assert Jason.decode!(template_text) == @template
+      assert template_text =~ ~r/\A\{\n  "category": "account",\n  "definition": \{\n    "cells"/
+      workflow_text = File.read!(Path.join(dir, "workflows/welcome.json"))
+      assert Jason.decode!(workflow_text) == %{"key" => "welcome", "definition" => @definition}
 
-      requests()
-      assert {0, out, ""} = cli(["push", "--dir", dir, "--publish"], routes)
-      assert out =~ "welcome: draft updated, publication pending"
+      assert {0, _out, ""} = cli(["pull", "--dir", dir, "--format", "yaml"], routes)
+      assert File.read!(Path.join(dir, "templates/welcome-inbox.json")) == template_text
+      assert File.read!(Path.join(dir, "workflows/welcome.json")) == workflow_text
+      refute File.exists?(Path.join(dir, "templates/welcome-inbox.yaml"))
 
-      [_get, put, publish] = api_requests()
-      assert put.method == "PUT"
-      assert put.headers["if-match"] == ~s("3")
-      assert put.body == %{"definition" => changed}
-      assert publish.headers["if-match"] == ~s("4")
-      assert put.headers["idempotency-key"] != nil
+      assert {2, "", err} = cli(["pull", "--dir", dir, "--format", "xml"], routes)
+      assert err =~ "--format is json or yaml"
     end
 
     @tag :tmp_dir
-    test "X-33: push creates a workflow that does not exist yet", %{tmp_dir: dir} do
-      definition = %{"name" => "Welcome", "steps" => []}
-      content = Jason.encode!(%{"key" => "welcome", "definition" => definition})
-      File.write!(Path.join(dir, "welcome.json"), content)
+    test "WF-59, API-37: push checks every file first and sends nothing when one is broken",
+         %{tmp_dir: dir} do
+      put_file(dir, "workflows/welcome.json", %{
+        "key" => "welcome",
+        "definition" => Map.delete(@definition, "steps")
+      })
 
-      routes = %{
-        {"GET", "/v1/workflows/welcome"} => {404, problem(404, "workflow_not_found")},
-        {"POST", "/v1/workflows"} => {201, [{"etag", ~s("1")}], %{"key" => "welcome"}}
-      }
+      put_file(dir, "routes/other.json", @route)
 
-      assert {0, out, ""} = cli(["push", "--dir", dir], routes)
-      assert out =~ "welcome: draft created"
-      assert [_get, create] = api_requests()
-      assert create.body == %{"key" => "welcome", "definition" => definition}
+      assert {5, "", err} = cli(["push", "--dir", dir])
+      assert err =~ "invalid_definition_file"
+      assert err =~ "#{dir}/workflows/welcome.json /definition"
+      assert err =~ "#{dir}/routes/other.json /key: conflict (the file is named other)"
+      assert api_requests() == []
 
-      File.write!(Path.join(dir, "broken.json"), ~s({"key": "broken"}))
-      assert {5, "", err} = cli(["push", Path.join(dir, "broken.json")], routes)
-      assert err =~ "invalid_workflow_file"
+      assert {5, out, ""} = cli(["push", "--dir", dir, "--json"])
+      %{"error" => %{"response" => %{"errors" => errors}}} = Jason.decode!(out)
+      assert errors != []
+      assert Enum.all?(errors, &(is_binary(&1["file"]) and &1["pointer"] =~ ~r/\A\//))
+
+      File.write!(Path.join(dir, "routes/other.json"), "[1]")
+      assert {5, "", err} = cli(["push", Path.join(dir, "routes/other.json")])
+      assert err =~ "the file must hold a JSON object"
+
+      assert {2, "", err} = cli(["push", Path.join(dir, "other.json")])
+      assert err =~ "must be in a routes, templates or workflows directory"
     end
 
-    test "X-33: promote publishes the test version of a workflow in live" do
-      definition = %{"name" => "Welcome", "steps" => []}
-
-      by_client = fn conn ->
-        case Plug.Conn.get_req_header(conn, "authorization") do
-          ["DPoP test-token"] -> {200, %{"key" => "welcome", "published_version" => 2}}
-          ["DPoP live-token"] -> {404, problem(404, "workflow_not_found")}
-        end
-      end
-
-      issue = fn conn -> {200, %{"access_token" => client(conn), "token_type" => "DPoP"}} end
+    @tag :tmp_dir
+    test "X-33, WF-4, WF-6: push writes routes, templates, then workflows, made code-managed",
+         %{tmp_dir: dir} do
+      put_file(dir, "routes/standard.json", @route)
+      put_file(dir, "templates/welcome-inbox.yaml", @template)
+      put_file(dir, "workflows/welcome.json", %{"key" => "welcome", "definition" => @definition})
+      checksum = String.duplicate("a", 64)
+      created = %{"key" => "welcome-inbox", "draft_checksum" => checksum, "live_version" => nil}
+      pending = %{"key" => "welcome", "last_publication" => %{"status" => "pending"}}
 
       routes = %{
-        {"POST", "/token"} => issue,
-        {"GET", "/v1/workflows/welcome"} => by_client,
-        {"GET", "/v1/workflows/welcome/versions/2"} =>
-          {200, %{"version" => 2, "definition" => definition}},
+        {"GET", "/v1/routes/standard"} => {404, problem(404, "route_not_found")},
+        {"POST", "/v1/routes"} => {201, [{"etag", ~s("1")}], Map.put(@route, "version", 1)},
+        {"GET", "/v1/templates/welcome-inbox"} => {404, problem(404, "template_not_found")},
+        {"POST", "/v1/templates"} => {201, [{"etag", ~s("1")}], created},
+        {"POST", "/v1/templates/welcome-inbox/publish"} => {200, %{"version" => 1}},
+        {"GET", "/v1/workflows/welcome"} => [
+          {404, problem(404, "workflow_not_found")},
+          {200, pending},
+          {200, published(1)}
+        ],
         {"POST", "/v1/workflows"} => {201, [{"etag", ~s("1")}], %{"key" => "welcome"}},
+        {"POST", "/v1/workflows/welcome/manager"} =>
+          {200, [{"etag", ~s("2")}], %{"key" => "welcome", "managed_by" => "code"}},
+        {"POST", "/v1/workflows/welcome/publish"} =>
+          {202, %{"workflow_key" => "welcome", "publication" => %{"status" => "pending"}}}
+      }
+
+      assert {0, out, ""} = cli(["push", "--dir", dir, "--publish", "--note", "ship it"], routes)
+
+      assert out == """
+             route standard: created
+             template welcome-inbox: draft created, published version 1
+             workflow welcome: draft created, published version 1
+             """
+
+      requests = api_requests()
+
+      assert for(r <- requests, do: {r.method, r.path}) == [
+               {"GET", "/v1/routes/standard"},
+               {"POST", "/v1/routes"},
+               {"GET", "/v1/templates/welcome-inbox"},
+               {"POST", "/v1/templates"},
+               {"POST", "/v1/templates/welcome-inbox/publish"},
+               {"GET", "/v1/workflows/welcome"},
+               {"POST", "/v1/workflows"},
+               {"POST", "/v1/workflows/welcome/manager"},
+               {"POST", "/v1/workflows/welcome/publish"},
+               {"GET", "/v1/workflows/welcome"},
+               {"GET", "/v1/workflows/welcome"}
+             ]
+
+      post = &Enum.find(requests, fn r -> r.method == "POST" and r.path == &1 end)
+      assert post.("/v1/routes").body == @route
+      assert post.("/v1/templates").body == @template
+
+      publish = post.("/v1/templates/welcome-inbox/publish")
+
+      assert publish.body == %{
+               "checksum" => checksum,
+               "note" => "ship it",
+               "accept_warnings" => false
+             }
+
+      assert publish.headers["if-match"] == ~s("1")
+
+      manager = post.("/v1/workflows/welcome/manager")
+      assert manager.body == %{"managed_by" => "code"}
+      assert manager.headers["if-match"] == ~s("1")
+
+      assert post.("/v1/workflows/welcome/publish").headers["if-match"] == ~s("2")
+      assert_received {:slept, 1000}
+    end
+
+    @tag :tmp_dir
+    test "WF-4: push leaves a panel-managed workflow alone unless code is made its manager",
+         %{tmp_dir: dir} do
+      put_file(dir, "workflows/welcome.json", %{"key" => "welcome", "definition" => @definition})
+      put_file(dir, "routes/standard.json", @route)
+      panel = %{"key" => "welcome", "managed_by" => "panel", "draft" => nil}
+
+      routes = %{
+        {"GET", "/v1/workflows/welcome"} => {200, [{"etag", ~s("5")}], panel},
+        {"POST", "/v1/workflows/welcome/manager"} =>
+          {200, [{"etag", ~s("6")}], %{panel | "managed_by" => "code"}},
+        {"PUT", "/v1/workflows/welcome"} => {200, [{"etag", ~s("7")}], %{"key" => "welcome"}}
+      }
+
+      assert {5, "", err} = cli(["push", "--dir", dir, "--kind", "workflow"], routes)
+      assert err =~ "workflow_managed_by_panel"
+      assert err =~ "--manage-as-code"
+      assert calls() == [{"GET", "/v1/workflows/welcome"}]
+
+      argv = ["push", "--dir", dir, "--kind", "workflow", "--manage-as-code"]
+      assert {0, out, ""} = cli(argv, routes)
+      assert out == "workflow welcome: draft updated\n"
+      [_get, manager, put] = api_requests()
+      assert manager.headers["if-match"] == ~s("5")
+      assert put.headers["if-match"] == ~s("6")
+      assert put.body == %{"definition" => @definition}
+    end
+
+    @tag :tmp_dir
+    test "WF-6: a rejected publication fails with the gate's pointers",
+         %{tmp_dir: dir} do
+      put_file(dir, "workflows/welcome.json", %{"key" => "welcome", "definition" => @definition})
+      code = %{"key" => "welcome", "managed_by" => "code", "draft" => @definition}
+
+      error = %{
+        "pointer" => "/definition/steps/0/template",
+        "code" => "not_found",
+        "detail" => "no template welcome-inbox"
+      }
+
+      publication = %{"status" => "rejected", "errors" => [error]}
+      rejected = %{"key" => "welcome", "last_publication" => publication}
+
+      routes = %{
+        {"GET", "/v1/workflows/welcome"} => [{200, [{"etag", ~s("3")}], code}, {200, rejected}],
         {"POST", "/v1/workflows/welcome/publish"} =>
           {202, %{"publication" => %{"status" => "pending"}}}
       }
 
-      env =
-        env(%{
-          "RELAY_TEST_CLIENT_ID" => "cli_test",
-          "RELAY_TEST_CLIENT_SECRET" => "test-secret",
-          "RELAY_LIVE_CLIENT_ID" => "cli_live",
-          "RELAY_LIVE_CLIENT_SECRET" => "live-secret"
-        })
+      assert {5, "", err} = cli(["push", "--dir", dir, "--publish"], routes)
+      assert err =~ "error: workflow_publication_rejected: workflow welcome: the publication gate"
+      assert err =~ "  /definition/steps/0/template: not_found (no template welcome-inbox)"
+      refute {"PUT", "/v1/workflows/welcome"} in calls()
+    end
 
-      assert {8, "", _err} = cli(["promote", "welcome"], routes, env: env)
+    @tag :tmp_dir
+    test "WF-6: a definition equal to the published version is not drafted or published again",
+         %{tmp_dir: dir} do
+      put_file(dir, "workflows/welcome.json", %{"key" => "welcome", "definition" => @definition})
+
+      published = %{
+        "key" => "welcome",
+        "managed_by" => "code",
+        "draft" => nil,
+        "published_version" => 3
+      }
+
+      stored = Map.put(@definition, "message_class", "transactional")
+
+      routes = %{
+        {"GET", "/v1/workflows/welcome"} => {200, [{"etag", ~s("4")}], published},
+        {"GET", "/v1/workflows/welcome/versions/3"} =>
+          {200, %{"version" => 3, "definition" => stored}}
+      }
+
+      assert {0, out, ""} = cli(["push", "--dir", dir, "--publish"], routes)
+      assert out == "workflow welcome: draft unchanged, version 3 already published\n"
+
+      assert calls() == [
+               {"GET", "/v1/workflows/welcome"},
+               {"GET", "/v1/workflows/welcome/versions/3"}
+             ]
+    end
+
+    test "X-33, WF-6: promote publishes the test version of a workflow in live" do
+      live = [{404, problem(404, "workflow_not_found")}, {200, published(1)}]
+
+      routes = %{
+        {"POST", "/token"} => &issue/1,
+        {"GET", "/v1/workflows/welcome"} =>
+          by_token({200, %{"key" => "welcome", "published_version" => 2}}, live),
+        {"GET", "/v1/workflows/welcome/versions/2"} =>
+          {200, %{"version" => 2, "definition" => @definition}},
+        {"POST", "/v1/workflows"} => {201, [{"etag", ~s("1")}], %{"key" => "welcome"}},
+        {"POST", "/v1/workflows/welcome/manager"} =>
+          {200, [{"etag", ~s("2")}], %{"key" => "welcome", "managed_by" => "code"}},
+        {"POST", "/v1/workflows/welcome/publish"} =>
+          {202, %{"publication" => %{"status" => "pending"}}}
+      }
+
+      assert {8, "", _err} = cli(["promote", "welcome"], routes, env: promote_env())
       assert api_requests() == []
 
-      assert {0, out, ""} = cli(["promote", "welcome", "--yes"], routes, env: env)
-      assert out =~ "promoted welcome test version 2 to live: publication pending"
+      assert {0, out, ""} = cli(["promote", "welcome", "--yes"], routes, env: promote_env())
+      assert out == "promoted workflow welcome from test version 2 to live: published version 1\n"
 
       calls =
         for request <- api_requests(),
@@ -639,8 +878,52 @@ defmodule Relay.CLITest do
                {"GET", "/v1/workflows/welcome/versions/2", "DPoP test-token"},
                {"GET", "/v1/workflows/welcome", "DPoP live-token"},
                {"POST", "/v1/workflows", "DPoP live-token"},
-               {"POST", "/v1/workflows/welcome/publish", "DPoP live-token"}
+               {"POST", "/v1/workflows/welcome/manager", "DPoP live-token"},
+               {"POST", "/v1/workflows/welcome/publish", "DPoP live-token"},
+               {"GET", "/v1/workflows/welcome", "DPoP live-token"}
              ]
+
+      assert {2, "", err} = cli(["promote", "--yes"], routes, env: promote_env())
+      assert err =~ "promote needs keys or --all"
+    end
+
+    test "X-33, WF-6: promote --all copies every published route and template to live" do
+      checksum = String.duplicate("b", 64)
+      active = Map.put(@route, "state", "active")
+
+      template =
+        @template
+        |> Map.delete("definition")
+        |> Map.merge(%{"state" => "active", "live_version" => 2, "draft" => nil})
+
+      unpublished = %{template | "key" => "draft-only", "live_version" => nil}
+      created = %{"key" => "welcome-inbox", "draft_checksum" => checksum}
+
+      routes = %{
+        {"POST", "/token"} => &issue/1,
+        {"GET", "/v1/routes"} => {200, list([active])},
+        {"GET", "/v1/templates"} => {200, list([template, unpublished])},
+        {"GET", "/v1/workflows"} => {200, list([])},
+        {"GET", "/v1/routes/standard"} =>
+          by_token({200, active}, {200, [{"etag", ~s("4")}], active}),
+        {"GET", "/v1/templates/welcome-inbox"} =>
+          by_token({200, template}, {404, problem(404, "template_not_found")}),
+        {"GET", "/v1/templates/welcome-inbox/versions/2"} =>
+          {200, %{"version" => 2, "definition" => @template_definition}},
+        {"POST", "/v1/templates"} => {201, [{"etag", ~s("1")}], created},
+        {"POST", "/v1/templates/welcome-inbox/publish"} => {200, %{"version" => 1}}
+      }
+
+      assert {0, out, ""} = cli(["promote", "--all", "--yes"], routes, env: promote_env())
+
+      assert out == """
+             promoted route standard from test to live: unchanged
+             promoted template welcome-inbox from test version 2 to live: published version 1
+             """
+
+      create = Enum.find(api_requests(), &(&1.method == "POST" and &1.path == "/v1/templates"))
+      assert create.body == @template
+      assert create.headers["authorization"] == "DPoP live-token"
     end
   end
 

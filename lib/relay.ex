@@ -40,6 +40,7 @@ defmodule Relay do
       Crypto,
       Canonical,
       Jitter,
+      Timing,
       Limits,
       ChannelParameters,
       ChannelDeclarations,

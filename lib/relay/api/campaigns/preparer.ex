@@ -5,9 +5,11 @@ defmodule Relay.Api.Campaigns.Preparer do
   One job runs at most ten pages and queues the next job in the transaction of its last page; after the last page the cost estimate is computed from the price table of the channel's first active provider account and the campaign becomes `prepared`.
   """
 
+  alias Relay.Api.Campaigns
   alias Relay.Api.Campaigns.Plan
   alias Relay.Api.Campaigns.PrepareJob
   alias Relay.Api.Campaigns.Store
+  alias Relay.Channels.Live, as: Channels
   alias Relay.Policy.Live
   alias Relay.Templates.Live, as: Templates
 
@@ -30,7 +32,7 @@ defmodule Relay.Api.Campaigns.Preparer do
   @doc "Runs up to ten pages of a preparing campaign's dry evaluation; ends the preparation after the last page."
   @spec run(Relay.Scope.t(), Relay.Id.t()) :: :ok | {:error, term()}
   def run(scope, id) do
-    with {:ok, %{"state" => "preparing"} = c} <- Relay.Api.Campaigns.read(scope, id),
+    with {:ok, %{"state" => "preparing"} = c} <- Campaigns.read(scope, id),
          {:ok, ctx} <- context(scope, c) do
       pages(scope, c, ctx, 1)
     else
@@ -125,7 +127,7 @@ defmodule Relay.Api.Campaigns.Preparer do
   defp next(_scope, _id, false, false), do: :more
 
   defp next(scope, id, false, true) do
-    case Oban.insert(PrepareJob.new(Relay.Api.Campaigns.job_args(scope, id))) do
+    case Oban.insert(PrepareJob.new(Campaigns.job_args(scope, id))) do
       {:ok, _job} -> :more
       {:error, reason} -> Store.rollback({:job_not_queued, reason})
     end
@@ -203,16 +205,15 @@ defmodule Relay.Api.Campaigns.Preparer do
   # CH-18
   # OP-37
   defp finish(scope, id) do
-    with {:ok, c} <- Relay.Api.Campaigns.read(scope, id) do
+    with {:ok, c} <- Campaigns.read(scope, id) do
       estimate = estimate(scope, read_counts(scope, id))
       duration = Plan.estimated_duration_s(c["audience_count"], @throughput_per_second)
-
-      case Store.in_scope(scope, fn _status -> Store.prepared(id, estimate, duration) end) do
-        {:ok, _result} -> :ok
-        {:error, reason} -> {:error, reason}
-      end
+      prepared(Store.in_scope(scope, fn _status -> Store.prepared(id, estimate, duration) end))
     end
   end
+
+  defp prepared({:ok, _result}), do: :ok
+  defp prepared({:error, reason}), do: {:error, reason}
 
   defp read_counts(scope, id) do
     case Store.in_scope(scope, fn _status -> Store.preview_counts(id) end) do
@@ -225,7 +226,7 @@ defmodule Relay.Api.Campaigns.Preparer do
     totals = Enum.reduce(counts, %{}, &add_count/2)
 
     pricer =
-      case Relay.Channels.Live.usage_pricing() do
+      case Channels.usage_pricing() do
         {:ok, pricer} -> pricer
         {:error, _reason} -> &unpriced/5
       end

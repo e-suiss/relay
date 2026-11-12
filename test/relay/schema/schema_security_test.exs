@@ -653,6 +653,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
 
       assert Map.new(partitioned, fn [t, _, key] -> {t, key} end) ==
                Map.merge(@partitioned, @hash_partitioned)
+
       assert Enum.all?(partitioned, fn [_, default, _] -> default == 0 end)
 
       policies = rows("SELECT table_name FROM relay.partition_policies ORDER BY 1")

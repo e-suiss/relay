@@ -199,7 +199,7 @@
   {"file": "20261215100200_extend_kill_switch_campaign_scope.exs", "sha256": "70f897c8f453785c78a6f7beca0680c9343d8e4b10830784d9fa6eae4a275835"},
   {"file": "20261215100300_rebuild_reference_check_for_campaigns.exs", "sha256": "591062b1829ebf666bcb365ee23ee64413bf464de260ae5517f921ba631635af"},
   {"file": "20261216100000_create_inbox_tables.exs", "sha256": "af9adff13e2995e808e815d1be2c244c5b21ba315631948f6b4d08b0cccbc328"},
-  {"file": "20261216100100_create_inbox_functions.exs", "sha256": "40eb2207ec853aa43d77fc6d84e36802bfae0865bf0990bdaceb55a8221f994a"},
+  {"file": "20261216100100_create_inbox_functions.exs", "sha256": "bf5e3f6f3ba89713ed3857102150f575c38a68f6692a9b3a34bd94a92643b3a1"},
   {"file": "20261216100200_allow_inbox_render_failure.exs", "sha256": "18aef4a92fdd62a277e66a382bd720e85c6e764d0c2b737e431900496c44d2f1"},
   {"file": "20261216100300_rebuild_reference_check_for_inbox.exs", "sha256": "eec31fa05bc538485cce00ca439ee817c7659f0eb14ba90ea4099395fe5294d1"}
 ]

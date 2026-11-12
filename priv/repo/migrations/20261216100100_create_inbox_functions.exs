@@ -6,7 +6,8 @@ defmodule Relay.Repo.Migrations.CreateInboxFunctions do
      "relay_migrator", ~w(relay_owner)},
     {"relay_fn.inbox_deliver(uuid, uuid, text, text, text, text[], bytea, uuid, bytea, text, text, bigint, bigint)",
      "relay_owner", ~w(relay_app)},
-    {"relay_fn.inbox_intent(uuid, uuid, text, bigint, timestamptz)", "relay_owner", ~w(relay_app)},
+    {"relay_fn.inbox_intent(uuid, uuid, text, bigint, timestamptz)", "relay_owner",
+     ~w(relay_app)},
     {"relay_fn.inbox_retract(uuid, uuid[])", "relay_owner", ~w(relay_app)},
     {"relay_fn.inbox_timer_fire(uuid, uuid)", "relay_owner", ~w(relay_app)}
   ]
@@ -95,14 +96,19 @@ defmodule Relay.Repo.Migrations.CreateInboxFunctions do
       v_ds := v_unseen::integer - COALESCE(v_item.counted_unseen, false)::integer;
       v_dr := v_unread::integer - COALESCE(v_item.counted_unread, false)::integer;
       IF v_dt <> 0 OR v_ds <> 0 OR v_dr <> 0 THEN
-        INSERT INTO relay.inbox_counters AS c (tenant_id, environment, recipient_id, unseen_count,
-          unread_count, total_count, version, updated_at)
-        VALUES (v_item.tenant_id, v_item.environment, v_item.recipient_id, GREATEST(v_ds, 0),
-          GREATEST(v_dr, 0), GREATEST(v_dt, 0), 1, p_now)
-        ON CONFLICT (tenant_id, environment, recipient_id) DO UPDATE
+        UPDATE relay.inbox_counters c
           SET unseen_count = c.unseen_count + v_ds, unread_count = c.unread_count + v_dr,
             total_count = c.total_count + v_dt, version = c.version + 1, updated_at = p_now
-        RETURNING c.version INTO v_version;
+          WHERE c.tenant_id = v_item.tenant_id AND c.environment = v_item.environment
+            AND c.recipient_id = v_item.recipient_id
+          RETURNING c.version INTO v_version;
+        IF NOT FOUND THEN
+          INSERT INTO relay.inbox_counters (tenant_id, environment, recipient_id, unseen_count,
+            unread_count, total_count, version, updated_at)
+          VALUES (v_item.tenant_id, v_item.environment, v_item.recipient_id, v_ds, v_dr, v_dt, 1,
+            p_now);
+          v_version := 1;
+        END IF;
       ELSE
         SELECT c.version INTO v_version FROM relay.inbox_counters c
           WHERE c.tenant_id = v_item.tenant_id AND c.environment = v_item.environment

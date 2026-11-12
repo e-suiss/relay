@@ -25,7 +25,7 @@ defmodule Relay.Realtime.AdmissionTest do
     end
 
     test "IN-34: an empty bucket refuses with a jittered Retry-After" do
-      name = :"admission_#{System.unique_integer([:positive])}"
+      name = Relay.Realtime.AdmissionTest.Bucket
       start_supervised!({Admission, name: name, rate: 1, burst: 2})
 
       assert :ok = Admission.take(name)

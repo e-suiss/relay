@@ -313,6 +313,12 @@ defmodule Relay.Workflow.PublicationGateTest do
       end
     end
 
+    test "WF-36: a security workflow refuses content_dedup" do
+      security = %{"message_class" => "security", "content_dedup" => %{"window" => "PT5M"}}
+      assert [{"/definition/content_dedup", "not_allowed"}] = codes(steps([@mail], security))
+      assert steps([@mail], %{"content_dedup" => %{"window" => "PT5M"}}) == []
+    end
+
     test "WF-40: an otp_oob workflow is never delayed or digested" do
       otp = %{"message_class" => "security", "security_subtype" => "otp_oob"}
       delay = %{"type" => "delay", "key" => "d", "duration" => "PT1M"}

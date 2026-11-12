@@ -14,7 +14,7 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
   @zone "Europe/Istanbul"
   @days ~w(mon tue wed thu fri sat sun)
 
-  @create "SELECT * FROM relay_fn.category_create($1, $2, $3, $4, $5, $6, $7, $8::text::interval, $9, $10::text::interval, $11, false, NULL, $12, $13, $14, $15, $16)"
+  @create "SELECT * FROM relay_fn.category_create($1, $2, $3, $4, $5, $6, $7, $8::text::interval, $9, $10::text::interval, $11, false, NULL, NULL, $12, $13, $14, $15, $16)"
   @preference "SELECT * FROM relay_fn.preference_set($1, $2, $3, $4, $5, $6, 'subscriber', 'acc_user_1')"
   @profile "SELECT * FROM relay_fn.preference_profile_put($1, $2, '[]', NULL, false, '{}', 'subscriber', NULL)"
   @consent "SELECT * FROM relay_fn.consent_record($1, $2, NULL, 'email', $3, NULL, NULL, 'access', $4, $5, NULL, NULL, NULL, NULL, 'access', $6)"

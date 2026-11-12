@@ -2,24 +2,27 @@ defmodule Relay.Policy.Live do
   @moduledoc """
   The policy lattice at run time (PC-58 (2), TN-70 (2)): it reads the input snapshot of one delivery from the database, adds the frequency readings, evaluates the pure lattice (`Relay.Policy.evaluate/1`) and records the decision. It runs in three places: when a delivery is opened at acceptance (`decide/1` and `record/2`, inside the accepting transaction), on every run of the delivery job (`job/2`, PC-8) and when a kill switch or a suspension resumes a paused delivery (`reevaluate/1`, the `Relay.Policy.Lattice` port, TN-40).
 
-  Every skip and expiry is recorded on the delivery with its reason, rule and detail, with a ledger event and a `notification.suppressed` outbox event in the same transaction; a deferral is a `delivery.deferred` ledger event and the delivery stays `queued` with `deferred_until` (DS-24, DS-26, DS-27). An input that cannot be read records nothing and the job retries (INV-43); only the frequency counter fails open (INV-45). Counters are read outside every transaction and counted only for a delivery the lattice sends, by its identifier. Each recorded decision emits `[:relay, :policy, :decision]` telemetry with its kind and reason. `config :relay, Relay.Policy.Live, frequency_counter: […]` passes options to `Relay.Policy.FrequencyCounter`.
+  Every skip and expiry is recorded on the delivery with its reason, rule and detail, with a ledger event and a `notification.suppressed` outbox event in the same transaction; a deferral is a `delivery.deferred` ledger event and the delivery stays `queued` with `deferred_until` (DS-24, DS-26, DS-27). An input that cannot be read records nothing and the job retries (INV-43); only the frequency counter fails open (INV-45). At acceptance and in the job, a deferral by quiet hours of a `social` or `marketing` delivery, a frequency cap met with the `digest` fate and a send past the category's density threshold hold the delivery in a digest window instead (`Relay.Policy.Live.Hold`, PC-46, PC-50, WF-30): it is recorded as deferred with its digest rule until the window fires and its job ends; the window's release (`digest_ready/2`, configured as `config :relay, Relay.Workflow.Digest, release: Relay.Policy.Live`) queues it again. Counters are read outside every transaction and counted only for a delivery the lattice sends, by its identifier. Each recorded decision emits `[:relay, :policy, :decision]` telemetry with its kind and reason. `config :relay, Relay.Policy.Live, frequency_counter: […]` passes options to `Relay.Policy.FrequencyCounter`.
   """
 
   use Boundary,
     top_level?: true,
     deps: [
       Relay,
+      Relay.Delivery,
       Relay.Devices,
       Relay.Policy,
       Relay.Policy.FrequencyCounter,
       Relay.Policy.Lattice,
-      Relay.Tenancy.KillSwitch
+      Relay.Tenancy.KillSwitch,
+      Relay.Workflow
     ],
     exports: []
 
   @behaviour Relay.Policy.Lattice
 
   alias Relay.Policy.FrequencyCounter
+  alias Relay.Policy.Live.Hold
   alias Relay.Policy.Live.Inputs
   alias Relay.Policy.Live.Store
   alias Relay.Scope
@@ -37,7 +40,11 @@ defmodule Relay.Policy.Live do
 
   @type result :: term()
   @type job_result ::
-          {:send, map()} | {:defer, DateTime.t()} | :done | {:error, {:input_unavailable, atom()}}
+          {:send, map()}
+          | {:defer, DateTime.t()}
+          | :held
+          | :done
+          | {:error, {:input_unavailable, atom()}}
 
   # PC-57 (1)
   # PC-57 (2)
@@ -117,6 +124,21 @@ defmodule Relay.Policy.Live do
   def record(delivery_id, {:expire, rule_id, detail}),
     do: decide!(delivery_id, :expire, "expired", rule_id, nil, detail)
 
+  # PC-46
+  # PC-50
+  # PC-58 (6)
+  # WF-30
+  @doc "The decision to record at acceptance for a lattice result, inside the accepting transaction; see `Relay.Policy.Live.Hold.hold/3`. `input` carries `:delivery_id`, `:notification_id`, `:recipient_id`, `:channel` and the `:category` of `category/4`. A held delivery's deferral is recorded with `record/2` and no job is queued for it."
+  @spec hold(Scope.t(), Hold.input(), result()) :: {:held, result()} | :none
+  def hold(%Scope{} = scope, input, result), do: Hold.hold(scope, input, result)
+
+  # PC-46
+  # PC-50
+  # WF-30
+  @doc "The release of the digest windows of the lattice (`config :relay, Relay.Workflow.Digest, release: Relay.Policy.Live`), inside the window's closing transaction; see `Relay.Policy.Live.Hold.release/2`."
+  @spec digest_ready(Scope.t(), {atom(), map()}) :: :ok
+  def digest_ready(%Scope{} = scope, outcome), do: Hold.release(scope, outcome)
+
   # DS-24
   # MD-12
   # TP-51
@@ -166,15 +188,22 @@ defmodule Relay.Policy.Live do
   # INV-45
   # TN-40
   @doc """
-  The lattice step of a delivery job, run on every run. `{:send, info}`: the delivery may go and its frequency counters were counted; `{:defer, until}`: the deferral is recorded and the job runs again at `until`; `:done`: a skip, expiry or kill switch pause is recorded, or the delivery is gone or already closed; `{:error, {:input_unavailable, input}}`: nothing is recorded and the job retries.
+  The lattice step of a delivery job, run on every run. `{:send, info}`: the delivery may go and its frequency counters were counted; `{:defer, until}`: the deferral is recorded and the job runs again at `until`; `:held`: the delivery waits in a digest window that queues its job again when it fires (PC-46, PC-50, WF-30); `:done`: a skip, expiry or kill switch pause is recorded, or the delivery is gone or already closed; `{:error, {:input_unavailable, input}}`: nothing is recorded and the job retries.
   """
   @spec job(Scope.t(), Relay.Id.t()) :: job_result()
   def job(%Scope{} = scope, delivery_id) do
     case load(scope, delivery_id) do
-      {:ok, nil} -> :done
-      {:ok, snapshot} -> run(scope, delivery_id, snapshot, Relay.Policy.evaluate(snapshot))
-      {:error, %Relay.Error{code: :not_found}} -> :done
-      {:error, _reason} -> {:error, {:input_unavailable, :delivery}}
+      {:ok, nil} ->
+        :done
+
+      {:ok, {snapshot, hold}} ->
+        run(scope, delivery_id, {snapshot, hold}, Relay.Policy.evaluate(snapshot))
+
+      {:error, %Relay.Error{code: :not_found}} ->
+        :done
+
+      {:error, _reason} ->
+        {:error, {:input_unavailable, :delivery}}
     end
   end
 
@@ -187,7 +216,7 @@ defmodule Relay.Policy.Live do
   def reevaluate(%{scope: %Scope{} = scope, delivery_id: delivery_id}) do
     case load(scope, delivery_id) do
       {:ok, nil} -> {:error, :not_ready}
-      {:ok, snapshot} -> port(Relay.Policy.evaluate(snapshot))
+      {:ok, {snapshot, _hold}} -> port(Relay.Policy.evaluate(snapshot))
       {:error, _reason} -> {:error, :not_ready}
     end
   end
@@ -215,9 +244,14 @@ defmodule Relay.Policy.Live do
       end)
 
     case result do
-      {:ok, nil} -> {:ok, nil}
-      {:ok, {snapshot, recipient_id}} -> {:ok, with_frequency(scope, recipient_id, snapshot)}
-      error -> error
+      {:ok, nil} ->
+        {:ok, nil}
+
+      {:ok, {snapshot, recipient_id, hold}} ->
+        {:ok, {with_frequency(scope, recipient_id, snapshot), hold}}
+
+      error ->
+        error
     end
   end
 
@@ -251,7 +285,15 @@ defmodule Relay.Policy.Live do
         frequency: :unavailable
       })
 
-    {snapshot, context["recipient_id"]}
+    hold = %{
+      delivery_id: context["id"],
+      notification_id: context["notification_id"],
+      recipient_id: context["recipient_id"],
+      channel: snapshot.channel,
+      category: category
+    }
+
+    {snapshot, context["recipient_id"], hold}
   end
 
   # TN-37
@@ -284,8 +326,11 @@ defmodule Relay.Policy.Live do
   defp read(scope, recipient_id, delivery_id, keys),
     do: FrequencyCounter.read(scope, recipient_id, delivery_id, keys, counter_options())
 
-  defp run(scope, delivery_id, snapshot, {:send, info}) do
-    case in_scope!(scope, fn -> decide!(delivery_id, :send, nil, nil, nil, nil) end) do
+  defp run(scope, delivery_id, {snapshot, hold}, {:send, info} = result) do
+    case in_scope!(scope, fn -> held_or(scope, delivery_id, hold, result) end) do
+      {:held, recorded} when recorded in [:recorded, :unchanged] ->
+        :held
+
       recorded when recorded in [:recorded, :unchanged] ->
         count(scope, snapshot, info)
         {:send, info}
@@ -304,8 +349,9 @@ defmodule Relay.Policy.Live do
 
   defp run(_scope, _delivery_id, _snapshot, {:error, _reason} = error), do: error
 
-  defp run(scope, delivery_id, _snapshot, {:defer, _reason, _rule_id, until, _detail} = result) do
-    case in_scope!(scope, fn -> record(delivery_id, result) end) do
+  defp run(scope, delivery_id, {_snapshot, hold}, {:defer, _, _, until, _} = result) do
+    case in_scope!(scope, fn -> held_or(scope, delivery_id, hold, result) end) do
+      {:held, recorded} when recorded in [:recorded, :unchanged] -> :held
       recorded when recorded in [:recorded, :unchanged] -> {:defer, until}
       _closed_or_paused -> :done
     end
@@ -314,6 +360,16 @@ defmodule Relay.Policy.Live do
   defp run(scope, delivery_id, _snapshot, result) do
     _ = in_scope!(scope, fn -> record(delivery_id, result) end)
     :done
+  end
+
+  # PC-46
+  # PC-50
+  # WF-30
+  defp held_or(scope, delivery_id, hold, result) do
+    case Hold.hold(scope, hold, result) do
+      {:held, deferral} -> {:held, record(delivery_id, deferral)}
+      :none -> record(delivery_id, result)
+    end
   end
 
   # PC-50

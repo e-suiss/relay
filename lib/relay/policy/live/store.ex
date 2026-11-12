@@ -26,7 +26,7 @@ defmodule Relay.Policy.Live.Store do
   SELECT c.key, c.message_class::text AS message_class, c.locked, c.enabled, c.channel_defaults,
     (extract(epoch FROM c.default_expires_in) * 1000)::bigint AS default_expires_ms,
     c.frequency_limit, (extract(epoch FROM c.frequency_window) * 1000)::bigint AS frequency_window_ms,
-    c.frequency_fate, c.digest_allowed, s.id AS setting_id, s.enabled AS setting_enabled,
+    c.frequency_fate, c.digest_allowed, c.density, s.id AS setting_id, s.enabled AS setting_enabled,
     s.channel_defaults AS setting_channel_defaults,
     (extract(epoch FROM s.default_expires_in) * 1000)::bigint AS setting_default_expires_ms,
     s.frequency_limit AS setting_frequency_limit,

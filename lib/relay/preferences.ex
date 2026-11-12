@@ -27,7 +27,7 @@ defmodule Relay.Preferences do
   defdelegate in_scope(scope, fun), to: Store
 
   # PC-57 (1)
-  @doc "Creates a category inside the caller's scoped transaction; `attrs` carries `:key`, `:name`, `:message_class`, `:locked`, `:enabled`, `:channel_defaults`, `:default_expires_in`, `:frequency` and `:digest_allowed`."
+  @doc "Creates a category inside the caller's scoped transaction; `attrs` carries `:key`, `:name`, `:message_class`, `:locked`, `:enabled`, `:channel_defaults`, `:default_expires_in`, `:frequency`, `:digest_allowed`, `:default_route` and `:density` (WF-30)."
   @spec create_category(Scope.t(), map(), Actor.t()) ::
           {atom(), Relay.Id.t() | nil, pos_integer() | nil}
   def create_category(%Scope{} = scope, attrs, %Actor{} = actor) do

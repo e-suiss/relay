@@ -128,6 +128,38 @@ defmodule RelayWeb.Api.CategoriesTest do
       assert body["digest_allowed"] == true
     end
 
+    test "WF-30: a density threshold is a validated, audited category setting", ctx do
+      density = %{"limit" => 5, "window" => "PT10M", "per" => "device"}
+      social = category("friends", "social", %{"density" => density})
+      body = F.body(create(ctx.token, social), 201)
+      assert body["density"] == density
+
+      plain = F.body(create(ctx.token, category("orders", "transactional")), 201)
+      assert plain["density"] == nil
+
+      refused = category("receipts", "transactional", %{"density" => density})
+      problem = F.body(create(ctx.token, refused), 422)
+      assert [%{"pointer" => "/density", "code" => "not_allowed"}] = problem["errors"]
+
+      long = category("news", "marketing", %{"density" => %{density | "window" => "P2D"}})
+      problem = F.body(create(ctx.token, long), 422)
+
+      assert [%{"pointer" => "/density/window", "code" => "unsupported_value"}] =
+               problem["errors"]
+
+      undigested = category("ops", "operational", %{"density" => density})
+      assert code(create(ctx.token, undigested), 422) == "validation_failed"
+
+      changed = %{"density" => %{"limit" => 3, "window" => "PT5M"}}
+      patched = F.body(patch(ctx.token, "friends", changed, [{"if-match", ~s("1")}]), 200)
+      assert patched["density"] == %{"limit" => 3, "window" => "PT5M", "per" => "recipient"}
+
+      clear = %{"density" => nil}
+      cleared = F.body(patch(ctx.token, "friends", clear, [{"if-match", ~s("2")}]), 200)
+      assert cleared["density"] == nil
+      assert length(audit(ctx.scope, "category.updated")) == 2
+    end
+
     test "PC-57, API-10: a repeated create replays the stored answer and creates nothing", ctx do
       key = F.key()
       first = create(ctx.token, category("orders", "transactional"), [key])

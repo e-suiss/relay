@@ -623,7 +623,7 @@ defmodule Relay.Api.Campaigns do
   defp deadline(scope, text) do
     with {:ok, at, _offset} <- DateTime.from_iso8601(text || ""),
          :ok <- Plan.deadline(at, Relay.Clock.business_now(scope)) do
-      {:ok, DateTime.truncate(at, :microsecond)}
+      {:ok, at}
     else
       {:error, _reason} -> field("/deadline", "invalid_format", "an RFC 3339 time")
       :past -> field("/deadline", "not_allowed", "the deadline has passed")

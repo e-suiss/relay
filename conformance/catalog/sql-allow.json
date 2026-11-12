@@ -252,6 +252,18 @@
     "reason": "WF-12, OP-24: the committed relay_fn.subject_erase is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit, so the event waits of an erased subscriber are cancelled and cleared like an agent's; the role is reset in the same migration transaction"
   },
   {
+    "path": "priv/repo/migrations/20261216100000_create_inbox_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "IN-44, OP-9: the no-delete triggers reject TRUNCATE on inbox items, their partitions, their delivery links and the counters"
+  },
+  {
+    "path": "priv/repo/migrations/20261216100200_allow_inbox_render_failure.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "IN-49, TP-41: the committed relay_fn.delivery_render_fail is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit, so an inbox item over the published limits fails its delivery with inbox_item_too_large; the role is reset in the same migration transaction"
+  },
+  {
     "path": "priv/repo/migrations/20261216400200_match_waitpoints_by_correlation_digest.exs",
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",

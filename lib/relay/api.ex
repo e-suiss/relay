@@ -27,7 +27,8 @@ defmodule Relay.Api do
       Relay.Channels.Live,
       Relay.Secrets,
       Relay.Rules,
-      Relay.Topics
+      Relay.Topics,
+      Relay.Inbox
     ],
     exports: [
       Contract,
@@ -81,6 +82,7 @@ defmodule Relay.Api do
       EmailReports,
       Topics,
       Throttles,
-      Campaigns
+      Campaigns,
+      Inbox
     ]
 end

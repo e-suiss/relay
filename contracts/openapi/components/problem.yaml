@@ -148,6 +148,11 @@ Problem:
         "$ref": "./schemas.yaml#/GateFinding"
       x-relay-choice: true
       x-relay-choice-note: "The spec requires hard and warning gate results to be shown; the member carrying them is chosen by the contract."
+    current:
+      type: object
+      description: "The current state of the resource a conflicting write lost to; present with inbox_item_conflict, so the client accepts the server state (IN-12)."
+      x-relay-choice: true
+      x-relay-choice-note: "IN-12 returns the item's current state with the 409; the member carrying it is chosen by the contract."
   additionalProperties: false
 FieldError:
   type: object

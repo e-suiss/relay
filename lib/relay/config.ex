@@ -52,6 +52,7 @@ defmodule Relay.Config do
     Relay.Workflow,
     Relay.Workflow.Digest,
     Relay.Agents,
+    Relay.Inbox,
     Relay.Realtime,
     Relay.Realtime.InboxSource,
     Oban

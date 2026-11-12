@@ -1037,6 +1037,7 @@ components:
                         - render_timeout
                         - output_too_large
                         - schema_violation
+                        - inbox_item_too_large
                     recipient_id:
                       "$ref": "../openapi/components/schemas.yaml#/RecipientId"
                     workflow:
@@ -2902,6 +2903,9 @@ components:
                       type: object
                     state_version:
                       type: integer
+                    thin:
+                      type: boolean
+                      description: "The item's JSON is above x-relay-limits inbox.realtime_item_max_bytes; item holds only id, state_version, created_at, category and severity and the client reads the item (IN-27, IN-49)."
                   additionalProperties: false
       x-relay-surface: realtime
       x-relay-stage: 9

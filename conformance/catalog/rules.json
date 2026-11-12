@@ -7000,6 +7000,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "IN-49",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
     "id": "IN-51",
     "section": "§15",
     "status": "frozen_technical",

@@ -37,6 +37,7 @@ defmodule Relay.Ingest.Request do
   # API-23
   # API-24
   # API-26
+  # IN-46
   # API-62
   # E-83
   # WF-56
@@ -333,6 +334,7 @@ defmodule Relay.Ingest.Request do
   end
 
   # API-26
+  # IN-46
   defp retention_errors(%{"retention" => "none"}, class, steps) do
     cond do
       class == "security" ->

@@ -180,7 +180,7 @@ defmodule Relay.Inbox do
           {:applied | :unchanged | :conflict, map(), counters(), Relay.Id.t() | nil}
           | :invalid
           | :not_found
-  def apply_intent(%Relay.Scope{} = scope, subscriber_id, {:announcement, id}, %{op: op} = intent)
+  def apply_intent(%Relay.Scope{}, subscriber_id, {:announcement, id}, %{op: op} = intent)
       when op in @announcement_ops do
     sql_op = if op == "click", do: "read", else: op
 

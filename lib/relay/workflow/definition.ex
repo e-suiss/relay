@@ -10,7 +10,7 @@ defmodule Relay.Workflow.Definition do
   * a channel step's `timing: next_break` needs `max_defer`, above zero and at most P30D, and `max_defer` needs `next_break` (WF-56);
   * every condition (WF-60, `Relay.Workflow.Condition`): its grammar and limits, declared recipient attributes, and references only to steps that run before it on its own path, never to a later step or one in another branch;
   * a digest step is refused for the `security`, `transactional` and `action_required` classes (WF-28), and a `security` workflow has no delay, time window or digest step (WF-63, WF-41, WF-40) and no `content_dedup` (WF-36); a `digest_template` needs an earlier digest step on its path, a time window's start comes before its end, and every control pointer names a text, duration or number field (WF-4);
-  * a definition that declares the security subtype it serves: `otp_oob` sends no e-mail, neither as a channel nor in an inline route (WF-18); `email_verification` sends only e-mail. The routes a step names by key are checked against the stored routes by `named_route_errors/2` when the gate runs (existence, and the subtype's channel rule).
+  * a definition that declares the security subtype it serves: `otp_oob` sends no e-mail, neither as a channel nor in an inline route (WF-18), and writes nothing to the inbox (IN-55); `email_verification` sends only e-mail. The routes a step names by key are checked against the stored routes by `named_route_errors/2` when the gate runs (existence, and the subtype's channel rule).
   """
 
   alias Relay.Workflow.Condition
@@ -524,10 +524,18 @@ defmodule Relay.Workflow.Definition do
   defp step_channels(%{"route" => %{} = tree}), do: RouteTree.channels(tree)
   defp step_channels(_step), do: []
 
+  # IN-55
   defp channel_subtype_errors(channels, "otp_oob", pointer) do
-    if "email" in channels,
-      do: [error(pointer, "not_allowed", "an otp_oob route never sends e-mail")],
-      else: []
+    cond do
+      "email" in channels ->
+        [error(pointer, "not_allowed", "an otp_oob route never sends e-mail")]
+
+      "in_app" in channels ->
+        [error(pointer, "not_allowed", "an otp_oob route never writes to the inbox")]
+
+      true ->
+        []
+    end
   end
 
   defp channel_subtype_errors(channels, "email_verification", pointer) do

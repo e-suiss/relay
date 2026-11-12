@@ -1,11 +1,12 @@
 defmodule RelayWeb.Realtime.Transport do
   @moduledoc """
-  The WebSocket transport in front of `RelayWeb.Realtime.Socket` (IN-23, IN-52). It takes every new connection from the node's accept rate (`Relay.Realtime.admit/0`) before the token is checked; a connection over the rate is upgraded and closed at once with code `1013` and a reason `retry-after=<seconds>`, the seconds jittered over the contract's range. A connection the socket refuses gets the HTTP problem of the refusal instead of an upgrade. The channel closes its transport with a code and a reason when the authorization is withdrawn, the token expires or newer connections push it out (`RelayWeb.Realtime.Session.close_code/1`). Everything else is the Phoenix socket's own handling.
+  The WebSocket transport in front of `RelayWeb.Realtime.Socket` (IN-23, IN-52). It takes every new connection from the node's accept rate (`Relay.Realtime.admit/0`) before the token is checked; a connection over the rate is upgraded and closed at once with code `1013` and a reason `retry-after=<seconds>`, the seconds jittered over the contract's range. It takes the browser origin the handshake noted (`RelayWeb.Realtime.Origin`, the socket's `check_origin`) into the connect info, where the socket checks it against the token's tenant environment (IN-54). A connection the socket refuses gets the HTTP problem of the refusal instead of an upgrade, `403 realtime_origin_not_allowed` for an origin that is not allowed. The channel closes its transport with a code and a reason when the authorization is withdrawn, the token expires or newer connections push it out (`RelayWeb.Realtime.Session.close_code/1`). Everything else is the Phoenix socket's own handling.
   """
 
   @behaviour Phoenix.Socket.Transport
 
   alias RelayWeb.Api.Response
+  alias RelayWeb.Realtime.Origin
   alias RelayWeb.Realtime.Socket
 
   @impl true
@@ -16,10 +17,13 @@ defmodule RelayWeb.Realtime.Transport do
 
   # IN-34
   # IN-52
+  # IN-54
   @impl true
   def connect(map) do
+    origin = Origin.take()
+
     case Relay.Realtime.admit() do
-      :ok -> wrap(Socket.connect(map))
+      :ok -> wrap(Socket.connect(with_origin(map, origin)))
       {:error, retry_after} -> {:ok, {:overloaded, retry_after}}
     end
   end
@@ -58,6 +62,11 @@ defmodule RelayWeb.Realtime.Transport do
 
   def handle_error(conn, _reason),
     do: Response.problem(conn, Relay.Error.new(:auth_invalid_token, "connection refused"))
+
+  defp with_origin(%{connect_info: info} = map, origin) when is_map(info),
+    do: %{map | connect_info: Map.put(info, :origin, origin)}
+
+  defp with_origin(map, origin), do: Map.put(map, :connect_info, %{origin: origin})
 
   defp wrap({:ok, state}), do: {:ok, {:socket, state}}
   defp wrap({:push, data, state}), do: {:push, data, {:socket, state}}

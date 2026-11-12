@@ -281,6 +281,25 @@ defmodule Relay.Workflow.PublicationGateTest do
       assert [{_, "not_allowed"}] = codes(steps([%{@mail | "channel" => "sms"}], verify))
     end
 
+    test "IN-55: an otp_oob workflow writes nothing to the inbox, neither as a step nor in a route" do
+      otp = %{"message_class" => "security", "security_subtype" => "otp_oob"}
+      inbox = %{@mail | "channel" => "in_app"}
+      tree = %{"single" => ["sms", "in_app"]}
+      routed = %{"type" => "channel", "key" => "r", "route" => tree, "template" => "w"}
+
+      assert [{"/definition/steps/0", "not_allowed"}] = codes(steps([inbox], otp))
+      assert {"/definition/steps/0", "not_allowed"} in codes(steps([routed], otp))
+
+      security = %{"message_class" => "security"}
+      assert steps([inbox], security) == []
+
+      by_key = %{"type" => "channel", "key" => "r", "route" => "otp", "template" => "w"}
+      named = definition(Map.put(otp, "steps", [by_key]))
+
+      assert [%{code: "not_allowed"}] =
+               Definition.named_route_errors(named, %{"otp" => ["sms", "in_app"]})
+    end
+
     test "WF-18: named routes are checked against the routes they name" do
       named =
         definition(%{

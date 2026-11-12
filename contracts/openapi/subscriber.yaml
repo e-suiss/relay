@@ -967,7 +967,7 @@ paths:
       tags:
         - realtime
       summary: Stream my inbox events (SSE)
-      description: "The token subscriber's inbox stream as Server-Sent Events, the same stream and the same events as the WebSocket channel inbox at /v1/realtime/websocket (IN-23); the envelopes and event types are in the AsyncAPI catalog (channel inboxRealtime). Each SSE event names the envelope type in event, carries the envelope as JSON in data and the envelope id, an opaque cursor, in id; a reconnect with Last-Event-ID resumes after it, and without it the stream starts at the head with the current counters. A cursor the stream can no longer serve, or more than 500 changes since it, yields stream.resync_required and the stream continues from the head; the client then synchronises over the inbox REST API. The stream is read-only and the server decides what it carries from the token (IN-31, IN-32). The connection closes when the token expires, when the subscriber or tenant is suspended and when newer connections of the subscriber push it out (at most 10 per subscriber); the client reconnects with a fresh token. A node accepts at most 200 new connections a second (burst 400); beyond that it answers 503 with a Retry-After of 1 to 5 seconds. A comment line keeps an idle stream open every 25 seconds."
+      description: "The token subscriber's inbox stream as Server-Sent Events, the same stream and the same events as the WebSocket channel inbox at /v1/realtime/websocket (IN-23); the envelopes and event types are in the AsyncAPI catalog (channel inboxRealtime). Each SSE event names the envelope type in event, carries the envelope as JSON in data and the envelope id, an opaque cursor, in id; a reconnect with Last-Event-ID resumes after it, and without it the stream starts at the head with the current counters. A cursor the stream can no longer serve, or more than 500 changes since it, yields stream.resync_required and the stream continues from the head; the client then synchronises over the inbox REST API. The stream is read-only and the server decides what it carries from the token (IN-31, IN-32). The connection closes when the token expires, when the subscriber or tenant is suspended and when newer connections of the subscriber push it out (at most 10 per subscriber); the client reconnects with a fresh token. A node accepts at most 200 new connections a second (burst 400); beyond that it answers 503 with a Retry-After of 1 to 5 seconds. A comment line keeps an idle stream open every 25 seconds. A browser request carries an Origin header, which must equal one of the allowed origins of the token's tenant environment (GET /v1/realtime_origins on the server API); otherwise the request is 403 realtime_origin_not_allowed. A client that sends no Origin is not affected (IN-54)."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -1038,6 +1038,7 @@ paths:
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_subscriber_suspended
+        - realtime_origin_not_allowed
         - unsupported_api_version
         - unsupported_beta_feature
         - rate_limited

@@ -65,6 +65,8 @@ tags:
     description: "Report family: the delivery, skip and cost reports and the raw data exports of the tenant environment (scope read)."
   - name: email-reports
     description: "Management family: DMARC aggregate and TLS report intake and summaries (scope config)."
+  - name: realtime
+    description: "Management family: the browser origins allowed to open realtime connections (scope config)."
 paths:
   "/v1/events":
     post:
@@ -3036,6 +3038,202 @@ paths:
       x-relay-step-up: false
       x-relay-choice: true
       x-relay-choice-note: "WF-58 lets a tenant shrink the spreads and choose strict but names no surface; the path, the body and the operation ids are chosen by the contract."
+  "/v1/realtime_origins":
+    get:
+      operationId: getRealtimeOrigins
+      tags:
+        - realtime
+      summary: Get the allowed browser origins
+      description: "The browser origins of this tenant environment that may open a realtime WebSocket or SSE connection (IN-54). A browser connection's Origin header must equal one of them exactly; there are no wildcards. A client that sends no Origin (a mobile app, a server) is not affected. Without a setting the list is empty and no browser origin is allowed."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The allowed browser origins.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/RealtimeOrigins"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: "IN-54 keeps the list through the management API but names no surface; the path, the body, the operation ids and the canonical origin form are chosen by the contract."
+    put:
+      operationId: setRealtimeOrigins
+      tags:
+        - realtime
+      summary: Set the allowed browser origins
+      description: "Full replacement of the allowed browser origins of this tenant environment (IN-54): at most 20 origins, each once. An origin is https:// followed by a lowercase host name and an optional port other than 443, without a path, query or trailing slash, at most 255 bytes; only the test environment also accepts http://localhost with an optional port other than 80. An origin that breaks a rule is 422 validation_failed with invalid_format at its pointer, a repeated one conflict, more than 20 too_long at /origins. An empty list allows no browser origin. Origin checking is never turned off. Audited as setting.changed."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/RealtimeOriginsWrite"
+      security:
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Replaced.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/RealtimeOrigins"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+      x-relay-scopes:
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: "IN-54 keeps the list through the management API but names no surface; the path, the body, the operation ids and the canonical origin form are chosen by the contract."
   "/v1/routes":
     get:
       operationId: listRoutes
@@ -20227,6 +20425,8 @@ x-relay-limits:
     keepalive_seconds: 25
     long_poll_wait_seconds: 25
     reauthorize_interval_seconds: 60
+    allowed_origins_max: 20
+    origin_max_bytes: 255
     x-relay-choice: true
-    x-relay-choice-note: "IN-52 sets the accept rate, burst, Retry-After range and connections per subscriber; IN-29 the 500 changes per read. The connection record lifetime and heartbeat (IN-40), the SSE keep-alive comment interval, the long-poll wait and the re-authorization interval while signals are unavailable (IN-33) are contract choices."
+    x-relay-choice-note: "IN-52 sets the accept rate, burst, Retry-After range and connections per subscriber; IN-29 the 500 changes per read. The connection record lifetime and heartbeat (IN-40), the SSE keep-alive comment interval, the long-poll wait and the re-authorization interval while signals are unavailable (IN-33) are contract choices. IN-54 sets at most 20 allowed browser origins; the origin length is a contract choice."
 x-relay-error-catalog: "../errors.yaml"

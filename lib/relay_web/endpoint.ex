@@ -44,9 +44,11 @@ defmodule RelayWeb.Endpoint do
 
   # IN-23
   # IN-32
+  # IN-54
   socket "/v1/realtime", RelayWeb.Realtime.Transport,
     auth_token: true,
     websocket: [
+      check_origin: {RelayWeb.Realtime.Origin, :record, []},
       connect_info: [:auth_token],
       error_handler: {RelayWeb.Realtime.Transport, :handle_error, []}
     ],

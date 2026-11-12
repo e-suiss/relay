@@ -8657,6 +8657,42 @@ TimingSettingsWrite:
       enum:
         - jittered
         - strict
+RealtimeOrigins:
+  type: object
+  description: "The browser origins of a tenant environment that may open a realtime connection (IN-54)."
+  additionalProperties: false
+  required:
+    - object
+    - origins
+  properties:
+    object:
+      type: string
+      enum:
+        - realtime_origins
+    origins:
+      type: array
+      maxItems: 20
+      items:
+        "$ref": "#/RealtimeOrigin"
+RealtimeOriginsWrite:
+  type: object
+  description: "Full replacement of the allowed browser origins; an empty list allows none."
+  additionalProperties: false
+  required:
+    - origins
+  properties:
+    origins:
+      type: array
+      items:
+        "$ref": "#/RealtimeOrigin"
+RealtimeOrigin:
+  type: string
+  maxLength: 255
+  description: "An origin as a browser sends it: https://host[:port], in the test environment also http://localhost[:port]; exact match, no wildcards."
+  x-relay-choice: true
+  x-relay-choice-note: "IN-54 requires https and exact match; the canonical form (lowercase host, no default port, no path) and the length are chosen by the contract."
+  examples:
+    - "https://app.example.com"
 EmailTrackingWrite:
   type: object
   additionalProperties: false

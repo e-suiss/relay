@@ -2,7 +2,7 @@ defmodule Relay.Operators.Suspension do
   @moduledoc """
   Suspension of a tenant or of one of its subtenants by the installation operator (TN-10, TN-71, INV-42). The record lives in the tenant's `live` environment and applies to both environments. A suspension on abuse, security or legal grounds takes effect at once with a reasoned notice due within the policy's hours; on other grounds it takes effect no earlier than the policy's notice days. The appeal window follows the effective time. The values come from the active `suspension_policy` data set, whose legal basis awaits legal approval and blocks a release until approved; without an active version no suspension is recorded.
 
-  An effective suspension sets the tenant (or subtenant) `suspended`; every entry point rejects new work from then on (`auth_tenant_suspended`), and its pending deliveries are marked `PAUSED` (`Relay.Operators.SuspensionWork`, TN-40). Lifting sets it `active` again and is the explicit resume of that work: each paused delivery passes the policy lattice again, and while the lattice is not ready, or one of its inputs cannot be read, the deliveries stay `PAUSED`. Both are audited (`tenant.suspended`, `tenant.resumed`).
+  An effective suspension sets the tenant (or subtenant) `suspended`; every entry point rejects new work from then on (`auth_tenant_suspended`), and its pending deliveries are marked `PAUSED` (`Relay.Operators.SuspensionWork`, TN-40). Lifting sets it `active` again and is the explicit resume of that work: each paused delivery passes the policy lattice again, and while the lattice is not ready, or one of its inputs cannot be read, the deliveries stay `PAUSED`. Both are audited (`tenant.suspended`, `tenant.resumed`). A suspension that takes effect is signalled on the tenant status topic of both environments (`signal_status/2`), and the realtime layer closes the tenant's open connections at once (IN-33).
   """
 
   require Logger
@@ -78,7 +78,10 @@ defmodule Relay.Operators.Suspension do
 
   # TN-10
   # TN-40
+  # IN-33
   defp paused({:ok, %{"state" => "effective"} = row} = result, tenant_id) do
+    :ok = signal_status(tenant_id, DateTime.to_unix(Relay.Clock.utc_now(), :millisecond))
+
     with {:error, reason} <- SuspensionWork.pause(tenant_id, row["subtenant_id"]),
          do: warn("pause", tenant_id, reason)
 
@@ -130,6 +133,31 @@ defmodule Relay.Operators.Suspension do
 
   defp effective_rule(_ground, _at, _policy),
     do: {:error, field("/effective_at", "not_allowed", "this ground takes effect at once")}
+
+  # IN-33
+  # TN-10
+  @doc "The signal topic of the tenant's status changes in `scope`'s environment; the realtime layer checks its open connections again when it fires."
+  @spec status_topic(Scope.t()) :: {:ok, String.t()} | {:error, Relay.Error.t()}
+  def status_topic(%Scope{} = scope) do
+    Relay.Platform.signal_topic(
+      Scope.tenant_text(scope),
+      Relay.Environment.dump(scope.environment),
+      ["tenant", "status"]
+    )
+  end
+
+  # IN-33
+  # TN-10
+  @doc "Announces a committed change of a tenant's status, or of one of its subtenants, on the status topic of both environments. A signal that cannot be sent is logged; the connections then see the change at their next re-authorization."
+  @spec signal_status(Relay.Id.t(), non_neg_integer()) :: :ok
+  def signal_status(tenant_id, seq) when is_integer(seq) and seq >= 0 do
+    for environment <- [:live, :test],
+        {:ok, topic} <- [status_topic(Scope.new!(tenant_id, environment))],
+        {:error, error} <- [Relay.Platform.publish_signal(topic, seq)],
+        do: Logger.debug("tenant status signal not sent", code: error.code)
+
+    :ok
+  end
 
   # TN-22
   @doc "Lifts the open suspension of the tenant, or of one subtenant, and returns the stored record."

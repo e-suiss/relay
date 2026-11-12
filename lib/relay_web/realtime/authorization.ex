@@ -2,11 +2,15 @@ defmodule RelayWeb.Realtime.Authorization do
   @moduledoc """
   Who may hold a realtime connection, checked on connect and again whenever the authorization may have changed (IN-33, INV-42, TN-10): a Relay subscriber token that verifies (an Access token never does, E-25; a suspended subscriber's token no longer does, TN-73), carries `inbox:read` (IN-32) and belongs to an active tenant. The grant names the token's scope, subscriber, scopes and expiry; the client never names a topic, a tenant or a subscriber.
 
-  A connection listens on `topics/1` for the events that can withdraw a grant (a subscriber suspension in its tenant environment, an API client or tenant status change, a rotation or retirement of the subscriber token keys, IN-51) and checks its token again when one fires.
+  A browser connection's `Origin` must be on the allowed origins of the token's tenant environment (IN-54); a client that sends none is not affected.
+
+  A connection listens on `topics/1` for the events that can withdraw a grant (a subscriber suspension or a tenant status change in its tenant environment, an API client change, a rotation or retirement of the subscriber token keys, IN-51) and checks its token and origin again when one fires.
   """
 
+  alias Relay.Api.RealtimeOrigins
   alias Relay.Api.Tenant
   alias Relay.Operators.SubscriberSuspension
+  alias Relay.Operators.Suspension
   alias RelayWeb.Auth.Subscriber
 
   @bearer ~r/\A[Bb]earer +([A-Za-z0-9\-._~+\/]+=*)\z/
@@ -20,13 +24,18 @@ defmodule RelayWeb.Realtime.Authorization do
 
   # IN-32
   # IN-33
+  # IN-54
   # INV-42
-  @doc "Checks a subscriber token for a realtime connection and returns its grant."
-  @spec authorize(String.t() | nil) :: {:ok, grant()} | {:error, Relay.Error.t()}
-  def authorize(token) when is_binary(token) do
+  @doc "Checks a subscriber token for a realtime connection, and the browser `origin` of the connection against the allowed origins of the token's tenant environment (`nil` when the client sent no `Origin`), and returns its grant."
+  @spec authorize(String.t() | nil, String.t() | nil) ::
+          {:ok, grant()} | {:error, Relay.Error.t()}
+  def authorize(token, origin \\ nil)
+
+  def authorize(token, origin) when is_binary(token) do
     with {:ok, verified} <- Subscriber.verify(token),
          :ok <- readable(verified.scopes),
-         :ok <- tenant_active(verified.scope),
+         {:ok, edge} <- tenant_active(verified.scope),
+         :ok <- origin_allowed(edge, origin),
          {:ok, expires_at} <- expiry(token) do
       {:ok,
        %{
@@ -38,7 +47,7 @@ defmodule RelayWeb.Realtime.Authorization do
     end
   end
 
-  def authorize(_token),
+  def authorize(_token, _origin),
     do: {:error, Relay.Error.new(:auth_missing_credentials, "send a Relay subscriber token")}
 
   # IN-33
@@ -51,10 +60,11 @@ defmodule RelayWeb.Realtime.Authorization do
   @doc "The signal topics whose events may withdraw a grant of `scope`."
   @spec topics(Relay.Scope.t()) :: [String.t()]
   def topics(scope) do
-    case SubscriberSuspension.topic(scope) do
-      {:ok, topic} -> [topic | shared_topics()]
-      {:error, _} -> shared_topics()
-    end
+    scoped =
+      for {:ok, topic} <- [SubscriberSuspension.topic(scope), Suspension.status_topic(scope)],
+          do: topic
+
+    scoped ++ shared_topics()
   end
 
   # IN-51
@@ -92,14 +102,24 @@ defmodule RelayWeb.Realtime.Authorization do
   # TN-10
   defp tenant_active(scope) do
     case Tenant.edge(scope) do
-      {:ok, %{status: :active}} ->
-        :ok
+      {:ok, %{status: :active} = edge} ->
+        {:ok, edge}
 
       {:ok, _inactive} ->
         {:error, Relay.Error.new(:auth_tenant_suspended, "the tenant is suspended")}
 
       {:error, _} = error ->
         error
+    end
+  end
+
+  # IN-54
+  defp origin_allowed(edge, origin) do
+    if RealtimeOrigins.allowed?(edge.realtime_origins, origin) do
+      :ok
+    else
+      message = "the browser origin is not allowed to open a realtime connection"
+      {:error, Relay.Error.new(:realtime_origin_not_allowed, message)}
     end
   end
 

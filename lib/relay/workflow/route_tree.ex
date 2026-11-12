@@ -406,6 +406,9 @@ defmodule Relay.Workflow.RouteTree do
 
   defp subtype_message("otp_oob", "email"), do: "an otp_oob route never sends email"
 
+  # IN-55
+  defp subtype_message("otp_oob", "in_app"), do: "an otp_oob route never writes to the inbox"
+
   defp subtype_message("email_verification", channel) when channel != "email",
     do: "an email_verification route sends only email"
 

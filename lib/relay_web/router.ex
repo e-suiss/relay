@@ -564,6 +564,12 @@ defmodule RelayWeb.Router do
     put "/timing_settings", TimingSettingsController, :replace,
       private: %{relay_operation: "setTimingSettings"}
 
+    get "/realtime_origins", RealtimeOriginsController, :show,
+      private: %{relay_operation: "getRealtimeOrigins"}
+
+    put "/realtime_origins", RealtimeOriginsController, :replace,
+      private: %{relay_operation: "setRealtimeOrigins"}
+
     get "/event_type_mappings", MappingController, :index,
       private: %{relay_operation: "listEventTypeMappings"}
 

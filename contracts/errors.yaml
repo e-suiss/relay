@@ -2016,6 +2016,19 @@ codes:
     description: "An unread, unarchive or unsnooze intent named a base_state_version that is no longer the item's: the item changed on another device. current carries the item's current state; the client accepts it and shows a notice only when the user made the reverse change on screen (IN-12, IN-13)."
     type: "{base_url}/v1/errors/inbox_item_conflict"
     choice_note: "IN-12 fixes the 409 with the current state; the code name is chosen by the contract."
+  - code: realtime_origin_not_allowed
+    family: auth
+    status: 403
+    title: Browser origin not allowed
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: "A browser opened a realtime WebSocket or SSE connection whose Origin header is not on the allowed origins of the subscriber token's tenant environment (exact match, no wildcards). The WebSocket handshake is refused with this problem, and an open connection that loses its origin is closed with 1008 and this reason. A client that sends no Origin header is not affected (IN-54)."
+    type: "{base_url}/v1/errors/realtime_origin_not_allowed"
   - code: inbox_bulk_operation_not_found
     family: resource
     status: 404

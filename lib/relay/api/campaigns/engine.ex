@@ -87,13 +87,13 @@ defmodule Relay.Api.Campaigns.Engine do
 
   @doc "Pauses a running campaign under a rule and its current stage's fan-out with it; returns the campaign as it is now."
   @spec pause(Relay.Scope.t(), map(), String.t()) :: map()
-  def pause(scope, c, rule_id) do
+  def pause(scope, c, rule_id) when is_map(c) do
     _ = Store.in_scope(scope, fn _status -> Store.pause(c["id"], rule_id) end)
     _ = with_fanout(scope, c, &Relay.Platform.pause_fanout(scope, &1, rule_id))
     reread(scope, c)
   end
 
-  defp released(scope, c) do
+  defp released(scope, c) when is_map(c) do
     {:ok, actor} = Relay.Actor.new(:system, "system:campaign", "system:campaign")
     digest = Campaigns.digest(scope, "campaign.resumed", c["id"])
     resume = fn _status -> Store.resume(c["id"], "kill switch released", digest, actor) end
@@ -101,7 +101,7 @@ defmodule Relay.Api.Campaigns.Engine do
     reread(scope, c)
   end
 
-  defp reread(scope, c) do
+  defp reread(scope, c) when is_map(c) do
     case Campaigns.read(scope, c["id"]) do
       {:ok, %{} = fresh} -> fresh
       _other -> c

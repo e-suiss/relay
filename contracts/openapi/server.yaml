@@ -19898,4 +19898,19 @@ x-relay-limits:
   timing:
     release_jitter_spread: PT15M
     scheduled_jitter_spread: PT60S
+  realtime:
+    accept_per_second: 200
+    accept_burst: 400
+    retry_after_seconds:
+      min: 1
+      max: 5
+    max_connections_per_subscriber: 10
+    max_changes_per_read: 500
+    connection_ttl_seconds: 45
+    heartbeat_seconds: 15
+    keepalive_seconds: 25
+    long_poll_wait_seconds: 25
+    reauthorize_interval_seconds: 60
+    x-relay-choice: true
+    x-relay-choice-note: "IN-52 sets the accept rate, burst, Retry-After range and connections per subscriber; IN-29 the 500 changes per read. The connection record lifetime and heartbeat (IN-40), the SSE keep-alive comment interval, the long-poll wait and the re-authorization interval while signals are unavailable (IN-33) are contract choices."
 x-relay-error-catalog: "../errors.yaml"

@@ -18,6 +18,7 @@ defmodule Relay.Application do
       Relay.Connectors,
       Relay.Templates,
       Relay.Observability,
+      Relay.Realtime,
       RelayWeb
     ]
 
@@ -63,6 +64,7 @@ defmodule Relay.Application do
         [Relay.Keys.Eviction] ++
         Relay.Datasets.children() ++
         Relay.Connectors.children() ++
+        Relay.Realtime.children() ++
         Relay.Platform.Leadership.children(roles) ++ [RelayWeb.Endpoint.supervised()]
 
     # T-45

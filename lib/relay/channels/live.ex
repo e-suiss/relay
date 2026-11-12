@@ -64,7 +64,7 @@ defmodule Relay.Channels.Live do
   @spec deliver(Scope.t(), Relay.Id.t(), map()) :: result()
   def deliver(%Scope{} = scope, delivery_id, args) when is_map(args) do
     with {:ok, %{} = delivery} <- Store.in_scope(scope, fn _ -> Store.delivery(delivery_id) end),
-         :provider <- target_kind(delivery),
+         :provider <- inbox_kind(delivery),
          {:ok, overrides} <- overrides(scope, delivery),
          {:ok, declarations} <- Relay.Datasets.channel_declarations(),
          {:ok, parameters} <- Relay.Datasets.channel_parameters(),
@@ -89,8 +89,8 @@ defmodule Relay.Channels.Live do
   end
 
   # IN-2
-  defp target_kind(%{"channel" => "in_app"} = delivery), do: {:inbox, delivery}
-  defp target_kind(_delivery), do: :provider
+  defp inbox_kind(%{"channel" => "in_app"} = delivery), do: {:inbox, delivery}
+  defp inbox_kind(_delivery), do: :provider
 
   # IN-2
   # TP-50

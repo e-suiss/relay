@@ -178,13 +178,13 @@ defmodule Relay.Inbox.Store do
 
   # IN-30
   # IN-7
-  @doc "A page of a recipient's visible items, newest activity first, after the keyset position `after` (`{last_activity_at, id}` or `nil`); at most `limit` rows."
+  @doc "A page of a recipient's visible items, newest activity first, after the keyset position `position` (`{last_activity_at, id}` or `nil`); at most `limit` rows."
   @spec list(Relay.Id.t(), filters(), {DateTime.t(), Relay.Id.t()} | nil, pos_integer()) :: [
           map()
         ]
-  def list(recipient_id, filters, after, limit) do
+  def list(recipient_id, filters, position, limit) do
     status = Map.fetch!(@statuses, Map.get(filters, :status, :inbox))
-    {after_sql, after_params} = after_clause(after)
+    {after_sql, after_params} = after_clause(position)
 
     sql = """
     SELECT #{@item_columns} FROM relay.inbox_items i

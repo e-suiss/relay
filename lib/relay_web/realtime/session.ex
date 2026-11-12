@@ -24,6 +24,7 @@ defmodule RelayWeb.Realtime.Session do
     :feed,
     :member,
     :expiry,
+    :origin,
     auth_topics: [],
     checked_ms: 0
   ]
@@ -34,6 +35,7 @@ defmodule RelayWeb.Realtime.Session do
           feed: Feed.t(),
           member: String.t() | nil,
           expiry: reference() | nil,
+          origin: String.t() | nil,
           auth_topics: [String.t()],
           checked_ms: integer()
         }
@@ -42,7 +44,8 @@ defmodule RelayWeb.Realtime.Session do
   # IN-23
   # IN-33
   # IN-52
-  @doc "Opens a connection's session for a grant; `:cursor` resumes the stream, `:device_id` names the device in the connection set, `register: false` keeps the connection out of the set (long-poll)."
+  # IN-54
+  @doc "Opens a connection's session for a grant; `:cursor` resumes the stream, `:device_id` names the device in the connection set, `register: false` keeps the connection out of the set (long-poll), `:origin` is the browser origin the grant was checked with, checked again with every re-authorization."
   @spec open(Authorization.grant(), String.t(), keyword()) ::
           {:ok, t(), [Envelope.t()]} | {:error, Relay.Error.t()}
   def open(grant, token, opts) do
@@ -56,6 +59,7 @@ defmodule RelayWeb.Realtime.Session do
           grant: grant,
           token: token,
           feed: feed,
+          origin: Keyword.get(opts, :origin),
           auth_topics: topics,
           checked_ms: Relay.Clock.monotonic_ms()
         }
@@ -97,7 +101,7 @@ defmodule RelayWeb.Realtime.Session do
   @doc "Replaces the connection's token with a fresh one for the same subscriber in the same scope, which moves the expiry."
   @spec refresh(t(), String.t()) :: {:ok, t()} | {:error, Relay.Error.t()}
   def refresh(%__MODULE__{} = session, token) do
-    with {:ok, grant} <- Authorization.authorize(token),
+    with {:ok, grant} <- Authorization.authorize(token, session.origin),
          true <- Authorization.same_subject?(grant, session.grant) do
       checked = Relay.Clock.monotonic_ms()
       {:ok, arm_expiry(%{session | grant: grant, token: token, checked_ms: checked})}
@@ -151,7 +155,7 @@ defmodule RelayWeb.Realtime.Session do
   defp reauthorize(session, _event) do
     session = %{session | checked_ms: Relay.Clock.monotonic_ms()}
 
-    case Authorization.authorize(session.token) do
+    case Authorization.authorize(session.token, session.origin) do
       {:ok, grant} ->
         {:ok, %{session | grant: grant}, []}
 

@@ -16,10 +16,11 @@ defmodule RelayWeb.Realtime.InboxChannel do
   @impl true
   def join("inbox", params, socket) do
     %{grant: grant, token: token, device_id: device_id} = socket.assigns
+    origin = Map.get(socket.assigns, :origin)
 
     with {:ok, cursor} <- cursor(params),
          {:ok, session, envelopes} <-
-           Session.open(grant, token, cursor: cursor, device_id: device_id) do
+           Session.open(grant, token, cursor: cursor, device_id: device_id, origin: origin) do
       send(self(), {:relay_realtime_push, envelopes})
       {:ok, assign(socket, :session, session)}
     else

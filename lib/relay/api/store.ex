@@ -6,7 +6,8 @@ defmodule Relay.Api.Store do
   alias Relay.Actor
   alias Relay.Repo
 
-  @edge_keys ["api.rate.burst", "api.rate.sustained", "api.mtls_required"]
+  @origins "realtime.allowed_origins"
+  @edge_keys ["api.rate.burst", "api.rate.sustained", "api.mtls_required", @origins]
 
   # TN-13 (2)
   @doc "Runs work in a transaction scoped to `scope`; see `Relay.Repo.in_scope/3`."
@@ -30,13 +31,23 @@ defmodule Relay.Api.Store do
   # API-41
   # API-50
   # API-77 (4)
-  @doc "The tenant's settings that the API edge reads (rate limit tiers, `api.mtls_required`) that are set, by key."
+  @doc "The tenant's settings that the API edge reads (rate limit tiers, `api.mtls_required`, `realtime.allowed_origins`) that are set, by key."
   @spec edge_settings() :: %{optional(String.t()) => term()}
   def edge_settings do
     for row <- Repo.call!("relay_fn.setting_resolve", [nil, @edge_keys]),
         not is_nil(row["value"]),
         into: %{},
         do: {row["key"], row["value"]}
+  end
+
+  # IN-54
+  @doc "The browser origins allowed to open a realtime connection in the scope, `[]` when none is set."
+  @spec realtime_origins() :: [String.t()]
+  def realtime_origins do
+    case Repo.call!("relay_fn.setting_resolve", [nil, [@origins]]) do
+      [%{"value" => origins} | _rest] when is_list(origins) -> origins
+      _none -> []
+    end
   end
 
   # API-52

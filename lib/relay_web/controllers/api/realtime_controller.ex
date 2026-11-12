@@ -16,16 +16,18 @@ defmodule RelayWeb.Api.RealtimeController do
   # IN-23
   # IN-33
   # IN-52
+  # IN-54
   @spec events(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def events(conn, params) do
     token = Authorization.bearer(conn)
+    origin = conn |> get_req_header("origin") |> List.first()
 
     with :ok <- admitted(),
-         {:ok, grant} <- Authorization.authorize(token),
+         {:ok, grant} <- Authorization.authorize(token, origin),
          {:ok, cursor} <- cursor(conn |> get_req_header("last-event-id") |> List.first()),
          {:ok, device_id} <- device(params["device_id"]),
          {:ok, session, envelopes} <-
-           Session.open(grant, token, cursor: cursor, device_id: device_id) do
+           Session.open(grant, token, cursor: cursor, device_id: device_id, origin: origin) do
       conn
       |> put_resp_header("content-type", "text/event-stream; charset=utf-8")
       |> put_resp_header("cache-control", "no-store")

@@ -3,7 +3,7 @@ defmodule Relay.Ingest.Request do
   The checks of a send request that the body schema cannot express (API-20 … API-26, API-62), as a pure function of the request, the workflow version it resolves to, the environment and the time. Field errors are all reported at once (API-37); the request's own fields never change the lane, and a policy outcome is never an error here.
 
   * `data` is at most the contract's `event.max_data_bytes`; `send_at` lies in the future and at most `event.max_send_at_ahead` ahead (`Relay.Limits`); `expires_at` lies in the future and not before `send_at`.
-  * `security_subtype` and `on_expire` belong to the `security` class; a subtype needs `expires_at` (API-24). `retention: none` is refused for `security` and together with an inbox step (API-26).
+  * `security_subtype` and `on_expire` belong to the `security` class; a subtype needs `expires_at` (API-24). `retention: none` is refused for `security` and together with an inbox step (API-26, IN-46); a security subtype (an OTP) is refused together with an inbox step, since an OTP is never written to the inbox (IN-55).
   * `priority` is clamped to the class ceiling with a `priority_clamped` warning (API-22); `channels` only narrows the workflow's steps.
   * Raw provider blocks cannot set policy fields (`422 policy_field_not_overridable`, API-23). The provider and `overrides.email.from` are checked against the verified routes by the send operation (`403 channel_not_configured`).
   * A per-request `send_mode` is accepted only in the test environment (`403 auth_environment_mismatch`, API-62, API-76).
@@ -38,6 +38,7 @@ defmodule Relay.Ingest.Request do
   # API-24
   # API-26
   # IN-46
+  # IN-55
   # API-62
   # E-83
   # WF-56
@@ -59,6 +60,7 @@ defmodule Relay.Ingest.Request do
         data_errors(body) ++
           class_errors(body, class, times) ++
           retention_errors(body, class, narrowed) ++
+          otp_inbox_errors(body, narrowed) ++
           rel_errors(Map.get(body, "links", [])) ++ timing_errors
 
       if errors == [] do
@@ -349,6 +351,17 @@ defmodule Relay.Ingest.Request do
   end
 
   defp retention_errors(_body, _class, _steps), do: []
+
+  # IN-55
+  defp otp_inbox_errors(%{"security_subtype" => subtype}, steps) when is_binary(subtype) do
+    detail = "an OTP subtype is never written to the inbox"
+
+    if Enum.any?(steps, &(&1.channel == "in_app")),
+      do: [field("/security_subtype", "conflict", detail)],
+      else: []
+  end
+
+  defp otp_inbox_errors(_body, _steps), do: []
 
   # API-21
   # WF-51

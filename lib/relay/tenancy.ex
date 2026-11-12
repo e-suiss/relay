@@ -5,7 +5,9 @@ defmodule Relay.Tenancy do
   Blind indexes and field encryption take their keys from the key provider configured as `:key_provider` in the `:relay` application environment (`Relay.Tenancy.Keyring`), or from the `:key_provider` option.
   """
 
-  use Boundary, top_level?: true, deps: [Relay], exports: []
+  use Boundary, top_level?: true, deps: [Relay, Relay.Platform], exports: []
+
+  require Logger
 
   alias Relay.Actor
   alias Relay.Scope
@@ -146,15 +148,46 @@ defmodule Relay.Tenancy do
   @spec set_tenant_status(Scope.t(), map(), Actor.t()) ::
           {:ok, {atom(), integer() | nil}} | {:error, term()}
   def set_tenant_status(scope, change, actor) do
-    within(scope, fn _status ->
-      Store.tenant_set_status(
-        change.status,
-        Map.get(change, :reason),
-        change.expected_version,
-        change.record_digest,
-        actor
-      )
-    end)
+    result =
+      within(scope, fn _status ->
+        Store.tenant_set_status(
+          change.status,
+          Map.get(change, :reason),
+          change.expected_version,
+          change.record_digest,
+          actor
+        )
+      end)
+
+    with {:ok, {:changed, version}} when is_integer(version) <- result,
+         do: signal_status(scope.tenant_id, version)
+
+    result
+  end
+
+  # IN-33
+  # TN-10
+  @doc "The signal topic of the tenant's status changes in `scope`'s environment; the realtime layer checks its open connections again when it fires."
+  @spec status_topic(Scope.t()) :: {:ok, String.t()} | {:error, Relay.Error.t()}
+  def status_topic(%Scope{} = scope) do
+    Relay.Platform.signal_topic(
+      Scope.tenant_text(scope),
+      Relay.Environment.dump(scope.environment),
+      ["tenant", "status"]
+    )
+  end
+
+  # IN-33
+  # TN-10
+  @doc "Announces a committed change of a tenant's status, or of one of its subtenants, on the status topic of both environments; call it after the change commits. A signal that cannot be sent is logged; the connections then see the change at their next re-authorization."
+  @spec signal_status(Relay.Id.t(), non_neg_integer()) :: :ok
+  def signal_status(tenant_id, seq) when is_integer(seq) and seq >= 0 do
+    for environment <- [:live, :test],
+        {:ok, topic} <- [status_topic(Scope.new!(tenant_id, environment))],
+        {:error, error} <- [Relay.Platform.publish_signal(topic, seq)],
+        do: Logger.debug("tenant status signal not sent", code: error.code)
+
+    :ok
   end
 
   # TN-2

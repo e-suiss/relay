@@ -124,6 +124,12 @@ defmodule Relay.Workflow.RouteTreeTest do
       assert RouteTree.validate("email", security_subtype: "email_verification") == :ok
     end
 
+    test "IN-55: an otp_oob route never names the inbox" do
+      tree = %{"single" => ["sms", "in_app"]}
+      assert errors(tree, security_subtype: "otp_oob") == [{"/tree/single/1", "not_allowed"}]
+      assert RouteTree.validate(tree) == :ok
+    end
+
     test "WF-13: the channels and the leaf pointers of a tree are in written order" do
       tree = %{"single" => ["in_app", %{"all" => ["push", "email"]}, "email"]}
       assert RouteTree.channels(tree) == ["in_app", "push", "email"]

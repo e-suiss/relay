@@ -7032,6 +7032,22 @@
   },
   {
     "acceptance": "pending",
+    "id": "IN-54",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-55",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
     "id": "WH-1",
     "section": "§16",
     "status": "frozen_product",

@@ -79,6 +79,7 @@ defmodule Relay.Api do
       Recurrences,
       EmailTracking,
       TimingSettings,
+      RealtimeOrigins,
       EmailReports,
       Topics,
       Throttles,

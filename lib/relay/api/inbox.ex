@@ -392,15 +392,19 @@ defmodule Relay.Api.Inbox do
   @doc "Reconciles the subscriber's counters at once after its client found them inconsistent with the items it lists (IN-21); answers whether they were consistent or repaired, with the counters."
   @spec report_inconsistency(Relay.Scope.t(), Relay.Id.t()) :: answer()
   def report_inconsistency(scope, subscriber_id) do
-    {result, counters} = Relay.Inbox.reconcile(scope, subscriber_id)
+    case Relay.Inbox.reconcile(scope, subscriber_id) do
+      {:ok, {result, counters}} ->
+        {:ok,
+         {200, [],
+          %{
+            "object" => "inbox_reconciliation",
+            "result" => Atom.to_string(result),
+            "counters" => counters_view(counters)
+          }}}
 
-    {:ok,
-     {200, [],
-      %{
-        "object" => "inbox_reconciliation",
-        "result" => Atom.to_string(result),
-        "counters" => counters_view(counters)
-      }}}
+      {:error, _reason} ->
+        {:error, unavailable()}
+    end
   end
 
   @doc "The error of an item that is not the subscriber's or not visible."

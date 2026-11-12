@@ -9,6 +9,7 @@ defmodule Relay.Inbox.Live do
     top_level?: true,
     deps: [
       Relay,
+      Relay.Devices,
       Relay.Inbox,
       Relay.Platform,
       Relay.Tenancy,
@@ -210,6 +211,18 @@ defmodule Relay.Inbox.Live do
       ["stream" | String.split(stream_key, ":")]
     )
   end
+
+  # IN-35
+  @doc "Queues the sync signal of a counter change to the recipient's devices."
+  @spec sync(Scope.t(), Relay.Id.t(), map()) :: {:ok, term()} | {:error, term()}
+  def sync(%Scope{} = scope, recipient_id, counters),
+    do: Relay.Devices.sync(scope, recipient_id, counters)
+
+  # WF-27
+  @doc "Applies a recipient's read to the pending digest windows of a notification inside the caller's transaction."
+  @spec digest_read(Scope.t(), Relay.Id.t(), Relay.Id.t()) :: [{Relay.Id.t(), :cancelled | :read}]
+  def digest_read(%Scope{} = scope, recipient_id, notification_id),
+    do: Relay.Workflow.digest_read_in_scope(scope, recipient_id, notification_id)
 
   # IN-44
   @doc "Unseals the content of item rows, in order; a row whose content no longer opens gives `nil`. Runs outside any transaction."

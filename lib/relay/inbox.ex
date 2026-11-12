@@ -9,7 +9,7 @@ defmodule Relay.Inbox do
   Announcements (IN-3, C-70) are one record per audience, merged into every list, delta and counter read of the recipients in the audience (`Relay.Inbox.Announcement`); a recipient's state of an announcement is written only when it acts. "Mark all read" (IN-50) reads the scope's unread items in one transaction and stamps a read mark that reads the scope's earlier announcements; other bulk actions run as a chunked job with a status record (IN-14). Counters are reconciled with the items nightly and on a client's report (IN-18, IN-21). Retention keeps the newest visible items in the list and ends the retention of old items by soft deletion and content shredding (IN-44, OP-22). A counter change that no intent caused queues a sync signal to the recipient's devices (IN-35).
   """
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Devices, Relay.Workflow], exports: []
+  use Boundary, top_level?: true, deps: [Relay], exports: []
 
   alias Relay.Inbox.Announcement
   alias Relay.Inbox.AnnouncementTimer
@@ -527,21 +527,9 @@ defmodule Relay.Inbox do
       for entry <- stream,
           do: stream_change(entry, {head, found.since}, views, now, since_ann)
 
-    stream_seq = Enum.reduce(stream_changes, head.seq, &max(&1.seq, &2))
-
-    seq =
-      if found.has_more and records == [],
-        do: List.last(stream_changes).seq,
-        else: stream_seq
-
+    seq = page_seq(stream_changes, head, found)
     record_changes = for row <- records, do: record_change(row, head.epoch, seq, now)
-
-    ann =
-      cond do
-        records == [] and found.has_more -> since_ann
-        found.has_more -> List.last(records)["change_seq"]
-        true -> found.ann_head
-      end
+    ann = page_ann(found)
 
     %{
       changes: stream_changes ++ record_changes,
@@ -551,6 +539,16 @@ defmodule Relay.Inbox do
       truncated: found.truncated
     }
   end
+
+  defp page_seq(stream_changes, _head, %{has_more: true, records: []}),
+    do: List.last(stream_changes).seq
+
+  defp page_seq(stream_changes, head, _found),
+    do: Enum.reduce(stream_changes, head.seq, &max(&1.seq, &2))
+
+  defp page_ann(%{has_more: true, records: [], since_ann: since_ann}), do: since_ann
+  defp page_ann(%{has_more: true, records: records}), do: List.last(records)["change_seq"]
+  defp page_ann(found), do: found.ann_head
 
   defp stream_change({:item, row}, {head, since}, views, now, since_ann) do
     removed? = Item.removed?(row, now)
@@ -765,18 +763,25 @@ defmodule Relay.Inbox do
 
   # IN-21
   # IN-35
-  @doc "Reconciles the subscriber's counters with its items at once, inside the caller's transaction, after its client reported them inconsistent: drifted counters are rewritten with a new version and published, and the devices get a sync signal. Emits `[:relay, :inbox, :inconsistency_report]` with the result. Returns `:consistent` or `:repaired` and the merged counters."
-  @spec reconcile(Relay.Scope.t(), Relay.Id.t()) :: {:consistent | :repaired, counters()}
+  @doc "Reconciles the subscriber's counters with its items at once, in one transaction, after its client reported them inconsistent: drifted counters are rewritten with a new version and published, and the devices get a sync signal. Emits `[:relay, :inbox, :inconsistency_report]` with the result. Returns `:consistent` or `:repaired` and the merged counters."
+  @spec reconcile(Relay.Scope.t(), Relay.Id.t()) ::
+          {:ok, {:consistent | :repaired, counters()}} | {:error, term()}
   def reconcile(%Relay.Scope{} = scope, subscriber_id) do
-    {result, _version} = Store.reconcile(subscriber_id)
-    if result == :repaired, do: sync!(scope, subscriber_id)
+    reconciled =
+      Store.in_scope(scope, fn _status ->
+        {result, _version} = Store.reconcile(subscriber_id)
+        if result == :repaired, do: sync!(scope, subscriber_id)
+        {result, merged_counters(subscriber_id)}
+      end)
 
-    :telemetry.execute([:relay, :inbox, :inconsistency_report], %{count: 1}, %{result: result})
+    with {:ok, {result, _counters}} <- reconciled do
+      :telemetry.execute([:relay, :inbox, :inconsistency_report], %{count: 1}, %{result: result})
 
-    if result == :repaired,
-      do: :telemetry.execute([:relay, :inbox, :counter_drift], %{count: 1}, %{source: :report})
+      if result == :repaired,
+        do: :telemetry.execute([:relay, :inbox, :counter_drift], %{count: 1}, %{source: :report})
+    end
 
-    {result, merged_counters(subscriber_id)}
+    reconciled
   end
 
   # IN-18
@@ -882,7 +887,7 @@ defmodule Relay.Inbox do
   defp sync!(scope, recipient_id) do
     counters = merged_counters(recipient_id)
 
-    {:ok, _job} = Relay.Devices.sync(scope, recipient_id, counters)
+    {:ok, _job} = opener().sync(scope, recipient_id, counters)
     :ok
   end
 
@@ -891,7 +896,7 @@ defmodule Relay.Inbox do
 
   defp digest_read!(scope, recipient_id, notification_ids) do
     for id <- Enum.uniq(notification_ids),
-        do: _ = Relay.Workflow.digest_read_in_scope(scope, recipient_id, id)
+        do: _ = opener().digest_read(scope, recipient_id, id)
 
     :ok
   end

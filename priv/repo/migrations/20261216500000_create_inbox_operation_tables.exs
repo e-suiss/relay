@@ -69,7 +69,10 @@ defmodule Relay.Repo.Migrations.CreateInboxOperationTables do
           CONSTRAINT inbox_announcements_severity_check CHECK (severity ~ '^[a-z_]{1,32}$'),
         content jsonb NOT NULL
           CONSTRAINT inbox_announcements_content_check
-            CHECK (jsonb_typeof(content) = 'object' AND octet_length(content::text) <= 16384),
+            CHECK (
+              jsonb_typeof(content) = 'object' AND octet_length(content::text) <= 16384
+                AND pg_column_size(content) <= 16384
+            ),
         locale text
           CONSTRAINT inbox_announcements_locale_check CHECK (char_length(locale) BETWEEN 2 AND 35),
         dir text CONSTRAINT inbox_announcements_dir_check CHECK (dir IN ('ltr', 'rtl', 'auto')),
@@ -214,7 +217,11 @@ defmodule Relay.Repo.Migrations.CreateInboxOperationTables do
           CHECK ((state = 'completed') = (completed_at IS NOT NULL)),
         CONSTRAINT inbox_bulk_operations_recipient_id_fkey
           FOREIGN KEY (tenant_id, environment, recipient_id)
-          REFERENCES relay.recipients (tenant_id, environment, id) ON DELETE RESTRICT ON UPDATE RESTRICT
+          REFERENCES relay.recipients (tenant_id, environment, id) ON DELETE RESTRICT ON UPDATE RESTRICT,
+        CONSTRAINT inbox_bulk_operations_after_id_fkey
+          FOREIGN KEY (tenant_id, environment, after_id, recipient_id)
+          REFERENCES relay.inbox_items (tenant_id, environment, id, recipient_id)
+          ON DELETE RESTRICT ON UPDATE RESTRICT
       )
       """,
       no_delete("inbox_bulk_operations"),

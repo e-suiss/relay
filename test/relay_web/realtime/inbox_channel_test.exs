@@ -199,6 +199,7 @@ defmodule RelayWeb.Realtime.InboxChannelTest do
   describe "IN-52 IN-40 connection set" do
     test "IN-52: more than 10 connections of a subscriber close the oldest", ctx do
       {token, _id} = RealtimeFixture.token!(ctx, RealtimeFixture.subject())
+
       [oldest | rest] =
         for _n <- 1..11 do
           Process.sleep(2)

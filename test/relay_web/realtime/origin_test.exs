@@ -5,12 +5,14 @@ defmodule RelayWeb.Realtime.OriginTest do
 
   alias Relay.Operators.SubscriberSuspension
   alias Relay.Operators.Suspension
+  alias Relay.Platform.Signal.Hub
   alias RelayTest.Api
   alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.RealtimeFixture
   alias RelayTest.RealtimeSource
   alias RelayTest.TenantFixture
+  alias RelayWeb.Realtime.Authorization
   alias RelayWeb.Realtime.Socket
 
   @endpoint RelayWeb.Endpoint
@@ -55,7 +57,7 @@ defmodule RelayWeb.Realtime.OriginTest do
   defp code(conn), do: Jason.decode!(conn.resp_body)["code"]
 
   defp await_subscribed(topic, tries \\ 250) do
-    if Map.has_key?(Relay.Platform.Signal.Hub.topics(Relay.Platform.Signal.Hub), topic) do
+    if Map.has_key?(Hub.topics(Hub), topic) do
       :ok
     else
       true = tries > 0
@@ -65,7 +67,7 @@ defmodule RelayWeb.Realtime.OriginTest do
   end
 
   defp await_up(topic, tries \\ 250) do
-    case Relay.Platform.Signal.Hub.topics(Relay.Platform.Signal.Hub) do
+    case Hub.topics(Hub) do
       %{^topic => :up} ->
         :ok
 
@@ -226,9 +228,9 @@ defmodule RelayWeb.Realtime.OriginTest do
       {:ok, test_topic} = Suspension.status_topic(ctx.tenant.test)
       {:ok, live_topic} = Suspension.status_topic(ctx.tenant.live)
 
-      assert test_topic in RelayWeb.Realtime.Authorization.topics(ctx.tenant.test)
-      assert live_topic in RelayWeb.Realtime.Authorization.topics(ctx.tenant.live)
-      refute live_topic in RelayWeb.Realtime.Authorization.topics(ctx.tenant.test)
+      assert test_topic in Authorization.topics(ctx.tenant.test)
+      assert live_topic in Authorization.topics(ctx.tenant.live)
+      refute live_topic in Authorization.topics(ctx.tenant.test)
     end
   end
 end

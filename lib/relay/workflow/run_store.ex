@@ -173,7 +173,8 @@ defmodule Relay.Workflow.RunStore do
     """
     SELECT d.tenant_id, d.environment, d.id, relay_private.delivery_status(d) AS status,
       d.seen_at IS NOT NULL AS seen, d.read_at IS NOT NULL AS read,
-      coalesce(d.clicked_by = 'human', false) AS clicked
+      coalesce(d.clicked_by = 'human', false) AS clicked,
+      coalesce(d.decision_rule_id, d.failure_rule_id)::text AS rule_id
     FROM relay.deliveries d WHERE d.id = ANY ($1)
     """
     |> Repo.scoped_query!([ids])

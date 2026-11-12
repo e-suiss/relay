@@ -103,6 +103,7 @@ defmodule Relay.Api.Events do
          installation_mode: tenant.installation_mode,
          subtenant: subtenant,
          source: Keyword.get(opts, :source, :api),
+         event_type: cloudevent && cloudevent["type"],
          ce_key_digest: ce_digest(cloudevent),
          dedup_key: request.dedup_key || Keyword.get(opts, :dedup_key),
          traceparent: (cloudevent && cloudevent["traceparent"]) || Map.get(ctx, :traceparent),
@@ -607,6 +608,7 @@ defmodule Relay.Api.Events do
     keys =
       p.request.steps
       |> Enum.flat_map(&[&1.template, Map.get(&1, :digest_template)])
+      |> Enum.concat(Relay.Workflow.variant_templates(p.workflow["definition"]))
       |> Enum.reject(&is_nil/1)
       |> Enum.uniq()
 
@@ -664,7 +666,13 @@ defmodule Relay.Api.Events do
       now: p.request.send_at || p.now,
       opener: fn step, channel, pointer ->
         open_step(p, notification_id, row, mismatch?, step, {channel, pointer})
-      end
+      end,
+      incoming: %{
+        event_type: Map.get(p, :event_type),
+        correlation_key: p.request.correlation_id,
+        event_id: p.event_id,
+        data: p.request.data
+      }
     }
 
     case Relay.Workflow.start_run(p.scope, run) do

@@ -21,7 +21,8 @@ defmodule Relay.Workflow.RunnerTest do
         facts: fn _step -> %{} end,
         effects: %{
           digest: fn _step -> {:ok, %{role: :anchor, window_id: Relay.Id.generate()}} end,
-          throttle: fn _step -> {:ok, %{outcome: :allowed, count: 1, rule_id: nil}} end
+          throttle: fn _step -> {:ok, %{outcome: :allowed, count: 1, rule_id: nil}} end,
+          wait: fn _wait -> {:ok, %{state: :open, waitpoint_id: Relay.Id.generate()}} end
         }
       },
       overrides
@@ -155,19 +156,126 @@ defmodule Relay.Workflow.RunnerTest do
     end
 
     test "WF-8: a step type that is not executable yet is recorded with its rule and the run goes on" do
+      hook = %{
+        "type" => "webhook",
+        "key" => "hook",
+        "endpoint" => "crm",
+        "event_type" => "order.shipped"
+      }
+
+      assert {:ok, %{status: "completed", state: state, extras: [{"b", "email"}]}} =
+               run([hook, mail("b")])
+
+      assert %{"outcome" => "skipped", "rule_id" => "workflow_run.step_unavailable"} =
+               state["results"]["hook"]
+    end
+
+    test "WF-12: an event wait parks the run; a match goes on and a timeout runs on_timeout first" do
       wait = %{
         "type" => "wait_for_event",
         "key" => "reply",
         "event_type" => "ticket.replied",
-        "correlation_key" => "k",
-        "timeout" => "P1D"
+        "correlation_key" => "ticket-{{data.order}}",
+        "timeout" => "P1D",
+        "on_timeout" => [mail("nudge")]
       }
 
-      assert {:ok, %{status: "completed", state: state, extras: [{"b", "email"}]}} =
+      steps = [wait, mail("b")]
+      test_pid = self()
+
+      effects = %{
+        digest: fn _step -> {:error, :unused} end,
+        throttle: fn _step -> {:error, :unused} end,
+        wait: fn wait ->
+          send(test_pid, {:wait, wait.correlation_key, wait.expires_at})
+          {:ok, %{state: :open, waitpoint_id: Relay.Id.generate()}}
+        end
+      }
+
+      assert {:ok, %{status: "running", state: parked, extras: []}} =
+               run(steps, %{effects: effects})
+
+      assert_received {:wait, "ticket-A-1", ~U[2026-11-12 10:00:00Z]}
+      assert parked["parked"] == "reply"
+      assert parked["results"]["reply"]["outcome"] == "waiting"
+
+      matched = Runner.resume_wait(parked, "reply", :matched)
+
+      assert {:ok, %{status: "completed", extras: [{"b", "email"}], state: done}} =
+               Runner.advance(%{"steps" => steps}, matched, context(steps), @now, opener())
+
+      assert %{"outcome" => "matched", "matched" => true} = done["results"]["reply"]
+
+      timed_out = Runner.resume_wait(parked, "reply", :timed_out)
+
+      assert {:ok,
+              %{status: "completed", extras: [{"nudge", "email"}, {"b", "email"}], state: late}} =
+               Runner.advance(%{"steps" => steps}, timed_out, context(steps), @now, opener())
+
+      assert %{"outcome" => "timed_out", "timed_out" => true} = late["results"]["reply"]
+    end
+
+    test "WF-12: an early event resolves the wait at once and a wait that cannot open times out at once" do
+      wait = %{
+        "type" => "wait_for_event",
+        "key" => "reply",
+        "event_type" => "ticket.replied",
+        "correlation_key" => "{{data.missing}}",
+        "timeout" => "PT1H",
+        "on_timeout" => [mail("nudge")]
+      }
+
+      assert {:ok,
+              %{status: "completed", state: state, extras: [{"nudge", "email"}, {"b", "email"}]}} =
                run([wait, mail("b")])
 
-      assert %{"outcome" => "skipped", "rule_id" => "workflow_run.step_unavailable"} =
-               state["results"]["reply"]
+      assert %{
+               "outcome" => "timed_out",
+               "timed_out" => true,
+               "rule_id" => "workflow_run.wait_refused"
+             } = state["results"]["reply"]
+
+      early = %{
+        digest: fn _step -> {:error, :unused} end,
+        throttle: fn _step -> {:error, :unused} end,
+        wait: fn _wait -> {:ok, %{state: :matched, waitpoint_id: Relay.Id.generate()}} end
+      }
+
+      wait = Map.put(wait, "correlation_key", "fixed")
+
+      assert {:ok, %{status: "completed", state: state, extras: [{"b", "email"}]}} =
+               run([wait, mail("b")], %{effects: early})
+
+      assert state["results"]["reply"]["matched"] == true
+    end
+
+    test "WF-50: a channel step with variants sends the template of the recipient's frozen variant" do
+      step =
+        Map.put(mail("a"), "variants", [
+          %{"key" => "control", "weight" => 1, "template" => "w"},
+          %{"key" => "bold", "weight" => 1, "template" => "w-bold"}
+        ])
+
+      test_pid = self()
+
+      opener = fn step, channel, pointer ->
+        send(test_pid, {:template, step["template"], step["variant"]})
+        {:ok, ["dlv-" <> step["key"] <> pointer], [{step["key"], channel}]}
+      end
+
+      variants = %{"a" => %{"key" => "bold", "template" => "w-bold"}}
+
+      assert {:ok, %{status: "completed", state: state}} =
+               Runner.advance(
+                 %{"steps" => [step]},
+                 Runner.new(),
+                 context([step], %{variants: variants}),
+                 @now,
+                 opener
+               )
+
+      assert_received {:template, "w-bold", "bold"}
+      assert %{"variant" => "bold", "deliveries" => ["dlv-a"]} = state["results"]["a"]
     end
 
     test "WF-32: a throttled event ends the run skipped with throttle.limited" do
@@ -248,6 +356,37 @@ defmodule Relay.Workflow.RunnerTest do
 
       assert state["results"]["r"]["deliveries"] |> Enum.sort() ==
                ["dlv-r/single/0", "dlv-r/single/1"]
+    end
+
+    test "PC-46 WF-15: a leaf folded into a policy digest counts as delivered and does not move a single on" do
+      tree = %{"single" => ["sms", "email"]}
+      step = %{"type" => "channel", "key" => "r", "route" => tree, "template" => "w"}
+
+      assert {:ok, %{state: state}} = run([step])
+
+      folded = %{
+        projection: fn _ids ->
+          %{"dlv-r/single/0" => %{"status" => "skipped", "rule_id" => "digest.folded"}}
+        end
+      }
+
+      assert {:ok, %{status: "completed", state: state, extras: []}} =
+               Runner.advance(
+                 %{"steps" => [step]},
+                 state,
+                 context([step], folded),
+                 @now,
+                 opener()
+               )
+
+      assert state["results"]["r"]["deliveries"] == ["dlv-r/single/0"]
+
+      view =
+        Runner.outcomes(state["results"], %{
+          "dlv-r/single/0" => %{"status" => "skipped", "rule_id" => "digest.folded"}
+        })
+
+      assert %{"delivered" => true, "skipped" => false} = view["r"]
     end
 
     test "WF-14: a route that does not resolve is recorded with its rule" do

@@ -364,6 +364,11 @@ table relay.report_skip_rollups relay_archive SELECT
 table relay.report_skip_rollups relay_maint SELECT
 table relay.report_skip_rollups relay_owner INSERT,SELECT,UPDATE
 table relay.report_skip_rollups relay_report SELECT
+table relay.report_variant_rollups relay_app SELECT
+table relay.report_variant_rollups relay_archive SELECT
+table relay.report_variant_rollups relay_maint SELECT
+table relay.report_variant_rollups relay_owner INSERT,SELECT,UPDATE
+table relay.report_variant_rollups relay_report SELECT
 table relay.role_assignments relay_app SELECT
 table relay.role_assignments relay_archive SELECT
 table relay.role_assignments relay_maint SELECT

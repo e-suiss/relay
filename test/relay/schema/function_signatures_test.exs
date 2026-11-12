@@ -266,6 +266,7 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.provider_invoice_record" => ~w(recorded exists conflict),
     "relay_fn.provider_invoice_check" => ~w(changed unchanged not_found),
     "relay_fn.report_rollup_recompute" => ~w(recomputed),
+    "relay_fn.report_variant_recompute" => ~w(recomputed),
     "relay_fn.export_request" => ~w(requested),
     "relay_fn.export_complete" => ~w(completed not_pending not_found),
     "relay_fn.export_fail" => ~w(failed not_pending not_found),

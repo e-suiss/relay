@@ -40,6 +40,7 @@ defmodule Relay.Workflow do
   @type version :: pos_integer() | nil
 
   @due_batch 100
+  @run_tag "workflow_run:"
   @panel [:operator, :installation_operator]
   @text_fields ["/name", "/description"]
 
@@ -358,21 +359,38 @@ defmodule Relay.Workflow do
         }
   end
 
+  # WF-50
+  # WF-7
+  @doc "The A/B variant of every channel step with variants, chosen for a recipient; frozen in the run's plan at acceptance. See `Relay.Workflow.Variant`."
+  @spec variants(Definition.t(), String.t(), Relay.Id.t()) :: %{String.t() => map()}
+  defdelegate variants(definition, workflow_key, recipient_id),
+    to: Relay.Workflow.Variant,
+    as: :choose_all
+
+  # WF-50
+  @doc "The template keys of the A/B variants of a definition's channel steps."
+  @spec variant_templates(Definition.t()) :: [String.t()]
+  defdelegate variant_templates(definition), to: Relay.Workflow.Variant, as: :templates
+
   # WF-59 (5)
   # WF-41
   # WF-43
   @doc """
   Creates the run of a new notification inside the caller's accepting transaction and advances it up to its first wait. `run` carries `:notification_id`, `:recipient_id`, `:workflow_key`, `:message_class`, the pinned `:definition`, the `:plan` the resumer needs later (JSON, no personal data, with the resolved `routes`), the step `:context` (`t:Relay.Workflow.Step.context/0` with the plan's `:routes` and the `:facts` of a step's route, without `:results`, `:outcomes`, `:projection` and `:effects`), `:now` (the business time base: `send_at` when the request has one) and the `:opener` of route leaves. Returns the openers' extras in step order.
+
+  An accepted event that carries an event type (a CloudEvent's `type`) and a correlation key (`correlation_id`) is first offered, in the same transaction and through the configured waiter (`config :relay, Relay.Workflow, waiter: Relay.Agents`), to the event waits of the recipient's other runs (`:incoming` with `:event_type`, `:correlation_key`, `:event_id` and `:data`, WF-12): the first stage matches the type and the key exactly, the second evaluates a wait's `match` condition against the event data as `incoming.…`, and an event that resolves no wait is buffered in the recipient's mailbox, where a wait that opens later finds it.
   """
   @spec start_run(Scope.t(), map()) :: {:ok, [term()]} | {:error, term()}
   def start_run(%Scope{} = scope, run) do
+    run = Map.put(run, :run_id, Relay.Id.generate())
+    :ok = offer_incoming(scope, run)
     context = with_effects(scope, run.context, run)
 
     with {:ok, outcome} <-
            Runner.advance(run.definition, Runner.new(), context, run.now, run.opener) do
       attrs =
         Map.merge(fields(outcome), %{
-          id: Relay.Id.generate(),
+          id: run.run_id,
           notification_id: run.notification_id,
           plan: run.plan,
           started_at: run.now
@@ -395,7 +413,8 @@ defmodule Relay.Workflow do
       projection: &projection/1,
       effects: %{
         digest: &digest_effect(scope, context, meta, &1),
-        throttle: &throttle_effect(scope, context, meta, &1)
+        throttle: &throttle_effect(scope, context, meta, &1),
+        wait: &wait_effect(scope, meta, &1)
       }
     })
   end
@@ -427,6 +446,101 @@ defmodule Relay.Workflow do
     }
 
     Throttle.hit(scope, fields, attrs)
+  end
+
+  # WF-12
+  # AG-13
+  defp wait_effect(scope, meta, %{step: step, correlation_key: key, expires_at: at}) do
+    attrs = %{
+      id: Relay.Id.generate(),
+      kind: :event,
+      waiter_kind: :subscriber,
+      waiter_ref: meta.recipient_id,
+      match_event_type: step["event_type"],
+      correlation_key: key,
+      condition: step["match"],
+      expires_at: at,
+      tags: [@run_tag <> Relay.Id.to_string(meta.run_id)]
+    }
+
+    case waiter().open_waitpoint_in(scope, attrs) do
+      %{result: :opened, waitpoint_id: id, early: {:resolved_by_event, :resolved}} ->
+        {:ok, %{state: :matched, waitpoint_id: id}}
+
+      %{result: :opened, waitpoint_id: id} ->
+        {:ok, %{state: :open, waitpoint_id: id}}
+
+      %{result: refused} ->
+        {:ok, %{state: :refused, reason: Atom.to_string(refused)}}
+    end
+  end
+
+  # WF-12
+  # AG-14
+  defp offer_incoming(
+         scope,
+         %{incoming: %{event_type: type, correlation_key: key} = incoming} = run
+       )
+       when is_binary(type) and is_binary(key) do
+    if Relay.Workflow.Steps.WaitForEvent.key?(key) and type != "" and byte_size(type) <= 128 do
+      event = %{
+        event_id: incoming.event_id,
+        event_type: type,
+        correlation_key: key,
+        waiter_kind: :subscriber,
+        waiter_ref: run.recipient_id,
+        payload_digest: :crypto.hash(:sha256, Jason.encode!(incoming.data))
+      }
+
+      context = %{incoming: incoming.data}
+      _offered = waiter().offer_event_in(scope, event, &accepts?(&1, context))
+      :ok
+    else
+      :ok
+    end
+  end
+
+  defp offer_incoming(_scope, _run), do: :ok
+
+  defp accepts?(%{condition: nil}, _context), do: true
+
+  defp accepts?(%{condition: condition}, context), do: Condition.evaluate(condition, context)
+
+  # WF-12
+  @doc "The waitpoint sink (`config :relay, Relay.Agents, waitpoint_sink: Relay.Workflow`): inside the transaction that resolved or expired the event wait of a run's `wait_for_event` step, records `matched` or `timed_out` under the step and resumes the run through a forced timer job; a timed-out wait runs the step's `on_timeout` steps first. Any other waitpoint is left alone."
+  @spec waitpoint_closed(Scope.t(), map() | nil, :resolved | :expired) :: :ok
+  def waitpoint_closed(%Scope{} = scope, %{id: waitpoint_id, tags: tags}, outcome) do
+    with [text | _rest] <- for(@run_tag <> id <- tags || [], do: id),
+         {:ok, run_id} <- Relay.Id.parse(text),
+         :locked <- RunStore.lock(run_id),
+         %{"state" => state, "step_cursor" => %{"parked" => key}} = run
+         when state in ["running", "waiting"] and is_binary(key) <- RunStore.get(run_id),
+         true <- run["step_results"][key]["waitpoint_id"] == Relay.Id.to_string(waitpoint_id) do
+      resume_wait(scope, run, key, if(outcome == :resolved, do: :matched, else: :timed_out))
+    else
+      _other -> :ok
+    end
+  end
+
+  def waitpoint_closed(_scope, _waitpoint, _outcome), do: :ok
+
+  defp resume_wait(scope, run, key, outcome) do
+    state =
+      run["step_cursor"]
+      |> Map.put("results", run["step_results"])
+      |> Runner.resume_wait(key, outcome)
+
+    fields = %{
+      cursor: Map.delete(state, "results"),
+      results: state["results"],
+      state: "running",
+      wake_at: nil,
+      outcome: nil,
+      rule_id: nil
+    }
+
+    {:saved, _version} = RunStore.save(run["id"], run["version"], fields)
+    timer(scope, run["id"], nil, true)
   end
 
   defp until(nil, _data), do: nil
@@ -534,6 +648,7 @@ defmodule Relay.Workflow do
 
   defp meta(run) do
     %{
+      run_id: run["id"],
       recipient_id: run["recipient_id"],
       notification_id: run["notification_id"],
       message_class: run["message_class"],
@@ -549,6 +664,9 @@ defmodule Relay.Workflow do
   defp saved({other, _version}, _result), do: RunStore.rollback(other)
 
   defp resumer, do: :relay |> Application.fetch_env!(__MODULE__) |> Keyword.fetch!(:resumer)
+
+  # WF-12
+  defp waiter, do: :relay |> Application.fetch_env!(__MODULE__) |> Keyword.fetch!(:waiter)
 
   defp fields(outcome) do
     state = outcome.state

@@ -5,8 +5,9 @@ defmodule Relay.Workflow.Runner do
   `advance/5` is pure apart from the callbacks it is given. It first evaluates every running route again, then runs the steps from the cursor on, each through its module (`Relay.Workflow.Step`), until a step waits, parks, ends the run or the tree ends:
 
   * a channel step's `{:route, result}` evaluates the tree the notification's plan holds for the step (WF-7) with `Relay.Workflow.RouteTree.next/3`: each leaf to open goes to the opener with its RFC 6901 pointer, which opens its delivery in the caller's transaction and returns the delivery identifiers and its own extras; a leaf to skip and an escalation that stopped are recorded under their pointer; the route keeps running with its `wake_at` while it is not delivered, exhausted or stopped and can still open a leaf (a route whose every leaf is open and that has no timer is `settled`), and the cursor goes on at once;
-  * a route is evaluated again whenever the run wakes: at its `wake_at` (an `after_delay` fallback, an escalation step) and when one of its deliveries settles, with the leaf statuses and the reliable engagement evidence of the delivery projection (WF-15, WF-21, WF-22);
-  * `{:park, result}` holds the cursor after the step until the caller resumes the run (a digest anchor waiting for its window, WF-27); `{:end, result}` ends the run completed (a folded digest item);
+  * a route is evaluated again whenever the run wakes: at its `wake_at` (an `after_delay` fallback, an escalation step) and when one of its deliveries settles, with the leaf statuses and the reliable engagement evidence of the delivery projection (WF-15, WF-21, WF-22); a delivery the policy lattice folded into a digest (`digest.folded`, PC-46) counts as delivered, so it does not move a `single` route on;
+  * `{:park, result}` holds the cursor after the step until the caller resumes the run (a digest anchor waiting for its window, WF-27, or an open event wait, WF-12, resumed by `resume_wait/3` with `matched` or with `timed_out` and its `on_timeout` steps); `{:end, result}` ends the run completed (a folded digest item);
+  * a channel step with A/B variants (WF-50) evaluates its route with the template of the variant its result records;
   * every other instruction only moves the cursor; when a branch list ends, the run goes on with the step after its branching step.
 
   The run then waits (a timer at the earliest of the cursor's and the routes' times), keeps running without a timer (a route waiting on a delivery outcome, a parked cursor) or completes. The same definition, context, step results and projection always give the same path.
@@ -20,6 +21,7 @@ defmodule Relay.Workflow.Runner do
 
   @max_moves 500
   @unavailable "workflow_run.route_unavailable"
+  @folded "digest.folded"
 
   @type frame :: %{String.t() => term()}
   @type state :: %{String.t() => term()}
@@ -113,7 +115,11 @@ defmodule Relay.Workflow.Runner do
     projection = if ids == [], do: %{}, else: context.projection.(ids)
 
     Enum.reduce_while(running, {:ok, state, []}, fn key, {:ok, state, extras} ->
-      step = definition |> find_step(key) |> digest_step(state)
+      step =
+        definition
+        |> find_step(key)
+        |> variant_step(state["results"][key])
+        |> digest_step(state)
 
       case evaluate(step, state["routes"][key], projection, context, now, opener) do
         {:ok, route, more} -> {:cont, {:ok, put_route(state, step, route, now), extras ++ more}}
@@ -148,7 +154,7 @@ defmodule Relay.Workflow.Runner do
   end
 
   defp follow({:route, result}, step, {definition, state, context, now, opener, extras, left}) do
-    case route(digest_step(step, state), result, context, now, opener) do
+    case route(step |> variant_step(result) |> digest_step(state), result, context, now, opener) do
       {:ok, state_fun, more} ->
         state = state |> state_fun.() |> next()
         move(definition, state, context, now, opener, extras ++ more, left - 1)
@@ -239,7 +245,7 @@ defmodule Relay.Workflow.Runner do
   defp settle(step, route, next, extras, projection, {context, now, opener, rounds}) do
     fresh = leaf_deliveries(next) -- leaf_deliveries(route)
     seen = if fresh == [] or rounds == 0, do: %{}, else: context.projection.(fresh)
-    ended? = Enum.any?(Map.values(seen), &(status(&1["status"]) in [:failed, :skipped]))
+    ended? = Enum.any?(Map.values(seen), &(row_status(&1) in [:failed, :skipped]))
 
     if ended? and next["status"] in ["running", "settled"] do
       merged = Map.merge(projection, seen)
@@ -337,9 +343,13 @@ defmodule Relay.Workflow.Runner do
 
     case rows do
       [] -> %{status: if(ids == [], do: :skipped, else: :pending), at: time(at)}
-      [row | _rest] -> %{status: status(row["status"]), at: time(at), evidence: evidence(row)}
+      [row | _rest] -> %{status: row_status(row), at: time(at), evidence: evidence(row)}
     end
   end
+
+  # PC-46
+  defp row_status(%{"rule_id" => @folded}), do: :delivered
+  defp row_status(row), do: status(row["status"])
 
   defp status("delivered"), do: :delivered
   defp status(failed) when failed in ["failed", "expired"], do: :failed
@@ -383,6 +393,12 @@ defmodule Relay.Workflow.Runner do
     do: Map.merge(step, %{"template" => template, "digest" => true})
 
   defp digest_step(step, _state), do: step
+
+  # WF-50
+  defp variant_step(step, %{"variant_template" => template} = result) when is_binary(template),
+    do: Map.merge(step, %{"template" => template, "variant" => result["variant"]})
+
+  defp variant_step(step, _result), do: step
 
   defp leaf_deliveries(route),
     do: route["leaves"] |> Map.values() |> Enum.flat_map(&(&1["deliveries"] || []))
@@ -429,6 +445,29 @@ defmodule Relay.Workflow.Runner do
 
   def unpark(state, _kind, _render), do: state
 
+  # WF-12
+  @doc "Resumes a run parked on a `wait_for_event` step after its wait closed: `:matched` records the step `matched` and goes on with the next step; `:timed_out` records it `timed_out` and enters the step's `on_timeout` steps, after which the run goes on with the step after the wait."
+  @spec resume_wait(state(), String.t(), :matched | :timed_out) :: state()
+  def resume_wait(%{"parked" => key, "cursor" => [frame | rest]} = state, key, outcome) do
+    result = Map.merge(state["results"][key] || %{}, wait_result(outcome))
+    state = %{state | "parked" => nil, "results" => Map.put(state["results"], key, result)}
+
+    case outcome do
+      :matched ->
+        state
+
+      :timed_out ->
+        index = frame["index"] - 1
+        inner = %{"list" => frame["list"] ++ [index, "on_timeout"], "index" => 0}
+        %{state | "cursor" => [inner, %{frame | "index" => index} | rest]}
+    end
+  end
+
+  def resume_wait(state, _key, _outcome), do: state
+
+  defp wait_result(:matched), do: %{"outcome" => "matched", "matched" => true}
+  defp wait_result(:timed_out), do: %{"outcome" => "timed_out", "timed_out" => true}
+
   # WF-60
   # WF-22
   @doc "The condition view of the recorded step results, given each delivery's current projection (`status`, `seen`, `read`, `clicked` by identifier)."
@@ -441,11 +480,16 @@ defmodule Relay.Workflow.Runner do
       {key,
        %{
          "delivered" =>
-           Enum.any?(rows, &(&1["status"] == "delivered" or &1["seen"] or &1["read"])),
+           Enum.any?(
+             rows,
+             &(&1["status"] == "delivered" or &1["rule_id"] == @folded or &1["seen"] == true or
+                 &1["read"] == true)
+           ),
          "failed" => "failed" in statuses,
          "skipped" =>
            result["outcome"] == "skipped" or
-             (rows != [] and Enum.all?(statuses, &(&1 == "skipped"))),
+             (rows != [] and
+                Enum.all?(rows, &(&1["status"] == "skipped" and &1["rule_id"] != @folded))),
          "seen" => Enum.any?(rows, & &1["seen"]),
          "read" => Enum.any?(rows, & &1["read"]),
          "clicked" => Enum.any?(rows, & &1["clicked"]),

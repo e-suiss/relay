@@ -20,10 +20,12 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
   defp inbox(key),
     do: %{"type" => "channel", "key" => key, "channel" => "in_app", "template" => "order-shipped"}
 
-  defp workflow!(ctx, key, steps, extra \\ %{}) do
+  defp workflow!(ctx, key, steps, extra \\ %{}, templates \\ []) do
     definition = F.definition() |> Map.put("steps", steps) |> Map.merge(extra)
     :ok = F.category_of!(ctx.token, definition)
-    :ok = F.template!(ctx.scope, "order-shipped", definition["category"])
+
+    for template <- ["order-shipped" | templates],
+        do: :ok = F.template!(ctx.scope, template, definition["category"])
 
     created =
       F.request(:post, "/v1/workflows", ctx.token, %{"key" => key, "definition" => definition})
@@ -32,10 +34,10 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
     F.publish!(ctx.scope, ctx.token, key)
   end
 
-  defp send!(ctx, key, data \\ %{"order" => "A-1"}) do
+  defp send!(ctx, key, data \\ %{"order" => "A-1"}, to \\ nil) do
     body = %{
       "workflow" => key,
-      "to" => [%{"id" => "user-" <> TenantFixture.random(), "email" => "ayse@example.com"}],
+      "to" => [%{"id" => to || "user-" <> TenantFixture.random(), "email" => "ayse@example.com"}],
       "data" => data
     }
 
@@ -62,6 +64,25 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
       ["Relay.Workflow.RunTimer", Relay.Id.to_string(ctx.scope.tenant_id)]
     ).rows
   end
+
+  defp wait_step,
+    do: %{
+      "type" => "wait_for_event",
+      "key" => "reply",
+      "event_type" => "ticket.replied",
+      "correlation_key" => "order-{{data.order}}",
+      "timeout" => "PT1H"
+    }
+
+  defp offer(ctx, run, key),
+    do:
+      Relay.Agents.offer_event(ctx.scope, %{
+        event_type: "ticket.replied",
+        correlation_key: key,
+        waiter_kind: :subscriber,
+        waiter_ref: run["recipient_id"],
+        payload_digest: :crypto.hash(:sha256, key)
+      })
 
   defp advance!(ctx, ms) do
     assert {:ok, {:advanced, _, _}} =
@@ -297,6 +318,116 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
                Repo.in_scope(ctx.scope, fn _status ->
                  Relay.Workflow.digest_render(delivery_id)
                end)
+    end
+
+    test "WF-12: an event wait parks the run until a matching event resumes it", ctx do
+      workflow!(ctx, "waits", [wait_step(), mail("after")])
+      {notification, id} = send!(ctx, "waits")
+
+      assert deliveries(ctx, notification) == []
+      run = run!(ctx, id)
+      assert run["step_cursor"]["parked"] == "reply"
+      assert %{"outcome" => "waiting", "waitpoint_id" => waitpoint} = run["step_results"]["reply"]
+
+      {:ok, waitpoint_id} = Relay.Id.parse(waitpoint)
+
+      assert {:ok, %{state: "open", kind: "event", waiter_kind: "subscriber"}} =
+               Relay.Agents.get_waitpoint(ctx.scope, waitpoint_id)
+
+      assert {:ok, %{result: :buffered}} = offer(ctx, run, "order-B-2")
+
+      assert {:ok, %{result: :matched, resolved: [{^waitpoint_id, :resolved}]}} =
+               offer(ctx, run, "order-A-1")
+
+      assert {:ok, :completed} = Relay.Workflow.wake(ctx.scope, run["id"], true)
+      assert [%{"channel" => "email"}] = deliveries(ctx, notification)
+      assert %{"matched" => true, "outcome" => "matched"} = run!(ctx, id)["step_results"]["reply"]
+    end
+
+    test "WF-12 OP-24: erasing the subscriber cancels its open event wait", ctx do
+      RelayTest.TenantFixture.retention_periods!()
+      workflow!(ctx, "erased-waits", [wait_step(), mail("after")])
+      {_notification, id} = send!(ctx, "erased-waits")
+      run = run!(ctx, id)
+      {:ok, waitpoint_id} = Relay.Id.parse(run["step_results"]["reply"]["waitpoint_id"])
+
+      actor = %Relay.Actor{
+        kind: :operator,
+        ref: "op-1",
+        on_behalf_of_ref: "op-1",
+        access_record_ref: "acc-rec-1"
+      }
+
+      assert {:ok, :erased, _cancelled} =
+               Relay.Keys.Erasure.erase_subject(ctx.scope, run["recipient_id"], "dsr-wait", actor)
+
+      assert {:ok, %{state: "cancelled"}} = Relay.Agents.get_waitpoint(ctx.scope, waitpoint_id)
+    end
+
+    test "WF-12: a wait that times out runs on_timeout and goes on", ctx do
+      wait = Map.put(wait_step(), "on_timeout", [inbox("nudge")])
+      workflow!(ctx, "nudges", [wait, mail("after")])
+      {notification, id} = send!(ctx, "nudges")
+      run = run!(ctx, id)
+
+      advance!(ctx, @hour + 60_000)
+      assert :ok = Relay.Agents.run_due(ctx.scope)
+
+      assert %{"step_results" => %{"reply" => %{"timed_out" => true}}} = run!(ctx, id)
+      assert {:ok, :completed} = Relay.Workflow.wake(ctx.scope, run["id"], true)
+
+      channels = ctx |> deliveries(notification) |> Enum.map(& &1["channel"]) |> Enum.sort()
+      assert channels == ["email", "in_app"]
+    end
+
+    test "WF-12 AG-13: an event that arrived before the wait opened is buffered and resolves it at once",
+         ctx do
+      user = "user-" <> TenantFixture.random()
+      workflow!(ctx, "first", [mail("mail")])
+      {_notification, first} = send!(ctx, "first", %{"order" => "A-1"}, user)
+      earlier = run!(ctx, first)
+
+      assert {:ok, %{result: :buffered}} = offer(ctx, earlier, "order-A-1")
+
+      workflow!(ctx, "waits-late", [wait_step(), mail("after")])
+      {notification, id} = send!(ctx, "waits-late", %{"order" => "A-1"}, user)
+
+      assert [%{"channel" => "email"}] = deliveries(ctx, notification)
+
+      assert %{"state" => "completed", "step_results" => %{"reply" => %{"matched" => true}}} =
+               run!(ctx, id)
+    end
+
+    test "WF-50: a variant step sends the frozen variant's template and the variant report counts it",
+         ctx do
+      step =
+        Map.put(mail("mail"), "variants", [
+          %{"key" => "control", "weight" => 1, "template" => "order-shipped"},
+          %{"key" => "bold", "weight" => 1, "template" => "order-shipped-bold"}
+        ])
+
+      workflow!(ctx, "split", [step], %{}, ["order-shipped-bold"])
+      {notification, id} = send!(ctx, "split")
+      run = run!(ctx, id)
+
+      assert [%{"channel" => "email"}] = deliveries(ctx, notification)
+      variant = run["plan"]["variants"]["mail"]["key"]
+      assert variant in ["control", "bold"]
+      assert run["step_results"]["mail"]["variant"] == variant
+
+      today = DateTime.to_date(Relay.Clock.utc_now())
+      assert {:ok, %{variants: 1}} = Relay.Delivery.recompute_report_day(ctx.scope, today)
+      {:ok, rows} = Relay.Delivery.report(ctx.scope, :variants, today, Date.add(today, 1))
+
+      assert [
+               %{
+                 "workflow_key" => "split",
+                 "step_key" => "mail",
+                 "variant" => ^variant,
+                 "channel" => "email",
+                 "accepted" => 1
+               }
+             ] = rows
     end
 
     test "API-57: cancelling the notification cancels its waiting run", ctx do

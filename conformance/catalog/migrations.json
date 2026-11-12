@@ -187,5 +187,11 @@
   {"file": "20261214700200_validate_category_density_checks.exs", "sha256": "37293a8414b753daab826609ccb82e9ad93eb144228964ffe7f61446a2b9c01b"},
   {"file": "20261214700300_index_digest_items_by_delivery.exs", "sha256": "64e990f5ef71e124171512c60d1c07a20c9e897452d9437785893c64d30efd75"},
   {"file": "20261214800000_add_event_timing_precision.exs", "sha256": "5f64a9f56846859229fa6fc98b8e5bec74c4498650a74ab4c7005267efe6b59f"},
-  {"file": "20261214800100_validate_event_timing_precision_check.exs", "sha256": "623fec4521cd4c9442bebbb63c4481ef6a82193150650264b287dd0b32af383b"}
+  {"file": "20261214800100_validate_event_timing_precision_check.exs", "sha256": "623fec4521cd4c9442bebbb63c4481ef6a82193150650264b287dd0b32af383b"},
+  {"file": "20261214900000_create_report_variant_rollups.exs", "sha256": "430a6471496b11c34e53302e2f99b0b689653c6fd8c8c39ce6131efbbab0b8db"},
+  {"file": "20261214900100_create_report_variant_function.exs", "sha256": "db7815512c4c8dfbb9ad008f4706e49d3bb94275d114bb7e963ea12ab232fbeb"},
+  {"file": "20261214900200_wake_runs_on_delivery_outcomes.exs", "sha256": "a82f3f2d8534baa4edb01e4818ac788dc795c026d0a0ca6e76f96641718aaf3b"},
+  {"file": "20261214900300_allow_subscriber_waiters.exs", "sha256": "a5e19fa79757d284ff34d526b77b4de4d62085f1e5ed993564000ecc0b0b12d7"},
+  {"file": "20261214900400_open_subscriber_event_waits.exs", "sha256": "59c996596c63cdbc9aeb6c5fa96d65d519ab9cf7db2fcff44b2498b0ae1c0492"},
+  {"file": "20261214900500_erase_subscriber_event_waits.exs", "sha256": "c91419758218ea38bd8305267b2d9d4ee17ea418dbe15cb154cdad3ce43b2163"}
 ]

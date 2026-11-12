@@ -1,6 +1,6 @@
 defmodule Relay.Delivery.Reports.Store do
   @moduledoc """
-  The ready-made reports (DS-35, DS-36, OP-39, F-7). They are read from Postgres rollup tables that are derived from the ledger and can be recomputed at any time: `relay_fn.report_rollup_recompute` counts the deliveries created on a UTC day again from the deliveries, their attempts and their ledger events, per channel, provider and test flag (the delivery funnel `accepted → enqueued → dispatched → provider_accepted → delivered → engaged`, the outcomes, duplicates and conflicts, human and likely bot clicks, opens and `machine_open` opens, SDK receipts apart), and the skips of the day per channel, reason and `rule_id`. Every row is exact (DS-39); test sends are their own rows and the test environment is its own scope. Cost comes from the immutable usage records (OP-38, CH-18). There is no OLAP engine: the reports are plain queries over the rollups.
+  The ready-made reports (DS-35, DS-36, OP-39, F-7). They are read from Postgres rollup tables that are derived from the ledger and can be recomputed at any time: `relay_fn.report_rollup_recompute` counts the deliveries created on a UTC day again from the deliveries, their attempts and their ledger events, per channel, provider and test flag (the delivery funnel `accepted → enqueued → dispatched → provider_accepted → delivered → engaged`, the outcomes, duplicates and conflicts, human and likely bot clicks, opens and `machine_open` opens, SDK receipts apart), and the skips of the day per channel, reason and `rule_id`; `relay_fn.report_variant_recompute` counts the deliveries of the A/B variants of workflow channel steps per workflow, step, variant, channel and test flag (WF-50: accepted, sent, delivered, seen, human and likely bot clicks), the variant read from the step results of the delivery's run. Every row is exact (DS-39); test sends are their own rows and the test environment is its own scope. Cost comes from the immutable usage records (OP-38, CH-18). There is no OLAP engine: the reports are plain queries over the rollups.
 
   Recomputing runs on the OLTP worker pool through `relay_fn`; reports are read on the report pool (`Relay.ReportRepo`, role `relay_report`), always inside the tenant scope, so row level security keeps every tenant's report to its own rows (TN-18).
   """
@@ -12,16 +12,28 @@ defmodule Relay.Delivery.Reports.Store do
                skipped failed uncertain expired cancelled duplicate_delivered conflicts
                human_clicks bot_clicks opens machine_opens)
 
-  @type kind :: :deliveries | :skips | :costs
+  @type kind :: :deliveries | :skips | :costs | :variants
 
   # DS-35
   # OP-39
-  @doc "Recomputes the rollups of the deliveries created on `day` in the established scope and returns the rollup rows written."
-  @spec recompute(Date.t()) :: %{deliveries: non_neg_integer(), skips: non_neg_integer()}
+  # WF-50
+  @doc "Recomputes the rollups of the deliveries created on `day` in the established scope, the A/B variant rollups included, and returns the rollup rows written."
+  @spec recompute(Date.t()) :: %{
+          deliveries: non_neg_integer(),
+          skips: non_neg_integer(),
+          variants: non_neg_integer()
+        }
   def recompute(%Date{} = day) do
     [row] = Repo.call!("relay_fn.report_rollup_recompute", [day])
     :recomputed = Repo.code!(row["result"], [:recomputed])
-    %{deliveries: row["delivery_rows"], skips: row["skip_rows"]}
+    [variants] = Repo.call!("relay_fn.report_variant_recompute", [day])
+    :recomputed = Repo.code!(variants["result"], [:recomputed])
+
+    %{
+      deliveries: row["delivery_rows"],
+      skips: row["skip_rows"],
+      variants: variants["variant_rows"]
+    }
   end
 
   # DS-35
@@ -82,6 +94,18 @@ defmodule Relay.Delivery.Reports.Store do
     FROM relay.report_skip_rollups r
     WHERE r.report_day >= $1::date AND r.report_day < $2::date AND r.skipped > 0
     ORDER BY r.report_day, r.channel, r.is_test, r.reason, r.rule_id
+    """
+  end
+
+  # WF-50
+  defp sql(:variants) do
+    """
+    SELECT r.report_day, r.workflow_key, r.step_key, r.variant, r.channel::text AS channel,
+      r.is_test, r.accepted, r.sent, r.delivered, r.seen, r.human_clicks, r.bot_clicks,
+      r.recomputed_at
+    FROM relay.report_variant_rollups r
+    WHERE r.report_day >= $1::date AND r.report_day < $2::date AND r.accepted > 0
+    ORDER BY r.report_day, r.workflow_key, r.step_key, r.variant, r.channel, r.is_test
     """
   end
 

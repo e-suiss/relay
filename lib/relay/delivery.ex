@@ -639,14 +639,20 @@ defmodule Relay.Delivery do
   # DS-35
   @doc "Recomputes the report rollups of one UTC day in its own scoped transaction."
   @spec recompute_report_day(Scope.t(), Date.t()) ::
-          result(%{deliveries: non_neg_integer(), skips: non_neg_integer()})
+          result(%{
+            deliveries: non_neg_integer(),
+            skips: non_neg_integer(),
+            variants: non_neg_integer()
+          })
   def recompute_report_day(scope, day),
     do: Store.in_scope(scope, fn _status -> Relay.Delivery.Reports.Store.recompute(day) end)
 
   # DS-35
   # TN-18
-  @doc "Reads a report (`:deliveries`, `:skips` or `:costs`) of the UTC days `from` to `to` (exclusive) on the report pool; see `Relay.Delivery.Reports.Store.read/4`."
-  @spec report(Scope.t(), :deliveries | :skips | :costs, Date.t(), Date.t()) :: result([map()])
+  # WF-50
+  @doc "Reads a report (`:deliveries`, `:skips`, `:costs` or `:variants`) of the UTC days `from` to `to` (exclusive) on the report pool; see `Relay.Delivery.Reports.Store.read/4`."
+  @spec report(Scope.t(), :deliveries | :skips | :costs | :variants, Date.t(), Date.t()) ::
+          result([map()])
   defdelegate report(scope, kind, from, to), to: Relay.Delivery.Reports.Store, as: :read
 
   # DS-37

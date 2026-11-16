@@ -10,9 +10,11 @@ defmodule RelayTest.Isolation do
       Relay.Api,
       Relay.Channels,
       Relay.Secrets,
+      Relay.Webhooks,
       Relay.Workflow,
       RelayTest.Api,
-      RelayTest.IngestFixture
+      RelayTest.IngestFixture,
+      RelayTest.WebhookEngine
     ],
     exports: []
 
@@ -76,7 +78,11 @@ defmodule RelayTest.Isolation do
     {"createWebhookEventTypeVersion", %{"schema" => %{"type" => "object"}}},
     {"updateWebhookEndpoint", %{"description" => "isolation"}},
     {"rotateWebhookEndpointKey", %{}},
-    {"sendWebhookEndpointTestEvent", %{}}
+    {"sendWebhookEndpointTestEvent", %{}},
+    {"recoverWebhookEndpoint", %{"since" => "2026-01-01T00:00:00Z"}},
+    {"retryWebhookEndpointMessages", %{"states" => ["exhausted"]}},
+    {"replayWebhookEndpointEvents", %{"since" => "2026-01-01T00:00:00Z"}},
+    {"cancelWebhookEndpointRetries", %{}}
   ]
   @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
   @sms %{
@@ -137,7 +143,9 @@ defmodule RelayTest.Isolation do
       "announcement_id" => &announcement!/1,
       "webhook_consumer_id" => &webhook_consumer!/1,
       "webhook_event_type_id" => &webhook_event_type!/1,
-      "webhook_endpoint_id" => &webhook_endpoint!/1
+      "webhook_endpoint_id" => &webhook_endpoint!/1,
+      "webhook_message_id" => &webhook_message!/1,
+      "webhook_attempt_id" => &webhook_attempt!/1
     }
   end
 
@@ -524,6 +532,34 @@ defmodule RelayTest.Isolation do
     }
 
     F.body(F.request(:post, "/v1/webhook_endpoints", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Sends a test event to a new webhook endpoint in `scope` and returns the identifier of its message."
+  @spec webhook_message!(Relay.Scope.t()) :: String.t()
+  def webhook_message!(scope) do
+    path = "/v1/webhook_endpoints/#{webhook_endpoint!(scope)}/test"
+    id = F.body(F.request(:post, path, owner(scope), %{}), 202)["id"]
+    Process.put({__MODULE__, :webhook_message, scope.tenant_id, scope.environment}, id)
+    id
+  end
+
+  @doc "Makes one attempt, answered by the test destination, of the message `webhook_message!/1` created last in `scope` (a new one when there is none) and returns the attempt's identifier."
+  @spec webhook_attempt!(Relay.Scope.t()) :: String.t()
+  def webhook_attempt!(scope) do
+    key = {__MODULE__, :webhook_message, scope.tenant_id, scope.environment}
+    message = Process.get(key) || webhook_message!(scope)
+    {:ok, id} = Relay.ExternalId.decode(message, ["whm"])
+    previous = RelayTest.WebhookEngine.install()
+
+    try do
+      {:ok, {:attempted, :delivered}} = Relay.Webhooks.attempt(scope, id)
+    after
+      Application.put_env(:relay, Relay.Webhooks, previous)
+    end
+
+    path = "/v1/webhook_messages/#{message}/attempts"
+    [%{"id" => attempt}] = F.body(F.request(:get, path, owner(scope)), 200)["data"]
+    attempt
   end
 
   @doc "Creates a draft campaign in `scope` and returns its identifier."

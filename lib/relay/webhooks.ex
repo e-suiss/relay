@@ -15,6 +15,7 @@ defmodule Relay.Webhooks do
 
   alias Relay.Actor
   alias Relay.Scope
+  alias Relay.Webhooks.DeliveryLog
   alias Relay.Webhooks.DestinationEvents
   alias Relay.Webhooks.DestinationStore
   alias Relay.Webhooks.Egress
@@ -25,7 +26,9 @@ defmodule Relay.Webhooks do
   alias Relay.Webhooks.EventSchema
   alias Relay.Webhooks.Fanout
   alias Relay.Webhooks.Health
+  alias Relay.Webhooks.LogStore
   alias Relay.Webhooks.Profile
+  alias Relay.Webhooks.Recovery
   alias Relay.Webhooks.Settings
   alias Relay.Webhooks.Signer
   alias Relay.Webhooks.Store
@@ -642,6 +645,73 @@ defmodule Relay.Webhooks do
           backlog: EngineStore.backlog(id),
           disable_at: Health.disable_at(health, endpoint["auto_disable"], Settings.health())
         }
+      end
+    end)
+  end
+
+  # WH-30 (3)
+  # API-56
+  @doc "A page of the delivery log: the messages of the scope, newest first, each with its `\"webhook_id\"`. `filters` may hold `:endpoint_id`, `:event_id`, `:state`, `:event_type`, `:created_after` and `:created_before`; at most `limit + 1` come back."
+  @spec list_messages(Scope.t(), map(), cursor(), pos_integer()) :: result([map()])
+  defdelegate list_messages(scope, filters, cursor, limit), to: DeliveryLog, as: :messages
+
+  # WH-30 (2)
+  # WH-37
+  @doc "A page of the events an endpoint missed, newest first, or `:not_found`; see `Relay.Webhooks.DeliveryLog.missed/5`."
+  @spec list_missed(Scope.t(), id(), map(), cursor(), pos_integer()) ::
+          result(:not_found | [map()])
+  defdelegate list_missed(scope, endpoint_id, filters, cursor, limit),
+    to: DeliveryLog,
+    as: :missed
+
+  # WH-30 (3)
+  @doc "Reads a message of the delivery log with its `\"webhook_id\"`, or `nil`."
+  @spec get_log_message(Scope.t(), id()) :: result(map() | nil)
+  def get_log_message(%Scope{} = scope, id),
+    do: read(scope, fn -> LogStore.message(id) end)
+
+  # WH-10
+  @doc "A page of the attempts of a message in attempt order, without their answers, or `:not_found`."
+  @spec list_attempts(Scope.t(), id(), cursor(), pos_integer()) :: result(:not_found | [map()])
+  defdelegate list_attempts(scope, message_id, cursor, limit), to: DeliveryLog, as: :attempts
+
+  # WH-10
+  # WH-19
+  # WH-30
+  @doc "Reads one attempt of a message with its answer while that is kept, outside any transaction; see `Relay.Webhooks.DeliveryLog.attempt/3`."
+  @spec get_attempt(Scope.t(), id(), id()) :: result(:not_found | map() | nil)
+  defdelegate get_attempt(scope, message_id, attempt_id), to: DeliveryLog, as: :attempt
+
+  # WH-31
+  # WH-32
+  # WH-48
+  @doc "Resends a message inside the caller's scoped transaction: one attempt at once, audited; see `Relay.Webhooks.Recovery.resend/3`."
+  @spec message_resend(id(), binary(), Actor.t()) :: {:ok, map()} | {:error, Recovery.refusal()}
+  defdelegate message_resend(message_id, digest, actor), to: Recovery, as: :resend
+
+  # WH-31
+  # WH-48
+  @doc "Cancels the waiting attempts of a message inside the caller's scoped transaction, audited; see `Relay.Webhooks.Recovery.cancel/3`."
+  @spec message_cancel(id(), binary(), Actor.t()) :: {:ok, map()} | {:error, Recovery.refusal()}
+  defdelegate message_cancel(message_id, digest, actor), to: Recovery, as: :cancel
+
+  # WH-31
+  # WH-33
+  # WH-48
+  @doc "Starts a recover, a bulk retry, a replay or a cancellation of scheduled retries on an endpoint inside the caller's scoped transaction, audited; returns how many messages or events it selected. See `Relay.Webhooks.Recovery.start/3`."
+  @spec recovery_start(Recovery.request(), binary(), Actor.t()) ::
+          {:ok, non_neg_integer()} | {:error, Recovery.refusal()}
+  defdelegate recovery_start(request, digest, actor), to: Recovery, as: :start
+
+  # WH-31
+  # WH-33 (2)
+  @doc "Does one batch of a recovery operation in its own transaction; the recovery worker calls it. See `Relay.Webhooks.Recovery.advance/1`."
+  @spec recovery_advance(Scope.t(), map()) :: result(non_neg_integer())
+  def recovery_advance(%Scope{} = scope, args) do
+    read(scope, fn ->
+      case Recovery.advance(args) do
+        {:ok, count} -> count
+        {:error, reason} -> EngineStore.rollback(reason)
       end
     end)
   end

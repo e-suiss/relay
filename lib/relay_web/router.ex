@@ -529,6 +529,47 @@ defmodule RelayWeb.Router do
         :version,
         private: %{relay_operation: "getWebhookEndpointVersion"}
 
+    # WH-30
+    # WH-31
+    post "/webhook_endpoints/:webhook_endpoint_id/recover", WebhookRecoveryController, :recover,
+      private: %{relay_operation: "recoverWebhookEndpoint"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/retry", WebhookRecoveryController, :retry,
+      private: %{relay_operation: "retryWebhookEndpointMessages"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/replay", WebhookRecoveryController, :replay,
+      private: %{relay_operation: "replayWebhookEndpointEvents"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/cancel_retries",
+         WebhookRecoveryController,
+         :cancel_retries,
+         private: %{relay_operation: "cancelWebhookEndpointRetries"}
+
+    get "/webhook_endpoints/:webhook_endpoint_id/missed_events",
+        WebhookRecoveryController,
+        :missed,
+        private: %{relay_operation: "listWebhookEndpointMissedEvents"}
+
+    get "/webhook_messages", WebhookMessageController, :index,
+      private: %{relay_operation: "listWebhookMessages"}
+
+    get "/webhook_messages/:webhook_message_id", WebhookMessageController, :show,
+      private: %{relay_operation: "getWebhookMessage"}
+
+    get "/webhook_messages/:webhook_message_id/attempts", WebhookMessageController, :attempts,
+      private: %{relay_operation: "listWebhookMessageAttempts"}
+
+    get "/webhook_messages/:webhook_message_id/attempts/:webhook_attempt_id",
+        WebhookMessageController,
+        :attempt,
+        private: %{relay_operation: "getWebhookMessageAttempt"}
+
+    post "/webhook_messages/:webhook_message_id/resend", WebhookMessageController, :resend,
+      private: %{relay_operation: "resendWebhookMessage"}
+
+    post "/webhook_messages/:webhook_message_id/cancel", WebhookMessageController, :cancel,
+      private: %{relay_operation: "cancelWebhookMessage"}
+
     # WH-45 (2)
     get "/webhook_events", WebhookEventController, :index,
       private: %{relay_operation: "listWebhookEvents"}

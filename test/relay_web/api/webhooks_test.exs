@@ -12,6 +12,7 @@ defmodule RelayWeb.Api.WebhooksTest do
   end
 
   defp post(ctx, path, body, status), do: F.body(F.request(:post, path, ctx.token, body), status)
+
   defp patch(ctx, path, body, status),
     do: F.body(F.request(:patch, path, ctx.token, body), status)
 
@@ -465,6 +466,7 @@ defmodule RelayWeb.Api.WebhooksTest do
       assert Enum.map(get(ctx, path <> "/versions")["data"], & &1["version"]) == [2, 1]
 
       assert post(ctx, path <> "/archive", nil, 200)["state"] == "archived"
+
       assert post(ctx, path <> "/versions", %{"schema" => %{}}, 422)["code"] ==
                "webhook_event_type_archived"
     end

@@ -363,10 +363,11 @@ impl Hsm {
                 Attribute::Extractable(true),
                 Attribute::Sign(true),
             ];
-            match self
-                .session
-                .generate_key_pair(&Mechanism::EccEdwardsKeyPairGen, &public, &private)
-            {
+            match self.session.generate_key_pair(
+                &Mechanism::EccEdwardsKeyPairGen,
+                &public,
+                &private,
+            ) {
                 Ok(pair) => return Ok(pair),
                 Err(error) => last = error.into(),
             }

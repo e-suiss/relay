@@ -119,10 +119,11 @@ defmodule Relay.Api.Webhooks do
   end
 
   defp one_of(query, name, allowed) do
-    case Map.get(query, name) do
-      value when value == nil or value in allowed -> {:ok, value}
-      _other -> {:error, Gate.field_error("/" <> name, "unsupported_value", "unknown " <> name)}
-    end
+    value = Map.get(query, name)
+
+    if value == nil or value in allowed,
+      do: {:ok, value},
+      else: {:error, Gate.field_error("/" <> name, "unsupported_value", "unknown " <> name)}
   end
 
   defp consumer_filter(nil), do: {:ok, nil}

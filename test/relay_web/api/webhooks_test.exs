@@ -309,7 +309,8 @@ defmodule RelayWeb.Api.WebhooksTest do
   end
 
   describe "WH-40 registration rules" do
-    test "WH-40: an address is https, on an allowed port, without user information", ctx do
+    test "WH-40, WH-54: an address is https, on an allowed port, without user information, and its host is checked early",
+         ctx do
       for url <- ["https://hooks.example.com:8443/x", "https://user:pass@hooks.example.com/x"] do
         body = endpoint(%{"destination" => %{"kind" => "https", "url" => url}})
         refused = post(ctx, "/v1/webhook_endpoints", body, 422)
@@ -326,6 +327,15 @@ defmodule RelayWeb.Api.WebhooksTest do
       moved = %{"destination" => %{"kind" => "https", "url" => "https://hooks.example.com:444/"}}
       assert patch(ctx, path, moved, 422)["code"] == "webhook_endpoint_url_not_allowed"
 
+      private = %{"kind" => "https", "url" => "https://blocked.example.com/hook"}
+      refused = post(ctx, "/v1/webhook_endpoints", endpoint(%{"destination" => private}), 422)
+      assert refused["code"] == "webhook_endpoint_url_not_allowed"
+      assert [%{"pointer" => "/destination/url", "detail" => detail}] = refused["errors"]
+      assert detail =~ "10.0.0.7"
+      assert patch(ctx, path, %{"destination" => private}, 422)["code"] == refused["code"]
+      unresolved = %{"kind" => "https", "url" => "https://missing.example.com/hook"}
+      assert patch(ctx, path, %{"destination" => unresolved}, 200)["destination"] == unresolved
+
       other_kind = %{"destination" => %{"kind" => "s3", "bucket" => "events", "region" => "eu"}}
       assert patch(ctx, path, other_kind, 422)["code"] in ["validation_failed", "unknown_field"]
     end
@@ -335,7 +345,8 @@ defmodule RelayWeb.Api.WebhooksTest do
       assert Relay.Webhooks.allowed_ports() == [443]
       assert Relay.Webhooks.check_address("https://a.example:8443/") == refused
       previous = Application.get_env(:relay, Relay.Webhooks)
-      Application.put_env(:relay, Relay.Webhooks, extra_ports: [8443])
+      widened = Keyword.put(previous || [], :extra_ports, [8443])
+      Application.put_env(:relay, Relay.Webhooks, widened)
 
       on_exit(fn ->
         if previous,
@@ -347,9 +358,16 @@ defmodule RelayWeb.Api.WebhooksTest do
       assert Relay.Webhooks.check_address("https://a.example:8443/") == :ok
       assert Relay.Webhooks.check_address("https://a.example/") == :ok
       assert Relay.Webhooks.check_address("https://a.example:444/") == refused
-      assert Relay.Webhooks.check_address("http://a.example/") == {:error, :not_https}
-      assert Relay.Webhooks.check_address("https://u@a.example/") == {:error, :user_information}
-      assert Relay.Webhooks.check_address("https:///path") == {:error, :no_host}
+
+      for {url, reason} <- [
+            {"http://a.example/", :scheme_not_https},
+            {"https://u@a.example/", :userinfo_not_allowed},
+            {"https://10.0.0.1/", :blocked_address},
+            {"https://metadata.google.internal/", :metadata_host}
+          ] do
+        assert Relay.Webhooks.check_address(url) == {:error, reason}
+        assert is_binary(Relay.Webhooks.explain_address(reason))
+      end
     end
   end
 

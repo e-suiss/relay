@@ -58,7 +58,8 @@ defmodule RelayWeb.Api.WebhookEndpointController do
     actor = Work.actor(conn)
 
     with {:ok, id} <- id(id),
-         {:ok, expected} <- Work.if_match(conn, :optional) do
+         {:ok, expected} <- Work.if_match(conn, :optional),
+         :ok <- Webhooks.prepare_update(body) do
       Work.idempotent(conn, fn _status -> Webhooks.update(scope, id, body, expected, actor) end)
     else
       {:error, error} -> Response.problem(conn, error)

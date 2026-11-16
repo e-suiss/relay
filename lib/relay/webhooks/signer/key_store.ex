@@ -7,6 +7,7 @@ defmodule Relay.Webhooks.Signer.KeyStore do
 
   alias Relay.Error
   alias Relay.Redacted
+  alias Relay.Webhooks.Profile
   alias Relay.Webhooks.Signer
 
   @sealer Relay.Webhooks.Live
@@ -75,11 +76,11 @@ defmodule Relay.Webhooks.Signer.KeyStore do
 
   defp signature("v1a", label, content) do
     with {:ok, signature} <- Relay.Keys.sign(:ed25519, Redacted.expose(label), content),
-         do: {:ok, Signer.token(:v1a, signature)}
+         do: {:ok, Profile.token(:v1a, signature)}
   end
 
   defp signature("v1", secret, content),
-    do: {:ok, Signer.token(:v1, Relay.Crypto.hmac_sha256(secret, content))}
+    do: {:ok, Profile.token(:v1, Relay.Crypto.hmac_sha256(secret, content))}
 
   defp sealer,
     do: :relay |> Application.get_env(Relay.Webhooks, []) |> Keyword.get(:sealer, @sealer)

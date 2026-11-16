@@ -2,7 +2,7 @@ defmodule Relay.Api.Webhooks do
   @moduledoc """
   Webhook endpoints on the server API (WH-2, WH-12, WH-16, WH-40, WH-45): list, create (`201`), read, change with a JSON Merge Patch under an optional `If-Match`, archive, rotate the signing key, and read the endpoint versions. An endpoint belongs to the environment of the credential, which is never read from the request and never changes. Its subscription is an explicit selection of event types, `*` being an explicit choice of all: an endpoint of use `relay_events` names types of Relay's catalog (`Relay.EventCatalog`), one of use `destination` the tenant's own types. Every HTTPS address follows the registration rules; a credential is only ever the identifier of a registered secret reference.
 
-  A signing key is made before the request's transaction, because that reaches the key store (`prepare_create/2`, `prepare_rotation/3`); the endpoint and its audit record are then written inside it. The secret of a `v1` key is in the answer of the request that made it and nowhere else.
+  A signing key is made before the request's transaction, because that reaches the key store (`prepare_create/2`, `prepare_rotation/3`), and so is the early DNS check of an address (`prepare_update/1`, WH-40 (4)); the endpoint and its audit record are then written inside it. The secret of a `v1` key is in the answer of the request that made it and nowhere else.
   """
 
   alias Relay.Api.Duration
@@ -148,6 +148,7 @@ defmodule Relay.Api.Webhooks do
     with :ok <- consumer_rule(body),
          :ok <- scheme_rule(body, kind),
          :ok <- destination_rules(destination, "/destination"),
+         :ok <- resolved(destination, "/destination"),
          :ok <- subscription(body["use"], body["event_types"]),
          {:ok, schedule} <- schedule(body["retry_schedule"]),
          {:ok, credential_ref_id} <- credential(destination),
@@ -220,6 +221,30 @@ defmodule Relay.Api.Webhooks do
     error = Relay.Error.new(:webhook_endpoint_url_not_allowed, "address not allowed", details)
     if refused == [], do: :ok, else: {:error, error}
   end
+
+  # WH-40 (4)
+  defp resolved(destination, pointer) do
+    refused =
+      for name <- @addresses,
+          url = destination[name],
+          is_binary(url),
+          {:ok, [address | _rest]} <- [Relay.Webhooks.blocked_addresses(url)] do
+        detail = "the host resolves to the blocked address " <> address
+        %{pointer: pointer <> "/" <> name, code: "not_allowed", detail: detail}
+      end
+
+    details = %{errors: refused}
+    error = Relay.Error.new(:webhook_endpoint_url_not_allowed, "address not allowed", details)
+    if refused == [], do: :ok, else: {:error, error}
+  end
+
+  # WH-40 (4)
+  @doc "The early DNS check of an endpoint change that names a new destination; runs outside any transaction."
+  @spec prepare_update(map()) :: :ok | {:error, Relay.Error.t()}
+  def prepare_update(%{"destination" => %{} = destination}),
+    do: resolved(destination, "/destination")
+
+  def prepare_update(_body), do: :ok
 
   defp auth_rule(%{"kind" => "https"} = destination, pointer) do
     absent =

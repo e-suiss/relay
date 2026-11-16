@@ -6,15 +6,17 @@ defmodule Relay.Webhooks do
 
   This module holds the management side: consumers, tenant event types with versioned schemas (WH-14), endpoints with their versions, subscription and limits (WH-12, WH-16), per-endpoint signing keys with overlapping rotation (WH-5, WH-6), the registration rules of an address (WH-40) and the tenant's operations contacts (WH-56). A function that takes a scope opens its own scoped transaction; one that takes none runs inside the caller's. A function that reaches the key store (`new_key/2`, `sign/5`, `seal_contacts/2`, `contacts/1`) never runs inside a transaction.
 
-  The signer and the sealer are ports: `config :relay, Relay.Webhooks, signer: Module, sealer: Module`, by default `Relay.Webhooks.Signer.KeyStore` and `Relay.Webhooks.Live`. An installation allows HTTPS ports besides 443 with `extra_ports: [port]` (WH-40 (2)).
+  The signer and the sealer are ports: `config :relay, Relay.Webhooks, signer: Module, sealer: Module`, by default `Relay.Webhooks.Signer.KeyStore` and `Relay.Webhooks.Live`. The same configuration holds the installation's egress policy (`Relay.Webhooks.Egress.Policy`): `deployment: :saas | :self_hosted` (`:saas` when absent), `extra_ports: [port]` for HTTPS ports besides 443 (WH-40 (2)), `allow_list: [entry]` for the internal targets of a self-hosted installation (WH-44), and `resolver: Module` for the DNS port.
   """
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
   alias Relay.Actor
   alias Relay.Scope
+  alias Relay.Webhooks.Egress
+  alias Relay.Webhooks.Egress.Policy
   alias Relay.Webhooks.EventSchema
-  alias Relay.Webhooks.Registration
+  alias Relay.Webhooks.Profile
   alias Relay.Webhooks.Signer
   alias Relay.Webhooks.Store
 
@@ -26,6 +28,7 @@ defmodule Relay.Webhooks do
     per_consumer: Relay.Limits.fetch!(["webhook", "endpoints_per_consumer"])
   }
   @ports Relay.Limits.fetch!(["webhook", "allowed_ports"])
+  @dns_timeout_ms 1000 * Relay.Limits.seconds!(["webhook", "connect_timeout"])
   @contacts_max Relay.Limits.fetch!(["webhook", "operations_contacts_max"])
   @overlap %{
     default: Relay.Limits.seconds!(["webhook", "key_overlap", "default"]),
@@ -84,17 +87,40 @@ defmodule Relay.Webhooks do
   # WH-40
   @doc "The HTTPS ports an address may use: 443 and the ports the installation adds."
   @spec allowed_ports() :: [pos_integer()]
-  def allowed_ports, do: Enum.uniq(@ports ++ Keyword.get(config(), :extra_ports, []))
+  def allowed_ports, do: Enum.uniq(@ports ++ policy().ports)
 
   # WH-40
-  @doc "Checks an HTTPS address against the registration rules; see `Relay.Webhooks.Registration.check/2`. `explain_address/1` words a refusal."
-  @spec check_address(String.t()) :: :ok | {:error, Registration.reason()}
-  def check_address(url), do: Registration.check(url, allowed_ports())
+  # WH-54
+  @doc "Checks an HTTPS address against the registration rules of the egress boundary (`Relay.Webhooks.Egress.validate_url/2`) with the installation's policy; `explain_address/1` words a refusal."
+  @spec check_address(String.t()) :: :ok | {:error, Egress.url_error()}
+  def check_address(url) do
+    case Egress.validate_url(policy(), url) do
+      {:ok, _target} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # WH-40 (4)
+  @doc "The early DNS check of a registration, outside any transaction: the addresses of the URL's host that the boundary would refuse, as text. It is feedback for the person registering, never the security decision, which is made when Relay connects (WH-41); a name that does not resolve yet reports nothing."
+  @spec blocked_addresses(String.t()) :: {:ok, [String.t()]} | {:error, Egress.url_error()}
+  def blocked_addresses(url) do
+    options = [dns_timeout_ms: @dns_timeout_ms, resolver: resolver()]
+
+    with {:ok, findings} <- Egress.dns_findings(policy(), url, options) do
+      {:ok, for({:blocked_address, address, _range} <- findings, do: address)}
+    end
+  end
 
   # WH-40
   @doc "The sentence that explains a refusal of `check_address/1`."
-  @spec explain_address(Registration.reason()) :: String.t()
-  defdelegate explain_address(reason), to: Registration, as: :explain
+  @spec explain_address(Egress.url_error()) :: String.t()
+  def explain_address(:invalid_url), do: "the address is not a URL"
+  def explain_address(:scheme_not_https), do: "the address must be https"
+  def explain_address(:userinfo_not_allowed), do: "the address must not carry user information"
+  def explain_address(:invalid_host), do: "the address names no public host"
+  def explain_address(:port_not_allowed), do: "the port is not allowed by the installation"
+  def explain_address(:metadata_host), do: "the host is not allowed"
+  def explain_address(:blocked_address), do: "the address is in a blocked range"
 
   # WH-2
   @doc "Creates a consumer inside the caller's scoped transaction; `attrs` carries `:key` and optionally `:name`, `:source` and `:subtenant_id`. Returns the result, the consumer's identifier and its version."
@@ -278,18 +304,31 @@ defmodule Relay.Webhooks do
 
   # WH-4
   # WH-6
-  @doc "Signs a delivery attempt outside any transaction: the content is exactly `<webhook_id>.<timestamp>.<body>`, and the answer is the `webhook-signature` header, one token per key of `keys`, the new key's first."
+  @doc "Signs a delivery attempt outside any transaction and returns its profile tokens (`Relay.Webhooks.Profile`), one per key of `keys`, the new key's first. The signed content is exactly `<webhook_id>.<timestamp>.<body>`."
+  @spec signature_tokens(
+          Scope.t(),
+          [Signer.key(), ...],
+          String.t(),
+          non_neg_integer(),
+          binary()
+        ) :: {:ok, [Profile.token(), ...]} | {:error, Relay.Error.t()}
+  def signature_tokens(%Scope{} = scope, [_ | _] = keys, webhook_id, timestamp, body),
+    do: signer().sign(scope, keys, Profile.signed_content(webhook_id, timestamp, body))
+
+  # WH-4
+  # WH-6
+  @doc "Signs a delivery attempt as `signature_tokens/5` does and returns the `webhook-signature` header."
   @spec sign(Scope.t(), [Signer.key(), ...], String.t(), non_neg_integer(), binary()) ::
           {:ok, String.t()} | {:error, Relay.Error.t()}
   def sign(%Scope{} = scope, [_ | _] = keys, webhook_id, timestamp, body) do
-    with {:ok, tokens} <- signer().sign(scope, keys, Signer.content(webhook_id, timestamp, body)),
-         do: {:ok, Signer.header(tokens)}
+    with {:ok, tokens} <- signature_tokens(scope, keys, webhook_id, timestamp, body),
+         do: {:ok, Profile.signature_header(tokens)}
   end
 
   # WH-5
   @doc "The public form of an Ed25519 public key (`whpk_` and base64), or `nil` for a key without one."
   @spec public_key(binary() | nil) :: String.t() | nil
-  def public_key(<<_::256>> = key), do: Signer.public_key(key)
+  def public_key(<<_::256>> = key), do: Profile.public_key_text(key)
   def public_key(nil), do: nil
 
   # WH-6
@@ -357,6 +396,20 @@ defmodule Relay.Webhooks do
 
   defp read(scope, fun), do: Store.in_scope(scope, fn _status -> fun.() end)
 
+  defp policy do
+    config = config()
+
+    {:ok, policy} =
+      Policy.new(
+        deployment: Keyword.get(config, :deployment, :saas),
+        extra_ports: Keyword.get(config, :extra_ports, []),
+        allow_list: Keyword.get(config, :allow_list, [])
+      )
+
+    policy
+  end
+
+  defp resolver, do: Keyword.get(config(), :resolver, Egress.Resolver.Inet)
   defp signer, do: Keyword.get(config(), :signer, @signer)
   defp sealer, do: Keyword.get(config(), :sealer, @sealer)
   defp config, do: Application.get_env(:relay, __MODULE__, [])

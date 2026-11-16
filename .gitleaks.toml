@@ -14,3 +14,7 @@ description = "Synthetic access key shape the push content check must refuse"
 condition = "AND"
 paths = ['''^test/relay/channels/push/content_test\.exs$''']
 regexes = ['''^AKIAABCDEFGHIJKLMNOP$''']
+
+[[allowlists]]
+description = "Published Suiss webhook profile and Standard Webhooks signature test vectors"
+paths = ['''^conformance/webhooks/vectors/''']

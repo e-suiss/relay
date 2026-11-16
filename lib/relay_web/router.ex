@@ -104,9 +104,15 @@ defmodule RelayWeb.Router do
 
   # CH-62
   # WH-49
+  # WH-68
   scope "/inbound/v1", RelayWeb do
     post "/providers/:provider_account_id", ProviderWebhookController, :create,
       private: %{relay_operation: "receiveProviderWebhook"}
+
+    post "/completions/:tenant/:environment/sources/:webhook_source_id",
+         CompletionController,
+         :create,
+         private: %{relay_operation: "receiveCompletionNotification"}
 
     post "/:channel/:tenant/:environment/:identity", InboundController, :create,
       private: %{relay_operation: "receiveMessagingInbound"}
@@ -458,6 +464,19 @@ defmodule RelayWeb.Router do
 
     post "/webhook_consumers/:webhook_consumer_id/archive", WebhookConsumerController, :archive,
       private: %{relay_operation: "archiveWebhookConsumer"}
+
+    # WH-68
+    get "/webhook_sources", WebhookSourceController, :index,
+      private: %{relay_operation: "listWebhookSources"}
+
+    post "/webhook_sources", WebhookSourceController, :create,
+      private: %{relay_operation: "createWebhookSource"}
+
+    get "/webhook_sources/:webhook_source_id", WebhookSourceController, :show,
+      private: %{relay_operation: "getWebhookSource"}
+
+    post "/webhook_sources/:webhook_source_id/archive", WebhookSourceController, :archive,
+      private: %{relay_operation: "archiveWebhookSource"}
 
     # WH-14
     get "/webhook_event_types", WebhookEventTypeController, :index,

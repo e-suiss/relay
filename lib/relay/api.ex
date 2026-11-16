@@ -95,6 +95,7 @@ defmodule Relay.Api do
       WebhookMessages,
       WebhookCatalog,
       WebhookPortal,
+      WebhookSources,
       OperationsContacts
     ]
 end

@@ -33,6 +33,11 @@ defmodule Relay.Channels.EmailIntakeTest do
     }
   end
 
+  defp reported(scope, delivery_id) do
+    {:ok, ledger} = Relay.Delivery.ledger(scope, delivery_id)
+    Enum.filter(ledger, &(&1["event_type"] == "provider.reported"))
+  end
+
   defp suppressions(scope, reason) do
     {:ok, rows} = Relay.Preferences.list_suppressions(scope, %{reason: reason}, nil, 10)
     rows
@@ -78,6 +83,63 @@ defmodule Relay.Channels.EmailIntakeTest do
       assert {:ok, [{:recorded, _result, actions}]} = EmailIntake.ingest(scope, events)
       refute Enum.any?(actions, &match?({:suppress, _reason, _expires}, &1))
       assert suppressions(scope, "hard_bounce") == []
+    end
+
+    test "WH-49 (3), INV-12: a repeated bounce is counted on its receipt and announced once" do
+      %{scope: scope, delivery_id: id} = DeliveryFixture.sendable!()
+      body = bounce(id, "HardBounce", "smtp;550 5.1.1 user unknown")
+      events = Relay.Channels.email_events("postmark", body)
+
+      assert {:ok, [{:recorded, _result, _actions}]} = EmailIntake.ingest(scope, events)
+      assert {:ok, [{:skipped, :duplicate}]} = EmailIntake.ingest(scope, events)
+      assert {:ok, [{:skipped, :duplicate}]} = EmailIntake.ingest(scope, events)
+
+      assert [_announced] = OutboxEvents.data(scope, "email.bounced")
+      assert [_reported] = reported(scope, id)
+      assert [_suppression] = suppressions(scope, "hard_bounce")
+    end
+
+    test "WH-49 (3), INV-12: a repeated complaint is announced once as email.complained" do
+      %{scope: scope, delivery_id: id} = DeliveryFixture.sendable!()
+
+      body = %{
+        "RecordType" => "SpamComplaint",
+        "ID" => 9,
+        "MessageID" => "pm-2",
+        "Email" => "reader@example.com",
+        "BouncedAt" => "2026-11-05T11:00:00Z",
+        "Metadata" => %{"relay_delivery_id" => Relay.Id.to_string(id)}
+      }
+
+      events = Relay.Channels.email_events("postmark", body)
+
+      assert {:ok, [{:recorded, _result, _actions}]} = EmailIntake.ingest(scope, events)
+      assert {:ok, [{:skipped, :duplicate}]} = EmailIntake.ingest(scope, events)
+      assert [_announced] = OutboxEvents.data(scope, "email.complained")
+    end
+
+    test "WH-49 (3): an event taken in directly is a repeat on the provider's webhook" do
+      %{scope: scope, delivery_id: id} = DeliveryFixture.sendable!()
+      body = bounce(id, "HardBounce", "smtp;550 5.1.1 user unknown")
+      events = Relay.Channels.email_events("postmark", body)
+      assert {:ok, [{:recorded, _result, _actions}]} = EmailIntake.ingest(scope, events)
+
+      request = %{
+        body: Jason.encode!(body),
+        headers: [{"authorization", "Basic " <> Base.encode64("user:secret")}],
+        url: "https://relay.test/inbound/v1/providers/x",
+        token: nil,
+        now: Relay.Clock.utc_now()
+      }
+
+      account = %{"id" => Relay.Id.generate(), "provider" => "postmark"}
+      key = Relay.Redacted.wrap("user:secret")
+
+      assert {:ok, %{recorded: 0, duplicates: 1}} =
+               Relay.Channels.Live.accept_provider_webhook(scope, account, key, request)
+
+      assert [_announced] = OutboxEvents.data(scope, "email.bounced")
+      assert [_reported] = reported(scope, id)
     end
 
     test "CH-47: an event that names no known delivery is skipped" do

@@ -695,6 +695,12 @@
       "subject_erasure": "a tenant's customer reference; not subject data"
     },
     {
+      "table": "webhook_sources",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "an external system's name and public key; not subject data"
+    },
+    {
       "table": "webhook_event_types",
       "personal_columns": [],
       "tenant_close": "row kept",

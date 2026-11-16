@@ -286,5 +286,11 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "WH-19, TN-26: a committed relay_fn function is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261217900000_create_webhook_sources.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "WH-68, OP-9: the no-delete trigger rejects TRUNCATE on the webhook sources"
   }
 ]

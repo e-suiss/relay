@@ -376,6 +376,10 @@ channels:
         "$ref": "#/components/messages/audit.webhook_consumer.updated"
       audit.webhook_consumer.archived:
         "$ref": "#/components/messages/audit.webhook_consumer.archived"
+      audit.webhook_source.created:
+        "$ref": "#/components/messages/audit.webhook_source.created"
+      audit.webhook_source.archived:
+        "$ref": "#/components/messages/audit.webhook_source.archived"
       audit.webhook_event_type.created:
         "$ref": "#/components/messages/audit.webhook_event_type.created"
       audit.webhook_event_type.version_added:
@@ -719,6 +723,8 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.webhook_consumer.created"
       - "$ref": "#/channels/auditLog/messages/audit.webhook_consumer.updated"
       - "$ref": "#/channels/auditLog/messages/audit.webhook_consumer.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_source.created"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_source.archived"
       - "$ref": "#/channels/auditLog/messages/audit.webhook_event_type.created"
       - "$ref": "#/channels/auditLog/messages/audit.webhook_event_type.version_added"
       - "$ref": "#/channels/auditLog/messages/audit.webhook_event_type.archived"
@@ -5967,6 +5973,42 @@ components:
       x-relay-stage: 9
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_source.created:
+      name: webhook_source.created
+      title: webhook_source.created
+      summary: "A completion source was registered (WH-68)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_source
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_source.archived:
+      name: webhook_source.archived
+      title: webhook_source.archived
+      summary: "A completion source was archived (WH-68)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_source
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.webhook_consumer.created:
       name: webhook_consumer.created
       title: webhook_consumer.created
@@ -7777,6 +7819,8 @@ x-relay-event-names:
   - webhook_event_type.version_added
   - webhook_message.cancelled
   - webhook_message.resent
+  - webhook_source.archived
+  - webhook_source.created
   - whatsapp_account.updated
   - whatsapp_number.paused
   - whatsapp_template.category_changed

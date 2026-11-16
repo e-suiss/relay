@@ -134,6 +134,45 @@ defmodule RelayWeb.Operator.SupportController do
     end
   end
 
+  # E-99
+  @spec pending_api_clients(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def pending_api_clients(conn, _params) do
+    tenant_id = conn.assigns.operator_scope.tenant_id
+
+    with {:ok, limit, after_id} <- page_params(conn),
+         {:ok, clients} <- Relay.Access.pending_api_clients(tenant_id) do
+      rows =
+        clients
+        |> Enum.drop_while(&(after_id != nil and &1.id <= after_id))
+        |> Enum.map(&Map.put(&1, "id", &1.id))
+        |> Enum.take(limit + 1)
+
+      page(conn, rows, limit, &Json.pending_api_client/1)
+    else
+      {:error, %Relay.Error{} = error} -> problem(conn, error)
+      {:error, _reason} -> problem(conn, Relay.Error.new(:service_unavailable, "unavailable"))
+    end
+  end
+
+  # E-99
+  # TN-21
+  @spec assign_api_client(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def assign_api_client(conn, _params) do
+    scope = conn.assigns.operator_scope
+    %{"access_client_id" => client, "scopes" => scopes} = conn.assigns.body
+
+    idempotent(conn, fn ->
+      with {:ok, client} <- Relay.Access.assign_api_client(scope, client, scopes, actor(conn)),
+           {:ok, %{clients: clients}} <- Relay.Access.api_clients(scope),
+           %{} = row <- Enum.find(clients, &(&1.access_client_id == client)) do
+        {:ok, {200, Json.api_client(row, scope)}}
+      else
+        {:error, %Relay.Error{} = error} -> {:error, error}
+        _unavailable -> {:error, Relay.Error.new(:service_unavailable, "unavailable")}
+      end
+    end)
+  end
+
   # TN-50
   @spec audit_log(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def audit_log(conn, params) do

@@ -10,6 +10,8 @@ defmodule Relay.Access.ClientStore do
   @subtenant "SELECT tenant_id, environment, id, name, state FROM relay.subtenants WHERE access_organization_id = $1"
   @subtenant_state "SELECT tenant_id, environment, state FROM relay.subtenants WHERE id = $1"
   @overview "SELECT tenant_id, environment, id, access_client_id, status, scopes::text[], last_used_at, created_at FROM relay.api_clients ORDER BY created_at, id"
+  @pending "SELECT tenant_id, environment, id, access_client_id, created_at FROM relay.api_client_registrations WHERE state = 'pending' ORDER BY id"
+  @assigned [:assigned, :already_assigned, :environment_conflict, :not_found]
   @upserted [
     :created,
     :updated,
@@ -136,6 +138,44 @@ defmodule Relay.Access.ClientStore do
       )
 
     {Repo.code!(row["result"], @upserted), row["api_client_id"], row["generation"]}
+  end
+
+  # E-99
+  @doc "Registers an Access client in the established `live` scope as pending: no environment and no scopes yet."
+  @spec register(Relay.Id.t(), String.t(), String.t() | nil, <<_::256>>, Actor.t()) ::
+          {:created | :exists, Relay.Id.t()}
+  def register(id, access_client_id, event_ref, digest, %Actor{} = actor) do
+    [row] =
+      Repo.call!(
+        "relay_fn.api_client_register",
+        [id, access_client_id, event_ref, digest] ++ Actor.params(actor)
+      )
+
+    {Repo.code!(row["result"], [:created, :exists]), row["registration_id"]}
+  end
+
+  # E-99
+  @doc "Assigns a pending Access client of the established `live` scope to an environment; returns the result, the Access tenant and the new generation."
+  @spec assign(String.t(), String.t(), <<_::256>>, Actor.t()) ::
+          {atom(), String.t() | nil, non_neg_integer() | nil}
+  def assign(access_client_id, environment, digest, %Actor{} = actor) do
+    [row] =
+      Repo.call!(
+        "relay_fn.api_client_assign",
+        [access_client_id, environment, digest] ++ Actor.params(actor)
+      )
+
+    {Repo.code!(row["result"], @assigned), row["access_tenant_id"], row["generation"]}
+  end
+
+  # E-99
+  @doc "Lists the pending Access clients of the established `live` scope."
+  @spec pending() :: [map()]
+  def pending do
+    rows = Repo.scoped_query!(@pending, []).rows
+
+    for [_tenant, _environment, id, client, created_at] <- rows,
+        do: %{id: id, access_client_id: client, created_at: created_at}
   end
 
   # API-44

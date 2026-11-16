@@ -304,5 +304,11 @@
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",
     "reason": "WH-68, OP-9: the no-delete trigger rejects TRUNCATE on the webhook sources"
+  },
+  {
+    "path": "priv/repo/migrations/20261218000000_create_waitpoint_completions.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "WH-68, OP-9: the no-delete trigger rejects TRUNCATE on the waitpoint completions"
   }
 ]

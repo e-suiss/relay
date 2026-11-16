@@ -7,7 +7,8 @@ defmodule RelayWeb.WebhookMetricsTest do
     [:relay, :webhooks, :sweep],
     [:relay, :webhooks, :backlog],
     [:relay, :webhooks, :maintenance],
-    [:relay, :webhooks, :operations_email]
+    [:relay, :webhooks, :operations_email],
+    [:relay, :webhooks, :completion]
   ]
 
   defp metrics, do: RelayWeb.Metrics.call(Plug.Test.conn(:get, "/metrics"), [])
@@ -44,6 +45,8 @@ defmodule RelayWeb.WebhookMetricsTest do
       mail = %{kind: "endpoint_disabled", result: :sent}
       :telemetry.execute([:relay, :webhooks, :operations_email], %{count: 1}, mail)
 
+      :telemetry.execute([:relay, :webhooks, :completion], %{count: 1}, %{result: :not_found})
+
       body = response(metrics(), 200)
 
       for name <- ~w(relay_webhooks_attempt_total relay_webhooks_attempt_duration
@@ -58,6 +61,7 @@ defmodule RelayWeb.WebhookMetricsTest do
 
       assert body =~ ~s(relay_webhooks_batch_events_total{result="delivered"})
       assert body =~ ~s(relay_webhooks_operations_email_total{kind="endpoint_disabled")
+      assert body =~ ~s(relay_webhooks_completion_total{result="not_found"})
     end
   end
 end

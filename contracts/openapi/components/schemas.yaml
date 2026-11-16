@@ -6166,6 +6166,10 @@ Waitpoint:
       oneOf:
         - "$ref": "#/WaitpointResponse"
         - type: "null"
+    completion:
+      oneOf:
+        - "$ref": "#/WaitpointCompletion"
+        - type: "null"
     created_at:
       "$ref": "#/Timestamp"
     state_changed_at:
@@ -6180,6 +6184,29 @@ Waitpoint:
           maxLength: 200
         - type: "null"
   additionalProperties: false
+WaitpointCompletion:
+  type: object
+  description: "What the completion notification of a long-running job said when it resolved the waitpoint (WH-68): the outcome and the small result the source sent. It is returned only on an authorised read of the waitpoint; the thin waitpoint.resolved event never carries it. null for a waitpoint that no completion notification resolved."
+  required:
+    - outcome
+    - result
+    - completed_at
+  properties:
+    outcome:
+      type: string
+      enum:
+        - completed
+        - failed
+    result:
+      oneOf:
+        - type: object
+          description: "The result object of the notification, at most 4096 bytes as JSON; kept encrypted at rest."
+        - type: "null"
+    completed_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "WH-68 returns the outcome and the result on the read of the waitpoint; the member name and its shape are chosen by the contract."
 WaitpointList:
   allOf:
     - "$ref": "#/ListEnvelope"

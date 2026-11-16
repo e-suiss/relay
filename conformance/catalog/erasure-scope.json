@@ -189,6 +189,14 @@
       "subject_erasure": "content, claim text and default response set to null with fields_erased_at when the subject is the waiter (an agent, or the subscriber of a workflow event wait) or a responder; open and stalled waitpoints are cancelled with reason subject_erasure"
     },
     {
+      "table": "waitpoint_completions",
+      "personal_columns": [
+        "result_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; the result becomes unreadable",
+      "subject_erasure": "a job's result, not bound to a subject; sealed under the tenant data key in the delivery_record class and unreadable once that key is destroyed"
+    },
+    {
       "table": "waitpoint_responders",
       "personal_columns": [],
       "tenant_close": "row kept",

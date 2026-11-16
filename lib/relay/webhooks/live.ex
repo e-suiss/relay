@@ -213,10 +213,16 @@ defmodule Relay.Webhooks.Live do
   end
 
   # WH-68
-  @doc "Completes the event waitpoint a completion notification names, in its own transaction; see `Relay.Agents.complete_waitpoint/3`."
-  @spec complete_waitpoint(Scope.t(), Relay.Id.t()) :: {:ok, atom()} | {:error, term()}
-  def complete_waitpoint(%Scope{} = scope, waitpoint_id),
-    do: Relay.Agents.complete_waitpoint(scope, waitpoint_id)
+  @doc "Completes the event waitpoint a completion notification names and records the completion with it, in one transaction of its own; see `Relay.Agents.complete_waitpoint/3`."
+  @spec complete_waitpoint(Scope.t(), Relay.Id.t(), map()) :: {:ok, atom()} | {:error, term()}
+  def complete_waitpoint(%Scope{} = scope, waitpoint_id, completion),
+    do: Relay.Agents.complete_waitpoint(scope, waitpoint_id, completion)
+
+  # WH-68
+  @doc "Reads the completion that resolved a waitpoint, its result still sealed, or `nil`; see `Relay.Agents.waitpoint_completion/2`."
+  @spec waitpoint_completion(Scope.t(), Relay.Id.t()) :: {:ok, map() | nil} | {:error, term()}
+  def waitpoint_completion(%Scope{} = scope, waitpoint_id),
+    do: Relay.Agents.waitpoint_completion(scope, waitpoint_id)
 
   # WH-56
   @impl Relay.Webhooks

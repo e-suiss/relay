@@ -231,5 +231,8 @@
   {"file": "20261217800000_announce_audit_records.exs", "sha256": "fff58f5e16d94d9f83fa6e38b867982654b95581e8819cef7bac13e0fefc0534"},
   {"file": "20261217900000_create_webhook_sources.exs", "sha256": "3308b7295d687e06516e7231eeb6dff1a89e0d703170290d1d8fe7a77c6be52d"},
   {"file": "20261217900100_create_webhook_source_functions.exs", "sha256": "1b7c6a0df29952e526cf732d920852125d1fb314234247239b52aa798f58f7e8"},
-  {"file": "20261217900200_rebuild_reference_check_for_webhook_sources.exs", "sha256": "b45f2020bfba794e4fc7b556b280c8dfdee3e4e0e270fea05a6ab8a16d4661df"}
+  {"file": "20261217900200_rebuild_reference_check_for_webhook_sources.exs", "sha256": "b45f2020bfba794e4fc7b556b280c8dfdee3e4e0e270fea05a6ab8a16d4661df"},
+  {"file": "20261218000000_create_waitpoint_completions.exs", "sha256": "6ef18cce2cdacf450457c9f93dcd38c96d8bc6deb57373d2ed54c5676853ac20"},
+  {"file": "20261218000100_create_waitpoint_completion_function.exs", "sha256": "604701a479c25e8a2cc1098047d1756f0bb50249a5b9498ebf3b825b7b64c34f"},
+  {"file": "20261218000200_rebuild_reference_check_for_waitpoint_completions.exs", "sha256": "70dfe6a6d5ec92ad3f14b3043dcb6b384ec51dc8aa3ebd3c63b3dc5141c686f8"}
 ]

@@ -531,22 +531,6 @@ defmodule Relay.Webhooks.EngineTest do
   end
 
   describe "WH-28 WH-56 sweep and notices" do
-    test "OP-8: print the engine functions" do
-      Repo.query!("SET search_path = pg_catalog")
-
-      rows =
-        Repo.query!("""
-        SELECT n.nspname || '.' || p.proname || '(' || pg_get_function_identity_arguments(p.oid)
-          || ') -> ' || pg_get_function_result(p.oid) || ' | ' || pg_get_userbyid(p.proowner)
-          || ' | ' || COALESCE(array_to_string(p.proconfig, '; '), '')
-        FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-        WHERE p.proname LIKE 'webhook\\_%' AND p.proname NOT LIKE 'webhook\\_receipt%'
-        ORDER BY 1
-        """).rows
-
-      IO.puts(Enum.map_join(rows, "\n", fn [line] -> "GOLDEN " <> line end))
-    end
-
     test "WH-32 (4), WH-28: the sweep picks up a message whose worker crashed", ctx do
       endpoint = endpoint!(ctx)
       event = dispatch!(ctx, outbox())

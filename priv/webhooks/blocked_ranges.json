@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "ranges": [
+    {"cidr": "0.0.0.0/8", "name": "this_network"},
+    {"cidr": "10.0.0.0/8", "name": "private"},
+    {"cidr": "100.64.0.0/10", "name": "shared_address_space"},
+    {"cidr": "127.0.0.0/8", "name": "loopback", "allow_listable": false},
+    {"cidr": "169.254.0.0/16", "name": "link_local"},
+    {"cidr": "172.16.0.0/12", "name": "private"},
+    {"cidr": "192.0.0.0/24", "name": "ietf_protocol_assignments"},
+    {"cidr": "192.0.2.0/24", "name": "documentation"},
+    {"cidr": "192.168.0.0/16", "name": "private"},
+    {"cidr": "198.18.0.0/15", "name": "benchmarking"},
+    {"cidr": "198.51.100.0/24", "name": "documentation"},
+    {"cidr": "203.0.113.0/24", "name": "documentation"},
+    {"cidr": "224.0.0.0/4", "name": "multicast"},
+    {"cidr": "240.0.0.0/4", "name": "reserved"},
+    {"cidr": "255.255.255.255/32", "name": "broadcast"},
+    {"cidr": "::/128", "name": "unspecified"},
+    {"cidr": "::1/128", "name": "loopback", "allow_listable": false},
+    {"cidr": "::ffff:0:0/96", "name": "ipv4_mapped"},
+    {"cidr": "64:ff9b::/96", "name": "nat64"},
+    {"cidr": "100::/64", "name": "discard_only"},
+    {"cidr": "2001:db8::/32", "name": "documentation"},
+    {"cidr": "fc00::/7", "name": "unique_local"},
+    {"cidr": "fe80::/10", "name": "link_local"},
+    {"cidr": "ff00::/8", "name": "multicast"}
+  ]
+}

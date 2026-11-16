@@ -1,6 +1,6 @@
 defmodule Relay.Webhooks.Signer.KeyStore do
   @moduledoc """
-The signer of a running node (WH-5, TN-32, TN-63). A `v1a` key pair is generated inside the PKCS#11 key store under a label of its own (`Relay.Keys.generate_key_pair/3`): the private key never leaves the key store, in any form, and every signature is made there (`Relay.Keys.sign/3`). The database holds the key's label, sealed under the tenant's data key through the sealer of `Relay.Webhooks`, so destroying the tenant's data key ends the use of the key. A `v1` secret is 32 random bytes sealed the same way; it is opened only in the process that signs, for the one HMAC.
+  The signer of a running node (WH-5, TN-32, TN-63). A `v1a` key pair is generated inside the PKCS#11 key store under a label of its own (`Relay.Keys.generate_key_pair/3`): the private key never leaves the key store, in any form, and every signature is made there (`Relay.Keys.sign/3`). The database holds the key's label, sealed under the tenant's data key through the sealer of `Relay.Webhooks`, so destroying the tenant's data key ends the use of the key. A `v1` secret is 32 random bytes sealed the same way; it is opened only in the process that signs, for the one HMAC.
   """
 
   @behaviour Relay.Webhooks.Signer

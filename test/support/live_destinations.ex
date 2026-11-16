@@ -34,7 +34,12 @@ defmodule RelayTest.LiveDestinations do
   @management "http://10.123.45.14:15672/api/queues/%2F/"
   @store "https://minio.live.relay.test:9000/"
 
-  @type record :: %{partition: integer(), headers: String.t(), key: String.t(), value: String.t()}
+  @type kafka_record :: %{
+          partition: integer(),
+          headers: String.t(),
+          key: String.t(),
+          value: String.t()
+        }
 
   defmodule Resolver do
     @moduledoc "The resolver of the live suite: the names of the services, at their addresses on the private network."
@@ -131,7 +136,7 @@ defmodule RelayTest.LiveDestinations do
   def unique, do: Base.encode16(:crypto.strong_rand_bytes(8), case: :lower)
 
   @doc "Every record of the topic as the broker's console consumer prints it: partition, headers, key and value."
-  @spec kafka_records() :: [record()]
+  @spec kafka_records() :: [kafka_record()]
   def kafka_records do
     arguments = [
       "exec",

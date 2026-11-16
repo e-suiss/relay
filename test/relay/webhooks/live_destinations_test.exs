@@ -91,6 +91,11 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
     message
   end
 
+  defp notification(event) do
+    {:ok, id} = Relay.Id.parse(event.payload["notification_id"])
+    Relay.ExternalId.encode("ntf", id)
+  end
+
   defp delivered!(ctx, destination, host) do
     endpoint = endpoint!(ctx, Map.put(destination, "credential_ref_id", ctx.credential))
     {event, message} = message!(ctx, endpoint)
@@ -105,7 +110,8 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
 
   describe "WH-58 a Kafka broker over TLS" do
     test "WH-58, WH-18, WH-20 (3): a SCRAM-SHA-256 record is read back with its headers, in the partition the Java client chooses for its key" do
-      keys = for n <- 1..6, do: "order/" <> Live.unique() <> "-" <> Integer.to_string(n)
+      plain = for n <- 0..5, do: "order/" <> Live.unique() <> String.duplicate("x", n)
+      keys = ["sipariş/日本-" <> Live.unique() | plain]
       messages = Enum.map(keys, &prepared(%{subject: &1}))
       address = Live.address(@kafka)
 
@@ -135,7 +141,7 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
 
     test "WH-58, WH-17, WH-8 (3): SCRAM-SHA-512 and PLAIN authenticate, and a structured record without a key is the whole event" do
       scram = prepared(%{subject: nil})
-      plain = prepared()
+      plain = prepared(%{data: %{"blob" => String.duplicate("relay ", 50_000)}})
       config = kafka(%{sasl_mechanism: "scram_sha_512", cloudevents_mode: "structured"})
 
       assert {:ok, %{kind: :write}} = Kafka.deliver(config, scram, Live.options())
@@ -368,7 +374,7 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
       assert stored.headers =~ "ce_type:notification.delivered"
       assert stored.headers =~ "content-type:application/json"
       data = Jason.decode!(stored.value)
-      assert data["notification_id"] == event.payload["notification_id"]
+      assert data["notification_id"] == notification(event)
 
       assert stored.key == "null" or stored.headers =~ "ce_subject:" <> stored.key
     end
@@ -389,7 +395,7 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
       assert stored.headers =~ "Nats-Msg-Id: " <> id <> "\r\n"
       assert stored.headers =~ "ce-type: notification.delivered\r\n"
       data = Jason.decode!(stored.data)
-      assert data["notification_id"] == event.payload["notification_id"]
+      assert data["notification_id"] == notification(event)
     end
 
     test "WH-58, WH-17, WH-19: a RabbitMQ endpoint is delivered", ctx do
@@ -409,7 +415,7 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
       assert stored["routing_key"] == routing_key
       assert stored["properties"]["headers"]["cloudEvents:type"] == "notification.delivered"
       data = Jason.decode!(stored["payload"])
-      assert data["notification_id"] == event.payload["notification_id"]
+      assert data["notification_id"] == notification(event)
     end
 
     test "WH-58, WH-21, WH-45 (3): the test event of an object store endpoint is written as an object of one line",

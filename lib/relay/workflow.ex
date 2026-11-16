@@ -448,9 +448,66 @@ defmodule Relay.Workflow do
       effects: %{
         digest: &digest_effect(scope, context, meta, &1),
         throttle: &throttle_effect(scope, context, meta, &1),
-        wait: &wait_effect(scope, context, meta, &1)
+        wait: &wait_effect(scope, context, meta, &1),
+        webhook: &webhook_effect(context, meta, &1)
       }
     })
+  end
+
+  # WF-11
+  # WH-13
+  # WH-43 (2)
+  defp webhook_effect(context, meta, %{"key" => key}) do
+    case Map.get(context, :webhook_events, %{})[key] do
+      {:ok, prepared} -> emit(prepared, context, hook_id(source_event(meta), key))
+      {:refused, reason} -> {:refused, reason}
+      nil -> {:refused, :payload_unavailable}
+    end
+  end
+
+  defp emit(_prepared, _context, nil), do: {:refused, :payload_unavailable}
+
+  defp emit(prepared, context, event_id) do
+    opts = %{occurred_at: utc(context.event_time)}
+    %{messages: _count} = emitter().emit_destination_event(event_id, prepared, opts)
+    {:ok, %{event_id: Relay.Id.to_string(event_id)}}
+  end
+
+  defp utc(%DateTime{} = at), do: DateTime.shift_zone!(at, "Etc/UTC")
+  defp utc(_none), do: nil
+
+  defp source_event(%{event_id: <<_::128>> = id}), do: id
+  defp source_event(%{incoming: %{event_id: <<_::128>> = id}}), do: id
+  defp source_event(_meta), do: nil
+
+  defp hook_id(nil, _key), do: nil
+
+  defp hook_id(<<_::128>> = event_id, key) do
+    <<random::binary-10, _rest::binary>> = :crypto.hash(:sha256, [event_id, 0, key])
+    Relay.Id.build(Relay.Id.timestamp_ms(event_id), random)
+  end
+
+  # WF-11
+  # WH-13
+  @doc """
+  Prepares, outside any transaction, the events the `webhook` steps of `definition` deliver for the event data `data`, through the configured emitter (`config :relay, Relay.Workflow, emitter: Relay.Webhooks`): each step's event type is validated against its schema and the data is sealed. Returns a map from step key to `{:ok, prepared}` or `{:refused, reason}`, which the step context carries as `:webhook_events`; a step whose key is in `done` (it already ran) is left out. The runs of one accepted event emit one event per step: its identifier is derived from the accepted event and the step's key.
+  """
+  @spec webhook_events(Scope.t(), map(), term(), [String.t()]) ::
+          {:ok, %{String.t() => {:ok, map()} | {:refused, atom()}}} | {:error, term()}
+  def webhook_events(%Scope{} = scope, definition, data, done \\ []) do
+    hooks =
+      for %{"type" => "webhook", "key" => key} = step <- walk(definition["steps"]),
+          key not in done,
+          do: step
+
+    Enum.reduce_while(hooks, {:ok, %{}}, fn step, {:ok, acc} ->
+      %{"key" => key, "endpoint" => consumer, "event_type" => type} = step
+
+      case emitter().prepare_destination_event(scope, consumer, type, data) do
+        {:error, reason} -> {:halt, {:error, reason}}
+        decision -> {:cont, {:ok, Map.put(acc, key, decision)}}
+      end
+    end)
   end
 
   # WF-26
@@ -693,6 +750,7 @@ defmodule Relay.Workflow do
   defp meta(run) do
     %{
       run_id: run["id"],
+      event_id: run["event_id"],
       recipient_id: run["recipient_id"],
       notification_id: run["notification_id"],
       message_class: run["message_class"],
@@ -712,6 +770,9 @@ defmodule Relay.Workflow do
   # WF-12
   defp waiter, do: :relay |> Application.fetch_env!(__MODULE__) |> Keyword.fetch!(:waiter)
 
+  # WF-11
+  defp emitter, do: :relay |> Application.fetch_env!(__MODULE__) |> Keyword.fetch!(:emitter)
+
   defp fields(outcome) do
     state = outcome.state
 
@@ -727,7 +788,23 @@ defmodule Relay.Workflow do
 
   # WF-60
   defp outcomes(results) do
-    Runner.outcomes(results, projection(Runner.delivery_ids(results)))
+    Runner.outcomes(results, projection(Runner.delivery_ids(results)), hooks(results))
+  end
+
+  # WF-11
+  defp hooks(results) do
+    ids =
+      for {_key, %{"webhook_event_id" => text}} <- results,
+          {:ok, id} <- [Relay.Id.parse(text)],
+          do: id
+
+    if ids == [] do
+      %{}
+    else
+      for {id, states} <- emitter().destination_event_states(ids), into: %{} do
+        {Relay.Id.to_string(id), states}
+      end
+    end
   end
 
   defp projection(texts) do

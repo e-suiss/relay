@@ -7,6 +7,7 @@ defmodule RelayTest.WebhookDestinations do
 
   alias Relay.Repo
   alias Relay.Webhooks.EngineStore
+  alias Relay.Webhooks.Live
   alias RelayTest.DestinationFixture
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.ScriptedSocket
@@ -17,6 +18,7 @@ defmodule RelayTest.WebhookDestinations do
 
     @behaviour Relay.Webhooks
 
+    alias Relay.Webhooks.Live
     alias RelayTest.WebhookEngine.Runtime, as: Fake
 
     @impl Relay.Webhooks
@@ -38,7 +40,7 @@ defmodule RelayTest.WebhookDestinations do
     defdelegate mail(scope, addresses, mail), to: Fake
 
     @impl Relay.Webhooks
-    def credential(scope, ref_id), do: Relay.Webhooks.Live.credential(scope, ref_id)
+    def credential(scope, ref_id), do: Live.credential(scope, ref_id)
   end
 
   @doc "Makes the engine use its real destinations over the test resolver, transport and dialer until the test ends; `extra` is merged into the configuration, such as `extra_ports: [9093]`. Returns the previous configuration."
@@ -119,7 +121,7 @@ defmodule RelayTest.WebhookDestinations do
       traceparent: nil
     }
 
-    work = fn _status -> Relay.Webhooks.Live.outbox_jobs(event) end
+    work = fn _status -> Live.outbox_jobs(event) end
     {:ok, []} = Repo.in_scope(ctx.scope, work)
     event
   end

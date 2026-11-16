@@ -70,9 +70,10 @@ defmodule Relay.Webhooks.Batcher do
     close? = Batch.close_reason(grown, now, limits) != nil
     closes_at = Batch.closes_at(batch, limits)
     bytes = grown.bytes - batch.bytes
+    at = if close?, do: now, else: closes_at
 
     with :added <- BatchStore.add(message["id"], run.token, id, closes_at, bytes, close?, now) do
-      if close? or batch.events == 0, do: job(id, if(close?, do: now, else: closes_at))
+      if close? or batch.events == 0, do: job(id, at)
       :added
     end
   end

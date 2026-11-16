@@ -1274,6 +1274,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -2933,6 +2934,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -3035,6 +3037,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -3129,6 +3132,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -3231,6 +3235,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -3328,6 +3333,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -3434,6 +3440,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -3532,6 +3539,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -3641,6 +3649,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -3746,6 +3755,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -4401,6 +4411,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -4684,6 +4695,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -8537,6 +8549,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -8636,6 +8649,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -10017,6 +10031,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -10122,6 +10137,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -10219,6 +10235,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -10324,6 +10341,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -11124,6 +11142,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -11212,6 +11231,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -11304,6 +11324,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -11399,6 +11420,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -11501,6 +11523,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -11599,6 +11622,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -11691,6 +11715,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -11788,6 +11813,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -11892,6 +11918,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -12007,6 +12034,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -12110,6 +12138,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -14598,6 +14627,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -14696,6 +14726,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -14787,6 +14818,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -14889,6 +14921,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -14991,6 +15024,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -15092,6 +15126,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -15193,6 +15228,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -15289,6 +15325,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -15378,6 +15415,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -15470,6 +15508,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -15564,6 +15603,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -15693,6 +15733,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -15784,6 +15825,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -15867,6 +15909,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -16567,6 +16610,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -16650,6 +16694,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -16742,6 +16787,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -16845,6 +16891,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -16937,6 +16984,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -17035,6 +17083,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -17143,6 +17192,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -17251,6 +17301,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -17359,6 +17410,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -17467,6 +17519,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -17580,6 +17633,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -17676,6 +17730,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -17796,6 +17851,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -17877,6 +17933,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -17963,6 +18020,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -18046,6 +18104,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -18139,6 +18198,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -18242,6 +18302,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -18329,6 +18390,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -18422,6 +18484,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -19926,6 +19989,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -20059,6 +20123,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -20156,6 +20221,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -20244,6 +20310,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -20346,6 +20413,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -20443,6 +20511,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -20525,6 +20594,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -20616,6 +20686,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -20704,6 +20775,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -20799,6 +20871,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -20894,6 +20967,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -20982,6 +21056,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -21080,6 +21155,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -21176,6 +21252,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -21278,6 +21355,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - unsupported_api_version
@@ -21371,6 +21449,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -21460,6 +21539,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -21549,6 +21629,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -22735,6 +22816,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -22852,6 +22934,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -22942,6 +23025,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -23044,6 +23128,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -23144,6 +23229,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -23242,6 +23328,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session
@@ -23344,6 +23431,7 @@ paths:
         - auth_invalid_token
         - auth_expired_token
         - auth_revoked_client
+        - auth_client_pending
         - auth_insufficient_scope
         - auth_tenant_suspended
         - auth_invalid_session

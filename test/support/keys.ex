@@ -69,8 +69,6 @@ defmodule RelayTest.Keys do
 
   defp es256(label), do: :crypto.hash(:sha256, "relay-test-es256:" <> label)
 
-  defp ed25519(label), do: :crypto.hash(:sha256, "relay-test-ed25519:" <> label)
-
   @impl Relay.Keys
   def wrap(label, aad, key) do
     iv = :crypto.strong_rand_bytes(12)

@@ -91,6 +91,7 @@ defmodule Relay.Api do
       WebhookConsumers,
       WebhookEventTypes,
       WebhookCredentials,
+      WebhookMessages,
       OperationsContacts
     ]
 end

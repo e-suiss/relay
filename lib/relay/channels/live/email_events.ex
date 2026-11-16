@@ -2,7 +2,7 @@ defmodule Relay.Channels.Live.EmailEvents do
   @moduledoc """
   The intake of verified provider e-mail events (CH-39, CH-40, CH-47, DS-10). A webhook handler or the SES queue reader verifies the request or the SNS envelope first and passes the parsed events here (`Relay.Channels.email_events/2`). Each event of a known delivery is classified and planned (`Relay.Channels.email_event_plan/3`, against the active `email_bounce_codes` version) and recorded through the channel step's entry point, `Relay.Channels.Live.Events.record/2` (or, from the delivery report batcher, `record_many/2`), with its evidence code and the provider code `event:<code>`, so the ledger, the projection and the unknown code alarm follow the declared evidence rows (CH-8).
 
-  A hard bounce and a complaint suppress the recipient's address at once and without end, in the tenant's own suppression list (CH-40, PC-59); a `sender_config` result never suppresses (CH-39) and is reported as `[:relay, :channels, :email, :sender_config]` telemetry with the provider. A soft bounce is recorded but not yet counted toward a timed suppression, and the reputation counters are reported as `[:relay, :channels, :email, :reputation]` telemetry and counted in the sending domain's reputation circuit by the domain the delivery was sent from (`Relay.EmailReputation`, CH-87); the soft bounce count needs the per-address state the circuit does not keep. An event that names no delivery, or a delivery Relay does not know, is skipped.
+  A hard bounce and a complaint suppress the recipient's address at once and without end, in the tenant's own suppression list (CH-40, PC-59); a `sender_config` result never suppresses (CH-39) and is reported as `[:relay, :channels, :email, :sender_config]` telemetry with the provider. A bounce the provider reports as one and a complaint are announced to the tenant as `email.bounced` (with the class `permanent` for a hard, policy or content bounce, `transient` for a soft one and `undetermined` otherwise) and `email.complained`, in the transaction that writes the ledger entry (WH-15, WH-53); the event names the notification, the delivery and the recipient and never the address (WH-11). A soft bounce is recorded but not yet counted toward a timed suppression, and the reputation counters are reported as `[:relay, :channels, :email, :reputation]` telemetry and counted in the sending domain's reputation circuit by the domain the delivery was sent from (`Relay.EmailReputation`, CH-87); the soft bounce count needs the per-address state the circuit does not keep. An event that names no delivery, or a delivery Relay does not know, is skipped.
   """
 
   alias Relay.Channels.Live.Events
@@ -48,9 +48,29 @@ defmodule Relay.Channels.Live.EmailEvents do
   def prepare(declarations, table, event) do
     case Relay.Channels.email_event_plan(declarations, event, table) do
       {_result, []} -> {:skipped, :no_classification}
-      {_result, actions} -> {:ok, fields(event, actions), actions}
+      {result, actions} -> {:ok, announced(fields(event, actions), event, result), actions}
     end
   end
+
+  # WH-15
+  # WH-53
+  # WH-11
+  defp announced(fields, %{type: :bounced}, %{kind: kind}) do
+    data = %{"bounce_class" => bounce_class(kind), "bounced_at" => time(fields)}
+    Map.put(fields, :announce, {"email.bounced", data})
+  end
+
+  defp announced(fields, %{type: :complained}, _result),
+    do: Map.put(fields, :announce, {"email.complained", %{"complained_at" => time(fields)}})
+
+  defp announced(fields, _event, _result), do: fields
+
+  defp bounce_class(kind) when kind in [:hard, :policy, :content], do: "permanent"
+  defp bounce_class(:soft), do: "transient"
+  defp bounce_class(_kind), do: "undetermined"
+
+  defp time(%{occurred_at: %DateTime{} = at}), do: DateTime.to_iso8601(at)
+  defp time(_fields), do: nil
 
   defp one(scope, declarations, table, event) do
     case prepare(declarations, table, event) do

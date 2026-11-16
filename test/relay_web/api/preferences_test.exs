@@ -7,6 +7,7 @@ defmodule RelayWeb.Api.PreferencesTest do
   alias RelayTest.Api
   alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F
+  alias RelayTest.OutboxEvents
   alias RelayTest.TenantFixture
 
   @grant "urn:ietf:params:oauth:grant-type:token-exchange"
@@ -71,6 +72,36 @@ defmodule RelayWeb.Api.PreferencesTest do
 
   defp mine(subscriber, method \\ :get, body \\ nil, headers \\ []),
     do: F.request(method, "/v1/subscriber/preferences", subscriber.token, body, headers)
+
+  describe "WH-53 preference.changed" do
+    test "WH-15, WH-53, WH-11: a switch that changes is announced once through the outbox with its thin payload",
+         ctx do
+      sms = write("channel", %{"channel" => "sms"}, "opt_out")
+      writes = [cc("orders", "email", "opt_out"), sms]
+      body = F.body(patch(ctx, writes), 200)
+      F.body(patch(ctx, writes), 200)
+
+      events = OutboxEvents.data(ctx.scope, "preference.changed")
+      assert length(events) == 2
+      assert Enum.all?(events, &(&1["recipient_id"] == body["subscriber_id"]))
+      assert Enum.all?(events, &match?({:ok, _at, 0}, DateTime.from_iso8601(&1["changed_at"])))
+
+      assert %{"category" => "orders", "channel" => "email", "value" => "opt_out"} =
+               Enum.find(events, &(&1["level"] == "category_channel"))
+
+      assert %{"category" => nil, "channel" => "sms", "value" => "opt_out"} =
+               Enum.find(events, &(&1["level"] == "channel"))
+
+      refute Enum.any?(events, &Map.has_key?(&1, "recipient_kind"))
+    end
+
+    test "WH-53: a refused write announces nothing", ctx do
+      assert code(patch(ctx, [cc("orders", "email", "opt_in")]), 422) ==
+               "preference_direction_forbidden"
+
+      assert OutboxEvents.data(ctx.scope, "preference.changed") == []
+    end
+  end
 
   describe "PC-57 PC-12 server preferences" do
     test "PC-12: every active category other than system has a defined cell for every channel",

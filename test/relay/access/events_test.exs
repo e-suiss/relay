@@ -75,6 +75,65 @@ defmodule Relay.Access.EventsTest do
       assert jobs() == 1
     end
 
+    test "WH-51, WH-49, E-94: a replayed event identifier is counted on its receipt and not processed again" do
+      previous = Application.get_env(:relay, Relay.Access)
+      Application.put_env(:relay, Relay.Access, Keyword.put(previous, :user_handlers, [Handler]))
+      Application.put_env(:relay, :access_events_test, self())
+
+      try do
+        claims = FakeAccess.event("user.suspended", %{"subject" => "pairwise-7"})
+        jti = claims["jti"]
+        token = FakeAccess.set(claims)
+
+        assert FakeAccess.deliver(token).status == 202
+        assert %{"state" => "processed", "duplicate_count" => 0} = receipt_of(jti)
+        assert_received {:user, :suspended, "pairwise-7", ^jti}
+
+        assert FakeAccess.deliver(token).status == 202
+        assert FakeAccess.deliver(token).status == 202
+        assert jobs() == 1
+        assert %{"state" => "processed", "duplicate_count" => 2} = receipt_of(jti)
+        refute_received {:user, :suspended, "pairwise-7", ^jti}
+      after
+        Application.put_env(:relay, Relay.Access, previous)
+        Application.delete_env(:relay, :access_events_test)
+      end
+    end
+
+    test "WH-51, WH-6, E-94: during an overlapping key rotation an event signed with either published key is accepted" do
+      kids = Enum.map(FakeAccess.jwks()["keys"], & &1["kid"])
+      assert "fake-es256" in kids and "fake-ed25519" in kids
+
+      newer = FakeAccess.event("user.reactivated", %{"subject" => "pairwise-8"})
+      older = FakeAccess.event("user.reactivated", %{"subject" => "pairwise-9"})
+
+      assert FakeAccess.deliver(FakeAccess.set(newer)).status == 202
+
+      rotated = FakeAccess.token(older, %{"typ" => "secevent+jwt"})
+      assert FakeAccess.deliver(rotated).status == 202
+      assert jobs() == 2
+    end
+
+    test "WH-51, WH-7, E-94: a tampered token or a stale timestamp is refused with its catalogued error" do
+      claims = FakeAccess.event("user.reactivated", %{"subject" => "pairwise-1"})
+      [header, _payload, signature] = String.split(FakeAccess.set(claims), ".")
+
+      tampered =
+        %{claims | "events" => %{"urn:suiss:access:event:user.deleted" => %{"subject" => "x"}}}
+        |> Jason.encode!()
+        |> Base.url_encode64(padding: false)
+
+      assert refused(FakeAccess.deliver(header <> "." <> tampered <> "." <> signature)) ==
+               "authentication_failed"
+
+      stale = %{claims | "iat" => System.system_time(:second) - 306}
+      assert refused(FakeAccess.deliver(FakeAccess.set(stale))) == "invalid_request"
+
+      ahead = %{claims | "iat" => System.system_time(:second) + 120}
+      assert refused(FakeAccess.deliver(FakeAccess.set(ahead))) == "invalid_request"
+      assert jobs() == 0
+    end
+
     test "E-94: a forged, stale, foreign or misaddressed SET is refused with its RFC 8935 code and records nothing" do
       claims = FakeAccess.event("user.reactivated", %{"subject" => "pairwise-1"})
       [header, payload, _signature] = String.split(FakeAccess.set(claims), ".")

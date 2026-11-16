@@ -42,6 +42,7 @@ defmodule Relay.Webhooks do
     default: Relay.Limits.seconds!(["webhook", "key_overlap", "default"]),
     max: Relay.Limits.seconds!(["webhook", "key_overlap", "max"])
   }
+  @tolerance_s Relay.Limits.seconds!(["webhook", "signature_tolerance"])
 
   @type result(value) :: {:ok, value} | {:error, term()}
 
@@ -108,6 +109,30 @@ defmodule Relay.Webhooks do
           {:ok, atom()} | {:error, term()}
   def mark_receipt(scope, receipt_id, state, reason),
     do: Store.in_scope(scope, fn _status -> Store.receipt_mark(receipt_id, state, reason) end)
+
+  # WH-4
+  # WH-7 (2)
+  # WH-49 (2)
+  # WH-50
+  # WH-51
+  @doc """
+  Verifies an inbound message of the Suiss webhook profile with `Relay.Webhooks.Profile.verify/5`, the verifier of outbound deliveries: a provider that follows Standard Webhooks, a completion notification of a long-running job from another Suiss product, or any other sender of the profile. `headers` are the request headers as they arrived, `raw_body` the bytes that arrived and never a body that was parsed and serialised again, and `keys` the text forms of every key that may have signed it (`whpk_…` for Ed25519, `whsec_…` for HMAC-SHA256), so that a message signed during a rotation overlap verifies under either key. A key that is not of a text form is left out.
+
+  The message is accepted when any signature verifies against any key; signatures are compared in constant time, and a `webhook-timestamp` further from `now` than the `signature_tolerance` limit, in either direction, is refused. The unsigned headers carry no security meaning and are not read (WH-9). The caller records the returned `id` durably and processes an identifier only once: delivery is at least once.
+  """
+  @spec verify_message(
+          Profile.headers(),
+          binary(),
+          [String.t() | Relay.Redacted.t()],
+          DateTime.t()
+        ) :: {:ok, Profile.verified()} | {:error, Profile.rejection()}
+  def verify_message(headers, raw_body, keys, %DateTime{} = now)
+      when is_binary(raw_body) and is_list(keys) do
+    parsed = for key <- keys, {:ok, parsed} <- [Profile.parse_key(key_text(key))], do: parsed
+    Profile.verify(headers, raw_body, parsed, now, @tolerance_s)
+  end
+
+  defp key_text(key), do: key |> Relay.Redacted.wrap() |> Relay.Redacted.expose()
 
   # WH-16
   # WH-52

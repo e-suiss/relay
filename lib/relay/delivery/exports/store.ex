@@ -1,6 +1,6 @@
 defmodule Relay.Delivery.Exports.Store do
   @moduledoc """
-  Raw data exports (DS-37, OP-39, L-57, TN-18). A tenant asks for the raw rows of one kind (`deliveries`, `delivery_events` or `usage_records`) for UTC days `from` to `to` (exclusive, at most 92 days); the request is audited as `export.requested` and a job on the `maintenance` queue writes the CSV. The rows are read in pages on the report pool (`Relay.ReportRepo`, role `relay_report`) inside the tenant scope, so row level security keeps every export to its own tenant environment; the CSV is stored with its row count and SHA-256 and is ready until it expires (7 days after it was written), when its content is cleared and the row stays (`expired`). An export of more than 1,000,000 rows or 64 MiB fails as `too_large`; a narrower period is asked instead.
+  Raw data exports (DS-37, OP-39, L-57, TN-18). A tenant asks for the raw rows of one kind (`deliveries`, `delivery_events` or `usage_records`) for UTC days `from` to `to` (exclusive, at most 92 days); the request is audited as `export.requested` and a job on the `maintenance` queue writes the CSV. The rows are read in pages on the report pool (`Relay.ReportRepo`, role `relay_report`) inside the tenant scope, so row level security keeps every export to its own tenant environment; the CSV is stored with its row count and SHA-256 and is ready until it expires (7 days after it was written), when its content is cleared and the row stays (`expired`). An export of more than 1,000,000 rows or 64 MiB fails as `too_large`; a narrower period is asked instead. The end of the job is announced through the outbox in the transaction that changes the export's state: `export.completed` with the export's identifier and expiry, or `export.failed` with the identifier and the reason code (WH-50), so the delivery engine sends it to the tenant's endpoints with the Suiss webhook profile.
 
   The CSV is UTF-8 with a header row, `,` separators and `\\r\\n` line ends (RFC 4180); identifiers are external identifiers, times RFC 3339 UTC. A value that a spreadsheet would read as a formula gets a leading `'`. The columns carry identifiers, codes and counts only: no address, content or provider payload.
   """
@@ -131,15 +131,31 @@ defmodule Relay.Delivery.Exports.Store do
     expires_at = DateTime.add(Relay.Clock.utc_now(), @ttl_s, :second)
     sha = :crypto.hash(:sha256, content)
     [row] = Repo.call!("relay_fn.export_complete", [id, content, rows, sha, expires_at])
-    Repo.code!(row["export_complete"], [:completed, :not_pending, :not_found])
+    result = Repo.code!(row["export_complete"], [:completed, :not_pending, :not_found])
+    expiry = %{"expires_at" => DateTime.to_iso8601(expires_at)}
+    if result == :completed, do: announce(id, "export.completed", expiry)
+    result
   end
 
   # DS-37
-  @doc "Fails a pending export of the established scope with `too_large` or `unavailable`."
+  # WH-50
+  @doc "Fails a pending export of the established scope with `too_large` or `unavailable` and announces `export.failed` in the same transaction."
   @spec fail(Relay.Id.t(), String.t()) :: :failed | :not_pending | :not_found
   def fail(id, failure) do
     [row] = Repo.call!("relay_fn.export_fail", [id, failure])
-    Repo.code!(row["export_fail"], [:failed, :not_pending, :not_found])
+    result = Repo.code!(row["export_fail"], [:failed, :not_pending, :not_found])
+    if result == :failed, do: announce(id, "export.failed", %{"reason" => failure})
+    result
+  end
+
+  # WH-50
+  # WH-53
+  # WH-11
+  defp announce(id, type, fields) do
+    data = Map.put(fields, "export_id", Relay.ExternalId.encode("exp", id))
+    params = [Relay.Id.generate(), type, "export:" <> Relay.Id.to_string(id), data, nil]
+    [row] = Repo.call!("relay_fn.outbox_append", params)
+    Repo.code!(row["result"], [:appended])
   end
 
   defp build(scope, export) do

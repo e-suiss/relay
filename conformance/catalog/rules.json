@@ -7512,6 +7512,102 @@
   },
   {
     "acceptance": "pending",
+    "id": "WH-57",
+    "section": "§16",
+    "status": "engineering_assumption",
+    "title": "Signing key storage per endpoint in the HSM",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-58",
+    "section": "§16",
+    "status": "engineering_assumption",
+    "title": "Dependency-free broker and cloud clients",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-59",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Thin events and snapshot-only fields",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-60",
+    "section": "§16",
+    "status": "policy_default",
+    "title": "Engine operating values",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-61",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Recovery operation rules",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-62",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Workflow webhook step behaviour",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-63",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Development tunnel feed",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-64",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Object store batch behaviour",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-65",
+    "section": "§16",
+    "status": "policy_default",
+    "title": "Destination authentication and limits",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-66",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Portal token and portal actor",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-67",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Audit records flow to tenant endpoints that name the type",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-68",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Inbound long-job completion receiver",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
     "id": "AG-1",
     "section": "§17",
     "status": "central",

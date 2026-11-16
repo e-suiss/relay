@@ -34,19 +34,24 @@ defmodule Relay.Webhooks.Fanout do
   # WH-29
   # WH-34 (2)
   # WH-37
+  # WH-67
   # INV-12
-  @doc "Records one of Relay's own events and creates its messages; returns the created messages with their state. Only an event type of the catalog is delivered (WH-53), and of its data only the identifiers the catalog declares for the thin payload are kept (WH-11)."
+  @doc "Records one of Relay's own events and creates its messages; returns the created messages with their state. Only an event type of the catalog is delivered (WH-53), and of its data only the identifiers the catalog declares for the thin payload are kept (WH-11). A type the catalog marks explicit-only goes to the endpoints that name it and never to one that chose `*`; with no such endpoint nothing is recorded (WH-67)."
   @spec relay_event(event()) :: [map()]
   def relay_event(%{type: type, data: data} = event) do
     with {:ok, identifiers} <- Relay.EventCatalog.identifiers(type),
-         {:ok, %{version: version}} <- Relay.EventCatalog.fetch(type) do
-      recorded(event, Envelope.thin(data, identifiers), version)
+         {:ok, %{version: version, explicit_only: explicit}} <- Relay.EventCatalog.fetch(type) do
+      endpoints = EngineStore.subscribers(type, not explicit)
+
+      if explicit and endpoints == [],
+        do: [],
+        else: recorded(event, endpoints, Envelope.thin(data, identifiers), version)
     else
       :error -> []
     end
   end
 
-  defp recorded(%{id: id, type: type} = event, data, version) do
+  defp recorded(%{id: id, type: type} = event, endpoints, data, version) do
     now = Relay.Clock.utc_now()
     encoded = Jason.encode!(data)
     too_large? = byte_size(encoded) > Settings.payload_max()
@@ -65,7 +70,7 @@ defmodule Relay.Webhooks.Fanout do
     }
 
     messages =
-      for endpoint <- EngineStore.subscribers(type), not own_disable?(endpoint, type, data) do
+      for endpoint <- endpoints, not own_disable?(endpoint, type, data) do
         planned(endpoint, now)
       end
 

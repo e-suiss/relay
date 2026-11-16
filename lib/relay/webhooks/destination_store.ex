@@ -116,16 +116,18 @@ defmodule Relay.Webhooks.DestinationStore do
 
   # WH-45 (2)
   # API-56
-  @doc "A page of Relay's own events of the scope, newest first, optionally of one type and created at or after `since`; at most `limit + 1` rows."
-  @spec events(String.t() | nil, DateTime.t() | nil, map() | nil, pos_integer()) :: [map()]
-  def events(event_type, since, cursor, limit) do
-    {condition, order, params} = position(cursor, [event_type, since])
+  @doc "A page of Relay's own events of the scope, newest first, optionally of one type and created at or after `since`, without the types named in `excluded`; at most `limit + 1` rows."
+  @spec events(String.t() | nil, DateTime.t() | nil, [String.t()], map() | nil, pos_integer()) ::
+          [map()]
+  def events(event_type, since, excluded, cursor, limit) do
+    {condition, order, params} = position(cursor, [event_type, since, excluded])
 
     sql = """
     SELECT #{@event_columns}, e.created_at AS cursor_at FROM relay.webhook_events e
     WHERE e.use_kind = 'relay_events' AND e.origin = 'outbox'
       AND ($1::text IS NULL OR e.event_type = $1)
-      AND ($2::timestamptz IS NULL OR e.created_at >= $2)#{condition}
+      AND ($2::timestamptz IS NULL OR e.created_at >= $2)
+      AND NOT (e.event_type = ANY($3::text[]))#{condition}
     ORDER BY e.created_at #{order}, e.id #{order}
     LIMIT #{limit + 1}
     """
@@ -137,10 +139,10 @@ defmodule Relay.Webhooks.DestinationStore do
   defp position(nil, params), do: {"", "DESC", params}
 
   defp position(%{direction: :after, sort_ts_us: ts, id: id}, params),
-    do: {" AND (e.created_at, e.id) < ($3, $4)", "DESC", params ++ [from_us(ts), id]}
+    do: {" AND (e.created_at, e.id) < ($4, $5)", "DESC", params ++ [from_us(ts), id]}
 
   defp position(%{direction: :before, sort_ts_us: ts, id: id}, params),
-    do: {" AND (e.created_at, e.id) > ($3, $4)", "ASC", params ++ [from_us(ts), id]}
+    do: {" AND (e.created_at, e.id) > ($4, $5)", "ASC", params ++ [from_us(ts), id]}
 
   defp from_us(us), do: DateTime.from_unix!(us, :microsecond)
 

@@ -32,17 +32,18 @@ defmodule Relay.Webhooks.EngineStore do
 
   # WH-16
   # WH-34 (2)
-  @doc "The endpoints of use `relay_events` that are not archived and subscribe to `event_type` or to `*`, with their retry schedule."
-  @spec subscribers(String.t()) :: [map()]
-  def subscribers(event_type) do
+  # WH-67
+  @doc "The endpoints of use `relay_events` that are not archived and subscribe to `event_type` or, when `wildcard` is true, to `*`, with their retry schedule."
+  @spec subscribers(String.t(), boolean()) :: [map()]
+  def subscribers(event_type, wildcard) when is_boolean(wildcard) do
     all(
       """
       SELECT e.id, e.state, e.retry_schedule FROM relay.webhook_endpoints e
       WHERE e.use_kind = 'relay_events' AND e.state <> 'archived'
-        AND (e.event_types @> ARRAY[$1::text] OR e.event_types @> ARRAY['*'::text])
+        AND (e.event_types @> ARRAY[$1::text] OR ($2 AND e.event_types @> ARRAY['*'::text]))
       ORDER BY e.id
       """,
-      [event_type]
+      [event_type, wildcard]
     )
   end
 

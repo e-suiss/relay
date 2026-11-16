@@ -57,8 +57,8 @@ defmodule Relay.Ingest.QuotaTest do
       {:ok, types} =
         Relay.Repo.in_scope(scope, fn _status ->
           Relay.Repo.scoped_query!(
-            "SELECT event_type FROM relay.outbox_events ORDER BY created_at, seq",
-            []
+            "SELECT event_type FROM relay.outbox_events WHERE event_type LIKE $1 ORDER BY created_at, seq",
+            ["quota.%"]
           ).rows
         end)
 

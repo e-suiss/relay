@@ -50,6 +50,9 @@ jobs:
           name: load-shed-bench-${{ github.run_id }}
           path: load-shed-bench.txt
 
+  live-destinations:
+    uses: ./.github/workflows/live-destinations.yml
+
   load:
     runs-on: ubuntu-24.04
     timeout-minutes: 30

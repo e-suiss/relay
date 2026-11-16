@@ -11,4 +11,4 @@ if File.exists?(mjml_port <> ".sha256") do
   Application.put_env(:relay, Relay.Templates.Mjml, executable: mjml_port, sha256: sha256)
 end
 
-ExUnit.start(exclude: [:integration, :nightly, :quarantine])
+ExUnit.start(exclude: [:integration, :nightly, :quarantine, :live_destinations])

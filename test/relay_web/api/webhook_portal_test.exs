@@ -298,7 +298,8 @@ defmodule RelayWeb.Api.WebhookPortalTest do
       end
 
       assert patch(consumer.token, path, %{"state" => "disabled"}, 200)["state"] == "disabled"
-      assert patch(consumer.token, path, %{"state" => "paused"}, 422)["code"] == "validation_failed"
+      paused = patch(consumer.token, path, %{"state" => "paused"}, 422)
+      assert paused["code"] == "validation_failed"
       assert patch(consumer.token, path, %{"state" => "active"}, 200)["state"] == "active"
 
       rotated = post(consumer.token, path <> "/rotate_key", nil, 200)
@@ -337,7 +338,10 @@ defmodule RelayWeb.Api.WebhookPortalTest do
       for name <- ["order.shipped", "order.cancelled"] do
         body = %{
           "name" => name,
-          "schema" => %{"type" => "object", "properties" => %{"order_id" => %{"type" => "string"}}},
+          "schema" => %{
+            "type" => "object",
+            "properties" => %{"order_id" => %{"type" => "string"}}
+          },
           "identifiers" => ["order_id"],
           "example" => %{"order_id" => "A-1"}
         }
@@ -429,7 +433,8 @@ defmodule RelayWeb.Api.WebhookPortalTest do
 
       unknown = "#{@messages}/whm_01j9zq3k4m5n6p7q8r9s0t1v2w"
       assert get(consumer.token, unknown, 404)["code"] == "webhook_message_not_found"
-      assert get(consumer.token, unknown <> "/attempts", 404)["code"] == "webhook_message_not_found"
+      attempts = get(consumer.token, unknown <> "/attempts", 404)
+      assert attempts["code"] == "webhook_message_not_found"
     end
 
     test "WH-30 (2), WH-31, WH-37, WH-48: the portal lists the missed events and recovers them, audited",

@@ -13,6 +13,7 @@ defmodule Relay.Webhooks.Engine do
   alias Relay.Webhooks.Batcher
   alias Relay.Webhooks.Destination
   alias Relay.Webhooks.DestinationConfig
+  alias Relay.Webhooks.DestinationEvents
   alias Relay.Webhooks.EngineStore
   alias Relay.Webhooks.Envelope
   alias Relay.Webhooks.Fanout
@@ -226,7 +227,31 @@ defmodule Relay.Webhooks.Engine do
   def webhook_id(%{"id" => id}), do: Relay.ExternalId.encode("oev", id)
 
   defp envelope(scope, %{event: event, version: version}) do
-    data = snapshot(scope, event, version["snapshot"])
+    case data(scope, event, version["snapshot"]) do
+      {:ok, data} -> enveloped(scope, event, data)
+      {:error, :erased} -> {:error, dead(:payload_erased), blank()}
+      {:error, :unavailable} -> {:error, unavailable("payload_unavailable"), blank()}
+    end
+  end
+
+  # WH-13
+  defp data(scope, %{"use_kind" => "destination"} = event, allow_list),
+    do: DestinationEvents.payload(scope, event, allow_list)
+
+  defp data(scope, event, allow_list), do: {:ok, snapshot(scope, event, allow_list)}
+
+  # WH-8
+  # WH-11
+  @doc "The thin envelope of a stored event of Relay's own, as an endpoint without a snapshot receives it; `nil` when it cannot be built. Runs outside any transaction."
+  @spec thin_envelope(Scope.t(), map()) :: Envelope.t() | nil
+  def thin_envelope(%Scope{} = scope, %{"use_kind" => "relay_events"} = event) do
+    case enveloped(scope, event, event["payload"] || %{}) do
+      {:ok, envelope} -> envelope
+      {:error, _outcome, _sent} -> nil
+    end
+  end
+
+  defp enveloped(scope, event, data) do
     source = event["source"] || Settings.source()
 
     fields = %{

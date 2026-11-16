@@ -570,6 +570,10 @@ defmodule RelayWeb.Router do
     post "/webhook_messages/:webhook_message_id/cancel", WebhookMessageController, :cancel,
       private: %{relay_operation: "cancelWebhookMessage"}
 
+    # WH-45 (2)
+    get "/webhook_events", WebhookEventController, :index,
+      private: %{relay_operation: "listWebhookEvents"}
+
     # WH-56
     get "/operations_contacts", OperationsContactController, :show,
       private: %{relay_operation: "getOperationsContacts"}

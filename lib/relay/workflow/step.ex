@@ -1,6 +1,6 @@
 defmodule Relay.Workflow.Step do
   @moduledoc """
-  The step-dispatch seam of the workflow runner (WF-8, WF-59). Every step type is one module that implements this behaviour: `run/3` takes the step as written in the definition, the run context and the business time, and returns one instruction; it writes nothing itself, only through the context's effects (`digest`, `throttle`, `wait`), which run in the caller's transaction. `module/1` maps a step type to its module; a type that is not executable yet maps to `Relay.Workflow.Steps.Unavailable`, which records `workflow_run.step_unavailable` as the step's outcome instead of skipping it silently.
+  The step-dispatch seam of the workflow runner (WF-8, WF-59). Every step type is one module that implements this behaviour: `run/3` takes the step as written in the definition, the run context and the business time, and returns one instruction; it writes nothing itself, only through the context's effects (`digest`, `throttle`, `wait`, `webhook`), which run in the caller's transaction. `module/1` maps a step type to its module; a type without a module maps to `Relay.Workflow.Steps.Unavailable`, which records `workflow_run.step_unavailable` as the step's outcome instead of skipping it silently.
 
   The instructions:
 
@@ -48,7 +48,8 @@ defmodule Relay.Workflow.Step do
     "digest" => Relay.Workflow.Steps.Digest,
     "throttle" => Relay.Workflow.Steps.Throttle,
     "time_window" => Relay.Workflow.Steps.TimeWindow,
-    "wait_for_event" => Relay.Workflow.Steps.WaitForEvent
+    "wait_for_event" => Relay.Workflow.Steps.WaitForEvent,
+    "webhook" => Relay.Workflow.Steps.Webhook
   }
 
   # WF-8

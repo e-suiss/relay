@@ -78,6 +78,7 @@ defmodule Relay.Api.Events do
          {:ok, recipients} <- WorkflowRuns.attributes(scope, workflow["definition"], recipients),
          {:ok, payload} <- payload(scope, request, cloudevent),
          {:ok, digests} <- digests(scope, workflow, request, recipients, cloudevent),
+         {:ok, hooks} <- WorkflowRuns.webhook_events(scope, workflow["definition"], request.data),
          {:ok, subtenant} <- subtenant(scope, request.tenant, Map.get(ctx, :subtenant_id)),
          {:ok, category} <- subtenant_category(scope, workflow, category, subtenant),
          :ok <- max_defer(request, category, Relay.Clock.business_now(scope)) do
@@ -111,7 +112,8 @@ defmodule Relay.Api.Events do
          dedup_key: request.dedup_key || Keyword.get(opts, :dedup_key),
          traceparent: (cloudevent && cloudevent["traceparent"]) || Map.get(ctx, :traceparent),
          api_client_id: api_client(Map.get(ctx, :api_client_id)),
-         correlation_digests: digests
+         correlation_digests: digests,
+         webhook_events: hooks
        }}
     end
   end

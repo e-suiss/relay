@@ -22,7 +22,8 @@ defmodule Relay.Workflow.RunnerTest do
         effects: %{
           digest: fn _step -> {:ok, %{role: :anchor, window_id: Relay.Id.generate()}} end,
           throttle: fn _step -> {:ok, %{outcome: :allowed, count: 1, rule_id: nil}} end,
-          wait: fn _wait -> {:ok, %{state: :open, waitpoint_id: Relay.Id.generate()}} end
+          wait: fn _wait -> {:ok, %{state: :open, waitpoint_id: Relay.Id.generate()}} end,
+          webhook: fn _step -> {:ok, %{event_id: "evt-1"}} end
         }
       },
       overrides
@@ -155,7 +156,7 @@ defmodule Relay.Workflow.RunnerTest do
                run([office, mail("b")], %{}, ~U[2026-11-13 16:00:00Z])
     end
 
-    test "WF-8: a step type that is not executable yet is recorded with its rule and the run goes on" do
+    test "WF-8, WF-11: a webhook step emits its event through the engine and the run goes on" do
       hook = %{
         "type" => "webhook",
         "key" => "hook",
@@ -166,8 +167,58 @@ defmodule Relay.Workflow.RunnerTest do
       assert {:ok, %{status: "completed", state: state, extras: [{"b", "email"}]}} =
                run([hook, mail("b")])
 
-      assert %{"outcome" => "skipped", "rule_id" => "workflow_run.step_unavailable"} =
+      assert %{"outcome" => "emitted", "webhook_event_id" => "evt-1", "type" => "webhook"} =
                state["results"]["hook"]
+
+      refute Map.has_key?(state["results"]["hook"], "rule_id")
+    end
+
+    test "WF-11: a webhook step that cannot emit is recorded with its rule and reason and the run goes on" do
+      hook = %{
+        "type" => "webhook",
+        "key" => "hook",
+        "endpoint" => "crm",
+        "event_type" => "order.shipped"
+      }
+
+      refused = %{effects: %{webhook: fn _step -> {:refused, :consumer_not_found} end}}
+
+      assert {:ok, %{status: "completed", state: state, extras: [{"b", "email"}]}} =
+               run([hook, mail("b")], refused)
+
+      assert %{
+               "outcome" => "skipped",
+               "rule_id" => "workflow_run.step_unavailable",
+               "reason" => "consumer_not_found"
+             } = state["results"]["hook"]
+    end
+
+    test "WF-11: a condition after a webhook step reads its delivery result, never the answer" do
+      hook = %{
+        "type" => "webhook",
+        "key" => "hook",
+        "endpoint" => "crm",
+        "event_type" => "order.shipped"
+      }
+
+      check = %{
+        "type" => "condition",
+        "key" => "check",
+        "branches" => [
+          %{
+            "when" => %{"eq" => [%{"var" => "steps.hook.delivered"}, true]},
+            "steps" => [mail("thanks")]
+          }
+        ],
+        "else" => [mail("fallback")]
+      }
+
+      view = fn states ->
+        %{outcomes: &Runner.outcomes(&1, %{}, %{"evt-1" => states})}
+      end
+
+      assert {:ok, %{extras: [{"thanks", "email"}]}} = run([hook, check], view.(["delivered"]))
+      assert {:ok, %{extras: [{"fallback", "email"}]}} = run([hook, check], view.(["pending"]))
     end
 
     test "WF-12: an event wait parks the run; a match goes on and a timeout runs on_timeout first" do
@@ -411,6 +462,23 @@ defmodule Relay.Workflow.RunnerTest do
                view["a"]
 
       assert %{"skipped" => true, "delivered" => false} = view["s"]
+    end
+
+    test "WF-11: the condition view of a webhook step follows the states of its event's messages" do
+      results = %{
+        "all" => %{"outcome" => "emitted", "webhook_event_id" => "e1"},
+        "one" => %{"outcome" => "emitted", "webhook_event_id" => "e2"},
+        "none" => %{"outcome" => "emitted", "webhook_event_id" => "e3"},
+        "off" => %{"outcome" => "skipped", "rule_id" => "workflow_run.step_unavailable"}
+      }
+
+      hooks = %{"e1" => ["delivered", "delivered"], "e2" => ["delivered", "exhausted"]}
+      view = Runner.outcomes(results, %{}, hooks)
+
+      assert %{"delivered" => true, "failed" => false} = view["all"]
+      assert %{"delivered" => false, "failed" => true} = view["one"]
+      assert %{"delivered" => false, "failed" => false, "skipped" => false} = view["none"]
+      assert %{"delivered" => false, "skipped" => true} = view["off"]
     end
   end
 end

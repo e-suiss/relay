@@ -58,6 +58,8 @@ Relay signs every HTTPS delivery with the Suiss webhook profile, which is compat
 - The unsigned headers `webhook-event-type` and `webhook-attempt` are a convenience for routing and logging. They are not covered by the signature and carry no security meaning.
 - Answer `2xx` as soon as the event is stored and do the work afterwards. A redirect is never followed.
 
+For local development `relay listen --forward-to <url>` reads the environment's events from `GET /v1/webhook_events` and posts each one to a loopback address with the same headers. It signs with `v1` and a secret of the listening session (`RELAY_LISTEN_SECRET`, or one printed when the command starts), so the verification code of the application runs unchanged; Relay itself never calls a developer machine.
+
 Relay verifies inbound messages of the profile with the same verifier it uses for its own deliveries. The shared test vectors are in `conformance/webhooks/vectors/`.
 
 ## Changing a contract

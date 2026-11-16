@@ -107,6 +107,14 @@ groups:
         annotations:
           summary: "The Access link is not established or its keys are stale"
           runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayaccesslinkdown
+      - alert: RelayAccessRealmsUnpaired
+        expr: relay_access_pairing_unpaired_realms > 0
+        labels:
+          severity: warning
+          decision: E-101
+        annotations:
+          summary: "Realms of the Access tenants stay unpaired with Access after three runs in a row"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayaccessrealmsunpaired
       - alert: RelayFrequencyCounterUnavailable
         expr: increase(relay_frequency_counter_unavailable_total[5m]) > 0
         labels:

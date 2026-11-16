@@ -393,3 +393,21 @@ tests:
             exp_annotations:
               summary: "The nightly inbox reconciliation found counters that drifted from their items"
               runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayinboxcounterdrift
+  - interval: 1m
+    input_series:
+      - series: 'relay_access_pairing_unpaired_realms'
+        values: "0 0 0 2 2 2 0 0 0 0"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: RelayAccessRealmsUnpaired
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: RelayAccessRealmsUnpaired
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: E-101}
+            exp_annotations:
+              summary: "Realms of the Access tenants stay unpaired with Access after three runs in a row"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayaccessrealmsunpaired
+      - eval_time: 8m
+        alertname: RelayAccessRealmsUnpaired
+        exp_alerts: []

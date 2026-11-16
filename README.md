@@ -184,6 +184,14 @@ Access takes AuthZEN decisions (`POST /access/v1/evaluation`) only over mutual T
 
 Relay refuses a certificate whose public key is not the PEP key, and reads both files again every ten minutes, so a renewed certificate needs no restart. Decisions use TLS 1.3 only. Until the certificate is in place, every decision is unavailable and the operation that needs it is refused.
 
+### Pairing with the tenant realms
+
+Relay also holds an Ed25519 service key, `access-service` in the key store (`deploy/hsm-keys.sh` creates it): the key of Relay's service instance in every realm of every Access tenant. Register its public key with Relay's client in Access as well; `bin/relay eval 'Relay.Access.ServiceKey.print_service_key()'` (or `mix relay.access.service_key` in development) prints it as a JWK whose `kid` is its RFC 7638 thumbprint.
+
+Relay pairs with the realms when a node starts, every hour, when Access announces a new tenant, and when an operator asks for it (`bin/relay rpc 'Relay.Access.Pairing.request(:all)'`, or `{:tenant, "tnt_…"}` for one tenant). For each tenant it reads the snapshot, asks Access for a challenge per realm that is not yet paired under the service key, checks every challenge (the `kid` is the service key's thumbprint, the nonces are the challenge and the challenge followed by `0x01`, at least a minute of validity is left), signs the ones that hold and sends them back, at most 64 at a time. A challenge Access rejects as stale, a `503` or a network failure is tried once more with a new challenge; a realm still not paired after three runs in a row raises the `RelayAccessRealmsUnpaired` alert. The same run keeps Relay's event stream from Access open: a missing or disabled stream is opened again towards `POST /v1/access/events`, and a paused one is logged as a warning.
+
+Signing a challenge needs the Access kernel, which recomputes the intent digests and produces the signed Actor Intent Statements. This build does not include it yet: every challenge is checked and then skipped with `kernel-unavailable`, so realms stay unpaired and the alert fires after three hours, while the event stream is still kept open. Pairing becomes active once the kernel lands in the key store port.
+
 ## Channels without provider accounts
 
 A self-hosted Relay sends on three channels without any third-party account:

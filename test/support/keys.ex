@@ -1,5 +1,5 @@
 defmodule RelayTest.Keys do
-  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per `relay-dkim/` label (DKIM keys); there are no other signing keys; secret data objects are stored in the calling process; key generation succeeds for any label. An Ed25519 key pair is derived from its label and signs only under a label that starts with `relay-webhook-`; once destroyed, its label no longer signs in any process for the rest of the test run."
+  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per `relay-dkim/` label (DKIM keys); there are no other signing keys; secret data objects are stored in the calling process; key generation succeeds for any label. An Ed25519 key pair is derived from its label and signs only under a label that starts with `relay-webhook-`; once destroyed, its label no longer signs in any process for the rest of the test run. The label `access-service` is an Ed25519 key pair as well, with a public key (E-101)."
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
@@ -21,6 +21,9 @@ defmodule RelayTest.Keys do
     {:ok, <<r::256, s::256>>}
   end
 
+  def sign(:ed25519, "access-service" = label, message),
+    do: {:ok, :crypto.sign(:eddsa, :none, message, [ed25519(label), :ed25519])}
+
   def sign(:rs256, "relay-dkim/" <> _rest = label, message),
     do: {:ok, :public_key.sign(message, :sha256, rs256(label))}
 
@@ -35,6 +38,11 @@ defmodule RelayTest.Keys do
   @impl Relay.Keys
   def public_key(:es256, label) do
     {public, _private} = :crypto.generate_key(:ecdh, :secp256r1, es256(label))
+    {:ok, public}
+  end
+
+  def public_key(:ed25519, "access-service" = label) do
+    {public, _private} = :crypto.generate_key(:eddsa, :ed25519, ed25519(label))
     {:ok, public}
   end
 

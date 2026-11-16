@@ -73,7 +73,8 @@ config :relay, Oban,
        {"41 * * * *", Relay.Channels.Live.SettingsSweep},
        {"*/5 * * * *", Relay.Channels.Live.ReconcileSweep},
        {"* * * * *", Relay.Channels.Live.SesQueue},
-       {"* * * * *", Relay.Webhooks.Sweep}
+       {"* * * * *", Relay.Webhooks.Sweep},
+       {"53 * * * *", Relay.Access.Pairing.Job}
      ]}
   ]
 
@@ -103,6 +104,8 @@ config :relay, Relay.Access,
   subscriber_token_key: "subscriber-token",
   client_key: "access-client",
   pep_key: "access-pep",
+  service_key: "access-service",
+  event_receiver: "https://localhost/v1/access/events",
   autoload: true,
   user_handlers: [Relay.Operators.AccessUserHandler, Relay.Operators.AccessSubscriberHandler],
   consent_handler: Relay.Preferences.AccessConsentHandler

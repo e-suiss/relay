@@ -140,6 +140,8 @@
   {"file": "20261202000100_register_region_defaults.exs", "sha256": "16d918fcd31bca7a522b39d2d48115470b50ba0157126874832f03112b9c9d59"},
   {"file": "20261202000200_create_api_client_registrations.exs", "sha256": "ab2e8beb6f4bc431065de72a3c550aff46ac53173b5a26105290a2a322149ed1"},
   {"file": "20261202000300_create_api_client_registration_functions.exs", "sha256": "3320583e83063e71d47bb7f9d87be3fce62744733748f7f3430d0ec08096e742"},
+  {"file": "20261203000000_create_access_pairing_tables.exs", "sha256": "d835c284137cfb1cff8735622d493a3c274fede0526c63949a3170052b10c331"},
+  {"file": "20261203000100_create_access_pairing_functions.exs", "sha256": "f63d86ef1d2d265a3d59a815d0d798809c72f25c393a126a6c99c6b93c6cc47c"},
   {"file": "20261204000100_add_delivery_window_and_engagement_columns.exs", "sha256": "ccfe59ecd0edcdb1563753a4fe6cabfd2c3ab2bf96cac485973cd1d31e3b58ee"},
   {"file": "20261204000200_index_delivery_windows.exs", "sha256": "2382553dae7f17df9fa59f030cdafa2da1a5451826aec7698c7260cd2d955f00"},
   {"file": "20261204000300_extend_delivery_projection_axes.exs", "sha256": "dba7ba4140f3bcf4b3c0dff16e9a69a00f81f725a5525669f7a5de90237000c2"},

@@ -80,6 +80,12 @@ Every alert rule in `alerts.yaml` links here with its `runbook_url`. Each entry 
 - **Check:** Check the Access discovery document, keys and the link logs.
 - **Action:** Restore the link; requests that need Access fail closed.
 
+## RelayAccessRealmsUnpaired
+
+- **Meaning:** Realms of the Access tenants stayed unpaired with Access after three pairing runs in a row.
+- **Check:** Check the pairing logs for the reason of each realm and that the service key is registered with Relay's Access client.
+- **Action:** Remove the cause and run the pairing again (`bin/relay rpc 'Relay.Access.Pairing.request(:all)'`); the hourly run retries on its own.
+
 ## RelayFrequencyCounterUnavailable
 
 - **Meaning:** The frequency counter is unavailable and frequency caps fail open.

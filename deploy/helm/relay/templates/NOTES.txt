@@ -24,3 +24,6 @@ Key store keys:
       deploy/hsm-keys.sh
   The script is idempotent; existing keys are left untouched. Blind index keys are per tenant and are generated in
   the token when the tenant is created.
+  Register the public keys of Relay's Access client with Relay's client in Access: the client key
+  (bin/relay eval 'Relay.Access.Client.print_client_key()') and the service key with its RFC 7638 thumbprint
+  (bin/relay eval 'Relay.Access.ServiceKey.print_service_key()').

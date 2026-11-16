@@ -20,9 +20,13 @@ schema relay_queue relay_queue USAGE
 sequence relay_queue.oban_jobs_id_seq relay_app USAGE
 table relay.access_event_receipts relay_archive SELECT
 table relay.access_event_receipts relay_maint INSERT,SELECT,UPDATE
+table relay.access_event_stream relay_app SELECT
+table relay.access_event_stream relay_maint INSERT,SELECT,UPDATE
 table relay.access_link relay_app SELECT
 table relay.access_link relay_maint INSERT,SELECT,UPDATE
 table relay.access_link relay_owner SELECT
+table relay.access_pairing_realms relay_app SELECT
+table relay.access_pairing_realms relay_maint INSERT,SELECT,UPDATE
 table relay.api_client_generation relay_app SELECT
 table relay.api_client_generation relay_archive SELECT
 table relay.api_client_generation relay_maint SELECT

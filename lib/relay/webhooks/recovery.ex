@@ -75,10 +75,13 @@ defmodule Relay.Webhooks.Recovery do
   end
 
   defp cancelled(%{"id" => id} = message, digest, actor) do
-    with :ok <- free(message, Relay.Clock.utc_now()) do
-      _count = Fanout.cancel([id], actor.ref)
+    with :ok <- free(message, Relay.Clock.utc_now()),
+         1 <- Fanout.cancel([id], actor.ref) do
       :appended = audit("webhook_message.cancelled", "webhook_message", id, digest, actor)
       {:ok, LogStore.message(id)}
+    else
+      0 -> {:error, :in_flight}
+      {:error, refusal} -> {:error, refusal}
     end
   end
 

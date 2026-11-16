@@ -149,6 +149,7 @@ defmodule RelayWeb.Api.WebhookRecoveryTest do
       assert length(own) == 3
       assert Enum.all?(own, &(&1["endpoint_id"] == first["id"]))
       event_id = oev(hd(events))
+
       assert [%{"event_id" => ^event_id}, %{"event_id" => ^event_id}] =
                listed(ctx, %{"event_id" => event_id})
 
@@ -372,6 +373,7 @@ defmodule RelayWeb.Api.WebhookRecoveryTest do
       assert %{"state" => "delivered", "attempt_count" => 2} = again
       assert again["event_id"] == before["event_id"]
       attempts = get(ctx, "#{@messages}/#{whm(failed)}/attempts")["data"]
+
       assert Enum.map(attempts, &{&1["attempt_no"], &1["trigger"]}) ==
                [{1, "schedule"}, {2, "recovery"}]
 
@@ -394,6 +396,7 @@ defmodule RelayWeb.Api.WebhookRecoveryTest do
       missed = get(ctx, path <> "/missed_events?event_type=notification.delivered")["data"]
       assert Enum.map(missed, & &1["id"]) == [whm(kept), whm(gone)]
       assert get(ctx, path <> "/missed_events?created_after=" <> in_an_hour())["data"] == []
+
       assert [%{"pointer" => "/created_after"}] =
                get(ctx, path <> "/missed_events?created_after=soon", 422)["errors"]
 

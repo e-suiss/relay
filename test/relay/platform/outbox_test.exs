@@ -12,6 +12,8 @@ defmodule Relay.Platform.OutboxTest do
     keys = TenantFixture.keys!(tenant.live)
     recipient = TenantFixture.recipient!(tenant.live, keys)
     stream = "events:" <> TenantFixture.random()
+    quiet = [handler: fn _event -> [] end, publish: fn _topic, _seq -> :ok end]
+    {:ok, _announced} = Outbox.dispatch(tenant.live, quiet)
 
     events =
       for n <- 1..3 do

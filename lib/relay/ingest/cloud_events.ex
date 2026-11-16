@@ -1,6 +1,6 @@
 defmodule Relay.Ingest.CloudEvents do
   @moduledoc """
-  CloudEvents 1.0 intake (API-28 … API-31, MD-16): reading an event in binary mode from its `ce-*` headers and JSON body, the keys derived from `(source, id)`, and the mapping of an event to a native event through the tenant's type mapping: the recipient and sub-tenant pointers and the allow-list of data fields. Only the attributes of the contract are accepted (S-93); any other extension attribute is `unknown_field`, and `data` must be a JSON object.
+  CloudEvents 1.0 intake (API-28 … API-31, MD-16): reading an event in binary mode from its `ce-*` headers and JSON body, the keys derived from `(source, id)`, and the mapping of an event to a native event through the tenant's type mapping: the recipient and sub-tenant pointers and the allow-list of data fields. Only the attributes of the contract are accepted (S-93), with the `correlationid` extension of the sender's correlation identifier (E-83); any other extension attribute is `unknown_field`, and `data` must be a JSON object.
 
   The keys are SHA-256 digests over deterministic CBOR, so personal data that a source or id may carry never appears in a key (S-65):
 
@@ -11,7 +11,8 @@ defmodule Relay.Ingest.CloudEvents do
 
   alias Relay.Ingest.Pointer
 
-  @attributes ~w(id source type subject time datacontenttype dataschema traceparent tracestate)
+  @attributes ~w(id source type subject time datacontenttype dataschema traceparent tracestate
+                 correlationid)
   @header_attributes Enum.map(@attributes -- ["traceparent", "tracestate"], &("ce-" <> &1))
 
   # API-31
@@ -76,7 +77,8 @@ defmodule Relay.Ingest.CloudEvents do
   # API-28
   # MD-16
   # API-25
-  @doc "Maps an event to a native event request through a type mapping (`to_pointer`, `tenant_pointer`, `data_fields`)."
+  # E-83
+  @doc "Maps an event to a native event request through a type mapping (`to_pointer`, `tenant_pointer`, `data_fields`); the `correlationid` extension becomes the request's `correlation_id`."
   @spec map_event(map(), map()) :: {:ok, map()} | {:error, Relay.Error.t()}
   def map_event(event, mapping) do
     data = Map.get(event, "data", %{})
@@ -92,12 +94,16 @@ defmodule Relay.Ingest.CloudEvents do
             _ -> nil
           end
 
-        {:ok, if(tenant, do: Map.put(request, "tenant", tenant), else: request)}
+        request = put_present(request, "tenant", tenant)
+        {:ok, put_present(request, "correlation_id", event["correlationid"])}
 
       :error ->
         failed([field("/data" <> mapping["to_pointer"], "required")])
     end
   end
+
+  defp put_present(map, _key, nil), do: map
+  defp put_present(map, key, value), do: Map.put(map, key, value)
 
   defp failed(errors) do
     {:error, Relay.Error.new(:validation_failed, "the CloudEvent is invalid", %{errors: errors})}

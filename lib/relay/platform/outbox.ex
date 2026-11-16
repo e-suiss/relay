@@ -2,7 +2,7 @@ defmodule Relay.Platform.Outbox do
   @moduledoc """
   The outbox reader and dispatcher. For each scope with pending rows it claims a batch in a scoped transaction, inserts the jobs the handler derives from each event, marks the batch dispatched and commits; only then does it publish one signal per stream with the stream's latest sequence number (INV-53). The transaction makes no network call (INV-55); a lost signal costs latency, never an event.
 
-  A handler is a function from an outbox event to the `Oban.Job` changesets that deliver it; the default handler derives none.
+  A handler is a function from an outbox event to the `Oban.Job` changesets that deliver it; it runs inside the dispatch transaction, so what it writes itself commits with the batch. The handler of a node is configured as `config :relay, Relay.Platform.Outbox, handler: {Module, :function}`; without one no job is derived.
   """
 
   alias Relay.Platform.OutboxStore
@@ -29,7 +29,7 @@ defmodule Relay.Platform.Outbox do
   @doc "Dispatches one batch of a scope's pending outbox rows and returns how many were dispatched."
   @spec dispatch(Scope.t(), [option()]) :: {:ok, non_neg_integer()} | {:error, term()}
   def dispatch(%Scope{} = scope, opts \\ []) do
-    handler = Keyword.get(opts, :handler, &no_jobs/1)
+    handler = Keyword.get_lazy(opts, :handler, &configured_handler/0)
     batch = Keyword.get(opts, :batch, @batch)
 
     result =
@@ -98,6 +98,16 @@ defmodule Relay.Platform.Outbox do
           :telemetry.execute([:relay, :outbox, :signal, :lost], %{count: 1}, %{})
       end
     end)
+  end
+
+  defp configured_handler do
+    case :relay |> Application.get_env(__MODULE__, []) |> Keyword.get(:handler) do
+      {module, function} when is_atom(module) and is_atom(function) ->
+        fn event -> apply(module, function, [event]) end
+
+      nil ->
+        &no_jobs/1
+    end
   end
 
   defp no_jobs(_event), do: []

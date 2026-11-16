@@ -25,10 +25,12 @@ defmodule Relay.Config do
     Relay.Platform.Fanout,
     Relay.QueueRepo,
     Relay.BulkRepo,
+    Relay.ReportRepo,
     Relay.Platform.LoadShed,
     Relay.Platform.Capacity,
     Relay.Platform.MaintRepo,
     Relay.Platform.Leadership,
+    Relay.Trace,
     Relay.Delivery,
     Relay.Channels,
     Relay.Audit,
@@ -47,15 +49,24 @@ defmodule Relay.Config do
     Relay.Templates.Sandbox,
     Relay.Templates.Mjml,
     Relay.Channels.Email.Esp,
+    Relay.Workflow,
+    Relay.Workflow.Digest,
+    Relay.Agents,
+    Relay.Inbox,
+    Relay.Webhooks,
+    Relay.Realtime,
+    Relay.Realtime.InboxSource,
     Oban
   ]
-  @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.Platform.MaintRepo]
+  @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.ReportRepo, Relay.Platform.MaintRepo]
   @os_env_keys [
     "RELAY_HOST",
     "RELAY_ROLES",
     "RELAY_REGION",
     "RELAY_ACCESS_ISSUER",
     "RELAY_ACCESS_CLIENT_ID",
+    "RELAY_ACCESS_PEP_CERT_FILE",
+    "RELAY_ACCESS_CA_FILE",
     "RELAY_TRUSTED_PROXIES",
     "RELAY_CONNECTORS_FILE"
   ]

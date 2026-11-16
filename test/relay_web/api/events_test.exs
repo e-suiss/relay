@@ -53,6 +53,24 @@ defmodule RelayWeb.Api.EventsTest do
     notification
   end
 
+  defp scheduled_at(token, body) do
+    [%{"id" => delivery}] = deliveries(token, first_notification(body))
+    {:ok, id} = Relay.ExternalId.decode(delivery, ["dlv"])
+
+    %{rows: [[at]]} =
+      Repo.query!(
+        "SELECT scheduled_at FROM relay_queue.oban_jobs WHERE args->>'delivery_id' = $1",
+        [Relay.Id.to_string(id)]
+      )
+
+    DateTime.from_naive!(at, "Etc/UTC")
+  end
+
+  defp send_at(seconds) do
+    at = DateTime.truncate(DateTime.add(Relay.Clock.utc_now(), seconds), :second)
+    {at, DateTime.to_iso8601(at)}
+  end
+
   defp count(scope, sql, params) do
     {:ok, [[n]]} =
       Repo.in_scope(scope, fn _status -> Repo.scoped_query!(sql, params).rows end)
@@ -184,9 +202,71 @@ defmodule RelayWeb.Api.EventsTest do
       assert [%{"pointer" => "/retention"}] = body["errors"]
     end
 
+    test "WF-40 WF-41: a security send is never scheduled; send_at is ignored with a warning",
+         ctx do
+      F.workflow!(ctx.scope, ctx.token, "login-code", message_class: "security")
+      at = DateTime.to_iso8601(DateTime.add(Relay.Clock.utc_now(), 86_400))
+      body = accepted(ctx.token, %{"workflow" => "login-code", "send_at" => at})
+
+      assert [%{"code" => "send_at_ignored", "pointer" => "/send_at"}] = body["warnings"]
+
+      assert DateTime.diff(scheduled_at(ctx.token, body), Relay.Clock.utc_now()) < 60
+    end
+
+    test "PC-57 (4) WF-38: a send without expires_at gets the class default from send_at", ctx do
+      {at, text} = send_at(3_600)
+      body = accepted(ctx.token, %{"send_at" => text})
+      shown = get(ctx.token, "/v1/notifications/" <> first_notification(body))
+
+      {:ok, expires_at, _offset} = DateTime.from_iso8601(shown["expires_at"])
+      assert DateTime.diff(expires_at, at) == 6 * 3_600
+    end
+
     test "INV-46: an unknown field is refused with 422 unknown_field", ctx do
       assert problem(send_event(ctx.token, event(%{"colour" => "red"})), 422)["code"] ==
                "unknown_field"
+    end
+  end
+
+  describe "WF-42 WF-58 timing control" do
+    test "WF-58: the control shows the ceilings and refuses a spread above them", ctx do
+      assert %{
+               "release_spread" => "PT15M",
+               "scheduled_spread" => "PT1M",
+               "timing_precision" => "jittered",
+               "ceilings" => %{"release_spread" => "PT15M", "scheduled_spread" => "PT1M"}
+             } = get(ctx.token, "/v1/timing_settings")
+
+      conn = F.request(:put, "/v1/timing_settings", ctx.token, %{"release_spread" => "PT16M"})
+      body = problem(conn, 422)
+      assert body["code"] == "validation_failed"
+      assert [%{"pointer" => "/release_spread", "code" => "too_long"}] = body["errors"]
+
+      shrunk = %{"scheduled_spread" => "PT10S", "release_spread" => "PT0S"}
+      put = F.body(F.request(:put, "/v1/timing_settings", ctx.token, shrunk), 200)
+      assert %{"scheduled_spread" => "PT10S", "release_spread" => "PT0S"} = put
+      assert get(ctx.token, "/v1/timing_settings")["scheduled_spread"] == "PT10S"
+    end
+
+    test "WF-42 WF-58: a scheduled send spreads within PT60S unless it is strict", ctx do
+      {at, text} = send_at(3_600)
+      jittered = scheduled_at(ctx.token, accepted(ctx.token, %{"send_at" => text}))
+      assert DateTime.diff(jittered, at, :millisecond) in 0..59_999
+
+      {at, text} = send_at(3_600)
+      strict = %{"send_at" => text, "timing_precision" => "strict"}
+      assert DateTime.diff(scheduled_at(ctx.token, accepted(ctx.token, strict)), at) == 0
+
+      {at, text} = send_at(3_600)
+      expires = DateTime.to_iso8601(DateTime.add(at, 1))
+      bounded = accepted(ctx.token, %{"send_at" => text, "expires_at" => expires})
+      assert DateTime.diff(scheduled_at(ctx.token, bounded), at, :millisecond) in 0..999
+
+      tenant = %{"timing_precision" => "strict"}
+      F.body(F.request(:put, "/v1/timing_settings", ctx.token, tenant), 200)
+      {at, text} = send_at(3_600)
+      later = accepted(ctx.token, %{"send_at" => text})
+      assert DateTime.diff(scheduled_at(ctx.token, later), at) == 0
     end
   end
 

@@ -19,6 +19,12 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "api_client_registrations",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
       "table": "settings",
       "personal_columns": [],
       "tenant_close": "row kept",
@@ -180,7 +186,15 @@
         "default_response_ct"
       ],
       "tenant_close": "tenant data key destroyed; row kept",
-      "subject_erasure": "content, claim text and default response set to null with fields_erased_at when the subject is the waiter or a responder; open and stalled waitpoints are cancelled with reason subject_erasure"
+      "subject_erasure": "content, claim text and default response set to null with fields_erased_at when the subject is the waiter (an agent, or the subscriber of a workflow event wait) or a responder; open and stalled waitpoints are cancelled with reason subject_erasure"
+    },
+    {
+      "table": "waitpoint_completions",
+      "personal_columns": [
+        "result_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; the result becomes unreadable",
+      "subject_erasure": "a job's result, not bound to a subject; sealed under the tenant data key in the delivery_record class and unreadable once that key is destroyed"
     },
     {
       "table": "waitpoint_responders",
@@ -307,6 +321,12 @@
       "personal_columns": [],
       "subject_erasure": "not subject data",
       "table": "workflow_versions",
+      "tenant_close": "row kept"
+    },
+    {
+      "personal_columns": [],
+      "subject_erasure": "not subject data; the run holds step results, delivery identifiers and template keys, never event data or a personal value",
+      "table": "workflow_runs",
       "tenant_close": "row kept"
     },
     {
@@ -472,7 +492,9 @@
     },
     {
       "table": "messaging_targets",
-      "personal_columns": ["target_ct"],
+      "personal_columns": [
+        "target_ct"
+      ],
       "tenant_close": "tenant keys destroyed; row kept",
       "subject_erasure": "recipient_profile data key destroyed, so target_ct is unreadable; the target is disabled with messaging.target_erased; row kept"
     },
@@ -489,6 +511,42 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "email_reports",
+      "personal_columns": [],
+      "tenant_close": "row kept; reports carry mail server addresses and counts only",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "email_reputation_circuits",
+      "personal_columns": [],
+      "tenant_close": "row kept; a sending domain's circuit state and counts only",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "digest_windows",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers, a key digest, timing and counts only",
+      "subject_erasure": "identifiers only; the activities' content stays in the event payloads, which the erasure covers"
+    },
+    {
+      "table": "digest_items",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers and an actor digest only",
+      "subject_erasure": "identifiers only; the activities' content stays in the event payloads, which the erasure covers"
+    },
+    {
+      "table": "throttle_counters",
+      "personal_columns": [],
+      "tenant_close": "row kept; a key digest, its window and counts only",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "throttle_hits",
+      "personal_columns": [],
+      "tenant_close": "row kept; digests and an outcome only",
+      "subject_erasure": "not subject data"
+    },
+    {
       "table": "test_recipients",
       "personal_columns": [],
       "tenant_close": "row kept; identifiers only",
@@ -499,6 +557,236 @@
       "personal_columns": [],
       "tenant_close": "row kept",
       "subject_erasure": "not subject data"
+    },
+    {
+      "table": "provider_invoices",
+      "personal_columns": [],
+      "tenant_close": "row kept; invoice figures only",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "report_delivery_rollups",
+      "personal_columns": [],
+      "tenant_close": "row kept; counts only",
+      "subject_erasure": "not subject data; counts only"
+    },
+    {
+      "table": "report_skip_rollups",
+      "personal_columns": [],
+      "tenant_close": "row kept; counts only",
+      "subject_erasure": "not subject data; counts only"
+    },
+    {
+      "table": "report_variant_rollups",
+      "personal_columns": [],
+      "tenant_close": "row kept; counts only",
+      "subject_erasure": "not subject data; workflow, step and variant keys and counts only"
+    },
+    {
+      "table": "exports",
+      "personal_columns": [],
+      "tenant_close": "row kept; the content is cleared when the export expires",
+      "subject_erasure": "the CSV holds identifiers, codes and counts only and its content is cleared 7 days after it was written; row kept"
+    },
+    {
+      "table": "campaigns",
+      "personal_columns": [
+        "data_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; row kept",
+      "subject_erasure": "the campaign data is the tenant's content for every recipient and is sealed under the tenant data key; row kept"
+    },
+    {
+      "table": "campaign_members",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers and states only; the recipient's personal fields live in its subscriber record; row kept"
+    },
+    {
+      "table": "campaign_stages",
+      "personal_columns": [],
+      "tenant_close": "row kept; counts only",
+      "subject_erasure": "not subject data; counts only"
+    },
+    {
+      "table": "campaign_preview_counts",
+      "personal_columns": [],
+      "tenant_close": "row kept; counts only",
+      "subject_erasure": "not subject data; counts only"
+    },
+    {
+      "table": "topics",
+      "personal_columns": [],
+      "tenant_close": "row kept; tenant keys only",
+      "subject_erasure": "not subject data; tenant topic keys only"
+    },
+    {
+      "table": "topic_subscriptions",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers only",
+      "subject_erasure": "identifiers only; the subject's subscriptions become removed when the subscriber is erased; row kept"
+    },
+    {
+      "table": "audiences",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers and counts only",
+      "subject_erasure": "not subject data; identifiers and counts only"
+    },
+    {
+      "table": "audience_members",
+      "personal_columns": [],
+      "tenant_close": "row kept; identifiers only",
+      "subject_erasure": "recipient and topic identifiers only; no personal fields; row kept"
+    },
+    {
+      "table": "routes",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "recurrences",
+      "personal_columns": [
+        "data_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; row kept",
+      "subject_erasure": "a subscriber rule's data is sealed under the subject's recipient_profile key, so the erasure shreds it; the rule is cancelled with subject_erasure at its next timer and no later occurrence is sent; row kept"
+    },
+    {
+      "table": "recurrence_occurrences",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers, codes and times only; row kept"
+    },
+    {
+      "table": "inbox_items",
+      "personal_columns": [
+        "content_ct"
+      ],
+      "tenant_close": "tenant keys destroyed; row kept",
+      "subject_erasure": "content is encrypted under the recipient's notification_content or commercial_message subject key, which is destroyed; the row and its state are kept and the content reads as null"
+    },
+    {
+      "table": "inbox_item_deliveries",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "no personal fields; identifiers only"
+    },
+    {
+      "table": "inbox_counters",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "no personal fields; counts only"
+    },
+    {
+      "table": "inbox_announcements",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "a tenant record for an audience; no subject's personal fields"
+    },
+    {
+      "table": "inbox_announcement_states",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers and the recipient's own state times only; row kept"
+    },
+    {
+      "table": "inbox_read_marks",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers, a category key and a time only; row kept"
+    },
+    {
+      "table": "inbox_bulk_operations",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers, the list filter and counts only; row kept"
+    },
+    {
+      "table": "webhook_consumers",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "a tenant's customer reference; not subject data"
+    },
+    {
+      "table": "webhook_sources",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "an external system's name and public key; not subject data"
+    },
+    {
+      "table": "webhook_event_types",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "webhook_event_type_versions",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "a schema and an example chosen by the tenant; not subject data"
+    },
+    {
+      "table": "webhook_endpoints",
+      "personal_columns": [],
+      "tenant_close": "archived; row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "webhook_endpoint_versions",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "webhook_endpoint_keys",
+      "personal_columns": [
+        "secret_ct"
+      ],
+      "tenant_close": "keys retired and their secrets set to null; the tenant data key is destroyed",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "webhook_endpoint_health",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "webhook_events",
+      "personal_columns": [
+        "payload_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; a tenant event payload becomes unreadable",
+      "subject_erasure": "Relay's own events are thin and carry identifiers only; a tenant event payload is sealed under the tenant data key and is set to null with payload_erased_at at the end of the delivery log retention"
+    },
+    {
+      "table": "webhook_batches",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers and counts only; row kept"
+    },
+    {
+      "table": "webhook_messages",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers and delivery state only; row kept"
+    },
+    {
+      "table": "webhook_attempts",
+      "personal_columns": [
+        "response_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; the stored answers become unreadable",
+      "subject_erasure": "the first 8 kB of a consumer's answer, sealed under the tenant data key, is set to null with response_erased_at at the end of the response body retention"
+    },
+    {
+      "table": "operations_contacts",
+      "personal_columns": [
+        "address_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; rows kept",
+      "subject_erasure": "the tenant's own operations contact addresses, not a subscriber's; a removed address is set to null"
     }
   ],
   "locations": [

@@ -1,6 +1,6 @@
 defmodule Relay.Api.Queries do
   @moduledoc """
-  The query operations (API-56, DS-15): an event with its notifications, notifications under filters (subscriber, workflow, delivery status, creation time) with cursor pagination, one notification with optional deliveries, the deliveries of a notification and a delivery's attempts and ledger. Statuses are the external projection; raw provider responses stay masked.
+  The query operations (API-56, API-68, DS-15): an event with its notifications, notifications under filters (subscriber, workflow, delivery status, creation time) with cursor pagination, one notification with optional deliveries, the deliveries of a notification, a delivery's attempts and ledger with the raw provider code and each event's effect on the projection (DS-16), and a subscriber's decision chains (DS-28). Statuses, reasons and rules are the external projection, read from one SQL definition, so every surface shows the same rule and the rule dictionary's sentence (X-1, X-12); raw provider responses are not shown and a decision's detail holds only the fields the dictionary lists for its rule, so no personal data is shown (X-5).
   """
 
   alias Relay.Api.Page
@@ -47,6 +47,8 @@ defmodule Relay.Api.Queries do
       "cancelled_at" => e["cancelled_at"]
     }
     |> Views.put_unless_nil("metadata", open.("metadata_ct"))
+    |> Views.put_unless_nil("correlation_id", e["correlation_id"])
+    |> Views.put_unless_nil("item", e["item"])
   end
 
   defp accepted(n) do
@@ -243,7 +245,7 @@ defmodule Relay.Api.Queries do
       "state" => a["state"],
       "provider" => a["provider"],
       "failure_class" => a["failure_class"],
-      "raw_code" => nil,
+      "raw_code" => a["raw_code"],
       "started_at" => a["started_at"],
       "finished_at" => a["finished_at"]
     }
@@ -256,11 +258,134 @@ defmodule Relay.Api.Queries do
       "actor" => e["actor"],
       "type" => e["event_type"],
       "attempt_no" => e["attempt_no"],
-      "raw_code" => nil,
+      "raw_code" => e["raw_code"],
       "provider" => e["provider"],
+      "outcome" => e["projection_result"],
+      "reason" => e["reason"],
+      "rule_id" => e["rule_id"],
       "occurred_at" => e["occurred_at"],
       "received_at" => e["received_at"]
     }
+  end
+
+  @decision_window_days 30
+  @decision_filters ~w(created_after created_before workflow)
+
+  # DS-28
+  # X-12
+  @doc "Reads the filters of a decision query: `created_after` (30 days ago by default), `created_before` and `workflow`."
+  @spec decision_filters(map()) :: {:ok, map()} | {:error, Relay.Error.t()}
+  def decision_filters(query) do
+    with {:ok, filters} <- filters(Map.take(query, @decision_filters)) do
+      since = DateTime.add(Relay.Clock.utc_now(), -@decision_window_days, :day)
+      {:ok, Map.put_new(filters, :created_after, since)}
+    end
+  end
+
+  # DS-28
+  # X-1
+  # X-12
+  @doc "Lists the decision chains of a subscriber's notifications under `decision_filters/1`, newest first."
+  @spec decisions(Relay.Scope.t(), String.t(), map(), Relay.Api.Pagination.page(), String.t()) ::
+          answer()
+  def decisions(scope, external_id, filters, page, endpoint) do
+    with {:ok, external_id} <- subscriber(external_id),
+         {:ok, indexes} <- indexes(scope, [external_id]),
+         read = fn _status -> read_decisions(indexes, filters, page) end,
+         {:ok, {:ok, rows}} <- Relay.Ingest.in_event_scope(scope, read),
+         dictionary = Relay.Rules.dictionary(),
+         view = &decision(&1, dictionary),
+         {:ok, body} <- Page.envelope(rows, page, scope, endpoint, view, &position/1) do
+      {:ok, {200, [], body}}
+    else
+      {:ok, :not_found} -> {:error, Relay.Error.new(:subscriber_not_found, "no such subscriber")}
+      {:error, %Relay.Error{} = error} -> {:error, error}
+      {:error, _reason} -> {:error, Relay.Error.new(:service_unavailable, "try again")}
+    end
+  end
+
+  defp subscriber(text) do
+    case external_id(text) do
+      {:ok, external_id} -> {:ok, external_id}
+      :error -> {:ok, :not_found}
+    end
+  end
+
+  defp read_decisions(indexes, filters, page) do
+    case Relay.Subscribers.resolve_indexes(indexes) do
+      [] ->
+        :not_found
+
+      ids ->
+        filters = Map.put(filters, :recipient_ids, ids)
+        rows = Relay.Ingest.notifications(filters, page.cursor, page.limit)
+        chains = rows |> Enum.map(& &1["id"]) |> Relay.Ingest.decision_chains()
+        by_notification = Enum.group_by(chains, & &1["notification_id"])
+        {:ok, Enum.map(rows, &Map.put(&1, "chain", Map.get(by_notification, &1["id"], [])))}
+    end
+  end
+
+  defp decision(n, dictionary) do
+    %{
+      "object" => "notification_decision",
+      "notification_id" => Views.id("ntf", n["id"]),
+      "event_id" => Views.id("evt", n["event_id"]),
+      "workflow" => %{"key" => n["workflow_key"], "version" => n["workflow_version"]},
+      "message_class" => n["message_class"],
+      "state" => n["state"],
+      "close_rule_id" => n["close_rule_id"],
+      "created_at" => n["created_at"],
+      "deliveries" => Enum.map(n["chain"], &delivery_decision(&1, dictionary))
+    }
+  end
+
+  defp delivery_decision(d, dictionary) do
+    %{
+      "delivery_id" => Views.id("dlv", d["id"]),
+      "channel" => d["channel"],
+      "status" => d["status"],
+      "reason" => d["reason"],
+      "rule_id" => d["rule_id"],
+      "gates" => gates(d),
+      "deferred_until" => d["deferred_until"],
+      "decisions" => Enum.map(d["decisions"], &step(&1, dictionary))
+    }
+  end
+
+  defp gates(%{"status" => status}) when status in ["skipped", "expired"], do: "stopped"
+  defp gates(%{"decision" => "skip"}), do: "stopped"
+  defp gates(%{"status" => "cancelled", "decision" => "send"}), do: "passed"
+  defp gates(%{"status" => "cancelled"}), do: "stopped"
+  defp gates(%{"decision" => "defer"}), do: "deferred"
+  defp gates(%{"paused_at" => %DateTime{}}), do: "deferred"
+  defp gates(_d), do: "passed"
+
+  defp step(e, dictionary) do
+    entry =
+      case Relay.RuleDictionary.lookup(dictionary, e["rule_id"]) do
+        {:ok, entry} -> entry
+        {:error, _unknown} -> %{}
+      end
+
+    %{
+      "type" => e["type"],
+      "rule_id" => e["rule_id"],
+      "reason" => e["reason"],
+      "outcome" => entry["outcome"],
+      "deferred_until" => timestamp(e["deferred_until"]),
+      "detail" => Map.take(e["detail"] || %{}, entry["detail"] || []),
+      "description" => entry["description"],
+      "occurred_at" => timestamp(e["occurred_at"])
+    }
+  end
+
+  defp timestamp(nil), do: nil
+
+  defp timestamp(text) do
+    case DateTime.from_iso8601(text) do
+      {:ok, at, _offset} -> at
+      {:error, _reason} -> nil
+    end
   end
 
   defp position(row), do: {row["created_at"], row["id"]}

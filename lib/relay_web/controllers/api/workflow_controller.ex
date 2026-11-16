@@ -108,6 +108,33 @@ defmodule RelayWeb.Api.WorkflowController do
     end
   end
 
+  # WF-4
+  # X-9
+  @spec set_manager(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def set_manager(conn, %{"workflow_key" => key}) do
+    %{scope: scope, body: body} = conn.assigns
+    actor = Work.actor(conn)
+
+    with_key(conn, key, :required, fn key, expected ->
+      work = fn _status -> Workflows.set_manager(scope, key, body, expected, actor) end
+      Work.idempotent(conn, work)
+    end)
+  end
+
+  # WF-6
+  @spec mermaid(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def mermaid(conn, %{"workflow_key" => key, "version" => number}) do
+    with {:ok, key} <- key(key),
+         {:ok, number} <- number(number),
+         {:ok, text} <- Workflows.mermaid(conn.assigns.scope, key, number) do
+      conn
+      |> put_resp_content_type("text/plain")
+      |> send_resp(200, text)
+    else
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
+
   # API-60
   @spec preview(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def preview(conn, %{"workflow_key" => key}) do

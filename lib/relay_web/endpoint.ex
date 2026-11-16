@@ -42,6 +42,18 @@ defmodule RelayWeb.Endpoint do
     websocket: [connect_info: [session: {RelayWeb.Operator.Panel, :session_options, []}]],
     longpoll: false
 
+  # IN-23
+  # IN-32
+  # IN-54
+  socket "/v1/realtime", RelayWeb.Realtime.Transport,
+    auth_token: true,
+    websocket: [
+      check_origin: {RelayWeb.Realtime.Origin, :record, []},
+      connect_info: [:auth_token],
+      error_handler: {RelayWeb.Realtime.Transport, :handle_error, []}
+    ],
+    longpoll: false
+
   plug :forward
   plug Plug.Static, at: "/", from: :relay, gzip: false, only: RelayWeb.static_paths()
 
@@ -51,11 +63,16 @@ defmodule RelayWeb.Endpoint do
 
   plug Plug.RequestId, http_header: "request-id"
   plug RelayWeb.Plugs.Correlation
+  plug RelayWeb.Plugs.Trace
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
+  plug :method
   plug Plug.Head
   plug RelayWeb.Router
 
   # E-91
   defp forward(conn, _opts), do: Transport.forward(conn)
+
+  # DS-52
+  defp method(conn, _opts), do: put_private(conn, :relay_request_method, conn.method)
 end

@@ -15,6 +15,10 @@
   value: {{ required "database.maintUrl is required" .Values.database.maintUrl | quote }}
 - name: MAINT_DATABASE_PASSWORD_FILE
   value: /run/secrets/relay/maint-database-password
+- name: REPORT_DATABASE_URL
+  value: {{ required "database.reportUrl is required" .Values.database.reportUrl | quote }}
+- name: REPORT_DATABASE_PASSWORD_FILE
+  value: /run/secrets/relay/report-database-password
 - name: POOL_SIZE
   value: {{ .Values.database.poolSize | quote }}
 - name: VALKEY_URL
@@ -25,12 +29,18 @@
   value: {{ required "access.issuer is required" .Values.access.issuer | quote }}
 - name: RELAY_ACCESS_CLIENT_ID
   value: {{ required "access.clientId is required" .Values.access.clientId | quote }}
+- name: RELAY_ACCESS_PEP_CERT_FILE
+  value: /run/secrets/relay-access-pep/tls.crt
+- name: RELAY_ACCESS_CA_FILE
+  value: /run/secrets/relay-access-pep/ca.crt
 - name: RELAY_TRUSTED_PROXIES
   value: {{ join "," .Values.trustedProxies | quote }}
 - name: PORT
   value: "4000"
 - name: METRICS_PORT
   value: {{ required "metrics.port is required" .Values.metrics.port | quote }}
+- name: OTEL_EXPORTER_OTLP_ENDPOINT
+  value: {{ .Values.metrics.otlpEndpoint | quote }}
 - name: PKCS11_MODULE
   value: {{ required "keyStore.module is required" .Values.keyStore.module | quote }}
 - name: PKCS11_TOKEN

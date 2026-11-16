@@ -37,7 +37,20 @@ defmodule Relay.Channels.Apns do
   # CH-24
   # CH-25
   # INV-40
+  # IN-35
+  # IN-38
   @impl Relay.Channels.Adapter
+  def deliver(%Request{signal: %{} = signal} = request) do
+    with {:ok, settings} <- Common.settings(request, @settings),
+         {:ok, origin} <- origin(request),
+         notification = signal_notification(request, settings, signal),
+         {:ok, built} <- Apns.request(notification) do
+      call(request, settings, origin, built, notification)
+    else
+      {:error, reason} -> Common.rejection(reason)
+    end
+  end
+
   def deliver(%Request{push: %{} = push} = request) do
     with {:ok, settings} <- Common.settings(request, @settings),
          {:ok, origin} <- origin(request),
@@ -148,6 +161,29 @@ defmodule Relay.Channels.Apns do
       {:ok, notification}
     end
   end
+
+  # IN-35
+  defp signal_notification(request, settings, signal) do
+    relay =
+      %{"sync" => true, "counter_version" => Map.get(signal, :counter_version)}
+      |> Map.reject(fn {_key, value} -> is_nil(value) end)
+
+    %{
+      push_type: :background,
+      bundle_id: settings["bundle_id"],
+      apns_id: request.delivery_id,
+      apns_priority: 5,
+      device_token: Relay.Redacted.expose(request.target.value),
+      expiration: signal_expiration(Map.get(signal, :ttl_s)),
+      aps: %{},
+      data: %{"relay" => relay}
+    }
+  end
+
+  defp signal_expiration(ttl_s) when is_integer(ttl_s) and ttl_s > 0,
+    do: DateTime.to_unix(Relay.Clock.utc_now()) + ttl_s
+
+  defp signal_expiration(_ttl_s), do: nil
 
   defp expiration(push) do
     case Ttl.apns_expiration(push.expires_at, push.now) do

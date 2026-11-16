@@ -3,6 +3,8 @@ defmodule Relay.Agents.EarlyResponseTest do
 
   import RelayTest.WaitpointFixture
 
+  @resolve "SELECT relay_fn.waitpoint_resolve_by_event($1, $2, $3, NULL)"
+
   setup do
     s = setup!()
     agent = member!(s, "agent")
@@ -27,7 +29,8 @@ defmodule Relay.Agents.EarlyResponseTest do
 
       assert record(record_id, "kind") == "early_event"
       assert record(record_id, "delivery_state") == "held"
-      assert record(record_id, "correlation_key") == "order-1"
+      assert record(record_id, "correlation_digest") == ck("order-1")
+      assert record(record_id, "correlation_key") == nil
 
       ["opened", id, _, ^record_id] =
         open(ctx.s, kind: "event", waiter_ref: ctx.agent, correlation_key: "order-1")
@@ -41,8 +44,7 @@ defmodule Relay.Agents.EarlyResponseTest do
       ["opened", id, _, ^record_id] =
         open(ctx.s, kind: "event", waiter_ref: ctx.agent, correlation_key: "order-2")
 
-      assert one("SELECT relay_fn.waitpoint_resolve_by_event($1, $2, NULL)", [id, record_id]) ==
-               "resolved"
+      assert one(@resolve, [id, record_id, nil]) == "resolved"
 
       assert waitpoint(id, "state") == "resolved"
       assert waitpoint(id, "resolved_by_record_id") == record_id
@@ -59,16 +61,12 @@ defmodule Relay.Agents.EarlyResponseTest do
       ["opened", id, _, ^record_id] =
         open(ctx.s, kind: "event", waiter_ref: ctx.agent, correlation_key: "order-3")
 
-      "resolved" =
-        one("SELECT relay_fn.waitpoint_resolve_by_event($1, $2, NULL)", [id, record_id])
+      "resolved" = one(@resolve, [id, record_id, nil])
 
       ["opened", other, _, nil] =
         open(ctx.s, kind: "event", waiter_ref: ctx.agent, correlation_key: "order-4")
 
-      assert error_message("SELECT relay_fn.waitpoint_resolve_by_event($1, $2, NULL)", [
-               other,
-               record_id
-             ]) =~ "invalid_argument"
+      assert error_message(@resolve, [other, record_id, nil]) =~ "invalid_argument"
     end
 
     test "AG-13: only an early event of the same type and key is found at opening", ctx do
@@ -162,16 +160,16 @@ defmodule Relay.Agents.EarlyResponseTest do
       assert [["unmatched", nil, nil]] = offer("agent.answer", "nobody-waits")
 
       assert row(
-               "SELECT rule_id, waiter_kind FROM relay.waitpoint_unmatched_events WHERE correlation_key = $1",
-               ["nobody-waits"]
+               "SELECT rule_id, waiter_kind FROM relay.waitpoint_unmatched_events WHERE correlation_digest = $1",
+               [ck("nobody-waits")]
              ) == ["waitpoint.no_match", nil]
 
       assert [["unmatched", nil, nil]] =
                offer("agent.answer", "unknown-agent", waiter_kind: "agent", waiter_ref: id())
 
       assert one(
-               "SELECT count(*) FROM relay.waitpoint_unmatched_events WHERE correlation_key = $1",
-               ["unknown-agent"]
+               "SELECT count(*) FROM relay.waitpoint_unmatched_events WHERE correlation_digest = $1",
+               [ck("unknown-agent")]
              ) == 1
     end
   end

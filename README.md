@@ -120,11 +120,14 @@ export RELAY_CLIENT_SECRET_FILE=~/.config/relay/test.secret
 relay trigger welcome --to user-4821 --data '{"first_name": "Ayşe"}'
 relay preview welcome --to user-4821 --data-file data.json   # dry run, test only
 relay logs --follow                                          # watch new notifications
-relay listen --forward-to http://localhost:3000/relay        # forward them to your app
-relay pull && relay push --publish                           # workflows as files
+relay listen --forward-to http://localhost:3000/relay        # forward signed webhook events to your app
+relay pull --format yaml                                     # routes, templates, workflows as files
+relay push --publish                                         # files back as published drafts
 relay promote welcome --yes                                  # test version to live
 relay kill-switch engage --scope workflow --ref welcome --reason "bad copy" --ttl PT1H
 ```
+
+`pull` writes `relay/routes/`, `relay/templates/` and `relay/workflows/`, one JSON or YAML file per definition with sorted keys, so a git diff shows only what changed. `push` checks every file against the definition schema before it sends anything and reports each error with its JSON Pointer; a workflow the files manage becomes code-managed, and a panel-managed workflow is left alone unless `--manage-as-code` is given.
 
 Every command accepts `--json` and then prints one JSON object with an `exit_code` field. Exit codes are stable: `0` success, `1` unexpected error, `2` usage error, `3` authentication or authorization, `4` not found, `5` validation or conflict, `6` rate limit or quota, `7` server or connection, `8` live change not confirmed. A command that changes the live environment asks for confirmation, or takes `--yes`. Run `relay help` for every option, including profiles in `~/.config/relay/config.json`.
 
@@ -142,6 +145,17 @@ Access tells Relay about tenants, organizations, API clients, users and consents
 
 An API client that Access disables (`api_client.disabled`) is suspended in Relay at once: its tokens are refused on every node until Access reactivates it.
 
+A tenant that Access creates (`tenant.created`) opens in the region its Access tenant snapshot names, with that region's default time zone and locale from the `region_defaults` data set (`tr`: `Europe/Istanbul` and `tr`; `eu`: `Europe/Berlin` and `en`; `us`: `America/New_York` and `en`). While the snapshot cannot be read the event waits and is retried; a region the installation does not serve is rejected. Organization events are recorded and acknowledged, but create no subtenant yet.
+
+Access does not hold an API client's environment or scopes, so a client that Access creates (`api_client.created`) waits in Relay as pending, and its tokens are answered with `403 auth_client_pending` until a tenant administrator assigns it. The operator API lists pending clients with `GET /v1/operator/pending_api_clients` and assigns one, after a step-up, with `POST /v1/operator/pending_api_clients/assign`: the body names the Access `client_id` and its scopes, and the environment is the one selected with `Relay-Environment`. The installation operator can do the same from the release on a running node:
+
+```sh
+bin/api-client pending --tenant ten_...
+bin/api-client assign --operator ops@example.com --tenant ten_... --environment live --client app_... --scopes publish,read
+```
+
+Both paths are audited the same way (`api_client.assigned`, then `api_client.created`). Once a client is assigned, `relay push --publish` publishes workflows with it.
+
 ## Behind a TLS proxy
 
 Relay does not terminate TLS. Run it behind a reverse proxy or load balancer and list the proxy's addresses in `RELAY_TRUSTED_PROXIES` (comma-separated CIDR ranges such as `10.0.0.0/8,fd00::/8`; empty by default; the Helm value is `trustedProxies`). Only a connection from a listed address may set `X-Forwarded-Proto`, `X-Forwarded-Host` and `X-Forwarded-For`, and, for mutual TLS terminated at the proxy, the RFC 9440 `Client-Cert` and `Client-Cert-Chain` headers; from any other peer these headers are dropped. The request's scheme and host are the values the nearest proxy set, and its client address is the nearest untrusted hop of `X-Forwarded-For`. The API refuses a request that is not HTTPS with `400 malformed_request`, so the proxy must send `X-Forwarded-Proto: https`. The discovery `issuer` always comes from `RELAY_HOST`, never from a forwarded header.
@@ -158,7 +172,17 @@ Apps never send Access tokens to the inbox, preference or realtime endpoints. Th
 
 Operators sign in to the console through Access OpenID Connect. Command line access to the operator API uses the same kind of DPoP-bound Access token, addressed to Relay's `client_id`; there is no separate operator audience.
 
-Relay's own calls to Access are signed by its Access client key, the P-256 key `access-client` in Relay's key store (`deploy/hsm-keys.sh` creates it). Register its public key with Relay's client in Access (`[[products]] client_key`); `bin/relay eval 'Relay.Access.Client.print_client_key()'` prints it as a JWK. Product routes such as the tenant snapshot take a fresh RFC 7523 client assertion as `Authorization: Bearer`: `iss` and `sub` are Relay's `client_id`, `aud` is the Access issuer, and it expires within a minute. The token endpoint and AuthZEN decisions are DPoP-bound: Relay authenticates its client credentials grant with the same assertion as `private_key_jwt`, signs every DPoP proof with the same key, and sends a request once more when Access asks for a `DPoP-Nonce`.
+Relay's own calls to Access are signed by its Access client key, the P-256 key `access-client` in Relay's key store (`deploy/hsm-keys.sh` creates it). Register its public key with Relay's client in Access (`[[products]] client_key`); `bin/relay eval 'Relay.Access.Client.print_client_key()'` prints it as a JWK. Product and platform routes such as the tenant snapshot take a fresh RFC 7523 client assertion as `Authorization: Bearer`: `iss` and `sub` are Relay's `client_id`, `aud` is the Access issuer, and it expires within a minute. Relay asks for no access token to call Access itself. A client credentials grant is only for a service token of another platform product and always names it with `resource`; the request carries the same assertion as `private_key_jwt` and a DPoP proof of the same key, and is sent once more when Access asks for a `DPoP-Nonce`.
+
+### The AuthZEN PEP certificate
+
+Access takes AuthZEN decisions (`POST /access/v1/evaluation`) only over mutual TLS from a policy enforcement point (PEP) with a client certificate, and addresses each signed decision receipt to that certificate's SHA-256 thumbprint (`x5t#S256`). Relay's PEP key is the P-256 key `access-pep` in its key store (`deploy/hsm-keys.sh` creates it). It never leaves the token: the TLS handshake signature goes through the PKCS#11 port like every other signature.
+
+1. Print a certificate signing request for the key: `bin/relay eval 'Relay.Access.Pep.print_csr()' > relay-pep.csr` (`mix relay.access.pep_csr` in development). The request names `CN=relay-pep` and is signed by the key itself.
+2. Have it signed. With a local Access, put `relay-pep.csr` into the `ACCESS_PRODUCT_KEYS` directory and run Access's `init`; it issues `relay-pep.crt` with the PEP profile next to its `ca.crt` in the `product-tls` volume. In production your operator CA signs it with the PEP profile Access trusts.
+3. Give Relay the certificate (leaf first, then any intermediates) in `RELAY_ACCESS_PEP_CERT_FILE` and the CA bundle that verifies Access's server certificate in `RELAY_ACCESS_CA_FILE`. The Helm chart mounts both from the secret named by `access.pepCertificateSecret` (`tls.crt` and `ca.crt`).
+
+Relay refuses a certificate whose public key is not the PEP key, and reads both files again every ten minutes, so a renewed certificate needs no restart. Decisions use TLS 1.3 only. Until the certificate is in place, every decision is unavailable and the operation that needs it is refused.
 
 ### Pairing with the tenant realms
 

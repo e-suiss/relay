@@ -111,6 +111,9 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.waitpoint_timer_fire" =>
       ~w(expired stalled escalation_due not_due already_terminal not_found),
     "relay_fn.waitpoint_cancel" => ~w(cancelled already_terminal not_found),
+    "relay_fn.workflow_run_start" => ~w(started exists notification_not_found),
+    "relay_fn.workflow_run_save" => ~w(saved version_conflict already_final not_found),
+    "relay_fn.workflow_manager_set" => ~w(changed unchanged version_conflict not_found),
     "relay_fn.fanout_create" => ~w(created exists invalid_bounds tenant_inactive),
     "relay_fn.fanout_slice_begin" =>
       ~w(begun resumed cancelled paused already_terminal not_found),
@@ -128,6 +131,8 @@ defmodule Relay.Schema.FunctionSignaturesTest do
       ~w(created updated unchanged revoked_terminal subtenant_not_found subtenant_changed),
     "relay_fn.api_client_set_status" => ~w(changed unchanged invalid_transition not_found),
     "relay_fn.api_client_touch" => ~w(touched throttled not_found),
+    "relay_fn.api_client_register" => ~w(created exists),
+    "relay_fn.api_client_assign" => ~w(assigned already_assigned environment_conflict not_found),
     "relay_ops.operator_sign_in" => ~w(signed_in created operator_suspended operator_deleted),
     "relay_ops.operator_ensure" => ~w(created exists),
     "relay_ops.operator_session_step_up" => ~w(recorded session_inactive),
@@ -170,10 +175,16 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.quota_policy_set" =>
       ~w(created updated removed unchanged version_conflict invalid_caps),
     "relay_fn.category_create" =>
-      ~w(created key_conflict lock_not_allowed default_forbidden invalid_settings tenant_inactive),
+      ~w(created key_conflict lock_not_allowed default_forbidden invalid_settings route_not_found route_archived tenant_inactive),
     "relay_fn.category_update" =>
-      ~w(updated unchanged not_found archived version_conflict lock_not_allowed default_forbidden invalid_settings),
+      ~w(updated unchanged not_found archived version_conflict lock_not_allowed default_forbidden invalid_settings route_not_found route_archived),
     "relay_fn.category_archive" => ~w(archived already_archived not_found builtin),
+    "relay_fn.route_create" => ~w(created key_conflict tenant_inactive),
+    "relay_fn.route_replace" => ~w(replaced unchanged not_found archived version_conflict),
+    "relay_fn.route_archive" => ~w(archived already_archived in_use not_found),
+    "relay_fn.event_timing_precision_set" => ~w(set unchanged not_found),
+    "relay_fn.event_timing_set" => ~w(set unchanged not_found),
+    "relay_fn.delivery_break_release" => ~w(released unchanged not_found),
     "relay_fn.category_subtenant_put" =>
       ~w(created updated unchanged not_found archived subtenant_not_found default_forbidden invalid_settings),
     "relay_fn.preference_set" =>
@@ -254,7 +265,89 @@ defmodule Relay.Schema.FunctionSignaturesTest do
       ~w(added exists limit_reached recipient_not_found device_not_found),
     "relay_fn.test_recipient_confirm" => ~w(verified already_verified expired not_found),
     "relay_fn.test_recipient_remove" => ~w(removed already_removed not_found),
-    "relay_fn.test_send_consume" => ~w(consumed exhausted)
+    "relay_fn.email_reputation_transition" => ~w(changed unchanged),
+    "relay_fn.email_reputation_close" => ~w(closed not_stopped not_found),
+    "relay_fn.test_send_consume" => ~w(consumed exhausted),
+    "relay_fn.provider_invoice_record" => ~w(recorded exists conflict),
+    "relay_fn.provider_invoice_check" => ~w(changed unchanged not_found),
+    "relay_fn.report_rollup_recompute" => ~w(recomputed),
+    "relay_fn.report_variant_recompute" => ~w(recomputed),
+    "relay_fn.export_request" => ~w(requested),
+    "relay_fn.export_complete" => ~w(completed not_pending not_found),
+    "relay_fn.export_fail" => ~w(failed not_pending not_found),
+    "relay_fn.export_download" => ~w(ready expired not_ready not_found),
+    "relay_fn.email_report_record" => ~w(recorded duplicate),
+    "relay_fn.topic_create" =>
+      ~w(created key_conflict parent_not_found too_deep parent_archived tenant_inactive),
+    "relay_fn.topic_archive" => ~w(archived already_archived not_found),
+    "relay_fn.topic_subscribe" =>
+      ~w(subscribed exists recipient_not_found topic_not_found topic_archived tenant_inactive),
+    "relay_fn.topic_unsubscribe" =>
+      ~w(unsubscribed already_unsubscribed not_subscribed recipient_not_found topic_not_found),
+    "relay_fn.audience_record" => ~w(recorded exists),
+    "relay_fn.recurrence_create" => ~w(created limit_reached),
+    "relay_fn.recurrence_cancel" => ~w(cancelled closed not_found),
+    "relay_fn.recurrence_fire" => ~w(advanced completed stale not_found),
+    "relay_fn.campaign_create" => ~w(created tenant_inactive),
+    "relay_fn.campaign_prepare" => ~w(preparing not_draft deadline_passed empty not_found),
+    "relay_fn.campaign_prepare_progress" => ~w(recorded stale not_preparing),
+    "relay_fn.campaign_prepared" => ~w(prepared not_preparing),
+    "relay_fn.campaign_approve_samples" => ~w(approved not_prepared not_found),
+    "relay_fn.campaign_approve_audience" => ~w(approved not_required not_prepared not_found),
+    "relay_fn.campaign_trigger" =>
+      ~w(triggered samples_unapproved samples_changed audience_unapproved deadline_passed not_prepared not_found),
+    "relay_fn.campaign_stage_open" => ~w(opened already_open not_running not_found),
+    "relay_fn.campaign_stage_wait" => ~w(waiting not_running),
+    "relay_fn.campaign_member_mark" => ~w(marked not_pending not_running not_found),
+    "relay_fn.campaign_pause" => ~w(paused not_running),
+    "relay_fn.campaign_resume" => ~w(resumed not_paused not_found),
+    "relay_fn.campaign_cancel" => ~w(cancelled already_closed not_found),
+    "relay_fn.campaign_overrun" => ~w(reported already_reported),
+    "relay_fn.campaign_members_add" => ~w(added not_draft too_large not_found),
+    "relay_fn.campaign_close" => ~w(closed already_closed not_running not_done not_found),
+    "relay_fn.inbox_deliver" =>
+      ~w(created updated exists delivery_not_found not_in_app recipient_inactive),
+    "relay_fn.inbox_intent" => ~w(applied unchanged conflict invalid not_found),
+    "relay_fn.inbox_retract" => ~w(retracted),
+    "relay_fn.inbox_timer_fire" => ~w(fired not_due not_found),
+    "relay_fn.inbox_read_all" => ~w(applied),
+    "relay_fn.inbox_bulk_start" => ~w(created),
+    "relay_fn.inbox_bulk_chunk" => ~w(chunk completed already_completed not_found),
+    "relay_fn.inbox_engage" => ~w(recorded not_found),
+    "relay_fn.inbox_reconcile" => ~w(consistent repaired),
+    "relay_fn.inbox_reconcile_changed" => ~w(checked),
+    "relay_fn.inbox_trim" => ~w(trimmed within),
+    "relay_fn.inbox_retire_due" => ~w(retired none_due),
+    "relay_fn.inbox_announcement_create" =>
+      ~w(created tenant_inactive subtenant_not_found topic_not_found),
+    "relay_fn.inbox_announcement_retract" => ~w(retracted already_closed not_found),
+    "relay_fn.inbox_announcement_expire" => ~w(expired not_due already_closed not_found),
+    "relay_fn.inbox_announcement_intent" => ~w(applied unchanged conflict invalid not_found),
+    "relay_fn.webhook_consumer_create" =>
+      ~w(created key_conflict subtenant_not_found tenant_inactive),
+    "relay_fn.webhook_consumer_update" =>
+      ~w(updated unchanged not_found archived version_conflict),
+    "relay_fn.webhook_consumer_archive" => ~w(archived already_archived in_use not_found),
+    "relay_fn.webhook_source_create" =>
+      ~w(created secret_not_found limit_reached tenant_inactive),
+    "relay_fn.waitpoint_completion_record" => ~w(recorded exists not_resolved),
+    "relay_fn.webhook_source_archive" => ~w(archived already_archived not_found),
+    "relay_fn.webhook_event_type_create" => ~w(created name_conflict tenant_inactive),
+    "relay_fn.webhook_event_type_version_add" => ~w(added unchanged not_found archived),
+    "relay_fn.webhook_event_type_archive" => ~w(archived already_archived not_found),
+    "relay_fn.webhook_endpoint_create" =>
+      ~w(created tenant_limit_reached consumer_limit_reached consumer_not_found consumer_archived credential_not_found event_type_not_found tenant_inactive),
+    "relay_fn.webhook_endpoint_update" =>
+      ~w(updated unchanged not_found archived managed version_conflict credential_not_found event_type_not_found invalid_state),
+    "relay_fn.webhook_endpoint_archive" => ~w(archived already_archived managed not_found),
+    "relay_fn.webhook_endpoint_key_rotate" => ~w(rotated not_found archived managed not_signed),
+    "relay_fn.operations_contacts_replace" => ~w(replaced tenant_inactive),
+    "relay_fn.webhook_message_claim" =>
+      ~w(claimed not_found locked terminal tenant_inactive endpoint_archived endpoint_paused endpoint_disabled expired window_exceeded held not_due),
+    "relay_fn.webhook_attempt_settle" => ~w(settled lock_lost not_found),
+    "relay_fn.webhook_endpoint_set_state" =>
+      ~w(changed unchanged not_found archived managed invalid_state),
+    "relay_fn.webhook_destination_event_record" => ~w(recorded exists)
   }
 
   defp functions do

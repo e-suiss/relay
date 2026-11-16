@@ -10,8 +10,11 @@ defmodule RelayTest.Isolation do
       Relay.Api,
       Relay.Channels,
       Relay.Secrets,
+      Relay.Webhooks,
+      Relay.Workflow,
       RelayTest.Api,
-      RelayTest.IngestFixture
+      RelayTest.IngestFixture,
+      RelayTest.WebhookEngine
     ],
     exports: []
 
@@ -25,6 +28,7 @@ defmodule RelayTest.Isolation do
     {"replaceSubscriber", %{"locale" => "tr-TR"}},
     {"updateSubscriber", %{"locale" => "tr-TR"}},
     {"publishWorkflow", %{}},
+    {"setWorkflowManager", %{"managed_by" => "code"}},
     {"replaceKillSwitch", %{"state" => "off", "reason" => "isolation", "ttl" => "PT1H"}},
     {"releaseKillSwitch", %{"reason" => "isolation"}},
     {"resumeKillSwitchDeliveries", %{"reason" => "isolation"}},
@@ -40,6 +44,8 @@ defmodule RelayTest.Isolation do
      %{"preferences" => [%{"level" => "channel", "channel" => "sms", "value" => "opt_out"}]}},
     {"updateCategory", %{"name" => "Isolation"}},
     {"replaceCategorySubtenantSetting", %{"enabled" => false}},
+    {"replaceCategoryEmailTracking", %{"open_pixel" => false, "wrap_links" => false}},
+    {"replaceTemplateEmailTracking", %{"open_pixel" => false, "wrap_links" => false}},
     {"liftSuppression", %{"reason" => "isolation"}},
     {"registerSubscriberDevice",
      %{
@@ -61,7 +67,22 @@ defmodule RelayTest.Isolation do
      %{"provider_account_id" => "pva_01j9zq3k4m5n6p7q8r9s0t1v2w", "conversation" => "U1"}},
     {"updateProviderAccount", %{"priority" => 5}},
     {"updateSenderIdentity", %{"country" => "TR"}},
-    {"updateChannelIdentity", %{"app_ref" => "com.example.isolation"}}
+    {"updateChannelIdentity", %{"app_ref" => "com.example.isolation"}},
+    {"addTopicSubscriptions", %{"subscribers" => ["isolation-subscriber"]}},
+    {"removeTopicSubscriptions", %{"subscribers" => ["isolation-subscriber"]}},
+    {"replaceRoute", %{"name" => "Isolation", "tree" => "email"}},
+    {"addCampaignRecipients", %{"recipients" => ["iso-campaign"]}},
+    {"approveCampaignSamples", %{"samples_digest" => String.duplicate("0", 64)}},
+    {"cancelCampaign", %{"reason" => "isolation"}},
+    {"updateWebhookConsumer", %{"name" => "Isolation"}},
+    {"createWebhookEventTypeVersion", %{"schema" => %{"type" => "object"}}},
+    {"updateWebhookEndpoint", %{"description" => "isolation"}},
+    {"rotateWebhookEndpointKey", %{}},
+    {"sendWebhookEndpointTestEvent", %{}},
+    {"recoverWebhookEndpoint", %{"since" => "2026-01-01T00:00:00Z"}},
+    {"retryWebhookEndpointMessages", %{"states" => ["exhausted"]}},
+    {"replayWebhookEndpointEvents", %{"since" => "2026-01-01T00:00:00Z"}},
+    {"cancelWebhookEndpointRetries", %{}}
   ]
   @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
   @sms %{
@@ -100,6 +121,7 @@ defmodule RelayTest.Isolation do
       "version" => fn _scope -> "1" end,
       "mapping_id" => &mapping!/1,
       "category_key" => &category!/1,
+      "route_key" => &route!/1,
       "subtenant_id" => &subtenant!/1,
       "suppression_id" => &suppression!/1,
       "device_id" => &device!/1,
@@ -111,7 +133,20 @@ defmodule RelayTest.Isolation do
       "provider_account_id" => &provider_account!/1,
       "sender_identity_id" => &sender_identity!/1,
       "channel_identity_id" => &channel_identity!/1,
-      "test_recipient_id" => &test_recipient!/1
+      "test_recipient_id" => &test_recipient!/1,
+      "provider_invoice_id" => &provider_invoice!/1,
+      "export_id" => &export!/1,
+      "topic_key" => &topic!/1,
+      "recurrence_id" => &recurrence!/1,
+      "throttle_key" => &throttle!/1,
+      "campaign_id" => &campaign!/1,
+      "announcement_id" => &announcement!/1,
+      "webhook_consumer_id" => &webhook_consumer!/1,
+      "webhook_source_id" => &webhook_source!/1,
+      "webhook_event_type_id" => &webhook_event_type!/1,
+      "webhook_endpoint_id" => &webhook_endpoint!/1,
+      "webhook_message_id" => &webhook_message!/1,
+      "webhook_attempt_id" => &webhook_attempt!/1
     }
   end
 
@@ -413,6 +448,15 @@ defmodule RelayTest.Isolation do
     key
   end
 
+  @doc "Creates a named route in `scope` and returns its key."
+  @spec route!(Relay.Scope.t()) :: String.t()
+  def route!(scope) do
+    key = "iso_" <> random()
+    body = %{"key" => key, "name" => "Isolation", "tree" => %{"single" => ["push", "email"]}}
+    F.body(F.request(:post, "/v1/routes", owner(scope), body), 201)
+    key
+  end
+
   @doc "Creates a sub-tenant in `scope` and returns its identifier."
   @spec subtenant!(Relay.Scope.t()) :: String.t()
   def subtenant!(scope) do
@@ -440,6 +484,143 @@ defmodule RelayTest.Isolation do
   def test_recipient!(scope) do
     body = %{"subscriber_id" => subscriber!(scope)}
     F.body(F.request(:post, "/v1/test_recipients", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Counts an event on a fresh throttle key in `scope`, so the key has an active window, and returns the key."
+  @spec throttle!(Relay.Scope.t()) :: String.t()
+  def throttle!(scope) do
+    key = "iso-" <> random()
+    step = %{"key" => key, "limit" => 5, "window" => "PT1H"}
+    {:ok, %{outcome: :allowed}} = Relay.Workflow.throttle_now(scope, step, %{key: key, ref: key})
+    key
+  end
+
+  @doc "Requests a raw data export in `scope` and returns its identifier."
+  @spec export!(Relay.Scope.t()) :: String.t()
+  def export!(scope) do
+    body = %{"kind" => "usage_records", "from" => "2026-10-01", "to" => "2026-11-01"}
+    F.body(F.request(:post, "/v1/exports", owner(scope), body), 202)["id"]
+  end
+
+  @doc "Creates a topic in `scope` and returns its key."
+  @spec topic!(Relay.Scope.t()) :: String.t()
+  def topic!(scope) do
+    key = "iso:" <> random()
+    F.body(F.request(:post, "/v1/topics", owner(scope), %{"key" => key}), 201)["key"]
+  end
+
+  @doc "Creates a webhook consumer in `scope` and returns its identifier."
+  @spec webhook_consumer!(Relay.Scope.t()) :: String.t()
+  def webhook_consumer!(scope) do
+    body = %{"key" => "iso-" <> random()}
+    F.body(F.request(:post, "/v1/webhook_consumers", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Registers a completion source in `scope` and returns its identifier."
+  @spec webhook_source!(Relay.Scope.t()) :: String.t()
+  def webhook_source!(scope) do
+    {public_key, _private_key} = :crypto.generate_key(:eddsa, :ed25519)
+    body = %{"name" => "iso-" <> random(), "public_key" => "whpk_" <> Base.encode64(public_key)}
+    F.body(F.request(:post, "/v1/webhook_sources", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Creates a tenant event type in `scope` and returns its identifier."
+  @spec webhook_event_type!(Relay.Scope.t()) :: String.t()
+  def webhook_event_type!(scope) do
+    body = %{"name" => "isolation.checked_" <> random(), "schema" => %{"type" => "object"}}
+    F.body(F.request(:post, "/v1/webhook_event_types", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Creates a webhook endpoint in `scope` and returns its identifier."
+  @spec webhook_endpoint!(Relay.Scope.t()) :: String.t()
+  def webhook_endpoint!(scope) do
+    body = %{
+      "use" => "relay_events",
+      "destination" => %{"kind" => "https", "url" => "https://hooks.example.com/isolation"},
+      "event_types" => []
+    }
+
+    F.body(F.request(:post, "/v1/webhook_endpoints", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Sends a test event to a new webhook endpoint in `scope` and returns the identifier of its message."
+  @spec webhook_message!(Relay.Scope.t()) :: String.t()
+  def webhook_message!(scope) do
+    path = "/v1/webhook_endpoints/#{webhook_endpoint!(scope)}/test"
+    id = F.body(F.request(:post, path, owner(scope), %{}), 202)["id"]
+    Process.put({__MODULE__, :webhook_message, scope.tenant_id, scope.environment}, id)
+    id
+  end
+
+  @doc "Makes one attempt, answered by the test destination, of the message `webhook_message!/1` created last in `scope` (a new one when there is none) and returns the attempt's identifier."
+  @spec webhook_attempt!(Relay.Scope.t()) :: String.t()
+  def webhook_attempt!(scope) do
+    key = {__MODULE__, :webhook_message, scope.tenant_id, scope.environment}
+    message = Process.get(key) || webhook_message!(scope)
+    {:ok, id} = Relay.ExternalId.decode(message, ["whm"])
+    previous = RelayTest.WebhookEngine.install()
+
+    try do
+      {:ok, {:attempted, :delivered}} = Relay.Webhooks.attempt(scope, id)
+    after
+      Application.put_env(:relay, Relay.Webhooks, previous)
+    end
+
+    path = "/v1/webhook_messages/#{message}/attempts"
+    [%{"id" => attempt}] = F.body(F.request(:get, path, owner(scope)), 200)["data"]
+    attempt
+  end
+
+  @doc "Creates a draft campaign in `scope` and returns its identifier."
+  @spec campaign!(Relay.Scope.t()) :: String.t()
+  def campaign!(scope) do
+    deadline = DateTime.add(Relay.Clock.utc_now(), 86_400, :second)
+
+    body = %{
+      "name" => "Isolation",
+      "workflow" => workflow!(scope),
+      "data" => %{"order" => "I-1"},
+      "expected_count" => 1,
+      "deadline" => DateTime.to_iso8601(deadline)
+    }
+
+    F.body(F.request(:post, "/v1/campaigns", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Publishes a tenant-wide inbox announcement in `scope` and returns its identifier."
+  @spec announcement!(Relay.Scope.t()) :: String.t()
+  def announcement!(scope) do
+    body = %{"audience" => "tenant", "content" => %{"title" => "Isolation"}}
+    F.body(F.request(:post, "/v1/inbox/announcements", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Defines a daily recurrence rule in `scope` for a new subscriber and returns its identifier."
+  @spec recurrence!(Relay.Scope.t()) :: String.t()
+  def recurrence!(scope) do
+    body = %{
+      "workflow" => workflow!(scope),
+      "subscriber_id" => subscriber!(scope),
+      "rrule" => "FREQ=DAILY;BYHOUR=9;BYMINUTE=0",
+      "dtstart" => "2026-11-01T09:00:00",
+      "data" => %{"order" => "A-1"}
+    }
+
+    F.body(F.request(:post, "/v1/recurrences", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Records a provider invoice in `scope` and returns its identifier."
+  @spec provider_invoice!(Relay.Scope.t()) :: String.t()
+  def provider_invoice!(scope) do
+    body = %{
+      "provider" => "netgsm",
+      "invoice_ref" => "iso-" <> random(),
+      "period_start" => "2026-10-01",
+      "period_end" => "2026-11-01",
+      "currency" => "TRY",
+      "amount_micros" => "0"
+    }
+
+    F.body(F.request(:post, "/v1/provider_invoices", owner(scope), body), 201)["id"]
   end
 
   @doc "Registers a WhatsApp template on a new WhatsApp provider account in `scope` and returns the template's identifier."

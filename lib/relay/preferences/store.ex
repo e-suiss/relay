@@ -11,8 +11,8 @@ defmodule Relay.Preferences.Store do
   @category_columns """
   c.id, c.key, c.name, c.message_class::text AS message_class, c.locked, c.enabled,
   c.channel_defaults, c.default_expires_in, c.frequency_limit, c.frequency_window,
-  c.frequency_fate, c.digest_allowed, c.builtin, c.state, c.archived_at, c.version,
-  c.created_at, c.updated_at
+  c.frequency_fate, c.digest_allowed, c.default_route, c.density, c.builtin, c.state,
+  c.archived_at, c.version, c.created_at, c.updated_at
   """
 
   @setting_columns """
@@ -39,7 +39,7 @@ defmodule Relay.Preferences.Store do
       Enum.concat([
         [attrs.id, attrs.key, attrs.name, attrs.message_class, attrs.locked, attrs.enabled],
         [attrs.channel_defaults | settings(attrs)],
-        [attrs.digest_allowed, digest],
+        [attrs.digest_allowed, Map.get(attrs, :default_route), Map.get(attrs, :density), digest],
         Actor.params(actor)
       ])
 
@@ -51,7 +51,9 @@ defmodule Relay.Preferences.Store do
        :tenant_inactive,
        :lock_not_allowed,
        :default_forbidden,
-       :invalid_settings
+       :invalid_settings,
+       :route_not_found,
+       :route_archived
      ]), row["category_id"], row["version"]}
   end
 
@@ -65,7 +67,13 @@ defmodule Relay.Preferences.Store do
       Enum.concat([
         [key, attrs.name, attrs.locked, attrs.enabled, attrs.channel_defaults],
         settings(attrs),
-        [attrs.digest_allowed, expected_version, digest],
+        [
+          attrs.digest_allowed,
+          Map.get(attrs, :default_route),
+          Map.get(attrs, :density),
+          expected_version,
+          digest
+        ],
         Actor.params(actor)
       ])
 
@@ -79,7 +87,9 @@ defmodule Relay.Preferences.Store do
        :version_conflict,
        :lock_not_allowed,
        :default_forbidden,
-       :invalid_settings
+       :invalid_settings,
+       :route_not_found,
+       :route_archived
      ]), row["version"]}
   end
 
@@ -184,6 +194,30 @@ defmodule Relay.Preferences.Store do
        :category_not_found,
        :last_channel
      ]), row["preference_id"], row["version"]}
+  end
+
+  # WH-15
+  # WH-53
+  # WH-11
+  @doc "Appends the `preference.changed` event of a written switch on the recipient's stream: the recipient's identifier, the level, the value, the category of a category switch and the channel, and nothing else of the recipient."
+  @spec preference_changed(map()) :: :appended
+  def preference_changed(write) do
+    recipient = Relay.Id.to_string(write.recipient_id)
+    kind = one("SELECT r.kind FROM relay.recipients r WHERE r.id = $1", [write.recipient_id])
+
+    data = %{
+      "recipient_id" => recipient,
+      "recipient_kind" => kind && kind["kind"],
+      "level" => write.level,
+      "value" => write.value,
+      "category" => if(write.level == "category_channel", do: write.key),
+      "channel" => write.channel,
+      "changed_at" => DateTime.to_iso8601(Relay.Clock.utc_now())
+    }
+
+    params = [Relay.Id.generate(), "preference.changed", "recipient:" <> recipient, data, nil]
+    [row] = Repo.call!("relay_fn.outbox_append", params)
+    Repo.code!(row["result"], [:appended])
   end
 
   # PC-57 (5)

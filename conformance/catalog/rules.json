@@ -3041,6 +3041,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "E-99",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "E-100",
     "section": "§7",
     "status": "frozen_technical",
@@ -3050,6 +3058,14 @@
   {
     "acceptance": "pending",
     "id": "E-101",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-102",
     "section": "§7",
     "status": "frozen_technical",
     "title": "",
@@ -4497,6 +4513,54 @@
   },
   {
     "acceptance": "pending",
+    "id": "WF-58",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-59",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-60",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-61",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-62",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
+    "id": "WF-63",
+    "section": "§10",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 8
+  },
+  {
+    "acceptance": "pending",
     "id": "TP-1",
     "section": "§11",
     "status": "frozen_technical",
@@ -5672,6 +5736,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "CH-87",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "PC-1",
     "section": "§13",
     "status": "canonical_invariant",
@@ -6520,6 +6592,54 @@
   },
   {
     "acceptance": "pending",
+    "id": "DS-48",
+    "section": "§14",
+    "status": "policy_default",
+    "title": "Reconciliation frequency: status API every 15 minutes, report API daily at 03:30 UTC",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-49",
+    "section": "§14",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-50",
+    "section": "§14",
+    "status": "policy_default",
+    "title": "Tenant and channel x provider DLR window bounds",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-51",
+    "section": "§14",
+    "status": "engineering_assumption",
+    "title": "WhatsApp and voice DLR windows as an engineering assumption",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-52",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "DS-53",
+    "section": "§14",
+    "status": "frozen_technical",
+    "title": "Billable event: a provider-reached attempt in the channel's unit; rejected, unsent and simulated attempts are not billable; test sends in their own rows",
+    "verify_stage": 7
+  },
+  {
+    "acceptance": "pending",
     "id": "IN-1",
     "section": "§15",
     "status": "frozen_technical",
@@ -6899,6 +7019,62 @@
     "id": "IN-48",
     "section": "§15",
     "status": "canonical_invariant",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-49",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-50",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-51",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-52",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-53",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-54",
+    "section": "§15",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
+  },
+  {
+    "acceptance": "pending",
+    "id": "IN-55",
+    "section": "§15",
+    "status": "frozen_technical",
     "title": "",
     "verify_stage": 9
   },
@@ -7308,6 +7484,142 @@
     "section": "§16",
     "status": "frozen_technical",
     "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-52",
+    "section": "§16",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-53",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-54",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-55",
+    "section": "§16",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-56",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-57",
+    "section": "§16",
+    "status": "engineering_assumption",
+    "title": "Signing key storage per endpoint in the HSM",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-58",
+    "section": "§16",
+    "status": "engineering_assumption",
+    "title": "Dependency-free broker and cloud clients",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-59",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Thin events and snapshot-only fields",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-60",
+    "section": "§16",
+    "status": "policy_default",
+    "title": "Engine operating values",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-61",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Recovery operation rules",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-62",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Workflow webhook step behaviour",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-63",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Development tunnel feed",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-64",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Object store batch behaviour",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-65",
+    "section": "§16",
+    "status": "policy_default",
+    "title": "Destination authentication and limits",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-66",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Portal token and portal actor",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-67",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Audit records flow to tenant endpoints that name the type",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
+    "id": "WH-68",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "Inbound long-job completion receiver",
     "verify_stage": 10
   },
   {
@@ -7821,6 +8133,14 @@
     "status": "frozen_technical",
     "title": "",
     "verify_stage": 2
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-65",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 9
   },
   {
     "acceptance": "pending",

@@ -1,7 +1,7 @@
 defmodule Relay.Sql.TemplatesTest do
   use Relay.SqlCase, async: false
 
-  @category "SELECT * FROM relay_fn.category_create($1, $2, $3, $4, false, true, '{}', NULL, NULL, NULL, NULL, false, $5, $6, $7, $8, $9)"
+  @category "SELECT * FROM relay_fn.category_create($1, $2, $3, $4, false, true, '{}', NULL, NULL, NULL, NULL, false, NULL, NULL, $5, $6, $7, $8, $9)"
   @create "SELECT * FROM relay_fn.template_create($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)"
   @update "SELECT * FROM relay_fn.template_update($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
   @draft "SELECT * FROM relay_fn.template_draft_put($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"

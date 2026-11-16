@@ -7,6 +7,35 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 20
+  attributes/labels:
+    actions:
+      - {key: tenant_id, action: delete}
+      - {key: message_id, action: delete}
+      - {key: notification_id, action: delete}
+      - {key: delivery_id, action: delete}
+      - {key: campaign_id, action: delete}
+      - {key: template_id, action: delete}
+      - {key: recipient, action: delete}
+      - {key: user_id, action: delete}
+      - {key: device_id, action: delete}
+      - {key: token, action: delete}
+      - {key: error_message, action: delete}
+      - {key: pid, action: delete}
+  attributes/personal:
+    actions:
+      - {key: recipient, action: delete}
+      - {key: address, action: delete}
+      - {key: user_id, action: delete}
+      - {key: enduser.id, action: delete}
+      - {key: device_id, action: delete}
+      - {key: token, action: delete}
+      - {key: error_message, action: delete}
+      - {key: http.request.header.authorization, action: delete}
+      - {key: http.request.header.cookie, action: delete}
   batch: {}
 
 exporters:
@@ -21,9 +50,9 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch]
+      processors: [memory_limiter, attributes/personal, batch]
       exporters: [otlp/jaeger]
     metrics:
       receivers: [otlp]
-      processors: [batch]
+      processors: [memory_limiter, attributes/labels, batch]
       exporters: [otlphttp/prometheus]

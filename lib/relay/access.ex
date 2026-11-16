@@ -3,9 +3,9 @@ defmodule Relay.Access do
   The link to Access, Suiss's identity and authority product (MD-1, E-1 … E-5, E-40, E-78). Relay always runs with Access and is never an authority source. The link is configured with the Access `issuer` and the `client_id` of Relay's own Access client registration (`config :relay, Relay.Access, issuer: "https://…", client_id: "…"`); endpoints, keys and capabilities come from discovery (`Relay.Access.Link`). Every subscriber's pairwise `sub` is in the sector of that client (E-90). Other contexts use only the functions of this module.
 
   * Server API credentials are DPoP-bound Access access tokens addressed to Relay's `client_id` (API-41, API-48, API-71, E-93): `verify_server_token/2` checks them and their proof on every request and maps the API client trace to its tenant, environment, sub-tenant and API-75 scopes. A token of a platform product is issued by the linked issuer; a token of a tenant API client or end user by a realm of its `access_tenant`, found in the tenant snapshot (`Relay.Access.Realms`, E-96).
-  * Relay's own calls to Access (the tenant snapshot, AuthZEN decisions and their token requests) carry DPoP proofs of a key-store key (`Relay.Access.Client`, E-98).
+  * Relay's own calls to Access take its client assertion, signed by a key-store key (the tenant snapshot and the token requests, `Relay.Access.Client`, E-100); AuthZEN decisions go over mutual TLS with Relay's PEP certificate, whose key stays in the key store (`Relay.Access.Pep`, E-102).
   * An ingest connector acts as an API client trace of its configuration (`connector_principal/2`, T-41), checked like a server token.
-  * API client traces, tenant and sub-tenant mappings follow Access lifecycle events, pushed as Security Event Tokens (`accept_event/1`, `process_event/1`, E-94).
+  * API client traces, tenant and sub-tenant mappings follow Access lifecycle events, pushed as Security Event Tokens (`accept_event/1`, `process_event/1`, E-94). An API client Access registers waits as pending until a tenant administrator assigns its environment and scopes (`pending_api_clients/1`, `assign_api_client/4`, E-99).
   * Subscriber tokens come only from the RFC 8693 exchange (`exchange_subscriber_token/3`) and are checked with `verify_subscriber_token/2`; an Access token is never a subscriber credential (E-25).
   * Platform tenants (`message_class/2`, `dedup_key/2`) and sub-tenant selection (`select_subtenant/3`).
   """
@@ -20,8 +20,9 @@ defmodule Relay.Access do
       Relay.Tenancy,
       Relay.Tenancy.Provisioning
     ],
-    exports: [Client, ServiceKey, UserHandler, ConsentHandler]
+    exports: [Client, Pep, ServiceKey, UserHandler, ConsentHandler]
 
+  alias Relay.Access.Assignment
   alias Relay.Access.Cache
   alias Relay.Access.Clients
   alias Relay.Access.ClientStore
@@ -31,8 +32,10 @@ defmodule Relay.Access do
   alias Relay.Access.Link
   alias Relay.Access.Pairing
   alias Relay.Access.PlatformTenant
+  alias Relay.Access.PortalToken
   alias Relay.Access.Realms
   alias Relay.Access.SubscriberToken
+  alias Relay.Access.SubscriberTokenKeys
   alias Relay.Access.Token
   alias Relay.Access.Usage
   alias Relay.AccessClaims
@@ -98,7 +101,7 @@ defmodule Relay.Access do
   @doc """
   Verifies an Access access token for the server API (E-93): an `at+jwt` token of the linked issuer or of a realm of its `access_tenant` (E-96) whose `aud` is Relay's own Access `client_id` (`client_id/0`), bound by `cnf.jkt` to the key of the request's DPoP proof (`Relay.Access.Dpop`). Options: `:proof` (the `DPoP` header value), `:method` and `:url` (the request's method and external URL, which the proof must name), `:ip` (the client address, for last use) and `:certificate` (the DER client certificate of the connection, for RFC 8705 binding).
 
-  The token names its Access tenant in `access_tenant` and its Access client in `client_id` (`Relay.AccessClaims`); tenant, environment and sub-tenant come from the API client trace, never from the token or the request. A client whose trace is not known is `auth_invalid_token` (E-79 (3)). The granted scopes are the trace's API-75 scopes, narrowed to those the token carries when it carries a `scope` claim; an Access service token carries none, so the registration alone grants them. A revoked or suspended client is `auth_revoked_client`, a suspended tenant or sub-tenant `auth_tenant_suspended`, a link without keys or an unset `client_id` `service_unavailable`. A token bound to a certificate (`cnf.x5t#S256`) also needs that certificate.
+  The token names its Access tenant in `access_tenant` and its Access client in `client_id` (`Relay.AccessClaims`); tenant, environment and sub-tenant come from the API client trace, never from the token or the request. A client whose trace is not known is `auth_invalid_token` (E-79 (3)). The granted scopes are the trace's API-75 scopes, narrowed to those the token carries when it carries a `scope` claim; an Access service token carries none, so the registration alone grants them. A client still waiting for its environment and scopes is `auth_client_pending` (E-99), a revoked or suspended client `auth_revoked_client`, a suspended tenant or sub-tenant `auth_tenant_suspended`, a link without keys or an unset `client_id` `service_unavailable`. A token bound to a certificate (`cnf.x5t#S256`) also needs that certificate.
   """
   @spec verify_server_token(String.t(), keyword()) ::
           {:ok, principal()} | {:error, Relay.Error.t()}
@@ -264,7 +267,11 @@ defmodule Relay.Access do
   # API-47
   # INV-42
   # TN-10
+  # E-99
   defp active(%{status: "active", tenant_status: "active"}), do: :ok
+
+  defp active(%{status: "pending"}),
+    do: {:error, Relay.Error.new(:auth_client_pending, "the API client is not assigned yet")}
 
   defp active(%{status: "active"}),
     do: {:error, Relay.Error.new(:auth_tenant_suspended, "the tenant is suspended")}
@@ -332,6 +339,19 @@ defmodule Relay.Access do
   @spec client_limits() :: %{per_environment: pos_integer(), unused_days: pos_integer()}
   def client_limits, do: %{per_environment: @client_cap, unused_days: @unused_days}
 
+  # E-99
+  @doc "The pending API clients of a tenant; see `Relay.Access.Assignment.pending/1`."
+  @spec pending_api_clients(Relay.Id.t()) :: {:ok, [map()]} | {:error, term()}
+  defdelegate pending_api_clients(tenant_id), to: Assignment, as: :pending
+
+  # E-99
+  @doc "Assigns a pending API client to the environment of `scope` with its scopes; see `Relay.Access.Assignment.assign/4`."
+  @spec assign_api_client(Scope.t(), String.t(), [String.t(), ...], Relay.Actor.t()) ::
+          {:ok, String.t()} | {:error, Relay.Error.t()}
+  defdelegate assign_api_client(scope, access_client_id, scopes, actor),
+    to: Assignment,
+    as: :assign
+
   # E-94
   # E-70
   @doc "Receives a Security Event Token Access pushed; see `Relay.Access.Events`. A refusal is `{:refused, err, description}` with an RFC 8935 error code."
@@ -368,6 +388,60 @@ defmodule Relay.Access do
   @spec verify_subscriber_token(String.t(), SubscriberToken.audiences()) ::
           {:ok, SubscriberToken.verified()} | {:error, Relay.Error.t()}
   defdelegate verify_subscriber_token(token, audiences), to: SubscriberToken, as: :verify
+
+  # WH-47
+  # TN-63
+  @doc "Signs a webhook portal token for one consumer of a scope; see `Relay.Access.PortalToken.issue/3`."
+  @spec issue_portal_token(Scope.t(), Relay.Id.t(), PortalToken.audiences()) ::
+          {:ok, PortalToken.issued()} | {:error, Relay.Error.t()}
+  defdelegate issue_portal_token(scope, consumer_id, audiences), to: PortalToken, as: :issue
+
+  # WH-47
+  # E-25
+  @doc "Verifies a webhook portal token; see `Relay.Access.PortalToken.verify/2`."
+  @spec verify_portal_token(String.t(), PortalToken.audiences()) ::
+          {:ok, PortalToken.verified()} | {:error, Relay.Error.t()}
+  defdelegate verify_portal_token(token, audiences), to: PortalToken, as: :verify
+
+  # IN-51
+  @doc "Makes a key pair of the key store the current subscriber token key; see `Relay.Access.SubscriberTokenKeys.rotate/3`."
+  @spec rotate_subscriber_token_key(String.t(), String.t(), String.t()) ::
+          {:ok, map()} | {:error, Relay.Error.t()}
+  defdelegate rotate_subscriber_token_key(label, actor, reason),
+    to: SubscriberTokenKeys,
+    as: :rotate
+
+  # IN-51
+  # IN-33
+  @doc "Retires the previous subscriber token key at once; see `Relay.Access.SubscriberTokenKeys.retire_previous/2`."
+  @spec retire_previous_subscriber_token_key(String.t(), String.t()) ::
+          {:ok, map()} | {:error, Relay.Error.t()}
+  defdelegate retire_previous_subscriber_token_key(actor, reason),
+    to: SubscriberTokenKeys,
+    as: :retire_previous
+
+  # IN-51
+  @doc "The subscriber token keys and when the next rotation is due; see `Relay.Access.SubscriberTokenKeys.status/0`."
+  @spec subscriber_token_key_status() :: {:ok, map()} | {:error, Relay.Error.t()}
+  defdelegate subscriber_token_key_status(), to: SubscriberTokenKeys, as: :status
+
+  # IN-51
+  # IN-33
+  @doc "Whether tokens signed under `kid` still verify; the realtime layer calls it with `fresh: true` when the `subscriber_token_keys_topic/0` signal fires and closes the connections whose `kid` no longer verifies. See `Relay.Access.SubscriberTokenKeys.accepted?/2`."
+  @spec subscriber_token_key_accepted?(String.t(), keyword()) ::
+          {:ok, boolean()} | {:error, Relay.Error.t()}
+  defdelegate subscriber_token_key_accepted?(kid, opts \\ []),
+    to: SubscriberTokenKeys,
+    as: :accepted?
+
+  # IN-51
+  @doc "The system signal topic that fires when a subscriber token key is rotated or retired."
+  @spec subscriber_token_keys_topic() :: String.t()
+  defdelegate subscriber_token_keys_topic(), to: SubscriberTokenKeys, as: :topic
+  # IN-33
+  @doc "The system signal topic on which API client and tenant status changes are announced; see `Relay.Access.Clients.topic/0`."
+  @spec client_changes_topic() :: String.t()
+  def client_changes_topic, do: Clients.topic()
 
   # E-10
   # E-11

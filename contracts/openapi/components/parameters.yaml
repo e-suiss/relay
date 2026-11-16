@@ -292,6 +292,13 @@ CategoryKey:
   required: true
   schema:
     "$ref": "./schemas.yaml#/CategoryKey"
+RouteKey:
+  name: route_key
+  in: path
+  description: Route key.
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/RouteKey"
 SubtenantId:
   name: subtenant_id
   in: path
@@ -405,6 +412,49 @@ WebhookEndpointId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_whe"
+WebhookConsumerId:
+  name: webhook_consumer_id
+  in: path
+  description: "Webhook consumer identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_whc"
+WebhookSourceId:
+  name: webhook_source_id
+  in: path
+  description: "Completion source identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_whs"
+WebhookEventTypeId:
+  name: webhook_event_type_id
+  in: path
+  description: "Tenant event type identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_wet"
+WebhookMessageId:
+  name: webhook_message_id
+  in: path
+  description: "Webhook message identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_whm"
+WebhookAttemptId:
+  name: webhook_attempt_id
+  in: path
+  description: "Webhook attempt identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_wha"
+WebhookVersion:
+  name: version
+  in: path
+  description: Version number.
+  required: true
+  schema:
+    type: integer
+    minimum: 1
 ManagedProviderAccountId:
   name: provider_account_id
   in: path
@@ -426,6 +476,13 @@ ChannelIdentityId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_chi"
+TopicKey:
+  name: topic_key
+  in: path
+  description: "Topic key (URL-encoded)."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/TopicKey"
 TestRecipientId:
   name: test_recipient_id
   in: path
@@ -433,3 +490,78 @@ TestRecipientId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_trc"
+InboxItemId:
+  name: item_id
+  in: path
+  description: "Inbox item identifier, or the identifier of an announcement merged into the inbox."
+  required: true
+  schema:
+    oneOf:
+      - "$ref": "./schemas.yaml#/Id_inb"
+      - "$ref": "./schemas.yaml#/Id_ann"
+InboxBulkId:
+  name: bulk_id
+  in: path
+  description: "Inbox bulk operation identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_ibk"
+InboxAnnouncementId:
+  name: announcement_id
+  in: path
+  description: "Inbox announcement identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_ann"
+ProviderInvoiceId:
+  name: provider_invoice_id
+  in: path
+  description: "Provider invoice identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_piv"
+ReportFrom:
+  name: from
+  in: query
+  description: "First UTC day of the report."
+  required: true
+  schema:
+    type: string
+    format: date
+ReportTo:
+  name: to
+  in: query
+  description: "UTC day after the last day of the report; at most 92 days after from."
+  required: true
+  schema:
+    type: string
+    format: date
+ExportId:
+  name: export_id
+  in: path
+  description: "Raw data export identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_exp"
+RecurrenceId:
+  name: recurrence_id
+  in: path
+  description: "Recurrence rule identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_rec"
+
+ThrottleKey:
+  name: throttle_key
+  in: path
+  description: "The rendered throttle key, percent-encoded."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/ThrottleKey"
+CampaignId:
+  name: campaign_id
+  in: path
+  description: "Campaign identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_cmp"

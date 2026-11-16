@@ -13,9 +13,13 @@ defmodule Relay.Application do
       Relay.Keys.Eviction,
       Relay.Datasets,
       Relay.Channels,
+      Relay.Channels.Live,
       Relay.Delivery,
       Relay.Connectors,
       Relay.Templates,
+      Relay.Observability,
+      Relay.Realtime,
+      Relay.Webhooks,
       RelayWeb
     ]
 
@@ -35,12 +39,15 @@ defmodule Relay.Application do
     log_vm_topology()
     :ok = Relay.Templates.warm_up()
     Relay.Platform.attach_telemetry()
+    :ok = Relay.Trace.attach()
     attach_auto_replay()
 
     children =
       [Relay.Config.SecretFiles] ++
         Relay.Config.startup_probes() ++
         [RelayWeb.Telemetry] ++
+        Relay.Observability.children() ++
+        Relay.Trace.children() ++
         RelayWeb.Metrics.children() ++
         [
           Relay.Repo,
@@ -51,12 +58,15 @@ defmodule Relay.Application do
         Relay.Keys.children() ++
         Relay.Platform.children() ++
         Relay.Channels.children() ++
+        Relay.Channels.Live.children() ++
         Relay.Tenancy.children() ++
         Relay.Tenancy.KillSwitch.children() ++
         Relay.Access.children() ++
         [Relay.Keys.Eviction] ++
         Relay.Datasets.children() ++
         Relay.Connectors.children() ++
+        Relay.Realtime.children() ++
+        Relay.Webhooks.children() ++
         Relay.Platform.Leadership.children(roles) ++ [RelayWeb.Endpoint.supervised()]
 
     # T-45

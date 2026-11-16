@@ -299,4 +299,57 @@ defmodule RelayWeb.Operator.ChannelOperationsApiTest do
       assert json(post(ctx, path, rotation, admin), 200)["secret"]["version"] == 2
     end
   end
+
+  describe "WH-19 TN-26 webhook destination credentials on the operator surface" do
+    test "WH-19, TN-21: a destination credential is registered by reference with a step-up and only its fingerprint is shown",
+         ctx do
+      admin = admin(ctx)
+      secret = "client-secret-" <> random()
+      body = %{"secret_ref" => secret_var(secret)}
+      refused = json(post(ctx, "/v1/operator/webhook_credentials", body, admin), 401)
+      assert refused["code"] == "auth_step_up_required"
+
+      step_up(admin)
+      conn = post(ctx, "/v1/operator/webhook_credentials", body, admin)
+      created = json(conn, 201)
+      assert %{"object" => "webhook_credential", "version" => 1, "state" => "active"} = created
+      assert created["fingerprint"] =~ ~r/^[0-9a-f]{64}$/
+      refute conn.resp_body =~ "RELAY_TEST_OPERATOR_"
+      refute conn.resp_body =~ secret
+
+      again = json(post(ctx, "/v1/operator/webhook_credentials", body, admin), 201)
+      assert again["id"] == created["id"]
+
+      {:ok, id} = Relay.ExternalId.decode(created["id"], ["sec"])
+      assert {:ok, ref} = Relay.Secrets.get(ctx.scope, id)
+      assert %{kind: :webhook_destination, state: :active} = ref
+      assert {:ok, resolved} = Relay.Secrets.fetch(ctx.scope, id)
+      assert Relay.Redacted.expose(resolved) == secret
+    end
+
+    test "WH-68, TN-26: the secret of a completion source is registered as kind source", ctx do
+      admin = step_up(admin(ctx))
+      secret = "whsec_" <> Base.encode64(:crypto.strong_rand_bytes(32))
+      body = %{"secret_ref" => secret_var(secret), "kind" => "source"}
+
+      conn = post(ctx, "/v1/operator/webhook_credentials", body, admin)
+      created = json(conn, 201)
+      assert %{"object" => "webhook_credential", "kind" => "source"} = created
+      refute conn.resp_body =~ secret
+
+      {:ok, id} = Relay.ExternalId.decode(created["id"], ["sec"])
+      assert {:ok, %{kind: :webhook_signing, state: :active}} = Relay.Secrets.get(ctx.scope, id)
+
+      default = %{"secret_ref" => secret_var("client-secret-" <> random())}
+      destination = json(post(ctx, "/v1/operator/webhook_credentials", default, admin), 201)
+      assert destination["kind"] == "destination"
+    end
+
+    test "TN-26 (2): a destination credential that does not resolve is a field error", ctx do
+      admin = step_up(admin(ctx))
+      body = %{"secret_ref" => "${RELAY_TEST_OPERATOR_MISSING_VAR}"}
+      problem = json(post(ctx, "/v1/operator/webhook_credentials", body, admin), 422)
+      assert [%{"pointer" => "/secret_ref"}] = problem["errors"]
+    end
+  end
 end

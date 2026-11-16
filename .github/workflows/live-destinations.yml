@@ -1,0 +1,46 @@
+name: live-destinations
+
+on:
+  workflow_call:
+  pull_request:
+    paths:
+      - lib/relay/webhooks/destination/**
+      - lib/relay/webhooks/destination.ex
+      - test/relay/webhooks/live_destinations_test.exs
+      - test/support/live_destinations.ex
+      - deploy/live/**
+      - .github/workflows/live-destinations.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-destinations-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      MIX_ENV: test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: |
+            deps
+            _build
+            priv/plts
+          key: mix-${{ runner.os }}-${{ hashFiles('.tool-versions', 'mix.lock') }}
+          restore-keys: mix-${{ runner.os }}-
+      - run: docker compose -f deploy/compose.yaml up -d --wait postgres valkey minio
+      - run: deploy/live/up.sh
+      - run: mix deps.get --check-locked
+      - run: mix test --only live_destinations --warnings-as-errors test/relay/webhooks/live_destinations_test.exs
+      - if: failure()
+        run: docker compose -f deploy/live/compose.yaml logs --no-color --tail 150

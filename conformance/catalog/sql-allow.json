@@ -132,6 +132,12 @@
     "reason": "C-28, OP-7: a committed relay_fn function is dropped for its new signature as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   },
   {
+    "path": "priv/repo/migrations/20261211400200_create_route_functions.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WF-14, PC-57 (1): committed relay_fn category functions are dropped for their new signature with the default route as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
     "path": "priv/repo/migrations/20261103001400_extend_delivery_gate_and_erasure.exs",
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
@@ -148,6 +154,12 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "TN-40 (2): a committed relay_fn function is dropped and replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261215100200_extend_kill_switch_campaign_scope.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "TN-40, OP-47: committed relay_fn functions are dropped and replaced as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   },
   {
     "path": "priv/repo/migrations/20261106000200_order_key_tombstones_by_lock.exs",
@@ -202,5 +214,101 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "E-83, OP-24: committed relay_fn functions are dropped for a new signature and replaced as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261204000300_extend_delivery_projection_axes.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "DS-3, DS-4: committed relay_fn functions are replaced as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261206000000_add_event_item_and_correlation_id.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "E-83, OP-24: the committed relay_fn.event_accept is dropped for a new signature as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261213100500_key_deliveries_by_step.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WF-63: the committed relay_fn.delivery_open is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit, and gains its step-keyed overload; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261214700100_create_category_density_functions.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WF-30, PC-57 (1): committed relay_fn category functions are dropped for their new signature with the density threshold as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261214900400_open_subscriber_event_waits.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WF-12: the committed relay_fn.waitpoint_open and relay_fn.waitpoint_event_offer are replaced as their owner, relay_owner, which relay_migrator may SET but does not inherit, so a subscriber's event wait can carry its second-stage condition; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261214900500_erase_subscriber_event_waits.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WF-12, OP-24: the committed relay_fn.subject_erase is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit, so the event waits of an erased subscriber are cancelled and cleared like an agent's; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261216100000_create_inbox_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "IN-44, OP-9: the no-delete triggers reject TRUNCATE on inbox items, their partitions, their delivery links and the counters"
+  },
+  {
+    "path": "priv/repo/migrations/20261216500000_create_inbox_operation_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "IN-44, OP-9: the no-delete triggers reject TRUNCATE on inbox announcements, their recipient states, the read marks and the bulk operations"
+  },
+  {
+    "path": "priv/repo/migrations/20261216100200_allow_inbox_render_failure.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "IN-49, TP-41: the committed relay_fn.delivery_render_fail is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit, so an inbox item over the published limits fails its delivery with inbox_item_too_large; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261216400200_match_waitpoints_by_correlation_digest.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "AG-65: committed waitpoint and mailbox relay_fn functions are dropped for their new signature over correlation digests as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261217100000_create_webhook_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "WH-30, OP-9: the no-delete triggers reject TRUNCATE on the webhook consumers, event types, endpoints, keys, events, messages, batches and the operations contacts"
+  },
+  {
+    "path": "priv/repo/migrations/20261217700000_allow_webhook_destination_secrets.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WH-19, TN-26: a committed relay_fn function is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261217800000_announce_audit_records.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WH-67: a committed relay_fn function is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261217800000_announce_audit_records.exs",
+    "rule": "tenant_context",
+    "match": "current_setting('relay.audit_head', true)",
+    "reason": "WH-67: the marker says whether this transaction already holds the sequence lock of an audit target, and it is unset in a transaction that holds none; it is not the tenant context"
+  },
+  {
+    "path": "priv/repo/migrations/20261217900000_create_webhook_sources.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "WH-68, OP-9: the no-delete trigger rejects TRUNCATE on the webhook sources"
+  },
+  {
+    "path": "priv/repo/migrations/20261218000000_create_waitpoint_completions.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "WH-68, OP-9: the no-delete trigger rejects TRUNCATE on the waitpoint completions"
   }
 ]

@@ -1,6 +1,6 @@
 defmodule Relay.Access.EventStore do
   @moduledoc """
-  Data access of the Access event receipts (`relay.access_event_receipts`, S-69). A receipt and the job that processes it commit in one transaction before the delivery is acknowledged; a repeated event identifier (the SET `jti`, E-94) is a duplicate and queues nothing. Receipts are installation records, reached through `relay_ops` escape hatches.
+  Data access of the Access event receipts (`relay.access_event_receipts`, S-69). The acceptance rules are those of an inbound provider webhook (WH-51, WH-49): a receipt and the job that processes it commit in one transaction before the delivery is acknowledged, processing runs from the queue, and a repeated event identifier (the SET `jti`, E-94) is a duplicate that is counted on its receipt and queues nothing. Receipts are installation records, reached through `relay_ops` escape hatches.
   """
 
   alias Relay.Repo
@@ -13,12 +13,16 @@ defmodule Relay.Access.EventStore do
           event_type: String.t(),
           access_tenant_id: String.t() | nil,
           payload: map(),
-          state: String.t()
+          state: String.t(),
+          duplicate_count: non_neg_integer()
         }
 
   # E-36
   # T-56
-  @doc "Records a receipt and, when it is new, queues `job` (built from the receipt identifier) in the same transaction."
+  # WH-51
+  # WH-49 (1)
+  # WH-49 (3)
+  @doc "Records a receipt and, when it is new, queues `job` (built from the receipt identifier) in the same transaction; a repeated event identifier is counted on its receipt."
   @spec record(map(), (Relay.Id.t() -> Ecto.Changeset.t())) ::
           {:ok, :recorded | :duplicate} | {:error, term()}
   def record(attrs, job) do
@@ -60,7 +64,8 @@ defmodule Relay.Access.EventStore do
           event_type: row["event_type"],
           access_tenant_id: row["access_tenant_id"],
           payload: row["payload"],
-          state: row["state"]
+          state: row["state"],
+          duplicate_count: row["duplicate_count"]
         }
 
       [] ->

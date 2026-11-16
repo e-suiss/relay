@@ -538,6 +538,23 @@ defmodule Relay.Policy.EngineTest do
       end
     end
 
+    test "WF-39: an expired security notification with on_expire inbox_only keeps only its inbox delivery" do
+      security = [message_class: :security, expires_at: Fixture.now(), on_expire: :inbox_only]
+
+      assert {:send, _} =
+               evaluate(channel: :in_app, notification: security, category: [locked: true])
+
+      for channel <- [:email, :push, :sms] do
+        assert {:expire, "expiry.expires_at", _} =
+                 evaluate(channel: channel, notification: security, category: [locked: true])
+      end
+
+      drop = Keyword.put(security, :on_expire, :drop)
+
+      assert {:expire, "expiry.expires_at", _} =
+               evaluate(channel: :in_app, notification: drop, category: [locked: true])
+    end
+
     test "PC-58 (5): the weekly availability schedule defers to the next available start" do
       assert {:defer, :schedule, "schedule.deferred", until, _} =
                evaluate(

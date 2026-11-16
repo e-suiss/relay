@@ -1,0 +1,11 @@
+{
+  "objective": 0.99,
+  "types": [
+    {"type": "accept", "latency_ms": 500, "reductions": 2000000, "operations": ["createEvent", "createEventBatch"]},
+    {"type": "inbound", "latency_ms": 500, "reductions": 1000000, "paths": ["inbound", "v1/access"]},
+    {"type": "health", "latency_ms": 50, "reductions": 100000, "paths": ["livez", "readyz"]},
+    {"type": "link", "latency_ms": 300, "reductions": 500000, "paths": ["links"]},
+    {"type": "read", "latency_ms": 300, "reductions": 1000000, "methods": ["GET", "HEAD"]},
+    {"type": "write", "latency_ms": 1000, "reductions": 2000000, "methods": ["POST", "PUT", "PATCH", "DELETE"]}
+  ]
+}

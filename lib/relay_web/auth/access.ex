@@ -38,13 +38,19 @@ defmodule RelayWeb.Auth.Access do
   end
 
   # E-25
-  @doc "The audience of Relay's own subscriber token on this region."
-  @spec audience(:subscriber) :: String.t()
+  @doc "The audience of Relay's own subscriber token or webhook portal token on this region."
+  @spec audience(:subscriber | :portal) :: String.t()
   def audience(:subscriber), do: Response.base_url() <> "/v1/subscriber"
+  def audience(:portal), do: Response.base_url() <> "/v1/portal"
 
   # E-24
   # TN-25
   @doc "The issuer and audience of the subscriber token."
   @spec subscriber_audiences() :: %{issuer: String.t(), audience: String.t()}
   def subscriber_audiences, do: %{issuer: Response.base_url(), audience: audience(:subscriber)}
+
+  # WH-47
+  @doc "The issuer and audience of the webhook portal token."
+  @spec portal_audiences() :: %{issuer: String.t(), audience: String.t()}
+  def portal_audiences, do: %{issuer: Response.base_url(), audience: audience(:portal)}
 end

@@ -16,6 +16,8 @@ config :relay, Relay.QueueRepo,
   database: "relay_dev",
   pool_size: 2
 
+config :relay, Relay.ReportRepo, username: "relay_report", password: "relay", pool_size: 2
+
 config :relay, RelayWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4000],
   check_origin: false,

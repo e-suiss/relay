@@ -10,7 +10,30 @@ channels:
   tenantWebhooks:
     address: null
     title: tenantWebhooks
-    description: "Tenant webhook endpoints and event destinations (use A). Endpoints subscribe to chosen types; an empty selection receives nothing. Delivery follows the shared Suiss webhook profile and is at least once."
+    description: "Relay's events as a tenant's webhook endpoints and event destinations receive them (use A). This channel is the definitive list of Relay's event names (WH-53): every tenant-facing event type written to the outbox is in it, and a type that is not is never delivered. Endpoints subscribe to chosen types; an empty selection receives nothing and * is an explicit choice of all (WH-16), except a type marked x-relay-explicit-only, which only an endpoint that names it receives (WH-67). Delivery is at least once: an event can arrive more than once and in any order, and the definite state is always read from the API (WH-3). A message is the CloudEvents 1.0 structured JSON envelope (WH-8): id is the event identifier and equals the webhook-id header, source is the installation issuer, type the event name, time when the event happened, subject the object it is about, dataschema the versioned schema of data (x-relay-schema-version of the message), and the extensions seq (monotonic per subject, so a consumer sees gaps and order, WH-20), traceparent and environment (live or test). Payloads are thin (WH-11): type, id and related identifiers, no personal data; details are read from the API with the identifiers, and an endpoint adds fields only through its snapshot allow-list, pinned to the endpoint version (WH-12). An HTTPS delivery follows the Suiss webhook profile, shared with Access and compatible with Standard Webhooks (x-relay-webhook-profile). Queue and stream destinations carry the same event in the structured or binary mode of their CloudEvents binding. Events of a tenant's own event types (use B) have the same envelope with the consumer's source and never carry Relay's tenant identifier."
+    x-relay-webhook-profile:
+      headers:
+        webhook-id: "The event identifier; the same on every attempt, resend, recovery and replay. The consumer deduplicates by it and keeps it for at least 96 hours, longer than the retry window."
+        webhook-timestamp: "Unix seconds of the attempt; every attempt has a new one. When the event happened is time in the body."
+        webhook-signature: "A space separated list of signatures. Each is v1a, and the base64 Ed25519 signature, or v1, and the base64 HMAC-SHA256, of the signed content. During a key rotation overlap there are two, the new key's first."
+      signed_content: "{webhook-id}.{webhook-timestamp}.{raw body}"
+      schemes:
+        v1a: "Ed25519, the default. The private key never leaves the key store; the public key is read from the endpoint (signing_keys) as whpk_ and the base64 of the 32 key bytes."
+        v1: "HMAC-SHA256 with the endpoint's whsec_ secret (the base64 after the prefix is the key), only for compatibility."
+      unsigned_headers:
+        webhook-event-type: "The event type, for routing before the body is parsed."
+        webhook-attempt: "The attempt number, from 1."
+      consumer_rules:
+        - "Verify the signature over the raw body as received; never over a body that was parsed and serialised again."
+        - "Compare signatures in constant time."
+        - "Refuse a webhook-timestamp more than five minutes from the local clock."
+        - "Keep webhook-id for at least 96 hours and drop an event that was already processed."
+        - "Base no security decision on an unsigned header; only the signed content is verified (WH-9)."
+        - "Delivery is at least once and in no guaranteed order: an event can arrive again, so process each webhook-id once, and read the definite state from the API (WH-3)."
+        - "During a key rotation overlap accept the message when any signature in webhook-signature verifies against any key you hold for the endpoint (WH-6)."
+        - "Answer 2xx once the event is stored. 410 disables the endpoint; the response header webhook-delivery: abort-message ends the retries of one message (WH-26). A redirect is never followed."
+      x-relay-choice: true
+      x-relay-choice-note: "WH-4, WH-6, WH-7 and WH-9 fix the headers, the signed content, the schemes and the consumer rules; the names of the unsigned convenience headers are chosen by the contract."
     messages:
       webhook.notification.suppressed:
         "$ref": "#/components/messages/webhook.notification.suppressed"
@@ -48,8 +71,30 @@ channels:
         "$ref": "#/components/messages/webhook.channel_adapter.deprecated"
       webhook.provider_account.settings_mismatched:
         "$ref": "#/components/messages/webhook.provider_account.settings_mismatched"
+      webhook.campaign.prepared:
+        "$ref": "#/components/messages/webhook.campaign.prepared"
+      webhook.campaign.paused:
+        "$ref": "#/components/messages/webhook.campaign.paused"
+      webhook.campaign.resumed:
+        "$ref": "#/components/messages/webhook.campaign.resumed"
+      webhook.campaign.expired:
+        "$ref": "#/components/messages/webhook.campaign.expired"
+      webhook.campaign.completed:
+        "$ref": "#/components/messages/webhook.campaign.completed"
+      webhook.campaign.partial:
+        "$ref": "#/components/messages/webhook.campaign.partial"
+      webhook.campaign.cancelled:
+        "$ref": "#/components/messages/webhook.campaign.cancelled"
+      webhook.email_reputation.warning:
+        "$ref": "#/components/messages/webhook.email_reputation.warning"
+      webhook.email_reputation.stopped:
+        "$ref": "#/components/messages/webhook.email_reputation.stopped"
+      webhook.email_reputation.resumed:
+        "$ref": "#/components/messages/webhook.email_reputation.resumed"
       webhook.webhook.attempt_exhausted:
         "$ref": "#/components/messages/webhook.webhook.attempt_exhausted"
+      webhook.webhook.window_exceeded:
+        "$ref": "#/components/messages/webhook.webhook.window_exceeded"
       webhook.webhook_endpoint.disabled:
         "$ref": "#/components/messages/webhook.webhook_endpoint.disabled"
       webhook.webhook_endpoint.recovered:
@@ -94,6 +139,26 @@ channels:
         "$ref": "#/components/messages/webhook.whatsapp_template.status_changed"
       webhook.whatsapp_tier.threshold_reached:
         "$ref": "#/components/messages/webhook.whatsapp_tier.threshold_reached"
+      webhook.email.bounced:
+        "$ref": "#/components/messages/webhook.email.bounced"
+      webhook.email.complained:
+        "$ref": "#/components/messages/webhook.email.complained"
+      webhook.consent.rejected:
+        "$ref": "#/components/messages/webhook.consent.rejected"
+      webhook.subscription.unsubscribed:
+        "$ref": "#/components/messages/webhook.subscription.unsubscribed"
+      webhook.sms.opted_out:
+        "$ref": "#/components/messages/webhook.sms.opted_out"
+      webhook.preference.changed:
+        "$ref": "#/components/messages/webhook.preference.changed"
+      webhook.export.completed:
+        "$ref": "#/components/messages/webhook.export.completed"
+      webhook.export.failed:
+        "$ref": "#/components/messages/webhook.export.failed"
+      webhook.webhook_endpoint.tested:
+        "$ref": "#/components/messages/webhook.webhook_endpoint.tested"
+      webhook.audit_record.appended:
+        "$ref": "#/components/messages/webhook.audit_record.appended"
   operations:
     address: null
     title: operations
@@ -101,6 +166,8 @@ channels:
     messages:
       webhook.webhook.attempt_exhausted:
         "$ref": "#/components/messages/webhook.webhook.attempt_exhausted"
+      webhook.webhook.window_exceeded:
+        "$ref": "#/components/messages/webhook.webhook.window_exceeded"
       webhook.webhook_endpoint.disabled:
         "$ref": "#/components/messages/webhook.webhook_endpoint.disabled"
       webhook.webhook_endpoint.recovered:
@@ -117,6 +184,12 @@ channels:
         "$ref": "#/components/messages/operations.provider.unknown_code"
       webhook.provider_account.settings_mismatched:
         "$ref": "#/components/messages/webhook.provider_account.settings_mismatched"
+      webhook.email_reputation.warning:
+        "$ref": "#/components/messages/webhook.email_reputation.warning"
+      webhook.email_reputation.stopped:
+        "$ref": "#/components/messages/webhook.email_reputation.stopped"
+      webhook.email_reputation.resumed:
+        "$ref": "#/components/messages/webhook.email_reputation.resumed"
       operations.push_priority.threshold_reached:
         "$ref": "#/components/messages/operations.push_priority.threshold_reached"
       webhook.quota.threshold_reached:
@@ -126,7 +199,13 @@ channels:
   inboxRealtime:
     address: "/v1/realtime"
     title: inboxRealtime
-    description: Subscriber inbox stream (later stage). Topic names, event names and the envelope are one set.
+    description: "The subscriber's inbox stream; topic names, event names and the envelope are one set (IN-26). It is carried equally by a Phoenix Channels WebSocket at /v1/realtime/websocket (the subscriber token as the channels client authToken, carried in Sec-WebSocket-Protocol; optional connect parameter device_id), by SSE at GET /v1/realtime/events (Last-Event-ID) and by long-poll at GET /v1/realtime/poll (IN-23). The only topic is inbox: the subscriber token decides what it carries and the topic names neither tenant nor subscriber; any other topic is refused (IN-32). The join parameter cursor resumes after the envelope id the client last saw. The WebSocket pushes each envelope with its type as the event name. The channel is read-only (IN-31): every client message is refused with reason read_only, except auth.refresh with {token}, a fresh subscriber token for the same subscriber that moves the connection's expiry. A browser handshake carries an Origin header, which must equal one of the allowed origins of the token's tenant environment; otherwise the handshake is refused with 403 realtime_origin_not_allowed, and a client that sends no Origin is not affected (IN-54). The server closes the WebSocket with 1008 and the reason auth_expired_token, auth_subscriber_suspended, auth_tenant_suspended, auth_invalid_token, realtime_origin_not_allowed or connection_limit (more than 10 connections of the subscriber close the oldest), and with 1013 and the reason retry-after=<1..5> when the node accepts no more new connections (IN-33, IN-52)."
+    x-relay-topics:
+      - inbox
+    x-relay-client-messages:
+      - auth.refresh
+    x-relay-choice: true
+    x-relay-choice-note: "The WebSocket path, the auth.refresh message, the close codes and reasons and the envelope id carrying the resume cursor are contract choices within IN-23, IN-26, IN-31 and IN-52."
     messages:
       realtime.inbox.item_created:
         "$ref": "#/components/messages/realtime.inbox.item_created"
@@ -175,6 +254,8 @@ channels:
         "$ref": "#/components/messages/audit.workflow.publication_requested"
       audit.workflow.promoted:
         "$ref": "#/components/messages/audit.workflow.promoted"
+      audit.workflow.manager_changed:
+        "$ref": "#/components/messages/audit.workflow.manager_changed"
       audit.event_type_mapping.changed:
         "$ref": "#/components/messages/audit.event_type_mapping.changed"
       audit.send_mode.changed:
@@ -203,6 +284,10 @@ channels:
         "$ref": "#/components/messages/audit.api_client.created"
       audit.api_client.updated:
         "$ref": "#/components/messages/audit.api_client.updated"
+      audit.api_client.registered:
+        "$ref": "#/components/messages/audit.api_client.registered"
+      audit.api_client.assigned:
+        "$ref": "#/components/messages/audit.api_client.assigned"
       audit.api_client.suspended:
         "$ref": "#/components/messages/audit.api_client.suspended"
       audit.api_client.reactivated:
@@ -273,16 +358,76 @@ channels:
         "$ref": "#/components/messages/audit.category.archived"
       audit.category_subtenant_setting.changed:
         "$ref": "#/components/messages/audit.category_subtenant_setting.changed"
+      audit.route.created:
+        "$ref": "#/components/messages/audit.route.created"
+      audit.route.replaced:
+        "$ref": "#/components/messages/audit.route.replaced"
+      audit.route.archived:
+        "$ref": "#/components/messages/audit.route.archived"
       audit.suppression.added:
         "$ref": "#/components/messages/audit.suppression.added"
       audit.suppression.lifted:
         "$ref": "#/components/messages/audit.suppression.lifted"
+      audit.email_reputation.closed:
+        "$ref": "#/components/messages/audit.email_reputation.closed"
       audit.test_recipient.added:
         "$ref": "#/components/messages/audit.test_recipient.added"
       audit.test_recipient.verified:
         "$ref": "#/components/messages/audit.test_recipient.verified"
       audit.test_recipient.removed:
         "$ref": "#/components/messages/audit.test_recipient.removed"
+      audit.webhook_consumer.created:
+        "$ref": "#/components/messages/audit.webhook_consumer.created"
+      audit.webhook_consumer.updated:
+        "$ref": "#/components/messages/audit.webhook_consumer.updated"
+      audit.webhook_consumer.archived:
+        "$ref": "#/components/messages/audit.webhook_consumer.archived"
+      audit.webhook_source.created:
+        "$ref": "#/components/messages/audit.webhook_source.created"
+      audit.webhook_source.archived:
+        "$ref": "#/components/messages/audit.webhook_source.archived"
+      audit.webhook_event_type.created:
+        "$ref": "#/components/messages/audit.webhook_event_type.created"
+      audit.webhook_event_type.version_added:
+        "$ref": "#/components/messages/audit.webhook_event_type.version_added"
+      audit.webhook_event_type.archived:
+        "$ref": "#/components/messages/audit.webhook_event_type.archived"
+      audit.webhook_endpoint.created:
+        "$ref": "#/components/messages/audit.webhook_endpoint.created"
+      audit.webhook_endpoint.updated:
+        "$ref": "#/components/messages/audit.webhook_endpoint.updated"
+      audit.webhook_endpoint.archived:
+        "$ref": "#/components/messages/audit.webhook_endpoint.archived"
+      audit.webhook_endpoint.key_rotated:
+        "$ref": "#/components/messages/audit.webhook_endpoint.key_rotated"
+      audit.webhook_endpoint.auto_disable_switched_off:
+        "$ref": "#/components/messages/audit.webhook_endpoint.auto_disable_switched_off"
+      audit.webhook_endpoint.messages_recovered:
+        "$ref": "#/components/messages/audit.webhook_endpoint.messages_recovered"
+      audit.webhook_endpoint.messages_retried:
+        "$ref": "#/components/messages/audit.webhook_endpoint.messages_retried"
+      audit.webhook_endpoint.events_replayed:
+        "$ref": "#/components/messages/audit.webhook_endpoint.events_replayed"
+      audit.webhook_endpoint.retries_cancelled:
+        "$ref": "#/components/messages/audit.webhook_endpoint.retries_cancelled"
+      audit.webhook_message.resent:
+        "$ref": "#/components/messages/audit.webhook_message.resent"
+      audit.webhook_message.cancelled:
+        "$ref": "#/components/messages/audit.webhook_message.cancelled"
+      audit.operations_contacts.replaced:
+        "$ref": "#/components/messages/audit.operations_contacts.replaced"
+      audit.topic.created:
+        "$ref": "#/components/messages/audit.topic.created"
+      audit.topic.archived:
+        "$ref": "#/components/messages/audit.topic.archived"
+      audit.topic.subscribed:
+        "$ref": "#/components/messages/audit.topic.subscribed"
+      audit.topic.unsubscribed:
+        "$ref": "#/components/messages/audit.topic.unsubscribed"
+      audit.inbox_announcement.published:
+        "$ref": "#/components/messages/audit.inbox_announcement.published"
+      audit.inbox_announcement.retracted:
+        "$ref": "#/components/messages/audit.inbox_announcement.retracted"
       audit.template.created:
         "$ref": "#/components/messages/audit.template.created"
       audit.template.updated:
@@ -343,6 +488,28 @@ channels:
         "$ref": "#/components/messages/audit.push_critical.used"
       audit.push_priority.threshold_reached:
         "$ref": "#/components/messages/audit.push_priority.threshold_reached"
+      audit.campaign.samples_approved:
+        "$ref": "#/components/messages/audit.campaign.samples_approved"
+      audit.campaign.audience_approved:
+        "$ref": "#/components/messages/audit.campaign.audience_approved"
+      audit.campaign.triggered:
+        "$ref": "#/components/messages/audit.campaign.triggered"
+      audit.campaign.resumed:
+        "$ref": "#/components/messages/audit.campaign.resumed"
+      audit.campaign.cancelled:
+        "$ref": "#/components/messages/audit.campaign.cancelled"
+      audit.export.downloaded:
+        "$ref": "#/components/messages/audit.export.downloaded"
+      audit.export.requested:
+        "$ref": "#/components/messages/audit.export.requested"
+      audit.provider_invoice.recorded:
+        "$ref": "#/components/messages/audit.provider_invoice.recorded"
+      audit.recurrence.cancelled:
+        "$ref": "#/components/messages/audit.recurrence.cancelled"
+      audit.recurrence.created:
+        "$ref": "#/components/messages/audit.recurrence.created"
+      audit.throttle.reset:
+        "$ref": "#/components/messages/audit.throttle.reset"
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
@@ -405,7 +572,18 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.messaging_installation.completed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.channel_adapter.deprecated"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.provider_account.settings_mismatched"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.prepared"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.paused"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.resumed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.expired"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.completed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.partial"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.campaign.cancelled"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.email_reputation.warning"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.email_reputation.stopped"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.email_reputation.resumed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook.attempt_exhausted"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook.window_exceeded"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.disabled"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.recovered"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.waitpoint.created"
@@ -428,12 +606,23 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_template.category_changed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_template.status_changed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_tier.threshold_reached"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.email.bounced"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.email.complained"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.consent.rejected"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.subscription.unsubscribed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.sms.opted_out"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.preference.changed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.export.completed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.export.failed"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.tested"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.audit_record.appended"
   sendOperations:
     action: send
     channel:
       "$ref": "#/channels/operations"
     messages:
       - "$ref": "#/channels/operations/messages/webhook.webhook.attempt_exhausted"
+      - "$ref": "#/channels/operations/messages/webhook.webhook.window_exceeded"
       - "$ref": "#/channels/operations/messages/webhook.webhook_endpoint.disabled"
       - "$ref": "#/channels/operations/messages/webhook.webhook_endpoint.recovered"
       - "$ref": "#/channels/operations/messages/operations.mailbox.abuse_reported"
@@ -442,6 +631,9 @@ operations:
       - "$ref": "#/channels/operations/messages/webhook.killswitch.auto_paused"
       - "$ref": "#/channels/operations/messages/operations.provider.unknown_code"
       - "$ref": "#/channels/operations/messages/webhook.provider_account.settings_mismatched"
+      - "$ref": "#/channels/operations/messages/webhook.email_reputation.warning"
+      - "$ref": "#/channels/operations/messages/webhook.email_reputation.stopped"
+      - "$ref": "#/channels/operations/messages/webhook.email_reputation.resumed"
       - "$ref": "#/channels/operations/messages/operations.push_priority.threshold_reached"
       - "$ref": "#/channels/operations/messages/webhook.quota.threshold_reached"
       - "$ref": "#/channels/operations/messages/webhook.quota.reserve_opened"
@@ -476,6 +668,7 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.workflow.drafted"
       - "$ref": "#/channels/auditLog/messages/audit.workflow.publication_requested"
       - "$ref": "#/channels/auditLog/messages/audit.workflow.promoted"
+      - "$ref": "#/channels/auditLog/messages/audit.workflow.manager_changed"
       - "$ref": "#/channels/auditLog/messages/audit.event_type_mapping.changed"
       - "$ref": "#/channels/auditLog/messages/audit.send_mode.changed"
       - "$ref": "#/channels/auditLog/messages/audit.quota_policy.changed"
@@ -490,6 +683,8 @@ operations:
       - "$ref": "#/channels/auditLog/messages/webhook.killswitch.auto_paused"
       - "$ref": "#/channels/auditLog/messages/audit.api_client.created"
       - "$ref": "#/channels/auditLog/messages/audit.api_client.updated"
+      - "$ref": "#/channels/auditLog/messages/audit.api_client.registered"
+      - "$ref": "#/channels/auditLog/messages/audit.api_client.assigned"
       - "$ref": "#/channels/auditLog/messages/audit.api_client.suspended"
       - "$ref": "#/channels/auditLog/messages/audit.api_client.reactivated"
       - "$ref": "#/channels/auditLog/messages/audit.api_client.revoked"
@@ -525,11 +720,41 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.category.lock_changed"
       - "$ref": "#/channels/auditLog/messages/audit.category.archived"
       - "$ref": "#/channels/auditLog/messages/audit.category_subtenant_setting.changed"
+      - "$ref": "#/channels/auditLog/messages/audit.route.created"
+      - "$ref": "#/channels/auditLog/messages/audit.route.replaced"
+      - "$ref": "#/channels/auditLog/messages/audit.route.archived"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.added"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.lifted"
+      - "$ref": "#/channels/auditLog/messages/audit.email_reputation.closed"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.added"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.verified"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.removed"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_consumer.created"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_consumer.updated"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_consumer.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_source.created"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_source.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_event_type.created"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_event_type.version_added"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_event_type.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.created"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.updated"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.key_rotated"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.auto_disable_switched_off"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.messages_recovered"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.messages_retried"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.events_replayed"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.retries_cancelled"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_message.resent"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_message.cancelled"
+      - "$ref": "#/channels/auditLog/messages/audit.operations_contacts.replaced"
+      - "$ref": "#/channels/auditLog/messages/audit.topic.created"
+      - "$ref": "#/channels/auditLog/messages/audit.topic.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.topic.subscribed"
+      - "$ref": "#/channels/auditLog/messages/audit.topic.unsubscribed"
+      - "$ref": "#/channels/auditLog/messages/audit.inbox_announcement.published"
+      - "$ref": "#/channels/auditLog/messages/audit.inbox_announcement.retracted"
       - "$ref": "#/channels/auditLog/messages/audit.template.created"
       - "$ref": "#/channels/auditLog/messages/audit.template.updated"
       - "$ref": "#/channels/auditLog/messages/audit.template.drafted"
@@ -560,6 +785,17 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.push_critical.changed"
       - "$ref": "#/channels/auditLog/messages/audit.push_critical.used"
       - "$ref": "#/channels/auditLog/messages/audit.push_priority.threshold_reached"
+      - "$ref": "#/channels/auditLog/messages/audit.provider_invoice.recorded"
+      - "$ref": "#/channels/auditLog/messages/audit.campaign.samples_approved"
+      - "$ref": "#/channels/auditLog/messages/audit.campaign.audience_approved"
+      - "$ref": "#/channels/auditLog/messages/audit.campaign.triggered"
+      - "$ref": "#/channels/auditLog/messages/audit.campaign.resumed"
+      - "$ref": "#/channels/auditLog/messages/audit.campaign.cancelled"
+      - "$ref": "#/channels/auditLog/messages/audit.export.requested"
+      - "$ref": "#/channels/auditLog/messages/audit.export.downloaded"
+      - "$ref": "#/channels/auditLog/messages/audit.recurrence.created"
+      - "$ref": "#/channels/auditLog/messages/audit.recurrence.cancelled"
+      - "$ref": "#/channels/auditLog/messages/audit.throttle.reset"
   receiveAccessInbound:
     action: receive
     channel:
@@ -586,6 +822,54 @@ operations:
       - "$ref": "#/channels/accessOutbound/messages/access.delivery.paused"
 components:
   schemas:
+    CampaignEventData:
+      type: object
+      description: "The thin payload of a campaign event: the campaign's identifier, state and counts."
+      required:
+        - campaign_id
+        - state
+      properties:
+        campaign_id:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum:
+            - draft
+            - preparing
+            - prepared
+            - running
+            - paused
+            - completed
+            - partial
+            - cancelled
+        audience_count:
+          type: integer
+          minimum: 0
+        expected_count:
+          type: integer
+          minimum: 1
+        accepted_count:
+          type: integer
+          minimum: 0
+        rejected_count:
+          type: integer
+          minimum: 0
+        expired_count:
+          type: integer
+          minimum: 0
+        cancelled_count:
+          type: integer
+          minimum: 0
+        pause_rule_id:
+          type:
+            - string
+            - "null"
+        close_rule_id:
+          type:
+            - string
+            - "null"
+      additionalProperties: false
     CloudEventEnvelope:
       type: object
       description: CloudEvents 1.0 structured envelope shared by Relay and Access (common Suiss webhook profile).
@@ -621,7 +905,7 @@ components:
           const: application/json
         dataschema:
           type: string
-          description: Versioned data schema URI of the event type.
+          description: "Versioned data schema URI of the event type: <source>/v1/event_schemas/<type>/<version>, the version being x-relay-schema-version of the message. A schema change opens a new version (WH-14)."
           format: uri
         seq:
           type: integer
@@ -642,7 +926,7 @@ components:
           maxLength: 256
         correlationid:
           type: string
-          description: "The sender's correlation_id; for waitpoint events the value of the creation request. Absent when none was given. Use A only."
+          description: "The sender's correlation_id; absent when none was given and on every waitpoint event, which never carries a correlation key (AG-65). Use A only."
           minLength: 1
           maxLength: 128
           pattern: "^[\\x20-\\x7E]+$"
@@ -695,7 +979,7 @@ components:
           maxProperties: 1
     RealtimeEnvelope:
       type: object
-      description: "Realtime envelope {t, v, ts, d}; every message carries counters."
+      description: "Realtime envelope {t, v, ts, d}; every message carries counters, and id, when present, is the opaque cursor right after the message (the SSE event id and the resume cursor of every transport). No tenant identifier is part of an envelope."
       required:
         - t
         - v
@@ -711,6 +995,9 @@ components:
           description: Schema version of the message type.
         ts:
           "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+        id:
+          type: string
+          maxLength: 512
         d:
           type: object
         counters:
@@ -778,6 +1065,385 @@ components:
             - type: "null"
       additionalProperties: false
   messages:
+    webhook.email.bounced:
+      name: email.bounced
+      title: email.bounced
+      summary: "An e-mail bounced (WH-15, WH-53): the receiving server refused it for good (permanent) or for now (transient). The address itself is not part of the event; the notification and the delivery are read from the API."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: email.bounced
+                data:
+                  type: object
+                  required:
+                    - notification_id
+                    - delivery_id
+                    - recipient_id
+                    - bounce_class
+                  properties:
+                    notification_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_ntf"
+                    delivery_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_dlv"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    bounce_class:
+                      type: string
+                      enum:
+                        - permanent
+                        - transient
+                        - undetermined
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                    bounced_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-53 names the event; the fields of its thin payload are chosen by the contract."
+    webhook.email.complained:
+      name: email.complained
+      title: email.complained
+      summary: "The recipient of an e-mail reported it as spam (WH-15, WH-53)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: email.complained
+                data:
+                  type: object
+                  required:
+                    - notification_id
+                    - delivery_id
+                    - recipient_id
+                  properties:
+                    notification_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_ntf"
+                    delivery_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_dlv"
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                    complained_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-53 names the event; the fields of its thin payload are chosen by the contract."
+    webhook.consent.rejected:
+      name: consent.rejected
+      title: consent.rejected
+      summary: "The national consent registry refused a commercial message for the recipient (WH-15, WH-53)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: consent.rejected
+                data:
+                  type: object
+                  required:
+                    - recipient_id
+                    - channel
+                    - rule_id
+                  properties:
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                    notification_id:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Id_ntf"
+                        - type: "null"
+                    delivery_id:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Id_dlv"
+                        - type: "null"
+                    rejected_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-53 names the event; the fields of its thin payload are chosen by the contract."
+    webhook.subscription.unsubscribed:
+      name: subscription.unsubscribed
+      title: subscription.unsubscribed
+      summary: "The recipient left a subscription through the one-click unsubscribe of a message (WH-15, WH-53)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: subscription.unsubscribed
+                data:
+                  type: object
+                  required:
+                    - recipient_id
+                    - channel
+                  properties:
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    category:
+                      oneOf:
+                        - type: string
+                          maxLength: 128
+                        - type: "null"
+                    notification_id:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Id_ntf"
+                        - type: "null"
+                    unsubscribed_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-53 names the event; the fields of its thin payload are chosen by the contract."
+    webhook.sms.opted_out:
+      name: sms.opted_out
+      title: sms.opted_out
+      summary: "The recipient answered an SMS with an opt-out keyword (WH-15, WH-53)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: sms.opted_out
+                data:
+                  type: object
+                  required:
+                    - recipient_id
+                  properties:
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    provider_account_id:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Id_pva"
+                        - type: "null"
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                    opted_out_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-53 names the event; the fields of its thin payload are chosen by the contract."
+    webhook.preference.changed:
+      name: preference.changed
+      title: preference.changed
+      summary: "A preference of the recipient changed (WH-15, WH-53). The event names what changed, not who the recipient is beyond its identifier."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: preference.changed
+                data:
+                  type: object
+                  required:
+                    - recipient_id
+                    - level
+                    - value
+                  properties:
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    level:
+                      "$ref": "../openapi/components/schemas.yaml#/PreferenceLevel"
+                    value:
+                      "$ref": "../openapi/components/schemas.yaml#/PreferenceValue"
+                    category:
+                      oneOf:
+                        - type: string
+                          maxLength: 128
+                        - type: "null"
+                    channel:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Channel"
+                        - type: "null"
+                    changed_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-53 names the event; the fields of its thin payload are chosen by the contract."
+    webhook.export.completed:
+      name: export.completed
+      title: export.completed
+      summary: "A raw data export finished and can be downloaded (WH-50, WH-53)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: export.completed
+                data:
+                  type: object
+                  required:
+                    - export_id
+                  properties:
+                    export_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_exp"
+                    expires_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-53 names the event; the fields of its thin payload are chosen by the contract."
+    webhook.export.failed:
+      name: export.failed
+      title: export.failed
+      summary: "A raw data export failed (WH-50, WH-53)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: export.failed
+                data:
+                  type: object
+                  required:
+                    - export_id
+                    - reason
+                  properties:
+                    export_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_exp"
+                    reason:
+                      type: string
+                      maxLength: 64
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-53 names the event; the fields of its thin payload are chosen by the contract."
+    webhook.webhook_endpoint.tested:
+      name: webhook_endpoint.tested
+      title: webhook_endpoint.tested
+      summary: "The test event of an endpoint (WH-45, WH-53): sent only to the endpoint it tests, whatever that endpoint subscribes to."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: webhook_endpoint.tested
+                data:
+                  type: object
+                  required:
+                    - endpoint_id
+                  properties:
+                    endpoint_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_whe"
+                    requested_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-53 names the event; the fields of its thin payload are chosen by the contract."
+    webhook.audit_record.appended:
+      name: audit_record.appended
+      title: audit_record.appended
+      summary: "A record was appended to the tenant's audit log (WH-67, E-65, TN-49). Delivered only to an endpoint that names this type: * does not cover it, and only a tenant administrator adds it, on the operator surface. A record of action audit_log.read, which records a reading of the audit log, is not announced, so a consumer that reads the log for every event starts no loop; the record stays in the audit log. An event without an endpoint that names the type is not kept and cannot be replayed to an endpoint that subscribes later. The record itself, with its actor and reason, is read from the audit API; where a copy at the destination differs from Relay's record, the copy is wrong."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: audit_record.appended
+                data:
+                  type: object
+                  required:
+                    - audit_record_id
+                    - action
+                    - actor_kind
+                  properties:
+                    audit_record_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_aud"
+                    action:
+                      "$ref": "../openapi/components/schemas.yaml#/EventName"
+                    actor_kind:
+                      type: string
+                      enum:
+                        - operator
+                        - installation_operator
+                        - api_client
+                        - access
+                        - system
+                    target_type:
+                      type: string
+                      maxLength: 64
+                    target_id:
+                      type: string
+                      maxLength: 128
+                  additionalProperties: false
+      x-relay-explicit-only: true
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-67 names the event and what it carries; the field names are chosen by the contract. The time of the record is the envelope's time. subject and the partition key are the target of the record, audit_target:<target type>:<target id> (audit_target_digest:<sha256> when the target does not fit a subject), and seq counts the records of that target (WH-20); a record without a target is its own subject, audit_record:<id>, and so is, rarely, a record whose target is being written by another transaction at the same moment. No sequence is kept for the whole tenant: order across targets comes from the record identifier, which is time ordered, and the time. x-relay-explicit-only marks a type that * does not cover."
     webhook.notification.suppressed:
       name: notification.suppressed
       title: notification.suppressed
@@ -842,7 +1508,10 @@ components:
                     metadata:
                       "$ref": "../openapi/components/schemas.yaml#/Metadata"
                   additionalProperties: false
+      x-relay-snapshot-only:
+        - metadata
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 4
     webhook.notification.render_failed:
       name: notification.render_failed
@@ -881,6 +1550,7 @@ components:
                         - render_timeout
                         - output_too_large
                         - schema_violation
+                        - inbox_item_too_large
                     recipient_id:
                       "$ref": "../openapi/components/schemas.yaml#/RecipientId"
                     workflow:
@@ -916,7 +1586,10 @@ components:
                     metadata:
                       "$ref": "../openapi/components/schemas.yaml#/Metadata"
                   additionalProperties: false
+      x-relay-snapshot-only:
+        - metadata
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 5
     webhook.notification.delivered:
       name: notification.delivered
@@ -977,6 +1650,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/ItemRef"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 7
     webhook.notification.failed:
       name: notification.failed
@@ -1030,6 +1704,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/ItemRef"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 7
     webhook.notification.expired:
       name: notification.expired
@@ -1083,6 +1758,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/ItemRef"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 7
     webhook.delivery.status_changed:
       name: delivery.status_changed
@@ -1158,6 +1834,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/ItemRef"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 7
     webhook.notification.seen:
       name: notification.seen
@@ -1213,6 +1890,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/ItemRef"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 7
     webhook.notification.read:
       name: notification.read
@@ -1268,6 +1946,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/ItemRef"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 7
     webhook.notification.clicked:
       name: notification.clicked
@@ -1327,6 +2006,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/ItemRef"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 7
     webhook.notification.archived:
       name: notification.archived
@@ -1382,6 +2062,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/ItemRef"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 7
     webhook.device.reassigned:
       name: device.reassigned
@@ -1415,6 +2096,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/RecipientId"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 6
     webhook.device.unregistered:
       name: device.unregistered
@@ -1449,6 +2131,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/RuleId"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 6
     webhook.address.disabled:
       name: address.disabled
@@ -1482,6 +2165,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/RuleId"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 6
     webhook.messaging_target.disabled:
       name: messaging_target.disabled
@@ -1514,6 +2198,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/RuleId"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 6
     webhook.messaging_interaction.received:
       name: messaging_interaction.received
@@ -1568,7 +2253,13 @@ components:
                     conversation_reference:
                       "$ref": "../openapi/components/schemas.yaml#/TeamsConversationReference"
                   additionalProperties: false
+      x-relay-snapshot-only:
+        - provider_user_id
+        - action
+        - text
+        - conversation_reference
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The spec records inbound interactions without naming the event; the name and payload are chosen by the contract (CH-62)."
@@ -1602,6 +2293,7 @@ components:
                       maxLength: 128
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The name and payload are chosen by the contract (CH-62)."
@@ -1642,9 +2334,154 @@ components:
                         - type: "null"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The spec asks for a tenant warning when a provider API is deprecated (CH-4) but names no event; the name and payload are chosen by the contract."
+    webhook.email_reputation.warning:
+      name: email_reputation.warning
+      title: email_reputation.warning
+      summary: "An e-mail sending domain of the tenant reached a warning threshold of its reputation circuit: the bounce rate over sent mail or the complaint rate over mail delivered to the inbox in the sliding window (CH-41, CH-37, CH-87)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: email_reputation.warning
+                data:
+                  type: object
+                  required:
+                    - domain
+                  properties:
+                    domain:
+                      type: string
+                      maxLength: 253
+                    rates:
+                      type: object
+                      properties:
+                        sent:
+                          type: integer
+                          minimum: 0
+                        delivered:
+                          type: integer
+                          minimum: 0
+                        bounces:
+                          type: integer
+                          minimum: 0
+                        complaints:
+                          type: integer
+                          minimum: 0
+                        bounce_bp:
+                          type: integer
+                          minimum: 0
+                        complaint_bp:
+                          type: integer
+                          minimum: 0
+                      additionalProperties: false
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 7
+      x-relay-also:
+        - operations
+    webhook.email_reputation.stopped:
+      name: email_reputation.stopped
+      title: email_reputation.stopped
+      summary: "An e-mail sending domain of the tenant reached a stop threshold on at least the minimum volume; its sends are deferred with email.reputation_stopped until a tenant administrator closes the circuit. The circuit never closes by itself (CH-41, CH-87)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: email_reputation.stopped
+                data:
+                  type: object
+                  required:
+                    - domain
+                  properties:
+                    domain:
+                      type: string
+                      maxLength: 253
+                    rates:
+                      type: object
+                      properties:
+                        sent:
+                          type: integer
+                          minimum: 0
+                        delivered:
+                          type: integer
+                          minimum: 0
+                        bounces:
+                          type: integer
+                          minimum: 0
+                        complaints:
+                          type: integer
+                          minimum: 0
+                        bounce_bp:
+                          type: integer
+                          minimum: 0
+                        complaint_bp:
+                          type: integer
+                          minimum: 0
+                      additionalProperties: false
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 7
+      x-relay-also:
+        - operations
+    webhook.email_reputation.resumed:
+      name: email_reputation.resumed
+      title: email_reputation.resumed
+      summary: "A tenant administrator closed the stopped reputation circuit of an e-mail sending domain with step-up; its deferred sends go out again (CH-41, CH-87)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: email_reputation.resumed
+                data:
+                  type: object
+                  required:
+                    - domain
+                  properties:
+                    domain:
+                      type: string
+                      maxLength: 253
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 7
+      x-relay-also:
+        - operations
+    audit.email_reputation.closed:
+      name: email_reputation.closed
+      title: email_reputation.closed
+      summary: "A tenant administrator closed the stopped reputation circuit of an e-mail sending domain with step-up (CH-41, CH-87)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: email_reputation
+      x-relay-surface: audit
+      x-relay-stage: 7
     webhook.provider_account.settings_mismatched:
       name: provider_account.settings_mismatched
       title: provider_account.settings_mismatched
@@ -1697,6 +2534,7 @@ components:
                         - type: "null"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 6
       x-relay-also:
         - operations
@@ -1734,9 +2572,44 @@ components:
                       minimum: 1
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 10
       x-relay-also:
         - operations
+    webhook.webhook.window_exceeded:
+      name: webhook.window_exceeded
+      title: webhook.window_exceeded
+      summary: "The window of a webhook delivery ended before its attempts could be made, because of the endpoint's rate limit, its backlog or its open circuit breaker; the message is in the dead letter queue (WH-28)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: webhook.window_exceeded
+                data:
+                  type: object
+                  required:
+                    - endpoint_id
+                    - event_id
+                  properties:
+                    endpoint_id:
+                      type: string
+                      maxLength: 64
+                    event_id:
+                      type: string
+                      maxLength: 512
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 10
+      x-relay-also:
+        - operations
+      x-relay-choice: true
+      x-relay-choice-note: "WH-28 asks for an alarm to the tenant when a message's window ends; the event name and its thin payload are chosen by the contract."
     webhook.webhook_endpoint.disabled:
       name: webhook_endpoint.disabled
       title: webhook_endpoint.disabled
@@ -1765,6 +2638,7 @@ components:
                       maxLength: 256
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 10
       x-relay-also:
         - operations
@@ -1792,6 +2666,7 @@ components:
                       maxLength: 64
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 10
       x-relay-also:
         - operations
@@ -1828,6 +2703,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/Timestamp"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 12
     webhook.waitpoint.resolved:
       name: waitpoint.resolved
@@ -1911,6 +2787,7 @@ components:
                       maxLength: 256
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 12
     webhook.waitpoint.expired:
       name: waitpoint.expired
@@ -1943,6 +2820,7 @@ components:
                         - event
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 12
     webhook.waitpoint.cancelled:
       name: waitpoint.cancelled
@@ -1978,6 +2856,7 @@ components:
                       maxLength: 256
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 12
     webhook.waitpoint.escalated:
       name: waitpoint.escalated
@@ -2013,6 +2892,7 @@ components:
                       minimum: 1
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 12
     webhook.waitpoint.stalled:
       name: waitpoint.stalled
@@ -2045,6 +2925,7 @@ components:
                         - event
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 12
     webhook.waitpoint.response_rejected:
       name: waitpoint.response_rejected
@@ -2079,6 +2960,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/RuleId"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 12
     webhook.agent.ceiling_exceeded:
       name: agent.ceiling_exceeded
@@ -2108,6 +2990,7 @@ components:
                       minimum: 1
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 12
     operations.mailbox.abuse_reported:
       name: mailbox.abuse_reported
@@ -2179,6 +3062,7 @@ components:
                       maxLength: 32
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 2
     webhook.mailbox.record_dead_lettered:
       name: mailbox.record_dead_lettered
@@ -2208,6 +3092,7 @@ components:
                       pattern: "^mbr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 2
     webhook.killswitch.engaged:
       name: killswitch.engaged
@@ -2273,6 +3158,7 @@ components:
                       maxLength: 2000
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 2
       x-relay-also:
         - operations
@@ -2341,6 +3227,7 @@ components:
                       maxLength: 2000
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 2
       x-relay-also:
         - operations
@@ -2409,6 +3296,7 @@ components:
                       maxLength: 2000
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 2
       x-relay-also:
         - operations
@@ -2539,6 +3427,7 @@ components:
                       type: integer
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 3
       x-relay-also:
         - operations
@@ -2576,6 +3465,7 @@ components:
                       type: integer
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 3
       x-relay-also:
         - operations
@@ -2605,6 +3495,9 @@ components:
                       type: object
                     state_version:
                       type: integer
+                    thin:
+                      type: boolean
+                      description: "The item's JSON is above x-relay-limits inbox.realtime_item_max_bytes; item holds only id, state_version, created_at, category and severity and the client reads the item (IN-27, IN-49)."
                   additionalProperties: false
       x-relay-surface: realtime
       x-relay-stage: 9
@@ -3385,6 +4278,22 @@ components:
                   const: workflow_version
       x-relay-surface: audit
       x-relay-stage: 3
+    audit.workflow.manager_changed:
+      name: workflow.manager_changed
+      title: workflow.manager_changed
+      summary: "The single manager of a workflow was changed between panel and code (WF-4)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: workflow
+      x-relay-surface: audit
+      x-relay-stage: 8
     audit.event_type_mapping.changed:
       name: event_type_mapping.changed
       title: event_type_mapping.changed
@@ -3810,6 +4719,42 @@ components:
                   const: api_client
       x-relay-surface: audit
       x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.api_client.registered:
+      name: api_client.registered
+      title: api_client.registered
+      summary: "An API client Access created was registered as pending, with no environment and no scopes (E-99)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: api_client
+      x-relay-surface: audit
+      x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.api_client.assigned:
+      name: api_client.assigned
+      title: api_client.assigned
+      summary: "A tenant administrator assigned a pending API client to an environment; the reason names the environment (E-99)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: api_client
+      x-relay-surface: audit
+      x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.api_client.updated:
@@ -4373,7 +5318,7 @@ components:
     access.tenant.created:
       name: tenant.created
       title: tenant.created
-      summary: "An Access tenant was created; Relay creates the mapped tenant (region must match the installation)."
+      summary: "An Access tenant was created; Relay opens the mapped tenant in the region its tenant snapshot names, with that region's default time zone and locale; while the snapshot cannot be read the event waits and is retried (E-95)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -4392,27 +5337,16 @@ components:
                     "urn:suiss:access:event:tenant.created":
                       type: object
                       required:
-                        - access_tenant_id
-                        - region
-                        - default_timezone
-                        - default_locale
+                        - tenant
+                        - placement
                       properties:
-                        access_tenant_id:
+                        tenant:
                           type: string
                           maxLength: 128
-                        region:
+                        placement:
                           type: string
-                          enum:
-                            - tr
-                            - eu
-                            - us
-                        default_timezone:
-                          "$ref": "../openapi/components/schemas.yaml#/TimeZone"
-                        default_locale:
-                          "$ref": "../openapi/components/schemas.yaml#/Locale"
-                        sector:
-                          type: string
-                          maxLength: 32
+                          description: "The Access placement of the tenant, a pool inside its region. Relay does not keep it: the region comes from the tenant snapshot (E-95)."
+                          pattern: "^[a-z0-9][a-z0-9-]{0,62}$"
                         platform_product:
                           type: string
                           description: "Set when the Access tenant is a Suiss product's own tenant; Relay creates it as that product's isolated platform tenant."
@@ -4422,6 +5356,9 @@ components:
                             - executor
                             - one
                             - pay
+                        at:
+                          type: integer
+                          minimum: 0
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4430,7 +5367,7 @@ components:
     access.organization.created:
       name: organization.created
       title: organization.created
-      summary: "An Access B2B organization was created; Relay creates the subtenant in both environments."
+      summary: "An Access organization was created; Relay records and acknowledges it but creates no subtenant until Access carries organization names and states (E-95)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -4449,19 +5386,18 @@ components:
                     "urn:suiss:access:event:organization.created":
                       type: object
                       required:
-                        - access_tenant_id
-                        - access_organization_id
-                        - name
+                        - tenant
+                        - organization
                       properties:
-                        access_tenant_id:
+                        tenant:
                           type: string
                           maxLength: 128
-                        access_organization_id:
+                        organization:
                           type: string
                           maxLength: 128
-                        name:
-                          type: string
-                          maxLength: 200
+                        at:
+                          type: integer
+                          minimum: 0
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4470,7 +5406,7 @@ components:
     access.organization.updated:
       name: organization.updated
       title: organization.updated
-      summary: An Access organization changed (name or state).
+      summary: "An Access organization changed; Relay records and acknowledges it without applying it (E-95)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -4489,23 +5425,18 @@ components:
                     "urn:suiss:access:event:organization.updated":
                       type: object
                       required:
-                        - access_tenant_id
-                        - access_organization_id
+                        - tenant
+                        - organization
                       properties:
-                        access_tenant_id:
+                        tenant:
                           type: string
                           maxLength: 128
-                        access_organization_id:
+                        organization:
                           type: string
                           maxLength: 128
-                        name:
-                          type: string
-                          maxLength: 200
-                        state:
-                          type: string
-                          enum:
-                            - active
-                            - archived
+                        at:
+                          type: integer
+                          minimum: 0
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4514,7 +5445,7 @@ components:
     access.api_client.created:
       name: api_client.created
       title: api_client.created
-      summary: An API client was created in Access.
+      summary: "An API client was created in Access; Relay registers it as pending, with no environment and no scopes, until a tenant administrator assigns them (E-99)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -4533,28 +5464,24 @@ components:
                     "urn:suiss:access:event:api_client.created":
                       type: object
                       required:
-                        - access_tenant_id
-                        - access_client_id
-                        - environment
-                        - scopes
+                        - tenant
+                        - client_id
                       properties:
-                        access_tenant_id:
+                        tenant:
                           type: string
                           maxLength: 128
-                        access_client_id:
+                        realm:
                           type: string
-                          maxLength: 256
-                        environment:
-                          "$ref": "../openapi/components/schemas.yaml#/Environment"
-                        access_organization_id:
-                          oneOf:
-                            - type: string
-                              maxLength: 128
-                            - type: "null"
-                        scopes:
-                          type: array
-                          items:
-                            "$ref": "../openapi/components/schemas.yaml#/ScopeName"
+                        client_id:
+                          type: string
+                          maxLength: 255
+                        exercise:
+                          type: string
+                        platform_product:
+                          type: string
+                        at:
+                          type: integer
+                          minimum: 0
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4563,7 +5490,7 @@ components:
     access.api_client.updated:
       name: api_client.updated
       title: api_client.updated
-      summary: "An API client's scopes changed in Access."
+      summary: "An API client changed in Access; nothing Relay keeps changes, so Relay records and acknowledges it (E-99)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -4582,20 +5509,24 @@ components:
                     "urn:suiss:access:event:api_client.updated":
                       type: object
                       required:
-                        - access_tenant_id
-                        - access_client_id
-                        - scopes
+                        - tenant
+                        - client_id
                       properties:
-                        access_tenant_id:
+                        tenant:
                           type: string
                           maxLength: 128
-                        access_client_id:
+                        realm:
                           type: string
-                          maxLength: 256
-                        scopes:
-                          type: array
-                          items:
-                            "$ref": "../openapi/components/schemas.yaml#/ScopeName"
+                        client_id:
+                          type: string
+                          maxLength: 255
+                        exercise:
+                          type: string
+                        platform_product:
+                          type: string
+                        at:
+                          type: integer
+                          minimum: 0
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -4921,6 +5852,60 @@ components:
       x-relay-stage: 4
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.route.created:
+      name: route.created
+      title: route.created
+      summary: "A named route was created with its tree."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: route
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.route.replaced:
+      name: route.replaced
+      title: route.replaced
+      summary: "The name or tree of a named route was replaced; the change applies to decisions made after it."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: route
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.route.archived:
+      name: route.archived
+      title: route.archived
+      summary: "A named route was archived; the row stays."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: route
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.category_subtenant_setting.changed:
       name: category_subtenant_setting.changed
       title: category_subtenant_setting.changed
@@ -5027,6 +6012,474 @@ components:
                   const: test_recipient
       x-relay-surface: audit
       x-relay-stage: 6
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.inbox_announcement.published:
+      name: inbox_announcement.published
+      title: inbox_announcement.published
+      summary: "An inbox announcement was published for its audience (IN-3)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: inbox_announcement
+      x-relay-surface: audit
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.inbox_announcement.retracted:
+      name: inbox_announcement.retracted
+      title: inbox_announcement.retracted
+      summary: "An inbox announcement was retracted (IN-16)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: inbox_announcement
+      x-relay-surface: audit
+      x-relay-stage: 9
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_source.created:
+      name: webhook_source.created
+      title: webhook_source.created
+      summary: "A completion source was registered (WH-68)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_source
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_source.archived:
+      name: webhook_source.archived
+      title: webhook_source.archived
+      summary: "A completion source was archived (WH-68)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_source
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_consumer.created:
+      name: webhook_consumer.created
+      title: webhook_consumer.created
+      summary: "A webhook consumer was created (WH-2)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_consumer
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_consumer.updated:
+      name: webhook_consumer.updated
+      title: webhook_consumer.updated
+      summary: "The name or event source of a webhook consumer changed."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_consumer
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_consumer.archived:
+      name: webhook_consumer.archived
+      title: webhook_consumer.archived
+      summary: "A webhook consumer was archived; it is kept."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_consumer
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_event_type.created:
+      name: webhook_event_type.created
+      title: webhook_event_type.created
+      summary: "A tenant event type was created with its first schema version (WH-14)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_event_type
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_event_type.version_added:
+      name: webhook_event_type.version_added
+      title: webhook_event_type.version_added
+      summary: "A schema version was added to a tenant event type (WH-14)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_event_type
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_event_type.archived:
+      name: webhook_event_type.archived
+      title: webhook_event_type.archived
+      summary: "A tenant event type was archived; it is kept."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_event_type
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_endpoint.created:
+      name: webhook_endpoint.created
+      title: webhook_endpoint.created
+      summary: "A webhook endpoint was added, by the API or the portal (WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_endpoint
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_endpoint.updated:
+      name: webhook_endpoint.updated
+      title: webhook_endpoint.updated
+      summary: "A webhook endpoint changed."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_endpoint
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_endpoint.archived:
+      name: webhook_endpoint.archived
+      title: webhook_endpoint.archived
+      summary: "A webhook endpoint was removed; it is kept as archived (WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_endpoint
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_endpoint.key_rotated:
+      name: webhook_endpoint.key_rotated
+      title: webhook_endpoint.key_rotated
+      summary: "The signing key of a webhook endpoint was rotated (WH-6, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_endpoint
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_endpoint.auto_disable_switched_off:
+      name: webhook_endpoint.auto_disable_switched_off
+      title: webhook_endpoint.auto_disable_switched_off
+      summary: "The automatic disable of a webhook endpoint was switched off (WH-36, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_endpoint
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_endpoint.messages_recovered:
+      name: webhook_endpoint.messages_recovered
+      title: webhook_endpoint.messages_recovered
+      summary: "The missed messages of a webhook endpoint were queued for recovery (WH-31, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_endpoint
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_endpoint.messages_retried:
+      name: webhook_endpoint.messages_retried
+      title: webhook_endpoint.messages_retried
+      summary: "Failed messages of a webhook endpoint were queued for a bulk retry (WH-31, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_endpoint
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_endpoint.events_replayed:
+      name: webhook_endpoint.events_replayed
+      title: webhook_endpoint.events_replayed
+      summary: "Past events were queued for replay to a webhook endpoint (WH-31, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_endpoint
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_endpoint.retries_cancelled:
+      name: webhook_endpoint.retries_cancelled
+      title: webhook_endpoint.retries_cancelled
+      summary: "The scheduled retries of a webhook endpoint were cancelled (WH-31, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_endpoint
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_message.resent:
+      name: webhook_message.resent
+      title: webhook_message.resent
+      summary: "A webhook message was sent again by hand (WH-31, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_message
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_message.cancelled:
+      name: webhook_message.cancelled
+      title: webhook_message.cancelled
+      summary: "A webhook message was cancelled (WH-31, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_message
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.operations_contacts.replaced:
+      name: operations_contacts.replaced
+      title: operations_contacts.replaced
+      summary: "The tenant's operations contact addresses were replaced (WH-56)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: operations_contacts
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.topic.created:
+      name: topic.created
+      title: topic.created
+      summary: "A topic was created (WF-51)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: topic
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.topic.archived:
+      name: topic.archived
+      title: topic.archived
+      summary: "A topic was archived; it and its subscriptions are kept."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: topic
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.topic.subscribed:
+      name: topic.subscribed
+      title: topic.subscribed
+      summary: "Subscribers were subscribed to a topic in one request."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: topic
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.topic.unsubscribed:
+      name: topic.unsubscribed
+      title: topic.unsubscribed
+      summary: "Subscribers were unsubscribed from a topic in one request; the subscriptions are kept as removed."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: topic
+      x-relay-surface: audit
+      x-relay-stage: 8
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.template.created:
@@ -5461,6 +6914,333 @@ components:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.provider_invoice.recorded:
+      name: provider_invoice.recorded
+      title: provider_invoice.recorded
+      summary: "A provider invoice was recorded for reconciliation with the usage records (OP-38, OP-42)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: provider_invoice
+      x-relay-surface: audit
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    webhook.campaign.prepared:
+      name: campaign.prepared
+      title: campaign.prepared
+      summary: "A campaign's preparation ended: its audience and workflow version are frozen and its preview and cost estimate are ready (WF-44, X-14)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.prepared
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    webhook.campaign.paused:
+      name: campaign.paused
+      title: campaign.paused
+      summary: "A running campaign paused: under its campaign kill switch, by its channel alarm (campaign.ramp_alarm), after a workflow version change (campaign.workflow_changed) or an exhausted quota (campaign.quota_exhausted); pause_rule_id names the rule (WF-62, TN-40)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.paused
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    webhook.campaign.resumed:
+      name: campaign.resumed
+      title: campaign.resumed
+      summary: "A paused campaign runs again: its kill switch was released or a tenant administrator resumed it (OP-47)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.resumed
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    webhook.campaign.expired:
+      name: campaign.expired
+      title: campaign.expired
+      summary: "A campaign reached its deadline with members left; they are counted in expired_count and are not sent (WF-34)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.expired
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    webhook.campaign.completed:
+      name: campaign.completed
+      title: campaign.completed
+      summary: "Every member of a campaign was accepted (T-23)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.completed
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    webhook.campaign.partial:
+      name: campaign.partial
+      title: campaign.partial
+      summary: "A campaign closed with members rejected or expired at the deadline (T-23)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.partial
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    webhook.campaign.cancelled:
+      name: campaign.cancelled
+      title: campaign.cancelled
+      summary: "A campaign was cancelled; the members not yet sent are counted in cancelled_count (WF-44)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: campaign.cancelled
+                data:
+                  "$ref": "#/components/schemas/CampaignEventData"
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Campaign event names and payload chosen by the contract within the campaign family (WF-34, T-23).
+    audit.campaign.samples_approved:
+      name: campaign.samples_approved
+      title: campaign.samples_approved
+      summary: "The sample renders of a campaign were approved by their digest (WF-62)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: campaign
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.campaign.audience_approved:
+      name: campaign.audience_approved
+      title: campaign.audience_approved
+      summary: "A tenant administrator approved a campaign audience above 1.5 times its expected count (WF-62, OP-37)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: campaign
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.campaign.triggered:
+      name: campaign.triggered
+      title: campaign.triggered
+      summary: "A campaign was triggered (WF-44)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: campaign
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.campaign.resumed:
+      name: campaign.resumed
+      title: campaign.resumed
+      summary: "A paused campaign was resumed; the reason says by whom and why (OP-47)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: campaign
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.campaign.cancelled:
+      name: campaign.cancelled
+      title: campaign.cancelled
+      summary: "A campaign was cancelled; the reason is the caller's (WF-44)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: campaign
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.export.requested:
+      name: export.requested
+      title: export.requested
+      summary: "A raw data export was requested (DS-37)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: export
+      x-relay-surface: audit
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.recurrence.created:
+      name: recurrence.created
+      title: recurrence.created
+      summary: "A recurrence rule was defined (WF-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: recurrence
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.recurrence.cancelled:
+      name: recurrence.cancelled
+      title: recurrence.cancelled
+      summary: "A recurrence rule was cancelled, by request or because its subscriber was erased (WF-49, OP-24); the reason is request or subject_erasure."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: recurrence
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.export.downloaded:
+      name: export.downloaded
+      title: export.downloaded
+      summary: "A raw data export was downloaded through its signed link (DS-37)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: export
+      x-relay-surface: audit
+      x-relay-stage: 7
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.push_critical.changed:
       name: push_critical.changed
       title: push_critical.changed
@@ -5694,6 +7474,7 @@ components:
                         - type: "null"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "CH-57 subscribes to account_update and names violation_type; the event name and the other fields are chosen by the contract."
@@ -5730,6 +7511,7 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/Timestamp"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "CH-61 models the throughput upgrade as an event; the event name and fields are chosen by the contract."
@@ -5788,6 +7570,7 @@ components:
                         - marketing
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "CH-57 sends the category drift to the tenant; the event name and fields are chosen by the contract."
@@ -5850,6 +7633,7 @@ components:
                         - type: "null"
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The spec sends this event but names neither the event nor its fields."
@@ -5890,22 +7674,54 @@ components:
                       maximum: 100
                   additionalProperties: false
       x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "CH-61 warns the tenant at 90 percent of the tier; the event name and fields are chosen by the contract."
+    audit.throttle.reset:
+      name: throttle.reset
+      title: throttle.reset
+      summary: "An active throttle counter was reset through the API (WF-32, API-69)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: throttle
+      x-relay-surface: audit
+      x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
 x-relay-event-names:
   - address.disabled
   - agent.ceiling_exceeded
+  - api_client.assigned
   - api_client.created
   - api_client.disabled
   - api_client.reactivated
+  - api_client.registered
   - api_client.revoked
   - api_client.suspended
   - api_client.updated
   - api_version.pinned
   - audit_log.read
+  - audit_record.appended
   - blind_index_key.registered
   - blind_index_key.rotation_started
+  - campaign.audience_approved
+  - campaign.cancelled
+  - campaign.completed
+  - campaign.expired
+  - campaign.partial
+  - campaign.paused
+  - campaign.prepared
+  - campaign.resumed
+  - campaign.samples_approved
+  - campaign.triggered
   - category.archived
   - category.created
   - category.lock_changed
@@ -5914,6 +7730,7 @@ x-relay-event-names:
   - channel_adapter.deprecated
   - channel_identity.changed
   - channel_identity.retired
+  - consent.rejected
   - consent.updated
   - cross_tenant.queried
   - dataset.activated
@@ -5925,12 +7742,24 @@ x-relay-event-names:
   - delivery.status_changed
   - device.reassigned
   - device.unregistered
+  - email.bounced
+  - email.complained
+  - email_reputation.closed
+  - email_reputation.resumed
+  - email_reputation.stopped
+  - email_reputation.warning
   - event_type_mapping.changed
+  - export.completed
+  - export.downloaded
+  - export.failed
+  - export.requested
   - fanout.cancelled
   - inbox.counters_changed
   - inbox.item_created
   - inbox.item_updated
   - inbox.items_bulk_updated
+  - inbox_announcement.published
+  - inbox_announcement.retracted
   - killswitch.auto_paused
   - killswitch.bulk_cancelled
   - killswitch.engaged
@@ -5959,6 +7788,7 @@ x-relay-event-names:
   - notification.render_failed
   - notification.seen
   - notification.suppressed
+  - operations_contacts.replaced
   - operator_session.revoked
   - organization.created
   - organization.updated
@@ -5969,20 +7799,27 @@ x-relay-event-names:
   - partial.rolled_back
   - partition_policy.updated
   - pii.revealed
+  - preference.changed
   - provider.unknown_code
   - provider_account.archived
   - provider_account.changed
   - provider_account.credential_rotated
   - provider_account.settings_mismatched
   - provider_account.verified
+  - provider_invoice.recorded
   - push_critical.changed
   - push_critical.used
   - push_priority.threshold_reached
   - quota.reserve_opened
   - quota.threshold_reached
   - quota_policy.changed
+  - recurrence.cancelled
+  - recurrence.created
   - role_assignment.created
   - role_assignment.revoked
+  - route.archived
+  - route.created
+  - route.replaced
   - secret_ref.registered
   - secret_ref.retired
   - send_mode.changed
@@ -5991,12 +7828,14 @@ x-relay-event-names:
   - sender_identity.resumed
   - sender_identity.suspended
   - setting.changed
+  - sms.opted_out
   - stream.resync_required
   - subject.erased
   - subject_key.retired
   - subscriber.deletion_requested
   - subscriber.resumed
   - subscriber.suspended
+  - subscription.unsubscribed
   - subtenant.archived
   - subtenant.created
   - subtenant.updated
@@ -6022,6 +7861,11 @@ x-relay-event-names:
   - test_recipient.added
   - test_recipient.removed
   - test_recipient.verified
+  - throttle.reset
+  - topic.archived
+  - topic.created
+  - topic.subscribed
+  - topic.unsubscribed
   - user.deleted
   - user.reactivated
   - user.suspended
@@ -6034,8 +7878,29 @@ x-relay-event-names:
   - waitpoint.response_rejected
   - waitpoint.stalled
   - webhook.attempt_exhausted
+  - webhook.window_exceeded
+  - webhook_consumer.archived
+  - webhook_consumer.created
+  - webhook_consumer.updated
+  - webhook_endpoint.archived
+  - webhook_endpoint.auto_disable_switched_off
+  - webhook_endpoint.created
   - webhook_endpoint.disabled
+  - webhook_endpoint.events_replayed
+  - webhook_endpoint.key_rotated
+  - webhook_endpoint.messages_recovered
+  - webhook_endpoint.messages_retried
   - webhook_endpoint.recovered
+  - webhook_endpoint.retries_cancelled
+  - webhook_endpoint.tested
+  - webhook_endpoint.updated
+  - webhook_event_type.archived
+  - webhook_event_type.created
+  - webhook_event_type.version_added
+  - webhook_message.cancelled
+  - webhook_message.resent
+  - webhook_source.archived
+  - webhook_source.created
   - whatsapp_account.updated
   - whatsapp_number.paused
   - whatsapp_template.category_changed
@@ -6043,6 +7908,7 @@ x-relay-event-names:
   - whatsapp_tier.threshold_reached
   - workflow.created
   - workflow.drafted
+  - workflow.manager_changed
   - workflow.promoted
   - workflow.publication_requested
   - workflow.published

@@ -1,0 +1,220 @@
+defmodule Relay.Channels.Live.EmailEvents do
+  @moduledoc """
+  The intake of verified provider e-mail events (CH-39, CH-40, CH-47, DS-10). A webhook handler or the SES queue reader verifies the request or the SNS envelope first and passes the parsed events here (`Relay.Channels.email_events/2`). Each event of a known delivery is classified and planned (`Relay.Channels.email_event_plan/3`, against the active `email_bounce_codes` version) and recorded through the channel step's entry point, `Relay.Channels.Live.Events.record/2` (or, from the delivery report batcher, `record_many/2`), with its evidence code and the provider code `event:<code>`, so the ledger, the projection and the unknown code alarm follow the declared evidence rows (CH-8).
+
+  A hard bounce and a complaint suppress the recipient's address at once and without end, in the tenant's own suppression list (CH-40, PC-59); a `sender_config` result never suppresses (CH-39) and is reported as `[:relay, :channels, :email, :sender_config]` telemetry with the provider. A bounce the provider reports as one and a complaint are announced to the tenant as `email.bounced` (with the class `permanent` for a hard, policy or content bounce, `transient` for a soft one and `undetermined` otherwise) and `email.complained`, in the transaction that writes the ledger entry (WH-15, WH-53); the event names the notification, the delivery and the recipient and never the address (WH-11). A soft bounce is recorded but not yet counted toward a timed suppression, and the reputation counters are reported as `[:relay, :channels, :email, :reputation]` telemetry and counted in the sending domain's reputation circuit by the domain the delivery was sent from (`Relay.EmailReputation`, CH-87); the soft bounce count needs the per-address state the circuit does not keep. An event that names no delivery, or a delivery Relay does not know, is skipped.
+
+  A provider repeats its events, and the same event can also arrive through the provider's webhook or event queue (`Relay.Channels.Live.Receipts`). Every event recorded here therefore takes the same durable receipt first (WH-49 (3), INV-12): `(tenant, environment, provider, provider event id)`, keyed exactly as the receipt path keys it. A repeat is counted on its receipt and skipped, so it reaches neither the ledger nor the outbox a second time; the receipt becomes `processed` with its ledger entry, in the ledger's transaction, and a receipt left `received` by an attempt that did not finish is taken up again.
+  """
+
+  alias Relay.Channels.Live.Events
+  alias Relay.Channels.Live.Receipts
+  alias Relay.Channels.Live.Store
+  alias Relay.Scope
+
+  @type outcome :: {:recorded, atom(), [term()]} | {:skipped, skip()} | {:error, term()}
+  @type skip ::
+          :no_delivery | :delivery_not_found | :unknown_event | :no_classification | :duplicate
+
+  # CH-39
+  # CH-40
+  # CH-47
+  # DS-10
+  # WH-49 (3)
+  # INV-12
+  @doc "Records the events of one verified provider payload in `scope` and applies their suppressions; returns one outcome per event. An event the provider already reported, here or through its webhook or event queue, is `{:skipped, :duplicate}`: it is counted on its receipt and neither recorded nor announced again."
+  @spec ingest(Scope.t(), [map()]) ::
+          {:ok, [outcome()]} | {:error, term()}
+  def ingest(%Scope{} = scope, events) when is_list(events) do
+    with {:ok, declarations} <- Relay.Datasets.channel_declarations(),
+         {:ok, table} <- table() do
+      {:ok, Enum.map(events, &one(scope, declarations, table, &1))}
+    end
+  end
+
+  # CH-39
+  @doc "The content of the active `email_bounce_codes` version."
+  @spec table() :: {:ok, map()} | {:error, term()}
+  def table do
+    case Relay.Datasets.decide(Relay.Datasets.installation_scope(), "email_bounce_codes", & &1) do
+      {:ok, {table, _ref}} -> {:ok, table}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # CH-39
+  # CH-47
+  # DS-10
+  @doc "Classifies and plans one e-mail event: the provider event to record with its evidence code and the provider code `event:<code>`, and the actions that follow once it is recorded; an event without a delivery or a classification is skipped."
+  @spec prepare(Relay.ChannelDeclarations.t(), map(), map()) ::
+          {:ok, Events.event(), [term()]} | {:skipped, :no_delivery | :no_classification}
+  def prepare(_declarations, _table, %{delivery_id: nil}), do: {:skipped, :no_delivery}
+
+  def prepare(declarations, table, event) do
+    case Relay.Channels.email_event_plan(declarations, event, table) do
+      {_result, []} -> {:skipped, :no_classification}
+      {result, actions} -> {:ok, announced(fields(event, actions), event, result), actions}
+    end
+  end
+
+  # WH-15
+  # WH-53
+  # WH-11
+  defp announced(fields, %{type: :bounced}, %{kind: kind}) do
+    data = %{"bounce_class" => bounce_class(kind), "bounced_at" => time(fields)}
+    Map.put(fields, :announce, {"email.bounced", data})
+  end
+
+  defp announced(fields, %{type: :complained}, _result),
+    do: Map.put(fields, :announce, {"email.complained", %{"complained_at" => time(fields)}})
+
+  defp announced(fields, _event, _result), do: fields
+
+  defp bounce_class(kind) when kind in [:hard, :policy, :content], do: "permanent"
+  defp bounce_class(:soft), do: "transient"
+  defp bounce_class(_kind), do: "undetermined"
+
+  defp time(%{occurred_at: %DateTime{} = at}), do: DateTime.to_iso8601(at)
+  defp time(_fields), do: nil
+
+  defp one(scope, declarations, table, event) do
+    case prepare(declarations, table, event) do
+      {:ok, fields, actions} -> record(scope, event, fields, actions)
+      {:skipped, reason} -> {:skipped, reason}
+    end
+  end
+
+  defp fields(event, actions) do
+    code = Enum.find_value(actions, fn action -> evidence(action) end)
+
+    fields = %{
+      delivery_id: event.delivery_id,
+      provider: event.provider,
+      channel: "email",
+      event_code: code,
+      actor: :provider_webhook,
+      raw_code: raw_code(code, event),
+      detail: detail(event)
+    }
+
+    if event.occurred_at, do: Map.put(fields, :occurred_at, event.occurred_at), else: fields
+  end
+
+  defp record(scope, event, fields, actions) do
+    case receipt(scope, event) do
+      {:ok, receipt_id} -> write(scope, event, Map.put(fields, :receipt_id, receipt_id), actions)
+      :duplicate -> {:skipped, :duplicate}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # WH-49 (3)
+  # INV-12
+  defp receipt(scope, event) do
+    key = Receipts.event_key({:email, event})
+
+    receipt = %{
+      id: Relay.Id.generate(),
+      provider: event.provider,
+      provider_event_id: key,
+      body_digest: :crypto.hash(:sha256, key)
+    }
+
+    case Relay.Webhooks.record_receipt(scope, receipt) do
+      {:ok, {:recorded, id}} -> {:ok, id}
+      {:ok, {:duplicate, id}} -> unfinished(scope, id)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp unfinished(scope, receipt_id) do
+    case Store.in_scope(scope, fn _status -> Relay.Webhooks.receipt(receipt_id) end) do
+      {:ok, %{"state" => "received"}} -> {:ok, receipt_id}
+      {:ok, _final} -> :duplicate
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp write(scope, event, fields, actions) do
+    case Events.record(scope, fields) do
+      {:ok, %{result: :duplicate_ignored}} ->
+        {:skipped, :duplicate}
+
+      {:ok, recorded} ->
+        apply_actions(scope, event, actions)
+        {:recorded, recorded.result, actions}
+
+      {:error, reason} when reason in [:delivery_not_found, :unknown_event] ->
+        {:skipped, reason}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  # CH-40
+  # CH-39
+  # CH-41
+  @doc "Applies the actions of a recorded e-mail event: a suppression, the sender configuration and the reputation telemetry."
+  @spec apply_actions(Scope.t(), map(), [term()]) :: :ok
+  def apply_actions(%Scope{} = scope, event, actions) do
+    Enum.each(actions, &apply_action(scope, event, &1))
+  end
+
+  defp evidence({:evidence, code}), do: code
+  defp evidence(_action), do: nil
+
+  defp raw_code("delivered", _event), do: nil
+  defp raw_code(_code, event), do: String.slice("event:" <> event.code, 0, 128)
+
+  defp detail(event) do
+    %{"status" => event.status, "provider_message_id" => event.provider_message_id}
+    |> Map.reject(fn {_key, value} -> is_nil(value) end)
+  end
+
+  # CH-40
+  # PC-59
+  defp apply_action(scope, %{recipient: recipient} = event, {:suppress, reason, nil})
+       when recipient != nil do
+    address = Relay.Redacted.expose(recipient)
+
+    with {:ok, digests} <- Relay.Preferences.address_digests(scope, "email", address) do
+      attrs = %{channel: "email", digests: digests, reason: reason, expires_at: nil}
+      actor = provider_actor(event)
+
+      Relay.Preferences.in_scope(scope, fn _status ->
+        Relay.Preferences.add_suppression(scope, attrs, actor)
+      end)
+    end
+  end
+
+  # CH-39
+  defp apply_action(_scope, event, {:sender_config, rule}) do
+    :telemetry.execute([:relay, :channels, :email, :sender_config], %{count: 1}, %{
+      provider: event.provider,
+      rule: rule
+    })
+  end
+
+  # CH-41
+  # CH-87
+  defp apply_action(scope, event, {:reputation, counter}) do
+    :telemetry.execute([:relay, :channels, :email, :reputation], %{count: 1}, %{
+      provider: event.provider,
+      counter: counter
+    })
+
+    case Relay.EmailReputation.domain_of(scope, event.delivery_id) do
+      {:ok, domain} when is_binary(domain) -> Relay.EmailReputation.count(scope, domain, counter)
+      _unknown -> :ok
+    end
+  end
+
+  defp apply_action(_scope, _event, _action), do: :ok
+
+  defp provider_actor(event) do
+    ref = "provider:" <> event.provider
+    {:ok, actor} = Relay.Actor.new(:system, ref, ref)
+    actor
+  end
+end

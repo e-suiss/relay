@@ -13569,7 +13569,7 @@ paths:
       tags:
         - agents
       summary: "Get a waitpoint"
-      description: "Returns the waitpoint, its state and, once resolved, the response with its value. The value is never in the thin waitpoint.resolved event; it is read here or from the waiter's mailbox."
+      description: "Returns the waitpoint, its state and, once resolved, the response with its value. The value is never in the thin waitpoint.resolved event; it is read here or from the waiter's mailbox. A waitpoint that a long-running job completion notification resolved carries completion, the outcome and the result of the job (WH-68), which no event carries either."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"

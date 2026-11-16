@@ -1,6 +1,7 @@
 defmodule RelayWeb.CompletionNotificationTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Repo
   alias Relay.Webhooks.Profile
   alias RelayTest.Api
   alias RelayTest.IngestFixture, as: F
@@ -112,6 +113,21 @@ defmodule RelayWeb.CompletionNotificationTest do
   end
 
   defp jobs(scope), do: F.jobs(@worker, scope, "receipt_id")
+
+  defp announced(scope, type) do
+    sql = "SELECT payload FROM relay.outbox_events WHERE event_type = $1"
+    {:ok, rows} = Repo.in_scope(scope, fn _status -> Repo.scoped_query!(sql, [type]).rows end)
+    rows
+  end
+
+  @doc false
+  def counted(_event, _measurements, metadata, pid), do: send(pid, {:completion, metadata.result})
+
+  defp count! do
+    id = "completion-" <> TenantFixture.random()
+    :ok = :telemetry.attach(id, [:relay, :webhooks, :completion], &__MODULE__.counted/4, self())
+    on_exit(fn -> :telemetry.detach(id) end)
+  end
 
   defp process(scope) do
     for [text] <- jobs(scope) do
@@ -342,6 +358,77 @@ defmodule RelayWeb.CompletionNotificationTest do
       assert deliver(scope, id, body, hmac(secret, "msg-1", at, body)).status == 200
       assert process(scope) == [:resolved]
       assert state(scope, waitpoint_id) == "resolved"
+    end
+  end
+
+  describe "WH-68 the outcome and the result of a completion" do
+    test "WH-68: the outcome and the result are read with the waitpoint and are in no event",
+         ctx do
+      source = source!(ctx)
+      waitpoint_id = waitpoint!(ctx.scope)
+
+      assert Relay.Webhooks.completion_result(ctx.scope, waitpoint_id) == {:ok, nil}
+      assert send!(ctx, source, notification(waitpoint_id)) == 200
+      assert Relay.Webhooks.completion_result(ctx.scope, waitpoint_id) == {:ok, nil}
+      assert process(ctx.scope) == [:resolved]
+
+      assert {:ok, completion} = Relay.Webhooks.completion_result(ctx.scope, waitpoint_id)
+      assert %{outcome: "completed", result: %{"rows" => 42}} = completion
+      assert %DateTime{} = completion.completed_at
+
+      assert {:ok, stored} = Relay.Agents.waitpoint_completion(ctx.scope, waitpoint_id)
+      assert is_binary(stored.result_ct)
+      refute stored.result_ct =~ "rows"
+      [[receipt]] = jobs(ctx.scope)
+      assert Relay.Id.to_string(stored.receipt_id) == receipt
+
+      assert [[resolved]] = announced(ctx.scope, "waitpoint.resolved")
+      assert %{"state" => "resolved"} = resolved
+      refute inspect(resolved) =~ "rows"
+      refute inspect(resolved) =~ "completed"
+    end
+
+    test "WH-68: a failed job without a result reads as failed with no result", ctx do
+      source = source!(ctx)
+      waitpoint_id = waitpoint!(ctx.scope)
+      data = %{"waitpoint_id" => reference(waitpoint_id)}
+      body = notification(waitpoint_id, %{"type" => "job.failed", "data" => data})
+
+      assert send!(ctx, source, body) == 200
+      assert process(ctx.scope) == [:resolved]
+
+      assert {:ok, %{outcome: "failed", result: nil}} =
+               Relay.Webhooks.completion_result(ctx.scope, waitpoint_id)
+    end
+
+    test "WH-68: a waitpoint that no completion resolved has no completion", ctx do
+      source = source!(ctx)
+      waitpoint_id = waitpoint!(ctx.scope)
+      {:ok, :resolved} = Relay.Agents.complete_waitpoint(ctx.scope, waitpoint_id)
+
+      assert send!(ctx, source, notification(waitpoint_id)) == 200
+      assert process(ctx.scope) == [:already_terminal]
+      assert Relay.Webhooks.completion_result(ctx.scope, waitpoint_id) == {:ok, nil}
+      assert Relay.Webhooks.completion_result(ctx.scope, Relay.Id.generate()) == {:ok, nil}
+    end
+
+    test "WH-68: a completion is counted by what became of its waitpoint", ctx do
+      count!()
+      source = source!(ctx)
+      waitpoint_id = waitpoint!(ctx.scope)
+
+      assert send!(ctx, source, notification(Relay.Id.generate())) == 200
+      assert process(ctx.scope) == [:not_found]
+      assert_received {:completion, :not_found}
+
+      assert send!(ctx, source, notification(waitpoint_id), "msg-2") == 200
+      assert process(ctx.scope) == [:skipped, :resolved]
+      assert_received {:completion, :resolved}
+
+      assert send!(ctx, source, notification(waitpoint_id), "msg-3") == 200
+      assert process(ctx.scope) == [:skipped, :skipped, :already_terminal]
+      assert_received {:completion, :already_terminal}
+      refute_received {:completion, _other}
     end
   end
 end

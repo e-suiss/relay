@@ -878,6 +878,13 @@ defmodule Relay.Webhooks do
           {:ok, Completions.completion() | :skipped | :unreadable} | {:error, term()}
   defdelegate process_completion(scope, receipt_id), to: Completions, as: :process
 
+  # WH-68
+  # TN-27
+  @doc "Reads the outcome and the result of the completion notification that resolved a waitpoint, opening the sealed result outside any transaction, or `nil`; see `Relay.Webhooks.Completions.result/2`."
+  @spec completion_result(Scope.t(), id()) ::
+          {:ok, Completions.result() | nil} | {:error, term()}
+  defdelegate completion_result(scope, waitpoint_id), to: Completions, as: :result
+
   defp read(scope, fun), do: Store.in_scope(scope, fn _status -> fun.() end)
 
   defp policy do

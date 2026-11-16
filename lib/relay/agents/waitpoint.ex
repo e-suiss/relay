@@ -20,6 +20,14 @@ defmodule Relay.Agents.Waitpoint do
   @type kind :: :question | :review | :event
   @type waiter_kind :: :agent | :api_client | :subscriber
 
+  @typedoc "What a completion notification said about the job a waitpoint waited for."
+  @type completion :: %{
+          required(:receipt_id) => Relay.Id.t(),
+          required(:outcome) => :completed | :failed,
+          optional(:result_ct) => binary() | nil,
+          optional(:result_key_id) => Relay.Id.t() | nil
+        }
+
   # TN-54
   # T-91
   @doc "Default open waitpoint limits: per tenant and per waiter (ENGINEERING ASSUMPTION, T-91)."
@@ -200,26 +208,40 @@ defmodule Relay.Agents.Waitpoint do
   # WH-68
   # C-72
   @doc """
-  Completes the event waitpoint named by `waitpoint_id`, for the completion notification of a long-running job: the waitpoint is resolved as an awaited event resolves it, with `source_event_id` as the event behind it when there is one, and a waitpoint that is resolved or found expired is announced to the configured sink in the same transaction. A waitpoint that is unknown, already closed, a question or a review, or that waits with a condition is left as it is.
+  Completes the event waitpoint named by `waitpoint_id`, for the completion notification of a long-running job: the waitpoint is resolved as an awaited event resolves it, and a waitpoint that is resolved or found expired is announced to the configured sink in the same transaction. A waitpoint that is unknown, already closed, a question or a review, or that waits with a condition is left as it is.
+
+  `completion` is what the notification said: the `:receipt_id` of the notification, its `:outcome` (`:completed` or `:failed`) and, when it carried a result, the result sealed before this call as `:result_ct` under `:result_key_id`. It is recorded with the resolution, in the same transaction, and only when this call resolved the waitpoint; the thin `waitpoint.resolved` event never carries it (`completion/2` reads it).
   """
-  @spec complete(Relay.Scope.t(), Relay.Id.t(), Relay.Id.t() | nil) ::
+  @spec complete(Relay.Scope.t(), Relay.Id.t(), completion() | nil) ::
           {:ok, :resolved | :expired | :already_terminal | :not_found | :not_completable}
           | {:error, term()}
-  def complete(%Relay.Scope{} = scope, waitpoint_id, source_event_id \\ nil) do
+  def complete(%Relay.Scope{} = scope, waitpoint_id, completion \\ nil) do
     WaitpointStore.in_scope(scope, fn _status ->
       case WaitpointStore.get(waitpoint_id) do
         nil -> :not_found
-        %{kind: "event", condition: nil} -> completed(scope, waitpoint_id, source_event_id)
+        %{kind: "event", condition: nil} -> completed(scope, waitpoint_id, completion)
         _question_review_or_conditional -> :not_completable
       end
     end)
   end
 
-  defp completed(scope, waitpoint_id, source_event_id) do
-    result = WaitpointStore.resolve_by_event(waitpoint_id, Relay.Id.generate(), source_event_id)
+  defp completed(scope, waitpoint_id, completion) do
+    result = WaitpointStore.resolve_by_event(waitpoint_id, Relay.Id.generate(), nil)
     if result in [:resolved, :expired], do: :ok = closed(scope, waitpoint_id, result)
+    if result == :resolved and completion != nil, do: :ok = recorded(waitpoint_id, completion)
     result
   end
+
+  defp recorded(waitpoint_id, completion) do
+    :recorded = WaitpointStore.completion_record(waitpoint_id, completion)
+    :ok
+  end
+
+  # WH-68
+  @doc "Reads the completion that resolved a waitpoint: its `:receipt_id`, `:outcome`, `:completed_at` and the result as it is stored, sealed (`:result_ct` under `:result_key_id`, both `nil` without a result); `nil` for a waitpoint that no completion notification resolved."
+  @spec completion(Relay.Scope.t(), Relay.Id.t()) :: {:ok, map() | nil} | {:error, term()}
+  def completion(%Relay.Scope{} = scope, waitpoint_id),
+    do: WaitpointStore.in_scope(scope, fn _status -> WaitpointStore.completion(waitpoint_id) end)
 
   # AG-10
   # AG-15

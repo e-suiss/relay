@@ -3,6 +3,8 @@ defmodule RelayTest.OutboxEvents do
   Reads the outbox events of one type in a scope as the thin data a tenant's endpoint receives, and checks each against the event's schema in the catalog: every required field is present and no field is outside the schema.
   """
 
+  use Boundary, top_level?: true, check: [out: false]
+
   import ExUnit.Assertions
 
   alias Relay.Repo

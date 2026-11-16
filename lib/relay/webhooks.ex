@@ -15,6 +15,7 @@ defmodule Relay.Webhooks do
 
   alias Relay.Actor
   alias Relay.Scope
+  alias Relay.Webhooks.Batcher
   alias Relay.Webhooks.DeliveryLog
   alias Relay.Webhooks.DestinationEvents
   alias Relay.Webhooks.DestinationStore
@@ -34,6 +35,7 @@ defmodule Relay.Webhooks do
   alias Relay.Webhooks.Signer
   alias Relay.Webhooks.Store
   alias Relay.Webhooks.Sweeper
+  alias Relay.Webhooks.TokenCache
 
   @signer Relay.Webhooks.Signer.KeyStore
   @sealer Relay.Webhooks.Live
@@ -80,7 +82,7 @@ defmodule Relay.Webhooks do
   @doc "The data of the outbox event behind an event, with the identifiers in their external form, from which snapshot fields are taken; `nil` when it is no longer kept."
   @callback event_source(Scope.t(), Relay.Id.t(), DateTime.t()) :: map() | nil
 
-  @doc "Resolves the credential of a destination from its secret reference for this call only (WH-19), or `nil` when it cannot be resolved."
+  @doc "Resolves the credential of a destination from its secret reference for this call only (WH-19), or `nil` when it cannot be resolved or the reference is not an active one of kind `webhook_destination`."
   @callback credential(Scope.t(), Relay.Id.t()) :: Relay.Redacted.t() | nil
 
   @doc "Sends an operations e-mail to the tenant's contacts through the platform tenant's e-mail channel."
@@ -458,6 +460,16 @@ defmodule Relay.Webhooks do
 
   defp latest([]), do: nil
   defp latest(times), do: Enum.max(times, DateTime)
+
+  # WH-19
+  @doc "The processes of the context: the node's cache of derived destination credentials (`Relay.Webhooks.TokenCache`)."
+  @spec children() :: [Supervisor.child_spec() | module()]
+  def children, do: [TokenCache]
+
+  # WH-21
+  @doc "Writes an object store batch once and settles its members; see `Relay.Webhooks.Batcher.write/3`."
+  @spec write_batch(Scope.t(), Relay.Id.t(), keyword()) :: result(term())
+  defdelegate write_batch(scope, batch_id, opts \\ []), to: Batcher, as: :write
 
   # WH-41
   @doc "The egress policy of the installation, as every delivery uses it; see `Relay.Webhooks.Egress.Policy`."

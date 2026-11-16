@@ -10,7 +10,9 @@ defmodule Relay.Webhooks.Engine do
   """
 
   alias Relay.Scope
+  alias Relay.Webhooks.Batcher
   alias Relay.Webhooks.Destination
+  alias Relay.Webhooks.DestinationConfig
   alias Relay.Webhooks.DestinationEvents
   alias Relay.Webhooks.EngineStore
   alias Relay.Webhooks.Envelope
@@ -21,6 +23,7 @@ defmodule Relay.Webhooks.Engine do
   alias Relay.Webhooks.Profile
   alias Relay.Webhooks.RetrySchedule
   alias Relay.Webhooks.Settings
+  alias Relay.Webhooks.TokenCache
 
   @lock_extra_ms 40_000
   @response_field {"webhook_attempts", "response_ct"}
@@ -29,7 +32,7 @@ defmodule Relay.Webhooks.Engine do
 
   # WH-32 (4)
   # WH-38
-  @doc "Makes one attempt of a message. Options: `:manual` for a resend, `:holder`, the name the concurrency slot is held under, and `:clock`, the function the attempt reads the time from (`Relay.Clock.utc_now/0`). Returns `{:attempted, state}` with the message's state after it, `:done` when there was nothing to attempt, or `{:retry_in, seconds}` while another attempt holds the message."
+  @doc "Makes one attempt of a message. Options: `:manual` for a resend, `:holder`, the name the concurrency slot is held under, `:clock`, the function the attempt reads the time from (`Relay.Clock.utc_now/0`), and `:batch_limits`, the limits of an object store batch (`Relay.Webhooks.Settings.batch/0`). Returns `{:attempted, state}` with the message's state after it, `:done` when there was nothing to attempt or the message joined a batch (WH-21), or `{:retry_in, seconds}` while another attempt holds the message."
   @spec attempt(Scope.t(), Relay.Id.t(), keyword()) :: {:ok, result()} | {:error, term()}
   def attempt(%Scope{} = scope, message_id, opts \\ []) do
     manual? = Keyword.get(opts, :manual, false)
@@ -41,7 +44,8 @@ defmodule Relay.Webhooks.Engine do
     case EngineStore.in_scope(scope, work) do
       {:ok, {:run, delivery, decision}} ->
         run = %{scope: scope, delivery: delivery, token: token, decision: decision}
-        {:ok, limited(Map.merge(run, %{manual?: manual?, clock: clock}), holder)}
+        limits = Keyword.get_lazy(opts, :batch_limits, &Settings.batch/0)
+        {:ok, limited(Map.merge(run, %{manual?: manual?, clock: clock, limits: limits}), holder)}
 
       {:ok, other} ->
         {:ok, other}
@@ -68,7 +72,13 @@ defmodule Relay.Webhooks.Engine do
 
   defp admitted(delivery, _token, true, _now), do: {:run, delivery, :allow}
 
-  defp admitted(%{message: message, endpoint: endpoint} = delivery, token, false, now) do
+  # WH-21
+  defp admitted(delivery, token, false, now) do
+    batched? = Batcher.batched?(delivery)
+    if batched?, do: {:run, delivery, :allow}, else: gated(delivery, token, now)
+  end
+
+  defp gated(%{message: message, endpoint: endpoint} = delivery, token, now) do
     health = EngineStore.health_lock(endpoint["id"])
 
     case Health.admit(health, now, Settings.health()) do
@@ -103,7 +113,12 @@ defmodule Relay.Webhooks.Engine do
   # WH-38
   defp limited(%{manual?: true} = run, _holder), do: {:attempted, deliver(run)}
 
-  defp limited(%{scope: scope, delivery: %{endpoint: endpoint}} = run, holder) do
+  # WH-21
+  defp limited(%{delivery: delivery} = run, holder) do
+    if Batcher.batched?(delivery), do: Batcher.join(run), else: single(run, holder)
+  end
+
+  defp single(%{scope: scope, delivery: %{endpoint: endpoint}} = run, holder) do
     defaults = Settings.isolation()
     runtime = Settings.runtime()
     rate = endpoint["rate_per_second"] || defaults.rate
@@ -140,30 +155,41 @@ defmodule Relay.Webhooks.Engine do
     clock = Relay.Clock.monotonic_ms()
 
     {result, sent} =
-      case prepared(scope, delivery, started) do
-        {:ok, sent} -> {send_out(scope, delivery.endpoint, sent), sent}
-        {:error, outcome, sent} -> {outcome, sent}
+      case prepare(scope, delivery, started) do
+        {:ok, sent} -> {dispatch(scope, delivery.endpoint, sent.prepared), sent}
+        {:error, result, sent} -> {result, sent}
       end
 
-    now = run.clock.()
-    outcome = outcome(result, now)
+    conclude(run, result, sent, {started, max(Relay.Clock.monotonic_ms() - clock, 0)})
+  end
 
-    attempt = %{
+  # WH-10
+  @doc "Settles the attempt of a claimed message in its own transaction: `result` is what the destination answered, or the decision that was reached without asking it, `sent` what was prepared, and `timing` the start of the attempt with the milliseconds it took when the result names none. Returns the message's state after it."
+  @spec conclude(map(), term(), map(), {DateTime.t(), non_neg_integer()}) :: atom()
+  def conclude(run, result, sent, timing) do
+    now = run.clock.()
+    settle(run, record(result, sent, timing, now), now)
+  end
+
+  # WH-10
+  # WH-23
+  @doc "The record of one attempt: when it started and how long it took, what was sent, what the destination answered and the decision `Relay.Webhooks.Outcome` reads from it."
+  @spec record(term(), map() | nil, {DateTime.t(), non_neg_integer()}, DateTime.t()) :: map()
+  def record(result, sent, {started, elapsed_ms}, now) do
+    %{
       started_at: started,
-      duration_ms: duration(result, clock),
+      duration_ms: duration(result, elapsed_ms),
       sent: sent,
       answer: answer(result),
-      outcome: outcome
+      outcome: outcome(result, now)
     }
-
-    settle(run, attempt, now)
   end
 
   defp outcome(%Outcome{} = outcome, _now), do: outcome
   defp outcome(result, now), do: Outcome.classify(result, now)
 
-  defp duration({_tag, %{duration_ms: ms}}, _clock) when is_integer(ms), do: ms
-  defp duration(_result, clock), do: max(Relay.Clock.monotonic_ms() - clock, 0)
+  defp duration({_tag, %{duration_ms: ms}}, _elapsed_ms) when is_integer(ms), do: ms
+  defp duration(_result, elapsed_ms), do: elapsed_ms
 
   defp answer({_tag, %{} = answer}), do: answer
   defp answer(_outcome), do: %{}
@@ -173,7 +199,9 @@ defmodule Relay.Webhooks.Engine do
   # WH-12
   # WH-29
   # API-55
-  defp prepared(scope, %{message: message, endpoint: endpoint} = delivery, now) do
+  @doc "Prepares the attempt of a delivery at `now`, outside any transaction: the structured body from the stored event and the pinned endpoint version, its digest and, for an HTTPS endpoint, the profile headers signed over it. `{:error, result, sent}` when no body can be sent, with the decision or the failure that says why."
+  @spec prepare(Scope.t(), map(), DateTime.t()) :: {:ok, map()} | {:error, term(), map()}
+  def prepare(scope, %{message: message, endpoint: endpoint} = delivery, now) do
     with {:ok, envelope} <- envelope(scope, delivery),
          body = Envelope.encode(envelope),
          sent = %{body_digest: :crypto.hash(:sha256, body), signature: nil, timestamp: nil},
@@ -332,18 +360,33 @@ defmodule Relay.Webhooks.Engine do
   # WH-17
   # WH-24
   # WH-19
-  defp send_out(scope, %{"kind" => kind} = endpoint, %{prepared: prepared}) do
+  # WH-43
+  @doc "Hands a prepared message to the destination of the endpoint's kind, outside any transaction, with the installation's egress policy, the limits of the contract and the endpoint's credential resolved for this call only. A derived credential the destination did not accept is dropped from the cache, so the next attempt fetches a new one."
+  @spec dispatch(Scope.t(), map(), Destination.prepared()) ::
+          {:ok, Destination.receipt()} | {:error, Destination.failure()}
+  def dispatch(scope, %{"kind" => kind} = endpoint, prepared) do
     with {:ok, module} <- Settings.destination(kind),
-         {:ok, config} <- destination_config(scope, module, endpoint) do
+         {:ok, config} <- DestinationConfig.build(scope, module, endpoint) do
       :ok = Relay.NetworkGuard.check!(:http)
-      module.deliver(config, prepared, options())
+      key = TokenCache.key(scope, endpoint)
+      config |> module.deliver(prepared, options(key)) |> refreshed(key)
     else
       :error -> {:error, unattempted(:invalid, "kind_unavailable")}
       {:error, failure} -> {:error, failure}
     end
   end
 
-  defp options do
+  # WH-19
+  defp refreshed({:ok, %{kind: :http, status: 401}} = result, key), do: dropped(result, key)
+  defp refreshed({:error, %{class: :credentials}} = result, key), do: dropped(result, key)
+  defp refreshed(result, _key), do: result
+
+  defp dropped(result, key) do
+    :ok = TokenCache.drop(TokenCache, key)
+    result
+  end
+
+  defp options(key) do
     limits = Settings.request()
     extra = Settings.destination_limits()
 
@@ -359,61 +402,13 @@ defmodule Relay.Webhooks.Engine do
       max_scram_iterations: extra.max_scram_iterations,
       assertion_ttl_s: extra.assertion_ttl_s,
       credential_ttl_s: extra.credential_ttl_s,
-      token_cache: &uncached/1
+      token_cache: &TokenCache.through(TokenCache, key, &1, extra.credential_ttl_s)
     ]
     |> Keyword.merge(Settings.destination_options())
   end
 
-  defp uncached(fetch) do
-    case fetch.() do
-      {:ok, token, _lifetime} -> {:ok, token}
-      {:error, failure} -> {:error, failure}
-    end
-  end
-
   defp unattempted(class, reason),
     do: %{class: class, reason: reason, duration_ms: 0, address: nil}
-
-  # WH-21
-  defp destination_config(_scope, _module, %{"kind" => "s3"}),
-    do: {:error, unattempted(:unavailable, "object_batch_unavailable")}
-
-  defp destination_config(_scope, _module, %{"kind" => "https", "url" => url} = endpoint) do
-    case Map.get(endpoint["destination"], "auth", "none") do
-      "none" -> {:ok, %{url: url}}
-      _other -> {:error, unattempted(:credentials, "destination_auth_unavailable")}
-    end
-  end
-
-  # WH-19
-  defp destination_config(scope, module, %{"destination" => destination} = endpoint) do
-    _ = Code.ensure_loaded(module)
-
-    config =
-      for {key, value} <- destination, atom = field(key), atom != nil, into: %{} do
-        {atom, value}
-      end
-
-    case credential(scope, endpoint["credential_ref_id"]) do
-      {:ok, credential} -> {:ok, Map.put(config, :credential, credential)}
-      :error -> {:error, unattempted(:credentials, "credential_unavailable")}
-    end
-  end
-
-  defp field(key) do
-    String.to_existing_atom(key)
-  rescue
-    ArgumentError -> nil
-  end
-
-  defp credential(_scope, nil), do: {:ok, nil}
-
-  defp credential(scope, ref_id) do
-    case Settings.runtime().credential(scope, ref_id) do
-      %Relay.Redacted{} = credential -> {:ok, credential}
-      nil -> :error
-    end
-  end
 
   # WH-10
   defp settle(%{scope: scope} = run, attempt, now) do
@@ -440,6 +435,13 @@ defmodule Relay.Webhooks.Engine do
   end
 
   defp sealed(_scope, _answer), do: nil
+
+  # WH-10
+  # WH-21
+  @doc "Settles one member of a batch inside the caller's scoped transaction: its attempt log row, its next state by the rules of a single attempt and its next job. The endpoint's health is not told; the batch tells it once (`endpoint_result/4`). Returns the message's state after it, or `:lock_lost`."
+  @spec settle_member(map(), map(), DateTime.t()) :: atom()
+  def settle_member(run, attempt, now),
+    do: settled(run, attempt, nil, plan(run, attempt.outcome, now), now)
 
   defp settled(run, attempt, sealed, plan, now) do
     %{delivery: %{message: message}, token: token} = run
@@ -586,11 +588,14 @@ defmodule Relay.Webhooks.Engine do
 
     if message["origin"] != "test" do
       if plan.state == :exhausted, do: exhausted_event(endpoint["id"], event, message, attempt_no)
-      health(endpoint, outcome, run.decision, now)
+      if single?(run), do: endpoint_result(endpoint, outcome, run.decision, now)
     end
 
     :ok
   end
+
+  # WH-21
+  defp single?(run), do: not Map.get(run, :batched?, false)
 
   # WH-34
   defp exhausted_event(endpoint_id, event, message, attempt_no) do
@@ -606,7 +611,9 @@ defmodule Relay.Webhooks.Engine do
 
   # WH-35
   # WH-36
-  defp health(%{"id" => id} = endpoint, outcome, decision, now) do
+  @doc "Tells an endpoint's health the result of an attempt that was admitted with `decision`, inside the caller's scoped transaction, and applies what follows from it."
+  @spec endpoint_result(map(), Outcome.t(), :allow | :probe, DateTime.t()) :: :ok
+  def endpoint_result(%{"id" => id} = endpoint, outcome, decision, now) do
     row = EngineStore.health_lock(id)
     params = Settings.health()
     {row, effects} = Health.record(row, outcome, decision, endpoint["auto_disable"], now, params)

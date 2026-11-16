@@ -151,7 +151,7 @@ defmodule Relay.Api.Webhooks do
          :ok <- resolved(destination, "/destination"),
          :ok <- subscription(body["use"], body["event_types"]),
          {:ok, schedule} <- schedule(body["retry_schedule"]),
-         {:ok, credential_ref_id} <- credential(destination),
+         {:ok, credential_ref_id} <- credential(destination, &described(scope, &1)),
          {:ok, key} <- first_key(scope, kind, Map.get(body, "signature_scheme", "v1a")) do
       {:ok,
        %{
@@ -320,14 +320,24 @@ defmodule Relay.Api.Webhooks do
 
   defp schedule_error(code, detail), do: Gate.field_error("/retry_schedule", code, detail)
 
-  defp credential(%{"credential_ref_id" => text}) do
-    case Relay.ExternalId.decode(text, ["sec"]) do
-      {:ok, id} -> {:ok, id}
-      {:error, _error} -> {:error, no_credential()}
+  # WH-19
+  defp credential(%{"credential_ref_id" => text}, describe) do
+    with {:ok, id} <- Relay.ExternalId.decode(text, ["sec"]),
+         %{^id => %{kind: :webhook_destination, state: :active}} <- describe.([id]) do
+      {:ok, id}
+    else
+      _unknown -> {:error, no_credential()}
     end
   end
 
-  defp credential(_destination), do: {:ok, nil}
+  defp credential(_destination, _describe), do: {:ok, nil}
+
+  defp described(scope, ids) do
+    case Relay.Secrets.describe(scope, ids) do
+      {:ok, refs} -> refs
+      {:error, _error} -> %{}
+    end
+  end
 
   # WH-2
   # WH-45
@@ -467,7 +477,7 @@ defmodule Relay.Api.Webhooks do
   defp destination_change(current, %{"destination" => destination}) do
     with :ok <- same_kind(current, destination),
          :ok <- destination_rules(destination, "/destination"),
-         {:ok, credential_ref_id} <- credential(destination) do
+         {:ok, credential_ref_id} <- credential(destination, &Relay.Secrets.describe/1) do
       {:ok,
        %{
          "destination" => Map.delete(destination, "credential_ref_id"),

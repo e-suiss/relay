@@ -13,9 +13,10 @@ defmodule Relay.Secrets do
   alias Relay.Secrets.Store
 
   @env ~r/\A\$\{([A-Z_][A-Z0-9_]{0,127})\}\z/
-  @kinds [:provider_credential, :channel_identity, :webhook_signing]
+  @kinds [:provider_credential, :channel_identity, :webhook_signing, :webhook_destination]
 
-  @type kind :: :provider_credential | :channel_identity | :webhook_signing
+  @type kind ::
+          :provider_credential | :channel_identity | :webhook_signing | :webhook_destination
   @type source :: {:env, String.t()} | {:pkcs11, Relay.Keys.label()}
 
   # TN-26 (2)

@@ -1,4 +1,4 @@
-//! Token operations behind the protocol: signing, public key export, AES-256-GCM key wrapping under a KEK, HMAC-SHA256 under a secret key, reading secret data objects, generating secret keys and Ed25519 key pairs that never leave the token, and destroying retired Ed25519 key pairs.
+//! Token operations behind the protocol: signing, signing the statements of an Access pairing challenge, public key export, AES-256-GCM key wrapping under a KEK, HMAC-SHA256 under a secret key, reading secret data objects, generating secret keys and Ed25519 key pairs that never leave the token, and destroying retired Ed25519 key pairs.
 
 use cryptoki::context::{CInitializeArgs, CInitializeFlags, Pkcs11};
 use cryptoki::error::{Error, RvError};
@@ -12,6 +12,7 @@ use cryptoki::types::AuthPin;
 use zeroize::Zeroizing;
 
 use crate::der;
+use crate::pairing::{self, Pairing};
 use crate::protocol::{Alg, KeyKind, Status};
 
 /// GCM nonce length in bytes.
@@ -149,6 +150,20 @@ impl Hsm {
                 Ok(self.session.sign(&Mechanism::Eddsa(params), key, message)?)
             }
         }
+    }
+
+    /// Signs the Actor Intent Statements of the pairing challenge `target` with the Ed25519 key labelled `label`, after the checks of `pairing::sign` against that key's public half held; a challenge that fails one is refused with the code of the check and nothing of it is signed. The private key signs inside the token.
+    pub fn sign_pairing(&self, label: &[u8], target: &Pairing) -> Result<Vec<Vec<u8>>, Failure> {
+        let key = self
+            .public_key(Alg::Ed25519, label)?
+            .pop()
+            .and_then(|point| <[u8; ED25519_LEN]>::try_from(point).ok())
+            .ok_or_else(|| Failure::new(Status::Token, "unexpected EC point form"))?;
+        let signer = |message: &[u8]| self.sign(Alg::Ed25519, label, message);
+        pairing::sign(target, key, signer).map_err(|error| match error {
+            pairing::Error::Refused(refusal) => Failure::new(Status::Refused, refusal.code()),
+            pairing::Error::Signer(failure) => failure,
+        })
     }
 
     /// Returns the public key labelled `label`: the uncompressed point for ES256, the 32-byte key for Ed25519, modulus and exponent for RS256.

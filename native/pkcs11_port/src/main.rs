@@ -2,6 +2,7 @@
 
 mod der;
 mod hsm;
+mod pairing;
 mod protocol;
 
 use std::fs::File;
@@ -184,6 +185,7 @@ fn run(hsm: &Hsm, op: Op) -> Result<Vec<Zeroizing<Vec<u8>>>, Failure> {
             hsm.destroy_key_pair(alg, &label)?;
             vec![]
         }
+        Op::SignPairing { label, pairing } => hsm.sign_pairing(&label, &pairing)?,
     };
     Ok(fields.into_iter().map(Zeroizing::new).collect())
 }

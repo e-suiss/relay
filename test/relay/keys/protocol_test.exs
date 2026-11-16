@@ -91,6 +91,65 @@ defmodule Relay.Keys.ProtocolTest do
     end
   end
 
+  describe "E-101 pairing challenge" do
+    @pairing %{
+      domain: <<1::256>>,
+      basis: <<2::128>>,
+      pep: "pep",
+      party: <<3::128>>,
+      kid: <<4::256>>,
+      challenge: <<5::256>>,
+      valid_from_ms: 10,
+      valid_until_ms: 20,
+      now_ms: 15,
+      instance_create: %{nonce: <<5::256>>, intent: <<6::256>>},
+      party_register: nil
+    }
+
+    test "E-101: a pairing challenge carries the label, the target, the window, the time and its Exercises" do
+      label = <<0, 0, 0, 1, "s">>
+      domain = <<0, 0, 0, 32, 1::256, 0, 0, 0, 16, 2::128>>
+      party = <<0, 0, 0, 3, "pep", 0, 0, 0, 16, 3::128>>
+      challenge = <<0, 0, 0, 32, 4::256, 0, 0, 0, 32, 5::256, 10::64, 20::64, 15::64>>
+      create = <<0, 0, 0, 32, 5::256, 0, 0, 0, 32, 6::256>>
+      head = <<1, 0, 0, 0, 9, 11>> <> label <> domain <> party <> challenge <> create
+
+      assert bin(Protocol.encode(9, {:sign_pairing, "s", @pairing})) == head <> <<0>>
+
+      register = %{nonce: <<5::256, 1>>, intent: <<7::256>>}
+      pairing = %{@pairing | party_register: register}
+
+      assert bin(Protocol.encode(9, {:sign_pairing, "s", pairing})) ==
+               head <> <<1, 0, 0, 0, 33, 5::256, 1, 0, 0, 0, 32, 7::256>>
+
+      assert Protocol.kind({:sign_pairing, "s", pairing}) == :sign_pairing
+    end
+
+    test "E-101: the answer is one statement, or two with the registration" do
+      assert Protocol.result(:sign_pairing, 0, ["ais"]) == {:ok, ["ais"]}
+      assert Protocol.result(:sign_pairing, 0, ["ais", "reg"]) == {:ok, ["ais", "reg"]}
+
+      for fields <- [[], ["a", "b", "c"]] do
+        assert {:error, %Relay.Error{code: :key_store_protocol}} =
+                 Protocol.result(:sign_pairing, 0, fields)
+      end
+    end
+
+    test "E-101: a refused challenge names the check that failed" do
+      assert {:error, %Relay.Error{code: :key_refused, details: %{reason: "pairing-kid"}}} =
+               Protocol.result(:sign_pairing, 8, ["pairing-kid"])
+
+      assert {:error, %Relay.Error{code: :key_not_found}} =
+               Protocol.result(:sign_pairing, 3, ["key not found"])
+
+      assert {:error, %Relay.Error{code: :key_store_protocol}} =
+               Protocol.result(:sign_pairing, 8, [])
+
+      assert {:error, %Relay.Error{code: :key_store_protocol}} =
+               Protocol.result(:sign, 8, ["pairing-kid"])
+    end
+  end
+
   describe "TN-63 response decoding" do
     test "TN-63: fields are split by their length prefix" do
       assert Protocol.decode(<<1, 0, 0, 0, 5, 0, 0, 0, 0, 2, "ab", 0, 0, 0, 0>>) ==

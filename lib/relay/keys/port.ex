@@ -120,6 +120,13 @@ defmodule Relay.Keys.Port do
   def destroy_key_pair(server \\ __MODULE__, :ed25519, label),
     do: request(server, {:destroy_key_pair, :ed25519, label})
 
+  @impl Relay.Keys
+  @doc "Signs the statements of an Access pairing challenge through the program. See `Relay.Keys.sign_pairing/2`."
+  @spec sign_pairing(GenServer.server(), String.t(), Relay.Keys.pairing()) ::
+          {:ok, [binary(), ...]} | {:error, Error.t()}
+  def sign_pairing(server \\ __MODULE__, label, pairing),
+    do: request(server, {:sign_pairing, label, pairing})
+
   defp request(server, request) do
     GenServer.call(server, {:request, request}, :infinity)
   catch

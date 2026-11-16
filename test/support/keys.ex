@@ -1,11 +1,12 @@
 defmodule RelayTest.Keys do
-  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per `relay-dkim/` label (DKIM keys); there are no other signing keys; secret data objects are stored in the calling process; key generation succeeds for any label. An Ed25519 key pair is derived from its label and signs only under a label that starts with `relay-webhook-`; once destroyed, its label no longer signs in any process for the rest of the test run. The label `access-service` is an Ed25519 key pair as well, with a public key (E-101)."
+  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per `relay-dkim/` label (DKIM keys); there are no other signing keys; secret data objects are stored in the calling process; key generation succeeds for any label. An Ed25519 key pair is derived from its label and signs only under a label that starts with `relay-webhook-`; once destroyed, its label no longer signs in any process for the rest of the test run. The label `access-service` is an Ed25519 key pair as well, with a public key, and signs the statements of an Access pairing challenge after the checks of the key store port, made by `RelayTest.AccessKernel` (E-101)."
 
-  use Boundary, top_level?: true, deps: [Relay], exports: []
+  use Boundary, top_level?: true, deps: [Relay, RelayTest.AccessKernel], exports: []
 
   @behaviour Relay.Keys
 
   alias Relay.Redacted
+  alias RelayTest.AccessKernel
 
   @doc "The key behind a label."
   @spec secret(Relay.Keys.label()) :: <<_::256>>
@@ -145,6 +146,24 @@ defmodule RelayTest.Keys do
   def destroy_key_pair(:ed25519, label) do
     :persistent_term.put({__MODULE__, :destroyed, label}, true)
     :ok
+  end
+
+  @impl Relay.Keys
+  def sign_pairing("access-service" = label, pairing) do
+    {:ok, key} = public_key(:ed25519, label)
+    sign = fn message -> :crypto.sign(:eddsa, :none, message, [ed25519(label), :ed25519]) end
+
+    case AccessKernel.sign_pairing(pairing, key, sign) do
+      {:ok, signed} -> {:ok, signed}
+      {:refused, code} -> refused(code)
+    end
+  end
+
+  def sign_pairing(_label, _pairing), do: not_found()
+
+  defp refused(code) do
+    message = "key store: refused: " <> code
+    {:error, Relay.Error.new(:key_refused, message, %{reason: code})}
   end
 
   defp ed25519(label), do: :crypto.hash(:sha256, "relay-test-ed25519:" <> label)

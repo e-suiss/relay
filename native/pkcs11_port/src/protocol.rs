@@ -2,6 +2,8 @@
 
 use zeroize::Zeroizing;
 
+use crate::pairing::{Exercise, Pairing};
+
 /// Protocol version carried as the first byte of every request and response.
 pub const VERSION: u8 = 1;
 
@@ -91,6 +93,10 @@ pub enum Op {
         alg: Alg,
         label: Vec<u8>,
     },
+    SignPairing {
+        label: Vec<u8>,
+        pairing: Box<Pairing>,
+    },
 }
 
 /// Response status codes.
@@ -104,6 +110,7 @@ pub enum Status {
     Token = 5,
     Internal = 6,
     Exists = 7,
+    Refused = 8,
 }
 
 /// A request that could not be decoded, with the request id when it was readable.
@@ -142,6 +149,22 @@ impl<'a> Reader<'a> {
         let (head, rest) = self.buf.split_at(len);
         self.buf = rest;
         Some(head)
+    }
+
+    fn u64(&mut self) -> Option<u64> {
+        let (head, rest) = self.buf.split_first_chunk::<8>()?;
+        self.buf = rest;
+        Some(u64::from_be_bytes(*head))
+    }
+
+    fn fixed<const N: usize>(&mut self) -> Option<[u8; N]> {
+        self.field()?.try_into().ok()
+    }
+
+    fn exercise(&mut self) -> Option<Exercise> {
+        let nonce = self.field()?.to_vec();
+        let intent = self.fixed()?;
+        Some(Exercise { nonce, intent })
     }
 
     fn alg(&mut self) -> Option<Alg> {
@@ -184,6 +207,7 @@ pub fn decode(frame: &[u8]) -> Result<(u32, Op), DecodeError> {
         8 => decode_store_secret(&mut reader),
         9 => decode_generate_key_pair(&mut reader),
         10 => decode_destroy_key_pair(&mut reader),
+        11 => decode_sign_pairing(&mut reader),
         _ => None,
     };
 
@@ -284,6 +308,42 @@ fn decode_destroy_key_pair(reader: &mut Reader<'_>) -> Option<Op> {
         return None;
     }
     Some(Op::DestroyKeyPair { alg, label })
+}
+
+fn decode_sign_pairing(reader: &mut Reader<'_>) -> Option<Op> {
+    let label = reader.field()?.to_vec();
+    if label.is_empty() {
+        return None;
+    }
+    let domain = reader.fixed()?;
+    let basis = reader.fixed()?;
+    let pep = String::from_utf8(reader.field()?.to_vec()).ok()?;
+    let party = reader.fixed()?;
+    let kid = reader.fixed()?;
+    let challenge = reader.fixed()?;
+    let valid_from = reader.u64()?;
+    let valid_until = reader.u64()?;
+    let now = reader.u64()?;
+    let instance_create = reader.exercise()?;
+    let party_register = match reader.u8()? {
+        0 => None,
+        1 => Some(reader.exercise()?),
+        _ => return None,
+    };
+    let pairing = Box::new(Pairing {
+        domain,
+        basis,
+        pep,
+        party,
+        kid,
+        challenge,
+        valid_from,
+        valid_until,
+        now,
+        instance_create,
+        party_register,
+    });
+    Some(Op::SignPairing { label, pairing })
 }
 
 /// Encodes a response frame body. The buffer is zeroized when dropped.
@@ -505,6 +565,92 @@ mod tests {
         ] {
             assert_eq!(
                 decode(&request(22, 10, &body)).unwrap_err().status,
+                Status::BadRequest
+            );
+        }
+    }
+
+    fn sign_pairing(register: &[u8]) -> Vec<u8> {
+        let parts = [
+            field(b"access-service"),
+            field(&[1; 32]),
+            field(&[2; 16]),
+            field(b"access-identity"),
+            field(&[3; 16]),
+            field(&[4; 32]),
+            field(&[5; 32]),
+            10u64.to_be_bytes().to_vec(),
+            20u64.to_be_bytes().to_vec(),
+            15u64.to_be_bytes().to_vec(),
+            field(&[5; 32]),
+            field(&[6; 32]),
+            register.to_vec(),
+        ];
+        parts.concat()
+    }
+
+    #[test]
+    fn e_101_decodes_sign_pairing() {
+        let pairing = Pairing {
+            domain: [1; 32],
+            basis: [2; 16],
+            pep: "access-identity".to_string(),
+            party: [3; 16],
+            kid: [4; 32],
+            challenge: [5; 32],
+            valid_from: 10,
+            valid_until: 20,
+            now: 15,
+            instance_create: Exercise {
+                nonce: vec![5; 32],
+                intent: [6; 32],
+            },
+            party_register: None,
+        };
+        let expected = Op::SignPairing {
+            label: b"access-service".to_vec(),
+            pairing: Box::new(pairing.clone()),
+        };
+        let body = sign_pairing(&[0]);
+        assert_eq!(decode(&request(23, 11, &body)), Ok((23, expected)));
+        let register = [vec![1], field(&[7; 33]), field(&[8; 32])].concat();
+        let expected = Op::SignPairing {
+            label: b"access-service".to_vec(),
+            pairing: Box::new(Pairing {
+                party_register: Some(Exercise {
+                    nonce: vec![7; 33],
+                    intent: [8; 32],
+                }),
+                ..pairing
+            }),
+        };
+        let body = sign_pairing(&register);
+        assert_eq!(decode(&request(24, 11, &body)), Ok((24, expected)));
+    }
+
+    #[test]
+    fn e_101_rejects_a_malformed_sign_pairing() {
+        let whole = sign_pairing(&[0]);
+        let mut empty_label = field(b"");
+        empty_label.extend_from_slice(&whole[18..]);
+        let mut short_domain = field(b"access-service");
+        short_domain.extend_from_slice(&field(&[1; 31]));
+        short_domain.extend_from_slice(&whole[54..]);
+        let short_intent = [vec![1], field(&[7; 33]), field(&[8; 31])].concat();
+        let no_intent = [vec![1], field(&[7; 33])].concat();
+        for body in [
+            sign_pairing(&[]),
+            sign_pairing(&[2]),
+            sign_pairing(&[0, 0]),
+            sign_pairing(&[1]),
+            sign_pairing(&short_intent),
+            sign_pairing(&no_intent),
+            whole[..whole.len() - 2].to_vec(),
+            empty_label,
+            short_domain,
+        ] {
+            assert_eq!(
+                decode(&request(25, 11, &body)).unwrap_err().status,
                 Status::BadRequest
             );
         }

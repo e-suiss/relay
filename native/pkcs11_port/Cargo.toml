@@ -2,13 +2,18 @@
 name = "pkcs11_port"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.99"
 license = "Apache-2.0"
 publish = false
 
 [dependencies]
 cryptoki = "=0.12.1"
+esuiss-access-kernel = "=0.3.0"
+esuiss-crypto = { version = "=0.3.0", default-features = false, features = ["verify"] }
 zeroize = "=1.9.1"
+
+[dev-dependencies]
+ed25519-dalek = { version = "=3.0.0", default-features = false }
 
 [profile.release]
 codegen-units = 1

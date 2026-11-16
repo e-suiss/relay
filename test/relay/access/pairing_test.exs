@@ -217,7 +217,7 @@ defmodule Relay.Access.PairingTest do
   end
 
   describe "E-101 pairing runs" do
-    test "E-101: without the Access kernel nothing is signed and three runs in a row are an operator signal",
+    test "E-101: a challenge the key store refuses is not signed and three runs in a row are an operator signal",
          ctx do
       report = run({:tenant, ctx.tenant}, ctx.fake)
 
@@ -227,8 +227,8 @@ defmodule Relay.Access.PairingTest do
       assert report.paired == 0
 
       assert Enum.map(signals(report, :unsignable), &{&1.realm, &1.code}) == [
-               {@realm_a, "kernel-unavailable"},
-               {@realm_b, "kernel-unavailable"}
+               {@realm_a, "pairing-basis"},
+               {@realm_b, "pairing-basis"}
              ]
 
       assert states(ctx.tenant) == [{@realm_a, :unpaired, 1}, {@realm_b, :unpaired, 1}]

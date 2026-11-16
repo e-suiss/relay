@@ -167,7 +167,7 @@ defmodule Relay.Webhooks.Fanout do
   @spec attempt_job(Relay.Id.t(), DateTime.t() | nil, boolean()) :: :ok | {:error, term()}
   def attempt_job(message_id, at, manual \\ false) do
     args =
-      Relay.Repo.current_scope()
+      EngineStore.current_scope()
       |> Relay.Scope.to_job_args()
       |> Map.put("message_id", Relay.Id.to_string(message_id))
 
@@ -186,7 +186,7 @@ defmodule Relay.Webhooks.Fanout do
   @spec release_job(Relay.Id.t(), String.t(), DateTime.t() | nil) :: :ok | {:error, term()}
   def release_job(endpoint_id, hold_reason, at) do
     args =
-      Relay.Repo.current_scope()
+      EngineStore.current_scope()
       |> Relay.Scope.to_job_args()
       |> Map.merge(%{
         "endpoint_id" => Relay.Id.to_string(endpoint_id),

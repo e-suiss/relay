@@ -22,6 +22,10 @@ defmodule Relay.Webhooks.EngineStore do
   @spec in_scope(Relay.Scope.t(), (atom() -> term())) :: {:ok, term()} | {:error, term()}
   def in_scope(scope, fun), do: Repo.in_scope(scope, fun)
 
+  @doc "The scope of the caller's transaction."
+  @spec current_scope() :: Relay.Scope.t() | nil
+  def current_scope, do: Repo.current_scope()
+
   @doc "Rolls the caller's transaction back with `value`."
   @spec rollback(term()) :: no_return()
   def rollback(value), do: Repo.rollback(value)
@@ -167,7 +171,7 @@ defmodule Relay.Webhooks.EngineStore do
   end
 
   # WH-38
-  @doc "Gives a claimed message back without an attempt: to `state` (`\"pending\"`, `\"scheduled\"` or `\"held\"`), or with `nil` only its lock."
+  @doc "Gives a claimed message back without an attempt: to `state` (`pending`, `scheduled` or `held`), or with `nil` only its lock."
   @spec park(id(), id(), String.t() | nil, String.t() | nil, DateTime.t() | nil, DateTime.t()) ::
           atom()
   def park(message_id, token, state, hold_reason, next_attempt_at, now) do
@@ -234,7 +238,7 @@ defmodule Relay.Webhooks.EngineStore do
 
   # WH-31
   # WH-32
-  @doc "Queues messages again: `\"release\"` gives held messages their next attempt time, `\"rescue\"` does so for messages whose lock ran out, and `\"restart\"` starts the schedule of any message that is not delivered from the beginning. `entries` hold `:id`, `:next_attempt_at` and, for a restart, `:window_ends_at`. Returns the messages it changed."
+  @doc "Queues messages again: `release` gives held messages their next attempt time, `rescue` does so for messages whose lock ran out, and `restart` starts the schedule of any message that is not delivered from the beginning. `entries` hold `:id`, `:next_attempt_at` and, for a restart, `:window_ends_at`. Returns the messages it changed."
   @spec requeue([map()], String.t(), DateTime.t()) :: [map()]
   def requeue(entries, mode, now) do
     Repo.call!("relay_fn.webhook_messages_requeue", [
@@ -248,7 +252,7 @@ defmodule Relay.Webhooks.EngineStore do
 
   # WH-31
   # WH-36
-  @doc "Pauses, resumes or disables an endpoint; `reason` is `\"failing\"` or `\"gone\"` for a disable. Returns the result and the endpoint's row version."
+  @doc "Pauses, resumes or disables an endpoint; `reason` is `failing` or `gone` for a disable. Returns the result and the endpoint's row version."
   @spec endpoint_set_state(
           id(),
           String.t(),

@@ -608,7 +608,7 @@ defmodule Relay.Webhooks.Engine do
   # WH-36
   # WH-34
   defp disable(id, reason, now) do
-    scope = Relay.Repo.current_scope()
+    scope = EngineStore.current_scope()
     {:ok, actor} = Relay.Actor.new(:system, "relay-webhooks", "relay-webhooks")
     digest = digest(scope, id, reason)
 
@@ -642,7 +642,7 @@ defmodule Relay.Webhooks.Engine do
   @spec notice(String.t(), Relay.Id.t(), Relay.Id.t()) :: :ok
   def notice(kind, endpoint_id, ref_id) do
     args =
-      Relay.Repo.current_scope()
+      EngineStore.current_scope()
       |> Scope.to_job_args()
       |> Map.merge(%{"kind" => kind, "endpoint_id" => Relay.Id.to_string(endpoint_id)})
 

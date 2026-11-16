@@ -50,9 +50,8 @@ defmodule RelayTest.WebhookEngine do
   defmodule Destination do
     @moduledoc "A destination that answers from the calling process's script and reports each delivery to it."
 
-    @behaviour Relay.Webhooks.Destination
-
-    @impl Relay.Webhooks.Destination
+    @doc "Answers one delivery from the script."
+    @spec deliver(map(), map(), keyword()) :: {:ok, map()} | {:error, map()}
     def deliver(config, prepared, opts) do
       send(self(), {:webhook_delivery, config, prepared, opts})
 
@@ -70,21 +69,21 @@ defmodule RelayTest.WebhookEngine do
   defmodule Runtime do
     @moduledoc "A runtime that reports to the calling process and decides limits from its process dictionary (`:webhook_rate`, `:webhook_slot`, `:webhook_source`, `:webhook_mail`)."
 
-    @behaviour Relay.Webhooks.Runtime
+    @behaviour Relay.Webhooks
 
-    @impl Relay.Webhooks.Runtime
+    @impl Relay.Webhooks
     def enqueue(job) do
       send(self(), {:webhook_job, job})
       :ok
     end
 
-    @impl Relay.Webhooks.Runtime
+    @impl Relay.Webhooks
     def cancel(message_id) do
       send(self(), {:webhook_cancel, message_id})
       :ok
     end
 
-    @impl Relay.Webhooks.Runtime
+    @impl Relay.Webhooks
     def with_slot(_scope, _endpoint_id, _limit, _holder, fun) do
       case Process.get(:webhook_slot, :free) do
         :free -> {:ok, fun.()}
@@ -92,16 +91,16 @@ defmodule RelayTest.WebhookEngine do
       end
     end
 
-    @impl Relay.Webhooks.Runtime
+    @impl Relay.Webhooks
     def rate(_scope, _endpoint_id, _per_second), do: Process.get(:webhook_rate, :allow)
 
-    @impl Relay.Webhooks.Runtime
+    @impl Relay.Webhooks
     def event_source(_scope, _event_id, _occurred_at), do: Process.get(:webhook_source)
 
-    @impl Relay.Webhooks.Runtime
+    @impl Relay.Webhooks
     def credential(_scope, _ref_id), do: Process.get(:webhook_credential)
 
-    @impl Relay.Webhooks.Runtime
+    @impl Relay.Webhooks
     def mail(_scope, addresses, mail) do
       send(self(), {:webhook_mail, addresses, mail})
       Process.get(:webhook_mail, :ok)

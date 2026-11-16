@@ -6,7 +6,7 @@ defmodule Relay.Webhooks.Live do
 
   It is the handler of the outbox dispatcher (`config :relay, Relay.Platform.Outbox, handler: {Relay.Webhooks.Live, :outbox_jobs}`): every outbox event becomes one webhook event with one message for each subscribed endpoint, in the dispatch transaction (OP-7, WH-2).
 
-  And it is the runtime of the delivery engine (`Relay.Webhooks.Runtime`): the engine's jobs enter the `l2` lane through the tenant wait table, so tenants share the lane fairly and none has a queue of its own (WH-38 (3)); an endpoint's concurrency is a cluster-wide slot counter and its rate a GCRA limit of the platform (WH-38 (1)); the snapshot fields of an event are read from its outbox row; and an operations e-mail is sent as the platform tenant, through the first verified e-mail account of the installation tenant with the configured sender as its `from` (WH-56). Such an e-mail is not a delivery: no attempt or ledger entry is written for it.
+  And it is the runtime of the delivery engine (`Relay.Webhooks`): the engine's jobs enter the `l2` lane through the tenant wait table, so tenants share the lane fairly and none has a queue of its own (WH-38 (3)); an endpoint's concurrency is a cluster-wide slot counter and its rate a GCRA limit of the platform (WH-38 (1)); the snapshot fields of an event are read from its outbox row; and an operations e-mail is sent as the platform tenant, through the first verified e-mail account of the installation tenant with the configured sender as its `from` (WH-56). Such an e-mail is not a delivery: no attempt or ledger entry is written for it.
   """
 
   use Boundary,
@@ -22,7 +22,7 @@ defmodule Relay.Webhooks.Live do
     ],
     exports: []
 
-  @behaviour Relay.Webhooks.Runtime
+  @behaviour Relay.Webhooks
 
   alias Relay.Scope
 
@@ -91,7 +91,7 @@ defmodule Relay.Webhooks.Live do
   # T-15
   # T-21
   # WH-38 (3)
-  @impl Relay.Webhooks.Runtime
+  @impl Relay.Webhooks
   def enqueue(%{worker: worker, args: args, ref_id: ref_id} = job) do
     attrs = %{
       id: Relay.Id.generate(),
@@ -110,7 +110,7 @@ defmodule Relay.Webhooks.Live do
   end
 
   # T-21 (3)
-  @impl Relay.Webhooks.Runtime
+  @impl Relay.Webhooks
   def cancel(message_id) do
     {:ok, _count} = Relay.Platform.cancel_waiting_jobs("webhook_job", message_id, @cancel_rule)
     :ok
@@ -118,7 +118,7 @@ defmodule Relay.Webhooks.Live do
 
   # T-22
   # WH-38 (1)
-  @impl Relay.Webhooks.Runtime
+  @impl Relay.Webhooks
   def with_slot(%Scope{} = scope, endpoint_id, limit, holder, fun) do
     key = "cc.webhook_endpoint:" <> Relay.Id.to_string(endpoint_id)
     Relay.Platform.with_concurrency_slot(scope, key, limit, holder, fun)
@@ -126,7 +126,7 @@ defmodule Relay.Webhooks.Live do
 
   # T-19
   # WH-38 (1)
-  @impl Relay.Webhooks.Runtime
+  @impl Relay.Webhooks
   def rate(%Scope{} = scope, endpoint_id, per_second) do
     attrs = %{
       id: "webhook.endpoint",
@@ -149,7 +149,7 @@ defmodule Relay.Webhooks.Live do
   end
 
   # WH-12
-  @impl Relay.Webhooks.Runtime
+  @impl Relay.Webhooks
   def event_source(%Scope{} = scope, event_id, %DateTime{} = occurred_at) do
     case Relay.Platform.outbox_event_data(scope, event_id, occurred_at) do
       {:ok, %{} = data} -> data
@@ -159,12 +159,12 @@ defmodule Relay.Webhooks.Live do
 
   # WH-19
   # TN-26
-  @impl Relay.Webhooks.Runtime
+  @impl Relay.Webhooks
   def credential(%Scope{} = scope, ref_id),
     do: credentials(scope, %{"credential_ref_id" => ref_id})
 
   # WH-56
-  @impl Relay.Webhooks.Runtime
+  @impl Relay.Webhooks
   def mail(%Scope{}, addresses, %{from: from, subject: subject, text: text}) do
     platform = Relay.Datasets.installation_scope()
     policy = %{draw: 0, provider: nil, domestic_country: nil}

@@ -6,10 +6,12 @@ defmodule Relay.Webhooks do
 
   This module holds the management side: consumers, tenant event types with versioned schemas (WH-14), endpoints with their versions, subscription and limits (WH-12, WH-16), per-endpoint signing keys with overlapping rotation (WH-5, WH-6), the registration rules of an address (WH-40) and the tenant's operations contacts (WH-56). A function that takes a scope opens its own scoped transaction; one that takes none runs inside the caller's. A function that reaches the key store (`new_key/2`, `sign/5`, `seal_contacts/2`, `contacts/1`) never runs inside a transaction.
 
+  This module is also the behaviour of the engine's runtime, the port through which the engine uses the rest of a running node (T-56): the job queue with its tenant fairness, the cluster-wide concurrency and rate limits, the source of an event's snapshot fields, destination credentials and the operations e-mail. It is configured as `runtime: Module`; `Relay.Webhooks.Live` is the implementation of a running node. `c:enqueue/1` and `c:cancel/1` run inside the caller's scoped transaction, so a message and its job commit together; the other callbacks never run inside a transaction.
+
   The signer and the sealer are ports: `config :relay, Relay.Webhooks, signer: Module, sealer: Module`, by default `Relay.Webhooks.Signer.KeyStore` and `Relay.Webhooks.Live`. The same configuration holds the installation's egress policy (`Relay.Webhooks.Egress.Policy`): `deployment: :saas | :self_hosted` (`:saas` when absent), `extra_ports: [port]` for HTTPS ports besides 443 (WH-40 (2)), `allow_list: [entry]` for the internal targets of a self-hosted installation (WH-44), and `resolver: Module` for the DNS port.
   """
 
-  use Boundary, top_level?: true, deps: [Relay], exports: [Runtime, Destination]
+  use Boundary, top_level?: true, deps: [Relay], exports: []
 
   alias Relay.Actor
   alias Relay.Scope
@@ -42,6 +44,39 @@ defmodule Relay.Webhooks do
   }
 
   @type result(value) :: {:ok, value} | {:error, term()}
+
+  @typedoc "A job of the engine: `:worker`, `:args` (identifiers only), the `:message_id` or `:endpoint_id` it works for and, when it is not due at once, `:scheduled_at`."
+  @type job :: %{
+          required(:worker) => module(),
+          required(:args) => map(),
+          required(:ref_id) => Relay.Id.t(),
+          optional(:scheduled_at) => DateTime.t() | nil
+        }
+
+  @typedoc "An operations e-mail: its sender address, its subject and its plain text."
+  @type mail :: %{from: String.t(), subject: String.t(), text: String.t()}
+
+  @doc "Queues a job inside the caller's scoped transaction."
+  @callback enqueue(job()) :: :ok | {:error, term()}
+
+  @doc "Cancels the waiting jobs of a message inside the caller's scoped transaction."
+  @callback cancel(Relay.Id.t()) :: :ok
+
+  @doc "Runs `fun` while holding one of the `limit` concurrency slots of an endpoint for `holder`, or answers `{:full, wait_ms}` without running it."
+  @callback with_slot(Scope.t(), Relay.Id.t(), pos_integer(), String.t(), (-> term())) ::
+              {:ok, term()} | {:full, non_neg_integer()}
+
+  @doc "Spends one delivery of an endpoint's rate of `per_second`, or answers the wait in milliseconds."
+  @callback rate(Scope.t(), Relay.Id.t(), pos_integer()) :: :allow | {:deny, pos_integer()}
+
+  @doc "The data of the outbox event behind an event, with the identifiers in their external form, from which snapshot fields are taken; `nil` when it is no longer kept."
+  @callback event_source(Scope.t(), Relay.Id.t(), DateTime.t()) :: map() | nil
+
+  @doc "Resolves the credential of a destination from its secret reference for this call only (WH-19), or `nil` when it cannot be resolved."
+  @callback credential(Scope.t(), Relay.Id.t()) :: Relay.Redacted.t() | nil
+
+  @doc "Sends an operations e-mail to the tenant's contacts through the platform tenant's e-mail channel."
+  @callback mail(Scope.t(), [Relay.Redacted.t(), ...], mail()) :: :ok | {:error, term()}
   @type id :: Relay.Id.t()
   @type cursor :: map() | nil
 
@@ -458,7 +493,7 @@ defmodule Relay.Webhooks do
 
   # WH-31
   # WH-33 (2)
-  @doc "Queues the release of an endpoint's held messages inside the caller's scoped transaction; `hold_reason` is `\"endpoint_paused\"`, `\"endpoint_disabled\"` or `\"breaker_open\"`. The release runs at a controlled rate within the endpoint's limits."
+  @doc "Queues the release of an endpoint's held messages inside the caller's scoped transaction; `hold_reason` is `endpoint_paused`, `endpoint_disabled` or `breaker_open`. The release runs at a controlled rate within the endpoint's limits."
   @spec release_held_job(id(), String.t()) :: :ok | {:error, term()}
   def release_held_job(endpoint_id, hold_reason),
     do: Fanout.release_job(endpoint_id, hold_reason, nil)

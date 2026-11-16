@@ -2,7 +2,7 @@ defmodule Relay.Webhooks.Settings do
   @moduledoc """
   The values the delivery engine works with: the limits of the contract (`x-relay-limits` `webhook`, read through `Relay.Limits`) and the configuration of the installation (`config :relay, Relay.Webhooks`).
 
-  The configuration names the engine's ports: `runtime: Module` (`Relay.Webhooks.Runtime`, by default `Relay.Webhooks.Live`), `sealer: Module`, `destinations: %{kind => Module}`, an implementation of `Relay.Webhooks.Destination` that replaces the one `Relay.Webhooks.Destination.Kinds` names for an endpoint kind, and `destination_options: keyword` passed to every delivery. `source: url` is the `source` of Relay's own events, the installation issuer, and `operations_sender: address` the sender of operations e-mails (WH-56); neither has a default in code.
+  The configuration names the engine's ports: `runtime: Module` (`Relay.Webhooks`, by default `Relay.Webhooks.Live`), `sealer: Module`, `destinations: %{kind => Module}`, an implementation of `Relay.Webhooks.Destination` that replaces the one `Relay.Webhooks.Destination.Kinds` names for an endpoint kind, and `destination_options: keyword` passed to every delivery. `source: url` is the `source` of Relay's own events, the installation issuer, and `operations_sender: address` the sender of operations e-mails (WH-56); neither has a default in code.
   """
 
   alias Relay.Limits

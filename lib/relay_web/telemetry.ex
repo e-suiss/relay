@@ -361,6 +361,12 @@ defmodule RelayWeb.Telemetry do
         measurement: :count,
         tags: [:kind, :result],
         description: "Webhook operations e-mails by kind and result"
+      ),
+      sum("relay.webhooks.completion.total",
+        event_name: [:relay, :webhooks, :completion],
+        measurement: :count,
+        tags: [:result],
+        description: "Processed job completion notifications by result"
       )
     ]
   end

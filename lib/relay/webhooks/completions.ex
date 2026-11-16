@@ -20,6 +20,7 @@ defmodule Relay.Webhooks.Completions do
 
   @provider "completion"
   @field {"webhook_receipts", "body_ct"}
+  @result_field {"waitpoint_completions", "result_ct"}
   @outcomes %{"job.completed" => :completed, "job.failed" => :failed}
   @data_keys ["waitpoint_id", "result"]
   @result_max Relay.Limits.fetch!(["webhook", "completion_result_max_bytes"])
@@ -30,7 +31,12 @@ defmodule Relay.Webhooks.Completions do
           required(:now) => DateTime.t()
         }
   @type refusal :: :not_found | :unauthorized | :malformed | :unavailable
-  @type notification :: %{outcome: :completed | :failed, waitpoint_id: Relay.Id.t()}
+  @type notification :: %{
+          outcome: :completed | :failed,
+          waitpoint_id: Relay.Id.t(),
+          result: map() | nil
+        }
+  @type result :: %{outcome: String.t(), result: map() | nil, completed_at: DateTime.t()}
   @type completion :: :resolved | :expired | :already_terminal | :not_found | :not_completable
 
   @doc "Resolves the secret of a source from its secret reference for this call only: `:none` when the reference is not an active one of kind `webhook_signing`, `:unavailable` when the secret backend cannot be read."
@@ -39,8 +45,12 @@ defmodule Relay.Webhooks.Completions do
   @doc "Queues the processing job of a receipt inside the caller's scoped transaction."
   @callback enqueue_completion(Scope.t(), Relay.Id.t()) :: :ok | {:error, term()}
 
-  @doc "Completes the event waitpoint with this identifier in its own transaction."
-  @callback complete_waitpoint(Scope.t(), Relay.Id.t()) :: {:ok, completion()} | {:error, term()}
+  @doc "Completes the event waitpoint with this identifier and records the completion (`:receipt_id`, `:outcome` and the sealed result as `:result_ct` and `:result_key_id`) with it, in one transaction of its own."
+  @callback complete_waitpoint(Scope.t(), Relay.Id.t(), map()) ::
+              {:ok, completion()} | {:error, term()}
+
+  @doc "Reads the completion that resolved a waitpoint, its result still sealed, or `nil`."
+  @callback waitpoint_completion(Scope.t(), Relay.Id.t()) :: {:ok, map() | nil} | {:error, term()}
 
   # WH-68
   # WH-49
@@ -100,7 +110,7 @@ defmodule Relay.Webhooks.Completions do
          {:ok, outcome} <- Map.fetch(@outcomes, event["type"]),
          true <- data?(data),
          {:ok, waitpoint_id} <- reference(data["waitpoint_id"]) do
-      {:ok, %{outcome: outcome, waitpoint_id: waitpoint_id}}
+      {:ok, %{outcome: outcome, waitpoint_id: waitpoint_id, result: Map.get(data, "result")}}
     else
       _other -> {:error, :malformed}
     end
@@ -202,17 +212,62 @@ defmodule Relay.Webhooks.Completions do
 
   defp open(_scope, _receipt), do: {:ok, Redacted.wrap("")}
 
-  defp settle(scope, receipt_id, {:ok, %{waitpoint_id: waitpoint_id}}) do
-    with {:ok, result} <- port().complete_waitpoint(scope, waitpoint_id),
+  defp settle(scope, receipt_id, {:ok, %{waitpoint_id: waitpoint_id} = notification}) do
+    with {:ok, sealed} <- sealed_result(scope, notification.result),
+         completion = Map.merge(sealed, %{receipt_id: receipt_id, outcome: notification.outcome}),
+         {:ok, result} <- port().complete_waitpoint(scope, waitpoint_id, completion),
          {:ok, _marked} <- mark(scope, receipt_id, :processed, nil) do
+      :ok = counted(result)
       {:ok, result}
     end
   end
 
   defp settle(scope, receipt_id, {:error, :malformed}) do
-    with {:ok, _marked} <- mark(scope, receipt_id, :rejected, "unreadable"),
-         do: {:ok, :unreadable}
+    with {:ok, _marked} <- mark(scope, receipt_id, :rejected, "unreadable") do
+      :ok = counted(:unreadable)
+      {:ok, :unreadable}
+    end
   end
+
+  # TN-27
+  defp sealed_result(_scope, nil), do: {:ok, %{result_ct: nil, result_key_id: nil}}
+
+  defp sealed_result(scope, %{} = result) do
+    with {:ok, %{ct: ct, key_id: key_id}} <-
+           Settings.sealer().seal(scope, @result_field, Jason.encode!(result)),
+         do: {:ok, %{result_ct: ct, result_key_id: key_id}}
+  end
+
+  defp counted(result) do
+    :telemetry.execute([:relay, :webhooks, :completion], %{count: 1}, %{result: result})
+  end
+
+  # WH-68
+  # TN-27
+  @doc "Reads what a completion notification said about the job a waitpoint waited for: the `:outcome` (`completed` or `failed`), the `:result` object it carried, opened here from its sealed form, and `:completed_at`. `nil` for a waitpoint that no completion notification resolved. It is the answer of an authorised read of the waitpoint and is never part of an event; it runs outside any transaction."
+  @spec result(Scope.t(), Relay.Id.t()) :: {:ok, result() | nil} | {:error, term()}
+  def result(%Scope{} = scope, waitpoint_id) do
+    case port().waitpoint_completion(scope, waitpoint_id) do
+      {:ok, nil} -> {:ok, nil}
+      {:ok, %{} = completion} -> opened(scope, completion)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp opened(_scope, %{result_ct: nil} = completion), do: {:ok, read(completion, nil)}
+
+  defp opened(scope, %{result_ct: ct, result_key_id: key_id} = completion) do
+    with {:ok, plain} <- Settings.sealer().open(scope, @result_field, key_id, ct),
+         {:ok, %{} = result} <- Jason.decode(Redacted.expose(plain)) do
+      {:ok, read(completion, result)}
+    else
+      {:ok, _not_an_object} -> {:error, :unreadable}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp read(completion, result),
+    do: %{outcome: completion.outcome, result: result, completed_at: completion.completed_at}
 
   defp mark(scope, receipt_id, state, reason) do
     SourceStore.in_scope(scope, fn _status -> Store.receipt_mark(receipt_id, state, reason) end)

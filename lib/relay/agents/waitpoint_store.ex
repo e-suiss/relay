@@ -182,6 +182,46 @@ defmodule Relay.Agents.WaitpointStore do
     Repo.code!(row["waitpoint_cancel"], [:cancelled, :already_terminal, :not_found])
   end
 
+  # WH-68
+  @doc "Records the completion notification that resolved a waitpoint; `completion` carries `:receipt_id`, `:outcome` and optionally the sealed result as `:result_ct` and `:result_key_id`."
+  @spec completion_record(Relay.Id.t(), map()) :: :recorded | :exists | :not_resolved
+  def completion_record(waitpoint_id, completion) do
+    [row] =
+      Repo.call!("relay_fn.waitpoint_completion_record", [
+        waitpoint_id,
+        completion.receipt_id,
+        Atom.to_string(completion.outcome),
+        Map.get(completion, :result_ct),
+        Map.get(completion, :result_key_id)
+      ])
+
+    Repo.code!(row["waitpoint_completion_record"], [:recorded, :exists, :not_resolved])
+  end
+
+  # WH-68
+  @doc "Reads the completion that resolved a waitpoint, its result as it is stored, or `nil`."
+  @spec completion(Relay.Id.t()) :: map() | nil
+  def completion(waitpoint_id) do
+    sql = """
+    SELECT c.receipt_id, c.outcome, c.result_ct, c.result_key_id, c.created_at
+    FROM relay.waitpoint_completions c WHERE c.waitpoint_id = $1
+    """
+
+    case Repo.scoped_query!(sql, [waitpoint_id]).rows do
+      [[receipt_id, outcome, result_ct, result_key_id, created_at]] ->
+        %{
+          receipt_id: receipt_id,
+          outcome: outcome,
+          result_ct: result_ct,
+          result_key_id: result_key_id,
+          completed_at: created_at
+        }
+
+      [] ->
+        nil
+    end
+  end
+
   @doc "Reads a waitpoint."
   @spec get(Relay.Id.t()) :: map() | nil
   def get(waitpoint_id) do

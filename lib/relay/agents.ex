@@ -54,12 +54,18 @@ defmodule Relay.Agents do
 
   # WH-68
   @doc "Completes an event waitpoint by its identifier; see `Relay.Agents.Waitpoint.complete/3`."
-  @spec complete_waitpoint(Relay.Scope.t(), Relay.Id.t(), Relay.Id.t() | nil) ::
+  @spec complete_waitpoint(Relay.Scope.t(), Relay.Id.t(), Waitpoint.completion() | nil) ::
           {:ok, :resolved | :expired | :already_terminal | :not_found | :not_completable}
           | {:error, term()}
-  defdelegate complete_waitpoint(scope, waitpoint_id, source_event_id \\ nil),
+  defdelegate complete_waitpoint(scope, waitpoint_id, completion \\ nil),
     to: Waitpoint,
     as: :complete
+
+  # WH-68
+  @doc "Reads the completion that resolved a waitpoint, its result still sealed, or `nil`; see `Relay.Agents.Waitpoint.completion/2`."
+  @spec waitpoint_completion(Relay.Scope.t(), Relay.Id.t()) ::
+          {:ok, map() | nil} | {:error, term()}
+  defdelegate waitpoint_completion(scope, waitpoint_id), to: Waitpoint, as: :completion
 
   # AG-15
   @doc "Renews a waiter's heartbeat; see `Relay.Agents.Waitpoint.heartbeat/4`."

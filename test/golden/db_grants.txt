@@ -524,6 +524,11 @@ table relay.virtual_clocks relay_app SELECT
 table relay.virtual_clocks relay_maint SELECT
 table relay.virtual_clocks relay_owner INSERT,SELECT,UPDATE
 table relay.virtual_clocks relay_report SELECT
+table relay.waitpoint_completions relay_app SELECT
+table relay.waitpoint_completions relay_archive SELECT
+table relay.waitpoint_completions relay_maint SELECT
+table relay.waitpoint_completions relay_owner INSERT,SELECT,UPDATE
+table relay.waitpoint_completions relay_report SELECT
 table relay.waitpoint_counters relay_app SELECT
 table relay.waitpoint_counters relay_archive SELECT
 table relay.waitpoint_counters relay_maint SELECT

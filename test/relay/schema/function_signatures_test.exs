@@ -329,6 +329,7 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.webhook_consumer_archive" => ~w(archived already_archived in_use not_found),
     "relay_fn.webhook_source_create" =>
       ~w(created secret_not_found limit_reached tenant_inactive),
+    "relay_fn.waitpoint_completion_record" => ~w(recorded exists not_resolved),
     "relay_fn.webhook_source_archive" => ~w(archived already_archived not_found),
     "relay_fn.webhook_event_type_create" => ~w(created name_conflict tenant_inactive),
     "relay_fn.webhook_event_type_version_add" => ~w(added unchanged not_found archived),

@@ -22,6 +22,7 @@ defmodule Relay.Webhooks do
   alias Relay.Webhooks.EventSchema
   alias Relay.Webhooks.Fanout
   alias Relay.Webhooks.Health
+  alias Relay.Webhooks.PortalStore
   alias Relay.Webhooks.Profile
   alias Relay.Webhooks.Settings
   alias Relay.Webhooks.Signer
@@ -31,6 +32,9 @@ defmodule Relay.Webhooks do
   @signer Relay.Webhooks.Signer.KeyStore
   @sealer Relay.Webhooks.Live
   @contact_field {"operations_contacts", "address_ct"}
+  @response_field {"webhook_attempts", "response_ct"}
+  @sealed_response ["response_ct", "response_key_id"]
+  @recover_chunk 500
   @limits %{
     per_tenant: Relay.Limits.fetch!(["webhook", "endpoints_per_tenant"]),
     per_consumer: Relay.Limits.fetch!(["webhook", "endpoints_per_consumer"])
@@ -634,6 +638,93 @@ defmodule Relay.Webhooks do
       responses = days(setting["response_body_days"], defaults.response_body_days, min)
       EngineStore.retention_sweep(messages, responses, limit, now)
     end)
+  end
+
+  # WH-8
+  # WH-14
+  @doc "The `dataschema` of a version of an event type of Relay's catalog, as the envelope of its events names it."
+  @spec event_dataschema(String.t(), pos_integer()) :: String.t()
+  def event_dataschema(event_type, version) when is_binary(event_type) and is_integer(version),
+    do: "#{Settings.source()}/v1/event_schemas/#{event_type}/#{version}"
+
+  # WH-30
+  # WH-46
+  # WH-47
+  # API-56
+  @doc "A page of the delivery log of one consumer, newest first; see `Relay.Webhooks.PortalStore.messages/4`. A message of another consumer is never read."
+  @spec portal_messages(Scope.t(), id(), map(), cursor(), pos_integer()) :: result([map()])
+  def portal_messages(%Scope{} = scope, consumer_id, filters, cursor, limit),
+    do: read(scope, fn -> PortalStore.messages(consumer_id, filters, cursor, limit) end)
+
+  # WH-47
+  @doc "Reads a message of one consumer with the state of its endpoint, or `nil`, inside the caller's scoped transaction."
+  @spec portal_message(id(), id()) :: map() | nil
+  defdelegate portal_message(consumer_id, id), to: PortalStore, as: :message
+
+  # WH-47
+  @doc "Reads a message of one consumer, or `nil`."
+  @spec get_portal_message(Scope.t(), id(), id()) :: result(map() | nil)
+  def get_portal_message(%Scope{} = scope, consumer_id, id),
+    do: read(scope, fn -> PortalStore.message(consumer_id, id) end)
+
+  # WH-10
+  # WH-47
+  # API-56
+  @doc "A page of the attempts of a message of one consumer, in attempt order; `:not_found` for a message the consumer does not have."
+  @spec portal_attempts(Scope.t(), id(), id(), cursor(), pos_integer()) ::
+          result([map()] | :not_found)
+  def portal_attempts(%Scope{} = scope, consumer_id, message_id, cursor, limit) do
+    read(scope, fn ->
+      case PortalStore.message(consumer_id, message_id) do
+        nil -> :not_found
+        _message -> PortalStore.attempts(message_id, cursor, limit)
+      end
+    end)
+  end
+
+  # WH-10
+  # WH-47
+  @doc "Reads one attempt of a message of one consumer with the kept part of the answer opened as `\"response_body\"`; `:not_found` for a message the consumer does not have, `nil` for an unknown attempt. Reaches the key store after its read, so it never runs inside a transaction."
+  @spec portal_attempt(Scope.t(), id(), id(), id()) :: result(map() | nil | :not_found)
+  def portal_attempt(%Scope{} = scope, consumer_id, message_id, attempt_id) do
+    found =
+      read(scope, fn ->
+        case PortalStore.message(consumer_id, message_id) do
+          nil -> :not_found
+          _message -> PortalStore.attempt(message_id, attempt_id)
+        end
+      end)
+
+    with {:ok, %{} = attempt} <- found,
+         {:ok, body} <- response_body(scope, attempt) do
+      {:ok, attempt |> Map.drop(@sealed_response) |> Map.put("response_body", body)}
+    end
+  end
+
+  defp response_body(_scope, %{"response_ct" => nil}), do: {:ok, nil}
+
+  defp response_body(scope, %{"response_ct" => ct, "response_key_id" => key_id}) do
+    with {:ok, body} <- sealer().open(scope, @response_field, key_id, ct),
+         do: {:ok, Relay.Redacted.expose(body)}
+  end
+
+  # WH-31
+  # WH-32 (3)
+  # WH-37
+  # WH-48
+  @doc "Recovers an endpoint inside the caller's scoped transaction: every missed event of it created at or after `since` (and before `until`, when given) starts its schedule from the beginning with the same event identifier, and the operation is audited for `actor`. Returns how many messages were queued again."
+  @spec portal_recover(id(), DateTime.t(), DateTime.t() | nil, binary(), Actor.t()) ::
+          non_neg_integer()
+  def portal_recover(endpoint_id, %DateTime{} = since, until, digest, %Actor{} = actor) do
+    count =
+      endpoint_id
+      |> PortalStore.recoverable(since, until)
+      |> Enum.chunk_every(@recover_chunk)
+      |> Enum.map(&Fanout.restart/1)
+      |> Enum.sum()
+
+    :ok = PortalStore.audit("webhook_endpoint.updated", endpoint_id, "recover", digest, actor)
+    count
   end
 
   defp days(value, default, min) when is_integer(value), do: value |> max(min) |> min(default)

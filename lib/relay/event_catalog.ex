@@ -73,4 +73,25 @@ defmodule Relay.EventCatalog do
   @doc "The catalog entry of an event name: its summary, the version of its data schema and the schema itself."
   @spec fetch(String.t()) :: {:ok, entry()} | :error
   def fetch(name), do: Map.fetch(@entries, name)
+
+  # WH-14
+  @doc "The data schema of an event name with every reference into the catalog's schemas written out, so that it reads on its own."
+  @spec schema(String.t()) :: {:ok, map()} | :error
+  def schema(name) do
+    with {:ok, %{data: data}} <- fetch(name), do: {:ok, inline(data, [])}
+  end
+
+  defp inline(%{"$ref" => "#/components/schemas/" <> key} = node, seen) do
+    rest = node |> Map.delete("$ref") |> inline(seen)
+
+    if key in seen,
+      do: rest,
+      else: @schemas |> Map.fetch!(key) |> inline([key | seen]) |> Map.merge(rest)
+  end
+
+  defp inline(%{} = node, seen),
+    do: Map.new(node, fn {key, value} -> {key, inline(value, seen)} end)
+
+  defp inline(list, seen) when is_list(list), do: Enum.map(list, &inline(&1, seen))
+  defp inline(other, _seen), do: other
 end

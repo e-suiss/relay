@@ -167,7 +167,10 @@ defmodule Relay.Workflow.RunnerTest do
       assert {:ok, %{status: "completed", state: state, extras: [{"b", "email"}]}} =
                run([hook, mail("b")])
 
-      assert state["results"]["hook"] == %{"outcome" => "emitted", "webhook_event_id" => "evt-1"}
+      assert %{"outcome" => "emitted", "webhook_event_id" => "evt-1", "type" => "webhook"} =
+               state["results"]["hook"]
+
+      refute Map.has_key?(state["results"]["hook"], "rule_id")
     end
 
     test "WF-11: a webhook step that cannot emit is recorded with its rule and reason and the run goes on" do
@@ -183,11 +186,11 @@ defmodule Relay.Workflow.RunnerTest do
       assert {:ok, %{status: "completed", state: state, extras: [{"b", "email"}]}} =
                run([hook, mail("b")], refused)
 
-      assert state["results"]["hook"] == %{
+      assert %{
                "outcome" => "skipped",
                "rule_id" => "workflow_run.step_unavailable",
                "reason" => "consumer_not_found"
-             }
+             } = state["results"]["hook"]
     end
 
     test "WF-11: a condition after a webhook step reads its delivery result, never the answer" do

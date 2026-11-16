@@ -294,11 +294,13 @@ defmodule RelayWeb.Api.WebhookStepTest do
         [id] = send!(ctx, key, %{"order" => "A-6"})
         run = run!(ctx, id)
 
-        assert run["step_results"]["hook"] == %{
+        assert %{
                  "outcome" => "skipped",
                  "rule_id" => "workflow_run.step_unavailable",
-                 "reason" => reason
-               }
+                 "reason" => ^reason
+               } = run["step_results"]["hook"]
+
+        refute Map.has_key?(run["step_results"]["hook"], "webhook_event_id")
 
         assert %{"state" => "completed"} = run
         assert [_delivery] = run["step_results"]["mail"]["deliveries"]

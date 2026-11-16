@@ -17,8 +17,8 @@ defmodule Relay.Repo.Migrations.CreateWebhookEngineFunctions do
      "relay_owner", ~w(relay_app)},
     {"relay_fn.webhook_messages_terminate(uuid[], text, text, text, #{@ts})", "relay_owner",
      ~w(relay_app)},
-    {"relay_fn.webhook_messages_requeue(uuid[], #{@ts}[], #{@ts}[], text, #{@ts})",
-     "relay_owner", ~w(relay_app)},
+    {"relay_fn.webhook_messages_requeue(uuid[], #{@ts}[], #{@ts}[], text, #{@ts})", "relay_owner",
+     ~w(relay_app)},
     {"relay_fn.webhook_endpoint_set_state(uuid, text, text, bytea, #{@actor}, #{@ts})",
      "relay_owner", ~w(relay_app)},
     {"relay_fn.webhook_endpoint_keys_destroyed(uuid[], #{@ts})", "relay_owner", ~w(relay_app)},
@@ -45,7 +45,7 @@ defmodule Relay.Repo.Migrations.CreateWebhookEngineFunctions do
     for {signature, owner, grantees} <- @functions do
       execute("REVOKE ALL ON FUNCTION #{signature} FROM PUBLIC")
       Enum.each(grantees, &execute("GRANT EXECUTE ON FUNCTION #{signature} TO #{&1}"))
-      execute("ALTER FUNCTION #{signature} OWNER TO #{owner}")
+      if owner == "relay_owner", do: execute("ALTER FUNCTION #{signature} OWNER TO #{owner}")
     end
   end
 

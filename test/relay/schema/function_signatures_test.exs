@@ -337,8 +337,7 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.operations_contacts_replace" => ~w(replaced tenant_inactive),
     "relay_fn.webhook_message_claim" =>
       ~w(claimed not_found locked terminal tenant_inactive endpoint_archived endpoint_paused endpoint_disabled expired window_exceeded held not_due),
-    "relay_fn.webhook_attempt_settle" =>
-      ~w(settled lock_lost not_found),
+    "relay_fn.webhook_attempt_settle" => ~w(settled lock_lost not_found),
     "relay_fn.webhook_endpoint_set_state" =>
       ~w(changed unchanged not_found archived managed invalid_state)
   }

@@ -5263,7 +5263,7 @@ components:
     access.tenant.created:
       name: tenant.created
       title: tenant.created
-      summary: "An Access tenant was created; Relay opens the mapped tenant in the installation's region with that region's default time zone and locale (E-95)."
+      summary: "An Access tenant was created; Relay opens the mapped tenant in the region its tenant snapshot names, with that region's default time zone and locale; while the snapshot cannot be read the event waits and is retried (E-95)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -5290,7 +5290,7 @@ components:
                           maxLength: 128
                         placement:
                           type: string
-                          description: "The Access placement of the tenant, a pool inside the installation's region; Relay opens the tenant in that region with the region's installation default time zone and locale (E-95)."
+                          description: "The Access placement of the tenant, a pool inside its region. Relay does not keep it: the region comes from the tenant snapshot (E-95)."
                           pattern: "^[a-z0-9][a-z0-9-]{0,62}$"
                         platform_product:
                           type: string

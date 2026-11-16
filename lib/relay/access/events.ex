@@ -4,7 +4,7 @@ defmodule Relay.Access.Events do
 
   `process/1` (the `Relay.Access.EventConsumer` job) applies a receipt by its type:
 
-  * `tenant.created` creates the mapped tenant with its keys (TN-1). Access carries the tenant's `placement` and no time zone or locale (E-95): the region is the one its placement maps to, which is always the installation's own region (INV-41), and the default time zone and locale (TN-2, X-35) are that region's installation defaults from the active `region_defaults` data set; without an active version the job retries. An Access tenant that Access marks with a `platform_product` (a Suiss product such as `access` itself) becomes that product's platform tenant (C-18, E-9, TN-9): an ordinary, isolated tenant with no data privilege; an unknown product is refused.
+  * `tenant.created` creates the mapped tenant with its keys (TN-1). Access carries no time zone or locale (E-95): the region is the one the tenant's snapshot names (`Relay.Access.Realms.snapshot/1`), read outside any transaction, and the default time zone and locale (TN-2, X-35) are that region's installation defaults from the active `region_defaults` data set; without an active version the job retries. While the snapshot cannot be read (Access does not answer, does not know the tenant yet, or names no region) the receipt waits as `deferred` with reason `snapshot_unavailable` and the job retries; a snapshot region this installation does not serve is `rejected` with reason `region_mismatch`, because a tenant's Access and Relay records stay in one region (INV-41, E-39). An Access tenant that Access marks with a `platform_product` (a Suiss product such as `access` itself) becomes that product's platform tenant (C-18, E-9, TN-9): an ordinary, isolated tenant with no data privilege; an unknown product is refused.
   * `organization.created` and `organization.updated` are recorded and acknowledged but not applied, `processed` with reason `not_applied`: Access holds no organization name or state yet, so no sub-tenant is created from them (E-95).
   * `api_client.created` registers the client in its tenant's `live` scope as pending, with no environment and no scopes, until a tenant administrator assigns them (E-99, `Relay.Access.Assignment`); a client Relay already knows is left as it is. `api_client.updated` carries nothing Relay keeps and is `processed` with reason `not_applied`. `api_client.suspended`, `api_client.reactivated` and `api_client.revoked` change the API client trace's status and announce the new generation to every node (API-44, TN-24); `api_client.disabled`, which Access emits when it retires a client, suspends it (E-97). A status event of a client that is still pending waits as `deferred` with reason `unknown_client` and is queued again once the client is assigned.
   * `user.suspended`, `user.reactivated` and `user.deleted` go to the configured user event handlers (`config :relay, Relay.Access, user_handlers: [module]`, `Relay.Access.UserHandler`); without one the receipt waits as `deferred` with reason `no_handler`.
@@ -18,11 +18,12 @@ defmodule Relay.Access.Events do
   alias Relay.Access.EventConsumer
   alias Relay.Access.EventStore
   alias Relay.Access.Link
+  alias Relay.Access.Realms
   alias Relay.Access.SecurityEvent
   alias Relay.Scope
 
   @mapping %{
-    "tenant.created" => ~w(access_tenant_id placement platform_product),
+    "tenant.created" => ~w(access_tenant_id platform_product),
     "organization.created" => ~w(access_tenant_id access_organization_id),
     "organization.updated" => ~w(access_tenant_id access_organization_id),
     "api_client.created" => ~w(access_tenant_id access_client_id),
@@ -58,8 +59,13 @@ defmodule Relay.Access.Events do
   @region_defaults "region_defaults"
   @batch 100
   @event_name ~r/\A[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+\z/
+  @access_tenant ~r/\A[A-Za-z0-9_-]{1,128}\z/
+  @snapshot_unavailable "snapshot_unavailable"
 
-  @type outcome :: :processed | {:processed | :deferred | :rejected, String.t()}
+  @type outcome ::
+          :processed
+          | {:processed | :deferred | :rejected, String.t()}
+          | {:deferred, String.t(), Relay.Error.t()}
 
   # E-94
   # E-70
@@ -193,6 +199,10 @@ defmodule Relay.Access.Events do
         _ = EventStore.mark(receipt.id, state, reason)
         :ok
 
+      {:deferred, reason, error} ->
+        _ = EventStore.mark(receipt.id, :deferred, reason)
+        {:error, error}
+
       {:error, error} ->
         {:error, error}
     end
@@ -235,7 +245,7 @@ defmodule Relay.Access.Events do
   # E-95
   defp tenant_created(payload, receipt) do
     with tenant when is_binary(tenant) <- text(payload["access_tenant_id"], 128),
-         {:ok, region} <- placement_region(payload["placement"]),
+         {:ok, region} <- snapshot_region(tenant),
          {:ok, timezone, locale} <- region_defaults(region) do
       attrs = %{
         id: Relay.Id.generate(),
@@ -251,13 +261,39 @@ defmodule Relay.Access.Events do
     else
       nil -> {:rejected, "tenant_missing"}
       {:rejected, reason} -> {:rejected, reason}
+      {:deferred, reason, error} -> {:deferred, reason, error}
       {:error, error} -> {:error, error}
     end
   end
 
   # E-95
+  defp snapshot_region(tenant) do
+    if Regex.match?(@access_tenant, tenant),
+      do: read_region(tenant, Realms.snapshot(tenant)),
+      else: {:rejected, "tenant_invalid"}
+  end
+
+  defp read_region(tenant, {:ok, %{"tenant" => tenant, "region" => region}}),
+    do: served(Relay.Region.cast(region))
+
+  defp read_region(_tenant, {:ok, _snapshot}), do: unread("the tenant snapshot names no region")
+  defp read_region(_tenant, {:error, :not_found}), do: unread("Access does not know the tenant")
+
+  defp read_region(_tenant, {:error, %Relay.Error{} = error}),
+    do: {:deferred, @snapshot_unavailable, error}
+
   # INV-41
-  defp placement_region(_placement), do: Relay.Region.cast(Relay.Datasets.installation_region())
+  # E-39
+  defp served({:ok, region}) do
+    if Relay.Region.cast(Relay.Datasets.installation_region()) == {:ok, region},
+      do: {:ok, region},
+      else: {:rejected, "region_mismatch"}
+  end
+
+  defp served({:error, _error}), do: unread("the tenant snapshot names no region")
+
+  defp unread(message),
+    do: {:deferred, @snapshot_unavailable, Relay.Error.new(:service_unavailable, message)}
 
   # E-95
   # OP-65 (3)

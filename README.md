@@ -145,7 +145,7 @@ Access tells Relay about tenants, organizations, API clients, users and consents
 
 An API client that Access disables (`api_client.disabled`) is suspended in Relay at once: its tokens are refused on every node until Access reactivates it.
 
-A tenant that Access creates (`tenant.created`) opens in the installation's region with that region's default time zone and locale, from the `region_defaults` data set (`tr`: `Europe/Istanbul` and `tr`; `eu`: `Europe/Berlin` and `en`; `us`: `America/New_York` and `en`). Organization events are recorded and acknowledged, but create no subtenant yet.
+A tenant that Access creates (`tenant.created`) opens in the region its Access tenant snapshot names, with that region's default time zone and locale from the `region_defaults` data set (`tr`: `Europe/Istanbul` and `tr`; `eu`: `Europe/Berlin` and `en`; `us`: `America/New_York` and `en`). While the snapshot cannot be read the event waits and is retried; a region the installation does not serve is rejected. Organization events are recorded and acknowledged, but create no subtenant yet.
 
 Access does not hold an API client's environment or scopes, so a client that Access creates (`api_client.created`) waits in Relay as pending, and its tokens are answered with `403 auth_client_pending` until a tenant administrator assigns it. The operator API lists pending clients with `GET /v1/operator/pending_api_clients` and assigns one, after a step-up, with `POST /v1/operator/pending_api_clients/assign`: the body names the Access `client_id` and its scopes, and the environment is the one selected with `Relay-Environment`. The installation operator can do the same from the release on a running node:
 

@@ -46,6 +46,9 @@ defmodule Relay.Access.EventsTest do
     |> Enum.find(&(&1["webhook_id"] == webhook_id))
   end
 
+  defp queued_receipt(webhook_id),
+    do: Enum.find(FakeAccess.queued(), &(FakeAccess.receipt(&1)["webhook_id"] == webhook_id))
+
   defp tenant_member(access_tenant_id),
     do: %{"tenant" => access_tenant_id, "placement" => "pool-default", "at" => 1_790_000_000_000}
 
@@ -194,11 +197,12 @@ defmodule Relay.Access.EventsTest do
   end
 
   describe "TN-1 E-95 tenants and organizations" do
-    test "TN-1, TN-2, E-95: tenant.created opens the tenant in the installation region with that region's defaults" do
+    test "TN-1, TN-2, E-95: tenant.created opens the tenant in the region of its snapshot with that region's defaults" do
       access_tenant = "acc_" <> FakeAccess.random()
       id = deliver!("tenant.created", tenant_member(access_tenant))
 
       assert receipt_of(id)["state"] == "processed"
+      assert_received {:fake_access, :snapshot, ^access_tenant}
       assert %{id: tenant_id, status: "active", platform: nil} = ClientStore.tenant(access_tenant)
       scope = Relay.Scope.new!(tenant_id, :test)
       assert {:ok, purposes} = Relay.Tenancy.active_key_purposes(scope)
@@ -217,15 +221,37 @@ defmodule Relay.Access.EventsTest do
       assert %{"state" => "rejected", "reason" => "tenant_missing"} = receipt_of(missing)
     end
 
-    test "E-95, E-70: the receipt keeps the placement and drops what Relay does not consume" do
+    test "E-95, E-70: the receipt keeps the tenant and drops what Relay does not consume" do
       access_tenant = "acc_" <> FakeAccess.random()
       member = Map.put(tenant_member(access_tenant), "owner", "user-1")
       receipt = receipt_of(deliver!("tenant.created", member))
 
-      assert receipt["payload"] == %{
-               "access_tenant_id" => access_tenant,
-               "placement" => "pool-default"
-             }
+      assert receipt["payload"] == %{"access_tenant_id" => access_tenant}
+    end
+
+    test "E-95: while the tenant snapshot cannot be read the event is deferred and retried, and no tenant is opened" do
+      for prefix <- ["tnt_down", "tnt_unknown"] do
+        access_tenant = prefix <> FakeAccess.random()
+        jti = deliver!("tenant.created", tenant_member(access_tenant))
+        id = queued_receipt(jti)
+
+        for _attempt <- 1..2 do
+          assert {:error, %Relay.Error{}} = Relay.Access.process_event(id)
+
+          assert %{"state" => "deferred", "reason" => "snapshot_unavailable"} =
+                   FakeAccess.receipt(id)
+        end
+
+        assert ClientStore.tenant(access_tenant) == nil
+      end
+    end
+
+    test "INV-41, E-39, E-95: a snapshot region this installation does not serve is rejected and no tenant is opened" do
+      access_tenant = "tnt_elsewhere" <> FakeAccess.random()
+      jti = deliver!("tenant.created", tenant_member(access_tenant))
+
+      assert %{"state" => "rejected", "reason" => "region_mismatch"} = receipt_of(jti)
+      assert ClientStore.tenant(access_tenant) == nil
     end
 
     test "E-94, E-80, E-95: an organization event with Access's member names is recorded and not applied" do

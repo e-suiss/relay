@@ -156,6 +156,25 @@ defmodule Relay.CLITest do
     }
   end
 
+  defp webhook_event(id, type, at) do
+    %{
+      "object" => "webhook_event",
+      "id" => id,
+      "type" => type,
+      "created_at" => at,
+      "envelope" => %{
+        "specversion" => "1.0",
+        "id" => id,
+        "source" => "https://relay.test",
+        "type" => type,
+        "time" => at,
+        "datacontenttype" => "application/json",
+        "environment" => "test",
+        "data" => %{"notification_id" => "ntf_1"}
+      }
+    }
+  end
+
   describe "exit codes" do
     test "X-42: an unknown command or option is a usage error with exit code 2" do
       assert {2, "", err} = cli(["frobnicate"])
@@ -997,27 +1016,74 @@ defmodule Relay.CLITest do
       assert err =~ "--why needs --subscriber"
     end
 
-    test "API-64: listen forwards new notifications to a local address, never the token" do
-      fresh = notification("ntf_2", "2026-11-01T09:00:05Z")
+    test "WH-45, API-64, X-33: listen forwards the environment's webhook events to a local address, never the token" do
+      fresh = webhook_event("oev_2", "notification.delivered", "2026-11-01T09:00:05Z")
 
       routes = %{
-        {"GET", "/v1/notifications"} => {200, list([fresh])},
+        {"GET", "/v1/webhook_events"} => {200, list([fresh])},
         {"POST", "/hook"} => {200, %{"ok" => true}}
       }
 
-      argv = ["listen", "--forward-to", "http://localhost:4000/hook"]
+      argv = ["listen", "--forward-to", "http://localhost:4000/hook", "--event-type"]
+      argv = argv ++ ["notification.delivered"]
       assert {0, out, err} = cli(argv, routes, max_polls: 1)
-      assert out =~ "ntf_2 -> 200"
-      assert err =~ "forwarding new notifications"
+      assert out =~ "oev_2 notification.delivered -> 200"
+      assert err =~ "forwarding webhook events"
 
-      [forward] = Enum.filter(requests(), &(&1.host == "localhost"))
-      assert forward.body == fresh
+      sent = requests()
+      [poll] = Enum.filter(sent, &(&1.path == "/v1/webhook_events"))
+      assert poll.host == "relay.test"
+      assert poll.query["event_type"] == "notification.delivered"
+      assert poll.query["created_after"] == "2026-11-01T09:00:00Z"
+
+      [forward] = Enum.filter(sent, &(&1.host == "localhost"))
+      assert forward.body == fresh["envelope"]
       refute Map.has_key?(forward.headers, "authorization")
 
       argv = ["listen", "--forward-to", "https://hooks.example.com/relay"]
       assert {2, "", err} = cli(argv, routes, max_polls: 1)
       assert err =~ "local address"
       assert requests() == []
+    end
+
+    test "WH-4, WH-7, WH-9: a forwarded event carries the profile headers and verifies with the session secret" do
+      fresh = webhook_event("oev_3", "notification.suppressed", "2026-11-01T09:00:07Z")
+
+      routes = %{
+        {"GET", "/v1/webhook_events"} => {200, list([fresh])},
+        {"POST", "/hook"} => {200, %{"ok" => true}}
+      }
+
+      argv = ["listen", "--forward-to", "http://127.0.0.1:4000/hook"]
+      assert {0, _out, err} = cli(argv, routes, max_polls: 1)
+
+      key = :binary.copy(<<0>>, 32)
+      assert err =~ "whsec_" <> Base.encode64(key)
+
+      [%{headers: headers} = forward] = Enum.filter(requests(), &(&1.host == "127.0.0.1"))
+      timestamp = Integer.to_string(DateTime.to_unix(@now))
+      assert headers["webhook-id"] == "oev_3"
+      assert headers["webhook-timestamp"] == timestamp
+      assert headers["webhook-event-type"] == "notification.suppressed"
+      assert headers["webhook-attempt"] == "1"
+      assert headers["content-type"] =~ "application/cloudevents+json"
+
+      body = Jason.encode!(forward.body)
+      signed = :crypto.mac(:hmac, :sha256, key, "oev_3." <> timestamp <> "." <> body)
+      assert headers["webhook-signature"] == "v1," <> Base.encode64(signed)
+
+      own = :binary.copy(<<7>>, 24)
+      env = env(%{"RELAY_LISTEN_SECRET" => "whsec_" <> Base.encode64(own)})
+      assert {0, _out, err} = cli(argv, routes, max_polls: 1, env: env)
+      refute err =~ "whsec_"
+
+      [%{headers: headers}] = Enum.filter(requests(), &(&1.host == "127.0.0.1"))
+      signed = :crypto.mac(:hmac, :sha256, own, "oev_3." <> timestamp <> "." <> body)
+      assert headers["webhook-signature"] == "v1," <> Base.encode64(signed)
+
+      env = env(%{"RELAY_LISTEN_SECRET" => "short"})
+      assert {2, "", err} = cli(argv, routes, max_polls: 1, env: env)
+      assert err =~ "RELAY_LISTEN_SECRET"
     end
   end
 end

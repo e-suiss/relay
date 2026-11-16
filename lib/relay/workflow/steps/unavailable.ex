@@ -1,6 +1,6 @@
 defmodule Relay.Workflow.Steps.Unavailable do
   @moduledoc """
-  The step type the runner does not execute yet: `webhook` (WF-8, WF-11), which needs the outbound event delivery engine and its tenant endpoints. The publication gate accepts its shape; at run time it records `skipped` with `workflow_run.step_unavailable` as its outcome and the run goes on with the next step, so nothing is skipped silently. The type's module replaces this one in `Relay.Workflow.Step.module/1` when it is built.
+  The step of a type that has no module in `Relay.Workflow.Step.module/1` (WF-8). Every type of the definition contract has one, so a published workflow never reaches it; a run that meets such a step records `skipped` with `workflow_run.step_unavailable` as its outcome and goes on with the next step, so nothing is skipped silently.
   """
 
   @behaviour Relay.Workflow.Step

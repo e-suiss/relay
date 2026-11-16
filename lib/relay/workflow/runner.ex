@@ -12,7 +12,7 @@ defmodule Relay.Workflow.Runner do
 
   The run then waits (a timer at the earliest of the cursor's and the routes' times), keeps running without a timer (a route waiting on a delivery outcome, a parked cursor) or completes. The same definition, context, step results and projection always give the same path.
 
-  `outcomes/2` turns the recorded results and the deliveries' current projection into the condition view of each step (`steps.<key>.<result>`): `delivered`, `failed`, `skipped`, `seen`, `read`, `clicked` (human clicks only, WF-22) and the step's own `throttled`, `timed_out` and `matched`.
+  `outcomes/2` turns the recorded results and the deliveries' current projection into the condition view of each step (`steps.<key>.<result>`): `delivered`, `failed`, `skipped`, `seen`, `read`, `clicked` (human clicks only, WF-22) and the step's own `throttled`, `timed_out` and `matched`. `outcomes/3` adds the delivery result of the webhook steps from the states of their events' messages (WF-11).
   """
 
   alias Relay.Workflow.Definition
@@ -22,6 +22,7 @@ defmodule Relay.Workflow.Runner do
   @max_moves 500
   @unavailable "workflow_run.route_unavailable"
   @folded "digest.folded"
+  @undelivered ~w(failed_permanent exhausted expired window_exceeded dead_lettered cancelled)
 
   @type frame :: %{String.t() => term()}
   @type state :: %{String.t() => term()}
@@ -499,6 +500,28 @@ defmodule Relay.Workflow.Runner do
        }}
     end)
   end
+
+  # WF-11
+  @doc "The condition view of `outcomes/2` with the delivery result of the webhook steps: `hooks` gives the states of the messages of each emitted event by its identifier. A webhook step is `delivered` once every message of its event is delivered and `failed` once one of them ended in another terminal state; an event without a message is neither."
+  @spec outcomes(%{String.t() => map()}, %{String.t() => map()}, %{String.t() => [String.t()]}) ::
+          %{String.t() => map()}
+  def outcomes(results, deliveries, hooks) do
+    view = outcomes(results, deliveries)
+
+    Map.new(view, fn {key, step} ->
+      {key, hooked(step, Map.get(hooks, results[key]["webhook_event_id"]))}
+    end)
+  end
+
+  defp hooked(step, [_ | _] = states) do
+    %{
+      step
+      | "delivered" => Enum.all?(states, &(&1 == "delivered")),
+        "failed" => Enum.any?(states, &(&1 in @undelivered))
+    }
+  end
+
+  defp hooked(step, _none), do: step
 
   @doc "The delivery identifiers recorded in the step results."
   @spec delivery_ids(%{String.t() => map()}) :: [String.t()]

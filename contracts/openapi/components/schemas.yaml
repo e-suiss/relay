@@ -7769,6 +7769,65 @@ WebhookMessageList:
           items:
             "$ref": "#/WebhookMessage"
   description: "A page of messages, newest first."
+WebhookEvent:
+  type: object
+  description: "One of Relay's own events as the development tunnel reads it (WH-45): its identifier, which is the webhook-id of every delivery of the event, its type, when it was recorded and its thin CloudEvents 1.0 envelope (WH-8, WH-11)."
+  required:
+    - object
+    - id
+    - type
+    - created_at
+    - envelope
+  properties:
+    object:
+      type: string
+      const: webhook_event
+    id:
+      type: string
+      description: "The event identifier: the CloudEvents id and the webhook-id header of every delivery."
+      minLength: 1
+      maxLength: 256
+    type:
+      "$ref": "#/EventName"
+    created_at:
+      "$ref": "#/Timestamp"
+    envelope:
+      type: object
+      description: "The structured CloudEvents 1.0 envelope of the event with its thin data, as asyncapi/events.yaml describes it for the event type."
+      required:
+        - specversion
+        - id
+        - source
+        - type
+        - time
+        - data
+      properties:
+        specversion:
+          type: string
+          const: "1.0"
+        id:
+          type: string
+        source:
+          type: string
+        type:
+          "$ref": "#/EventName"
+        time:
+          "$ref": "#/Timestamp"
+        data:
+          type: object
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "The shape of a feed entry is chosen by the contract."
+WebhookEventList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/WebhookEvent"
+  description: "A page of events, newest first."
 WebhookAttempt:
   type: object
   description: "One delivery attempt of a message (WH-10): the digest of the raw body, the signature that was sent, the address Relay connected to, the status, the duration and, when the attempt is read by itself, the first 8 kB of the answer. No secret is kept in an attempt."

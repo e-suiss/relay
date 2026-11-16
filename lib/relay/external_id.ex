@@ -79,7 +79,8 @@ defmodule Relay.ExternalId do
     {"whk", "webhook_endpoint_keys"},
     {"whm", "webhook_messages"},
     {"wha", "webhook_attempts"},
-    {"whb", "webhook_batches"}
+    {"whb", "webhook_batches"},
+    {"whs", "webhook_sources"}
   ]
   @by_prefix Map.new(@tables)
 

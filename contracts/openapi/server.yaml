@@ -15051,6 +15051,383 @@ paths:
       x-relay-stage: 10
       x-relay-choice: true
       x-relay-choice-note: "Path and shapes are chosen by the contract within the named decisions."
+  "/v1/webhook_sources":
+    get:
+      operationId: listWebhookSources
+      tags:
+        - webhooks
+      summary: "List completion sources"
+      description: "Pages through the completion sources of this environment, newest first (WH-68)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+        - name: state
+          in: query
+          description: "Source state."
+          required: false
+          schema:
+            type: string
+            enum:
+              - active
+              - archived
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+      responses:
+        "200":
+          description: "A page of sources."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/WebhookSourceList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-68 registers a completion source by tenant and environment with its v1a public key or a reference to its v1 secret; the resource name, the path and the shapes are chosen by the contract."
+    post:
+      operationId: createWebhookSource
+      tags:
+        - webhooks
+      summary: "Register a completion source"
+      description: "Registers an external source of long-running job completion notifications in this environment (WH-68, WH-50, E-48). The source signs with the Suiss webhook profile: public_key is its whpk_ Ed25519 public key (v1a), or secret_ref_id names the registered reference of its whsec_ HMAC secret (v1, compatibility only); exactly one of the two is given. The secret is registered by an operator and is never sent here (TN-26); a secret_ref_id that names no active source secret of this environment is a field error. An environment holds at most 20 sources that are not archived: 422 webhook_source_limit_reached. The source posts its notifications to /inbound/v1/completions/{tenant}/{environment}/sources/{webhook_source_id}. Audited as webhook_source.created."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/WebhookSourceCreate"
+      security:
+        - access_bearer:
+            - config
+      responses:
+        "201":
+          description: "Created."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/WebhookSource"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - webhook_source_limit_reached
+      x-relay-scopes:
+        - config
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-68 registers a completion source by tenant and environment with its v1a public key or a reference to its v1 secret; the resource name, the path and the shapes are chosen by the contract."
+  "/v1/webhook_sources/{webhook_source_id}":
+    get:
+      operationId: getWebhookSource
+      tags:
+        - webhooks
+      summary: "Get a completion source"
+      description: "Returns the source."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/WebhookSourceId"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+      responses:
+        "200":
+          description: "The source."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/WebhookSource"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - webhook_source_not_found
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-68 registers a completion source by tenant and environment with its v1a public key or a reference to its v1 secret; the resource name, the path and the shapes are chosen by the contract."
+  "/v1/webhook_sources/{webhook_source_id}/archive":
+    post:
+      operationId: archiveWebhookSource
+      tags:
+        - webhooks
+      summary: "Archive a completion source"
+      description: "Archives a source; nothing is deleted. A notification that arrives for an archived source is answered 404 and has no effect. Archiving an archived source returns it. Audited as webhook_source.archived."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/WebhookSourceId"
+      security:
+        - access_bearer:
+            - config
+      responses:
+        "200":
+          description: "The archived source."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/WebhookSource"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - webhook_source_not_found
+      x-relay-scopes:
+        - config
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-68 registers a completion source by tenant and environment with its v1a public key or a reference to its v1 secret; the resource name, the path and the shapes are chosen by the contract."
   "/v1/webhook_consumers/{webhook_consumer_id}/portal_tokens":
     post:
       operationId: createWebhookPortalToken
@@ -19115,6 +19492,100 @@ paths:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "The spec has inbound interactions acknowledged fast, verified and deduplicated (CH-62, WH-49) but names no path; the path and the answer bodies are chosen by the contract."
+  "/inbound/v1/completions/{tenant}/{environment}/sources/{webhook_source_id}":
+    post:
+      operationId: receiveCompletionNotification
+      tags:
+        - webhooks
+      summary: Receive a long-running job completion notification
+      description: "The endpoint a registered completion source posts to when a long-running job ends (WH-68, WH-50, E-48). Not a tenant API and outside the /v1 request rules: the path names the tenant, the environment and the source. The request is verified on its raw body with the one verifier of the Suiss webhook profile, against the source's whpk_ public key (v1a) or whsec_ secret (v1): webhook-id, webhook-timestamp (at most five minutes from Relay's clock, in either direction) and webhook-signature. A request that does not verify is 401 and has no effect. A verified notification is committed as a receipt, unique by source and webhook-id, with its processing job before the 200; a webhook-id that was received before is acknowledged and counted, not processed again, and an identifier is remembered for at least 96 hours. From the queue the notification completes the event waitpoint that data.waitpoint_id names, through the resolution an awaited event takes, so the waiter gets waitpoint.resolved. type is the outcome, job.completed or job.failed; either ends the wait. A waitpoint that is unknown, already resolved, expired or cancelled, that is a question or a review, or that waits with a condition is left as it is, and the notification is still answered 200. The body is at most 256 KiB and data.result at most 4096 bytes."
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            "$ref": "./components/schemas.yaml#/Id_ten"
+        - name: environment
+          in: path
+          required: true
+          schema:
+            "$ref": "./components/schemas.yaml#/Environment"
+        - "$ref": "./components/parameters.yaml#/WebhookSourceId"
+        - name: webhook-id
+          in: header
+          required: true
+          description: "The identifier of the notification, the same on every attempt; Relay processes an identifier once."
+          schema:
+            type: string
+            pattern: "^[!-~]{1,256}$"
+        - name: webhook-timestamp
+          in: header
+          required: true
+          description: "Unix seconds of this attempt."
+          schema:
+            type: string
+            pattern: "^(0|[1-9][0-9]{0,14})$"
+        - name: webhook-signature
+          in: header
+          required: true
+          description: "A space separated list of v1a or v1 signatures over webhook-id, webhook-timestamp and the raw body."
+          schema:
+            type: string
+            maxLength: 4096
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/CompletionNotification"
+          "application/cloudevents+json":
+            schema:
+              "$ref": "./components/schemas.yaml#/CompletionNotification"
+      security: []
+      responses:
+        "200":
+          description: "Received: the notification is a committed receipt, or was one already."
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "400":
+          description: The verified body is not a completion notification.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "401":
+          description: The request did not verify, or the source's secret is no longer active.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "404":
+          description: No active completion source has this tenant, environment and id.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "413":
+          description: The body is larger than 256 KiB.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "503":
+          description: The receipt could not be committed; the source sends the notification again.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+      x-relay-weight: 0
+      x-relay-weight-note: "Inbound channel of a registered source; not counted against tenant limits."
+      x-relay-idempotency: derived
+      x-relay-step-up: false
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-68 gives a source one endpoint of its own, the shared verifier, the 96 hour deduplication and the acceptance rules of provider webhooks, and has a notification complete the waitpoint it references; it names no path, body or event type. The path, the CloudEvents body, the job.completed and job.failed types, the answers, completing only an event waitpoint without a condition, and the limits of the body and of data.result are chosen by the contract."
   "/inbound/v1/providers/{provider_account_id}":
     post:
       operationId: receiveProviderWebhook
@@ -23789,6 +24260,12 @@ x-relay-id-prefixes:
     stage: 10
     x-relay-choice: true
     x-relay-choice-note: Prefix chosen by the contract.
+  - prefix: whs_
+    concept: Completion source
+    table: webhook_sources
+    stage: 10
+    x-relay-choice: true
+    x-relay-choice-note: Prefix chosen by the contract.
   - prefix: wtp_
     concept: WhatsApp template
     table: whatsapp_templates
@@ -24094,6 +24571,8 @@ x-relay-limits:
     operations_contacts_max: 5
     portal_token_lifetime_seconds: 900
     event_schema_max_bytes: 65536
+    sources_per_environment: 20
+    completion_result_max_bytes: 4096
     x-relay-choice: true
-    x-relay-choice-note: "WH-16 and WH-52 set 20 endpoints per tenant and 5 per consumer, WH-6 the key overlap, WH-7 the timestamp tolerance and the webhook-id retention, WH-52 the 256 KiB payload limit, the delivery log retention, the object batch thresholds and the bounds of a tenant's retry schedule, WH-22 the default schedule and its jitter, WH-24 the timeouts and the 8 kB of an answer, WH-25 the three Retry-After deferrals, WH-36 the automatic disable, WH-55 the circuit breaker and WH-56 the five operations contacts. The 20 per tenant count the tenant's own relay_events endpoints and the 5 per consumer the endpoints of one consumer; archived endpoints and endpoints managed by a product are not counted. The per-endpoint concurrency and rate (WH-38), the limits of the broker and cloud destinations (destination: the largest frame, the acknowledgement wait, the SCRAM iteration ceiling and the lifetimes of an assertion and of a derived credential), the health window, the portal token lifetime, the schema size and the per-endpoint list sizes are contract choices. allowed_ports is the default; an installation adds ports in its configuration (WH-40)."
+    x-relay-choice-note: "WH-16 and WH-52 set 20 endpoints per tenant and 5 per consumer, WH-6 the key overlap, WH-7 the timestamp tolerance and the webhook-id retention, WH-52 the 256 KiB payload limit, the delivery log retention, the object batch thresholds and the bounds of a tenant's retry schedule, WH-22 the default schedule and its jitter, WH-24 the timeouts and the 8 kB of an answer, WH-25 the three Retry-After deferrals, WH-36 the automatic disable, WH-55 the circuit breaker and WH-56 the five operations contacts. The 20 per tenant count the tenant's own relay_events endpoints and the 5 per consumer the endpoints of one consumer; archived endpoints and endpoints managed by a product are not counted. The 20 completion sources of an environment and the 4096 bytes of a completion result (WH-68) are contract choices; a completion notification is held to payload_max_bytes and its webhook-id to id_retention. The per-endpoint concurrency and rate (WH-38), the limits of the broker and cloud destinations (destination: the largest frame, the acknowledgement wait, the SCRAM iteration ceiling and the lifetimes of an assertion and of a derived credential), the health window, the portal token lifetime, the schema size and the per-endpoint list sizes are contract choices. allowed_ports is the default; an installation adds ports in its configuration (WH-40)."
 x-relay-error-catalog: "../errors.yaml"

@@ -142,6 +142,7 @@ defmodule RelayTest.Isolation do
       "campaign_id" => &campaign!/1,
       "announcement_id" => &announcement!/1,
       "webhook_consumer_id" => &webhook_consumer!/1,
+      "webhook_source_id" => &webhook_source!/1,
       "webhook_event_type_id" => &webhook_event_type!/1,
       "webhook_endpoint_id" => &webhook_endpoint!/1,
       "webhook_message_id" => &webhook_message!/1,
@@ -513,6 +514,14 @@ defmodule RelayTest.Isolation do
   def webhook_consumer!(scope) do
     body = %{"key" => "iso-" <> random()}
     F.body(F.request(:post, "/v1/webhook_consumers", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Registers a completion source in `scope` and returns its identifier."
+  @spec webhook_source!(Relay.Scope.t()) :: String.t()
+  def webhook_source!(scope) do
+    {public_key, _private_key} = :crypto.generate_key(:eddsa, :ed25519)
+    body = %{"name" => "iso-" <> random(), "public_key" => "whpk_" <> Base.encode64(public_key)}
+    F.body(F.request(:post, "/v1/webhook_sources", owner(scope), body), 201)["id"]
   end
 
   @doc "Creates a tenant event type in `scope` and returns its identifier."

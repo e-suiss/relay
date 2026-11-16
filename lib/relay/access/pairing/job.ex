@@ -1,9 +1,9 @@
 defmodule Relay.Access.Pairing.Job do
   @moduledoc """
-  The job that runs one pairing run (E-101) on the `maintenance` queue: `%{"scope" => "due"}` (node start, and the hourly cron entry, whose empty arguments mean the same), `%{"scope" => "all"}` or `%{"scope" => "tenant", "tenant" => id}`. An equal job queued in the last five minutes is not queued again.
+  The job that runs one pairing run (E-101) on the `maintenance` queue: `%{"scope" => "due"}` (node start, and the hourly cron entry, whose empty arguments mean the same), `%{"scope" => "all"}` or `%{"scope" => "tenant", "tenant" => id}`. `Relay.Access.Pairing.request/1` queues a scope at most once every five minutes per node; a repeated run is harmless, because a run only asks Access for what is not paired.
   """
 
-  use Relay.Worker, queue: :maintenance, max_attempts: 3, timeout: 900_000, unique: [period: 300]
+  use Relay.Worker, queue: :maintenance, max_attempts: 3, timeout: 900_000
 
   alias Relay.Access.Pairing
 

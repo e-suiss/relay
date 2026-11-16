@@ -11,6 +11,7 @@ defmodule Relay.Access.Pairing do
 
   require Logger
 
+  alias Relay.Access.Cache
   alias Relay.Access.Client
   alias Relay.Access.Discovery
   alias Relay.Access.Http
@@ -23,6 +24,7 @@ defmodule Relay.Access.Pairing do
   alias Relay.Access.ServiceKey
 
   @stalled_runs 3
+  @request_ms 300_000
   @page 100
   @slug_bytes 1..255
 
@@ -42,9 +44,13 @@ defmodule Relay.Access.Pairing do
   def stalled_runs, do: @stalled_runs
 
   # E-101
-  @doc "Queues a pairing run of `scope` on the `maintenance` queue; an equal run queued in the last five minutes is not queued again. The operator's manual run: `bin/relay rpc 'Relay.Access.Pairing.request(:all)'`, or `{:tenant, \"tnt_…\"}` for one tenant."
+  @doc "Queues a pairing run of `scope` on the `maintenance` queue; a node queues a scope at most once every five minutes. The operator's manual run: `bin/relay rpc 'Relay.Access.Pairing.request(:all)'`, or `{:tenant, \"tnt_…\"}` for one tenant."
   @spec request(scope()) :: :ok | {:error, term()}
   def request(scope) do
+    if Cache.claim({:pairing_request, scope}, @request_ms), do: queue(scope), else: :ok
+  end
+
+  defp queue(scope) do
     case Oban.insert(Job.new(Job.args(scope))) do
       {:ok, _job} -> :ok
       {:error, reason} -> {:error, reason}

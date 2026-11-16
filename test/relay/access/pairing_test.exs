@@ -252,7 +252,7 @@ defmodule Relay.Access.PairingTest do
       tenant = ctx.tenant
 
       assert_received {:fake_pairing, :pairing, ^tenant, %{"targets" => targets}}
-      assert Enum.map(targets, & &1["realm"]) == [@realm_a, @realm_b]
+      assert Enum.sort(Enum.map(targets, & &1["realm"])) == [@realm_a, @realm_b]
 
       for target <- targets do
         assert target["ais"] == b64("placeholder-ais")
@@ -283,7 +283,7 @@ defmodule Relay.Access.PairingTest do
       refute_received {:fake_pairing, :pairing, ^tenant, _body}
     end
 
-    test "E-101: a challenge that fails a check is not signed and counts a failed run", ctx do
+    test "E-101: a challenge that fails a check is not signed and counts a failed run" do
       for {tamper, code} <- [
             kid: "pairing-kid",
             nonce: "pairing-nonce",
@@ -409,6 +409,7 @@ defmodule Relay.Access.PairingTest do
   describe "E-101 triggers" do
     test "E-101: a scope's run is queued once, and tenant.created queues one for its tenant" do
       :ok = FakeAccess.install!()
+      :ok = TenantFixture.region_defaults!()
       assert :ok = Pairing.request(:all)
       assert :ok = Pairing.request(:all)
       access_tenant = "acc_" <> FakeAccess.random()

@@ -246,13 +246,15 @@ defmodule RelayWeb.Api.WebhookPortalController do
   end
 
   # WH-32
+  # WH-48
   @spec resend(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def resend(conn, %{"webhook_message_id" => id}) do
     portal = portal(conn)
+    actor = Portal.actor(portal)
 
     case message_id(id) do
       {:ok, id} ->
-        work = fn _status -> Portal.resend(portal, id) end
+        work = fn _status -> Portal.resend(portal, id, actor) end
         conn |> keyed(portal) |> Work.idempotent(work)
 
       {:error, error} ->

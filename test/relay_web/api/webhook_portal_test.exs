@@ -1,6 +1,7 @@
 defmodule RelayWeb.Api.WebhookPortalTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Webhooks.EngineStore
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.PortalIsolation, as: Portal
   alias RelayTest.TenantFixture
@@ -58,9 +59,8 @@ defmodule RelayWeb.Api.WebhookPortalTest do
     {decode.(header), decode.(payload)}
   end
 
-  defp audit(scope, action, endpoint) do
+  defp audit(scope, action, target) do
     now = DateTime.utc_now()
-    target = Relay.Id.to_string(id!(endpoint["id"], "whe"))
 
     {:ok, rows} =
       Relay.Repo.in_scope(scope, fn _status ->
@@ -77,6 +77,40 @@ defmodule RelayWeb.Api.WebhookPortalTest do
 
   defp attempt(ctx, message, opts \\ []),
     do: Relay.Webhooks.attempt(ctx.scope, id!(message["id"], "whm"), opts)
+
+  defp cancelled_message!(ctx, consumer, endpoint) do
+    now = Relay.Clock.utc_now()
+    data = %{"order_id" => "A-1"}
+    digest = :crypto.hash(:sha256, Jason.encode!(data))
+
+    event = %{
+      "use_kind" => "destination",
+      "consumer_id" => Relay.Id.to_string(id!(consumer["id"], "whc")),
+      "event_type" => "order.shipped",
+      "schema_version" => 1,
+      "origin" => "workflow",
+      "source" => "urn:shop:orders",
+      "subject" => "order:A-1",
+      "occurred_at" => now
+    }
+
+    message = %{
+      id: Relay.Id.generate(),
+      endpoint_id: id!(endpoint["id"], "whe"),
+      next_attempt_at: now,
+      window_ends_at: DateTime.add(now, 3_600, :second)
+    }
+
+    {:ok, 1} =
+      Relay.Repo.in_scope(ctx.scope, fn _status ->
+        opts = %{origin: "event"}
+        id = Relay.Id.generate()
+        [_created] = EngineStore.fan_out(id, event, data, digest, [message], opts, now)
+        Relay.Webhooks.cancel_messages([message.id], "portal-test")
+      end)
+
+    Relay.ExternalId.encode("whm", message.id)
+  end
 
   defp failed_test_message!(ctx, token, endpoint) do
     sent = post(token, "#{@endpoints}/#{endpoint["id"]}/test", nil, 202)
@@ -278,6 +312,8 @@ defmodule RelayWeb.Api.WebhookPortalTest do
       rotation = post(consumer.token, path <> "/rotate_key", nil, 422)
       assert rotation["code"] == "webhook_endpoint_archived"
 
+      target = Relay.Id.to_string(id!(endpoint["id"], "whe"))
+
       actor = %{
         "actor_kind" => "api_client",
         "actor_ref" => "webhook_portal:" <> consumer["id"],
@@ -285,11 +321,11 @@ defmodule RelayWeb.Api.WebhookPortalTest do
       }
 
       for action <- ["created", "key_rotated", "archived"] do
-        assert [row] = audit(ctx.scope, "webhook_endpoint." <> action, endpoint)
+        assert [row] = audit(ctx.scope, "webhook_endpoint." <> action, target)
         assert Map.delete(row, "reason") == actor
       end
 
-      updates = audit(ctx.scope, "webhook_endpoint.updated", endpoint)
+      updates = audit(ctx.scope, "webhook_endpoint.updated", target)
       assert updates != []
       assert Enum.all?(updates, &(Map.delete(&1, "reason") == actor))
     end
@@ -401,13 +437,16 @@ defmodule RelayWeb.Api.WebhookPortalTest do
       consumer = consumer!(ctx)
       endpoint = endpoint!(consumer.token)
       path = "#{@endpoints}/#{endpoint["id"]}"
-      sent = failed_test_message!(ctx, consumer.token, endpoint)
+      tested = failed_test_message!(ctx, consumer.token, endpoint)
+      missed = cancelled_message!(ctx, consumer, endpoint)
       delivered = post(consumer.token, path <> "/test", nil, 202)
       assert {:ok, {:attempted, :delivered}} = attempt(ctx, delivered)
 
-      assert [missed] = get(consumer.token, path <> "/missed_events")["data"]
-      assert missed["id"] == sent["id"]
-      assert get(consumer.token, path <> "/missed_events?event_type=order.shipped")["data"] == []
+      listed = get(consumer.token, path <> "/missed_events")["data"]
+      assert Enum.sort(Enum.map(listed, & &1["id"])) == Enum.sort([tested["id"], missed])
+      shipped = path <> "/missed_events?event_type=order.shipped"
+      assert [only] = get(consumer.token, shipped)["data"]
+      assert %{"id" => ^missed, "state" => "cancelled", "origin" => "event"} = only
 
       late = post(consumer.token, path <> "/recover", %{"since" => "2099-01-01T00:00:00Z"}, 200)
       assert late["selected"] == 0
@@ -418,6 +457,7 @@ defmodule RelayWeb.Api.WebhookPortalTest do
       conflict = post(consumer.token, path <> "/recover", since, 422)
       assert conflict["code"] == "webhook_endpoint_state_conflict"
       assert patch(consumer.token, path, %{"state" => "active"}, 200)["state"] == "active"
+      flush()
 
       recovered = post(consumer.token, path <> "/recover", since, 200)
 
@@ -428,18 +468,26 @@ defmodule RelayWeb.Api.WebhookPortalTest do
                "selected" => 1
              }
 
-      again = get(consumer.token, "#{@messages}/#{sent["id"]}")
-      assert %{"state" => "pending", "attempt_count" => 1} = again
-      assert again["event_id"] == sent["event_id"]
-      assert get(consumer.token, "#{@messages}/#{delivered["id"]}")["state"] == "delivered"
-      assert get(consumer.token, path <> "/missed_events")["data"] == []
+      assert_received {:webhook_job, %{worker: Relay.Webhooks.RecoveryWorker, args: args}}
+      stored = args |> Jason.encode!() |> Jason.decode!()
+      assert :ok = Relay.Webhooks.RecoveryWorker.perform(%Oban.Job{args: stored})
 
-      updates = audit(ctx.scope, "webhook_endpoint.updated", endpoint)
-      assert [row | _] = Enum.filter(updates, &(&1["reason"] == "recover"))
+      again = get(consumer.token, "#{@messages}/#{missed}")
+      assert %{"state" => "pending", "reason" => nil} = again
+      assert again["event_id"] == only["event_id"]
+      assert get(consumer.token, "#{@messages}/#{tested["id"]}")["state"] == "exhausted"
+      assert get(consumer.token, "#{@messages}/#{delivered["id"]}")["state"] == "delivered"
+      assert [%{"id" => left}] = get(consumer.token, path <> "/missed_events")["data"]
+      assert left == tested["id"]
+
+      target = Relay.Id.to_string(id!(endpoint["id"], "whe"))
+      assert [row, _late] = audit(ctx.scope, "webhook_endpoint.messages_recovered", target)
       assert row["actor_ref"] == "webhook_portal:" <> consumer["id"]
+      assert row["on_behalf_of_ref"] == consumer["id"]
     end
 
-    test "WH-32, WH-33 (1): the portal resends one message with the same event identifier", ctx do
+    test "WH-32, WH-33 (1), WH-48: the portal resends one message with the same event identifier",
+         ctx do
       consumer = consumer!(ctx)
       endpoint = endpoint!(consumer.token)
       path = "#{@endpoints}/#{endpoint["id"]}"
@@ -450,6 +498,8 @@ defmodule RelayWeb.Api.WebhookPortalTest do
       assert resent["id"] == sent["id"] and resent["event_id"] == sent["event_id"]
       assert_received {:webhook_job, %{args: %{"manual" => true, "message_id" => queued}}}
       assert queued == Relay.Id.to_string(id!(sent["id"], "whm"))
+      assert [row] = audit(ctx.scope, "webhook_message.resent", queued)
+      assert row["actor_ref"] == "webhook_portal:" <> consumer["id"]
 
       assert {:ok, {:attempted, :delivered}} = attempt(ctx, sent, manual: true)
 

@@ -4,7 +4,9 @@ defmodule Relay.EventCatalog do
   """
 
   @path Path.expand("../../contracts/asyncapi/events.yaml", __DIR__)
+  @openapi_path Path.expand("../../contracts/openapi/components/schemas.yaml", __DIR__)
   @external_resource @path
+  @external_resource @openapi_path
 
   document = YamlElixir.read_from_file!(@path)
   messages = document["components"]["messages"]
@@ -23,7 +25,49 @@ defmodule Relay.EventCatalog do
       }
     end
 
+  documents = %{
+    events: document["components"]["schemas"],
+    openapi: YamlElixir.read_from_file!(@openapi_path)
+  }
+
+  target = fn
+    "#/components/schemas/" <> key, :events -> {:events, key}
+    "../openapi/components/schemas.yaml#/" <> key, :events -> {:openapi, key}
+    "#/" <> key, :openapi -> {:openapi, key}
+    _reference, _document -> nil
+  end
+
+  inline = fn
+    inline, %{"$ref" => reference} = node, seen, local ->
+      rest =
+        node
+        |> Map.delete("$ref")
+        |> Map.new(fn {k, v} -> {k, inline.(inline, v, seen, local)} end)
+
+      case target.(reference, local) do
+        nil ->
+          node
+
+        {source, key} = found ->
+          resolved = documents |> Map.fetch!(source) |> Map.fetch!(key)
+
+          if found in seen,
+            do: rest,
+            else: Map.merge(inline.(inline, resolved, [found | seen], source), rest)
+      end
+
+    inline, %{} = node, seen, local ->
+      Map.new(node, fn {k, v} -> {k, inline.(inline, v, seen, local)} end)
+
+    inline, list, seen, local when is_list(list) ->
+      Enum.map(list, &inline.(inline, &1, seen, local))
+
+    _inline, other, _seen, _local ->
+      other
+  end
+
   @entries Map.new(entries, &{&1.name, &1})
+  @inlined Map.new(entries, &{&1.name, inline.(inline, &1.data, [], :events)})
   @schemas document["components"]["schemas"]
   @names @entries |> Map.keys() |> Enum.sort()
 
@@ -75,23 +119,7 @@ defmodule Relay.EventCatalog do
   def fetch(name), do: Map.fetch(@entries, name)
 
   # WH-14
-  @doc "The data schema of an event name with every reference into the catalog's schemas written out, so that it reads on its own."
+  @doc "The data schema of an event name with every reference into the catalog's schemas and the API's component schemas written out, so that it reads on its own."
   @spec schema(String.t()) :: {:ok, map()} | :error
-  def schema(name) do
-    with {:ok, %{data: data}} <- fetch(name), do: {:ok, inline(data, [])}
-  end
-
-  defp inline(%{"$ref" => "#/components/schemas/" <> key} = node, seen) do
-    rest = node |> Map.delete("$ref") |> inline(seen)
-
-    if key in seen,
-      do: rest,
-      else: @schemas |> Map.fetch!(key) |> inline([key | seen]) |> Map.merge(rest)
-  end
-
-  defp inline(%{} = node, seen),
-    do: Map.new(node, fn {key, value} -> {key, inline(value, seen)} end)
-
-  defp inline(list, seen) when is_list(list), do: Enum.map(list, &inline(&1, seen))
-  defp inline(other, _seen), do: other
+  def schema(name), do: Map.fetch(@inlined, name)
 end

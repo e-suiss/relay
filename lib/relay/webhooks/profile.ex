@@ -74,7 +74,8 @@ defmodule Relay.Webhooks.Profile do
 
   # WH-4 (4)
   @doc "Signs a message with an HMAC secret and returns the `v1` token."
-  @spec hmac_token(binary() | Redacted.t(), String.t(), non_neg_integer(), binary()) :: token()
+  @spec hmac_token(binary() | Redacted.t(), String.t(), non_neg_integer(), binary()) ::
+          {:v1, <<_::256>>}
   def hmac_token(secret, id, timestamp, raw_body),
     do: {:v1, Crypto.hmac_sha256(secret, signed_content(id, timestamp, raw_body))}
 

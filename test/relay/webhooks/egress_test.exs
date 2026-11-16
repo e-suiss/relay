@@ -81,7 +81,7 @@ defmodule Relay.Webhooks.EgressTest do
     ip
   end
 
-  defp check(policy, text), do: Policy.check_address(policy, ip(text), @host)
+  defp verdict(policy, text), do: Policy.check_address(policy, ip(text), @host)
 
   defp edges(text) do
     {:ok, {family, base, prefix}} = Address.parse_cidr(text)
@@ -233,7 +233,7 @@ defmodule Relay.Webhooks.EgressTest do
       )
 
       for address <- passing do
-        assert check(policy(), address) == :ok
+        assert verdict(policy(), address) == :ok
       end
     end
 
@@ -251,18 +251,18 @@ defmodule Relay.Webhooks.EgressTest do
     end
 
     test "WH-41: an IPv4 address inside an IPv6 transition address is validated as well" do
-      assert check(policy(), "::ffff:10.0.0.1") == {:blocked, "private"}
-      assert check(policy(), "::ffff:127.0.0.1") == {:blocked, "loopback"}
-      assert check(policy(), "::ffff:8.8.8.8") == :ok
-      assert check(policy(), "64:ff9b::808:808") == {:blocked, "nat64"}
-      assert check(policy(), "2002:808:808::1") == :ok
-      assert check(policy(), "2002:a00:1::1") == {:blocked, "private"}
-      assert check(policy(), "2002:a9fe:a9fe::1") == {:blocked, "cloud_metadata"}
-      assert check(policy(), "2001:0:7f00:1::1") == {:blocked, "loopback"}
-      assert check(policy(), "2001:0:808:808::f7f7:f7f7") == :ok
-      assert check(policy(), "2001:0:808:808::f5ff:fffe") == {:blocked, "private"}
-      assert check(policy(), "::10.0.0.1") == {:blocked, "private"}
-      assert check(policy(), "64:ff9b:1::a00:1") == {:blocked, "private"}
+      assert verdict(policy(), "::ffff:10.0.0.1") == {:blocked, "private"}
+      assert verdict(policy(), "::ffff:127.0.0.1") == {:blocked, "loopback"}
+      assert verdict(policy(), "::ffff:8.8.8.8") == :ok
+      assert verdict(policy(), "64:ff9b::808:808") == {:blocked, "nat64"}
+      assert verdict(policy(), "2002:808:808::1") == :ok
+      assert verdict(policy(), "2002:a00:1::1") == {:blocked, "private"}
+      assert verdict(policy(), "2002:a9fe:a9fe::1") == {:blocked, "cloud_metadata"}
+      assert verdict(policy(), "2001:0:7f00:1::1") == {:blocked, "loopback"}
+      assert verdict(policy(), "2001:0:808:808::f7f7:f7f7") == :ok
+      assert verdict(policy(), "2001:0:808:808::f5ff:fffe") == {:blocked, "private"}
+      assert verdict(policy(), "::10.0.0.1") == {:blocked, "private"}
+      assert verdict(policy(), "64:ff9b:1::a00:1") == {:blocked, "private"}
     end
 
     test "WH-41: addresses are read strictly, so no other spelling reaches a blocked address" do
@@ -286,7 +286,7 @@ defmodule Relay.Webhooks.EgressTest do
 
     test "WH-41: cloud metadata addresses are refused, also outside the blocked ranges" do
       for address <- @metadata_addresses do
-        assert check(policy(), address) == {:blocked, "cloud_metadata"}
+        assert verdict(policy(), address) == {:blocked, "cloud_metadata"}
       end
 
       assert Blocklist.match(Blocklist.default(), ip("168.63.129.15")) == nil
@@ -409,11 +409,11 @@ defmodule Relay.Webhooks.EgressTest do
       assert {:ok, blocklist} = Blocklist.extend(Blocklist.default(), additions)
       policy = policy(blocklist: blocklist)
 
-      assert check(policy, "203.0.114.10") == {:blocked, "installation"}
-      assert check(policy, "198.51.101.7") == {:blocked, "cloud_metadata"}
-      assert check(policy, "10.0.0.5") == {:blocked, "private"}
-      assert check(policy, "169.254.169.254") == {:blocked, "cloud_metadata"}
-      assert check(policy, "8.8.8.8") == :ok
+      assert verdict(policy, "203.0.114.10") == {:blocked, "installation"}
+      assert verdict(policy, "198.51.101.7") == {:blocked, "cloud_metadata"}
+      assert verdict(policy, "10.0.0.5") == {:blocked, "private"}
+      assert verdict(policy, "169.254.169.254") == {:blocked, "cloud_metadata"}
+      assert verdict(policy, "8.8.8.8") == :ok
 
       assert Egress.validate_url(policy, "https://metadata.internal.example/") ==
                {:error, :metadata_host}

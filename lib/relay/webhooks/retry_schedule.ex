@@ -54,13 +54,16 @@ defmodule Relay.Webhooks.RetrySchedule do
 
   @doc "The retry window of a schedule without jitter: the sum of its waits."
   @spec total_window_ms(t()) :: non_neg_integer()
-  def total_window_ms([_first | _rest] = waits), do: Enum.sum(waits)
+  def total_window_ms([_first | _rest] = waits), do: sum(waits, 0)
 
   # WH-22 (2)
   @doc "The longest the retry window can be once every wait carries its largest jitter."
   @spec longest_window_ms(t(), 0..10_000) :: non_neg_integer()
   def longest_window_ms([_first | _rest] = waits, jitter_bp) when jitter_bp in 0..10_000,
-    do: Enum.sum(Enum.map(waits, &(&1 + spread(&1, jitter_bp))))
+    do: sum(Enum.map(waits, &(&1 + spread(&1, jitter_bp))), 0)
+
+  defp sum([], total), do: total
+  defp sum([wait | rest], total) when is_integer(wait), do: sum(rest, total + wait)
 
   # WH-22 (3)
   @doc """
@@ -71,7 +74,7 @@ defmodule Relay.Webhooks.RetrySchedule do
     with :ok <- shape(waits),
          :ok <- within(length(waits), bounds.min_attempts, bounds.max_attempts, :attempts),
          :ok <- waits_within(waits, bounds),
-         :ok <- within(Enum.sum(waits), bounds.min_total_ms, bounds.max_total_ms, :window) do
+         :ok <- within(sum(waits, 0), bounds.min_total_ms, bounds.max_total_ms, :window) do
       {:ok, waits}
     end
   end

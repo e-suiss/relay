@@ -26,6 +26,7 @@ defmodule Relay.Policy.Rules do
           | :schedule_deferred
           | :dnd_deferred
           | :tenant_timezone_window_deferred
+          | :next_break_deferred
           | :frequency_dropped
           | :frequency_deferred
           | :frequency_digest
@@ -63,6 +64,7 @@ defmodule Relay.Policy.Rules do
     dnd_deferred: {"dnd.deferred", :dnd, :shaper, :defer},
     tenant_timezone_window_deferred:
       {"tenant_timezone_window.deferred", :tenant_timezone_window, :shaper, :defer},
+    next_break_deferred: {"next_break.deferred", :next_break, :shaper, :defer},
     frequency_dropped: {"frequency.dropped", :frequency_capped, :shaper, :skip},
     frequency_deferred: {"frequency.deferred", :frequency_capped, :shaper, :defer},
     frequency_digest: {"frequency.digest", :frequency_capped, :shaper, :defer},

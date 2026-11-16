@@ -1,0 +1,22 @@
+{
+  "source_ref": "Relay spec §14.4.5, §14.9a (1), §20.7; DS-22, DS-48, OP-42; min_age_s is the short window of §14.4.2 (DS-19)",
+  "status": {
+    "interval_s": 900,
+    "per_round": 500,
+    "min_age_s": {
+      "email": 86400,
+      "sms": 21600,
+      "voice": 3600,
+      "whatsapp": 129600
+    }
+  },
+  "report": {
+    "run_at": "03:30"
+  },
+  "providers": [
+    {"provider": "infobip", "channel": "sms", "mode": "status"},
+    {"provider": "mailgun", "channel": "email", "mode": "report"},
+    {"provider": "netgsm", "channel": "sms", "mode": "status"},
+    {"provider": "verimor", "channel": "sms", "mode": "status"}
+  ]
+}

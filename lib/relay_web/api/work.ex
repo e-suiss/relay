@@ -5,10 +5,9 @@ defmodule RelayWeb.Api.Work do
 
   import Plug.Conn
 
+  alias Relay.Api.Idempotency
   alias Relay.Api.Pagination
   alias RelayWeb.Api.Response
-
-  @traceparent ~r/\A00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}\z/
 
   @type answer :: {:ok, {100..599, [{String.t(), String.t()}], map()}} | {:error, Relay.Error.t()}
 
@@ -27,9 +26,11 @@ defmodule RelayWeb.Api.Work do
     }
   end
 
-  defp traceparent(conn) do
+  defp traceparent(conn), do: Relay.Trace.current() || incoming(conn)
+
+  defp incoming(conn) do
     case get_req_header(conn, "traceparent") do
-      [value | _] -> if Regex.match?(@traceparent, value), do: value
+      [value | _] -> if Relay.Trace.valid?(value), do: value
       [] -> nil
     end
   end
@@ -67,6 +68,39 @@ defmodule RelayWeb.Api.Work do
           {:error, error}
       end
     end)
+  end
+
+  # API-10
+  # API-13
+  # API-14
+  # sobelow_skip ["XSS.SendResp"]
+  @doc "Runs idempotent work that opens its own transactions, such as a data set publication, and sends its answer; see `Relay.Api.Idempotency.run_spanning/5`. An error stores nothing and releases the key."
+  @spec spanning(Plug.Conn.t(), (-> answer())) :: Plug.Conn.t()
+  def spanning(conn, work) do
+    %{scope: scope, operation: operation, idempotency_key: key, raw_body: raw} = conn.assigns
+
+    run = fn ->
+      case work.() do
+        {:ok, {code, headers, body}} ->
+          {code, encoded, bytes} = Response.encode(conn, code, body)
+          {:ok, {code, encoded ++ headers, bytes}}
+
+        {:error, %Relay.Error{} = error} ->
+          {:error, error}
+      end
+    end
+
+    case Idempotency.run_spanning(scope, operation.endpoint, key, raw || "", run) do
+      {:ok, {kind, {status, headers, body}}} ->
+        replayed = if kind == :replayed, do: [{"idempotency-replayed", "true"}], else: []
+
+        conn
+        |> merge_resp_headers([{"idempotency-key", key} | headers] ++ replayed)
+        |> send_resp(status, body)
+
+      {:error, %Relay.Error{} = error} ->
+        Response.problem(conn, error)
+    end
   end
 
   @doc "Sends a read answer."

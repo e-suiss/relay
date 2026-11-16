@@ -90,9 +90,11 @@ defmodule Relay.Api.Views do
        else: nil
   end
 
-  defp failure(%{"failure_kind" => kind, "failure_class" => class})
-       when kind in ["failed", "bounced"] and class != nil,
-       do: %{"kind" => kind, "class" => class, "retryable" => class == "transient"}
+  defp failure(%{"failure_kind" => kind, "failure_class" => class} = d)
+       when kind in ["failed", "bounced"] and class != nil do
+    %{"kind" => kind, "class" => class, "retryable" => class == "transient"}
+    |> put_unless_nil("code", d["failure_reason"])
+  end
 
   defp failure(_d), do: nil
 
@@ -121,6 +123,8 @@ defmodule Relay.Api.Views do
       "updated_at" => n["updated_at"]
     }
     |> put_unless_nil("deliveries", deliveries && Enum.map(deliveries, &delivery/1))
+    |> put_unless_nil("correlation_id", n["correlation_id"])
+    |> put_unless_nil("item", n["item"])
   end
 
   @doc "A cancellation result; the function's details carry plain identifiers."

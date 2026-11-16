@@ -29,6 +29,9 @@ defmodule Relay.Keys do
   @callback read_secret(label()) :: {:ok, Redacted.t()} | {:error, Error.t()}
   @callback generate_key(key_kind(), label(), binary()) :: :ok | {:error, Error.t()}
   @callback store_secret(label(), Redacted.t()) :: :ok | {:error, Error.t()}
+  @callback generate_key_pair(:ed25519, label(), binary()) ::
+              {:ok, <<_::256>>} | {:error, Error.t()}
+  @callback destroy_key_pair(:ed25519, label()) :: :ok | {:error, Error.t()}
 
   @algs [:es256, :rs256, :ed25519]
   @port_keys [:module, :token, :pin_file]
@@ -138,6 +141,22 @@ defmodule Relay.Keys do
   def store_secret(label, value)
       when is_binary(label) and label != "" and is_struct(value, Redacted),
       do: impl().store_secret(label, value)
+
+  # WH-5
+  # TN-63
+  @doc "Generates an Ed25519 key pair inside the token under `label` with the object identifier `id` and returns its 32-byte public key; the private key is sensitive, never extractable and signs through `sign/3`. A label already in use is refused with `:key_exists`."
+  @spec generate_key_pair(:ed25519, label(), binary()) ::
+          {:ok, <<_::256>>} | {:error, Error.t()}
+  def generate_key_pair(:ed25519, label, id)
+      when is_binary(label) and label != "" and is_binary(id) and id != "",
+      do: impl().generate_key_pair(:ed25519, label, id)
+
+  # WH-6
+  # TN-63
+  @doc "Destroys the Ed25519 key pair `label` inside the token, private key first, so that it never signs again. Only Ed25519 private and public key objects are destroyed: secret keys, data objects and keys of another type under the same label are left in place. A label without an Ed25519 key pair answers `:ok` as well, so a retried call succeeds."
+  @spec destroy_key_pair(:ed25519, label()) :: :ok | {:error, Error.t()}
+  def destroy_key_pair(:ed25519, label) when is_binary(label) and label != "",
+    do: impl().destroy_key_pair(:ed25519, label)
 
   # TN-26
   # TN-27

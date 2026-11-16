@@ -11,13 +11,22 @@ defmodule Relay.Channels do
   alias Relay.Channels.Adapter
   alias Relay.Channels.Ambiguity
   alias Relay.Channels.Breaker
+  alias Relay.Channels.Email
   alias Relay.Channels.Email.Bounce
+  alias Relay.Channels.Email.ClickSignals
+  alias Relay.Channels.Email.Esp
   alias Relay.Channels.Email.Event
   alias Relay.Channels.Email.Intake
+  alias Relay.Channels.Email.Reports
+  alias Relay.Channels.Email.ReportStore
+  alias Relay.Channels.Email.Reputation
+  alias Relay.Channels.Email.Tracking
+  alias Relay.Channels.Email.Verp
   alias Relay.Channels.Inbound
   alias Relay.Channels.Limits
   alias Relay.Channels.Outcome
   alias Relay.Channels.Pricing
+  alias Relay.Channels.ProviderWebhook
   alias Relay.Channels.Push.CriticalGrant
   alias Relay.Channels.Push.Policy
   alias Relay.Channels.Push.Priority
@@ -25,6 +34,7 @@ defmodule Relay.Channels do
   alias Relay.Channels.Registry
   alias Relay.Channels.Request
   alias Relay.Channels.Routing
+  alias Relay.Channels.Ses
   alias Relay.Channels.SettingsCheck
   alias Relay.Channels.Simulated
   alias Relay.Channels.Sms
@@ -234,14 +244,28 @@ defmodule Relay.Channels do
   def simulated_address?(channel, address),
     do: Simulated.reserved?(Simulated.kind(channel), address)
 
+  # WH-49 (2)
+  # WH-4
   # T-40
   # TN-35
-  @doc "Verifies a Standard Webhooks request on its raw body; see `Relay.Channels.Inbound.standard_webhooks/4`."
+  @doc """
+  Verifies the request of a provider that follows Standard Webhooks on its raw body. `key` is the endpoint secret (`whsec_…`, `v1`) or public key (`whpk_…`, `v1a`). The verification is not done here: it is the one verifier of the Suiss webhook profile, which also verifies outbound deliveries (`Relay.Webhooks.verify_message/4`), reached as `config :relay, Relay.Channels, webhook_verifier: module`, `Relay.Webhooks` by default. A provider with a signature scheme of its own keeps its own verifier (`Relay.Channels.Inbound`).
+  """
   @spec verify_standard_webhooks(Inbound.key(), binary(), Inbound.headers(), DateTime.t()) ::
           :ok | {:error, Inbound.reason()}
-  defdelegate verify_standard_webhooks(key, body, headers, now),
-    to: Inbound,
-    as: :standard_webhooks
+  def verify_standard_webhooks(key, body, headers, %DateTime{} = now) when is_binary(body) do
+    verifier =
+      :relay
+      |> Application.get_env(__MODULE__, [])
+      |> Keyword.get(:webhook_verifier, Relay.Webhooks)
+
+    case verifier.verify_message(headers, body, [key], now) do
+      {:ok, _verified} -> :ok
+      {:error, :missing_header} -> {:error, :missing_header}
+      {:error, :timestamp_out_of_tolerance} -> {:error, :stale_timestamp}
+      {:error, _refused} -> {:error, :bad_signature}
+    end
+  end
 
   # T-40
   @doc "Verifies an HMAC-SHA256 signature of a raw body; see `Relay.Channels.Inbound.hmac/4`."
@@ -292,7 +316,7 @@ defmodule Relay.Channels do
   def email_events("postmark", body), do: Relay.Channels.Postmark.events(body)
   def email_events("sendgrid", body), do: Relay.Channels.Sendgrid.events(body)
   def email_events("mailgun", body), do: Relay.Channels.Mailgun.events(body)
-  def email_events("ses", body), do: Relay.Channels.Ses.events(body, nil)
+  def email_events("ses", body), do: Ses.events(body, nil)
   def email_events(_provider, _body), do: []
 
   # T-40
@@ -480,6 +504,15 @@ defmodule Relay.Channels do
   def provider_account(scope, id),
     do: Store.in_scope(scope, fn _status -> Store.account(id) end)
 
+  # X-14
+  # CH-18
+  @doc "The providers of a channel's active accounts, by role and priority, read in their own scoped transaction."
+  @spec active_providers(Relay.Scope.t(), String.t()) :: result([String.t()])
+  def active_providers(scope, channel),
+    do: Store.in_scope(scope, fn _status -> providers(Store.accounts(channel)) end)
+
+  defp providers(accounts), do: Enum.map(accounts, & &1["provider"])
+
   # CH-14
   # INV-43
   @doc "Marks a provider account whose verification is asked for as `pending`, inside the caller's scoped transaction; a verified account stays verified until its check says otherwise. Answers the account's state before the check."
@@ -515,6 +548,75 @@ defmodule Relay.Channels do
          true <- SettingsCheck.supported?(adapter) do
       check = %{account: account, credentials: credentials, timeout_ms: timeout_ms}
       adapter.check_settings(check)
+    else
+      _unsupported -> :unsupported
+    end
+  end
+
+  # CH-47
+  @doc "Receives up to ten messages from the SQS event queue of an SES provider account (`settings.ses.queue_url`); see `Relay.Channels.Ses.receive_messages/3`."
+  @spec ses_receive(map(), Relay.Redacted.t() | nil, keyword()) ::
+          {:ok, [map()]} | {:error, :configuration_invalid | :unavailable}
+  def ses_receive(account, credentials, opts),
+    do: Ses.receive_messages(Esp.account_settings(account, "ses"), credentials, opts)
+
+  # CH-47
+  @doc "Deletes a processed message from the SQS event queue of an SES provider account."
+  @spec ses_delete(map(), Relay.Redacted.t() | nil, String.t()) ::
+          :ok | {:error, :configuration_invalid | :unavailable}
+  def ses_delete(account, credentials, receipt_handle),
+    do: Ses.delete_message(Esp.account_settings(account, "ses"), credentials, receipt_handle)
+
+  # CH-47
+  # T-40
+  @doc "Verifies the SNS envelope of an SQS message body against the account's `settings.ses.topic_arn` and reads its SES events; `fetch` reads an SNS signing certificate."
+  @spec ses_events(map(), binary(), (String.t() -> {:ok, binary()} | :error)) ::
+          {:ok, [Event.t()]} | {:error, atom()}
+  def ses_events(account, body, fetch \\ &Ses.fetch_certificate/1),
+    do: Ses.message_events(Esp.account_settings(account, "ses"), body, fetch)
+
+  # DS-22
+  # DS-48
+  @doc "Asks the status endpoint of a request's provider about a sent message for reconciliation (`c:Relay.Channels.Adapter.delivery_status/1`); `:unsupported` when the provider has no registered adapter with a status query."
+  @spec reconcile_status(Request.t()) ::
+          {:ok, [Adapter.report()]} | :not_received | :unavailable | :unsupported
+  def reconcile_status(%Request{provider: provider} = request) do
+    case reconciler(provider, :delivery_status) do
+      {:ok, adapter} -> adapter.delivery_status(request)
+      :unsupported -> :unsupported
+    end
+  end
+
+  # DS-22
+  # DS-48
+  @doc "Reads the e-mail events of a provider account between `from` and `to` from its provider's event list API (`c:Relay.Channels.Adapter.report_events/1`) within `timeout_ms`; `:unsupported` when the provider has no registered adapter with one."
+  @spec reconcile_events(
+          map(),
+          Relay.Redacted.t() | nil,
+          DateTime.t(),
+          DateTime.t(),
+          pos_integer()
+        ) :: {:ok, [Event.t()]} | :unavailable | :unsupported
+  def reconcile_events(%{"provider" => provider} = account, credentials, from, to, timeout_ms) do
+    case reconciler(provider, :report_events) do
+      {:ok, adapter} ->
+        adapter.report_events(%{
+          account: account,
+          credentials: credentials,
+          from: from,
+          to: to,
+          timeout_ms: timeout_ms
+        })
+
+      :unsupported ->
+        :unsupported
+    end
+  end
+
+  defp reconciler(provider, callback) do
+    with {:ok, adapter} <- Registry.adapter(provider),
+         true <- Code.ensure_loaded?(adapter) and function_exported?(adapter, callback, 1) do
+      {:ok, adapter}
     else
       _unsupported -> :unsupported
     end
@@ -836,10 +938,110 @@ defmodule Relay.Channels do
     CriticalGrant.decide(module, query)
   end
 
+  # CH-87
+  @doc "The sending domain of a request's e-mail; see `Relay.Channels.Email.sending_domain/1`."
+  @spec email_domain(Request.t()) :: {:ok, String.t()} | :error
+  def email_domain(%Request{} = request), do: Email.sending_domain(request)
+
+  # CH-41
+  # CH-37
+  # CH-87
+  @doc """
+  Decides a reputation circuit of `state` after adding `count` events of `event` to a window whose totals (`sent`, `delivered`, `bounces`, `complaints`, `now_ms`) were read before them, under the `reputation` parameters of the `email_reputation` data set (`Relay.Channels.Email.Reputation`). Returns the new state, the transitions to announce and the window's rates after the events; a stopped circuit stays stopped.
+  """
+  @spec reputation_decide(Reputation.state(), map(), Reputation.event(), pos_integer(), map()) ::
+          {Reputation.state(), [Reputation.transition()], Reputation.rates()}
+  def reputation_decide(state, totals, event, count, params) do
+    bucket_ms = max(div(params["window_ms"], params["buckets"]), 1)
+    counts = {totals.sent, totals.delivered, totals.bounces, totals.complaints}
+    buckets = %{div(totals.now_ms, bucket_ms) => counts}
+    circuit = %{Reputation.new() | state: state, buckets: buckets}
+    {circuit, transitions} = Reputation.record(circuit, event, totals.now_ms, params, count)
+    {circuit.state, transitions, Reputation.rates(circuit, totals.now_ms, params)}
+  end
+
+  # CH-46
+  @doc "Parses an uploaded DMARC aggregate or TLS-RPT report; see `Relay.Channels.Email.Reports.parse/3`."
+  @spec parse_email_report(Reports.kind(), Reports.encoding(), binary()) ::
+          {:ok, Reports.report()} | {:error, :invalid_report | :report_too_large}
+  def parse_email_report(kind, encoding, content), do: Reports.parse(kind, encoding, content)
+
+  # CH-46
+  @doc "Appends a parsed report inside the caller's scoped transaction; see `Relay.Channels.Email.ReportStore.record/2`."
+  @spec record_email_report(Reports.report(), digest()) :: {:recorded | :duplicate, Relay.Id.t()}
+  def record_email_report(report, digest), do: ReportStore.record(report, digest)
+
+  # CH-46
+  # CH-87
+  @doc "Appends a parsed report in a scope in its own transaction; see `Relay.Channels.Email.ReportStore.record/2`."
+  @spec store_email_report(Relay.Scope.t(), Reports.report(), digest()) ::
+          result({:recorded | :duplicate, Relay.Id.t()})
+  def store_email_report(scope, report, digest),
+    do: Store.in_scope(scope, fn _status -> ReportStore.record(report, digest) end)
+
+  # CH-46
+  @doc "Reads the reports of a domain in a scope; see `Relay.Channels.Email.ReportStore.reports/4`."
+  @spec email_reports(Relay.Scope.t(), String.t(), DateTime.t(), DateTime.t(), pos_integer()) ::
+          result([map()])
+  def email_reports(scope, domain, from, to, limit),
+    do: Store.in_scope(scope, fn _status -> ReportStore.reports(domain, from, to, limit) end)
+
   # CH-2
   @doc "Builds the request of one provider call; see `Relay.Channels.Request`."
   @spec request(map()) :: Request.t()
   def request(%{} = fields), do: struct!(Request, fields)
+
+  # DS-29
+  @doc "The setting keys of the open and click tracking of a category and a template; see `Relay.Channels.Email.Tracking.setting_keys/2`."
+  @spec email_tracking_keys(String.t() | nil, String.t() | nil) :: [String.t()]
+  def email_tracking_keys(category, template),
+    do: Tracking.setting_keys(category, template)
+
+  # DS-29
+  @doc "The setting key of the tracking of a `category` or `template` key; see `Relay.Channels.Email.Tracking.setting_key/2`."
+  @spec email_tracking_key(String.t(), String.t()) :: String.t()
+  def email_tracking_key(target, key), do: Tracking.setting_key(target, key)
+
+  # CH-43
+  # CH-44
+  # DS-29
+  @doc "The tracking plan of an e-mail delivery (`message_class`, `security_subtype`, `category_key` or `category`, `template_key`) under the tenant's tracking settings: nothing on for the `security` class or a security subtype, whatever the setting."
+  @spec email_tracking(map(), %{String.t() => term()}) :: Tracking.plan()
+  def email_tracking(delivery, settings) do
+    category = delivery["category_key"] || delivery["category"]
+
+    message = %{
+      class: delivery["message_class"] || "",
+      security_subtype: delivery["security_subtype"]
+    }
+
+    settings
+    |> Tracking.configured(category, delivery["template_key"])
+    |> Map.merge(message)
+    |> Tracking.plan()
+  end
+
+  # CH-43
+  @doc "Reads and verifies a tracking token of `kind` under its tenant environment's tracking key in the key store; see `Relay.Channels.Email.Tracking.read/3`."
+  @spec read_tracking_token(String.t(), :open | :click) ::
+          {:ok, Tracking.decoded()} | {:error, :invalid | Relay.Error.t()}
+  def read_tracking_token(token, kind) do
+    Tracking.read(token, kind, &Verp.key_function(Email.tracking_key_label(&1)))
+  end
+
+  # DS-30
+  # DS-52
+  @doc "Classifies an e-mail click; see `Relay.Channels.Email.ClickSignals.classify/4`."
+  @spec classify_click(map(), map(), pos_integer(), map()) ::
+          {:human | :likely_bot, String.t() | nil}
+  def classify_click(signals, request, link, history),
+    do: ClickSignals.classify(signals, request, link, history)
+
+  # DS-32
+  @doc "Whether an e-mail open is a machine open; see `Relay.Channels.Email.ClickSignals.machine_open/2`."
+  @spec machine_open(map(), map()) :: {boolean(), String.t() | nil}
+  def machine_open(signals, request),
+    do: ClickSignals.machine_open(signals, request)
 
   # CH-7
   @doc "A failed outcome of a class with a raw code, for a call Relay could not make or classify; a `transient` one has the `server_error` condition."
@@ -869,6 +1071,38 @@ defmodule Relay.Channels do
         :not_found
     end
   end
+
+  # WH-49
+  # TN-13 (4)
+  @doc "The active provider account of an SMS or e-mail provider webhook's path (`Relay.Channels.ProviderWebhook.providers/0`) and the scope it belongs to; `:not_found` for an unknown, other or disabled account or an inactive tenant."
+  @spec provider_webhook_account(Relay.Id.t()) :: {:ok, Relay.Scope.t(), map()} | :not_found
+  def provider_webhook_account(id) do
+    providers = ProviderWebhook.providers()
+
+    case Store.account_resolve(id) do
+      %{"provider" => provider, "state" => "active"} = row ->
+        if provider in providers, do: inbound_account(id, row), else: :not_found
+
+      _other ->
+        :not_found
+    end
+  end
+
+  @type webhook_request :: ProviderWebhook.request()
+  @type webhook_item :: ProviderWebhook.item()
+  @type webhook_reason :: ProviderWebhook.reason()
+
+  # WH-49
+  # T-40
+  @doc "Verifies an SMS or e-mail provider webhook on its raw body and reads its items; see `Relay.Channels.ProviderWebhook.read/3`."
+  @spec provider_webhook(String.t(), Relay.Redacted.t(), webhook_request()) ::
+          {:ok, [webhook_item()]} | {:error, webhook_reason()}
+  defdelegate provider_webhook(provider, key, request), to: ProviderWebhook, as: :read
+
+  # CH-47
+  @doc "Builds an e-mail event (`Relay.Channels.Email.Event`) from its fields, such as one read back from a sealed receipt."
+  @spec email_event(map()) :: Event.t()
+  def email_event(%{} = fields), do: struct!(Event, fields)
 
   defp inbound_account(id, %{"tenant_status" => "active"} = row) do
     case Relay.Environment.cast(row["environment"]) do

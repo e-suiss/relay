@@ -1,4 +1,4 @@
-//! Token operations behind the protocol: signing, public key export, AES-256-GCM key wrapping under a KEK, HMAC-SHA256 under a secret key, reading secret data objects and generating secret keys that never leave the token.
+//! Token operations behind the protocol: signing, public key export, AES-256-GCM key wrapping under a KEK, HMAC-SHA256 under a secret key, reading secret data objects, generating secret keys and Ed25519 key pairs that never leave the token, and destroying retired Ed25519 key pairs.
 
 use cryptoki::context::{CInitializeArgs, CInitializeFlags, Pkcs11};
 use cryptoki::error::{Error, RvError};
@@ -25,6 +25,17 @@ pub const HMAC_LEN: usize = 32;
 
 /// Length in bytes of every generated secret key.
 pub const KEY_LEN: u64 = 32;
+
+/// Length in bytes of an Ed25519 public key.
+pub const ED25519_LEN: usize = 32;
+
+/// The Ed25519 curve parameters as the curve name and as the object identifier 1.3.101.112.
+const ED25519_PARAMS: [&[u8]; 2] = [
+    &[
+        0x13, 0x0c, b'e', b'd', b'w', b'a', b'r', b'd', b's', b'2', b'5', b'5', b'1', b'9',
+    ],
+    &[0x06, 0x03, 0x2b, 0x65, 0x70],
+];
 
 /// A failed operation: the status sent back, a message without key material, and whether the session is lost.
 #[derive(Debug)]
@@ -295,6 +306,65 @@ impl Hsm {
         ];
         let session = self.context.open_rw_session(self.slot)?;
         session.create_object(&template)?;
+        Ok(())
+    }
+
+    /// Generates an Ed25519 token key pair labelled `label` with CKA_ID `id` and returns its 32-byte public key. The private key is sensitive, never extractable and usable only to sign. A label already in use is refused with `Exists`.
+    pub fn generate_key_pair(&self, label: &[u8], id: &[u8]) -> Result<Vec<u8>, Failure> {
+        let taken = self.session.find_objects(&[
+            Attribute::Class(ObjectClass::PRIVATE_KEY),
+            Attribute::Label(label.to_vec()),
+        ])?;
+        if !taken.is_empty() {
+            return Err(Failure::new(Status::Exists, "key label already exists"));
+        }
+        let session = self.context.open_rw_session(self.slot)?;
+        let mut last = Failure::new(Status::Internal, "no curve parameters");
+        for params in ED25519_PARAMS {
+            let public = [
+                Attribute::Token(true),
+                Attribute::Verify(true),
+                Attribute::EcParams(params.to_vec()),
+                Attribute::Label(label.to_vec()),
+                Attribute::Id(id.to_vec()),
+            ];
+            let private = [
+                Attribute::Token(true),
+                Attribute::Private(true),
+                Attribute::Sensitive(true),
+                Attribute::Extractable(false),
+                Attribute::Sign(true),
+                Attribute::Label(label.to_vec()),
+                Attribute::Id(id.to_vec()),
+            ];
+            match session.generate_key_pair(&Mechanism::EccEdwardsKeyPairGen, &public, &private) {
+                Ok((key, _private)) => {
+                    let value = self.attribute(key, AttributeType::EcPoint)?;
+                    return der::ec_point(&value, ED25519_LEN)
+                        .ok_or_else(|| Failure::new(Status::Token, "unexpected EC point form"));
+                }
+                Err(error) => last = error.into(),
+            }
+        }
+        Err(last)
+    }
+
+    /// Destroys every Ed25519 private and public key object labelled `label`, private keys first. Objects of any other class or key type under the label are left in place, and a label without such objects succeeds.
+    pub fn destroy_key_pair(&self, alg: Alg, label: &[u8]) -> Result<(), Failure> {
+        if alg != Alg::Ed25519 {
+            return Err(Failure::new(Status::BadRequest, "unsupported algorithm"));
+        }
+        let session = self.context.open_rw_session(self.slot)?;
+        for class in [ObjectClass::PRIVATE_KEY, ObjectClass::PUBLIC_KEY] {
+            let found = session.find_objects(&[
+                Attribute::Class(class),
+                Attribute::KeyType(KeyType::EC_EDWARDS),
+                Attribute::Label(label.to_vec()),
+            ])?;
+            for object in found {
+                session.destroy_object(object)?;
+            }
+        }
         Ok(())
     }
 

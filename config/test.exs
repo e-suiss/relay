@@ -25,6 +25,8 @@ config :relay, Relay.QueueRepo,
 
 config :relay, RelayWeb.Metrics, server: false
 
+config :relay, Relay.ReportRepo, enabled: false
+
 config :relay, Oban, testing: :manual
 
 config :relay, Relay.Platform.Outbox, dispatcher: false
@@ -46,6 +48,8 @@ config :logger, level: :warning
 config :relay, Relay.NetworkGuard, enabled: true
 
 config :relay, keys: RelayTest.Keys
+
+config :relay, Relay.Webhooks, resolver: RelayTest.WebhookResolver
 
 config :relay, Relay.Keys,
   kek_label: "kek-test",

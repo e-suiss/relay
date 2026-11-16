@@ -40,7 +40,7 @@ defmodule Relay.Inbox.MailboxStore do
         record.mailbox_id,
         Map.fetch!(@kinds, Map.get(record, :kind, :message)),
         record.event_type,
-        Map.get(record, :correlation_key),
+        Map.get(record, :correlation_digest),
         Map.get(record, :waitpoint_id),
         Map.get(record, :source_event_id),
         Map.get(record, :payload_ct),

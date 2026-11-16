@@ -11,14 +11,15 @@ defmodule Relay.Policy.RulesTest do
     preference.scope_key preference.schedule preference.category_default quiet_hours.deferred
     schedule.deferred dnd.deferred tenant_timezone_window.deferred frequency.dropped
     frequency.deferred frequency.digest frequency.inbox_only expiry.expires_at expiry.no_window
+    next_break.deferred
   )
 
   @reasons ~w(preference_off consent_missing consent_revoked suppressed_address frequency_capped
     scope_mismatch no_address no_permission channel_policy tenant_suspended expired quiet_hours
-    schedule dnd tenant_timezone_window)a
+    schedule dnd tenant_timezone_window next_break)a
 
   describe "DS-47 rule ids" do
-    test "DS-47 (5): the lattice writes exactly the stage 4 rule ids" do
+    test "DS-47 (5) WF-56: the lattice writes exactly the stage 4 rule ids and next_break" do
       assert Rules.ids() == Enum.sort(@stage4)
       assert Relay.Policy.rule_ids() == Rules.ids()
     end

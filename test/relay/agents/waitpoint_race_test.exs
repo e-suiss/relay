@@ -116,18 +116,16 @@ defmodule Relay.Agents.WaitpointRaceTest do
       assert Enum.count(offers, &(&1.result == :buffered)) == early
       refute Enum.any?(offers, &(&1.result == :unmatched))
 
-      like = prefix <> "%"
-
       assert scalar(
                scope,
-               "SELECT count(*) FROM relay.waitpoints WHERE correlation_key LIKE $1 AND state = 'resolved'",
-               [like]
+               "SELECT count(*) FROM relay.waitpoints WHERE correlation_key IS NULL AND state = 'resolved'",
+               []
              ) == @pairs
 
       assert scalar(
                scope,
-               "SELECT count(*) FROM relay.mailbox_records WHERE kind = 'early_event' AND correlation_key LIKE $1 AND consumed_at IS NULL",
-               [like]
+               "SELECT count(*) FROM relay.mailbox_records WHERE kind = 'early_event' AND consumed_at IS NULL",
+               []
              ) == 0
 
       assert scalar(scope, "SELECT open_count FROM relay.waitpoint_counters", []) == 0

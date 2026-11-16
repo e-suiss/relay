@@ -54,23 +54,39 @@ defmodule Relay.CLI.Failure do
     |> put(body_key, failure.response)
   end
 
-  @doc "Readable lines of the failure: the code and message, field errors and the request id."
+  @doc "Readable lines of the failure: the code and message, field errors with their file and RFC 6901 pointer, publication gate findings and the request id."
   @spec lines(t()) :: [String.t()]
   def lines(%__MODULE__{} = failure) do
-    errors =
-      case failure.response do
-        %{"errors" => errors} when is_list(errors) -> Enum.map(errors, &field_line/1)
-        _ -> []
-      end
-
+    errors = Enum.map(list(failure.response, "errors"), &field_line/1)
+    findings = Enum.map(list(failure.response, "findings"), &finding_line/1)
     request = if failure.request_id, do: ["  request id: " <> failure.request_id], else: []
-    ["error: #{failure.code}: #{failure.message}" | errors] ++ request
+    ["error: #{failure.code}: #{failure.message}" | errors] ++ findings ++ request
   end
+
+  defp list(%{} = response, key) do
+    case Map.get(response, key) do
+      items when is_list(items) -> items
+      _other -> []
+    end
+  end
+
+  defp list(_response, _key), do: []
+
+  defp field_line(%{"file" => file} = error) when is_binary(file),
+    do: "  #{file} #{error["pointer"]}: #{error["code"]}#{detail(error["detail"])}"
 
   defp field_line(%{} = error),
     do: "  #{error["pointer"]}: #{error["code"]}#{detail(error["detail"])}"
 
   defp field_line(other), do: "  #{inspect(other)}"
+
+  defp finding_line(%{} = finding) do
+    cell = [finding["channel"], finding["locale"]] |> Enum.reject(&is_nil/1) |> Enum.join("/")
+    where = if cell == "", do: "", else: " " <> cell
+    "  #{finding["level"]} #{finding["check"]}#{where}: #{finding["message"]}"
+  end
+
+  defp finding_line(other), do: "  #{inspect(other)}"
 
   defp detail(text) when is_binary(text), do: " (" <> text <> ")"
   defp detail(_text), do: ""

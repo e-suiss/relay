@@ -120,11 +120,14 @@ export RELAY_CLIENT_SECRET_FILE=~/.config/relay/test.secret
 relay trigger welcome --to user-4821 --data '{"first_name": "Ayşe"}'
 relay preview welcome --to user-4821 --data-file data.json   # dry run, test only
 relay logs --follow                                          # watch new notifications
-relay listen --forward-to http://localhost:3000/relay        # forward them to your app
-relay pull && relay push --publish                           # workflows as files
+relay listen --forward-to http://localhost:3000/relay        # forward signed webhook events to your app
+relay pull --format yaml                                     # routes, templates, workflows as files
+relay push --publish                                         # files back as published drafts
 relay promote welcome --yes                                  # test version to live
 relay kill-switch engage --scope workflow --ref welcome --reason "bad copy" --ttl PT1H
 ```
+
+`pull` writes `relay/routes/`, `relay/templates/` and `relay/workflows/`, one JSON or YAML file per definition with sorted keys, so a git diff shows only what changed. `push` checks every file against the definition schema before it sends anything and reports each error with its JSON Pointer; a workflow the files manage becomes code-managed, and a panel-managed workflow is left alone unless `--manage-as-code` is given.
 
 Every command accepts `--json` and then prints one JSON object with an `exit_code` field. Exit codes are stable: `0` success, `1` unexpected error, `2` usage error, `3` authentication or authorization, `4` not found, `5` validation or conflict, `6` rate limit or quota, `7` server or connection, `8` live change not confirmed. A command that changes the live environment asks for confirmation, or takes `--yes`. Run `relay help` for every option, including profiles in `~/.config/relay/config.json`.
 
@@ -141,6 +144,17 @@ Relay itself is linked to Access by `RELAY_ACCESS_ISSUER` alone. It reads the ke
 Access tells Relay about tenants, organizations, API clients, users and consents with the Shared Signals Framework: it pushes each event as a Security Event Token (RFC 8417, RFC 8935) to `POST /v1/access/events` with `Content-Type: application/secevent+jwt`. Relay is registered in Access as a platform product (`product = "relay"`) whose event receiver is that URL. The token is a JWS signed by the Access realm key from discovery; its `iss` must be the Access issuer, its `aud` Relay's Access `client_id` (`RELAY_ACCESS_CLIENT_ID`) and its `iat` recent. No secret is shared. Relay answers `202` once the event is recorded, `202` again for a `jti` it has already seen, and `400` with an RFC 8935 `{"err", "description"}` body when it refuses the token.
 
 An API client that Access disables (`api_client.disabled`) is suspended in Relay at once: its tokens are refused on every node until Access reactivates it.
+
+A tenant that Access creates (`tenant.created`) opens in the region its Access tenant snapshot names, with that region's default time zone and locale from the `region_defaults` data set (`tr`: `Europe/Istanbul` and `tr`; `eu`: `Europe/Berlin` and `en`; `us`: `America/New_York` and `en`). While the snapshot cannot be read the event waits and is retried; a region the installation does not serve is rejected. Organization events are recorded and acknowledged, but create no subtenant yet.
+
+Access does not hold an API client's environment or scopes, so a client that Access creates (`api_client.created`) waits in Relay as pending, and its tokens are answered with `403 auth_client_pending` until a tenant administrator assigns it. The operator API lists pending clients with `GET /v1/operator/pending_api_clients` and assigns one, after a step-up, with `POST /v1/operator/pending_api_clients/assign`: the body names the Access `client_id` and its scopes, and the environment is the one selected with `Relay-Environment`. The installation operator can do the same from the release on a running node:
+
+```sh
+bin/api-client pending --tenant ten_...
+bin/api-client assign --operator ops@example.com --tenant ten_... --environment live --client app_... --scopes publish,read
+```
+
+Both paths are audited the same way (`api_client.assigned`, then `api_client.created`). Once a client is assigned, `relay push --publish` publishes workflows with it.
 
 ## Behind a TLS proxy
 

@@ -21,19 +21,24 @@ defmodule Relay.Channels.Live.Store do
   end
 
   # T-15
-  @doc "Reads what the channel step needs of a delivery: its channel, target kind and target (the one device of a test send), recipient, requested provider, class, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity, the category key, the sender's `interruption` and the Access client of the event's API client (the sender of a critical Grant question, CH-84), and for the channel overrides the event's sealed request overrides with their key and the pinned version's workflow overrides and steps; `nil` when there is no such delivery."
+  @doc "Reads what the channel step needs of a delivery: its channel, target kind and target (the one device of a test send), recipient, requested provider, class and security subtype, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity, the category key, the sender's `interruption` and the Access client of the event's API client (the sender of a critical Grant question, CH-84), and for the channel overrides the event's sealed request overrides with their key and the pinned version's workflow overrides and channel steps (over the whole step tree), and the workflow's key for its send mode, and whether the notification also has an `in_app` delivery its realtime connection carries (IN-40); `nil` when there is no such delivery."
   @spec delivery(Relay.Id.t()) :: map() | nil
   def delivery(delivery_id) do
     one(
       """
       SELECT d.tenant_id, d.environment, d.id, d.channel::text AS channel, d.target_kind,
         d.target_id, d.recipient_id, d.provider, d.provider_account_id, d.traceparent, d.attempt_count,
-        n.message_class::text AS message_class, n.expires_at, n.is_test, e.send_mode::text AS send_mode,
+        d.accepted_at, n.message_class::text AS message_class, n.security_subtype, n.expires_at,
+        n.is_test, e.send_mode::text AS send_mode,
         e.priority, n.subject_type, n.subject_id, p.locale, t.key AS template_key,
         v.sensitivity, c.key AS category_key, wv.definition->>'category' AS category,
         e.interruption, ac.access_client_id AS sender_ref, ep.overrides_ct,
         ep.key_id AS payload_key_id, wv.definition->'overrides' AS workflow_overrides,
-        wv.definition->'steps' AS steps
+        jsonb_path_query_array(wv.definition -> 'steps', 'strict $.** ? (@.type == "channel")')
+          AS steps, wf.key AS workflow_key,
+        EXISTS (SELECT 1 FROM relay.deliveries i WHERE i.tenant_id = d.tenant_id
+          AND i.environment = d.environment AND i.notification_id = d.notification_id
+          AND i.channel = 'in_app') AS realtime_carried
       FROM relay.deliveries d
       JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
         AND n.id = d.notification_id
@@ -52,6 +57,8 @@ defmodule Relay.Channels.Live.Store do
         AND c.id = t.category_id
       LEFT JOIN relay.workflow_versions wv ON wv.tenant_id = e.tenant_id
         AND wv.environment = e.environment AND wv.id = e.workflow_version_id
+      LEFT JOIN relay.workflows wf ON wf.tenant_id = e.tenant_id
+        AND wf.environment = e.environment AND wf.id = e.workflow_id
       LEFT JOIN relay.api_clients ac ON ac.tenant_id = e.tenant_id
         AND ac.environment = e.environment AND ac.id = e.api_client_id
       WHERE d.id = $1
@@ -59,6 +66,134 @@ defmodule Relay.Channels.Live.Store do
       [delivery_id]
     )
   end
+
+  # T-41
+  @doc "Reads the attempt counts of the deliveries among `ids` as a map of delivery identifier to attempt count; an unknown delivery is absent."
+  @spec delivery_attempts([Relay.Id.t()]) :: %{Relay.Id.t() => non_neg_integer()}
+  def delivery_attempts(ids) do
+    rows =
+      all(
+        "SELECT tenant_id, environment, id, attempt_count FROM relay.deliveries WHERE id = ANY($1::uuid[])",
+        [ids]
+      )
+
+    Map.new(rows, &{&1["id"], &1["attempt_count"]})
+  end
+
+  # DS-40
+  # CH-47
+  @doc "Reads the trace context and acceptance time of the deliveries among `ids` as a map of delivery identifier to a map with the `traceparent` and `accepted_at` keys; an unknown delivery is absent."
+  @spec delivery_traces([Relay.Id.t()]) :: %{Relay.Id.t() => map()}
+  def delivery_traces(ids) do
+    rows =
+      all(
+        "SELECT tenant_id, environment, id, traceparent, accepted_at FROM relay.deliveries WHERE id = ANY($1::uuid[])",
+        [ids]
+      )
+
+    Map.new(rows, &{&1["id"], Map.take(&1, ["traceparent", "accepted_at"])})
+  end
+
+  # WH-15
+  # WH-53
+  # WH-11
+  @doc "Appends an outbox event about a delivery on its stream: `data` with the delivery, its notification and its recipient as identifiers. Returns `:appended`, or `:delivery_not_found`."
+  @spec announce(Relay.Id.t(), String.t(), map()) :: :appended | :delivery_not_found
+  def announce(delivery_id, type, data) do
+    rows =
+      all(
+        """
+        SELECT d.tenant_id, d.environment, d.id, d.notification_id, d.recipient_id,
+          r.kind::text AS recipient_kind
+        FROM relay.deliveries d
+        JOIN relay.recipients r ON r.tenant_id = d.tenant_id AND r.environment = d.environment
+          AND r.id = d.recipient_id
+        WHERE d.id = $1
+        """,
+        [delivery_id]
+      )
+
+    case rows do
+      [row] -> append(type, delivery_id, Map.merge(reject_nil(data), subject(row)))
+      [] -> :delivery_not_found
+    end
+  end
+
+  defp subject(row) do
+    %{
+      "delivery_id" => Relay.Id.to_string(row["id"]),
+      "notification_id" => Relay.Id.to_string(row["notification_id"]),
+      "recipient_id" => Relay.Id.to_string(row["recipient_id"]),
+      "recipient_kind" => row["recipient_kind"]
+    }
+  end
+
+  defp reject_nil(data), do: Map.reject(data, fn {_key, value} -> is_nil(value) end)
+
+  defp append(type, delivery_id, data) do
+    stream = "delivery:" <> Relay.Id.to_string(delivery_id)
+    params = [Relay.Id.generate(), type, stream, data, nil]
+    [row] = Repo.call!("relay_fn.outbox_append", params)
+    Repo.code!(row["result"], [:appended])
+  end
+
+  # DS-48
+  @doc "Reads up to `limit` open deliveries of a channel whose latest attempt went to `provider`, accepted at least `min_age_s` seconds ago and neither delivered nor failed, oldest first: each with its acceptance time and the provider account, attempt number, idempotency key and provider message id of the latest attempt."
+  @spec open_deliveries(String.t(), String.t(), non_neg_integer(), pos_integer()) :: [map()]
+  def open_deliveries(provider, channel, min_age_s, limit) do
+    all(
+      """
+      SELECT d.tenant_id, d.environment, d.id, d.accepted_at, a.provider_account_id,
+        a.attempt_no, a.provider_idempotency_key, a.provider_message_id
+      FROM relay.deliveries d
+      JOIN LATERAL (
+        SELECT x.provider, x.provider_account_id, x.attempt_no, x.provider_idempotency_key,
+          x.provider_message_id
+        FROM relay.delivery_attempts x
+        WHERE x.tenant_id = d.tenant_id AND x.environment = d.environment AND x.delivery_id = d.id
+        ORDER BY x.attempt_no DESC
+        LIMIT 1
+      ) a ON a.provider = $1
+      WHERE d.channel = $2::relay.channel AND d.delivery_rank = 1 AND d.failure_kind IS NULL
+        AND d.accepted_at <= now() - $3::bigint * interval '1 second'
+      ORDER BY d.accepted_at, d.id
+      LIMIT $4
+      """,
+      [provider, channel, min_age_s, limit]
+    )
+  end
+
+  # DS-48
+  @doc "Reads the active, verified provider accounts of `provider` on `channel`: identifier, provider, settings and credential reference."
+  @spec reconciled_accounts(String.t(), String.t()) :: [map()]
+  def reconciled_accounts(provider, channel) do
+    all(
+      """
+      SELECT tenant_id, environment, id, provider, channel::text AS channel, settings,
+        credential_ref_id
+      FROM relay.provider_accounts
+      WHERE provider = $1 AND channel = $2::relay.channel AND state = 'active'
+        AND verification_state = 'verified'
+      ORDER BY id
+      """,
+      [provider, channel]
+    )
+  end
+
+  # DS-48
+  # TN-13 (4)
+  @doc "Lists the scopes that have a verified provider account of `providers`, through the reconciliation discovery escape hatch; scopes only, no content."
+  @spec reconciliation_scopes([String.t()], pos_integer()) :: [{Relay.Id.t(), String.t()}]
+  def reconciliation_scopes(providers, limit) do
+    function = "relay_ops.reconciliation_scopes"
+    rows = Repo.call_unscoped!(:reconciliation_discovery, function, [providers, limit])
+    for row <- rows, do: {row["tenant_id"], row["environment"]}
+  end
+
+  # T-15
+  @doc "Rolls the current scoped transaction back with `reason`."
+  @spec rollback(term()) :: no_return()
+  def rollback(reason), do: Repo.rollback(reason)
 
   # API-62
   # OP-51

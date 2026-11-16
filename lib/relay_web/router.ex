@@ -43,6 +43,24 @@ defmodule RelayWeb.Router do
     }
   end
 
+  pipeline :downloads do
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" => "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+      "cache-control" => "no-store",
+      "referrer-policy" => "no-referrer",
+      "x-robots-tag" => "noindex"
+    }
+  end
+
+  pipeline :tracking do
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" => "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+      "cache-control" => "no-store",
+      "referrer-policy" => "no-referrer",
+      "x-robots-tag" => "noindex"
+    }
+  end
+
   scope "/", RelayWeb do
     pipe_through :api
 
@@ -60,9 +78,36 @@ defmodule RelayWeb.Router do
     post "/:token", LinkController, :create
   end
 
+  # DS-37
+  scope "/exports", RelayWeb do
+    pipe_through :downloads
+
+    get "/:token", ExportDownloadController, :show
+  end
+
+  # CH-46
+  # CH-87
+  scope "/tlsrpt/v1", RelayWeb do
+    post "/:tenant/:environment", TlsReportController, :create
+  end
+
+  # CH-43
+  # CH-44
+  # DS-30
+  # DS-32
+  scope "/e", RelayWeb do
+    pipe_through :tracking
+
+    get "/c/:token", TrackingController, :click
+    get "/o/:token", TrackingController, :open
+  end
+
   # CH-62
   # WH-49
   scope "/inbound/v1", RelayWeb do
+    post "/providers/:provider_account_id", ProviderWebhookController, :create,
+      private: %{relay_operation: "receiveProviderWebhook"}
+
     post "/:channel/:tenant/:environment/:identity", InboundController, :create,
       private: %{relay_operation: "receiveMessagingInbound"}
   end
@@ -117,6 +162,9 @@ defmodule RelayWeb.Router do
 
     get "/deliveries/:delivery_id/history", DeliveryController, :history,
       private: %{relay_operation: "getDeliveryHistory"}
+
+    get "/subscribers/:subscriber_id/decisions", NotificationController, :decisions,
+      private: %{relay_operation: "listSubscriberDecisions"}
 
     post "/subscribers/bulk", SubscriberController, :bulk,
       private: %{relay_operation: "bulkUpsertSubscribers"}
@@ -196,6 +244,65 @@ defmodule RelayWeb.Router do
     post "/provider_accounts/:provider_account_id/verify", ChannelController, :verify_account,
       private: %{relay_operation: "verifyProviderAccount"}
 
+    get "/provider_invoices", ProviderInvoiceController, :index,
+      private: %{relay_operation: "listProviderInvoices"}
+
+    post "/provider_invoices", ProviderInvoiceController, :create,
+      private: %{relay_operation: "createProviderInvoice"}
+
+    get "/provider_invoices/:provider_invoice_id", ProviderInvoiceController, :show,
+      private: %{relay_operation: "getProviderInvoice"}
+
+    get "/reports/deliveries", ReportController, :deliveries,
+      private: %{relay_operation: "getDeliveryReport"}
+
+    get "/reports/skips", ReportController, :skips, private: %{relay_operation: "getSkipReport"}
+
+    get "/reports/costs", ReportController, :costs, private: %{relay_operation: "getCostReport"}
+
+    get "/campaigns", CampaignController, :index, private: %{relay_operation: "listCampaigns"}
+
+    post "/campaigns", CampaignController, :create, private: %{relay_operation: "createCampaign"}
+
+    get "/campaigns/:campaign_id", CampaignController, :show,
+      private: %{relay_operation: "getCampaign"}
+
+    post "/campaigns/:campaign_id/recipients", CampaignController, :recipients,
+      private: %{relay_operation: "addCampaignRecipients"}
+
+    post "/campaigns/:campaign_id/prepare", CampaignController, :prepare,
+      private: %{relay_operation: "prepareCampaign"}
+
+    get "/campaigns/:campaign_id/samples", CampaignController, :samples,
+      private: %{relay_operation: "getCampaignSamples"}
+
+    post "/campaigns/:campaign_id/approve_samples", CampaignController, :approve_samples,
+      private: %{relay_operation: "approveCampaignSamples"}
+
+    post "/campaigns/:campaign_id/trigger", CampaignController, :trigger,
+      private: %{relay_operation: "triggerCampaign"}
+
+    post "/campaigns/:campaign_id/cancel", CampaignController, :cancel,
+      private: %{relay_operation: "cancelCampaign"}
+
+    get "/exports", ExportController, :index, private: %{relay_operation: "listExports"}
+
+    post "/exports", ExportController, :create, private: %{relay_operation: "createExport"}
+
+    get "/exports/:export_id", ExportController, :show, private: %{relay_operation: "getExport"}
+
+    get "/recurrences", RecurrenceController, :index,
+      private: %{relay_operation: "listRecurrences"}
+
+    post "/recurrences", RecurrenceController, :create,
+      private: %{relay_operation: "createRecurrence"}
+
+    get "/recurrences/:recurrence_id", RecurrenceController, :show,
+      private: %{relay_operation: "getRecurrence"}
+
+    post "/recurrences/:recurrence_id/cancel", RecurrenceController, :cancel,
+      private: %{relay_operation: "cancelRecurrence"}
+
     get "/sender_identities", ChannelController, :senders,
       private: %{relay_operation: "listSenderIdentities"}
 
@@ -244,6 +351,24 @@ defmodule RelayWeb.Router do
     put "/categories/:category_key/subtenants/:subtenant_id", CategoryController, :put_setting,
       private: %{relay_operation: "replaceCategorySubtenantSetting"}
 
+    get "/categories/:category_key/email_tracking", EmailTrackingController, :show,
+      private: %{relay_operation: "getCategoryEmailTracking", relay_target: "category"}
+
+    put "/categories/:category_key/email_tracking", EmailTrackingController, :replace,
+      private: %{relay_operation: "replaceCategoryEmailTracking", relay_target: "category"}
+
+    get "/templates/:template_key/email_tracking", EmailTrackingController, :show,
+      private: %{relay_operation: "getTemplateEmailTracking", relay_target: "template"}
+
+    put "/templates/:template_key/email_tracking", EmailTrackingController, :replace,
+      private: %{relay_operation: "replaceTemplateEmailTracking", relay_target: "template"}
+
+    post "/email_reports", EmailReportController, :create,
+      private: %{relay_operation: "uploadEmailReport"}
+
+    get "/email_reports/summary", EmailReportController, :summary,
+      private: %{relay_operation: "getEmailReportSummary"}
+
     get "/suppressions", SuppressionController, :index,
       private: %{relay_operation: "listSuppressions"}
 
@@ -252,6 +377,16 @@ defmodule RelayWeb.Router do
 
     post "/suppressions/:suppression_id/lift", SuppressionController, :lift,
       private: %{relay_operation: "liftSuppression"}
+
+    get "/routes", RouteController, :index, private: %{relay_operation: "listRoutes"}
+    post "/routes", RouteController, :create, private: %{relay_operation: "createRoute"}
+    get "/routes/:route_key", RouteController, :show, private: %{relay_operation: "getRoute"}
+
+    put "/routes/:route_key", RouteController, :replace,
+      private: %{relay_operation: "replaceRoute"}
+
+    post "/routes/:route_key/archive", RouteController, :archive,
+      private: %{relay_operation: "archiveRoute"}
 
     get "/workflows", WorkflowController, :index, private: %{relay_operation: "listWorkflows"}
     post "/workflows", WorkflowController, :create, private: %{relay_operation: "createWorkflow"}
@@ -265,11 +400,17 @@ defmodule RelayWeb.Router do
     post "/workflows/:workflow_key/publish", WorkflowController, :publish,
       private: %{relay_operation: "publishWorkflow"}
 
+    post "/workflows/:workflow_key/manager", WorkflowController, :set_manager,
+      private: %{relay_operation: "setWorkflowManager"}
+
     get "/workflows/:workflow_key/versions", WorkflowController, :versions,
       private: %{relay_operation: "listWorkflowVersions"}
 
     get "/workflows/:workflow_key/versions/:version", WorkflowController, :version,
       private: %{relay_operation: "getWorkflowVersion"}
+
+    get "/workflows/:workflow_key/versions/:version/mermaid", WorkflowController, :mermaid,
+      private: %{relay_operation: "getWorkflowVersionMermaid"}
 
     post "/workflows/:workflow_key/versions/:version/promote", WorkflowController, :promote,
       private: %{relay_operation: "promoteWorkflowVersion"}
@@ -280,6 +421,9 @@ defmodule RelayWeb.Router do
     post "/workflows/:workflow_key/test", WorkflowController, :test_send,
       private: %{relay_operation: "sendWorkflowTest"}
 
+    post "/throttles/:throttle_key/reset", ThrottleController, :reset,
+      private: %{relay_operation: "resetThrottle"}
+
     get "/test_recipients", TesterController, :index,
       private: %{relay_operation: "listTestRecipients"}
 
@@ -288,6 +432,173 @@ defmodule RelayWeb.Router do
 
     post "/test_recipients/:test_recipient_id/remove", TesterController, :remove,
       private: %{relay_operation: "removeTestRecipient"}
+
+    # WF-51
+    post "/inbox/announcements", AnnouncementController, :create,
+      private: %{relay_operation: "createInboxAnnouncement"}
+
+    get "/inbox/announcements/:announcement_id", AnnouncementController, :show,
+      private: %{relay_operation: "getInboxAnnouncement"}
+
+    post "/inbox/announcements/:announcement_id/retract", AnnouncementController, :retract,
+      private: %{relay_operation: "retractInboxAnnouncement"}
+
+    # WH-2
+    get "/webhook_consumers", WebhookConsumerController, :index,
+      private: %{relay_operation: "listWebhookConsumers"}
+
+    post "/webhook_consumers", WebhookConsumerController, :create,
+      private: %{relay_operation: "createWebhookConsumer"}
+
+    get "/webhook_consumers/:webhook_consumer_id", WebhookConsumerController, :show,
+      private: %{relay_operation: "getWebhookConsumer"}
+
+    patch "/webhook_consumers/:webhook_consumer_id", WebhookConsumerController, :update,
+      private: %{relay_operation: "updateWebhookConsumer"}
+
+    post "/webhook_consumers/:webhook_consumer_id/archive", WebhookConsumerController, :archive,
+      private: %{relay_operation: "archiveWebhookConsumer"}
+
+    # WH-14
+    get "/webhook_event_types", WebhookEventTypeController, :index,
+      private: %{relay_operation: "listWebhookEventTypes"}
+
+    post "/webhook_event_types", WebhookEventTypeController, :create,
+      private: %{relay_operation: "createWebhookEventType"}
+
+    get "/webhook_event_types/:webhook_event_type_id", WebhookEventTypeController, :show,
+      private: %{relay_operation: "getWebhookEventType"}
+
+    post "/webhook_event_types/:webhook_event_type_id/archive",
+         WebhookEventTypeController,
+         :archive,
+         private: %{relay_operation: "archiveWebhookEventType"}
+
+    get "/webhook_event_types/:webhook_event_type_id/versions",
+        WebhookEventTypeController,
+        :versions,
+        private: %{relay_operation: "listWebhookEventTypeVersions"}
+
+    post "/webhook_event_types/:webhook_event_type_id/versions",
+         WebhookEventTypeController,
+         :add_version,
+         private: %{relay_operation: "createWebhookEventTypeVersion"}
+
+    get "/webhook_event_types/:webhook_event_type_id/versions/:version",
+        WebhookEventTypeController,
+        :version,
+        private: %{relay_operation: "getWebhookEventTypeVersion"}
+
+    # WH-2
+    # WH-45
+    get "/webhook_endpoints", WebhookEndpointController, :index,
+      private: %{relay_operation: "listWebhookEndpoints"}
+
+    post "/webhook_endpoints", WebhookEndpointController, :create,
+      private: %{relay_operation: "createWebhookEndpoint"}
+
+    get "/webhook_endpoints/:webhook_endpoint_id", WebhookEndpointController, :show,
+      private: %{relay_operation: "getWebhookEndpoint"}
+
+    patch "/webhook_endpoints/:webhook_endpoint_id", WebhookEndpointController, :update,
+      private: %{relay_operation: "updateWebhookEndpoint"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/archive", WebhookEndpointController, :archive,
+      private: %{relay_operation: "archiveWebhookEndpoint"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/rotate_key", WebhookEndpointController, :rotate,
+      private: %{relay_operation: "rotateWebhookEndpointKey"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/pause", WebhookEndpointController, :pause,
+      private: %{relay_operation: "pauseWebhookEndpoint"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/resume", WebhookEndpointController, :resume,
+      private: %{relay_operation: "resumeWebhookEndpoint"}
+
+    get "/webhook_endpoints/:webhook_endpoint_id/health", WebhookEndpointController, :health,
+      private: %{relay_operation: "getWebhookEndpointHealth"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/test", WebhookEndpointController, :test,
+      private: %{relay_operation: "sendWebhookEndpointTestEvent"}
+
+    get "/webhook_endpoints/:webhook_endpoint_id/versions", WebhookEndpointController, :versions,
+      private: %{relay_operation: "listWebhookEndpointVersions"}
+
+    get "/webhook_endpoints/:webhook_endpoint_id/versions/:version",
+        WebhookEndpointController,
+        :version,
+        private: %{relay_operation: "getWebhookEndpointVersion"}
+
+    # WH-30
+    # WH-31
+    post "/webhook_endpoints/:webhook_endpoint_id/recover", WebhookRecoveryController, :recover,
+      private: %{relay_operation: "recoverWebhookEndpoint"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/retry", WebhookRecoveryController, :retry,
+      private: %{relay_operation: "retryWebhookEndpointMessages"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/replay", WebhookRecoveryController, :replay,
+      private: %{relay_operation: "replayWebhookEndpointEvents"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/cancel_retries",
+         WebhookRecoveryController,
+         :cancel_retries,
+         private: %{relay_operation: "cancelWebhookEndpointRetries"}
+
+    get "/webhook_endpoints/:webhook_endpoint_id/missed_events",
+        WebhookRecoveryController,
+        :missed,
+        private: %{relay_operation: "listWebhookEndpointMissedEvents"}
+
+    get "/webhook_messages", WebhookMessageController, :index,
+      private: %{relay_operation: "listWebhookMessages"}
+
+    get "/webhook_messages/:webhook_message_id", WebhookMessageController, :show,
+      private: %{relay_operation: "getWebhookMessage"}
+
+    get "/webhook_messages/:webhook_message_id/attempts", WebhookMessageController, :attempts,
+      private: %{relay_operation: "listWebhookMessageAttempts"}
+
+    get "/webhook_messages/:webhook_message_id/attempts/:webhook_attempt_id",
+        WebhookMessageController,
+        :attempt,
+        private: %{relay_operation: "getWebhookMessageAttempt"}
+
+    post "/webhook_messages/:webhook_message_id/resend", WebhookMessageController, :resend,
+      private: %{relay_operation: "resendWebhookMessage"}
+
+    post "/webhook_messages/:webhook_message_id/cancel", WebhookMessageController, :cancel,
+      private: %{relay_operation: "cancelWebhookMessage"}
+
+    # WH-45 (2)
+    get "/webhook_events", WebhookEventController, :index,
+      private: %{relay_operation: "listWebhookEvents"}
+
+    # WH-56
+    get "/operations_contacts", OperationsContactController, :show,
+      private: %{relay_operation: "getOperationsContacts"}
+
+    put "/operations_contacts", OperationsContactController, :replace,
+      private: %{relay_operation: "replaceOperationsContacts"}
+
+    get "/topics", TopicController, :index, private: %{relay_operation: "listTopics"}
+    post "/topics", TopicController, :create, private: %{relay_operation: "createTopic"}
+    get "/topics/:topic_key", TopicController, :show, private: %{relay_operation: "getTopic"}
+
+    post "/topics/:topic_key/archive", TopicController, :archive,
+      private: %{relay_operation: "archiveTopic"}
+
+    get "/topics/:topic_key/subscriptions", TopicController, :subscriptions,
+      private: %{relay_operation: "listTopicSubscriptions"}
+
+    post "/topics/:topic_key/subscriptions", TopicController, :subscribe,
+      private: %{relay_operation: "addTopicSubscriptions"}
+
+    post "/topics/:topic_key/subscriptions/remove", TopicController, :unsubscribe,
+      private: %{relay_operation: "removeTopicSubscriptions"}
+
+    get "/subscribers/:subscriber_id/subscriptions", TopicController, :subscriber,
+      private: %{relay_operation: "listSubscriberSubscriptions"}
 
     get "/templates", TemplateController, :index, private: %{relay_operation: "listTemplates"}
     post "/templates", TemplateController, :create, private: %{relay_operation: "createTemplate"}
@@ -379,6 +690,24 @@ defmodule RelayWeb.Router do
     get "/brand", BrandController, :show, private: %{relay_operation: "getBrand"}
     patch "/brand", BrandController, :update, private: %{relay_operation: "updateBrand"}
 
+    get "/delivery_windows", DeliveryWindowsController, :show,
+      private: %{relay_operation: "getDeliveryWindows"}
+
+    put "/delivery_windows", DeliveryWindowsController, :replace,
+      private: %{relay_operation: "replaceDeliveryWindows"}
+
+    get "/timing_settings", TimingSettingsController, :show,
+      private: %{relay_operation: "getTimingSettings"}
+
+    put "/timing_settings", TimingSettingsController, :replace,
+      private: %{relay_operation: "setTimingSettings"}
+
+    get "/realtime_origins", RealtimeOriginsController, :show,
+      private: %{relay_operation: "getRealtimeOrigins"}
+
+    put "/realtime_origins", RealtimeOriginsController, :replace,
+      private: %{relay_operation: "setRealtimeOrigins"}
+
     get "/event_type_mappings", MappingController, :index,
       private: %{relay_operation: "listEventTypeMappings"}
 
@@ -442,14 +771,129 @@ defmodule RelayWeb.Router do
     post "/subscriber/devices", DeviceController, :create_mine,
       private: %{relay_operation: "registerMyDevice"}
 
+    get "/subscriber/devices/status", DeviceController, :status_mine,
+      private: %{relay_operation: "getMyDeviceStatus"}
+
     delete "/subscriber/devices/:device_id", DeviceController, :delete_mine,
       private: %{relay_operation: "deleteMyDevice"}
+
+    patch "/subscriber/devices/:device_id/status", DeviceController, :update_status_mine,
+      private: %{relay_operation: "updateMyDeviceStatus"}
+
+    post "/subscriber/push_receipts", ReceiptController, :create_mine,
+      private: %{relay_operation: "recordMyPushReceipt"}
 
     get "/subscriber/test_recipients", TesterController, :mine,
       private: %{relay_operation: "listMyTestRecipients"}
 
     post "/subscriber/test_recipients/:test_recipient_id/confirm", TesterController, :confirm,
       private: %{relay_operation: "confirmMyTestRecipient"}
+
+    get "/subscriber/inbox/items", InboxController, :index,
+      private: %{relay_operation: "listMyInboxItems"}
+
+    get "/subscriber/inbox/items/:item_id", InboxController, :show,
+      private: %{relay_operation: "getMyInboxItem"}
+
+    post "/subscriber/inbox/items/:item_id/intents", InboxController, :intent,
+      private: %{relay_operation: "applyMyInboxIntent"}
+
+    get "/subscriber/inbox/counters", InboxController, :counters,
+      private: %{relay_operation: "getMyInboxCounters"}
+
+    get "/subscriber/inbox/changes", InboxController, :changes,
+      private: %{relay_operation: "listMyInboxChanges"}
+
+    post "/subscriber/inbox/read_all", InboxController, :read_all,
+      private: %{relay_operation: "markAllMyInboxRead"}
+
+    post "/subscriber/inbox/bulk", InboxController, :start_bulk,
+      private: %{relay_operation: "startMyInboxBulk"}
+
+    get "/subscriber/inbox/bulk/:bulk_id", InboxController, :bulk,
+      private: %{relay_operation: "getMyInboxBulk"}
+
+    post "/subscriber/inbox/counters/inconsistency", InboxController, :inconsistency,
+      private: %{relay_operation: "reportMyInboxInconsistency"}
+
+    get "/realtime/events", RealtimeController, :events,
+      private: %{relay_operation: "streamRealtimeEvents"}
+
+    get "/realtime/poll", RealtimeController, :poll,
+      private: %{relay_operation: "pollRealtimeEvents"}
+  end
+
+  # WH-14
+  # WH-46
+  # WH-47
+  scope "/v1", RelayWeb.Api do
+    pipe_through :v1
+
+    post "/webhook_consumers/:webhook_consumer_id/portal_tokens", WebhookPortalController, :token,
+      private: %{relay_operation: "createWebhookPortalToken"}
+
+    get "/webhook_catalog", WebhookPortalController, :catalog,
+      private: %{relay_operation: "listWebhookCatalog"}
+
+    get "/portal/webhook_event_types", WebhookPortalController, :event_types,
+      private: %{relay_operation: "listPortalWebhookEventTypes"}
+
+    get "/portal/webhook_endpoints", WebhookPortalController, :index,
+      private: %{relay_operation: "listPortalWebhookEndpoints"}
+
+    post "/portal/webhook_endpoints", WebhookPortalController, :create,
+      private: %{relay_operation: "createPortalWebhookEndpoint"}
+
+    get "/portal/webhook_endpoints/:webhook_endpoint_id", WebhookPortalController, :show,
+      private: %{relay_operation: "getPortalWebhookEndpoint"}
+
+    patch "/portal/webhook_endpoints/:webhook_endpoint_id", WebhookPortalController, :update,
+      private: %{relay_operation: "updatePortalWebhookEndpoint"}
+
+    post "/portal/webhook_endpoints/:webhook_endpoint_id/archive",
+         WebhookPortalController,
+         :archive,
+         private: %{relay_operation: "archivePortalWebhookEndpoint"}
+
+    post "/portal/webhook_endpoints/:webhook_endpoint_id/rotate_key",
+         WebhookPortalController,
+         :rotate,
+         private: %{relay_operation: "rotatePortalWebhookEndpointKey"}
+
+    get "/portal/webhook_endpoints/:webhook_endpoint_id/health", WebhookPortalController, :health,
+      private: %{relay_operation: "getPortalWebhookEndpointHealth"}
+
+    post "/portal/webhook_endpoints/:webhook_endpoint_id/test", WebhookPortalController, :test,
+      private: %{relay_operation: "sendPortalWebhookEndpointTestEvent"}
+
+    post "/portal/webhook_endpoints/:webhook_endpoint_id/recover",
+         WebhookPortalController,
+         :recover,
+         private: %{relay_operation: "recoverPortalWebhookEndpoint"}
+
+    get "/portal/webhook_endpoints/:webhook_endpoint_id/missed_events",
+        WebhookPortalController,
+        :missed,
+        private: %{relay_operation: "listPortalWebhookEndpointMissedEvents"}
+
+    get "/portal/webhook_messages", WebhookPortalController, :messages,
+      private: %{relay_operation: "listPortalWebhookMessages"}
+
+    get "/portal/webhook_messages/:webhook_message_id", WebhookPortalController, :message,
+      private: %{relay_operation: "getPortalWebhookMessage"}
+
+    get "/portal/webhook_messages/:webhook_message_id/attempts",
+        WebhookPortalController,
+        :attempts,
+        private: %{relay_operation: "listPortalWebhookMessageAttempts"}
+
+    get "/portal/webhook_messages/:webhook_message_id/attempts/:webhook_attempt_id",
+        WebhookPortalController,
+        :attempt,
+        private: %{relay_operation: "getPortalWebhookMessageAttempt"}
+
+    post "/portal/webhook_messages/:webhook_message_id/resend", WebhookPortalController, :resend,
+      private: %{relay_operation: "resendPortalWebhookMessage"}
   end
 
   # API-78
@@ -581,6 +1025,21 @@ defmodule RelayWeb.Router do
          :rotate_secret,
          private: %{relay_operation: "rotateChannelIdentitySecret"}
 
+    post "/webhook_credentials", WebhookCredentialController, :create,
+      private: %{relay_operation: "registerWebhookCredential"}
+
+    get "/email_reputation", ReputationController, :index,
+      private: %{relay_operation: "listEmailReputationCircuits"}
+
+    post "/email_reputation/:domain/close", ReputationController, :close,
+      private: %{relay_operation: "closeEmailReputationCircuit"}
+
+    post "/campaigns/:campaign_id/approve_audience", CampaignController, :approve_audience,
+      private: %{relay_operation: "approveCampaignAudience"}
+
+    post "/campaigns/:campaign_id/resume", CampaignController, :resume,
+      private: %{relay_operation: "resumeCampaign"}
+
     get "/audit_log", SupportController, :audit_log,
       private: %{relay_operation: "listAuditRecords"}
 
@@ -589,6 +1048,12 @@ defmodule RelayWeb.Router do
 
     get "/api_clients/:api_client_id", SupportController, :api_client,
       private: %{relay_operation: "getApiClient"}
+
+    get "/pending_api_clients", SupportController, :pending_api_clients,
+      private: %{relay_operation: "listPendingApiClients"}
+
+    post "/pending_api_clients/assign", SupportController, :assign_api_client,
+      private: %{relay_operation: "assignApiClient"}
   end
 
   # X-7

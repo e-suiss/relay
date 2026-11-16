@@ -50,6 +50,28 @@ defmodule Relay.Ingest.RequestTest do
       assert [%{channel: "email", skip: nil}, %{channel: "sms", skip: {_, _}}] = verify.steps
     end
 
+    test "IN-55: a security subtype with an inbox step is refused at acceptance" do
+      expires = "2026-11-01T11:00:00Z"
+      steps = [%{key: "in_app_step", channel: "in_app", template: "t"} | @steps]
+      context = %{message_class: "security", steps: steps, environment: :live, now: @now}
+
+      for subtype <- ["otp_oob", "email_verification"] do
+        body = %{"workflow" => "w", "to" => ["u"], "security_subtype" => subtype}
+        body = Map.put(body, "expires_at", expires)
+
+        assert {:error, %Relay.Error{details: %{errors: errors}}} =
+                 Relay.Ingest.check_request(body, context)
+
+        assert [%{pointer: "/security_subtype", code: "conflict"}] = errors
+
+        narrowed = Map.put(body, "channels", ["sms"])
+        assert {:ok, _request} = Relay.Ingest.check_request(narrowed, context)
+      end
+
+      plain = %{"workflow" => "w", "to" => ["u"]}
+      assert {:ok, _request} = Relay.Ingest.check_request(plain, context)
+    end
+
     test "API-20: send_at is in the future and at most 90 days ahead; expires_at follows it" do
       assert {:ok, _} = check(%{"send_at" => "2026-12-01T10:00:00Z"})
 
@@ -105,6 +127,18 @@ defmodule Relay.Ingest.RequestTest do
                check(%{"links" => [link, link]})
 
       assert [%{pointer: "/links/1/rel", code: "conflict"}] = details.errors
+    end
+  end
+
+  describe "E-83 item and correlation_id" do
+    test "E-83: the sender's item and correlation_id are kept as sent" do
+      digest = "sha256:" <> String.duplicate("a", 64)
+      item = %{"ref" => "order-1", "version" => "3", "digest" => digest}
+
+      assert {:ok, %{item: ^item, correlation_id: "work-42"}} =
+               check(%{"item" => item, "correlation_id" => "work-42"})
+
+      assert {:ok, %{item: nil, correlation_id: nil}} = check(%{})
     end
   end
 end

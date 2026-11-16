@@ -1,14 +1,19 @@
 defmodule Relay.Policy.Live.Store do
   @moduledoc """
-  Data access of the running policy lattice: the inputs of one evaluation (the delivery and its notification, the category with its sub-tenant setting, the recipient's preferences and profile, the consent copy, the address and its suppression, the tenant's zone and the sub-tenant's state) and the decision records. Every function except `in_scope/2` runs inside `Relay.Repo.in_scope/3`; the decision is written by `relay_fn.delivery_decide`, which writes the ledger event and, for a skip or an expiry, the `notification.suppressed` outbox event in the same transaction.
+  Data access of the running policy lattice: the inputs of one evaluation (the delivery and its notification with its `next_break` timing and release, the category with its sub-tenant setting, the recipient's preferences and profile, the consent copy, the address and its suppression, the tenant's zone and the sub-tenant's state) and the decision records. Every function except `in_scope/2` runs inside `Relay.Repo.in_scope/3`; the decision is written by `relay_fn.delivery_decide`, which writes the ledger event and, for a skip or an expiry, the `notification.suppressed` outbox event in the same transaction.
   """
 
   alias Relay.Repo
 
   @context """
   SELECT d.id, d.channel::text AS channel, d.decision, d.provider_account_id,
+    d.decision_rule_id, d.deferred_until, d.timing_released_at, e.timing, e.max_defer_until,
+    st.timing AS step_timing,
+    CASE WHEN st.timing = 'next_break' THEN d.created_at + st.max_defer::interval END
+      AS step_max_defer_until,
     n.id AS notification_id, n.recipient_id, n.subtenant_id, n.message_class::text AS message_class,
     n.security_subtype, n.sender_type, n.expires_at, n.workflow_id, e.priority, e.api_client_id,
+    e.on_expire, e.timing_precision,
     w.key AS workflow_key, v.category AS category_key
   FROM relay.deliveries d
   JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
@@ -19,6 +24,12 @@ defmodule Relay.Policy.Live.Store do
     AND w.id = n.workflow_id
   LEFT JOIN relay.workflow_versions v ON v.tenant_id = n.tenant_id
     AND v.environment = n.environment AND v.id = n.workflow_version_id
+  LEFT JOIN LATERAL (
+    SELECT c ->> 'timing' AS timing, c ->> 'max_defer' AS max_defer
+    FROM jsonb_path_query(v.definition -> 'steps', 'strict $.** ? (@.type == "channel")') c
+    WHERE c ->> 'key' = split_part(d.step_ref, '/', 1)
+    LIMIT 1
+  ) st ON true
   WHERE d.id = $1
   """
 
@@ -26,7 +37,7 @@ defmodule Relay.Policy.Live.Store do
   SELECT c.key, c.message_class::text AS message_class, c.locked, c.enabled, c.channel_defaults,
     (extract(epoch FROM c.default_expires_in) * 1000)::bigint AS default_expires_ms,
     c.frequency_limit, (extract(epoch FROM c.frequency_window) * 1000)::bigint AS frequency_window_ms,
-    c.frequency_fate, c.digest_allowed, s.id AS setting_id, s.enabled AS setting_enabled,
+    c.frequency_fate, c.digest_allowed, c.density, s.id AS setting_id, s.enabled AS setting_enabled,
     s.channel_defaults AS setting_channel_defaults,
     (extract(epoch FROM s.default_expires_in) * 1000)::bigint AS setting_default_expires_ms,
     s.frequency_limit AS setting_frequency_limit,
@@ -166,6 +177,23 @@ defmodule Relay.Policy.Live.Store do
       :already_terminal,
       :not_found
     ])
+  end
+
+  # WF-56
+  @doc "Marks the break of a `next_break` delivery released; see `relay_fn.delivery_break_release`."
+  @spec break_release(Relay.Id.t()) :: :released | :unchanged | :not_found
+  def break_release(delivery_id) do
+    [row] = Repo.call!("relay_fn.delivery_break_release", [delivery_id])
+    Repo.code!(row["delivery_break_release"], [:released, :unchanged, :not_found])
+  end
+
+  # WF-56
+  # IN-53
+  @doc "Marks the break of at most `limit` waiting `next_break` deliveries of a recipient released and returns their identifiers; see `relay_fn.recipient_break_release`."
+  @spec recipient_break_release(Relay.Id.t(), pos_integer()) :: [Relay.Id.t()]
+  def recipient_break_release(recipient_id, limit) do
+    rows = Repo.call!("relay_fn.recipient_break_release", [recipient_id, limit])
+    for row <- rows, do: row["delivery_id"]
   end
 
   # TN-40

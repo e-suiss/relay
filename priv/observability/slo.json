@@ -1,0 +1,20 @@
+{
+  "window_days": 28,
+  "latency_objective": 0.99,
+  "burn_rates": [
+    {"name": "fast", "long": "1h", "short": "5m", "factor": 14.4, "severity": "page"},
+    {"name": "slow", "long": "6h", "short": "30m", "factor": 6, "severity": "page"},
+    {"name": "budget", "long": "3d", "short": "6h", "factor": 1, "severity": "ticket"}
+  ],
+  "proven_delivery_drop": {"drop": 0.4, "window": "1h", "min_deliveries": 200},
+  "kill_switch_effect_seconds": 90,
+  "classes": [
+    {"class": "security", "accept_ms": 300, "handoff_ms": 5000, "availability": 0.9995},
+    {"class": "action_required", "accept_ms": 500, "handoff_ms": 30000, "availability": 0.999},
+    {"class": "transactional", "accept_ms": 500, "handoff_ms": 60000, "availability": 0.999},
+    {"class": "operational", "accept_ms": 1000, "handoff_ms": 120000, "availability": 0.999},
+    {"class": "system", "accept_ms": 500, "handoff_ms": 30000, "availability": 0.999},
+    {"class": "social", "accept_ms": 1000, "handoff_ms": 300000, "availability": 0.995},
+    {"class": "marketing", "accept_ms": 2000, "handoff_ms": 1800000, "availability": 0.995}
+  ]
+}

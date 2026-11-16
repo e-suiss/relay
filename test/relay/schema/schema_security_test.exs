@@ -7,12 +7,15 @@ defmodule Relay.Schema.SchemaSecurityTest do
   @installation_tables ~w(access_event_receipts access_link api_client_generation
                           audit_checkpoint_publications audit_checkpoints audit_leaves datasets
                           installation kill_switch_generation load_shed_events operator_sessions
-                          operators partition_policies schema_migrations singleton_tasks)
+                          operators partition_policies schema_migrations singleton_tasks
+                          subscriber_token_keys)
   @append_only ~w(audit_checkpoint_publications audit_checkpoints audit_leaves audit_log
                   cancellations consents dataset_versions delivery_events erasure_log
-                  load_shed_events preference_changes render_snapshots usage_records
+                  inbox_item_deliveries load_shed_events preference_changes render_snapshots
+                  usage_records
                   waitpoint_responders waitpoint_responses waitpoint_response_rejections
-                  waitpoint_unmatched_events)
+                  waitpoint_unmatched_events webhook_endpoint_versions
+                  webhook_event_type_versions)
   @shared_read ~w(dataset_active dataset_versions kill_switches)
   @partitioned %{
     "audit_log" => "created_at",
@@ -25,18 +28,22 @@ defmodule Relay.Schema.SchemaSecurityTest do
     "outbox_events" => "created_at",
     "usage_records" => "usage_day",
     "waitpoint_response_rejections" => "created_at",
-    "waitpoint_unmatched_events" => "created_at"
+    "waitpoint_unmatched_events" => "created_at",
+    "webhook_attempts" => "created_at"
   }
+  @hash_partitioned %{"inbox_items" => "recipient_id"}
   @small_integers [
     {"dead_letters", "replay_depth"},
     {"deliveries", "delivery_rank"},
     {"deliveries", "replay_depth"},
+    {"deliveries", "window_stage"},
     {"idempotency_keys", "response_status"},
     {"kill_switches", "canary_percent"},
     {"quota_counters", "shard"},
     {"quota_policies", "security_reserve_bp"}
   ]
   @later_stage_references [
+    {"audiences", "source_id"},
     {"dead_letters", "provider_account_id"},
     {"deliveries", "provider_account_id"},
     {"deliveries", "target_id"},
@@ -169,7 +176,7 @@ defmodule Relay.Schema.SchemaSecurityTest do
     test "T-60: partitioned tables carry the partition key in their primary key" do
       pks = key_columns("p") |> Map.new(fn [table, _, cols, _, _] -> {table, cols} end)
 
-      for {table, key} <- @partitioned do
+      for {table, key} <- Map.merge(@partitioned, @hash_partitioned) do
         id = if table == "event_payloads", do: "event_id", else: "id"
         assert Map.fetch!(pks, table) == ["tenant_id", "environment", id, key]
       end
@@ -647,7 +654,9 @@ defmodule Relay.Schema.SchemaSecurityTest do
         WHERE n.nspname = 'relay'
         """)
 
-      assert Map.new(partitioned, fn [t, _, key] -> {t, key} end) == @partitioned
+      assert Map.new(partitioned, fn [t, _, key] -> {t, key} end) ==
+               Map.merge(@partitioned, @hash_partitioned)
+
       assert Enum.all?(partitioned, fn [_, default, _] -> default == 0 end)
 
       policies = rows("SELECT table_name FROM relay.partition_policies ORDER BY 1")
@@ -676,7 +685,8 @@ defmodule Relay.Schema.SchemaSecurityTest do
                ["outbox_events" | monthly],
                ["usage_records" | monthly],
                ["waitpoint_response_rejections" | monthly],
-               ["waitpoint_unmatched_events" | monthly]
+               ["waitpoint_unmatched_events" | monthly],
+               ["webhook_attempts" | monthly]
              ]
     end
 

@@ -61,6 +61,34 @@ defmodule Relay.Keys.ProtocolTest do
 
       assert Protocol.kind({:generate_key, :aes_256, "k", "i"}) == :generate_key
     end
+
+    test "WH-5: key pair generation carries the algorithm, the label and the object identifier" do
+      request = {:generate_key_pair, :ed25519, "whk", <<9>>}
+
+      assert bin(Protocol.encode(8, request)) ==
+               <<1, 0, 0, 0, 8, 9, 3, 0, 0, 0, 3, "whk", 0, 0, 0, 1, 9>>
+
+      assert Protocol.kind(request) == :generate_key_pair
+      assert Protocol.result(:generate_key_pair, 0, [<<2::256>>]) == {:ok, <<2::256>>}
+
+      assert {:error, %Relay.Error{code: :key_store_protocol}} =
+               Protocol.result(:generate_key_pair, 0, [<<2::248>>])
+    end
+
+    test "WH-6: key pair destruction carries the algorithm and the label, and succeeds with no fields" do
+      request = {:destroy_key_pair, :ed25519, "whk"}
+
+      assert bin(Protocol.encode(8, request)) == <<1, 0, 0, 0, 8, 10, 3, 0, 0, 0, 3, "whk">>
+
+      assert Protocol.kind(request) == :destroy_key_pair
+      assert Protocol.result(:destroy_key_pair, 0, []) == :ok
+
+      assert {:error, %Relay.Error{code: :key_store_protocol}} =
+               Protocol.result(:destroy_key_pair, 0, ["unexpected"])
+
+      assert {:error, %Relay.Error{code: :key_store_token}} =
+               Protocol.result(:destroy_key_pair, 5, ["C_DestroyObject: ActionProhibited"])
+    end
   end
 
   describe "TN-63 response decoding" do

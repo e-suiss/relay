@@ -287,6 +287,7 @@ defmodule Relay.Webhooks.Destination.RabbitmqTest do
                Rabbitmq.deliver(config(), prepared(), ctx.options)
 
       assert failure.address == "203.0.114.10"
+
       assert %Outcome{result: :retry, reason: :credentials_unavailable, breaker: :neutral} =
                Outcome.classify({:error, failure}, @now)
 

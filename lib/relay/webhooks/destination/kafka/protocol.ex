@@ -34,7 +34,7 @@ defmodule Relay.Webhooks.Destination.Kafka.Protocol do
   @crc_table List.to_tuple(Enum.map(0..255, crc_entry))
 
   @type header :: {String.t(), binary()}
-  @type record :: %{
+  @type entry :: %{
           key: binary() | nil,
           value: binary(),
           headers: [header()],
@@ -68,7 +68,7 @@ defmodule Relay.Webhooks.Destination.Kafka.Protocol do
 
   # WH-18
   @doc "A Produce v3 request with one record for one partition. `acks` is -1 for the acknowledgement of every in-sync replica; `timeout_ms` is how long the broker may wait for it."
-  @spec produce(integer(), String.t(), String.t(), integer(), record(), integer(), integer()) ::
+  @spec produce(integer(), String.t(), String.t(), integer(), entry(), integer(), integer()) ::
           iodata()
   def produce(correlation, client_id, topic, partition, record, acks, timeout_ms) do
     batch = record_batch(record)
@@ -93,7 +93,7 @@ defmodule Relay.Webhooks.Destination.Kafka.Protocol do
   defp bytes(binary), do: [<<byte_size(binary)::32>>, binary]
 
   @doc "A record batch of format v2 that holds the one record."
-  @spec record_batch(record()) :: binary()
+  @spec record_batch(entry()) :: binary()
   def record_batch(%{timestamp_ms: timestamp_ms} = record) do
     body = IO.iodata_to_binary(record_body(record))
 

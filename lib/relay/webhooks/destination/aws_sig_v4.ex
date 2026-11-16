@@ -52,7 +52,6 @@ defmodule Relay.Webhooks.Destination.AwsSigV4 do
     canonical = canonical_headers([{"host", host(uri)} | headers])
     names = Enum.map_join(canonical, ";", &elem(&1, 0))
 
-
     parts = [
       request.method,
       canonical_path(uri.path, scope.service),

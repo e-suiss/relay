@@ -510,6 +510,7 @@ defmodule Relay.Webhooks.Destination.KafkaTest do
 
       assert {:error, failure} = Kafka.deliver(@config, prepared(), ctx.options)
       assert %{class: :blocked, address: "10.0.0.5"} = failure
+
       assert %Outcome{result: :dead_lettered, reason: :destination_blocked} =
                Outcome.classify({:error, failure}, @now)
 

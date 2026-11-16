@@ -189,6 +189,7 @@ defmodule Relay.Webhooks.EgressTest do
       assert Egress.dns_findings(policy(), @url, options) == {:ok, [{:unresolved, :nxdomain}]}
 
       assert Egress.dns_findings(policy(), "https://203.0.114.10/", options) == {:ok, []}
+
       assert Egress.dns_findings(policy(), "http://a.example/", options) ==
                {:error, :scheme_not_https}
     end

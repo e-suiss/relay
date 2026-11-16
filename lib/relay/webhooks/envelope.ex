@@ -56,6 +56,7 @@ defmodule Relay.Webhooks.Envelope do
 
   @core ~w(specversion id source type time subject datacontenttype dataschema data)
   @typed ~w(seq traceparent environment)
+  @reserved @core ++ @typed
   @relay_only ~w(accesstenant accessorganization correlationid)
   @extension_name ~r/\A[a-z0-9]{1,20}\z/
   @bindings %{http: "ce-", nats: "ce-", kafka: "ce_", amqp: "cloudEvents:"}
@@ -113,7 +114,7 @@ defmodule Relay.Webhooks.Envelope do
     do: extension_name?(name) and (is_binary(value) or is_integer(value) or is_boolean(value))
 
   defp extension_name?(name),
-    do: is_binary(name) and Regex.match?(@extension_name, name) and name not in @core ++ @typed
+    do: is_binary(name) and Regex.match?(@extension_name, name) and name not in @reserved
 
   defp relay_only?(extensions), do: Enum.any?(@relay_only, &is_map_key(extensions, &1))
 

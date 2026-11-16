@@ -58,7 +58,7 @@ defmodule Relay.Webhooks.Egress.Address do
 
     if Regex.match?(@prefix, prefix) and String.to_integer(prefix) <= size do
       shift = size - String.to_integer(prefix)
-      {:ok, {family, value >>> shift <<< shift, size - shift}}
+      {:ok, {family, (value >>> shift) <<< shift, size - shift}}
     else
       :error
     end

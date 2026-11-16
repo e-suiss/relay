@@ -16,7 +16,9 @@ defmodule Relay.Repo.Migrations.AnnounceAuditRecords do
     execute("GRANT EXECUTE ON FUNCTION #{@announce} TO relay_owner")
     execute("GRANT EXECUTE ON FUNCTION #{@announce} TO relay_maint")
     execute(write())
+    execute("SET LOCAL ROLE relay_owner")
     execute(append())
+    execute("RESET ROLE")
   end
 
   def down, do: :ok

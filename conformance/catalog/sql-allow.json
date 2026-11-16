@@ -286,5 +286,11 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "WH-19, TN-26: a committed relay_fn function is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261217800000_announce_audit_records.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WH-67: a committed relay_fn function is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   }
 ]

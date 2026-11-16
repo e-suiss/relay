@@ -20,6 +20,8 @@ config :relay, Relay.Platform.Valkey,
 
 config :relay, Relay.Platform.Signal, poll_interval_ms: 1_000
 
+config :relay, Relay.Platform.Fanout, sources: %{"campaign" => Relay.Api.Campaigns.SendSource}
+
 config :relay, Relay.Platform.Leadership,
   enabled: true,
   tasks: [
@@ -30,12 +32,17 @@ config :relay, Relay.Platform.Leadership,
     {"retention_sweep", Relay.Tenancy.Retention, []},
     {"dataset_packages", Relay.Datasets.PackageTask, []},
     {"projection_rebuild", Relay.Delivery.ProjectionRebuild, []},
+    {"failure_actor_backfill", Relay.Delivery.FailureActorBackfill, []},
+    {"correlation_digest_backfill", Relay.Agents.CorrelationDigestBackfill, []},
     {"audit_readback", Relay.Audit.Checkpointer.Readback, [sensitive: true]},
     {"drr_dispatcher", Relay.Platform.Fairness.Dispatcher, []},
     {"load_shed_controller", Relay.Platform.LoadShed.Controller, []},
     {"kill_switch_paused_expiry", Relay.Tenancy.KillSwitch.Expiry, []},
     {"access_link_refresh", Relay.Access.Refresh, []},
-    {"tenant_suspension_activator", Relay.Operators.SuspensionActivator, []}
+    {"tenant_suspension_activator", Relay.Operators.SuspensionActivator, []},
+    {"observability_rollup", Relay.Observability.Rollup, []},
+    {"inbox_maintenance", Relay.Inbox.Maintenance, []},
+    {"webhook_maintenance", Relay.Webhooks.Maintenance, []}
   ]
 
 config :relay, Relay.Audit,
@@ -55,15 +62,42 @@ config :relay, Oban,
     {Oban.Plugins.Cron,
      crontab: [
        {"*/5 * * * *", Relay.Agents.WaitpointSweep},
+       {"*/5 * * * *", Relay.Api.Recurrences.Sweep},
+       {"*/5 * * * *", Relay.Workflow.Digest.Sweep},
+       {"* * * * *", Relay.Workflow.RunSweep},
+       {"*/5 * * * *", Relay.Delivery.WindowSweep},
        {"17 * * * *", Relay.Devices.Sweep},
        {"20 0 * * *", Relay.Delivery.UsageDay},
-       {"41 * * * *", Relay.Channels.Live.SettingsSweep}
+       {"13 * * * *", Relay.Delivery.ReportRollup},
+       {"40 2 * * *", Relay.Delivery.ReportRollup, args: %{"days" => 15}},
+       {"41 * * * *", Relay.Channels.Live.SettingsSweep},
+       {"*/5 * * * *", Relay.Channels.Live.ReconcileSweep},
+       {"* * * * *", Relay.Channels.Live.SesQueue},
+       {"* * * * *", Relay.Webhooks.Sweep}
      ]}
   ]
 
-config :relay, Relay.Platform.VirtualClock, due: [{Relay.Agents, :run_due, []}]
+config :relay, Relay.Platform.VirtualClock,
+  due: [
+    {Relay.Agents, :run_due, []},
+    {Relay.Delivery.WindowSweep, :run_due, []},
+    {Relay.Api.Recurrences, :run_due, []},
+    {Relay.Workflow, :run_due_digests, []},
+    {Relay.Workflow, :run_due, []}
+  ]
 
-config :relay, Relay.Platform.Outbox, dispatcher: true
+config :relay, Relay.Workflow,
+  resumer: Relay.Api.WorkflowRuns,
+  waiter: Relay.Agents,
+  emitter: Relay.Webhooks
+
+config :relay, Relay.Workflow.Digest, sink: Relay.Workflow, release: Relay.Policy.Live
+
+config :relay, Relay.Agents, waitpoint_sink: Relay.Workflow
+
+config :relay, Relay.Platform.Outbox,
+  dispatcher: true,
+  handler: {Relay.Webhooks.Live, :outbox_jobs}
 
 config :relay, Relay.Access,
   subscriber_token_key: "subscriber-token",

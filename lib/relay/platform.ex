@@ -9,6 +9,7 @@ defmodule Relay.Platform do
   alias Relay.Platform.Backend
   alias Relay.Platform.Capacity
   alias Relay.Platform.Concurrency
+  alias Relay.Platform.ConnectionSet
   alias Relay.Platform.Fairness.Job
   alias Relay.Platform.Fairness.Queueing
   alias Relay.Platform.Fanout
@@ -19,6 +20,7 @@ defmodule Relay.Platform do
   alias Relay.Platform.OutboxStore
   alias Relay.Platform.Queue
   alias Relay.Platform.RateLimit
+  alias Relay.Platform.ReputationWindow
   alias Relay.Platform.Signal
   alias Relay.Platform.SlidingSet
   alias Relay.Platform.Store
@@ -57,7 +59,7 @@ defmodule Relay.Platform do
   # OP-69 (1)
   # T-32 (3)
   # T-34
-  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the node's credit block table, the node-local API filter table, the concurrency slot keeper, the signal hub, the load shedding watcher, the lane capacity sampler and the job queue; a worker node also runs the queue maintenance connection, the bulk write pool with its own role check and the outbox dispatcher. A failed role or ownership check stops the node."
+  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the node's credit block table, the node-local API filter table, the concurrency slot keeper, the signal hub, the load shedding watcher, the lane capacity sampler, the report pool with its own role check and the job queue; a worker node also runs the queue maintenance connection, the bulk write pool with its own role check and the outbox dispatcher. A failed role or ownership check stops the node."
   @spec children() :: [Supervisor.child_spec() | {module(), term()} | module()]
   def children do
     valkey = Application.fetch_env!(:relay, Valkey)
@@ -77,6 +79,10 @@ defmodule Relay.Platform do
     ] ++
       if(load_shed_watcher?(), do: [LoadShed.Watcher], else: []) ++
       if(capacity_sampler?(), do: [Capacity.Sampler], else: []) ++
+      if(Relay.ReportRepo.enabled?(),
+        do: [Relay.ReportRepo, Store.report_role_check_child()],
+        else: []
+      ) ++
       if(worker?,
         do: [Relay.QueueRepo, Relay.BulkRepo, Store.bulk_role_check_child()],
         else: []
@@ -96,6 +102,25 @@ defmodule Relay.Platform do
   @spec dispatch_outbox(Relay.Scope.t(), [Outbox.option()]) ::
           {:ok, non_neg_integer()} | {:error, term()}
   def dispatch_outbox(scope, opts \\ []), do: Outbox.dispatch(scope, opts)
+
+  # API-72
+  # WH-11
+  @doc "The data of an outbox payload with its internal identifiers written as prefixed external identifiers; see `Relay.Platform.Envelope.data/1`."
+  @spec outbox_data(map()) :: map()
+  defdelegate outbox_data(payload), to: Relay.Platform.Envelope, as: :data
+
+  # WH-12
+  @doc "Reads the data of an outbox event in its own scoped transaction, as `outbox_data/1` writes it; `nil` when the event is no longer kept."
+  @spec outbox_event_data(Relay.Scope.t(), Relay.Id.t(), DateTime.t()) ::
+          {:ok, map() | nil} | {:error, term()}
+  def outbox_event_data(scope, id, created_at) do
+    OutboxStore.in_scope(scope, fn _status ->
+      case OutboxStore.payload(id, created_at) do
+        nil -> nil
+        payload -> Relay.Platform.Envelope.data(payload)
+      end
+    end)
+  end
 
   # C-71
   # OP-5
@@ -316,6 +341,54 @@ defmodule Relay.Platform do
   def sliding_set_add(scope, path, window_ms, member, opts \\ []),
     do: SlidingSet.add(scope, path, window_ms, member, opts)
 
+  # IN-52
+  @doc "Adds a member to a connection set, removing the lowest members beyond `max`; see `Relay.Platform.ConnectionSet.join/6`."
+  @spec connection_set_join(
+          Relay.Scope.t(),
+          ConnectionSet.path(),
+          String.t(),
+          pos_integer(),
+          pos_integer()
+        ) :: {:ok, {non_neg_integer(), non_neg_integer()}} | {:error, Relay.Error.t()}
+  def connection_set_join(scope, path, member, ttl_ms, max),
+    do: ConnectionSet.join(scope, path, member, ttl_ms, max)
+
+  # IN-52
+  @doc "Refreshes a connection set member; see `Relay.Platform.ConnectionSet.touch/5`."
+  @spec connection_set_touch(Relay.Scope.t(), ConnectionSet.path(), String.t(), pos_integer()) ::
+          :ok | :gone | {:error, Relay.Error.t()}
+  def connection_set_touch(scope, path, member, ttl_ms),
+    do: ConnectionSet.touch(scope, path, member, ttl_ms)
+
+  @doc "Removes a connection set member; see `Relay.Platform.ConnectionSet.leave/5`."
+  @spec connection_set_leave(Relay.Scope.t(), ConnectionSet.path(), String.t(), pos_integer()) ::
+          :ok | {:error, Relay.Error.t()}
+  def connection_set_leave(scope, path, member, ttl_ms),
+    do: ConnectionSet.leave(scope, path, member, ttl_ms)
+
+  # IN-40
+  @doc "True when a live connection set member ends with `suffix`; see `Relay.Platform.ConnectionSet.any_suffix?/5`."
+  @spec connection_set_any_suffix?(
+          Relay.Scope.t(),
+          ConnectionSet.path(),
+          String.t(),
+          pos_integer()
+        ) :: {:ok, boolean()} | {:error, Relay.Error.t()}
+  def connection_set_any_suffix?(scope, path, suffix, ttl_ms),
+    do: ConnectionSet.any_suffix?(scope, path, suffix, ttl_ms)
+
+  # CH-87
+  @doc "Adds events to a sending domain's reputation window and returns its totals before them; see `Relay.Platform.ReputationWindow.record/6`."
+  @spec reputation_window(
+          Relay.Scope.t(),
+          String.t(),
+          ReputationWindow.event() | nil,
+          non_neg_integer(),
+          map()
+        ) :: {:ok, ReputationWindow.totals()} | {:error, Relay.Error.t()}
+  def reputation_window(scope, domain, event, count, params),
+    do: ReputationWindow.record(scope, domain, event, count, params)
+
   # TN-17
   # T-9 (7)
   @doc "Stores a short-lived value of a scope on Valkey under the tenant key of `segments`, expiring after `ttl_ms`; Valkey holds no record of truth, so a lost value costs only what the caller assumes for a missing one."
@@ -416,6 +489,17 @@ defmodule Relay.Platform do
   @doc "Reads a fan-out's progress."
   @spec get_fanout(Relay.Scope.t(), Relay.Id.t()) :: {:ok, map() | nil} | {:error, term()}
   def get_fanout(scope, fanout_id), do: Fanout.get(scope, fanout_id)
+
+  # T-23 (2)
+  # T-91
+  @doc "The fan-out model of an audience size; see `Relay.Platform.Fanout.mode/1`."
+  @spec fanout_mode(non_neg_integer()) :: :normal | :bulk | :campaign
+  def fanout_mode(count), do: Fanout.mode(count)
+
+  # T-23
+  @doc "The slice size of a fan-out; see `Relay.Platform.Fanout.default_sizes/0`."
+  @spec fanout_slice_size() :: pos_integer()
+  def fanout_slice_size, do: Fanout.default_sizes().slice_size
 
   # TN-8
   # X-27

@@ -61,7 +61,25 @@ defmodule Relay.ExternalId do
     {"mtg", "messaging_targets"},
     {"wtp", "whatsapp_templates"},
     {"snd", "sender_identities"},
-    {"trc", "test_recipients"}
+    {"trc", "test_recipients"},
+    {"piv", "provider_invoices"},
+    {"exp", "exports"},
+    {"emr", "email_reports"},
+    {"top", "topics"},
+    {"tsb", "topic_subscriptions"},
+    {"rte", "routes"},
+    {"rec", "recurrences"},
+    {"cmp", "campaigns"},
+    {"inb", "inbox_items"},
+    {"ann", "inbox_announcements"},
+    {"ibk", "inbox_bulk_operations"},
+    {"whe", "webhook_endpoints"},
+    {"whc", "webhook_consumers"},
+    {"wet", "webhook_event_types"},
+    {"whk", "webhook_endpoint_keys"},
+    {"whm", "webhook_messages"},
+    {"wha", "webhook_attempts"},
+    {"whb", "webhook_batches"}
   ]
   @by_prefix Map.new(@tables)
 

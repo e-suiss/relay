@@ -14,6 +14,9 @@ defmodule Relay.Templates.Variables do
   alias Relay.Templates.Sandbox
   alias Solid.Tags
 
+  @digest_fields ~w(total_activities window_activities total_actors first_activities
+                    last_activities collapse_key)
+
   @type segment :: String.t() | :index
   @type read :: %{
           path: String.t(),
@@ -347,6 +350,7 @@ defmodule Relay.Templates.Variables do
       case read.segments do
         ["brand" | rest] -> namespace(read, rest == [] or rest -- brand != [] or length(rest) > 1)
         ["links" | rest] -> namespace(read, not link?(rest))
+        ["digest" | rest] -> namespace(read, not digest?(rest))
         [helper | rest] when helper != "recipient" -> helper(read, helper, rest, helpers, schema)
         ["recipient" | rest] -> check(read, rest, recipient)
       end
@@ -356,6 +360,11 @@ defmodule Relay.Templates.Variables do
 
   defp namespace(read, true), do: [undeclared(read)]
   defp namespace(_read, false), do: []
+
+  # WF-26
+  # WF-29
+  defp digest?([field | _rest]), do: field in @digest_fields
+  defp digest?(_segments), do: false
 
   defp link?([rel]) when is_binary(rel), do: Regex.match?(@rel, rel)
   defp link?(_segments), do: false

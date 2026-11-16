@@ -1,0 +1,246 @@
+{
+  "source_ref": "DS-52; DS-30; DS-32; CH-43; §14.6.2; §14.9a (5)",
+  "timing": {
+    "after_send_ms": 2000
+  },
+  "burst": {
+    "window_ms": 10000,
+    "distinct_links": 3
+  },
+  "request": {
+    "methods": [
+      "HEAD",
+      "OPTIONS"
+    ],
+    "required_headers": [
+      "user-agent"
+    ]
+  },
+  "ip_blocks": [
+    {
+      "operator": "microsoft",
+      "name": "Microsoft Defender for Office 365 / Safe Links (Exchange Online Protection egress, IDs 9 and 10)",
+      "source": "https://endpoints.office.com/endpoints/worldwide?clientrequestid=b10c5ed1-bad1-445f-b386-b919946339a7&ServiceAreas=Exchange",
+      "compiled_at": "2026-11-11",
+      "cidrs": [
+        "40.92.0.0/15",
+        "40.107.0.0/16",
+        "52.100.0.0/14",
+        "52.238.78.88/32",
+        "104.47.0.0/17",
+        "2a01:111:f400::/48",
+        "2a01:111:f403::/48"
+      ]
+    },
+    {
+      "operator": "google",
+      "name": "Google outbound mail servers (_spf.google.com and unverified forwarding)",
+      "source": "https://knowledge.workspace.google.com/admin/gmail/advanced/google-ip-address-ranges-for-outbound-mail-servers",
+      "compiled_at": "2026-11-11",
+      "cidrs": [
+        "74.125.0.0/16",
+        "209.85.128.0/17",
+        "108.177.16.0/23",
+        "142.250.220.0/23",
+        "2001:4860:4864::/56",
+        "2404:6800:4864::/56",
+        "2607:f8b0:4864::/56",
+        "2800:3f0:4864::/56",
+        "2a00:1450:4864::/56",
+        "2c0f:fb50:4864::/56",
+        "2600:1901:101::/48"
+      ]
+    },
+    {
+      "operator": "proofpoint",
+      "name": "Proofpoint Essentials connection details (US1-US5, EU1)",
+      "source": "https://help.proofpoint.com/Proofpoint_Essentials/Administrator_Topics/000_gettingstarted/020_connectiondetails",
+      "compiled_at": "2026-11-11",
+      "cidrs": [
+        "67.231.144.0/24",
+        "67.231.145.0/24",
+        "67.231.146.0/24",
+        "67.231.147.0/24",
+        "67.231.148.0/24",
+        "67.231.152.0/24",
+        "67.231.153.0/24",
+        "67.231.154.0/24",
+        "67.231.155.0/24",
+        "67.231.156.0/24",
+        "148.163.128.0/19",
+        "91.209.104.0/24",
+        "91.207.212.0/24",
+        "91.207.213.0/24",
+        "62.209.50.0/24",
+        "62.209.51.0/24",
+        "185.132.180.0/24",
+        "185.132.181.0/24",
+        "185.132.182.0/24",
+        "185.132.183.0/24",
+        "185.183.28.0/22"
+      ]
+    },
+    {
+      "operator": "mimecast",
+      "name": "Mimecast data centre network ranges (all regions)",
+      "source": "https://mimecastsupport.zendesk.com/hc/en-us/articles/34000362728979-Administration-Data-Centers-URLs",
+      "compiled_at": "2026-11-11",
+      "cidrs": [
+        "193.7.204.0/24",
+        "193.7.205.0/24",
+        "195.130.217.0/24",
+        "91.220.42.0/24",
+        "185.58.84.0/24",
+        "185.58.85.0/24",
+        "185.58.86.0/24",
+        "185.58.87.0/24",
+        "207.82.80.0/24",
+        "146.101.78.0/24",
+        "194.104.108.0/24",
+        "194.104.109.0/24",
+        "194.104.110.0/24",
+        "194.104.111.0/24",
+        "147.28.34.0/24",
+        "147.28.35.0/24",
+        "51.163.158.0/24",
+        "51.163.159.0/24",
+        "62.140.7.0/24",
+        "62.140.10.0/24",
+        "170.10.128.0/24",
+        "170.10.129.0/24",
+        "170.10.130.0/24",
+        "170.10.131.0/24",
+        "170.10.132.0/24",
+        "170.10.133.0/24",
+        "207.211.31.0/25",
+        "207.211.30.0/24",
+        "205.139.110.0/24",
+        "205.139.111.0/24",
+        "216.205.24.0/24",
+        "63.128.21.0/24",
+        "170.10.150.0/24",
+        "170.10.151.0/24",
+        "170.10.152.0/24",
+        "170.10.153.0/24",
+        "170.10.154.0/24",
+        "170.10.155.0/24",
+        "170.10.156.0/24",
+        "170.10.157.0/24",
+        "170.10.144.0/24",
+        "170.10.145.0/24",
+        "170.10.146.0/24",
+        "170.10.147.0/24",
+        "170.10.148.0/24",
+        "170.10.149.0/24",
+        "216.145.216.0/24",
+        "41.74.192.0/20",
+        "103.96.20.0/24",
+        "103.96.21.0/24",
+        "103.96.22.0/24",
+        "103.96.23.0/24",
+        "170.10.134.0/24",
+        "170.10.135.0/24",
+        "103.13.69.0/24",
+        "124.47.150.0/24",
+        "124.47.189.0/24",
+        "180.189.28.0/24",
+        "216.145.217.0/24",
+        "193.7.206.0/24",
+        "193.7.207.0/24",
+        "147.28.32.0/24",
+        "147.28.33.0/24",
+        "213.167.75.0/24",
+        "213.167.81.0/24",
+        "147.28.40.64/26",
+        "147.28.41.0/24",
+        "147.28.42.0/24"
+      ]
+    },
+    {
+      "operator": "barracuda",
+      "name": "Barracuda Email Gateway Defense outbound IP ranges",
+      "source": "https://documentation.campus.barracuda.com/wiki/spaces/EGD/pages/2851719",
+      "compiled_at": "2026-11-11",
+      "cidrs": [
+        "209.222.82.0/24",
+        "3.24.133.128/25",
+        "15.222.16.128/25",
+        "13.200.136.128/25",
+        "35.157.190.224/27",
+        "18.185.115.192/26",
+        "18.184.203.224/27",
+        "35.176.92.96/27",
+        "18.133.136.128/26",
+        "18.133.136.96/27"
+      ]
+    }
+  ],
+  "user_agents": [
+    {
+      "pattern": "BingPreview",
+      "source": "https://darkvisitors.com/agents/bingpreview"
+    },
+    {
+      "pattern": "MicrosoftPreview",
+      "source": "https://datadome.co/bots/microsoft-preview/"
+    },
+    {
+      "pattern": "python-requests",
+      "source": "https://github.com/psf/requests/blob/main/src/requests/utils.py"
+    },
+    {
+      "pattern": "python-urllib",
+      "source": "https://github.com/urllib3/urllib3/blob/main/src/urllib3/util/request.py"
+    },
+    {
+      "pattern": "aiohttp",
+      "source": "https://github.com/aio-libs/aiohttp/blob/master/aiohttp/http.py"
+    },
+    {
+      "pattern": "Go-http-client",
+      "source": "https://github.com/golang/go/blob/master/src/net/http/request.go"
+    },
+    {
+      "pattern": "curl/",
+      "source": "https://curl.se/docs/manpage.html"
+    },
+    {
+      "pattern": "Wget/",
+      "source": "https://www.gnu.org/software/wget/manual/wget.html"
+    },
+    {
+      "pattern": "HeadlessChrome",
+      "source": "https://developer.chrome.com/docs/chromium/headless"
+    },
+    {
+      "pattern": "okhttp",
+      "source": "https://github.com/square/okhttp"
+    },
+    {
+      "pattern": "Apache-HttpClient",
+      "source": "https://hc.apache.org/"
+    },
+    {
+      "pattern": "libwww-perl",
+      "source": "https://metacpan.org/pod/LWP::UserAgent"
+    },
+    {
+      "pattern": "Scrapy",
+      "source": "https://docs.scrapy.org/en/latest/topics/settings.html"
+    },
+    {
+      "pattern": "PhantomJS",
+      "source": "https://phantomjs.org/"
+    }
+  ],
+  "open_proxies": [
+    {
+      "pattern": "GoogleImageProxy",
+      "source": "https://support.google.com/mail/answer/145919"
+    },
+    {
+      "pattern": "YahooMailProxy",
+      "source": "https://senders.yahooinc.com/faqs/"
+    }
+  ]
+}

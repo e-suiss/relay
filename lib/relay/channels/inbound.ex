@@ -2,7 +2,8 @@ defmodule Relay.Channels.Inbound do
   @moduledoc """
   The common verifier of inbound provider webhooks (T-40, TN-35, CH-3), reused by every adapter. Verification runs on the raw request body, before it is parsed, with constant-time comparison; a signed timestamp must lie within 300 seconds of `now`. Headers are the request's `{name, value}` pairs with lower-case names, as Plug gives them. Nothing here reads a clock: the caller passes `now`.
 
-    * `standard_webhooks/4`: Standard Webhooks, `webhook-id`, `webhook-timestamp` and `webhook-signature` over `id.timestamp.body`, `v1` HMAC-SHA256 with a `whsec_` secret or `v1a` Ed25519 with a `whpk_` public key.
+  A provider that follows Standard Webhooks is not verified here: `Relay.Channels.verify_standard_webhooks/4` hands it to the one verifier of the Suiss webhook profile, the same one that verifies outbound deliveries (WH-49 (2)).
+
     * `hmac/4`: an HMAC-SHA256 signature of the body in one header, hex or Base64, with an optional prefix, such as Meta's `X-Hub-Signature-256: sha256=<hex>` (CH-60).
     * `slack/4`: Slack's `v0` signature over `v0:timestamp:body` (CH-62).
     * `ed25519/4`: an Ed25519 signature of the body, or of a timestamp header followed by the body.
@@ -19,44 +20,6 @@ defmodule Relay.Channels.Inbound do
   @type reason :: :missing_header | :bad_signature | :stale_timestamp | :bad_timestamp
   @type signature_reason :: :missing_header | :bad_signature
   @type key :: Relay.Redacted.t()
-
-  # T-40
-  # TN-35
-  @doc "Verifies a Standard Webhooks request. `key` is the endpoint secret (`whsec_…`, `v1`) or public key (`whpk_…`, `v1a`)."
-  @spec standard_webhooks(key(), binary(), headers(), DateTime.t()) :: :ok | {:error, reason()}
-  def standard_webhooks(key, body, headers, %DateTime{} = now) when is_binary(body) do
-    with {:ok, id} <- header(headers, "webhook-id"),
-         {:ok, timestamp} <- header(headers, "webhook-timestamp"),
-         {:ok, signatures} <- header(headers, "webhook-signature"),
-         :ok <- fresh(timestamp, now, @tolerance_s) do
-      payload = id <> "." <> timestamp <> "." <> body
-      signed = String.split(signatures, " ", trim: true)
-
-      if Enum.any?(signed, &signature?(key, payload, &1)), do: :ok, else: {:error, :bad_signature}
-    end
-  end
-
-  defp signature?(key, payload, "v1," <> signature) do
-    with "whsec_" <> encoded <- Relay.Redacted.expose(key),
-         {:ok, secret} <- Base.decode64(encoded),
-         {:ok, given} <- Base.decode64(signature) do
-      Relay.Crypto.secure_compare(:crypto.mac(:hmac, :sha256, secret, payload), given)
-    else
-      _invalid -> false
-    end
-  end
-
-  defp signature?(key, payload, "v1a," <> signature) do
-    with "whpk_" <> encoded <- Relay.Redacted.expose(key),
-         {:ok, public} <- Base.decode64(encoded),
-         {:ok, given} <- Base.decode64(signature) do
-      ed25519?(public, payload, given)
-    else
-      _invalid -> false
-    end
-  end
-
-  defp signature?(_key, _payload, _other), do: false
 
   # T-40
   # CH-60

@@ -1,0 +1,32 @@
+route:
+  receiver: ticket
+  group_by: [alertname, provider, channel, lane, class]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: ['severity="page"', 'class="marketing"']
+      receiver: page
+      mute_time_intervals: [night]
+    - matchers: ['severity="page"', 'lane="l3"']
+      receiver: page
+      mute_time_intervals: [night]
+    - matchers: ['severity="page"']
+      receiver: page
+    - matchers: ['severity=~"warning|ticket"']
+      receiver: ticket
+inhibit_rules:
+  - source_matchers: ['alertname="RelayProviderIncident"']
+    target_matchers: ['alertname=~"RelayProviderBreakerOpen|RelaySloAvailability.*|RelaySloHandoff.*|RelayProvenDeliveryDrop|RelayEspEvent.*"']
+    equal: [provider]
+time_intervals:
+  - name: night
+    time_intervals:
+      - times:
+          - start_time: "22:00"
+            end_time: "24:00"
+          - start_time: "00:00"
+            end_time: "07:00"
+receivers:
+  - name: page
+  - name: ticket

@@ -83,6 +83,8 @@ spec:
                 path: queue-database-password
               - key: maint-password
                 path: maint-database-password
+              - key: report-password
+                path: report-database-password
         - name: pkcs11-pin
           secret:
             secretName: {{ $.Values.keyStore.pinSecret }}

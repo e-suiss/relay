@@ -453,10 +453,17 @@ defmodule Relay.TemplateStore do
 
   # TP-41
   # INV-46
-  @doc "Fails a delivery for a render failure (`:missing_variable`, `:render_timeout`, `:output_too_large` or `:schema_violation`) with its ledger event and the `notification.render_failed` event; there is no retry."
+  # IN-49
+  @doc "Fails a delivery for a render failure (`:missing_variable`, `:render_timeout`, `:output_too_large`, `:schema_violation` or, for an inbox item over the published limits, `:inbox_item_too_large`) with its ledger event and the `notification.render_failed` event; there is no retry."
   @spec render_fail(Relay.Id.t(), atom(), map()) :: atom()
   def render_fail(delivery_id, reason, detail \\ %{})
-      when reason in [:missing_variable, :render_timeout, :output_too_large, :schema_violation] do
+      when reason in [
+             :missing_variable,
+             :render_timeout,
+             :output_too_large,
+             :schema_violation,
+             :inbox_item_too_large
+           ] do
     params = [delivery_id, Atom.to_string(reason), detail]
     [row] = Repo.call!("relay_fn.delivery_render_fail", params)
 
@@ -592,6 +599,30 @@ defmodule Relay.TemplateStore do
   def brand_put(subtenant_id, field, value, digest, %Actor{} = actor)
       when field in @brand_fields do
     params = [subtenant_id, "brand." <> field, value, nil, digest | Actor.params(actor)]
+    [row] = Repo.call!("relay_fn.setting_set", params)
+    code(row, [:created, :updated, :unchanged, :cleared, :version_conflict, :subtenant_not_found])
+  end
+
+  # DS-29
+  @doc "The value of a tenant-level setting, `nil` when it is not set."
+  @spec tenant_setting(String.t()) :: term()
+  def tenant_setting(key) do
+    sql = """
+    SELECT s.tenant_id, s.environment::text AS environment, s.value FROM relay.settings s
+    WHERE s.subtenant_id IS NULL AND s.key = $1
+    """
+
+    case one(sql, [key]) do
+      nil -> nil
+      row -> row["value"]
+    end
+  end
+
+  # DS-29
+  @doc "Sets or clears (`nil`) a tenant-level setting; the key and value are checked by the caller."
+  @spec tenant_setting_put(String.t(), term(), digest(), Actor.t()) :: atom()
+  def tenant_setting_put(key, value, digest, %Actor{} = actor) do
+    params = [nil, key, value, nil, digest | Actor.params(actor)]
     [row] = Repo.call!("relay_fn.setting_set", params)
     code(row, [:created, :updated, :unchanged, :cleared, :version_conflict, :subtenant_not_found])
   end

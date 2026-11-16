@@ -1,6 +1,6 @@
 defmodule Relay.Tenancy.SettingKeys do
   @moduledoc """
-  The catalog of setting keys (`relay.settings.key`). A setting write names a key from the catalog and a value that passes the key's check; `nil` clears the setting at that level. Stage 1 holds the keys the setting resolver falls back to the tenant defaults for: `default_timezone` and `default_locale`, checked and canonicalised like the tenant defaults (`Relay.Tenancy.Defaults`). `fairness.weight.l2` and `fairness.weight.l3` hold the tenant's DRR weight in a bulk lane, an integer from 1 to 100 (1 when unset); only the tenant-level value counts. `api.rate.burst` and `api.rate.sustained` hold the tenant's API rate limit tiers (API-50, API-77), an object with a positive integer `weight` and a positive integer `window_seconds` of at most 3600; an unset tier takes the contract default. `api.mtls_required` (`true` or `false`) makes the tenant's server API accept only certificate-bound tokens (RFC 8705; API-41, API-48). `devices.max_active` lowers the subscriber's active device limit (CH-74): an integer from 1 to the contract's `devices.max_active_per_subscriber`; a tenant can never raise it. `send_mode`, `send_mode.channel.<channel>` and `send_mode.category.<category>.channel.<channel>` hold the tenant's send modes (OP-51): `live`, `shadow`, `dry_run` or `off`. `channels.domestic_only` turns on the tenant's domestic-only policy (CH-6, TN-58): an ISO 3166-1 alpha-2 country code, and a provider account processing data outside that country is listed but never routed. `overrides.<channel>.provider` is the tenant default of the provider a channel is narrowed to (API-23), the last level after the request, the step and the workflow: a provider name. The `brand.*` keys hold the brand fields templates render (TP-35, TP-48): `brand.logo_url` (an `https` URL of at most 2048 characters), `brand.primary_color` and `brand.secondary_color` (`#RRGGBB`), `brand.sender_name` (at most 100 characters), `brand.footer` (at most 2000), `brand.legal_name` (at most 200), `brand.mersis` (16 digits), `brand.contact` and `brand.postal_address` (at most 500); a sub-tenant inherits every brand field it does not set (TP-36).
+  The catalog of setting keys (`relay.settings.key`). A setting write names a key from the catalog and a value that passes the key's check; `nil` clears the setting at that level. Stage 1 holds the keys the setting resolver falls back to the tenant defaults for: `default_timezone` and `default_locale`, checked and canonicalised like the tenant defaults (`Relay.Tenancy.Defaults`). `fairness.weight.l2` and `fairness.weight.l3` hold the tenant's DRR weight in a bulk lane, an integer from 1 to 100 (1 when unset); only the tenant-level value counts. `api.rate.burst` and `api.rate.sustained` hold the tenant's API rate limit tiers (API-50, API-77), an object with a positive integer `weight` and a positive integer `window_seconds` of at most 3600; an unset tier takes the contract default. `api.mtls_required` (`true` or `false`) makes the tenant's server API accept only certificate-bound tokens (RFC 8705; API-41, API-48). `devices.max_active` lowers the subscriber's active device limit (CH-74): an integer from 1 to the contract's `devices.max_active_per_subscriber`; a tenant can never raise it. `send_mode`, `send_mode.channel.<channel>`, `send_mode.category.<category>.channel.<channel>` and `send_mode.workflow.<workflow>` hold the tenant's send modes (OP-51, C-89): `live`, `shadow`, `dry_run` or `off`. `timing.jitter` is the tenant's jitter control (WF-58, `Relay.Timing`): an object of `release_spread_ms`, `scheduled_spread_ms` and `precision` that may only shrink the spreads. `channels.domestic_only` turns on the tenant's domestic-only policy (CH-6, TN-58): an ISO 3166-1 alpha-2 country code, and a provider account processing data outside that country is listed but never routed. `overrides.<channel>.provider` is the tenant default of the provider a channel is narrowed to (API-23), the last level after the request, the step and the workflow: a provider name. `email.tracking.category.<category>` and `email.tracking.template.t_<template>` (the template key's hyphens as underscores) turn on e-mail open and click tracking for a category or a template (CH-43, DS-29): an object of the booleans `open_pixel` and `wrap_links`. The `brand.*` keys hold the brand fields templates render (TP-35, TP-48): `brand.logo_url` (an `https` URL of at most 2048 characters), `brand.primary_color` and `brand.secondary_color` (`#RRGGBB`), `brand.sender_name` (at most 100 characters), `brand.footer` (at most 2000), `brand.legal_name` (at most 200), `brand.mersis` (16 digits), `brand.contact` and `brand.postal_address` (at most 500); a sub-tenant inherits every brand field it does not set (TP-36). `inbox.retention` is the tenant's inbox retention (IN-44, OP-22): an object of positive integers `visible_items`, `active_days` and `archive_days`, each at most the contract default (`x-relay-limits` `inbox.retention`); a key it leaves out keeps the default. `webhook.retention` is the tenant's delivery log retention (WH-30, WH-52): an object of the integers `messages_days` and `response_body_days`, each from the contract minimum to the contract default (`x-relay-limits` `webhook.retention`), so a tenant can only lower them.
   """
 
   alias Relay.Tenancy.Defaults
@@ -14,7 +14,10 @@ defmodule Relay.Tenancy.SettingKeys do
     "api.rate.sustained" => :api_rate,
     "api.mtls_required" => :boolean,
     "devices.max_active" => :device_limit,
+    "inbox.retention" => :inbox_retention,
+    "webhook.retention" => :webhook_retention,
     "channels.domestic_only" => :country,
+    "timing.jitter" => :timing,
     "brand.logo_url" => {:brand, :url, 2048},
     "brand.primary_color" => {:brand, :color, 7},
     "brand.secondary_color" => {:brand, :color, 7},
@@ -27,10 +30,18 @@ defmodule Relay.Tenancy.SettingKeys do
   }
 
   @device_limit Relay.Limits.fetch!(["devices", "max_active_per_subscriber"])
+  @inbox_retention Relay.Limits.fetch!(["inbox", "retention"])
+  @webhook_retention %{
+    "messages_days" => div(Relay.Limits.seconds!(["webhook", "retention", "messages"]), 86_400),
+    "response_body_days" =>
+      div(Relay.Limits.seconds!(["webhook", "retention", "response_body"]), 86_400)
+  }
+  @webhook_retention_min div(Relay.Limits.seconds!(["webhook", "retention", "min"]), 86_400)
   @send_modes ~w(live shadow dry_run off)
   @provider_override ~r/\Aoverrides\.[a-z_]+\.provider\z/
   @provider ~r/\A[a-z][a-z0-9_]{1,31}\z/
-  @send_mode ~r/\Asend_mode(\.channel\.[a-z_]+|\.category\.[a-z][a-z0-9_]{0,63}\.channel\.[a-z_]+)?\z/
+  @tracking ~r/\Aemail\.tracking\.(category\.[a-z][a-z0-9_]{0,63}|template\.t_[a-z0-9_]{1,100})\z/
+  @send_mode ~r/\Asend_mode(\.channel\.[a-z_]+|\.category\.[a-z][a-z0-9_]{0,63}\.channel\.[a-z_]+|\.workflow\.[a-z0-9]+(-[a-z0-9]+)*)?\z/
 
   @doc "Returns the catalog's keys."
   @spec keys() :: [String.t()]
@@ -49,8 +60,26 @@ defmodule Relay.Tenancy.SettingKeys do
   end
 
   # API-23
+  # DS-29
   defp pattern(key, value) do
-    if Regex.match?(@provider_override, key), do: provider(value), else: send_mode(key, value)
+    cond do
+      Regex.match?(@provider_override, key) -> provider(value)
+      Regex.match?(@tracking, key) -> tracking(value)
+      true -> send_mode(key, value)
+    end
+  end
+
+  # CH-43
+  # DS-29
+  defp tracking(nil), do: {:ok, nil}
+
+  defp tracking(%{"open_pixel" => open, "wrap_links" => wrap} = value)
+       when is_boolean(open) and is_boolean(wrap) and map_size(value) == 2,
+       do: {:ok, value}
+
+  defp tracking(_value) do
+    message = "e-mail tracking is an object of the booleans open_pixel and wrap_links"
+    {:error, Relay.Error.new(:invalid_setting, message)}
   end
 
   defp provider(value) do
@@ -85,7 +114,16 @@ defmodule Relay.Tenancy.SettingKeys do
         {:error,
          Relay.Error.new(:invalid_setting, "a fairness weight is an integer from 1 to 100")}
 
-      {:ok, kind} when kind in [:api_rate, :boolean, :device_limit, :country] ->
+      {:ok, kind}
+      when kind in [
+             :api_rate,
+             :boolean,
+             :device_limit,
+             :country,
+             :timing,
+             :inbox_retention,
+             :webhook_retention
+           ] ->
         check(kind, value)
 
       {:ok, field} ->
@@ -114,6 +152,46 @@ defmodule Relay.Tenancy.SettingKeys do
       do: {:ok, value},
       else: {:error, Relay.Error.new(:invalid_setting, "a country is an ISO 3166-1 alpha-2 code")}
   end
+
+  # WF-58
+  defp check(:timing, value) do
+    case Relay.Timing.cast(value) do
+      {:ok, value} ->
+        {:ok, value}
+
+      {:error, _fields} ->
+        message = "the jitter control shrinks the WF-58 spreads and names jittered or strict"
+        {:error, Relay.Error.new(:invalid_setting, message)}
+    end
+  end
+
+  # IN-44
+  # OP-22
+  defp check(:inbox_retention, value) when is_map(value) and map_size(value) > 0 do
+    within? =
+      Enum.all?(value, fn {key, days} ->
+        max = Map.get(@inbox_retention, key)
+        is_integer(max) and is_integer(days) and days >= 1 and days <= max
+      end)
+
+    if within?, do: {:ok, value}, else: inbox_retention_error()
+  end
+
+  defp check(:inbox_retention, _value), do: inbox_retention_error()
+
+  # WH-30
+  # WH-52
+  defp check(:webhook_retention, value) when is_map(value) and map_size(value) > 0 do
+    within? =
+      Enum.all?(value, fn {key, days} ->
+        max = Map.get(@webhook_retention, key)
+        is_integer(max) and is_integer(days) and days >= @webhook_retention_min and days <= max
+      end)
+
+    if within?, do: {:ok, value}, else: webhook_retention_error()
+  end
+
+  defp check(:webhook_retention, _value), do: webhook_retention_error()
 
   # API-41
   defp check(:boolean, value) when is_boolean(value), do: {:ok, value}
@@ -150,6 +228,20 @@ defmodule Relay.Tenancy.SettingKeys do
         :mersis -> "a MERSIS number is 16 digits"
         :text -> "a brand text is a non-empty string within its length"
       end
+
+    {:error, Relay.Error.new(:invalid_setting, message)}
+  end
+
+  defp webhook_retention_error do
+    message =
+      "the webhook retention holds messages_days and response_body_days within their bounds"
+
+    {:error, Relay.Error.new(:invalid_setting, message)}
+  end
+
+  defp inbox_retention_error do
+    message =
+      "the inbox retention holds visible_items, active_days and archive_days within the defaults"
 
     {:error, Relay.Error.new(:invalid_setting, message)}
   end

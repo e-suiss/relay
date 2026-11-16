@@ -5,7 +5,26 @@ defmodule Relay.Agents do
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
+  alias Relay.Agents.Correlation
   alias Relay.Agents.Waitpoint
+
+  # AG-65
+  @doc "The digests of an event type and a correlation key under every readable lookup key; see `Relay.Agents.Correlation.digests/3`."
+  @spec correlation_digests(Relay.Scope.t(), String.t(), String.t()) ::
+          {:ok, [Correlation.digest(), ...]} | {:error, Relay.Error.t()}
+  defdelegate correlation_digests(scope, event_type, key), to: Correlation, as: :digests
+
+  # AG-65
+  @doc "The digests of several pairs of event type and correlation key; see `Relay.Agents.Correlation.digest_map/2`."
+  @spec correlation_digest_map(Relay.Scope.t(), [Correlation.pair()]) ::
+          {:ok, %{Correlation.pair() => [Correlation.digest(), ...]}} | {:error, Relay.Error.t()}
+  defdelegate correlation_digest_map(scope, pairs), to: Correlation, as: :digest_map
+
+  # AG-65
+  @doc "Converts a batch of rows of a scope that still hold a correlation key in clear; see `Relay.Agents.Correlation.backfill/2`."
+  @spec backfill_correlation_digests(Relay.Scope.t(), pos_integer()) ::
+          {:ok, %{scanned: non_neg_integer(), updated: non_neg_integer()}} | {:error, term()}
+  defdelegate backfill_correlation_digests(scope, limit), to: Correlation, as: :backfill
 
   # C-72
   # AG-9
@@ -17,6 +36,16 @@ defmodule Relay.Agents do
   @doc "Offers an event to the waitpoints that wait for it; see `Relay.Agents.Waitpoint.offer_event/2`."
   @spec offer_event(Relay.Scope.t(), map()) :: {:ok, map()} | {:error, term()}
   defdelegate offer_event(scope, event), to: Waitpoint
+
+  # WF-12
+  @doc "Opens a waitpoint inside the caller's scoped transaction; see `Relay.Agents.Waitpoint.open_in/3`."
+  @spec open_waitpoint_in(Relay.Scope.t(), map(), keyword()) :: map()
+  defdelegate open_waitpoint_in(scope, attrs, opts \\ []), to: Waitpoint, as: :open_in
+
+  # WF-12
+  @doc "Offers an event inside the caller's scoped transaction with a second-stage decision; see `Relay.Agents.Waitpoint.offer_in/3`."
+  @spec offer_event_in(Relay.Scope.t(), map(), (map() -> boolean())) :: map()
+  defdelegate offer_event_in(scope, event, accept), to: Waitpoint, as: :offer_in
 
   # AG-11
   @doc "Answers a waitpoint once; see `Relay.Agents.Waitpoint.respond/3`."

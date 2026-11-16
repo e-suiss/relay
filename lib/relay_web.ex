@@ -10,9 +10,13 @@ defmodule RelayWeb do
       Relay.Tenancy.KillSwitch,
       Relay.Datasets,
       Relay.Channels,
+      Relay.EmailReputation,
+      Relay.Engagement,
       Relay.Api,
       Relay.Access,
-      Relay.Operators
+      Relay.Operators,
+      Relay.Observability,
+      Relay.Realtime
     ],
     exports: [
       Endpoint,

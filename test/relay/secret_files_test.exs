@@ -13,6 +13,7 @@ defmodule Relay.SecretFilesTest do
     "DATABASE_PASSWORD_FILE" => "plain-db-marker",
     "MAINT_DATABASE_PASSWORD_FILE" => "plain-maint-marker",
     "QUEUE_DATABASE_PASSWORD_FILE" => "plain-queue-marker",
+    "REPORT_DATABASE_PASSWORD_FILE" => "plain-report-marker",
     "AUDIT_S3_SECRET_ACCESS_KEY_FILE" => "plain-store-marker",
     "SECRET_KEY_BASE_FILE" => "plain-key-base-marker-" <> String.duplicate("k", 64)
   }
@@ -21,6 +22,7 @@ defmodule Relay.SecretFilesTest do
     "DATABASE_URL" => "ecto://relay_worker@db.internal:5432/relay",
     "MAINT_DATABASE_URL" => "ecto://relay_maint@db.internal:5432/relay",
     "QUEUE_DATABASE_URL" => "ecto://relay_queue@db.internal:5432/relay",
+    "REPORT_DATABASE_URL" => "ecto://relay_report@db.internal:5432/relay",
     "POOL_SIZE" => "5",
     "PKCS11_MODULE" => "/usr/lib/softhsm/libsofthsm2.so",
     "PKCS11_TOKEN" => "relay",
@@ -93,7 +95,7 @@ defmodule Relay.SecretFilesTest do
 
       refute shows_secret?(env)
 
-      for repo <- [Relay.Repo, Relay.QueueRepo, Relay.Platform.MaintRepo] do
+      for repo <- [Relay.Repo, Relay.QueueRepo, Relay.ReportRepo, Relay.Platform.MaintRepo] do
         refute Keyword.has_key?(env[repo], :password), inspect(repo)
         assert {SecretFiles, :configure, [_name]} = env[repo][:configure]
       end

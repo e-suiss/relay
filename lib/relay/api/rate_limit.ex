@@ -8,6 +8,8 @@ defmodule Relay.Api.RateLimit do
   @limits Relay.Api.Contract.limits()["rate_limit"]
   @tiers ["burst", "sustained"]
   @per_ip @limits["invalid_token_per_ip"]
+  @recipient_snapshots Relay.Limits.fetch!(["inbox", "snapshot_per_recipient_per_minute"])
+  @tenant_snapshots Relay.Limits.fetch!(["inbox", "snapshot_per_tenant_per_minute"])
   @unavailable "rate_limit.backend_unavailable"
   @node_filter "rate_limit.node_filter"
   @ip_limits %{
@@ -156,6 +158,39 @@ defmodule Relay.Api.RateLimit do
       {:deny, retry_ms} -> {:error, per_ip_limited(retry_ms)}
       {:deny, retry_ms, _rule} -> {:error, per_ip_limited(retry_ms)}
     end
+  end
+
+  # IN-52
+  # IN-34
+  @doc "Spends one read of the inbox snapshot endpoints (the cold sync list, the counters and the delta) of a subscriber: at most `inbox.snapshot_per_recipient_per_minute` for the subscriber and `inbox.snapshot_per_tenant_per_minute` for the tenant and environment. A denial is `rate_limited` with `Retry-After`; a limiter that cannot answer is `service_unavailable`."
+  @spec inbox_snapshot(Relay.Scope.t(), Relay.Id.t()) :: :ok | {:error, Relay.Error.t()}
+  def inbox_snapshot(%Relay.Scope{} = scope, subscriber_id) do
+    subscriber = Relay.Id.to_string(subscriber_id)
+    recipient = snapshot_tier("recipient", subscriber, @recipient_snapshots)
+    tenant = snapshot_tier("tenant", "all", @tenant_snapshots)
+
+    case check(scope, [recipient, tenant], 1) do
+      {:ok, _report} -> :ok
+      {:error, error, _report} -> {:error, error}
+    end
+  end
+
+  defp snapshot_tier(name, part, per_minute) do
+    %{
+      name: "inbox_snapshot_" <> name,
+      quota: per_minute,
+      window_s: 60,
+      parts: [part],
+      limit:
+        limit!(
+          id: "inbox.snapshot_" <> name,
+          algorithm: :gcra,
+          unit: :request,
+          limit: per_minute,
+          period_ms: 60_000,
+          burst: per_minute
+        )
+    }
   end
 
   defp per_ip_limited(retry_ms) do

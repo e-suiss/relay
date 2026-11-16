@@ -14,7 +14,7 @@ defmodule Relay.Channels.InboundTest do
   defp b64url(data), do: Base.url_encode64(data, padding: false)
 
   describe "T-40 TN-35 Standard Webhooks" do
-    test "T-40, TN-35: a v1 signature over id, timestamp and the raw body verifies" do
+    test "T-40, TN-35, WH-49: a v1 signature over id, timestamp and the raw body verifies" do
       secret = :crypto.strong_rand_bytes(32)
       key = Redacted.wrap("whsec_" <> Base.encode64(secret))
       signature = Base.encode64(hmac(secret, "msg_1." <> ts() <> "." <> @body))
@@ -22,23 +22,24 @@ defmodule Relay.Channels.InboundTest do
       headers = [
         {"webhook-id", "msg_1"},
         {"webhook-timestamp", ts()},
-        {"webhook-signature", "v1,bm90IGl0 v1," <> signature}
+        {"webhook-signature", "v1," <> Base.encode64(<<0::256>>) <> " v1," <> signature}
       ]
 
-      assert Inbound.standard_webhooks(key, @body, headers, @now) == :ok
       assert Relay.Channels.verify_standard_webhooks(key, @body, headers, @now) == :ok
 
-      assert Inbound.standard_webhooks(key, @body <> " ", headers, @now) ==
+      assert Relay.Channels.verify_standard_webhooks(key, @body <> " ", headers, @now) ==
                {:error, :bad_signature}
 
       stale = List.keyreplace(headers, "webhook-timestamp", 0, {"webhook-timestamp", ts(-301)})
-      assert Inbound.standard_webhooks(key, @body, stale, @now) == {:error, :stale_timestamp}
 
-      assert Inbound.standard_webhooks(key, @body, tl(headers), @now) ==
+      assert Relay.Channels.verify_standard_webhooks(key, @body, stale, @now) ==
+               {:error, :stale_timestamp}
+
+      assert Relay.Channels.verify_standard_webhooks(key, @body, tl(headers), @now) ==
                {:error, :missing_header}
     end
 
-    test "T-40: a v1a Ed25519 signature verifies with the public key" do
+    test "T-40, WH-49: a v1a Ed25519 signature verifies with the public key" do
       {public, private} = :crypto.generate_key(:eddsa, :ed25519)
       payload = "msg_2." <> ts() <> "." <> @body
       signature = :crypto.sign(:eddsa, :none, payload, [private, :ed25519])
@@ -50,8 +51,10 @@ defmodule Relay.Channels.InboundTest do
         {"webhook-signature", "v1a," <> Base.encode64(signature)}
       ]
 
-      assert Inbound.standard_webhooks(key, @body, headers, @now) == :ok
-      assert Inbound.standard_webhooks(key, "{}", headers, @now) == {:error, :bad_signature}
+      assert Relay.Channels.verify_standard_webhooks(key, @body, headers, @now) == :ok
+
+      assert Relay.Channels.verify_standard_webhooks(key, "{}", headers, @now) ==
+               {:error, :bad_signature}
     end
   end
 

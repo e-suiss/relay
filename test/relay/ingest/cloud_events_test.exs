@@ -74,4 +74,26 @@ defmodule Relay.Ingest.CloudEventsTest do
       assert request["data"] == %{"order" => %{"id" => "A"}}
     end
   end
+
+  describe "E-83 correlationid extension" do
+    test "E-83: the correlationid extension is read and becomes the request's correlation_id" do
+      headers = [
+        {"ce-specversion", "1.0"},
+        {"ce-id", "1"},
+        {"ce-source", "/shop"},
+        {"ce-type", "order.shipped"},
+        {"ce-correlationid", "order-1"}
+      ]
+
+      assert {:ok, event} = Relay.Ingest.ce_from_binary(headers, %{"to" => "user-1"})
+      assert event["correlationid"] == "order-1"
+
+      mapping = %{"to_pointer" => "/to", "tenant_pointer" => nil, "data_fields" => []}
+      assert {:ok, request} = Relay.Ingest.ce_map(event, mapping)
+      assert request["correlation_id"] == "order-1"
+
+      assert {:ok, plain} = Relay.Ingest.ce_map(%{"data" => %{"to" => "user-1"}}, mapping)
+      refute Map.has_key?(plain, "correlation_id")
+    end
+  end
 end

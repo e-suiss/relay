@@ -27,7 +27,7 @@ defmodule Relay.Preferences do
   defdelegate in_scope(scope, fun), to: Store
 
   # PC-57 (1)
-  @doc "Creates a category inside the caller's scoped transaction; `attrs` carries `:key`, `:name`, `:message_class`, `:locked`, `:enabled`, `:channel_defaults`, `:default_expires_in`, `:frequency` and `:digest_allowed`."
+  @doc "Creates a category inside the caller's scoped transaction; `attrs` carries `:key`, `:name`, `:message_class`, `:locked`, `:enabled`, `:channel_defaults`, `:default_expires_in`, `:frequency`, `:digest_allowed`, `:default_route` and `:density` (WF-30)."
   @spec create_category(Scope.t(), map(), Actor.t()) ::
           {atom(), Relay.Id.t() | nil, pos_integer() | nil}
   def create_category(%Scope{} = scope, attrs, %Actor{} = actor) do
@@ -127,7 +127,9 @@ defmodule Relay.Preferences do
   # PC-57 (5)
   # PC-15
   # PC-6
-  @doc "Writes preference switches in order inside the caller's scoped transaction as `writer` (`subscriber` or `tenant`); the first refused write stops and is returned with its index, and the caller rolls the transaction back. Each write carries `:level`, `:key`, `:channel` and `:value`."
+  # WH-15
+  # WH-53
+  @doc "Writes preference switches in order inside the caller's scoped transaction as `writer` (`subscriber`, `tenant`, `access` or `unsubscribe`); the first refused write stops and is returned with its index, and the caller rolls the transaction back. Each write carries `:level`, `:key`, `:channel` and `:value`. A write that changes a switch is announced as `preference.changed` through the outbox in the same transaction; a write that changes nothing is not."
   @spec write_preferences(Relay.Id.t(), [map()], String.t(), String.t() | nil) ::
           :ok | {:refused, atom(), non_neg_integer()}
   def write_preferences(recipient_id, writes, writer, actor_ref) do
@@ -137,11 +139,14 @@ defmodule Relay.Preferences do
       write = Map.put(write, :recipient_id, recipient_id)
 
       case Store.preference_set(write, writer, actor_ref) do
-        {result, _id, _version} when result in [:set, :unchanged] -> {:cont, :ok}
+        {:set, _id, _version} -> {:cont, announced(Store.preference_changed(write))}
+        {:unchanged, _id, _version} -> {:cont, :ok}
         {refused, _id, _version} -> {:halt, {:refused, refused, index}}
       end
     end)
   end
+
+  defp announced(:appended), do: :ok
 
   # PC-57 (5)
   @doc "Writes the fields `changes` names over a recipient's current profile inside the caller's scoped transaction; an absent field is untouched and `digest` is replaced as a whole. Only `subscriber` and `access` write a profile."

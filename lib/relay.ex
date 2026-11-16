@@ -20,6 +20,7 @@ defmodule Relay do
       Role,
       Repo,
       BulkRepo,
+      ReportRepo,
       QueueRepo,
       Scope,
       ScopeError,
@@ -39,15 +40,19 @@ defmodule Relay do
       Crypto,
       Canonical,
       Jitter,
+      Timing,
       Limits,
       ChannelParameters,
       ChannelDeclarations,
+      DeliveryWindows,
       RuleDictionary,
       Release,
       Worker,
       NetworkGuard,
       NetworkGuard.Error,
       Binary,
-      TenantWorker
+      TenantWorker,
+      Trace,
+      EventCatalog
     ]
 end

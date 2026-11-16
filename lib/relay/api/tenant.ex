@@ -1,17 +1,19 @@
 defmodule Relay.Api.Tenant do
   @moduledoc """
-  What the API edge reads about a tenant before a request's work, in one scoped read: its status, its pinned API version, its API rate limit settings and whether it requires certificate-bound tokens (`api.mtls_required`, RFC 8705); and the automatic API version pin written after a tenant's first successful request, in a short transaction of its own.
+  What the API edge reads about a tenant before a request's work, in one scoped read: its status, its pinned API version, its API rate limit settings, whether it requires certificate-bound tokens (`api.mtls_required`, RFC 8705) and the browser origins allowed to open a realtime connection (`realtime.allowed_origins`, IN-54); and the automatic API version pin written after a tenant's first successful request, in a short transaction of its own.
   """
 
   alias Relay.Api.Store
 
   @mtls "api.mtls_required"
+  @origins "realtime.allowed_origins"
 
   @type edge :: %{
           status: :active | :suspended | :closed,
           api_version: String.t() | nil,
           rate_settings: %{optional(String.t()) => map()},
-          mtls_required: boolean()
+          mtls_required: boolean(),
+          realtime_origins: [String.t()]
         }
 
   # API-41
@@ -40,9 +42,13 @@ defmodule Relay.Api.Tenant do
       status: status,
       api_version: Store.api_version(),
       rate_settings: Map.filter(settings, fn {key, value} -> key != @mtls and is_map(value) end),
-      mtls_required: Map.get(settings, @mtls) == true
+      mtls_required: Map.get(settings, @mtls) == true,
+      realtime_origins: origins(Map.get(settings, @origins))
     }
   end
+
+  defp origins(origins) when is_list(origins), do: origins
+  defp origins(_none), do: []
 
   # API-52
   @doc "Pins the tenant to `version` unless a version is pinned already; audited as `api_version.pinned`."

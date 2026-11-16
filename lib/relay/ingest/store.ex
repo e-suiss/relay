@@ -133,7 +133,8 @@ defmodule Relay.Ingest.Store do
   # C-30
   # OP-2
   # OP-68 (2)
-  @doc "Opens a delivery with its opening ledger event; the same notification, channel and target returns the existing delivery."
+  # WF-63
+  @doc "Opens a delivery with its opening ledger event; the same notification, channel, target and step (`:step_ref`, the channel step key or step key and route leaf pointer, empty when none) returns the existing delivery."
   @spec delivery_open(Relay.Id.t(), map()) ::
           {:opened
            | :exists
@@ -157,7 +158,8 @@ defmodule Relay.Ingest.Store do
         Map.get(d, :decision_reason),
         Map.get(d, :decision_rule_id),
         Map.get(d, :deferred_until),
-        Map.get(d, :traceparent)
+        Map.get(d, :traceparent),
+        Map.get(d, :step_ref, "")
       ])
 
     {Repo.code!(row["result"], [

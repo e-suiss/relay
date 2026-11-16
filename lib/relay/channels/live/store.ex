@@ -94,6 +94,49 @@ defmodule Relay.Channels.Live.Store do
     Map.new(rows, &{&1["id"], Map.take(&1, ["traceparent", "accepted_at"])})
   end
 
+  # WH-15
+  # WH-53
+  # WH-11
+  @doc "Appends an outbox event about a delivery on its stream: `data` with the delivery, its notification and its recipient as identifiers. Returns `:appended`, or `:delivery_not_found`."
+  @spec announce(Relay.Id.t(), String.t(), map()) :: :appended | :delivery_not_found
+  def announce(delivery_id, type, data) do
+    rows =
+      all(
+        """
+        SELECT d.tenant_id, d.environment, d.id, d.notification_id, d.recipient_id,
+          r.kind::text AS recipient_kind
+        FROM relay.deliveries d
+        JOIN relay.recipients r ON r.tenant_id = d.tenant_id AND r.environment = d.environment
+          AND r.id = d.recipient_id
+        WHERE d.id = $1
+        """,
+        [delivery_id]
+      )
+
+    case rows do
+      [row] -> append(type, delivery_id, Map.merge(reject_nil(data), subject(row)))
+      [] -> :delivery_not_found
+    end
+  end
+
+  defp subject(row) do
+    %{
+      "delivery_id" => Relay.Id.to_string(row["id"]),
+      "notification_id" => Relay.Id.to_string(row["notification_id"]),
+      "recipient_id" => Relay.Id.to_string(row["recipient_id"]),
+      "recipient_kind" => row["recipient_kind"]
+    }
+  end
+
+  defp reject_nil(data), do: Map.reject(data, fn {_key, value} -> is_nil(value) end)
+
+  defp append(type, delivery_id, data) do
+    stream = "delivery:" <> Relay.Id.to_string(delivery_id)
+    params = [Relay.Id.generate(), type, stream, data, nil]
+    [row] = Repo.call!("relay_fn.outbox_append", params)
+    Repo.code!(row["result"], [:appended])
+  end
+
   # DS-48
   @doc "Reads up to `limit` open deliveries of a channel whose latest attempt went to `provider`, accepted at least `min_age_s` seconds ago and neither delivered nor failed, oldest first: each with its acceptance time and the provider account, attempt number, idempotency key and provider message id of the latest attempt."
   @spec open_deliveries(String.t(), String.t(), non_neg_integer(), pos_integer()) :: [map()]

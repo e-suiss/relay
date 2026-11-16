@@ -1,6 +1,6 @@
 defmodule Relay.Access.Events do
   @moduledoc """
-  Access lifecycle events (`POST /v1/access/events`, S-110), pushed by Access as Security Event Tokens (E-94, `Relay.Access.SecurityEvent`): a SET is verified under the keys of the link, its `jti` is the event identifier, and its receipt commits with the job that processes it before the delivery is acknowledged; a repeated `jti` is acknowledged and not processed again (S-69). A key the link does not hold refreshes the keys once. Only the fields Relay needs cross the boundary: the receipt keeps the event's mapping fields and nothing else, and an event type Relay does not consume keeps none (E-70); a type that is not an event name of Relay's form is acknowledged and not recorded.
+  Access lifecycle events (`POST /v1/access/events`, S-110), pushed by Access as Security Event Tokens (E-94, `Relay.Access.SecurityEvent`): a SET is verified under the keys of the link, its `jti` is the event identifier, and its receipt commits with the job that processes it before the delivery is acknowledged; a repeated `jti` is acknowledged, counted on its receipt and not processed again (S-69). These are the acceptance rules of an inbound provider webhook (WH-51, WH-49): a durable receipt first, a fast answer, processing from the queue and a durable deduplication on the event identifier. Access events do not use the signature headers of the Suiss webhook profile: E-94 replaced that intake with the SET, whose signature covers the token as it arrived and is checked against every key of the linked key set, so an event signed with the old or the new key of an overlapping rotation is accepted. A key the link does not hold refreshes the keys once. Only the fields Relay needs cross the boundary: the receipt keeps the event's mapping fields and nothing else, and an event type Relay does not consume keeps none (E-70); a type that is not an event name of Relay's form is acknowledged and not recorded.
 
   `process/1` (the `Relay.Access.EventConsumer` job) applies a receipt by its type:
 
@@ -68,6 +68,7 @@ defmodule Relay.Access.Events do
   # E-94
   # E-70
   # E-78
+  # WH-51
   @doc "Receives a Security Event Token Access pushed; a refusal carries its RFC 8935 error code."
   @spec accept(binary()) :: :ok | {:error, SecurityEvent.refusal()} | {:error, Relay.Error.t()}
   def accept(token) when is_binary(token) do

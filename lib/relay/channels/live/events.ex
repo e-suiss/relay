@@ -18,6 +18,7 @@ defmodule Relay.Channels.Live.Events do
   }
   @after_delivered %{"valid" => :valid, "stale" => :stale, "conflict" => :conflict}
   @unwritten [:delivery_not_found, :attempt_not_found, :rejected_future_timestamp]
+  @announced [:applied, :stale_ignored, :conflict_flagged]
 
   @type event :: %{
           required(:delivery_id) => Relay.Id.t(),
@@ -30,7 +31,8 @@ defmodule Relay.Channels.Live.Events do
           optional(:provider_seq) => integer() | nil,
           optional(:receipt_id) => Relay.Id.t() | nil,
           optional(:price) => map() | nil,
-          optional(:detail) => map()
+          optional(:detail) => map(),
+          optional(:announce) => {String.t(), map()}
         }
   @type recorded :: %{
           result: atom(),
@@ -189,6 +191,7 @@ defmodule Relay.Channels.Live.Events do
 
     {result, _rank, _version} = Relay.Delivery.ledger_append(entry)
     if result in @unwritten, do: reject(event, Atom.to_string(result))
+    if result in @announced, do: announce(event)
 
     {:ok,
      %{
@@ -198,6 +201,16 @@ defmodule Relay.Channels.Live.Events do
        failure_class: class
      }}
   end
+
+  # WH-15
+  # WH-53
+  # WH-11
+  defp announce(%{announce: {type, data}, delivery_id: delivery_id}) do
+    _ = Store.announce(delivery_id, type, data)
+    :ok
+  end
+
+  defp announce(_event), do: :ok
 
   defp reject(%{receipt_id: <<_::128>> = receipt_id}, reason) do
     _ = Relay.Webhooks.receipt_mark(receipt_id, :rejected, to_string(reason))

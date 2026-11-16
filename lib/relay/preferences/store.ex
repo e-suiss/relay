@@ -196,6 +196,30 @@ defmodule Relay.Preferences.Store do
      ]), row["preference_id"], row["version"]}
   end
 
+  # WH-15
+  # WH-53
+  # WH-11
+  @doc "Appends the `preference.changed` event of a written switch on the recipient's stream: the recipient's identifier, the level, the value, the category of a category switch and the channel, and nothing else of the recipient."
+  @spec preference_changed(map()) :: :appended
+  def preference_changed(write) do
+    recipient = Relay.Id.to_string(write.recipient_id)
+    kind = one("SELECT r.kind FROM relay.recipients r WHERE r.id = $1", [write.recipient_id])
+
+    data = %{
+      "recipient_id" => recipient,
+      "recipient_kind" => kind && kind["kind"],
+      "level" => write.level,
+      "value" => write.value,
+      "category" => if(write.level == "category_channel", do: write.key),
+      "channel" => write.channel,
+      "changed_at" => DateTime.to_iso8601(Relay.Clock.utc_now())
+    }
+
+    params = [Relay.Id.generate(), "preference.changed", "recipient:" <> recipient, data, nil]
+    [row] = Repo.call!("relay_fn.outbox_append", params)
+    Repo.code!(row["result"], [:appended])
+  end
+
   # PC-57 (5)
   @doc "Writes the whole preference profile of a recipient."
   @spec profile_put(Relay.Id.t(), map(), String.t()) :: {atom(), pos_integer() | nil}

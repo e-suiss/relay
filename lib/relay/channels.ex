@@ -244,14 +244,28 @@ defmodule Relay.Channels do
   def simulated_address?(channel, address),
     do: Simulated.reserved?(Simulated.kind(channel), address)
 
+  # WH-49 (2)
+  # WH-4
   # T-40
   # TN-35
-  @doc "Verifies a Standard Webhooks request on its raw body; see `Relay.Channels.Inbound.standard_webhooks/4`."
+  @doc """
+  Verifies the request of a provider that follows Standard Webhooks on its raw body. `key` is the endpoint secret (`whsec_…`, `v1`) or public key (`whpk_…`, `v1a`). The verification is not done here: it is the one verifier of the Suiss webhook profile, which also verifies outbound deliveries (`Relay.Webhooks.verify_message/4`), reached as `config :relay, Relay.Channels, webhook_verifier: module`, `Relay.Webhooks` by default. A provider with a signature scheme of its own keeps its own verifier (`Relay.Channels.Inbound`).
+  """
   @spec verify_standard_webhooks(Inbound.key(), binary(), Inbound.headers(), DateTime.t()) ::
           :ok | {:error, Inbound.reason()}
-  defdelegate verify_standard_webhooks(key, body, headers, now),
-    to: Inbound,
-    as: :standard_webhooks
+  def verify_standard_webhooks(key, body, headers, %DateTime{} = now) when is_binary(body) do
+    verifier =
+      :relay
+      |> Application.get_env(__MODULE__, [])
+      |> Keyword.get(:webhook_verifier, Relay.Webhooks)
+
+    case verifier.verify_message(headers, body, [key], now) do
+      {:ok, _verified} -> :ok
+      {:error, :missing_header} -> {:error, :missing_header}
+      {:error, :timestamp_out_of_tolerance} -> {:error, :stale_timestamp}
+      {:error, _refused} -> {:error, :bad_signature}
+    end
+  end
 
   # T-40
   @doc "Verifies an HMAC-SHA256 signature of a raw body; see `Relay.Channels.Inbound.hmac/4`."

@@ -29,6 +29,8 @@ channels:
         - "Refuse a webhook-timestamp more than five minutes from the local clock."
         - "Keep webhook-id for at least 96 hours and drop an event that was already processed."
         - "Base no security decision on an unsigned header; only the signed content is verified (WH-9)."
+        - "Delivery is at least once and in no guaranteed order: an event can arrive again, so process each webhook-id once, and read the definite state from the API (WH-3)."
+        - "During a key rotation overlap accept the message when any signature in webhook-signature verifies against any key you hold for the endpoint (WH-6)."
         - "Answer 2xx once the event is stored. 410 disables the endpoint; the response header webhook-delivery: abort-message ends the retries of one message (WH-26). A redirect is never followed."
       x-relay-choice: true
       x-relay-choice-note: "WH-4, WH-6, WH-7 and WH-9 fix the headers, the signed content, the schemes and the consumer rules; the names of the unsigned convenience headers are chosen by the contract."

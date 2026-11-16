@@ -1395,7 +1395,7 @@ components:
     webhook.audit_record.appended:
       name: audit_record.appended
       title: audit_record.appended
-      summary: "A record was appended to the tenant's audit log (WH-67, E-65, TN-49). Delivered only to an endpoint that names this type: * does not cover it. The record itself, with its actor and reason, is read from the audit API; where a copy at the destination differs from Relay's record, the copy is wrong."
+      summary: "A record was appended to the tenant's audit log (WH-67, E-65, TN-49). Delivered only to an endpoint that names this type: * does not cover it, and only a tenant administrator adds it, on the operator surface. A record of action audit_log.read, which records a reading of the audit log, is not announced, so a consumer that reads the log for every event starts no loop; the record stays in the audit log. An event without an endpoint that names the type is not kept and cannot be replayed to an endpoint that subscribes later. The record itself, with its actor and reason, is read from the audit API; where a copy at the destination differs from Relay's record, the copy is wrong."
       contentType: application/cloudevents+json
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -1437,7 +1437,7 @@ components:
       x-relay-schema-version: 1
       x-relay-stage: 10
       x-relay-choice: true
-      x-relay-choice-note: "WH-67 names the event and what it carries; the field names are chosen by the contract. The time of the record is the envelope's time, subject is the audit log of the tenant environment and seq counts its records (WH-20). x-relay-explicit-only marks a type that * does not cover."
+      x-relay-choice-note: "WH-67 names the event and what it carries; the field names are chosen by the contract. The time of the record is the envelope's time. subject and the partition key are the target of the record, audit_target:<target type>:<target id> (audit_target_digest:<sha256> when the target does not fit a subject), and seq counts the records of that target (WH-20); a record without a target is its own subject, audit_record:<id>, and so is, rarely, a record whose target is being written by another transaction at the same moment. No sequence is kept for the whole tenant: order across targets comes from the record identifier, which is time ordered, and the time. x-relay-explicit-only marks a type that * does not cover."
     webhook.notification.suppressed:
       name: notification.suppressed
       title: notification.suppressed

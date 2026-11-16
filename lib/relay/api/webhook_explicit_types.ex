@@ -38,6 +38,9 @@ defmodule Relay.Api.WebhookExplicitTypes do
   defp refused(:not_relay_events),
     do: field("only an endpoint of use relay_events receives Relay's events")
 
+  defp refused(:limit_reached),
+    do: Gate.field_error("/event_type", "too_long", "the endpoint names no more event types")
+
   defp refused(_conflict),
     do: Relay.Error.new(:resource_conflict, "the endpoint changed; try again")
 

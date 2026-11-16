@@ -249,9 +249,9 @@ codes:
       max_seconds: null
     extensions: []
     choice: true
-    description: "This operation relaxes a control and needs an operator session with step-up; API client tokens cannot perform it."
+    description: "This operation needs an operator session, with step-up where the operation asks for one; API client tokens cannot perform it. Relaxing a kill switch is one case, adding an event type that * does not cover to a webhook endpoint another."
     type: "{base_url}/v1/errors/auth_operator_session_required"
-    choice_note: Kill switch release and relaxation need step-up, which an API client cannot perform.
+    choice_note: "Kill switch release and relaxation need step-up, which an API client cannot perform; choosing audit_record.appended needs a tenant administrator (WH-67), which an API client is not."
   - code: auth_delegation_required
     family: auth
     status: 403

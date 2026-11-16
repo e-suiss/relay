@@ -31,12 +31,33 @@ defmodule Relay.Repo.Migrations.AnnounceAuditRecords do
     SET search_path = pg_catalog, pg_temp
     AS $fn$
     DECLARE
-      v_stream text := 'audit_log:' || p_tenant_id::text || ':' || p_environment;
+      v_single text := 'audit_record:' || p_id::text;
+      v_stream text;
+      v_lock bigint;
       v_epoch bigint;
       v_seq bigint;
     BEGIN
-      IF p_tenant_id = relay_private.installation_tenant_id() THEN
+      IF p_action = 'audit_log.read' OR p_tenant_id = relay_private.installation_tenant_id() THEN
         RETURN;
+      END IF;
+      IF p_target_type IS NULL OR p_target_id IS NULL THEN
+        v_stream := v_single;
+      ELSE
+        v_stream := 'audit_target:' || p_target_type || ':' || p_target_id;
+        IF v_stream !~ '^[a-z_]+:[A-Za-z0-9_.:-]{1,200}$' THEN
+          v_stream := 'audit_target_digest:' || encode(
+            sha256(convert_to(p_target_type || chr(31) || p_target_id, 'UTF8')), 'hex');
+        END IF;
+        v_lock := hashtextextended(
+          p_tenant_id::text || '|' || p_environment || '|' || v_stream, 0);
+        IF current_setting('relay.audit_head', true) = 'held' THEN
+          IF NOT pg_try_advisory_xact_lock(v_lock) THEN
+            v_stream := v_single;
+          END IF;
+        ELSE
+          PERFORM pg_advisory_xact_lock(v_lock);
+          PERFORM set_config('relay.audit_head', 'held', true);
+        END IF;
       END IF;
       INSERT INTO relay.stream_heads AS h (tenant_id, environment, stream_key, epoch, last_seq,
         updated_at)

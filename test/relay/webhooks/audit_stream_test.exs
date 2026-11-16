@@ -140,19 +140,39 @@ defmodule Relay.Webhooks.AuditStreamTest do
       assert RelayTest.OutboxEvents.data(ctx.scope, @type_name) != []
     end
 
-    test "WH-67, WH-20: the subject is the audit log of the tenant environment and seq counts its records",
+    test "WH-67, WH-20: the subject is the target of the record and seq counts the records of that target",
          ctx do
       named = subscribed!(ctx)
-      events = announced(ctx)
-      stream = "audit_log:" <> Relay.Id.to_string(ctx.scope.tenant_id) <> ":live"
+      stream = "audit_target:webhook_endpoint:" <> Relay.Id.to_string(named.uuid)
+      events = Enum.filter(announced(ctx), &(&1.stream_key == stream))
 
-      assert Enum.all?(events, &(&1.stream_key == stream))
-      assert Enum.map(events, & &1.seq) == Enum.to_list(1..length(events))
+      assert [%{seq: 1, payload: %{"action" => "webhook_endpoint.created"}}, %{seq: 2} = last] =
+               Enum.sort_by(events, & &1.seq)
 
-      last = dispatch!(ctx, List.last(events))
-      assert %{"subject" => ^stream, "seq" => seq} = stored_event(ctx, last)
-      assert seq == last.seq
+      assert last.payload["action"] == "webhook_endpoint.updated"
+      dispatch!(ctx, last)
+      assert %{"subject" => ^stream, "seq" => 2} = stored_event(ctx, last)
       assert message(ctx, named, last) != nil
+    end
+
+    test "WH-67, WH-52: an endpoint at the limit of event types is not subscribed", ctx do
+      endpoint = endpoint!(ctx, [])
+      names = for n <- 1..100, do: "thing.happened_#{n}"
+      digest = TenantFixture.digest()
+      actor = TenantFixture.actor()
+
+      full = %{"event_types" => names}
+      update = fn -> Webhooks.endpoint_update(endpoint.uuid, nil, full, digest, actor) end
+      assert {:updated, _version} = read(ctx, update)
+
+      assert {:ok, {:limit_reached, %{"event_types" => ^names}}} =
+               Webhooks.endpoint_subscribe_explicit(
+                 ctx.scope,
+                 endpoint.uuid,
+                 @type_name,
+                 digest,
+                 actor
+               )
     end
 
     test "WH-67: with no endpoint that names the type nothing is recorded and nothing is queued",

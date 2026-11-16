@@ -349,7 +349,6 @@ defmodule Relay.Access.Pairing do
   end
 
   defp signer_result({:ok, %{ais: ais} = signed}) when is_binary(ais), do: {:ok, signed}
-  defp signer_result({:error, :kernel_unavailable}), do: {:error, "kernel-unavailable"}
   defp signer_result({:error, {:unsignable, code}}) when is_binary(code), do: {:error, code}
   defp signer_result(_failed), do: {:error, "pairing-signer"}
 

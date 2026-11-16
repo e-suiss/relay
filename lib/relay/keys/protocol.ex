@@ -20,6 +20,7 @@ defmodule Relay.Keys.Protocol do
           | {:store_secret, binary(), binary()}
           | {:generate_key_pair, :ed25519, binary(), binary()}
           | {:destroy_key_pair, :ed25519, binary()}
+          | {:sign_pairing, binary(), Relay.Keys.pairing()}
 
   @type kind ::
           :ping
@@ -33,9 +34,12 @@ defmodule Relay.Keys.Protocol do
           | :store_secret
           | :generate_key_pair
           | :destroy_key_pair
+          | :sign_pairing
 
   @type result ::
-          :ok | {:ok, binary() | Relay.Keys.public_key() | Redacted.t()} | {:error, Error.t()}
+          :ok
+          | {:ok, binary() | [binary(), ...] | Relay.Keys.public_key() | Redacted.t()}
+          | {:error, Error.t()}
 
   # TN-63
   @doc "Encodes a request frame."
@@ -67,6 +71,23 @@ defmodule Relay.Keys.Protocol do
 
   def encode(id, {:destroy_key_pair, alg, label}), do: [header(id, 10), alg(alg), field(label)]
 
+  # E-101
+  def encode(id, {:sign_pairing, label, pairing}) do
+    [
+      header(id, 11),
+      field(label),
+      field(pairing.domain),
+      field(pairing.basis),
+      field(pairing.pep),
+      field(pairing.party),
+      field(pairing.kid),
+      field(pairing.challenge),
+      <<pairing.valid_from_ms::64, pairing.valid_until_ms::64, pairing.now_ms::64>>,
+      exercise(pairing.instance_create),
+      register(pairing.party_register)
+    ]
+  end
+
   @doc "Returns the response shape expected for a request."
   @spec kind(request()) :: kind()
   def kind(:ping), do: :ping
@@ -80,6 +101,7 @@ defmodule Relay.Keys.Protocol do
   def kind({:store_secret, _, _}), do: :store_secret
   def kind({:generate_key_pair, _, _, _}), do: :generate_key_pair
   def kind({:destroy_key_pair, _, _}), do: :destroy_key_pair
+  def kind({:sign_pairing, _, _}), do: :sign_pairing
 
   @doc "Decodes a response frame into its request id, status byte and fields."
   @spec decode(binary()) ::
@@ -93,7 +115,7 @@ defmodule Relay.Keys.Protocol do
 
   def decode(_frame), do: malformed()
 
-  @doc "Turns a decoded response into the typed result for a request kind; unwrapped key material and secrets come back redacted."
+  @doc "Turns a decoded response into the typed result for a request kind; unwrapped key material and secrets come back redacted. A pairing challenge the program refuses comes back as `:key_refused` with the code of the failed check in `details.reason`."
   @spec result(kind(), non_neg_integer(), [binary()]) :: result()
   def result(:ping, 0, []), do: :ok
   def result({:sign, _alg}, 0, [signature]), do: {:ok, signature}
@@ -107,7 +129,13 @@ defmodule Relay.Keys.Protocol do
   def result(:store_secret, 0, []), do: :ok
   def result(:generate_key_pair, 0, [<<_::256>> = public]), do: {:ok, public}
   def result(:destroy_key_pair, 0, []), do: :ok
+  def result(:sign_pairing, 0, [ais]), do: {:ok, [ais]}
+  def result(:sign_pairing, 0, [ais, register_ais]), do: {:ok, [ais, register_ais]}
   def result(_kind, 0, _fields), do: malformed()
+
+  # E-101
+  def result(:sign_pairing, 8, [reason]) when is_binary(reason),
+    do: {:error, Error.new(:key_refused, "key store: refused: " <> reason, %{reason: reason})}
 
   def result(_kind, status, [message]) when status in 1..7 and is_binary(message),
     do: {:error, Error.new(code(status), "key store: " <> message)}
@@ -124,6 +152,11 @@ defmodule Relay.Keys.Protocol do
   defp key_kind(:hmac_sha256), do: <<2>>
 
   defp field(bytes), do: [<<byte_size(bytes)::32>>, bytes]
+
+  defp exercise(%{nonce: nonce, intent: intent}), do: [field(nonce), field(intent)]
+
+  defp register(nil), do: <<0>>
+  defp register(exercise), do: [<<1>>, exercise(exercise)]
 
   defp fields(<<>>, acc), do: {:ok, Enum.reverse(acc)}
 

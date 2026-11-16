@@ -1,6 +1,6 @@
 defmodule Relay.Keys do
   @moduledoc """
-  Key store port. Provider signing keys, the regional KEK that wraps tenant data keys, the blind index HMAC keys, the secret fingerprint key, secret data objects and the audit checkpoint key live in a PKCS#11 token; code reaches them only through this module, and the configured implementation talks to the token through a separate OS process. Blind index keys are generated inside the token and never leave it: the HMAC is computed inside it.
+  Key store port. Provider signing keys, the regional KEK that wraps tenant data keys, the blind index HMAC keys, the secret fingerprint key, secret data objects, the audit checkpoint key and the Access service key live in a PKCS#11 token; code reaches them only through this module, and the configured implementation talks to the token through a separate OS process. Blind index keys are generated inside the token and never leave it: the HMAC is computed inside it.
 
   The installation's key labels are configured under `config :relay, Relay.Keys`: `:kek_label` names the region KEK, `:fingerprint_label` the secret fingerprint key and `:cursor_label` the key that signs pagination cursors.
   """
@@ -20,6 +20,24 @@ defmodule Relay.Keys do
   @typedoc "Public key: the uncompressed P-256 point, the 32-byte Ed25519 key, or the RSA modulus and exponent."
   @type public_key :: binary() | {modulus :: binary(), exponent :: binary()}
 
+  @typedoc "One Exercise of an Access pairing challenge: its nonce and the intent digest Access computed."
+  @type pairing_exercise :: %{nonce: binary(), intent: <<_::256>>}
+
+  @typedoc "An Access pairing challenge of one realm as Access sent it, with the Unix millisecond of signing; every time is a non-negative 64-bit number of milliseconds."
+  @type pairing :: %{
+          domain: <<_::256>>,
+          basis: <<_::128>>,
+          pep: String.t(),
+          party: <<_::128>>,
+          kid: <<_::256>>,
+          challenge: <<_::256>>,
+          valid_from_ms: non_neg_integer(),
+          valid_until_ms: non_neg_integer(),
+          now_ms: non_neg_integer(),
+          instance_create: pairing_exercise(),
+          party_register: pairing_exercise() | nil
+        }
+
   @callback ping() :: :ok | {:error, Error.t()}
   @callback sign(alg(), label(), binary()) :: {:ok, binary()} | {:error, Error.t()}
   @callback public_key(alg(), label()) :: {:ok, public_key()} | {:error, Error.t()}
@@ -32,6 +50,7 @@ defmodule Relay.Keys do
   @callback generate_key_pair(:ed25519, label(), binary()) ::
               {:ok, <<_::256>>} | {:error, Error.t()}
   @callback destroy_key_pair(:ed25519, label()) :: :ok | {:error, Error.t()}
+  @callback sign_pairing(label(), pairing()) :: {:ok, [binary(), ...]} | {:error, Error.t()}
 
   @algs [:es256, :rs256, :ed25519]
   @port_keys [:module, :token, :pin_file]
@@ -157,6 +176,13 @@ defmodule Relay.Keys do
   @spec destroy_key_pair(:ed25519, label()) :: :ok | {:error, Error.t()}
   def destroy_key_pair(:ed25519, label) when is_binary(label) and label != "",
     do: impl().destroy_key_pair(:ed25519, label)
+
+  # E-101
+  # TN-63
+  @doc "Signs the Actor Intent Statements of an Access pairing challenge with the Ed25519 key `label`: the `COSE_Sign1` of `instance_create` and then, when the challenge names it, of `party_register`. The key store checks the challenge against the public half of the key (`kid`, nonces, at least 60 seconds of validity, PEP name), checks that the basis is the Genesis bootstrap Grant of the domain and recomputes the intent digests with the Access kernel before the private key signs inside the token; a challenge that fails a check is refused with `:key_refused` and the code of the check in `details.reason`, and nothing of it is signed."
+  @spec sign_pairing(label(), pairing()) :: {:ok, [binary(), ...]} | {:error, Error.t()}
+  def sign_pairing(label, pairing) when is_binary(label) and label != "" and is_map(pairing),
+    do: impl().sign_pairing(label, pairing)
 
   # TN-26
   # TN-27

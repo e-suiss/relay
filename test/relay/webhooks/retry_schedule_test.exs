@@ -19,7 +19,10 @@ defmodule Relay.Webhooks.RetryScheduleTest do
   @now ~U[2026-11-16 08:00:00.000Z]
   @options [jitter_bp: @jitter_bp, max_deferrals: 3]
 
-  defp id(seed), do: binary_part(:crypto.hash(:sha256, Integer.to_string(seed)), 0, 16)
+  defp id(seed) do
+    random = binary_part(:crypto.hash(:sha256, Integer.to_string(seed)), 0, 10)
+    Relay.Id.build(1_793_000_000_000, random)
+  end
 
   defp fail(waits, progress, id, options \\ []),
     do: RetrySchedule.after_failure(waits, progress, id, @now, @options ++ options)

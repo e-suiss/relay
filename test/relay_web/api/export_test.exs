@@ -6,6 +6,7 @@ defmodule RelayWeb.Api.ExportTest do
   alias RelayTest.Api
   alias RelayTest.DeliveryFixture
   alias RelayTest.IngestFixture, as: F
+  alias RelayTest.OutboxEvents
 
   defp today, do: Relay.Clock.utc_now() |> DateTime.to_date()
 
@@ -47,6 +48,30 @@ defmodule RelayWeb.Api.ExportTest do
       listed = F.body(F.request(:get, "/v1/exports", token), 200)["data"]
       assert [%{"id" => listed_id}] = listed
       assert listed_id == requested["id"]
+    end
+
+    test "WH-50, WH-53, WH-11: the end of an export is announced once through the outbox with its thin payload" do
+      %{scope: scope} = DeliveryFixture.sendable!()
+      token = F.token(scope)
+      done = request!(token, "deliveries")
+      failed = request!(token, "usage_records")
+
+      assert OutboxEvents.data(scope, "export.completed") == []
+      assert {:ok, :completed} = Relay.Delivery.run_export(scope, id(done["id"]))
+      assert {:ok, :not_pending} = Relay.Delivery.run_export(scope, id(done["id"]))
+      assert {:ok, :failed} = Relay.Delivery.fail_export(scope, id(failed["id"]))
+      assert {:ok, :not_pending} = Relay.Delivery.fail_export(scope, id(failed["id"]))
+
+      ready = F.body(F.request(:get, "/v1/exports/" <> done["id"], token), 200)
+      assert [completed] = OutboxEvents.data(scope, "export.completed")
+      assert completed["export_id"] == done["id"]
+      assert {:ok, expires_at, 0} = DateTime.from_iso8601(completed["expires_at"])
+      assert {:ok, ready_expires_at, 0} = DateTime.from_iso8601(ready["expires_at"])
+      assert DateTime.diff(expires_at, ready_expires_at, :second) == 0
+      assert Map.keys(completed) == ["expires_at", "export_id"]
+
+      assert OutboxEvents.data(scope, "export.failed") ==
+               [%{"export_id" => failed["id"], "reason" => "unavailable"}]
     end
 
     test "DS-37: a forged, moved or expired link is refused" do

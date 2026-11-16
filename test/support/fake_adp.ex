@@ -5,8 +5,8 @@ defmodule RelayTest.FakeAdp do
 
   use Boundary, top_level?: true, deps: [], exports: []
 
-  @ec_public_key {1, 2, 840, 10045, 2, 1}
-  @prime256v1 {1, 2, 840, 10045, 3, 1, 7}
+  @ec_public_key {1, 2, 840, 10_045, 2, 1}
+  @prime256v1 {1, 2, 840, 10_045, 3, 1, 7}
   @base [:binary, active: false, reuseaddr: true, ip: {127, 0, 0, 1}]
 
   @doc "A test CA with `:server`, the options of a server certificate for `localhost`, `:cacerts`, the CA, and `:pep`, a certificate for `point` (an uncompressed P-256 key) issued by the CA from a template peer certificate."

@@ -114,6 +114,12 @@ defmodule Relay.Keys.Port do
   def generate_key_pair(server \\ __MODULE__, :ed25519, label, id),
     do: request(server, {:generate_key_pair, :ed25519, label, id})
 
+  @impl Relay.Keys
+  @doc "Destroys an Ed25519 key pair inside the token through the program. See `Relay.Keys.destroy_key_pair/2`."
+  @spec destroy_key_pair(GenServer.server(), :ed25519, String.t()) :: :ok | {:error, Error.t()}
+  def destroy_key_pair(server \\ __MODULE__, :ed25519, label),
+    do: request(server, {:destroy_key_pair, :ed25519, label})
+
   defp request(server, request) do
     GenServer.call(server, {:request, request}, :infinity)
   catch

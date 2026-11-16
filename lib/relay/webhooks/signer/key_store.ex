@@ -47,6 +47,12 @@ defmodule Relay.Webhooks.Signer.KeyStore do
     }
   end
 
+  # WH-6
+  # TN-63
+  @impl Signer
+  def destroy(<<_::128>> = id),
+    do: Relay.Keys.destroy_key_pair(:ed25519, @label_prefix <> Relay.Id.to_string(id))
+
   # WH-4
   # WH-6
   @impl Signer

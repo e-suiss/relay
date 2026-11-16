@@ -265,6 +265,45 @@ defmodule Relay.Keys.SoftHSMTest do
     refute other == public
   end
 
+  test "WH-6, TN-63: a destroyed Ed25519 key pair never signs again, and only its own objects go",
+       %{keys: keys} do
+    label = "relay-webhook-#{System.unique_integer([:positive])}"
+    message = Redacted.wrap("ada@example.com")
+
+    assert {:ok, <<_::binary-size(32)>> = public} =
+             KeyPort.generate_key_pair(keys, :ed25519, label, <<12::128>>)
+
+    assert {:ok, other} = KeyPort.generate_key_pair(keys, :ed25519, label <> "-b", <<13::128>>)
+    assert KeyPort.generate_key(keys, :hmac_sha256, label, <<14::128>>) == :ok
+    assert KeyPort.store_secret(keys, label, Redacted.wrap("kept")) == :ok
+    assert {:ok, mac} = KeyPort.hmac_sha256(keys, label, message)
+
+    assert {:ok, signature} = KeyPort.sign(keys, :ed25519, label, "msg_1.1700000000.{}")
+    assert :crypto.verify(:eddsa, :none, "msg_1.1700000000.{}", signature, [public, :ed25519])
+
+    assert KeyPort.destroy_key_pair(keys, :ed25519, label) == :ok
+
+    assert {:error, %Relay.Error{code: :key_not_found}} =
+             KeyPort.sign(keys, :ed25519, label, "msg_1.1700000000.{}")
+
+    assert {:error, %Relay.Error{code: :key_not_found}} =
+             KeyPort.public_key(keys, :ed25519, label)
+
+    assert KeyPort.destroy_key_pair(keys, :ed25519, label) == :ok
+    assert KeyPort.destroy_key_pair(keys, :ed25519, "relay-webhook-absent") == :ok
+
+    assert KeyPort.hmac_sha256(keys, label, message) == {:ok, mac}
+    assert {:ok, secret} = KeyPort.read_secret(keys, label)
+    assert Redacted.expose(secret) == "kept"
+    assert KeyPort.public_key(keys, :ed25519, label <> "-b") == {:ok, other}
+    assert {:ok, _signature} = KeyPort.sign(keys, :ed25519, label <> "-b", "m")
+
+    assert KeyPort.destroy_key_pair(keys, :ed25519, "es256") == :ok
+    assert KeyPort.destroy_key_pair(keys, :ed25519, "kek") == :ok
+    assert {:ok, _signature} = KeyPort.sign(keys, :es256, "es256", "m")
+    assert {:ok, _wrapped} = KeyPort.wrap(keys, "kek", "aad", Redacted.wrap(<<0::256>>))
+  end
+
   test "TN-26: a secret data object is read back redacted", %{keys: keys} do
     assert {:ok, secret} = KeyPort.read_secret(keys, "smtp")
     assert Redacted.expose(secret) == "smtp-password"

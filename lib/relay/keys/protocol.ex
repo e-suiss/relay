@@ -19,6 +19,7 @@ defmodule Relay.Keys.Protocol do
           | {:generate_key, Relay.Keys.key_kind(), binary(), binary()}
           | {:store_secret, binary(), binary()}
           | {:generate_key_pair, :ed25519, binary(), binary()}
+          | {:destroy_key_pair, :ed25519, binary()}
 
   @type kind ::
           :ping
@@ -31,6 +32,7 @@ defmodule Relay.Keys.Protocol do
           | :generate_key
           | :store_secret
           | :generate_key_pair
+          | :destroy_key_pair
 
   @type result ::
           :ok | {:ok, binary() | Relay.Keys.public_key() | Redacted.t()} | {:error, Error.t()}
@@ -63,6 +65,8 @@ defmodule Relay.Keys.Protocol do
   def encode(id, {:generate_key_pair, alg, label, key_id}),
     do: [header(id, 9), alg(alg), field(label), field(key_id)]
 
+  def encode(id, {:destroy_key_pair, alg, label}), do: [header(id, 10), alg(alg), field(label)]
+
   @doc "Returns the response shape expected for a request."
   @spec kind(request()) :: kind()
   def kind(:ping), do: :ping
@@ -75,6 +79,7 @@ defmodule Relay.Keys.Protocol do
   def kind({:generate_key, _, _, _}), do: :generate_key
   def kind({:store_secret, _, _}), do: :store_secret
   def kind({:generate_key_pair, _, _, _}), do: :generate_key_pair
+  def kind({:destroy_key_pair, _, _}), do: :destroy_key_pair
 
   @doc "Decodes a response frame into its request id, status byte and fields."
   @spec decode(binary()) ::
@@ -101,6 +106,7 @@ defmodule Relay.Keys.Protocol do
   def result(:generate_key, 0, []), do: :ok
   def result(:store_secret, 0, []), do: :ok
   def result(:generate_key_pair, 0, [<<_::256>> = public]), do: {:ok, public}
+  def result(:destroy_key_pair, 0, []), do: :ok
   def result(_kind, 0, _fields), do: malformed()
 
   def result(_kind, status, [message]) when status in 1..7 and is_binary(message),

@@ -103,6 +103,25 @@ defmodule Relay.Platform do
           {:ok, non_neg_integer()} | {:error, term()}
   def dispatch_outbox(scope, opts \\ []), do: Outbox.dispatch(scope, opts)
 
+  # API-72
+  # WH-11
+  @doc "The data of an outbox payload with its internal identifiers written as prefixed external identifiers; see `Relay.Platform.Envelope.data/1`."
+  @spec outbox_data(map()) :: map()
+  defdelegate outbox_data(payload), to: Relay.Platform.Envelope, as: :data
+
+  # WH-12
+  @doc "Reads the data of an outbox event in its own scoped transaction, as `outbox_data/1` writes it; `nil` when the event is no longer kept."
+  @spec outbox_event_data(Relay.Scope.t(), Relay.Id.t(), DateTime.t()) ::
+          {:ok, map() | nil} | {:error, term()}
+  def outbox_event_data(scope, id, created_at) do
+    OutboxStore.in_scope(scope, fn _status ->
+      case OutboxStore.payload(id, created_at) do
+        nil -> nil
+        payload -> Relay.Platform.Envelope.data(payload)
+      end
+    end)
+  end
+
   # C-71
   # OP-5
   @doc "Takes the next sequence number of a stream in its own scoped transaction."

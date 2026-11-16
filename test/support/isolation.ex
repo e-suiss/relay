@@ -75,7 +75,8 @@ defmodule RelayTest.Isolation do
     {"updateWebhookConsumer", %{"name" => "Isolation"}},
     {"createWebhookEventTypeVersion", %{"schema" => %{"type" => "object"}}},
     {"updateWebhookEndpoint", %{"description" => "isolation"}},
-    {"rotateWebhookEndpointKey", %{}}
+    {"rotateWebhookEndpointKey", %{}},
+    {"sendWebhookEndpointTestEvent", %{}}
   ]
   @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
   @sms %{

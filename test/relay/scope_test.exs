@@ -69,7 +69,8 @@ defmodule Relay.ScopeTest do
                :recurrence_due_discovery,
                :digest_window_discovery,
                :workflow_run_due_discovery,
-               :subscriber_token_keys
+               :subscriber_token_keys,
+               :webhook_due_discovery
              ]
     end
 

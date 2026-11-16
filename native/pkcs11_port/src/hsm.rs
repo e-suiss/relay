@@ -1,4 +1,4 @@
-//! Token operations behind the protocol: signing, public key export, AES-256-GCM key wrapping under a KEK, HMAC-SHA256 under a secret key, reading secret data objects, and generating secret keys and Ed25519 key pairs that never leave the token.
+//! Token operations behind the protocol: signing, public key export, AES-256-GCM key wrapping under a KEK, HMAC-SHA256 under a secret key, reading secret data objects, generating secret keys and Ed25519 key pairs that never leave the token, and destroying retired Ed25519 key pairs.
 
 use cryptoki::context::{CInitializeArgs, CInitializeFlags, Pkcs11};
 use cryptoki::error::{Error, RvError};
@@ -347,6 +347,25 @@ impl Hsm {
             }
         }
         Err(last)
+    }
+
+    /// Destroys every Ed25519 private and public key object labelled `label`, private keys first. Objects of any other class or key type under the label are left in place, and a label without such objects succeeds.
+    pub fn destroy_key_pair(&self, alg: Alg, label: &[u8]) -> Result<(), Failure> {
+        if alg != Alg::Ed25519 {
+            return Err(Failure::new(Status::BadRequest, "unsupported algorithm"));
+        }
+        let session = self.context.open_rw_session(self.slot)?;
+        for class in [ObjectClass::PRIVATE_KEY, ObjectClass::PUBLIC_KEY] {
+            let found = session.find_objects(&[
+                Attribute::Class(class),
+                Attribute::KeyType(KeyType::EC_EDWARDS),
+                Attribute::Label(label.to_vec()),
+            ])?;
+            for object in found {
+                session.destroy_object(object)?;
+            }
+        }
+        Ok(())
     }
 
     fn find(

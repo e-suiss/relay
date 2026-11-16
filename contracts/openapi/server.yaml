@@ -23771,9 +23771,15 @@ x-relay-limits:
       default: 100
       max: 1000
     health_window: PT24H
+    destination:
+      max_frame_bytes: 1048576
+      ack_timeout: PT10S
+      max_scram_iterations: 65536
+      assertion_ttl: PT5M
+      credential_ttl: PT5M
     operations_contacts_max: 5
     portal_token_lifetime_seconds: 900
     event_schema_max_bytes: 65536
     x-relay-choice: true
-    x-relay-choice-note: "WH-16 and WH-52 set 20 endpoints per tenant and 5 per consumer, WH-6 the key overlap, WH-7 the timestamp tolerance and the webhook-id retention, WH-52 the 256 KiB payload limit, the delivery log retention, the object batch thresholds and the bounds of a tenant's retry schedule, WH-22 the default schedule and its jitter, WH-24 the timeouts and the 8 kB of an answer, WH-25 the three Retry-After deferrals, WH-36 the automatic disable, WH-55 the circuit breaker and WH-56 the five operations contacts. The 20 per tenant count the tenant's own relay_events endpoints and the 5 per consumer the endpoints of one consumer; archived endpoints and endpoints managed by a product are not counted. The per-endpoint concurrency and rate (WH-38), the health window, the portal token lifetime, the schema size and the per-endpoint list sizes are contract choices. allowed_ports is the default; an installation adds ports in its configuration (WH-40)."
+    x-relay-choice-note: "WH-16 and WH-52 set 20 endpoints per tenant and 5 per consumer, WH-6 the key overlap, WH-7 the timestamp tolerance and the webhook-id retention, WH-52 the 256 KiB payload limit, the delivery log retention, the object batch thresholds and the bounds of a tenant's retry schedule, WH-22 the default schedule and its jitter, WH-24 the timeouts and the 8 kB of an answer, WH-25 the three Retry-After deferrals, WH-36 the automatic disable, WH-55 the circuit breaker and WH-56 the five operations contacts. The 20 per tenant count the tenant's own relay_events endpoints and the 5 per consumer the endpoints of one consumer; archived endpoints and endpoints managed by a product are not counted. The per-endpoint concurrency and rate (WH-38), the limits of the broker and cloud destinations (destination: the largest frame, the acknowledgement wait, the SCRAM iteration ceiling and the lifetimes of an assertion and of a derived credential), the health window, the portal token lifetime, the schema size and the per-endpoint list sizes are contract choices. allowed_ports is the default; an installation adds ports in its configuration (WH-40)."
 x-relay-error-catalog: "../errors.yaml"

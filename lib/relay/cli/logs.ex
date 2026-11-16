@@ -94,7 +94,7 @@ defmodule Relay.CLI.Logs do
   defp rule(_delivery), do: ""
 
   # X-33
-  @doc "The list filters of `logs` and `listen`: `--workflow`, `--subscriber` and `--status`."
+  @doc "The list filters of `logs`: `--workflow`, `--subscriber` and `--status`."
   @spec filters(keyword()) :: keyword()
   def filters(opts) do
     for key <- [:workflow, :subscriber, :status], is_binary(opts[key]), do: {key, opts[key]}

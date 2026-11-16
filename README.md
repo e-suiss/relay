@@ -120,7 +120,7 @@ export RELAY_CLIENT_SECRET_FILE=~/.config/relay/test.secret
 relay trigger welcome --to user-4821 --data '{"first_name": "Ayşe"}'
 relay preview welcome --to user-4821 --data-file data.json   # dry run, test only
 relay logs --follow                                          # watch new notifications
-relay listen --forward-to http://localhost:3000/relay        # forward them to your app
+relay listen --forward-to http://localhost:3000/relay        # forward signed webhook events to your app
 relay pull --format yaml                                     # routes, templates, workflows as files
 relay push --publish                                         # files back as published drafts
 relay promote welcome --yes                                  # test version to live

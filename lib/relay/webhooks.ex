@@ -15,10 +15,13 @@ defmodule Relay.Webhooks do
 
   alias Relay.Actor
   alias Relay.Scope
+  alias Relay.Webhooks.DestinationEvents
+  alias Relay.Webhooks.DestinationStore
   alias Relay.Webhooks.Egress
   alias Relay.Webhooks.Egress.Policy
   alias Relay.Webhooks.Engine
   alias Relay.Webhooks.EngineStore
+  alias Relay.Webhooks.Envelope
   alias Relay.Webhooks.EventSchema
   alias Relay.Webhooks.Fanout
   alias Relay.Webhooks.Health
@@ -469,6 +472,53 @@ defmodule Relay.Webhooks do
   @doc "Records one of Relay's own events and creates its messages with their jobs, inside the caller's scoped transaction: the transaction of the outbox dispatcher. Dispatching the same event again creates nothing. See `Relay.Webhooks.Fanout.relay_event/1`."
   @spec deliver_event(Fanout.event()) :: [map()]
   defdelegate deliver_event(event), to: Fanout, as: :relay_event
+
+  # WH-1
+  # WH-13
+  # WF-11
+  @doc "Prepares an event of a tenant event type for the consumer with `consumer_key`, outside any transaction: the data is validated against the type's schema and sealed. `{:refused, reason}` is a decision about the event. See `Relay.Webhooks.DestinationEvents.prepare/4`."
+  @spec prepare_destination_event(Scope.t(), String.t(), String.t(), term()) ::
+          {:ok, DestinationEvents.prepared()}
+          | {:refused, DestinationEvents.refusal()}
+          | {:error, term()}
+  defdelegate prepare_destination_event(scope, consumer_key, event_type, data),
+    to: DestinationEvents,
+    as: :prepare
+
+  # WH-1
+  # WH-2
+  # WF-11
+  @doc "Records a prepared tenant event under `event_id` and creates one message with its job for each subscribed endpoint of its consumer, inside the caller's scoped transaction; `opts` may carry `:occurred_at` and `:traceparent`. Emitting an identifier again creates nothing. See `Relay.Webhooks.DestinationEvents.emit/3`."
+  @spec emit_destination_event(id(), DestinationEvents.prepared(), map()) ::
+          %{messages: non_neg_integer()}
+  defdelegate emit_destination_event(event_id, prepared, opts), to: DestinationEvents, as: :emit
+
+  # WF-11
+  @doc "The states of the messages of tenant events, by event identifier, inside the caller's scoped transaction: the delivery result a workflow may read. The consumer's answers are not part of it."
+  @spec destination_event_states([id()]) :: %{id() => [String.t()]}
+  defdelegate destination_event_states(event_ids), to: DestinationEvents, as: :states
+
+  # WH-45 (2)
+  # WH-11
+  # API-56
+  @doc "Lists Relay's own events of the scope, newest first, from a decoded cursor: `filters` may hold `:event_type` and `:created_after`. Each row carries, under `\"envelope\"`, the thin CloudEvents envelope of the event as a map, or `nil` when it cannot be built; at most `limit + 1` rows come back."
+  @spec list_events(Scope.t(), map(), cursor(), pos_integer()) :: result([map()])
+  def list_events(%Scope{} = scope, filters, cursor, limit) do
+    type = Map.get(filters, :event_type)
+    since = Map.get(filters, :created_after)
+    page = fn -> DestinationStore.events(type, since, cursor, limit) end
+
+    with {:ok, rows} <- read(scope, page) do
+      {:ok, Enum.map(rows, &Map.put(&1, "envelope", envelope_map(scope, &1)))}
+    end
+  end
+
+  defp envelope_map(scope, event) do
+    case Engine.thin_envelope(scope, event) do
+      %Envelope{} = envelope -> envelope |> Envelope.encode() |> Jason.decode!()
+      nil -> nil
+    end
+  end
 
   # WH-32 (4)
   @doc "Makes one delivery attempt of a message outside any transaction; see `Relay.Webhooks.Engine.attempt/3`. The attempt worker calls it; `manual: true` is a resend."

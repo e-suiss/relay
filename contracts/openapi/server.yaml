@@ -17489,6 +17489,101 @@ paths:
       x-relay-stage: 10
       x-relay-choice: true
       x-relay-choice-note: "Path and shapes are chosen by the contract within the named decisions."
+  "/v1/webhook_events":
+    get:
+      operationId: listWebhookEvents
+      tags:
+        - webhooks
+      summary: "List webhook events"
+      description: "Pages through Relay's own events of this environment, newest first, each with the thin CloudEvents envelope an endpoint without a snapshot receives (WH-8, WH-11): identifiers only, no personal data. It is the feed of the local development tunnel (WH-45, API-64): relay listen --forward-to reads it and forwards each envelope to a local address with the headers of the webhook profile, signed with a secret of the listening session. Relay never calls a developer machine and there is no customer defined bridge URL. Events of a tenant's own event types (use destination) are not part of the feed. An event is listed whether or not an endpoint subscribes to its type, for the delivery log retention (x-relay-limits webhook.retention)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+        - name: event_type
+          in: query
+          description: "Only events of this type."
+          required: false
+          schema:
+            "$ref": "./components/schemas.yaml#/EventName"
+        - name: created_after
+          in: query
+          description: "Only events recorded at or after this time."
+          required: false
+          schema:
+            "$ref": "./components/schemas.yaml#/Timestamp"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+      responses:
+        "200":
+          description: "A page of events."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/WebhookEventList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-45 and API-64 place the local development tunnel in the CLI and forbid a bridge URL in the API; they do not say how the CLI reads the events it forwards. The contract chose a paged, read-only feed of the environment's own thin events, its path and its shapes."
   "/v1/webhook_messages":
     get:
       operationId: listWebhookMessages

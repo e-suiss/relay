@@ -61,7 +61,7 @@ defmodule Relay.CLI.Args do
     "push" => {@push ++ [dir: :string, kind: :keep], 0, :many},
     "promote" => {@push ++ [kind: :string, all: :boolean, version: :integer], 0, :many},
     "logs" => {@filters ++ @logs, 0, 0},
-    "listen" => {@filters ++ [forward_to: :string], 0, 0}
+    "listen" => {[interval: :integer, forward_to: :string, event_type: :string], 0, 0}
   }
 
   @engage [
@@ -108,7 +108,8 @@ defmodule Relay.CLI.Args do
     logs                        Show recent notifications (--follow, --deliveries, --limit,
                                 --since, --until); --why --subscriber <id> explains why
                                 a subscriber did or did not get them
-    listen --forward-to <url>   Forward new notifications to a local URL
+    listen --forward-to <url>   Forward the environment's webhook events to a local URL,
+                                signed with the webhook profile (--event-type <type>)
     kill-switch list            List kill switches (--include-released)
     kill-switch get <id>        Show a kill switch
     kill-switch engage          Engage a kill switch (--scope, --ref, --reason, --ttl)
@@ -137,8 +138,8 @@ defmodule Relay.CLI.Args do
     --all                       promote: every published definition of test
     --version <n>               promote: this version of one template or workflow
 
-  Filters (logs, listen): --workflow <key>, --subscriber <id>, --status <status>,
-  --interval <seconds> (polling interval, default 2)
+  Filters (logs): --workflow <key>, --subscriber <id>, --status <status>
+  Polling (logs --follow, listen): --interval <seconds> (default 2)
 
   Global options:
     --env test|live             Environment of the API client (RELAY_ENVIRONMENT)

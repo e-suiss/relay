@@ -1,6 +1,6 @@
 defmodule Relay.CLI.Feed do
   @moduledoc """
-  Polling of new notifications for `logs --follow` and `listen`. Each poll reads `GET /v1/notifications` (operation `listNotifications`) with `created_after` set to the newest creation time seen so far, the start of the command at first, follows every page and hands over the notifications not seen before, oldest first. A connection failure is reported and the next poll tries again; any other failure ends the command.
+  Polling of a list that grows for `logs --follow` and `listen`. Each poll reads the feed's list, `GET /v1/notifications` (operation `listNotifications`) unless the feed names another, with `created_after` set to the newest creation time seen so far, the start of the command at first, follows every page and hands over the entries not seen before, oldest first. A connection failure is reported and the next poll tries again; any other failure ends the command.
   """
 
   alias Relay.CLI.Client
@@ -8,15 +8,22 @@ defmodule Relay.CLI.Feed do
   alias Relay.CLI.Failure
   alias Relay.CLI.Output
 
+  @notifications "/v1/notifications"
+
   @enforce_keys [:watermark]
-  defstruct [:watermark, seen: %{}]
+  defstruct [:watermark, path: @notifications, seen: %{}]
 
   @type summary :: %{polls: non_neg_integer(), notifications: non_neg_integer()}
-  @type t :: %__MODULE__{watermark: DateTime.t(), seen: %{optional(String.t()) => DateTime.t()}}
+  @type t :: %__MODULE__{
+          watermark: DateTime.t(),
+          path: String.t(),
+          seen: %{optional(String.t()) => DateTime.t()}
+        }
 
-  @doc "A feed of the notifications created from `since` on."
-  @spec new(DateTime.t()) :: t()
-  def new(%DateTime{} = since), do: %__MODULE__{watermark: %{since | microsecond: {0, 0}}}
+  @doc "A feed of the entries of the list at `path` created from `since` on; the notifications by default."
+  @spec new(DateTime.t(), String.t()) :: t()
+  def new(%DateTime{} = since, path \\ @notifications) when is_binary(path),
+    do: %__MODULE__{watermark: %{since | microsecond: {0, 0}}, path: path}
 
   @doc "Marks notifications as seen, so later polls do not hand them over again."
   @spec mark(t(), [map()]) :: t()
@@ -33,7 +40,7 @@ defmodule Relay.CLI.Feed do
   def poll(%Context{} = ctx, filters, %__MODULE__{} = feed) do
     params = [{:created_after, DateTime.to_iso8601(feed.watermark)} | filters]
 
-    case Client.list_all(ctx, ctx.config.environment, "/v1/notifications", params) do
+    case Client.list_all(ctx, ctx.config.environment, feed.path, params) do
       {:ok, notifications} ->
         fresh =
           notifications

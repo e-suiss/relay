@@ -529,6 +529,10 @@ defmodule RelayWeb.Router do
         :version,
         private: %{relay_operation: "getWebhookEndpointVersion"}
 
+    # WH-45 (2)
+    get "/webhook_events", WebhookEventController, :index,
+      private: %{relay_operation: "listWebhookEvents"}
+
     # WH-56
     get "/operations_contacts", OperationsContactController, :show,
       private: %{relay_operation: "getOperationsContacts"}

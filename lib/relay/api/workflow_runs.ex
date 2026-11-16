@@ -123,8 +123,22 @@ defmodule Relay.Api.WorkflowRuns do
       routes: Map.get(p, :routes, %{}),
       variants: Relay.Workflow.variants(definition, p.workflow["key"], row["id"]),
       facts: facts(),
-      correlation_digests: Map.get(p, :correlation_digests, %{})
+      correlation_digests: Map.get(p, :correlation_digests, %{}),
+      webhook_events: Map.get(p, :webhook_events, %{})
     }
+  end
+
+  # WF-11
+  # WH-13
+  @doc "Prepares, outside any transaction, the events of a run's `webhook` steps from the event data (`Relay.Workflow.webhook_events/4`); the steps whose keys are in `done` already ran."
+  @spec webhook_events(Relay.Scope.t(), map(), term(), [String.t()]) ::
+          {:ok, map()} | {:error, Relay.Error.t()}
+  def webhook_events(scope, definition, data, done \\ []) do
+    case Relay.Workflow.webhook_events(scope, definition, data, done) do
+      {:ok, hooks} -> {:ok, hooks}
+      {:error, %Relay.Error{} = error} -> {:error, error}
+      {:error, _reason} -> {:error, Relay.Error.new(:service_unavailable, "webhook unavailable")}
+    end
   end
 
   # AG-65
@@ -220,7 +234,9 @@ defmodule Relay.Api.WorkflowRuns do
          {:ok, policy} <- category(scope, plan, run["subtenant_id"]),
          {:ok, settings, installation} <- settings(scope, run["workflow_key"], plan),
          {:ok, digests} <-
-           correlation_digests(scope, run["definition"], data, [attributes], nil) do
+           correlation_digests(scope, run["definition"], data, [attributes], nil),
+         {:ok, hooks} <-
+           webhook_events(scope, run["definition"], data, Map.keys(run["step_results"] || %{})) do
       p = %{
         scope: scope,
         workflow: %{
@@ -244,7 +260,8 @@ defmodule Relay.Api.WorkflowRuns do
         subtenant: subtenant,
         traceparent: plan["traceparent"],
         is_test: plan["is_test"] == true,
-        correlation_digests: digests
+        correlation_digests: digests,
+        webhook_events: hooks
       }
 
       {:ok, fn -> bind(with_device(p, run, plan), run, data, attributes) end}
@@ -274,7 +291,8 @@ defmodule Relay.Api.WorkflowRuns do
       routes: run["plan"]["routes"] || %{},
       variants: run["plan"]["variants"] || %{},
       facts: facts(),
-      correlation_digests: p.correlation_digests
+      correlation_digests: p.correlation_digests,
+      webhook_events: p.webhook_events
     }
 
     opener = fn step, channel, pointer ->

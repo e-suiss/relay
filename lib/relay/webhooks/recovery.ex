@@ -20,10 +20,10 @@ defmodule Relay.Webhooks.Recovery do
   @batch 100
   @operations ~w(recover retry replay cancel_retries)
   @actions %{
-    "recover" => "webhook_endpoint.messages_recovered",
-    "retry" => "webhook_endpoint.messages_retried",
-    "replay" => "webhook_endpoint.events_replayed",
-    "cancel_retries" => "webhook_endpoint.retries_cancelled"
+    "recover" => [action: "webhook_endpoint.messages_recovered"],
+    "retry" => [action: "webhook_endpoint.messages_retried"],
+    "replay" => [action: "webhook_endpoint.events_replayed"],
+    "cancel_retries" => [action: "webhook_endpoint.retries_cancelled"]
   }
 
   @type id :: Relay.Id.t()
@@ -57,7 +57,7 @@ defmodule Relay.Webhooks.Recovery do
          :ok <- free(message, Relay.Clock.utc_now()),
          :ok <- deliverable(LogStore.endpoint(message["endpoint_id"])),
          :ok <- queued(Fanout.attempt_job(message_id, nil, true)) do
-      :appended = audit("webhook_message.resent", "webhook_message", message_id, digest, actor)
+      :appended = message_audit(message_id, digest, actor, action: "webhook_message.resent")
       {:ok, message}
     end
   end
@@ -77,7 +77,7 @@ defmodule Relay.Webhooks.Recovery do
   defp cancelled(%{"id" => id} = message, digest, actor) do
     with :ok <- free(message, Relay.Clock.utc_now()),
          1 <- Fanout.cancel([id], actor.ref) do
-      :appended = audit("webhook_message.cancelled", "webhook_message", id, digest, actor)
+      :appended = message_audit(id, digest, actor, action: "webhook_message.cancelled")
       {:ok, LogStore.message(id)}
     else
       0 -> {:error, :in_flight}
@@ -119,8 +119,8 @@ defmodule Relay.Webhooks.Recovery do
       selection = selection(request, now)
       selected = count(selection, endpoint)
       args = args(selection, actor.ref)
-      action = Map.fetch!(@actions, operation)
-      :appended = audit(action, "webhook_endpoint", endpoint_id, digest, actor)
+      [action: action] = Map.fetch!(@actions, operation)
+      :appended = LogStore.audit(action, "webhook_endpoint", endpoint_id, nil, digest, actor)
 
       with :ok <- begun(operation, args, endpoint_id), do: {:ok, selected}
     end
@@ -276,6 +276,6 @@ defmodule Relay.Webhooks.Recovery do
     DateTime.add(Relay.Clock.utc_now(), div(@batch * 1000, rate) + 1000, :millisecond)
   end
 
-  defp audit(action, target_type, target_id, digest, actor),
-    do: LogStore.audit(action, target_type, target_id, nil, digest, actor)
+  defp message_audit(id, digest, actor, action: action),
+    do: LogStore.audit(action, "webhook_message", id, nil, digest, actor)
 end

@@ -2,7 +2,7 @@ defmodule Relay.Webhooks.Signer do
   @moduledoc """
   The signing port of the Suiss webhook profile (WH-4, WH-5, WH-6, TN-32). Every `https` endpoint has its own key, never shared between endpoints:
 
-    * `v1a`, the default, is an Ed25519 key pair. The private key is generated inside the key store and leaves it only wrapped; it is unwrapped and used there, never in the VM. The public key is stored in the clear and can always be read.
+    * `v1a`, the default, is an Ed25519 key pair. The private key is generated inside the key store and never leaves it; every signature is made there, never in the VM. The public key is stored in the clear and can always be read.
     * `v1` is a 32-byte HMAC-SHA256 secret, for compatibility only. It is shown once, when the key is made, as `whsec_` and its base64, and cannot be read back.
 
   What is stored of either is sealed under the tenant's data key and opened only by the process that signs.
@@ -28,7 +28,7 @@ defmodule Relay.Webhooks.Signer do
           secret: Redacted.t() | nil
         }
 
-  @typedoc "A stored signing key as `Relay.Webhooks.signing_keys/2` reads it: a row with `\"scheme\"`, `\"secret_ct\"` and `\"secret_key_id\"`."
+  @typedoc "A stored signing key as `Relay.Webhooks.signing_keys/2` reads it: a row with the columns `scheme`, `secret_ct` and `secret_key_id`."
   @type key :: %{required(String.t()) => term()}
 
   @doc "Makes a signing key of `scheme` for an endpoint of `scope`."

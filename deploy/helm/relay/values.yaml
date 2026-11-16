@@ -46,7 +46,6 @@ keyStore:
   kekLabel: ""
   fingerprintLabel: ""
   cursorLabel: ""
-  webhookWrapLabel: ""
   pinSecret: relay-key-store-pin
   env: []
   volumes: []

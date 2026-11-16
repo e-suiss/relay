@@ -70,11 +70,13 @@ defmodule Relay.Repo.Migrations.CreateWebhookTables do
         environment relay.environment NOT NULL,
         id uuid NOT NULL,
         key text NOT NULL
-          CONSTRAINT webhook_consumers_key_check CHECK (key ~ '^[!-~]{1,256}$'),
+          CONSTRAINT webhook_consumers_key_check
+            CHECK (char_length(key) BETWEEN 1 AND 256 AND key ~ '^[!-~]+$'),
         name text
           CONSTRAINT webhook_consumers_name_check CHECK (char_length(name) BETWEEN 1 AND 256),
         source text
-          CONSTRAINT webhook_consumers_source_check CHECK (source ~ '^[!-~]{1,1024}$'),
+          CONSTRAINT webhook_consumers_source_check
+            CHECK (char_length(source) BETWEEN 1 AND 1024 AND source ~ '^[!-~]+$'),
         subtenant_id uuid,
         state text NOT NULL
           CONSTRAINT webhook_consumers_state_check CHECK (state IN ('active', 'archived')),

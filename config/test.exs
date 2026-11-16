@@ -52,8 +52,7 @@ config :relay, keys: RelayTest.Keys
 config :relay, Relay.Keys,
   kek_label: "kek-test",
   fingerprint_label: "fingerprint-test",
-  cursor_label: "cursor-test",
-  webhook_wrap_label: "webhook-wrap-test"
+  cursor_label: "cursor-test"
 
 config :relay, RelayWeb.Auth, verifier: RelayTest.Api.Verifier
 

@@ -179,15 +179,7 @@ fn run(hsm: &Hsm, op: Op) -> Result<Vec<Zeroizing<Vec<u8>>>, Failure> {
             hsm.store_secret(&label, &value)?;
             vec![]
         }
-        Op::GenerateWrapped { label } => {
-            let (wrapped, public) = hsm.generate_wrapped(&label)?;
-            vec![wrapped, public]
-        }
-        Op::SignWrapped {
-            label,
-            wrapped,
-            message,
-        } => vec![hsm.sign_wrapped(&label, &wrapped, &message)?],
+        Op::GenerateKeyPair { label, id } => vec![hsm.generate_key_pair(&label, &id)?],
     };
     Ok(fields.into_iter().map(Zeroizing::new).collect())
 }

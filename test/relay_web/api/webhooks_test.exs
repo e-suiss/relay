@@ -494,7 +494,7 @@ defmodule RelayWeb.Api.WebhooksTest do
       assert %{"object" => "operations_contacts", "emails" => [], "updated_at" => nil} =
                get(ctx, "/v1/operations_contacts")
 
-      emails = ["ops@example.com", "oncall@example.com"]
+      emails = ["oncall@example.com", "ops@example.com"]
       assert F.body(put(ctx, emails), 200)["emails"] == emails
       assert %{"emails" => ^emails, "updated_at" => at} = get(ctx, "/v1/operations_contacts")
       assert at

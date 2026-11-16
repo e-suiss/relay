@@ -102,7 +102,7 @@ defmodule Relay.Webhooks do
   defdelegate consumer_create(attrs, digest, actor), to: Store
 
   # WH-2
-  @doc "Changes the `\"name\"` or `\"source\"` of a consumer inside the caller's scoped transaction; `changes` holds only the fields to change."
+  @doc "Changes the `name` or `source` of a consumer inside the caller's scoped transaction; `changes` holds only the fields to change."
   @spec consumer_update(id(), pos_integer() | nil, map(), binary(), Actor.t()) ::
           {atom(), pos_integer() | nil}
   defdelegate consumer_update(id, expected_version, changes, digest, actor), to: Store
@@ -192,7 +192,7 @@ defmodule Relay.Webhooks do
 
   # WH-5
   # TN-32
-  @doc "Makes a signing key of `scheme` (`\"v1a\"` or `\"v1\"`) for a new endpoint or a rotation, outside any transaction; see `Relay.Webhooks.Signer`. The `:secret` of a `v1` key is shown once and kept nowhere else."
+  @doc "Makes a signing key of `scheme` (`v1a` or `v1`, as text) for a new endpoint or a rotation, outside any transaction; see `Relay.Webhooks.Signer`. The `:secret` of a `v1` key is shown once and kept nowhere else."
   @spec new_key(Scope.t(), String.t()) :: {:ok, Signer.generated()} | {:error, Relay.Error.t()}
   def new_key(%Scope{} = scope, scheme) when scheme in ["v1a", "v1"] do
     {:ok, scheme} = Signer.scheme(scheme)

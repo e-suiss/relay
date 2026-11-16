@@ -49,8 +49,6 @@
   value: {{ required "keyStore.fingerprintLabel is required" .Values.keyStore.fingerprintLabel | quote }}
 - name: KEY_STORE_CURSOR_LABEL
   value: {{ required "keyStore.cursorLabel is required" .Values.keyStore.cursorLabel | quote }}
-- name: KEY_STORE_WEBHOOK_WRAP_LABEL
-  value: {{ required "keyStore.webhookWrapLabel is required" .Values.keyStore.webhookWrapLabel | quote }}
 - name: AUDIT_S3_ENDPOINT
   value: {{ required "auditStore.endpoint is required" .Values.auditStore.endpoint | quote }}
 - name: AUDIT_S3_BUCKET

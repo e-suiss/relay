@@ -50,7 +50,6 @@ PKCS11_PIN_FILE=/run/softhsm/pin
 KEY_STORE_KEK_LABEL=kek-smoke
 KEY_STORE_FINGERPRINT_LABEL=fingerprint-smoke
 KEY_STORE_CURSOR_LABEL=cursor-smoke
-KEY_STORE_WEBHOOK_WRAP_LABEL=webhook-wrap-smoke
 SOFTHSM2_CONF=/run/softhsm/softhsm2.conf
 AUDIT_S3_ENDPOINT=${s3_url}
 AUDIT_S3_BUCKET=${bucket}

@@ -1,6 +1,6 @@
 defmodule Relay.Webhooks.Live do
   @moduledoc """
-  The webhook engine on a running node: the sealer of `Relay.Webhooks` (`config :relay, Relay.Webhooks, sealer: Module`), which keeps signing keys, HMAC secrets and operations contact addresses encrypted under the tenant's `data` key (TN-27, TN-32). A value is sealed for the table and column that store it, in the delivery log's retention class, so it opens nowhere else and destroying the tenant's data key shreds it.
+  The webhook engine on a running node: the sealer of `Relay.Webhooks` (`config :relay, Relay.Webhooks, sealer: Module`), which keeps signing key labels, HMAC secrets and operations contact addresses encrypted under the tenant's `data` key (TN-27, TN-32). A value is sealed for the table and column that store it, in the delivery log's retention class, so it opens nowhere else and destroying the tenant's data key shreds it.
   """
 
   use Boundary, top_level?: true, deps: [Relay, Relay.Tenancy], exports: []

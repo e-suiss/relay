@@ -30,7 +30,6 @@ defmodule Relay.SecretFilesTest do
     "KEY_STORE_KEK_LABEL" => "kek",
     "KEY_STORE_FINGERPRINT_LABEL" => "fingerprint",
     "KEY_STORE_CURSOR_LABEL" => "cursor",
-    "KEY_STORE_WEBHOOK_WRAP_LABEL" => "webhook-wrap",
     "RELAY_HOST" => "relay.example.com",
     "RELAY_ACCESS_ISSUER" => "https://access.example.com",
     "RELAY_ACCESS_CLIENT_ID" => "app_relay",

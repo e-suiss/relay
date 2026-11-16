@@ -32,7 +32,6 @@ impl Alg {
 pub enum KeyKind {
     Aes256,
     HmacSha256,
-    Aes256Wrap,
 }
 
 impl KeyKind {
@@ -40,7 +39,6 @@ impl KeyKind {
         match byte {
             1 => Some(KeyKind::Aes256),
             2 => Some(KeyKind::HmacSha256),
-            3 => Some(KeyKind::Aes256Wrap),
             _ => None,
         }
     }
@@ -85,13 +83,9 @@ pub enum Op {
         label: Vec<u8>,
         value: Zeroizing<Vec<u8>>,
     },
-    GenerateWrapped {
+    GenerateKeyPair {
         label: Vec<u8>,
-    },
-    SignWrapped {
-        label: Vec<u8>,
-        wrapped: Vec<u8>,
-        message: Vec<u8>,
+        id: Vec<u8>,
     },
 }
 
@@ -184,8 +178,7 @@ pub fn decode(frame: &[u8]) -> Result<(u32, Op), DecodeError> {
         6 => decode_read_secret(&mut reader),
         7 => decode_generate_key(&mut reader),
         8 => decode_store_secret(&mut reader),
-        9 => decode_generate_wrapped(&mut reader),
-        10 => decode_sign_wrapped(&mut reader),
+        9 => decode_generate_key_pair(&mut reader),
         _ => None,
     };
 
@@ -264,26 +257,16 @@ fn decode_store_secret(reader: &mut Reader<'_>) -> Option<Op> {
     Some(Op::StoreSecret { label, value })
 }
 
-fn decode_generate_wrapped(reader: &mut Reader<'_>) -> Option<Op> {
-    let label = reader.field()?.to_vec();
-    if label.is_empty() {
+fn decode_generate_key_pair(reader: &mut Reader<'_>) -> Option<Op> {
+    if reader.alg()? != Alg::Ed25519 {
         return None;
     }
-    Some(Op::GenerateWrapped { label })
-}
-
-fn decode_sign_wrapped(reader: &mut Reader<'_>) -> Option<Op> {
     let label = reader.field()?.to_vec();
-    let wrapped = reader.field()?.to_vec();
-    let message = reader.field()?.to_vec();
-    if label.is_empty() || wrapped.is_empty() {
+    let id = reader.field()?.to_vec();
+    if label.is_empty() || id.is_empty() {
         return None;
     }
-    Some(Op::SignWrapped {
-        label,
-        wrapped,
-        message,
-    })
+    Some(Op::GenerateKeyPair { label, id })
 }
 
 /// Encodes a response frame body. The buffer is zeroized when dropped.
@@ -417,7 +400,7 @@ mod tests {
             ))
         ));
         for body in [
-            [vec![9], field(b"k"), field(b"1")].concat(),
+            [vec![3], field(b"k"), field(b"1")].concat(),
             [vec![1], field(b""), field(b"1")].concat(),
             [vec![1], field(b"k"), field(b"")].concat(),
             [vec![1], field(b"k")].concat(),
@@ -455,46 +438,26 @@ mod tests {
     }
 
     #[test]
-    fn tn_32_decodes_wrapped_key_operations() {
-        let body = [vec![3], field(b"wrap"), field(b"1")].concat();
-        assert!(matches!(
-            decode(&request(19, 7, &body)),
+    fn wh_5_decodes_generate_key_pair() {
+        let body = [vec![3], field(b"endpoint-key"), field(b"1")].concat();
+        assert_eq!(
+            decode(&request(19, 9, &body)),
             Ok((
                 19,
-                Op::GenerateKey {
-                    kind: KeyKind::Aes256Wrap,
-                    ..
-                }
-            ))
-        ));
-        assert_eq!(
-            decode(&request(20, 9, &field(b"wrap"))),
-            Ok((
-                20,
-                Op::GenerateWrapped {
-                    label: b"wrap".to_vec()
+                Op::GenerateKeyPair {
+                    label: b"endpoint-key".to_vec(),
+                    id: b"1".to_vec()
                 }
             ))
         );
-        let body = [field(b"wrap"), field(&[7, 8]), field(b"id.ts.body")].concat();
-        assert_eq!(
-            decode(&request(21, 10, &body)),
-            Ok((
-                21,
-                Op::SignWrapped {
-                    label: b"wrap".to_vec(),
-                    wrapped: vec![7, 8],
-                    message: b"id.ts.body".to_vec()
-                }
-            ))
-        );
-        for (op, body) in [
-            (9, field(b"")),
-            (10, [field(b"wrap"), field(b""), field(b"m")].concat()),
-            (10, [field(b"wrap"), field(&[7])].concat()),
+        for body in [
+            [vec![1], field(b"k"), field(b"1")].concat(),
+            [vec![3], field(b""), field(b"1")].concat(),
+            [vec![3], field(b"k"), field(b"")].concat(),
+            [vec![3], field(b"k")].concat(),
         ] {
             assert_eq!(
-                decode(&request(22, op, &body)).unwrap_err().status,
+                decode(&request(20, 9, &body)).unwrap_err().status,
                 Status::BadRequest
             );
         }

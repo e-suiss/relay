@@ -1,5 +1,5 @@
 defmodule RelayTest.Keys do
-  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per `relay-dkim/` label (DKIM keys); there are no other signing keys; secret data objects are stored in the calling process; key generation succeeds for any label. A wrapped signing key is an Ed25519 seed sealed with AES-256-GCM under the key behind the wrapping label."
+  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per `relay-dkim/` label (DKIM keys); there are no other signing keys; secret data objects are stored in the calling process; key generation succeeds for any label. An Ed25519 key pair is derived from its label and signs only under a label that starts with `relay-webhook-`."
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
@@ -23,6 +23,9 @@ defmodule RelayTest.Keys do
 
   def sign(:rs256, "relay-dkim/" <> _rest = label, message),
     do: {:ok, :public_key.sign(message, :sha256, rs256(label))}
+
+  def sign(:ed25519, "relay-webhook-" <> _rest = label, message),
+    do: {:ok, :crypto.sign(:eddsa, :none, message, [ed25519(label), :ed25519])}
 
   def sign(_alg, _label, _message), do: not_found()
 
@@ -122,18 +125,12 @@ defmodule RelayTest.Keys do
   def generate_key(_kind, _label, _id), do: :ok
 
   @impl Relay.Keys
-  def generate_wrapped_key(label) do
-    {public, seed} = :crypto.generate_key(:eddsa, :ed25519)
-    {:ok, wrapped} = wrap(label, "relay-test-wrapped-key", Redacted.wrap(seed))
-    {:ok, %{wrapped: wrapped, public_key: public}}
+  def generate_key_pair(:ed25519, label, _id) do
+    {public, _seed} = :crypto.generate_key(:eddsa, :ed25519, ed25519(label))
+    {:ok, public}
   end
 
-  @impl Relay.Keys
-  def sign_wrapped(label, wrapped, message) do
-    with {:ok, seed} <- unwrap(label, "relay-test-wrapped-key", wrapped) do
-      {:ok, :crypto.sign(:eddsa, :none, message, [Redacted.expose(seed), :ed25519])}
-    end
-  end
+  defp ed25519(label), do: :crypto.hash(:sha256, "relay-test-ed25519:" <> label)
 
   defp not_found, do: {:error, Relay.Error.new(:key_not_found, "key store: key not found")}
 

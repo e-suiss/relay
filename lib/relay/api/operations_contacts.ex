@@ -63,8 +63,13 @@ defmodule Relay.Api.OperationsContacts do
     end
   end
 
-  defp view(emails, updated_at),
-    do: %{"object" => "operations_contacts", "emails" => emails, "updated_at" => updated_at}
+  defp view(emails, updated_at) do
+    %{
+      "object" => "operations_contacts",
+      "emails" => Enum.sort(emails),
+      "updated_at" => updated_at
+    }
+  end
 
   defp unavailable, do: Relay.Error.new(:service_unavailable, "try again", %{retry_after: 1})
 end

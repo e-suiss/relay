@@ -108,18 +108,11 @@ defmodule Relay.Keys.Port do
     do: request(server, {:store_secret, label, fn -> Redacted.expose(value) end})
 
   @impl Relay.Keys
-  @doc "Generates a wrapped Ed25519 key through the program. See `Relay.Keys.generate_wrapped_key/1`."
-  @spec generate_wrapped_key(GenServer.server(), String.t()) ::
-          {:ok, %{wrapped: binary(), public_key: <<_::256>>}} | {:error, Error.t()}
-  def generate_wrapped_key(server \\ __MODULE__, label),
-    do: request(server, {:generate_wrapped_key, label})
-
-  @impl Relay.Keys
-  @doc "Signs with a wrapped Ed25519 key through the program. See `Relay.Keys.sign_wrapped/3`."
-  @spec sign_wrapped(GenServer.server(), String.t(), binary(), binary()) ::
-          {:ok, <<_::512>>} | {:error, Error.t()}
-  def sign_wrapped(server \\ __MODULE__, label, wrapped, message),
-    do: request(server, {:sign_wrapped, label, wrapped, message})
+  @doc "Generates an Ed25519 key pair inside the token through the program. See `Relay.Keys.generate_key_pair/3`."
+  @spec generate_key_pair(GenServer.server(), :ed25519, String.t(), binary()) ::
+          {:ok, <<_::256>>} | {:error, Error.t()}
+  def generate_key_pair(server \\ __MODULE__, :ed25519, label, id),
+    do: request(server, {:generate_key_pair, :ed25519, label, id})
 
   defp request(server, request) do
     GenServer.call(server, {:request, request}, :infinity)

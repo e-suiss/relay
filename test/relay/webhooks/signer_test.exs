@@ -62,20 +62,20 @@ defmodule Relay.Webhooks.SignerTest do
   end
 
   describe "WH-5 WH-6 TN-32 the key store signer" do
-    test "WH-5, TN-32: a v1a private key is never in the VM: only its wrapped form is sealed and stored",
+    test "WH-5, TN-32: a v1a private key is never in the VM: only the label of its key store object is sealed and stored",
          %{scope: scope} do
       assert {:ok, key} = KeyStore.generate(scope, :v1a)
       assert %{scheme: "v1a", secret: nil, public_key: <<_::256>> = public} = key
-      assert "sealed:" <> wrapped = key.secret_ct
+      assert "sealed:relay-webhook-" <> id = key.secret_ct
+      assert id == Relay.Id.to_string(key.id)
 
       content = Signer.content("evt_1", 10, "{}")
       assert {:ok, ["v1a," <> encoded]} = KeyStore.sign(scope, [stored(key)], content)
       signature = Base.decode64!(encoded)
       assert :crypto.verify(:eddsa, :none, content, signature, [public, :ed25519])
 
-      label = "webhook-wrap-test"
-      assert {:ok, ^signature} = Relay.Keys.sign_wrapped(label, wrapped, content)
-      assert {:error, %Relay.Error{}} = Relay.Keys.sign_wrapped("other-label", wrapped, content)
+      assert {:ok, other} = KeyStore.generate(scope, :v1a)
+      refute other.public_key == public
     end
 
     test "WH-5: a v1 secret is 32 random bytes, shown once in the Standard Webhooks form", %{

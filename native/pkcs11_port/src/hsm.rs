@@ -1,4 +1,4 @@
-//! Token operations behind the protocol: signing, public key export, AES-256-GCM key wrapping under a KEK, HMAC-SHA256 under a secret key, reading secret data objects, generating secret keys that never leave the token, and Ed25519 keys that leave it only wrapped under a wrapping key and sign after being unwrapped inside it.
+//! Token operations behind the protocol: signing, public key export, AES-256-GCM key wrapping under a KEK, HMAC-SHA256 under a secret key, reading secret data objects, and generating secret keys and Ed25519 key pairs that never leave the token.
 
 use cryptoki::context::{CInitializeArgs, CInitializeFlags, Pkcs11};
 use cryptoki::error::{Error, RvError};
@@ -255,16 +255,14 @@ impl Hsm {
         if !taken.is_empty() {
             return Err(Failure::new(Status::Exists, "key label already exists"));
         }
-        let (mechanism, key_type, encrypt, sign, wrap) = match kind {
-            KeyKind::Aes256 => (Mechanism::AesKeyGen, KeyType::AES, true, false, false),
+        let (mechanism, key_type, encrypt, sign) = match kind {
+            KeyKind::Aes256 => (Mechanism::AesKeyGen, KeyType::AES, true, false),
             KeyKind::HmacSha256 => (
                 Mechanism::GenericSecretKeyGen,
                 KeyType::GENERIC_SECRET,
                 false,
                 true,
-                false,
             ),
-            KeyKind::Aes256Wrap => (Mechanism::AesKeyGen, KeyType::AES, false, false, true),
         };
         let template = [
             Attribute::Class(ObjectClass::SECRET_KEY),
@@ -278,8 +276,8 @@ impl Hsm {
             Attribute::Decrypt(encrypt),
             Attribute::Sign(sign),
             Attribute::Verify(sign),
-            Attribute::Wrap(wrap),
-            Attribute::Unwrap(wrap),
+            Attribute::Wrap(false),
+            Attribute::Unwrap(false),
             Attribute::Derive(false),
             Attribute::Label(label.to_vec()),
             Attribute::Id(id.to_vec()),
@@ -311,83 +309,44 @@ impl Hsm {
         Ok(())
     }
 
-    /// Generates an Ed25519 key pair as session objects and returns the private key wrapped under the AES wrapping key labelled `label`, with the 32-byte public key. The private key exists unwrapped only inside the token.
-    pub fn generate_wrapped(&self, label: &[u8]) -> Result<(Vec<u8>, Vec<u8>), Failure> {
-        let wrapping = self.find(ObjectClass::SECRET_KEY, KeyType::AES, label)?;
-        let (public, private) = self.ed25519_pair()?;
-        let result = self.export_pair(wrapping, public, private);
-        let _ = self.session.destroy_object(private);
-        let _ = self.session.destroy_object(public);
-        result
-    }
-
-    /// Unwraps an Ed25519 private key produced by `generate_wrapped` inside the token as a session object that cannot be extracted, signs `message` with it and destroys it. A wrong wrapping key or a tampered input fails with `Integrity`.
-    pub fn sign_wrapped(
-        &self,
-        label: &[u8],
-        wrapped: &[u8],
-        message: &[u8],
-    ) -> Result<Vec<u8>, Failure> {
-        let wrapping = self.find(ObjectClass::SECRET_KEY, KeyType::AES, label)?;
-        let template = [
+    /// Generates an Ed25519 token key pair labelled `label` with CKA_ID `id` and returns its 32-byte public key. The private key is sensitive, never extractable and usable only to sign. A label already in use is refused with `Exists`.
+    pub fn generate_key_pair(&self, label: &[u8], id: &[u8]) -> Result<Vec<u8>, Failure> {
+        let taken = self.session.find_objects(&[
             Attribute::Class(ObjectClass::PRIVATE_KEY),
-            Attribute::KeyType(KeyType::EC_EDWARDS),
-            Attribute::Token(false),
-            Attribute::Private(true),
-            Attribute::Sensitive(true),
-            Attribute::Extractable(false),
-            Attribute::Sign(true),
-        ];
-        let key = self
-            .session
-            .unwrap_key(&Mechanism::AesKeyWrapPad, wrapping, wrapped, &template)
-            .map_err(unwrap_failure)?;
-        let params = EddsaParams::new(EddsaSignatureScheme::Ed25519);
-        let signature = self.session.sign(&Mechanism::Eddsa(params), key, message);
-        let _ = self.session.destroy_object(key);
-        Ok(signature?)
-    }
-
-    fn ed25519_pair(&self) -> Result<(ObjectHandle, ObjectHandle), Failure> {
+            Attribute::Label(label.to_vec()),
+        ])?;
+        if !taken.is_empty() {
+            return Err(Failure::new(Status::Exists, "key label already exists"));
+        }
+        let session = self.context.open_rw_session(self.slot)?;
         let mut last = Failure::new(Status::Internal, "no curve parameters");
         for params in ED25519_PARAMS {
             let public = [
-                Attribute::Token(false),
+                Attribute::Token(true),
                 Attribute::Verify(true),
                 Attribute::EcParams(params.to_vec()),
+                Attribute::Label(label.to_vec()),
+                Attribute::Id(id.to_vec()),
             ];
             let private = [
-                Attribute::Token(false),
+                Attribute::Token(true),
                 Attribute::Private(true),
                 Attribute::Sensitive(true),
-                Attribute::Extractable(true),
+                Attribute::Extractable(false),
                 Attribute::Sign(true),
+                Attribute::Label(label.to_vec()),
+                Attribute::Id(id.to_vec()),
             ];
-            match self.session.generate_key_pair(
-                &Mechanism::EccEdwardsKeyPairGen,
-                &public,
-                &private,
-            ) {
-                Ok(pair) => return Ok(pair),
+            match session.generate_key_pair(&Mechanism::EccEdwardsKeyPairGen, &public, &private) {
+                Ok((key, _private)) => {
+                    let value = self.attribute(key, AttributeType::EcPoint)?;
+                    return der::ec_point(&value, ED25519_LEN)
+                        .ok_or_else(|| Failure::new(Status::Token, "unexpected EC point form"));
+                }
                 Err(error) => last = error.into(),
             }
         }
         Err(last)
-    }
-
-    fn export_pair(
-        &self,
-        wrapping: ObjectHandle,
-        public: ObjectHandle,
-        private: ObjectHandle,
-    ) -> Result<(Vec<u8>, Vec<u8>), Failure> {
-        let wrapped = self
-            .session
-            .wrap_key(&Mechanism::AesKeyWrapPad, wrapping, private)?;
-        let value = self.attribute(public, AttributeType::EcPoint)?;
-        let point = der::ec_point(&value, ED25519_LEN)
-            .ok_or_else(|| Failure::new(Status::Token, "unexpected EC point form"))?;
-        Ok((wrapped, point))
     }
 
     fn find(
@@ -425,25 +384,6 @@ impl Hsm {
             })
             .ok_or_else(|| Failure::new(Status::Token, "attribute missing"))
     }
-}
-
-fn unwrap_failure(error: Error) -> Failure {
-    match error {
-        Error::Pkcs11(rv, _) if tampered(rv) => {
-            Failure::new(Status::Integrity, "wrapped key failed authentication")
-        }
-        other => other.into(),
-    }
-}
-
-fn tampered(rv: RvError) -> bool {
-    matches!(
-        rv,
-        RvError::WrappedKeyInvalid
-            | RvError::WrappedKeyLenRange
-            | RvError::FunctionFailed
-            | RvError::GeneralError
-    )
 }
 
 fn key_type(alg: Alg) -> KeyType {

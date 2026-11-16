@@ -5,12 +5,14 @@ defmodule Relay.Webhooks.Sweeper do
     * a message whose lock ran out, because the worker that held it crashed, is made due again and gets a new job;
     * a message that is due for longer than the overdue time without having started gets a new job, so a lost job costs time and never a message;
     * a message held past its delivery time becomes `expired`, and one that waited behind an open circuit breaker past its window becomes `window_exceeded` with the tenant's alarm; messages held for a paused or disabled endpoint stay where they are and are never dropped (WH-37);
-    * an endpoint whose uninterrupted failure reached the warning or the disable time is warned about or disabled, also when no attempt happens at that moment.
+    * an endpoint whose uninterrupted failure reached the warning or the disable time is warned about or disabled, also when no attempt happens at that moment;
+    * an object store batch that was to be written and is neither written nor failed, because its job was lost or its writer crashed, gets a new write job, which claims the same members and writes the same object (WH-21). A message that waits in such a batch is left to it.
 
   Telemetry: `[:relay, :webhooks, :backlog]` with `age_ms`, the age of the scope's oldest message that waits for an attempt (WH-28 (1)), and `[:relay, :webhooks, :sweep]` with the counts of what the sweep did.
   """
 
   alias Relay.Scope
+  alias Relay.Webhooks.Batcher
   alias Relay.Webhooks.Engine
   alias Relay.Webhooks.EngineStore
   alias Relay.Webhooks.Fanout
@@ -25,7 +27,8 @@ defmodule Relay.Webhooks.Sweeper do
           rescued: non_neg_integer(),
           requeued: non_neg_integer(),
           expired: non_neg_integer(),
-          window_exceeded: non_neg_integer()
+          window_exceeded: non_neg_integer(),
+          batches: non_neg_integer()
         }
 
   # WH-28
@@ -44,6 +47,7 @@ defmodule Relay.Webhooks.Sweeper do
     end)
   end
 
+  # WH-21
   # WH-27
   # WH-28
   # WH-32 (4)
@@ -61,7 +65,8 @@ defmodule Relay.Webhooks.Sweeper do
           rescued: requeued(due["rescue"], "rescue", now),
           requeued: requeued(due["overdue"], "nudge", now),
           expired: ended(due["expired"], "expired", "ttl_expired", now),
-          window_exceeded: ended(due["window_exceeded"], "window_exceeded", @window, now)
+          window_exceeded: ended(due["window_exceeded"], "window_exceeded", @window, now),
+          batches: Batcher.requeue_overdue(now)
         }
 
         failing(now)

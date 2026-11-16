@@ -106,14 +106,32 @@ defmodule Relay.Webhooks.EngineStore do
   @doc "Reads an event, or `nil`."
   @spec event(id()) :: map() | nil
   def event(id) do
-    one(
+    case events([id]) do
+      [event] -> event
+      [] -> nil
+    end
+  end
+
+  # WH-21
+  @doc "Reads the events of `ids`."
+  @spec events([id()]) :: [map()]
+  def events(ids) do
+    all(
       """
       SELECT e.id, e.use_kind, e.event_type, e.schema_version, e.origin, e.source, e.subject,
         e.seq, e.occurred_at, e.traceparent, e.payload, e.payload_erased_at, e.created_at
-      FROM relay.webhook_events e WHERE e.id = $1
+      FROM relay.webhook_events e WHERE e.id = ANY($1::uuid[])
       """,
-      [id]
+      [ids]
     )
+  end
+
+  # WH-21
+  @doc "Reads the messages of `ids`."
+  @spec messages([id()]) :: [map()]
+  def messages(ids) do
+    sql = "SELECT #{@message_columns} FROM relay.webhook_messages m WHERE m.id = ANY($1::uuid[])"
+    all(sql, [ids])
   end
 
   @doc "Reads the engine's view of an endpoint, or `nil`."
@@ -130,7 +148,10 @@ defmodule Relay.Webhooks.EngineStore do
     )
   end
 
-  defp endpoint_version(endpoint_id, version) do
+  # WH-12
+  @doc "Reads the snapshot allow-list and the payload version of an endpoint version, or `nil`."
+  @spec endpoint_version(id(), pos_integer()) :: map() | nil
+  def endpoint_version(endpoint_id, version) do
     one(
       """
       SELECT v.snapshot, v.payload_version FROM relay.webhook_endpoint_versions v
@@ -293,7 +314,7 @@ defmodule Relay.Webhooks.EngineStore do
 
   # WH-28
   # WH-32 (4)
-  @doc "The messages of the scope the sweep acts on at `now`: those whose lock ran out (`rescue`), those due since `overdue` without having started (`overdue`), and those waiting behind an open breaker past their window or held past their delivery time (`ended`)."
+  @doc "The messages of the scope the sweep acts on at `now`: those whose lock ran out (`rescue`), those due since `overdue` without having started (`overdue`), and those waiting behind an open breaker past their window or held past their delivery time (`ended`). A message that waits in a batch is left to its batch (WH-21)."
   @spec due(DateTime.t(), DateTime.t(), pos_integer()) :: [map()]
   def due(now, overdue, limit) do
     all(
@@ -310,6 +331,9 @@ defmodule Relay.Webhooks.EngineStore do
           OR (m.state IN ('pending', 'scheduled') AND m.next_attempt_at <= $2)
           OR (m.state = 'held' AND m.expires_at <= $1)
           OR (m.state = 'held' AND m.hold_reason = 'breaker_open' AND m.window_ends_at <= $1))
+        AND NOT EXISTS (SELECT 1 FROM relay.webhook_batches b
+          WHERE b.tenant_id = m.tenant_id AND b.environment = m.environment
+            AND b.id = m.batch_id AND b.state IN ('open', 'closed'))
       ORDER BY m.id LIMIT $3
       """,
       [now, overdue, limit]

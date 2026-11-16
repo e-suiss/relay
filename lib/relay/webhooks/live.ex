@@ -160,8 +160,15 @@ defmodule Relay.Webhooks.Live do
   # WH-19
   # TN-26
   @impl Relay.Webhooks
-  def credential(%Scope{} = scope, ref_id),
-    do: credentials(scope, %{"credential_ref_id" => ref_id})
+  def credential(%Scope{} = scope, ref_id) do
+    case Relay.Secrets.get(scope, ref_id) do
+      {:ok, %{kind: :webhook_destination, state: :active}} ->
+        credentials(scope, %{"credential_ref_id" => ref_id})
+
+      _other ->
+        nil
+    end
+  end
 
   # WH-56
   @impl Relay.Webhooks

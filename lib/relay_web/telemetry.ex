@@ -76,6 +76,7 @@ defmodule RelayWeb.Telemetry do
       operations_metrics() ++
       reconciliation_metrics() ++
       inbox_metrics() ++
+      webhook_metrics() ++
       vm_metrics()
   end
 
@@ -247,6 +248,119 @@ defmodule RelayWeb.Telemetry do
         measurement: :count,
         tags: [:result],
         description: "Client reports of inconsistent inbox counters, by reconciliation result"
+      )
+    ]
+  end
+
+  # WH-10
+  # WH-21
+  # WH-28
+  # WH-30
+  # WH-39
+  # WH-56
+  # T-63
+  @doc "The webhook delivery metrics, all from bounded sets: attempts and their duration by result, trigger and whether it was a message's first attempt; object store batch writes with their events, bytes and duration by result; what the sweep rescued, queued again, ended and handed back to a batch write; the age of the oldest waiting message; what the daily maintenance retired, destroyed and erased; and the operations e-mails by kind and result."
+  @spec webhook_metrics() :: [Telemetry.Metrics.t()]
+  def webhook_metrics do
+    attempt = [:relay, :webhooks, :attempt]
+    batch = [:relay, :webhooks, :batch]
+    sweep = [:relay, :webhooks, :sweep]
+    maintenance = [:relay, :webhooks, :maintenance]
+
+    [
+      sum("relay.webhooks.attempt.total",
+        event_name: attempt,
+        measurement: :count,
+        tags: [:result, :trigger, :first],
+        description: "Webhook delivery attempts by result, trigger and first attempt"
+      ),
+      distribution("relay.webhooks.attempt.duration",
+        event_name: attempt,
+        measurement: :duration_ms,
+        unit: :millisecond,
+        tags: [:result],
+        description: "Duration of webhook delivery attempts"
+      ),
+      sum("relay.webhooks.batch.total",
+        event_name: batch,
+        measurement: :count,
+        tags: [:result],
+        description: "Object store batch writes by result"
+      ),
+      sum("relay.webhooks.batch.events.total",
+        event_name: batch,
+        measurement: :events,
+        tags: [:result],
+        description: "Events settled by object store batch writes"
+      ),
+      sum("relay.webhooks.batch.bytes.total",
+        event_name: batch,
+        measurement: :bytes,
+        tags: [:result],
+        description: "Bytes of the objects object store batch writes sent"
+      ),
+      distribution("relay.webhooks.batch.duration",
+        event_name: batch,
+        measurement: :duration_ms,
+        unit: :millisecond,
+        tags: [:result],
+        description: "Duration of object store batch writes"
+      ),
+      sum("relay.webhooks.sweep.rescued.total",
+        event_name: sweep,
+        measurement: :rescued,
+        description: "Webhook messages picked up after their attempt's lock ran out"
+      ),
+      sum("relay.webhooks.sweep.requeued.total",
+        event_name: sweep,
+        measurement: :requeued,
+        description: "Webhook messages long due without a job and queued again"
+      ),
+      sum("relay.webhooks.sweep.expired.total",
+        event_name: sweep,
+        measurement: :expired,
+        description: "Webhook messages held past their delivery time"
+      ),
+      sum("relay.webhooks.sweep.window_exceeded.total",
+        event_name: sweep,
+        measurement: :window_exceeded,
+        description: "Webhook messages that waited behind an open breaker past their window"
+      ),
+      sum("relay.webhooks.sweep.batches.total",
+        event_name: sweep,
+        measurement: :batches,
+        description: "Object store batches whose write the sweep queued again"
+      ),
+      last_value("relay.webhooks.backlog.age.milliseconds",
+        event_name: [:relay, :webhooks, :backlog],
+        measurement: :age_ms,
+        description: "Age of the oldest webhook message waiting for an attempt in a swept scope"
+      ),
+      sum("relay.webhooks.maintenance.keys_retired.total",
+        event_name: maintenance,
+        measurement: :keys_retired,
+        description: "Webhook signing keys retired after their rotation overlap"
+      ),
+      sum("relay.webhooks.maintenance.keys_destroyed.total",
+        event_name: maintenance,
+        measurement: :keys_destroyed,
+        description: "Retired webhook signing keys destroyed in the key store"
+      ),
+      sum("relay.webhooks.maintenance.responses.total",
+        event_name: maintenance,
+        measurement: :responses,
+        description: "Stored webhook answers erased at the end of their retention"
+      ),
+      sum("relay.webhooks.maintenance.payloads.total",
+        event_name: maintenance,
+        measurement: :payloads,
+        description: "Stored webhook event payloads erased at the end of their retention"
+      ),
+      sum("relay.webhooks.operations_email.total",
+        event_name: [:relay, :webhooks, :operations_email],
+        measurement: :count,
+        tags: [:kind, :result],
+        description: "Webhook operations e-mails by kind and result"
       )
     ]
   end

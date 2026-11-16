@@ -280,5 +280,11 @@
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",
     "reason": "WH-30, OP-9: the no-delete triggers reject TRUNCATE on the webhook consumers, event types, endpoints, keys, events, messages, batches and the operations contacts"
+  },
+  {
+    "path": "priv/repo/migrations/20261217700000_allow_webhook_destination_secrets.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WH-19, TN-26: a committed relay_fn function is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   }
 ]

@@ -44,6 +44,18 @@ defmodule Relay.Webhooks.Settings do
     credential_ttl_s: Limits.seconds!(["webhook", "destination", "credential_ttl"])
   }
 
+  @batch %{
+    max_age_ms: 1000 * Limits.seconds!(["webhook", "object_batch", "max_age"]),
+    max_bytes: Limits.fetch!(["webhook", "object_batch", "max_bytes"]),
+    max_events: Limits.fetch!(["webhook", "object_batch", "max_events"])
+  }
+
+  # WH-21
+  # WH-52
+  @doc "The limits of an object store batch: it closes at the first of its age, its size and its event count."
+  @spec batch() :: Relay.Webhooks.Batch.limits()
+  def batch, do: @batch
+
   # WH-22 (2)
   @doc "The jitter of a wait in basis points."
   @spec jitter_bp() :: 0..10_000

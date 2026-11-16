@@ -907,6 +907,9 @@ defmodule RelayWeb.Router do
          :rotate_secret,
          private: %{relay_operation: "rotateChannelIdentitySecret"}
 
+    post "/webhook_credentials", WebhookCredentialController, :create,
+      private: %{relay_operation: "registerWebhookCredential"}
+
     get "/email_reputation", ReputationController, :index,
       private: %{relay_operation: "listEmailReputationCircuits"}
 

@@ -228,6 +228,7 @@
   {"file": "20261217700000_allow_webhook_destination_secrets.exs", "sha256": "b27468fa73dc272120ac478ee33024ef5cbb98e8998e0c6c822b7870aba81ac6"},
   {"file": "20261217700100_create_webhook_batch_functions.exs", "sha256": "c885a2c71f9e507054b59243462988373577183d7c4f044bbd1ca3d30b73f03b"},
   {"file": "20261217700200_validate_webhook_destination_secret_check.exs", "sha256": "e1c60e3ae711c6e959b261320165eb78bc0e374b23009ff6215822f48bd4ad5f"},
+  {"file": "20261217800000_announce_audit_records.exs", "sha256": "fff58f5e16d94d9f83fa6e38b867982654b95581e8819cef7bac13e0fefc0534"},
   {"file": "20261217900000_create_webhook_sources.exs", "sha256": "3308b7295d687e06516e7231eeb6dff1a89e0d703170290d1d8fe7a77c6be52d"},
   {"file": "20261217900100_create_webhook_source_functions.exs", "sha256": "1b7c6a0df29952e526cf732d920852125d1fb314234247239b52aa798f58f7e8"},
   {"file": "20261217900200_rebuild_reference_check_for_webhook_sources.exs", "sha256": "b45f2020bfba794e4fc7b556b280c8dfdee3e4e0e270fea05a6ab8a16d4661df"}

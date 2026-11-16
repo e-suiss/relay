@@ -252,6 +252,19 @@ defmodule RelayWeb.Api.WebhookPortalTest do
       assert length(server["data"]) == 5
     end
 
+    test "WH-67, TN-50: the portal cannot choose audit_record.appended; its endpoints name only the tenant's event types",
+         ctx do
+      consumer = consumer!(ctx)
+      audit = %{"event_types" => ["audit_record.appended"]}
+      refused = post(consumer.token, @endpoints, Map.put(audit, "url", @url), 422)
+      assert refused["code"] == "validation_failed"
+
+      endpoint = endpoint!(consumer.token)
+      path = "#{@endpoints}/#{endpoint["id"]}"
+      assert patch(consumer.token, path, audit, 422)["code"] == "validation_failed"
+      assert get(consumer.token, path)["event_types"] == []
+    end
+
     test "WH-40, WH-54: the portal's address check answers at once and points at url", ctx do
       consumer = consumer!(ctx)
 

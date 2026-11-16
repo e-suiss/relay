@@ -288,6 +288,18 @@
     "reason": "WH-19, TN-26: a committed relay_fn function is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   },
   {
+    "path": "priv/repo/migrations/20261217800000_announce_audit_records.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "WH-67: a committed relay_fn function is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261217800000_announce_audit_records.exs",
+    "rule": "tenant_context",
+    "match": "current_setting('relay.audit_head', true)",
+    "reason": "WH-67: the marker says whether this transaction already holds the sequence lock of an audit target, and it is unset in a transaction that holds none; it is not the tenant context"
+  },
+  {
     "path": "priv/repo/migrations/20261217900000_create_webhook_sources.exs",
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",

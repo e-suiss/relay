@@ -1,6 +1,6 @@
 defmodule Relay.EventCatalog do
   @moduledoc """
-  Relay's event catalog as code reads it, taken at compile time from the `tenantWebhooks` channel of `contracts/asyncapi/events.yaml` (WH-14, WH-53). That channel is the definitive list of the event types Relay delivers to a tenant's endpoints: an endpoint subscribes only to names of this list, and an event type that is not in it is never delivered. The contract file is the single source; no event name is written anywhere else.
+  Relay's event catalog as code reads it, taken at compile time from the `tenantWebhooks` channel of `contracts/asyncapi/events.yaml` (WH-14, WH-53). That channel is the definitive list of the event types Relay delivers to a tenant's endpoints: an endpoint subscribes only to names of this list, and an event type that is not in it is never delivered. A type the catalog marks `x-relay-explicit-only` reaches only an endpoint that names it; `*` does not cover it (WH-67). The contract file is the single source; no event name is written anywhere else.
   """
 
   @path Path.expand("../../contracts/asyncapi/events.yaml", __DIR__)
@@ -21,7 +21,8 @@ defmodule Relay.EventCatalog do
         summary: message["summary"],
         version: message["x-relay-schema-version"],
         data: data,
-        snapshot_only: Map.get(message, "x-relay-snapshot-only", [])
+        snapshot_only: Map.get(message, "x-relay-snapshot-only", []),
+        explicit_only: Map.get(message, "x-relay-explicit-only", false)
       }
     end
 
@@ -70,13 +71,15 @@ defmodule Relay.EventCatalog do
   @inlined Map.new(entries, &{&1.name, inline.(inline, &1.data, [], :events)})
   @schemas document["components"]["schemas"]
   @names @entries |> Map.keys() |> Enum.sort()
+  @explicit_only for %{name: name, explicit_only: true} <- entries, do: name
 
   @type entry :: %{
           name: String.t(),
           summary: String.t(),
           version: pos_integer(),
           data: map(),
-          snapshot_only: [String.t()]
+          snapshot_only: [String.t()],
+          explicit_only: boolean()
         }
 
   # WH-53
@@ -88,6 +91,16 @@ defmodule Relay.EventCatalog do
   @doc "Whether `name` is an event type Relay delivers to tenant endpoints."
   @spec delivered?(term()) :: boolean()
   def delivered?(name), do: is_map_key(@entries, name)
+
+  # WH-67
+  @doc "The event names the catalog marks `x-relay-explicit-only`, sorted: an endpoint receives such a type only when its selection names it, and `*` does not cover it."
+  @spec explicit_only() :: [String.t()]
+  def explicit_only, do: Enum.sort(@explicit_only)
+
+  # WH-67
+  @doc "Whether `name` is an event type only an endpoint that names it receives."
+  @spec explicit_only?(term()) :: boolean()
+  def explicit_only?(name), do: name in @explicit_only
 
   # WH-11
   @doc "The fields of the thin payload of an event name: the identifiers its data schema declares, without the fields the catalog marks `x-relay-snapshot-only`, which reach an endpoint only through its snapshot allow-list (WH-12)."

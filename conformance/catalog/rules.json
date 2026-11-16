@@ -7624,6 +7624,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "WH-69",
+    "section": "§16",
+    "status": "frozen_technical",
+    "title": "A completion result carries no personal data",
+    "verify_stage": 10
+  },
+  {
+    "acceptance": "pending",
     "id": "AG-1",
     "section": "§17",
     "status": "central",

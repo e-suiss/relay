@@ -32,6 +32,7 @@ impl Alg {
 pub enum KeyKind {
     Aes256,
     HmacSha256,
+    Aes256Wrap,
 }
 
 impl KeyKind {
@@ -39,6 +40,7 @@ impl KeyKind {
         match byte {
             1 => Some(KeyKind::Aes256),
             2 => Some(KeyKind::HmacSha256),
+            3 => Some(KeyKind::Aes256Wrap),
             _ => None,
         }
     }
@@ -82,6 +84,14 @@ pub enum Op {
     StoreSecret {
         label: Vec<u8>,
         value: Zeroizing<Vec<u8>>,
+    },
+    GenerateWrapped {
+        label: Vec<u8>,
+    },
+    SignWrapped {
+        label: Vec<u8>,
+        wrapped: Vec<u8>,
+        message: Vec<u8>,
     },
 }
 
@@ -174,6 +184,8 @@ pub fn decode(frame: &[u8]) -> Result<(u32, Op), DecodeError> {
         6 => decode_read_secret(&mut reader),
         7 => decode_generate_key(&mut reader),
         8 => decode_store_secret(&mut reader),
+        9 => decode_generate_wrapped(&mut reader),
+        10 => decode_sign_wrapped(&mut reader),
         _ => None,
     };
 
@@ -250,6 +262,28 @@ fn decode_store_secret(reader: &mut Reader<'_>) -> Option<Op> {
         return None;
     }
     Some(Op::StoreSecret { label, value })
+}
+
+fn decode_generate_wrapped(reader: &mut Reader<'_>) -> Option<Op> {
+    let label = reader.field()?.to_vec();
+    if label.is_empty() {
+        return None;
+    }
+    Some(Op::GenerateWrapped { label })
+}
+
+fn decode_sign_wrapped(reader: &mut Reader<'_>) -> Option<Op> {
+    let label = reader.field()?.to_vec();
+    let wrapped = reader.field()?.to_vec();
+    let message = reader.field()?.to_vec();
+    if label.is_empty() || wrapped.is_empty() {
+        return None;
+    }
+    Some(Op::SignWrapped {
+        label,
+        wrapped,
+        message,
+    })
 }
 
 /// Encodes a response frame body. The buffer is zeroized when dropped.
@@ -383,7 +417,7 @@ mod tests {
             ))
         ));
         for body in [
-            [vec![3], field(b"k"), field(b"1")].concat(),
+            [vec![9], field(b"k"), field(b"1")].concat(),
             [vec![1], field(b""), field(b"1")].concat(),
             [vec![1], field(b"k"), field(b"")].concat(),
             [vec![1], field(b"k")].concat(),
@@ -421,6 +455,52 @@ mod tests {
     }
 
     #[test]
+    fn tn_32_decodes_wrapped_key_operations() {
+        let body = [vec![3], field(b"wrap"), field(b"1")].concat();
+        assert!(matches!(
+            decode(&request(19, 7, &body)),
+            Ok((
+                19,
+                Op::GenerateKey {
+                    kind: KeyKind::Aes256Wrap,
+                    ..
+                }
+            ))
+        ));
+        assert_eq!(
+            decode(&request(20, 9, &field(b"wrap"))),
+            Ok((
+                20,
+                Op::GenerateWrapped {
+                    label: b"wrap".to_vec()
+                }
+            ))
+        );
+        let body = [field(b"wrap"), field(&[7, 8]), field(b"id.ts.body")].concat();
+        assert_eq!(
+            decode(&request(21, 10, &body)),
+            Ok((
+                21,
+                Op::SignWrapped {
+                    label: b"wrap".to_vec(),
+                    wrapped: vec![7, 8],
+                    message: b"id.ts.body".to_vec()
+                }
+            ))
+        );
+        for (op, body) in [
+            (9, field(b"")),
+            (10, [field(b"wrap"), field(b""), field(b"m")].concat()),
+            (10, [field(b"wrap"), field(&[7])].concat()),
+        ] {
+            assert_eq!(
+                decode(&request(22, op, &body)).unwrap_err().status,
+                Status::BadRequest
+            );
+        }
+    }
+
+    #[test]
     fn tn_63_decodes_public_key() {
         let body = [vec![3], field(b"checkpoint")].concat();
         assert_eq!(
@@ -450,7 +530,7 @@ mod tests {
     #[test]
     fn tn_63_rejects_unknown_op_alg_and_version() {
         assert_eq!(
-            decode(&request(6, 9, &[])).unwrap_err().status,
+            decode(&request(6, 99, &[])).unwrap_err().status,
             Status::BadRequest
         );
         let body = [vec![9], field(b"k")].concat();

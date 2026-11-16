@@ -319,7 +319,22 @@ defmodule Relay.Schema.FunctionSignaturesTest do
       ~w(created tenant_inactive subtenant_not_found topic_not_found),
     "relay_fn.inbox_announcement_retract" => ~w(retracted already_closed not_found),
     "relay_fn.inbox_announcement_expire" => ~w(expired not_due already_closed not_found),
-    "relay_fn.inbox_announcement_intent" => ~w(applied unchanged conflict invalid not_found)
+    "relay_fn.inbox_announcement_intent" => ~w(applied unchanged conflict invalid not_found),
+    "relay_fn.webhook_consumer_create" =>
+      ~w(created key_conflict subtenant_not_found tenant_inactive),
+    "relay_fn.webhook_consumer_update" =>
+      ~w(updated unchanged not_found archived version_conflict),
+    "relay_fn.webhook_consumer_archive" => ~w(archived already_archived in_use not_found),
+    "relay_fn.webhook_event_type_create" => ~w(created name_conflict tenant_inactive),
+    "relay_fn.webhook_event_type_version_add" => ~w(added unchanged not_found archived),
+    "relay_fn.webhook_event_type_archive" => ~w(archived already_archived not_found),
+    "relay_fn.webhook_endpoint_create" =>
+      ~w(created tenant_limit_reached consumer_limit_reached consumer_not_found consumer_archived credential_not_found event_type_not_found tenant_inactive),
+    "relay_fn.webhook_endpoint_update" =>
+      ~w(updated unchanged not_found archived managed version_conflict credential_not_found event_type_not_found invalid_state),
+    "relay_fn.webhook_endpoint_archive" => ~w(archived already_archived managed not_found),
+    "relay_fn.webhook_endpoint_key_rotate" => ~w(rotated not_found archived managed not_signed),
+    "relay_fn.operations_contacts_replace" => ~w(replaced tenant_inactive)
   }
 
   defp functions do

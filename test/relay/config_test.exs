@@ -48,7 +48,8 @@ defmodule Relay.ConfigTest do
       labels = [
         kek_label: "kek-tr-1",
         fingerprint_label: "fingerprint-tr-1",
-        cursor_label: "cursor-tr-1"
+        cursor_label: "cursor-tr-1",
+        webhook_wrap_label: "webhook-wrap-tr-1"
       ]
 
       assert Relay.Keys in Config.known_app_keys()

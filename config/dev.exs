@@ -69,4 +69,5 @@ config :relay, Relay.Keys.Port,
 config :relay, Relay.Keys,
   kek_label: "kek-dev",
   fingerprint_label: "fingerprint-dev",
-  cursor_label: "cursor-dev"
+  cursor_label: "cursor-dev",
+  webhook_wrap_label: "webhook-wrap-dev"

@@ -18,6 +18,8 @@ defmodule Relay.Keys.Protocol do
           | {:read_secret, binary()}
           | {:generate_key, Relay.Keys.key_kind(), binary(), binary()}
           | {:store_secret, binary(), binary()}
+          | {:generate_wrapped_key, binary()}
+          | {:sign_wrapped, binary(), binary(), binary()}
 
   @type kind ::
           :ping
@@ -29,9 +31,13 @@ defmodule Relay.Keys.Protocol do
           | :read_secret
           | :generate_key
           | :store_secret
+          | :generate_wrapped_key
+          | :sign_wrapped
 
   @type result ::
-          :ok | {:ok, binary() | Relay.Keys.public_key() | Redacted.t()} | {:error, Error.t()}
+          :ok
+          | {:ok, binary() | Relay.Keys.public_key() | Redacted.t() | map()}
+          | {:error, Error.t()}
 
   # TN-63
   @doc "Encodes a request frame."
@@ -58,6 +64,11 @@ defmodule Relay.Keys.Protocol do
 
   def encode(id, {:store_secret, label, value}), do: [header(id, 8), field(label), field(value)]
 
+  def encode(id, {:generate_wrapped_key, label}), do: [header(id, 9), field(label)]
+
+  def encode(id, {:sign_wrapped, label, wrapped, message}),
+    do: [header(id, 10), field(label), field(wrapped), field(message)]
+
   @doc "Returns the response shape expected for a request."
   @spec kind(request()) :: kind()
   def kind(:ping), do: :ping
@@ -69,6 +80,8 @@ defmodule Relay.Keys.Protocol do
   def kind({:read_secret, _}), do: :read_secret
   def kind({:generate_key, _, _, _}), do: :generate_key
   def kind({:store_secret, _, _}), do: :store_secret
+  def kind({:generate_wrapped_key, _}), do: :generate_wrapped_key
+  def kind({:sign_wrapped, _, _, _}), do: :sign_wrapped
 
   @doc "Decodes a response frame into its request id, status byte and fields."
   @spec decode(binary()) ::
@@ -94,6 +107,11 @@ defmodule Relay.Keys.Protocol do
   def result(:read_secret, 0, [secret]), do: {:ok, Redacted.wrap(secret)}
   def result(:generate_key, 0, []), do: :ok
   def result(:store_secret, 0, []), do: :ok
+
+  def result(:generate_wrapped_key, 0, [wrapped, <<_::256>> = public]) when wrapped != "",
+    do: {:ok, %{wrapped: wrapped, public_key: public}}
+
+  def result(:sign_wrapped, 0, [<<_::512>> = signature]), do: {:ok, signature}
   def result(_kind, 0, _fields), do: malformed()
 
   def result(_kind, status, [message]) when status in 1..7 and is_binary(message),
@@ -109,6 +127,7 @@ defmodule Relay.Keys.Protocol do
 
   defp key_kind(:aes_256), do: <<1>>
   defp key_kind(:hmac_sha256), do: <<2>>
+  defp key_kind(:aes_256_wrap), do: <<3>>
 
   defp field(bytes), do: [<<byte_size(bytes)::32>>, bytes]
 

@@ -76,6 +76,7 @@ defmodule Relay.HsmKeysTest do
       {"KEY_STORE_KEK_LABEL", "kek-test"},
       {"KEY_STORE_FINGERPRINT_LABEL", "fingerprint-test"},
       {"KEY_STORE_CURSOR_LABEL", "cursor-test"},
+      {"KEY_STORE_WEBHOOK_WRAP_LABEL", "webhook-wrap-test"},
       {"KEY_STORE_BLIND_INDEX_LABEL", "bidx-test"}
     ]
 
@@ -136,6 +137,7 @@ defmodule Relay.HsmKeysTest do
     assert out =~ "hsm-keys: kek-test created"
     assert out =~ "hsm-keys: bidx-test created"
     assert out =~ ~r/hsm-keys: fingerprint-test (created|exists)/
+    assert out =~ "hsm-keys: webhook-wrap-test created"
 
     assert {again, 0} = script(ctx.env)
     assert again =~ "hsm-keys: audit-checkpoint exists"
@@ -178,6 +180,17 @@ defmodule Relay.HsmKeysTest do
 
     assert {:ok, <<_::256>>} =
              KeyPort.hmac_sha256(name, "fingerprint-test", Redacted.wrap("secret"))
+
+    assert {:ok, %{wrapped: signing_key, public_key: signing_public}} =
+             KeyPort.generate_wrapped_key(name, "webhook-wrap-test")
+
+    assert {:ok, endpoint_signature} =
+             KeyPort.sign_wrapped(name, "webhook-wrap-test", signing_key, "id.1.{}")
+
+    assert :crypto.verify(:eddsa, :none, "id.1.{}", endpoint_signature, [
+             signing_public,
+             :ed25519
+           ])
   end
 
   test "TN-67 (4): the script requires the secret fingerprint key label", ctx do

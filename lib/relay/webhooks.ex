@@ -1,11 +1,40 @@
 defmodule Relay.Webhooks do
   @moduledoc """
   The outbound delivery engine, endpoints and the webhook portal. Other contexts use only the functions of this module.
+
+  One engine serves two uses (WH-1): Relay's own events delivered to the tenant, and the `webhook` channel that delivers a tenant's events to its consumers. Its concepts are the event type, the consumer, the endpoint, the message (one event for one endpoint) and the attempt (WH-2). Delivery is at least once: an event can arrive more than once and in any order, the consumer deduplicates by `webhook-id`, and the definite state is always read from the API (WH-3).
+
+  This module holds the management side: consumers, tenant event types with versioned schemas (WH-14), endpoints with their versions, subscription and limits (WH-12, WH-16), per-endpoint signing keys with overlapping rotation (WH-5, WH-6), the registration rules of an address (WH-40) and the tenant's operations contacts (WH-56). A function that takes a scope opens its own scoped transaction; one that takes none runs inside the caller's. A function that reaches the key store (`new_key/2`, `sign/5`, `seal_contacts/2`, `contacts/1`) never runs inside a transaction.
+
+  The signer and the sealer are ports: `config :relay, Relay.Webhooks, signer: Module, sealer: Module`, by default `Relay.Webhooks.Signer.KeyStore` and `Relay.Webhooks.Live`. An installation allows HTTPS ports besides 443 with `extra_ports: [port]` (WH-40 (2)).
   """
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
+  alias Relay.Actor
+  alias Relay.Scope
+  alias Relay.Webhooks.EventSchema
+  alias Relay.Webhooks.Registration
+  alias Relay.Webhooks.Signer
   alias Relay.Webhooks.Store
+
+  @signer Relay.Webhooks.Signer.KeyStore
+  @sealer Relay.Webhooks.Live
+  @contact_field {"operations_contacts", "address_ct"}
+  @limits %{
+    per_tenant: Relay.Limits.fetch!(["webhook", "endpoints_per_tenant"]),
+    per_consumer: Relay.Limits.fetch!(["webhook", "endpoints_per_consumer"])
+  }
+  @ports Relay.Limits.fetch!(["webhook", "allowed_ports"])
+  @contacts_max Relay.Limits.fetch!(["webhook", "operations_contacts_max"])
+  @overlap %{
+    default: Relay.Limits.seconds!(["webhook", "key_overlap", "default"]),
+    max: Relay.Limits.seconds!(["webhook", "key_overlap", "max"])
+  }
+
+  @type result(value) :: {:ok, value} | {:error, term()}
+  @type id :: Relay.Id.t()
+  @type cursor :: map() | nil
 
   # WH-49
   @doc "Records an inbound provider receipt in its own scoped transaction; commit it before answering the provider."
@@ -35,4 +64,300 @@ defmodule Relay.Webhooks do
           {:ok, atom()} | {:error, term()}
   def mark_receipt(scope, receipt_id, state, reason),
     do: Store.in_scope(scope, fn _status -> Store.receipt_mark(receipt_id, state, reason) end)
+
+  # WH-16
+  # WH-52
+  @doc "The endpoint limits: `:per_tenant` for a tenant's own `relay_events` endpoints and `:per_consumer` for the endpoints of one consumer."
+  @spec endpoint_limits() :: %{per_tenant: pos_integer(), per_consumer: pos_integer()}
+  def endpoint_limits, do: @limits
+
+  # WH-6
+  @doc "The rotation overlap in seconds: the `:default` and the `:max` a request may ask for."
+  @spec key_overlap() :: %{default: non_neg_integer(), max: pos_integer()}
+  def key_overlap, do: @overlap
+
+  # WH-56
+  @doc "How many operations contact addresses a tenant environment holds at most."
+  @spec contacts_max() :: pos_integer()
+  def contacts_max, do: @contacts_max
+
+  # WH-40
+  @doc "The HTTPS ports an address may use: 443 and the ports the installation adds."
+  @spec allowed_ports() :: [pos_integer()]
+  def allowed_ports, do: Enum.uniq(@ports ++ Keyword.get(config(), :extra_ports, []))
+
+  # WH-40
+  @doc "Checks an HTTPS address against the registration rules; see `Relay.Webhooks.Registration.check/2`. `explain_address/1` words a refusal."
+  @spec check_address(String.t()) :: :ok | {:error, Registration.reason()}
+  def check_address(url), do: Registration.check(url, allowed_ports())
+
+  # WH-40
+  @doc "The sentence that explains a refusal of `check_address/1`."
+  @spec explain_address(Registration.reason()) :: String.t()
+  defdelegate explain_address(reason), to: Registration, as: :explain
+
+  # WH-2
+  @doc "Creates a consumer inside the caller's scoped transaction; `attrs` carries `:key` and optionally `:name`, `:source` and `:subtenant_id`. Returns the result, the consumer's identifier and its version."
+  @spec consumer_create(map(), binary(), Actor.t()) :: {atom(), id() | nil, pos_integer() | nil}
+  defdelegate consumer_create(attrs, digest, actor), to: Store
+
+  # WH-2
+  @doc "Changes the `\"name\"` or `\"source\"` of a consumer inside the caller's scoped transaction; `changes` holds only the fields to change."
+  @spec consumer_update(id(), pos_integer() | nil, map(), binary(), Actor.t()) ::
+          {atom(), pos_integer() | nil}
+  defdelegate consumer_update(id, expected_version, changes, digest, actor), to: Store
+
+  # WH-2
+  @doc "Archives a consumer inside the caller's scoped transaction; a consumer with an endpoint that is not archived is `:in_use`."
+  @spec consumer_archive(id(), binary(), Actor.t()) :: {atom(), pos_integer() | nil}
+  defdelegate consumer_archive(id, digest, actor), to: Store
+
+  # WH-2
+  @doc "Reads a consumer inside the caller's scoped transaction, or `nil`."
+  @spec consumer(id()) :: map() | nil
+  defdelegate consumer(id), to: Store
+
+  # WH-2
+  @doc "Reads a consumer, or `nil`."
+  @spec get_consumer(Scope.t(), id()) :: result(map() | nil)
+  def get_consumer(%Scope{} = scope, id), do: read(scope, fn -> Store.consumer(id) end)
+
+  # WH-2
+  # API-56
+  @doc "Lists consumers from a decoded cursor, optionally of one state; at most `limit + 1` come back."
+  @spec list_consumers(Scope.t(), String.t() | nil, cursor(), pos_integer()) :: result([map()])
+  def list_consumers(%Scope{} = scope, state, cursor, limit),
+    do: read(scope, fn -> Store.consumers(state, cursor, limit) end)
+
+  # WH-14
+  @doc "Creates a tenant event type with the first version of its schema inside the caller's scoped transaction; `attrs` carries `:name`, `:schema`, `:schema_digest`, `:identifiers` and optionally `:description` and `:example`."
+  @spec event_type_create(map(), binary(), Actor.t()) :: {atom(), id() | nil}
+  defdelegate event_type_create(attrs, digest, actor), to: Store
+
+  # WH-14
+  @doc "Opens the next schema version of a tenant event type inside the caller's scoped transaction; the current schema again is `:unchanged`."
+  @spec event_type_version_add(id(), map(), binary(), Actor.t()) :: {atom(), pos_integer() | nil}
+  defdelegate event_type_version_add(id, attrs, digest, actor), to: Store
+
+  # WH-14
+  @doc "Archives a tenant event type inside the caller's scoped transaction."
+  @spec event_type_archive(id(), binary(), Actor.t()) :: {atom(), pos_integer() | nil}
+  defdelegate event_type_archive(id, digest, actor), to: Store
+
+  # WH-14
+  @doc "Reads a tenant event type with its current schema version inside the caller's scoped transaction, or `nil`."
+  @spec event_type(id()) :: map() | nil
+  defdelegate event_type(id), to: Store
+
+  # WH-14
+  @doc "Reads one schema version of a tenant event type inside the caller's scoped transaction, or `nil`."
+  @spec event_type_version(id(), pos_integer()) :: map() | nil
+  defdelegate event_type_version(id, version), to: Store
+
+  # WH-14
+  @doc "Reads a tenant event type with its current schema version, or `nil`."
+  @spec get_event_type(Scope.t(), id()) :: result(map() | nil)
+  def get_event_type(%Scope{} = scope, id), do: read(scope, fn -> Store.event_type(id) end)
+
+  # WH-14
+  # API-56
+  @doc "Lists tenant event types from a decoded cursor, optionally of one state."
+  @spec list_event_types(Scope.t(), String.t() | nil, cursor(), pos_integer()) :: result([map()])
+  def list_event_types(%Scope{} = scope, state, cursor, limit),
+    do: read(scope, fn -> Store.event_types(state, cursor, limit) end)
+
+  # WH-14
+  @doc "Reads one schema version of a tenant event type, or `nil`."
+  @spec get_event_type_version(Scope.t(), id(), pos_integer()) :: result(map() | nil)
+  def get_event_type_version(%Scope{} = scope, id, version),
+    do: read(scope, fn -> Store.event_type_version(id, version) end)
+
+  # WH-14
+  # API-56
+  @doc "Lists the schema versions of a tenant event type, newest first, or `:not_found` for an unknown type."
+  @spec list_event_type_versions(Scope.t(), id(), cursor(), pos_integer()) ::
+          result(:not_found | [map()])
+  def list_event_type_versions(%Scope{} = scope, id, cursor, limit) do
+    read(scope, fn ->
+      if Store.event_type(id), do: Store.event_type_versions(id, cursor, limit), else: :not_found
+    end)
+  end
+
+  # WH-13
+  # WH-14
+  @doc "Checks the schema of a tenant event type with its identifiers and example, and returns the schema's digest; see `Relay.Webhooks.EventSchema.check/3`."
+  @spec check_event_schema(map(), [String.t()], map() | nil) ::
+          {:ok, <<_::256>>} | {:error, EventSchema.reason()}
+  defdelegate check_event_schema(schema, identifiers, example), to: EventSchema, as: :check
+
+  # WH-5
+  # TN-32
+  @doc "Makes a signing key of `scheme` (`\"v1a\"` or `\"v1\"`) for a new endpoint or a rotation, outside any transaction; see `Relay.Webhooks.Signer`. The `:secret` of a `v1` key is shown once and kept nowhere else."
+  @spec new_key(Scope.t(), String.t()) :: {:ok, Signer.generated()} | {:error, Relay.Error.t()}
+  def new_key(%Scope{} = scope, scheme) when scheme in ["v1a", "v1"] do
+    {:ok, scheme} = Signer.scheme(scheme)
+    signer().generate(scope, scheme)
+  end
+
+  # WH-2
+  # WH-16
+  # WH-45
+  @doc """
+  Creates an endpoint in the environment of the caller's scoped transaction, with its first version and, for an `https` endpoint, the signing key `key` made by `new_key/2`. `attrs` carries `:use`, `:kind`, `:destination`, `:event_types`, `:snapshot`, `:settings` and `:payload_version`, and optionally `:consumer` (the consumer's key), `:url`, `:credential_ref_id`, `:signature_scheme` and `:description`. The environment is the transaction's and is never an attribute. Returns the result and the endpoint's identifier.
+  """
+  @spec endpoint_create(map(), Signer.generated() | nil, binary(), Actor.t()) ::
+          {atom(), id() | nil}
+  def endpoint_create(attrs, key, digest, %Actor{} = actor),
+    do: Store.endpoint_create(attrs, key, @limits, digest, actor)
+
+  # WH-12
+  # WH-48
+  @doc "Changes an endpoint inside the caller's scoped transaction; `changes` holds only the fields to change, by their column name. A changed `\"snapshot\"` opens a new endpoint version."
+  @spec endpoint_update(id(), pos_integer() | nil, map(), binary(), Actor.t()) ::
+          {atom(), pos_integer() | nil}
+  defdelegate endpoint_update(id, expected_version, changes, digest, actor), to: Store
+
+  # WH-48
+  @doc "Archives an endpoint and retires its signing keys inside the caller's scoped transaction."
+  @spec endpoint_archive(id(), binary(), Actor.t()) :: {atom(), pos_integer() | nil}
+  defdelegate endpoint_archive(id, digest, actor), to: Store
+
+  # WH-6
+  # WH-48
+  @doc "Makes `key`, made by `new_key/2`, the active signing key of an endpoint inside the caller's scoped transaction; the key it replaces keeps signing for `overlap_s` seconds, and with `0` stops at once. Returns the result, the previous key's identifier and when it stops."
+  @spec endpoint_key_rotate(id(), Signer.generated(), non_neg_integer(), binary(), Actor.t()) ::
+          {atom(), id() | nil, DateTime.t() | nil}
+  defdelegate endpoint_key_rotate(id, key, overlap_s, digest, actor), to: Store
+
+  # WH-2
+  # WH-5
+  @doc "Reads an endpoint inside the caller's scoped transaction with the snapshot of its current version and, under `\"keys\"`, the keys that sign now, the active one first; or `nil`."
+  @spec endpoint(id()) :: map() | nil
+  def endpoint(id) do
+    case Store.endpoint(id) do
+      nil -> nil
+      row -> [row] |> with_keys() |> hd()
+    end
+  end
+
+  # WH-2
+  @doc "Reads an endpoint as `endpoint/1` does, or `nil`."
+  @spec get_endpoint(Scope.t(), id()) :: result(map() | nil)
+  def get_endpoint(%Scope{} = scope, id), do: read(scope, fn -> endpoint(id) end)
+
+  # WH-2
+  # API-56
+  @doc "Lists endpoints as `endpoint/1` reads them, newest first, filtered by `:use`, `:state` and `:consumer_id` when given."
+  @spec list_endpoints(Scope.t(), map(), cursor(), pos_integer()) :: result([map()])
+  def list_endpoints(%Scope{} = scope, filters, cursor, limit),
+    do: read(scope, fn -> filters |> Store.endpoints(cursor, limit) |> with_keys() end)
+
+  # WH-12
+  @doc "Reads one version of an endpoint, or `nil`."
+  @spec get_endpoint_version(Scope.t(), id(), pos_integer()) :: result(map() | nil)
+  def get_endpoint_version(%Scope{} = scope, id, version),
+    do: read(scope, fn -> Store.endpoint_version(id, version) end)
+
+  # WH-12
+  # API-56
+  @doc "Lists the versions of an endpoint, newest first, or `:not_found` for an unknown endpoint."
+  @spec list_endpoint_versions(Scope.t(), id(), cursor(), pos_integer()) ::
+          result(:not_found | [map()])
+  def list_endpoint_versions(%Scope{} = scope, id, cursor, limit) do
+    read(scope, fn ->
+      if Store.endpoint(id), do: Store.endpoint_versions(id, cursor, limit), else: :not_found
+    end)
+  end
+
+  # WH-5
+  # WH-6
+  @doc "The signing keys of an endpoint as the signer takes them: the active key first, then a previous key whose overlap has not ended. Their secrets are sealed."
+  @spec signing_keys(Scope.t(), id()) :: result([Signer.key()])
+  def signing_keys(%Scope{} = scope, endpoint_id),
+    do: read(scope, fn -> Store.signing_keys(endpoint_id, Relay.Clock.utc_now()) end)
+
+  # WH-4
+  # WH-6
+  @doc "Signs a delivery attempt outside any transaction: the content is exactly `<webhook_id>.<timestamp>.<body>`, and the answer is the `webhook-signature` header, one token per key of `keys`, the new key's first."
+  @spec sign(Scope.t(), [Signer.key(), ...], String.t(), non_neg_integer(), binary()) ::
+          {:ok, String.t()} | {:error, Relay.Error.t()}
+  def sign(%Scope{} = scope, [_ | _] = keys, webhook_id, timestamp, body) do
+    with {:ok, tokens} <- signer().sign(scope, keys, Signer.content(webhook_id, timestamp, body)),
+         do: {:ok, Signer.header(tokens)}
+  end
+
+  # WH-5
+  @doc "The public form of an Ed25519 public key (`whpk_` and base64), or `nil` for a key without one."
+  @spec public_key(binary() | nil) :: String.t() | nil
+  def public_key(<<_::256>> = key), do: Signer.public_key(key)
+  def public_key(nil), do: nil
+
+  # WH-6
+  @doc "Retires the previous keys of the scope whose overlap ended; returns how many."
+  @spec expire_keys(Scope.t()) :: result(non_neg_integer())
+  def expire_keys(%Scope{} = scope), do: read(scope, &Store.keys_expire/0)
+
+  # WH-56
+  @doc "Seals operations contact addresses outside any transaction, for `contacts_replace/3`."
+  @spec seal_contacts(Scope.t(), [String.t()]) ::
+          {:ok, %{cts: [binary()], key_id: id() | nil}} | {:error, Relay.Error.t()}
+  def seal_contacts(%Scope{}, []), do: {:ok, %{cts: [], key_id: nil}}
+
+  def seal_contacts(%Scope{} = scope, [_ | _] = addresses) do
+    addresses
+    |> Enum.reduce_while({:ok, [], nil}, fn address, {:ok, cts, _key_id} ->
+      case sealer().seal(scope, @contact_field, Relay.Redacted.wrap(address)) do
+        {:ok, %{ct: ct, key_id: key_id}} -> {:cont, {:ok, [ct | cts], key_id}}
+        {:error, %Relay.Error{} = error} -> {:halt, {:error, error}}
+      end
+    end)
+    |> sealed()
+  end
+
+  defp sealed({:ok, cts, key_id}), do: {:ok, %{cts: Enum.reverse(cts), key_id: key_id}}
+  defp sealed({:error, error}), do: {:error, error}
+
+  # WH-56
+  # WH-48
+  @doc "Replaces the operations contacts with addresses sealed by `seal_contacts/2`, inside the caller's scoped transaction; the removed addresses are erased."
+  @spec contacts_replace(%{cts: [binary()], key_id: id() | nil}, binary(), Actor.t()) ::
+          :replaced | :tenant_inactive
+  def contacts_replace(%{cts: cts, key_id: key_id}, digest, %Actor{} = actor),
+    do: Store.contacts_replace(cts, key_id, @contacts_max, digest, actor)
+
+  # WH-56
+  @doc "The operations contact addresses of the scope, oldest first, redacted, with the time of their last replacement. An address that no longer opens is left out. Runs outside any transaction."
+  @spec contacts(Scope.t()) ::
+          {:ok, %{addresses: [Relay.Redacted.t()], updated_at: DateTime.t() | nil}}
+          | {:error, term()}
+  def contacts(%Scope{} = scope) do
+    with {:ok, rows} <- read(scope, &Store.contacts/0) do
+      addresses =
+        for row <- rows,
+            {:ok, address} <- [open_contact(scope, row)],
+            do: address
+
+      {:ok, %{addresses: addresses, updated_at: rows |> Enum.map(& &1["created_at"]) |> latest()}}
+    end
+  end
+
+  defp open_contact(scope, row),
+    do: sealer().open(scope, @contact_field, row["address_key_id"], row["address_ct"])
+
+  defp latest([]), do: nil
+  defp latest(times), do: Enum.max(times, DateTime)
+
+  defp with_keys([]), do: []
+
+  defp with_keys(rows) do
+    keys = rows |> Enum.map(& &1["id"]) |> Store.keys(Relay.Clock.utc_now())
+    by_endpoint = Enum.group_by(keys, & &1["endpoint_id"])
+    Enum.map(rows, &Map.put(&1, "keys", Map.get(by_endpoint, &1["id"], [])))
+  end
+
+  defp read(scope, fun), do: Store.in_scope(scope, fn _status -> fun.() end)
+
+  defp signer, do: Keyword.get(config(), :signer, @signer)
+  defp sealer, do: Keyword.get(config(), :sealer, @sealer)
+  defp config, do: Application.get_env(:relay, __MODULE__, [])
 end

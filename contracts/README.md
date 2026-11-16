@@ -9,7 +9,7 @@ contracts/
 ├── errors.yaml                 # single error catalog
 ├── openapi/
 │   ├── server.yaml             # sending, management and query (tenant backends, operator sessions)
-│   ├── subscriber.yaml         # client family (browser, mobile, UI components)
+│   ├── subscriber.yaml         # client family (browser, mobile, UI components, webhook portal)
 │   ├── operator.yaml           # operator family (Access OIDC session, step-up, platform actions)
 │   └── components/
 │       ├── schemas.yaml        # shared resource and value schemas, identifier formats

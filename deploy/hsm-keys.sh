@@ -8,6 +8,8 @@
 # E-98
 # E-100
 # IN-51
+# TN-32
+# WH-5
 set -eu
 
 usage() {
@@ -27,6 +29,8 @@ exist under their label are left untouched, so the script can be rerun.
   KEK                AES-256 key that wraps tenant data keys
   fingerprint        256-bit generic secret for the HMAC-SHA256 secret fingerprints
   cursor             256-bit generic secret for the HMAC-SHA256 pagination cursor tags
+  webhook wrap       AES-256 key that only wraps and unwraps the Ed25519 signing keys of
+                     webhook endpoints
   blind index        256-bit generic secret for HMAC-SHA256 blind indexes, only
                      when KEY_STORE_BLIND_INDEX_LABEL is set; production
                      blind index keys are per tenant and generated in the token
@@ -42,6 +46,7 @@ Environment:
   KEY_STORE_KEK_LABEL           label of the KEK (required)
   KEY_STORE_FINGERPRINT_LABEL   label of the secret fingerprint key (required)
   KEY_STORE_CURSOR_LABEL        label of the pagination cursor key (required)
+  KEY_STORE_WEBHOOK_WRAP_LABEL  label of the webhook signing key wrapping key (required)
   KEY_STORE_BLIND_INDEX_LABEL   label of a blind index key (optional, local development)
 USAGE
   exit 2
@@ -55,6 +60,7 @@ USAGE
 : "${KEY_STORE_KEK_LABEL:?KEY_STORE_KEK_LABEL is required}"
 : "${KEY_STORE_FINGERPRINT_LABEL:?KEY_STORE_FINGERPRINT_LABEL is required}"
 : "${KEY_STORE_CURSOR_LABEL:?KEY_STORE_CURSOR_LABEL is required}"
+: "${KEY_STORE_WEBHOOK_WRAP_LABEL:?KEY_STORE_WEBHOOK_WRAP_LABEL is required}"
 checkpoint="${KEY_STORE_CHECKPOINT_LABEL:-audit-checkpoint}"
 subscriber_token="${KEY_STORE_SUBSCRIBER_TOKEN_LABEL:-subscriber-token}"
 access_client="${KEY_STORE_ACCESS_CLIENT_LABEL:-access-client}"
@@ -92,6 +98,7 @@ create privkey "$access_client" --keypairgen --key-type EC:prime256v1
 create secrkey "$KEY_STORE_KEK_LABEL" --keygen --key-type AES:32 --sensitive
 create secrkey "$KEY_STORE_FINGERPRINT_LABEL" --keygen --key-type GENERIC:32 --sensitive --usage-sign
 create secrkey "$KEY_STORE_CURSOR_LABEL" --keygen --key-type GENERIC:32 --sensitive --usage-sign
+create secrkey "$KEY_STORE_WEBHOOK_WRAP_LABEL" --keygen --key-type AES:32 --sensitive --usage-wrap
 if [ -n "${KEY_STORE_BLIND_INDEX_LABEL:-}" ]; then
   create secrkey "$KEY_STORE_BLIND_INDEX_LABEL" --keygen --key-type GENERIC:32 --sensitive --usage-sign
 fi

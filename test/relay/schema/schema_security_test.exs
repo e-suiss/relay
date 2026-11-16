@@ -14,7 +14,8 @@ defmodule Relay.Schema.SchemaSecurityTest do
                   inbox_item_deliveries load_shed_events preference_changes render_snapshots
                   usage_records
                   waitpoint_responders waitpoint_responses waitpoint_response_rejections
-                  waitpoint_unmatched_events)
+                  waitpoint_unmatched_events webhook_endpoint_versions
+                  webhook_event_type_versions)
   @shared_read ~w(dataset_active dataset_versions kill_switches)
   @partitioned %{
     "audit_log" => "created_at",
@@ -27,7 +28,8 @@ defmodule Relay.Schema.SchemaSecurityTest do
     "outbox_events" => "created_at",
     "usage_records" => "usage_day",
     "waitpoint_response_rejections" => "created_at",
-    "waitpoint_unmatched_events" => "created_at"
+    "waitpoint_unmatched_events" => "created_at",
+    "webhook_attempts" => "created_at"
   }
   @hash_partitioned %{"inbox_items" => "recipient_id"}
   @small_integers [
@@ -683,7 +685,8 @@ defmodule Relay.Schema.SchemaSecurityTest do
                ["outbox_events" | monthly],
                ["usage_records" | monthly],
                ["waitpoint_response_rejections" | monthly],
-               ["waitpoint_unmatched_events" | monthly]
+               ["waitpoint_unmatched_events" | monthly],
+               ["webhook_attempts" | monthly]
              ]
     end
 

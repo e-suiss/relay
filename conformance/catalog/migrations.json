@@ -214,5 +214,9 @@
   {"file": "20261216500100_create_inbox_operation_functions.exs", "sha256": "14c05ef7484d95e1ed2597d609eeda018e956ca4b19677e6e7e37b8a898db1ba"},
   {"file": "20261216500200_index_inbox_items_for_operations.exs", "sha256": "db42025cbb3ea361f69063f3ab9cb9095bb8fa0f8e0b3daca80b35173b2a62c1"},
   {"file": "20261216500300_validate_inbox_operation_checks.exs", "sha256": "cf5a2891f377324d6f194b1c8a4eb0b0551e46c50a297c27cd4e685fdab479f5"},
-  {"file": "20261216500400_rebuild_reference_check_for_inbox_operations.exs", "sha256": "5ca5707d59ffcf42849bd8b58144c22c13fd89075bbd5ffc9f37293679c6d3ac"}
+  {"file": "20261216500400_rebuild_reference_check_for_inbox_operations.exs", "sha256": "5ca5707d59ffcf42849bd8b58144c22c13fd89075bbd5ffc9f37293679c6d3ac"},
+  {"file": "20261217100000_create_webhook_tables.exs", "sha256": "c67d70277aa06633b04715fe6411065e850fbe7e77a7760cb0d4870ceb1d147a"},
+  {"file": "20261217100100_seed_webhook_attempt_partitions.exs", "sha256": "feed38570698500c1a272529bcfd19108a90a8b0ba799fe2b98f88f9106009f1"},
+  {"file": "20261217100200_create_webhook_functions.exs", "sha256": "8e3bb8906a8e0bc0186916a2b1ac28c36e33a607326c3df199dae1678d23e824"},
+  {"file": "20261217100300_rebuild_reference_check_for_webhooks.exs", "sha256": "41c4438dedf51c143a7524ad17a2d0c9b7193606464a1b348b80febe58551587"}
 ]

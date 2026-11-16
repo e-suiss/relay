@@ -52,6 +52,7 @@ defmodule Relay do
       NetworkGuard.Error,
       Binary,
       TenantWorker,
-      Trace
+      Trace,
+      EventCatalog
     ]
 end

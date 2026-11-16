@@ -19,6 +19,7 @@ keyStore:
   kekLabel: kek
   fingerprintLabel: fingerprint
   cursorLabel: cursor
+  webhookWrapLabel: webhook-wrap
 auditStore:
   endpoint: https://s3.example.com
   bucket: relay-audit

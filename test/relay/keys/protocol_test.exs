@@ -60,6 +60,34 @@ defmodule Relay.Keys.ProtocolTest do
                bin(Protocol.encode(1, {:generate_key, :aes_256, "k", "i"}))
 
       assert Protocol.kind({:generate_key, :aes_256, "k", "i"}) == :generate_key
+
+      assert <<1, _::32, 7, 3, _::binary>> =
+               bin(Protocol.encode(1, {:generate_key, :aes_256_wrap, "k", "i"}))
+    end
+
+    test "TN-32: wrapped signing keys are generated and used by the label of their wrapping key" do
+      assert bin(Protocol.encode(8, {:generate_wrapped_key, "wrap"})) ==
+               <<1, 0, 0, 0, 8, 9, 0, 0, 0, 4, "wrap">>
+
+      assert bin(Protocol.encode(9, {:sign_wrapped, "wrap", <<7>>, "m"})) ==
+               <<1, 0, 0, 0, 9, 10, 0, 0, 0, 4, "wrap", 0, 0, 0, 1, 7, 0, 0, 0, 1, "m">>
+
+      assert Protocol.kind({:generate_wrapped_key, "wrap"}) == :generate_wrapped_key
+      assert Protocol.kind({:sign_wrapped, "wrap", <<7>>, "m"}) == :sign_wrapped
+
+      assert Protocol.result(:generate_wrapped_key, 0, ["w", <<2::256>>]) ==
+               {:ok, %{wrapped: "w", public_key: <<2::256>>}}
+
+      assert Protocol.result(:sign_wrapped, 0, [<<3::512>>]) == {:ok, <<3::512>>}
+
+      for {kind, fields} <- [
+            {:generate_wrapped_key, ["w", <<2::248>>]},
+            {:generate_wrapped_key, ["", <<2::256>>]},
+            {:sign_wrapped, [<<3::504>>]}
+          ] do
+        assert {:error, %Relay.Error{code: :key_store_protocol}} =
+                 Protocol.result(kind, 0, fields)
+      end
     end
   end
 

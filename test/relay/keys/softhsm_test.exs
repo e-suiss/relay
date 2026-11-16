@@ -130,7 +130,8 @@ defmodule Relay.Keys.SoftHSMTest do
     end
   end
 
-  test "TN-30: RS256 signatures verify against the exported modulus and exponent", %{keys: keys} do
+  test "TN-30: RS256 signatures verify against the exported modulus and exponent",
+       %{keys: keys} do
     assert {:ok, {modulus, exponent}} = KeyPort.public_key(keys, :rs256, "rs256")
     assert {:ok, signature} = KeyPort.sign(keys, :rs256, "rs256", "assertion")
     assert :crypto.verify(:rsa, :sha256, "assertion", signature, [exponent, modulus])
@@ -240,6 +241,37 @@ defmodule Relay.Keys.SoftHSMTest do
 
     assert out =~ "label:"
     out
+  end
+
+  test "TN-32, WH-5: an Ed25519 key made in the token leaves it only wrapped and signs after being unwrapped there",
+       %{keys: keys} do
+    label = "wrap-#{System.unique_integer([:positive])}"
+    assert KeyPort.generate_key(keys, :aes_256_wrap, label, "wrap-id") == :ok
+
+    assert {:ok, %{wrapped: wrapped, public_key: <<_::binary-size(32)>> = public}} =
+             KeyPort.generate_wrapped_key(keys, label)
+
+    for message <- ["msg_1.1700000000.{}", ""] do
+      assert {:ok, <<_::binary-size(64)>> = signature} =
+               KeyPort.sign_wrapped(keys, label, wrapped, message)
+
+      assert :crypto.verify(:eddsa, :none, message, signature, [public, :ed25519])
+    end
+
+    assert {:ok, %{wrapped: other, public_key: other_public}} =
+             KeyPort.generate_wrapped_key(keys, label)
+
+    refute other == wrapped
+    refute other_public == public
+
+    <<first, rest::binary>> = wrapped
+    tampered = <<Bitwise.bxor(first, 1), rest::binary>>
+    assert {:error, %Relay.Error{}} = KeyPort.sign_wrapped(keys, label, tampered, "m")
+
+    assert {:error, %Relay.Error{code: :key_not_found}} =
+             KeyPort.generate_wrapped_key(keys, "absent")
+
+    assert {:ok, <<_::binary-size(64)>>} = KeyPort.sign_wrapped(keys, label, wrapped, "after")
   end
 
   test "TN-26: a secret data object is read back redacted", %{keys: keys} do

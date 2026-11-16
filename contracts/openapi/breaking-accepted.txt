@@ -85,3 +85,33 @@ POST /v1/subscriber/inbox/items/{item_id}/intents the `item_id` response's prope
 POST /v1/subscriber/inbox/items/{item_id}/intents the `state/id` response's property pattern `^inb_[0-7][0-9a-hjkmnp-tv-z]{25}$` was removed for the status `200`
 POST /v1/subscriber/inbox/items/{item_id}/intents the `item_id` response's property `type` changed from `string` to `any` for status `200`
 POST /v1/subscriber/inbox/items/{item_id}/intents the `state/id` response's property `type` changed from `string` to `any` for status `200`
+GET /v1/webhook_endpoints the endpoint scheme security `access_bearer: [webhooks]` was removed from the API
+POST /v1/webhook_endpoints the security scope `config` was added to the endpoint's security scheme `access_bearer`
+POST /v1/webhook_endpoints added the new required request property `destination`
+POST /v1/webhook_endpoints the `description` request property's minLength was set to `1`
+POST /v1/webhook_endpoints the response property `signature_scheme` became nullable for the status `201`
+POST /v1/webhook_endpoints added the new `paused` enum value to the `state` response property for the response status `201`
+POST /v1/webhook_endpoints response property `secret` list-of-types was widened by adding types `null` to media type `application/json` of response `201`
+POST /v1/webhook_endpoints the `secret` response property's maxLength was unset from `512` for the response status `201`
+POST /v1/webhook_endpoints the `secret` response property's minLength was unset from `32` for the response status `201`
+POST /v1/webhook_endpoints removed the required property `url` from the response with the `201` status
+GET /v1/webhook_endpoints/{webhook_endpoint_id} the endpoint scheme security `access_bearer: [webhooks]` was removed from the API
+GET /v1/webhook_endpoints/{webhook_endpoint_id} the response property `signature_scheme` became nullable for the status `200`
+GET /v1/webhook_endpoints/{webhook_endpoint_id} added the new `paused` enum value to the `state` response property for the response status `200`
+GET /v1/webhook_endpoints/{webhook_endpoint_id} removed the required property `url` from the response with the `200` status
+PATCH /v1/webhook_endpoints/{webhook_endpoint_id} the security scope `config` was added to the endpoint's security scheme `access_bearer`
+PATCH /v1/webhook_endpoints/{webhook_endpoint_id} the `description/oneOf[subschema #1]/` request property's minLength was set to `1`
+PATCH /v1/webhook_endpoints/{webhook_endpoint_id} the response property `signature_scheme` became nullable for the status `200`
+PATCH /v1/webhook_endpoints/{webhook_endpoint_id} added the new `paused` enum value to the `state` response property for the response status `200`
+PATCH /v1/webhook_endpoints/{webhook_endpoint_id} removed the required property `url` from the response with the `200` status
+POST /v1/webhook_endpoints/{webhook_endpoint_id}/archive the security scope `config` was added to the endpoint's security scheme `access_bearer`
+POST /v1/webhook_endpoints/{webhook_endpoint_id}/archive the response property `signature_scheme` became nullable for the status `200`
+POST /v1/webhook_endpoints/{webhook_endpoint_id}/archive added the new `paused` enum value to the `state` response property for the response status `200`
+POST /v1/webhook_endpoints/{webhook_endpoint_id}/archive removed the required property `url` from the response with the `200` status
+POST /v1/webhook_endpoints/{webhook_endpoint_id}/rotate_key the security scope `config` was added to the endpoint's security scheme `access_bearer`
+POST /v1/webhook_endpoints/{webhook_endpoint_id}/rotate_key the response property `signature_scheme` became nullable for the status `200`
+POST /v1/webhook_endpoints/{webhook_endpoint_id}/rotate_key added the new `paused` enum value to the `state` response property for the response status `200`
+POST /v1/webhook_endpoints/{webhook_endpoint_id}/rotate_key response property `secret` list-of-types was widened by adding types `null` to media type `application/json` of response `200`
+POST /v1/webhook_endpoints/{webhook_endpoint_id}/rotate_key the `secret` response property's maxLength was unset from `512` for the response status `200`
+POST /v1/webhook_endpoints/{webhook_endpoint_id}/rotate_key the `secret` response property's minLength was unset from `32` for the response status `200`
+POST /v1/webhook_endpoints/{webhook_endpoint_id}/rotate_key removed the required property `url` from the response with the `200` status

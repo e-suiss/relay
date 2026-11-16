@@ -71,7 +71,11 @@ defmodule RelayTest.Isolation do
     {"replaceRoute", %{"name" => "Isolation", "tree" => "email"}},
     {"addCampaignRecipients", %{"recipients" => ["iso-campaign"]}},
     {"approveCampaignSamples", %{"samples_digest" => String.duplicate("0", 64)}},
-    {"cancelCampaign", %{"reason" => "isolation"}}
+    {"cancelCampaign", %{"reason" => "isolation"}},
+    {"updateWebhookConsumer", %{"name" => "Isolation"}},
+    {"createWebhookEventTypeVersion", %{"schema" => %{"type" => "object"}}},
+    {"updateWebhookEndpoint", %{"description" => "isolation"}},
+    {"rotateWebhookEndpointKey", %{}}
   ]
   @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
   @sms %{
@@ -129,7 +133,10 @@ defmodule RelayTest.Isolation do
       "recurrence_id" => &recurrence!/1,
       "throttle_key" => &throttle!/1,
       "campaign_id" => &campaign!/1,
-      "announcement_id" => &announcement!/1
+      "announcement_id" => &announcement!/1,
+      "webhook_consumer_id" => &webhook_consumer!/1,
+      "webhook_event_type_id" => &webhook_event_type!/1,
+      "webhook_endpoint_id" => &webhook_endpoint!/1
     }
   end
 
@@ -490,6 +497,32 @@ defmodule RelayTest.Isolation do
   def topic!(scope) do
     key = "iso:" <> random()
     F.body(F.request(:post, "/v1/topics", owner(scope), %{"key" => key}), 201)["key"]
+  end
+
+  @doc "Creates a webhook consumer in `scope` and returns its identifier."
+  @spec webhook_consumer!(Relay.Scope.t()) :: String.t()
+  def webhook_consumer!(scope) do
+    body = %{"key" => "iso-" <> random()}
+    F.body(F.request(:post, "/v1/webhook_consumers", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Creates a tenant event type in `scope` and returns its identifier."
+  @spec webhook_event_type!(Relay.Scope.t()) :: String.t()
+  def webhook_event_type!(scope) do
+    body = %{"name" => "isolation.checked_" <> random(), "schema" => %{"type" => "object"}}
+    F.body(F.request(:post, "/v1/webhook_event_types", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Creates a webhook endpoint in `scope` and returns its identifier."
+  @spec webhook_endpoint!(Relay.Scope.t()) :: String.t()
+  def webhook_endpoint!(scope) do
+    body = %{
+      "use" => "relay_events",
+      "destination" => %{"kind" => "https", "url" => "https://hooks.example.com/isolation"},
+      "event_types" => []
+    }
+
+    F.body(F.request(:post, "/v1/webhook_endpoints", owner(scope), body), 201)["id"]
   end
 
   @doc "Creates a draft campaign in `scope` and returns its identifier."

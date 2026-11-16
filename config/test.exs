@@ -49,6 +49,8 @@ config :relay, Relay.NetworkGuard, enabled: true
 
 config :relay, keys: RelayTest.Keys
 
+config :relay, Relay.Webhooks, resolver: RelayTest.WebhookResolver
+
 config :relay, Relay.Keys,
   kek_label: "kek-test",
   fingerprint_label: "fingerprint-test",

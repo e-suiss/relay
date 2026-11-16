@@ -72,7 +72,14 @@ defmodule Relay.ExternalId do
     {"cmp", "campaigns"},
     {"inb", "inbox_items"},
     {"ann", "inbox_announcements"},
-    {"ibk", "inbox_bulk_operations"}
+    {"ibk", "inbox_bulk_operations"},
+    {"whe", "webhook_endpoints"},
+    {"whc", "webhook_consumers"},
+    {"wet", "webhook_event_types"},
+    {"whk", "webhook_endpoint_keys"},
+    {"whm", "webhook_messages"},
+    {"wha", "webhook_attempts"},
+    {"whb", "webhook_batches"}
   ]
   @by_prefix Map.new(@tables)
 

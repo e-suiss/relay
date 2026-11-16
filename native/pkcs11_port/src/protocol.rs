@@ -83,6 +83,10 @@ pub enum Op {
         label: Vec<u8>,
         value: Zeroizing<Vec<u8>>,
     },
+    GenerateKeyPair {
+        label: Vec<u8>,
+        id: Vec<u8>,
+    },
 }
 
 /// Response status codes.
@@ -174,6 +178,7 @@ pub fn decode(frame: &[u8]) -> Result<(u32, Op), DecodeError> {
         6 => decode_read_secret(&mut reader),
         7 => decode_generate_key(&mut reader),
         8 => decode_store_secret(&mut reader),
+        9 => decode_generate_key_pair(&mut reader),
         _ => None,
     };
 
@@ -250,6 +255,18 @@ fn decode_store_secret(reader: &mut Reader<'_>) -> Option<Op> {
         return None;
     }
     Some(Op::StoreSecret { label, value })
+}
+
+fn decode_generate_key_pair(reader: &mut Reader<'_>) -> Option<Op> {
+    if reader.alg()? != Alg::Ed25519 {
+        return None;
+    }
+    let label = reader.field()?.to_vec();
+    let id = reader.field()?.to_vec();
+    if label.is_empty() || id.is_empty() {
+        return None;
+    }
+    Some(Op::GenerateKeyPair { label, id })
 }
 
 /// Encodes a response frame body. The buffer is zeroized when dropped.
@@ -421,6 +438,32 @@ mod tests {
     }
 
     #[test]
+    fn wh_5_decodes_generate_key_pair() {
+        let body = [vec![3], field(b"endpoint-key"), field(b"1")].concat();
+        assert_eq!(
+            decode(&request(19, 9, &body)),
+            Ok((
+                19,
+                Op::GenerateKeyPair {
+                    label: b"endpoint-key".to_vec(),
+                    id: b"1".to_vec()
+                }
+            ))
+        );
+        for body in [
+            [vec![1], field(b"k"), field(b"1")].concat(),
+            [vec![3], field(b""), field(b"1")].concat(),
+            [vec![3], field(b"k"), field(b"")].concat(),
+            [vec![3], field(b"k")].concat(),
+        ] {
+            assert_eq!(
+                decode(&request(20, 9, &body)).unwrap_err().status,
+                Status::BadRequest
+            );
+        }
+    }
+
+    #[test]
     fn tn_63_decodes_public_key() {
         let body = [vec![3], field(b"checkpoint")].concat();
         assert_eq!(
@@ -450,7 +493,7 @@ mod tests {
     #[test]
     fn tn_63_rejects_unknown_op_alg_and_version() {
         assert_eq!(
-            decode(&request(6, 9, &[])).unwrap_err().status,
+            decode(&request(6, 99, &[])).unwrap_err().status,
             Status::BadRequest
         );
         let body = [vec![9], field(b"k")].concat();

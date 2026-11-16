@@ -242,6 +242,29 @@ defmodule Relay.Keys.SoftHSMTest do
     out
   end
 
+  test "WH-5, TN-63: an Ed25519 key pair is generated in the token, signs there and its label is not reused",
+       %{keys: keys} do
+    label = "relay-webhook-#{System.unique_integer([:positive])}"
+
+    assert {:ok, <<_::binary-size(32)>> = public} =
+             KeyPort.generate_key_pair(keys, :ed25519, label, <<9::128>>)
+
+    assert KeyPort.public_key(keys, :ed25519, label) == {:ok, public}
+
+    for message <- ["msg_1.1700000000.{}", ""] do
+      assert {:ok, <<_::binary-size(64)>> = signature} =
+               KeyPort.sign(keys, :ed25519, label, message)
+
+      assert :crypto.verify(:eddsa, :none, message, signature, [public, :ed25519])
+    end
+
+    assert {:error, %Relay.Error{code: :key_exists}} =
+             KeyPort.generate_key_pair(keys, :ed25519, label, <<10::128>>)
+
+    assert {:ok, other} = KeyPort.generate_key_pair(keys, :ed25519, label <> "-b", <<11::128>>)
+    refute other == public
+  end
+
   test "TN-26: a secret data object is read back redacted", %{keys: keys} do
     assert {:ok, secret} = KeyPort.read_secret(keys, "smtp")
     assert Redacted.expose(secret) == "smtp-password"

@@ -2115,7 +2115,7 @@ paths:
       tags:
         - webhook-portal
       summary: "Add an endpoint"
-      description: "Adds an https endpoint of use destination to the token's consumer, in the token's environment. The registration rules, the limit of 5 endpoints per consumer and the signing key are those of the server operation createWebhookEndpoint; the address check answers at once (WH-40). Audited as webhook_endpoint.created (WH-48)."
+      description: "Adds an https endpoint of use destination to the token's consumer, in the token's environment. The registration rules, the limit of 5 endpoints per consumer and the signing key are those of the server operation createWebhookEndpoint; the address check answers at once (WH-40). Audited as webhook_endpoint.created (WH-48). A portal endpoint names only event types of the tenant: Relay's own events are not delivered to it, and audit_record.appended, which needs a tenant administrator's operator session (WH-67), is refused like any other name that is not an event type of the tenant (422 validation_failed)."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -2294,7 +2294,7 @@ paths:
       tags:
         - webhook-portal
       summary: "Update an endpoint"
-      description: "Changes the URL, the event types, the description or the state (active, disabled) of an endpoint of the token's consumer. Audited as webhook_endpoint.updated (WH-48)."
+      description: "Changes the URL, the event types, the description or the state (active, disabled) of an endpoint of the token's consumer. Audited as webhook_endpoint.updated (WH-48). A portal endpoint names only event types of the tenant: Relay's own events are not delivered to it, and audit_record.appended, which needs a tenant administrator's operator session (WH-67), is refused like any other name that is not an event type of the tenant (422 validation_failed)."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"

@@ -30,6 +30,7 @@ defmodule Relay.Access do
   alias Relay.Access.Jose
   alias Relay.Access.Link
   alias Relay.Access.PlatformTenant
+  alias Relay.Access.PortalToken
   alias Relay.Access.Realms
   alias Relay.Access.SubscriberToken
   alias Relay.Access.SubscriberTokenKeys
@@ -368,6 +369,20 @@ defmodule Relay.Access do
   @spec verify_subscriber_token(String.t(), SubscriberToken.audiences()) ::
           {:ok, SubscriberToken.verified()} | {:error, Relay.Error.t()}
   defdelegate verify_subscriber_token(token, audiences), to: SubscriberToken, as: :verify
+
+  # WH-47
+  # TN-63
+  @doc "Signs a webhook portal token for one consumer of a scope; see `Relay.Access.PortalToken.issue/3`."
+  @spec issue_portal_token(Scope.t(), Relay.Id.t(), PortalToken.audiences()) ::
+          {:ok, PortalToken.issued()} | {:error, Relay.Error.t()}
+  defdelegate issue_portal_token(scope, consumer_id, audiences), to: PortalToken, as: :issue
+
+  # WH-47
+  # E-25
+  @doc "Verifies a webhook portal token; see `Relay.Access.PortalToken.verify/2`."
+  @spec verify_portal_token(String.t(), PortalToken.audiences()) ::
+          {:ok, PortalToken.verified()} | {:error, Relay.Error.t()}
+  defdelegate verify_portal_token(token, audiences), to: PortalToken, as: :verify
 
   # IN-51
   @doc "Makes a key pair of the key store the current subscriber token key; see `Relay.Access.SubscriberTokenKeys.rotate/3`."

@@ -62,7 +62,7 @@ defmodule Relay.Webhooks.LogStore do
 
   # WH-30 (3)
   # API-56
-  @doc "A page of messages, newest first, at most `limit + 1`. `filters` may hold `:endpoint_id`, `:event_id`, `:state`, `:event_type`, `:created_after` and `:created_before`; with `missed: true` only the messages an endpoint missed come back (WH-30 (2)): those in a terminal state other than `delivered` and those held because the endpoint was disabled."
+  @doc "A page of messages, newest first, at most `limit + 1`. `filters` may hold `:endpoint_id`, `:event_id`, `:state`, `:event_type`, `:created_after` and `:created_before`, and `:consumer_id` keeps only the messages of that consumer's endpoints (WH-47); with `missed: true` only the messages an endpoint missed come back (WH-30 (2)): those in a terminal state other than `delivered` and those held because the endpoint was disabled."
   @spec messages(map(), cursor(), pos_integer()) :: [map()]
   def messages(filters, cursor, limit) do
     where = """
@@ -71,6 +71,9 @@ defmodule Relay.Webhooks.LogStore do
       AND ($5::timestamptz IS NULL OR m.created_at >= $5)
       AND ($6::timestamptz IS NULL OR m.created_at < $6)
       AND (NOT $7::boolean OR m.state = ANY ($8::text[]) OR m.hold_reason = 'endpoint_disabled')
+      AND ($9::uuid IS NULL OR EXISTS (SELECT 1 FROM relay.webhook_endpoints e
+        WHERE e.tenant_id = m.tenant_id AND e.environment = m.environment
+          AND e.id = m.endpoint_id AND e.consumer_id = $9))
     """
 
     params = [
@@ -81,7 +84,8 @@ defmodule Relay.Webhooks.LogStore do
       filters[:created_after],
       filters[:created_before],
       filters[:missed] == true,
-      @failed
+      @failed,
+      filters[:consumer_id]
     ]
 
     {condition, order, params} = keyset("m.id", cursor, params, :newest_first)

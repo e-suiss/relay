@@ -823,6 +823,79 @@ defmodule RelayWeb.Router do
       private: %{relay_operation: "pollRealtimeEvents"}
   end
 
+  # WH-14
+  # WH-46
+  # WH-47
+  scope "/v1", RelayWeb.Api do
+    pipe_through :v1
+
+    post "/webhook_consumers/:webhook_consumer_id/portal_tokens", WebhookPortalController, :token,
+      private: %{relay_operation: "createWebhookPortalToken"}
+
+    get "/webhook_catalog", WebhookPortalController, :catalog,
+      private: %{relay_operation: "listWebhookCatalog"}
+
+    get "/portal/webhook_event_types", WebhookPortalController, :event_types,
+      private: %{relay_operation: "listPortalWebhookEventTypes"}
+
+    get "/portal/webhook_endpoints", WebhookPortalController, :index,
+      private: %{relay_operation: "listPortalWebhookEndpoints"}
+
+    post "/portal/webhook_endpoints", WebhookPortalController, :create,
+      private: %{relay_operation: "createPortalWebhookEndpoint"}
+
+    get "/portal/webhook_endpoints/:webhook_endpoint_id", WebhookPortalController, :show,
+      private: %{relay_operation: "getPortalWebhookEndpoint"}
+
+    patch "/portal/webhook_endpoints/:webhook_endpoint_id", WebhookPortalController, :update,
+      private: %{relay_operation: "updatePortalWebhookEndpoint"}
+
+    post "/portal/webhook_endpoints/:webhook_endpoint_id/archive",
+         WebhookPortalController,
+         :archive,
+         private: %{relay_operation: "archivePortalWebhookEndpoint"}
+
+    post "/portal/webhook_endpoints/:webhook_endpoint_id/rotate_key",
+         WebhookPortalController,
+         :rotate,
+         private: %{relay_operation: "rotatePortalWebhookEndpointKey"}
+
+    get "/portal/webhook_endpoints/:webhook_endpoint_id/health", WebhookPortalController, :health,
+      private: %{relay_operation: "getPortalWebhookEndpointHealth"}
+
+    post "/portal/webhook_endpoints/:webhook_endpoint_id/test", WebhookPortalController, :test,
+      private: %{relay_operation: "sendPortalWebhookEndpointTestEvent"}
+
+    post "/portal/webhook_endpoints/:webhook_endpoint_id/recover",
+         WebhookPortalController,
+         :recover,
+         private: %{relay_operation: "recoverPortalWebhookEndpoint"}
+
+    get "/portal/webhook_endpoints/:webhook_endpoint_id/missed_events",
+        WebhookPortalController,
+        :missed,
+        private: %{relay_operation: "listPortalWebhookEndpointMissedEvents"}
+
+    get "/portal/webhook_messages", WebhookPortalController, :messages,
+      private: %{relay_operation: "listPortalWebhookMessages"}
+
+    get "/portal/webhook_messages/:webhook_message_id", WebhookPortalController, :message,
+      private: %{relay_operation: "getPortalWebhookMessage"}
+
+    get "/portal/webhook_messages/:webhook_message_id/attempts",
+        WebhookPortalController,
+        :attempts,
+        private: %{relay_operation: "listPortalWebhookMessageAttempts"}
+
+    get "/portal/webhook_messages/:webhook_message_id/attempts/:webhook_attempt_id",
+        WebhookPortalController,
+        :attempt,
+        private: %{relay_operation: "getPortalWebhookMessageAttempt"}
+
+    post "/portal/webhook_messages/:webhook_message_id/resend", WebhookPortalController, :resend,
+      private: %{relay_operation: "resendPortalWebhookMessage"}
+  end
+
   # API-78
   # X-3
   scope "/v1/operator", RelayWeb.Operator do

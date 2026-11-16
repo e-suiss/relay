@@ -28,6 +28,7 @@ defmodule Relay.Webhooks do
   alias Relay.Webhooks.Fanout
   alias Relay.Webhooks.Health
   alias Relay.Webhooks.LogStore
+  alias Relay.Webhooks.Portal
   alias Relay.Webhooks.Profile
   alias Relay.Webhooks.Recovery
   alias Relay.Webhooks.Settings
@@ -767,6 +768,33 @@ defmodule Relay.Webhooks do
       EngineStore.retention_sweep(messages, responses, limit, now)
     end)
   end
+
+  # WH-8
+  # WH-14
+  @doc "The `dataschema` of a version of an event type of Relay's catalog, as the envelope of its events names it."
+  @spec event_dataschema(String.t(), pos_integer()) :: String.t()
+  def event_dataschema(event_type, version) when is_binary(event_type) and is_integer(version),
+    do: "#{Settings.source()}/v1/event_schemas/#{event_type}/#{version}"
+
+  # WH-30
+  # WH-46
+  # WH-47
+  # API-56
+  @doc "A page of the delivery log of one consumer, newest first: `list_messages/4` narrowed to the messages of that consumer's endpoints. A message of another consumer is never read."
+  @spec portal_messages(Scope.t(), id(), map(), cursor(), pos_integer()) :: result([map()])
+  def portal_messages(%Scope{} = scope, consumer_id, filters, cursor, limit),
+    do: DeliveryLog.messages(scope, Map.put(filters, :consumer_id, consumer_id), cursor, limit)
+
+  # WH-47
+  @doc "Reads a message of one consumer with its `\"webhook_id\"`, or `nil`, inside the caller's scoped transaction; see `Relay.Webhooks.Portal.message/2`."
+  @spec portal_message(id(), id()) :: map() | nil
+  defdelegate portal_message(consumer_id, id), to: Portal, as: :message
+
+  # WH-47
+  @doc "Reads a message of one consumer with its `\"webhook_id\"`, or `nil`."
+  @spec get_portal_message(Scope.t(), id(), id()) :: result(map() | nil)
+  def get_portal_message(%Scope{} = scope, consumer_id, id),
+    do: read(scope, fn -> Portal.message(consumer_id, id) end)
 
   defp days(value, default, min) when is_integer(value), do: value |> max(min) |> min(default)
   defp days(_unset, default, _min), do: default

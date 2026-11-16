@@ -52,24 +52,24 @@ defmodule Relay.Webhooks.Destination.Kafka.Protocol do
         }
 
   @doc "A SaslHandshake v1 request that names the mechanism."
-  @spec sasl_handshake(integer(), String.t(), String.t()) :: iodata()
+  @spec sasl_handshake(integer(), String.t(), String.t()) :: binary()
   def sasl_handshake(correlation, client_id, mechanism),
     do: request(@sasl_handshake, 1, correlation, client_id, string(mechanism))
 
   @doc "A SaslAuthenticate v0 request that carries one message of the mechanism."
-  @spec sasl_authenticate(integer(), String.t(), binary()) :: iodata()
+  @spec sasl_authenticate(integer(), String.t(), binary()) :: binary()
   def sasl_authenticate(correlation, client_id, message),
     do: request(@sasl_authenticate, 0, correlation, client_id, bytes(message))
 
   @doc "A Metadata v4 request for one topic; the topic is never created by it."
-  @spec metadata(integer(), String.t(), String.t()) :: iodata()
+  @spec metadata(integer(), String.t(), String.t()) :: binary()
   def metadata(correlation, client_id, topic),
     do: request(@metadata, 4, correlation, client_id, [<<1::32>>, string(topic), <<0>>])
 
   # WH-18
   @doc "A Produce v3 request with one record for one partition. `acks` is -1 for the acknowledgement of every in-sync replica; `timeout_ms` is how long the broker may wait for it."
   @spec produce(integer(), String.t(), String.t(), integer(), entry(), integer(), integer()) ::
-          iodata()
+          binary()
   def produce(correlation, client_id, topic, partition, record, acks, timeout_ms) do
     batch = record_batch(record)
 
@@ -85,7 +85,8 @@ defmodule Relay.Webhooks.Destination.Kafka.Protocol do
 
   defp request(api_key, version, correlation, client_id, body) do
     header = [<<api_key::16, version::16, correlation::32-signed>>, string(client_id)]
-    [<<IO.iodata_length(header) + IO.iodata_length(body)::32>>, header, body]
+    size = IO.iodata_length(header) + IO.iodata_length(body)
+    IO.iodata_to_binary([<<size::32>>, header, body])
   end
 
   defp string(text), do: [<<byte_size(text)::16>>, text]

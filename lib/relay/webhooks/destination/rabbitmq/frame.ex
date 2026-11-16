@@ -100,7 +100,7 @@ defmodule Relay.Webhooks.Destination.Rabbitmq.Frame do
 
   # WH-18
   @doc "Encodes the content of a message on `channel`: the content header with its properties and the body in frames of at most `frame_max` bytes."
-  @spec content(non_neg_integer(), properties(), binary(), pos_integer()) :: iodata()
+  @spec content(non_neg_integer(), properties(), binary(), pos_integer()) :: [binary(), ...]
   def content(channel, properties, body, frame_max)
       when is_binary(body) and is_integer(frame_max) and frame_max > @overhead do
     header = [

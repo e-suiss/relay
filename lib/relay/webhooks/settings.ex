@@ -2,11 +2,11 @@ defmodule Relay.Webhooks.Settings do
   @moduledoc """
   The values the delivery engine works with: the limits of the contract (`x-relay-limits` `webhook`, read through `Relay.Limits`) and the configuration of the installation (`config :relay, Relay.Webhooks`).
 
-  The configuration names the engine's ports: `runtime: Module` (`Relay.Webhooks.Runtime`, by default `Relay.Webhooks.Live`), `sealer: Module`, `destinations: %{kind => Module}`, the implementation of `Relay.Webhooks.Destination` for each endpoint kind, merged over the built-in `https` one so that a new kind plugs in without a change here, and `destination_options: keyword` passed to every delivery. `source: url` is the `source` of Relay's own events, the installation issuer, and `operations_sender: address` the sender of operations e-mails (WH-56); neither has a default in code.
+  The configuration names the engine's ports: `runtime: Module` (`Relay.Webhooks.Runtime`, by default `Relay.Webhooks.Live`), `sealer: Module`, `destinations: %{kind => Module}`, an implementation of `Relay.Webhooks.Destination` that replaces the one `Relay.Webhooks.Destination.Kinds` names for an endpoint kind, and `destination_options: keyword` passed to every delivery. `source: url` is the `source` of Relay's own events, the installation issuer, and `operations_sender: address` the sender of operations e-mails (WH-56); neither has a default in code.
   """
 
   alias Relay.Limits
-  alias Relay.Webhooks.Destination
+  alias Relay.Webhooks.Destination.Kinds
   alias Relay.Webhooks.RetrySchedule
 
   @jitter_bp 100 * Limits.fetch!(["webhook", "retry_schedule", "jitter_percent"])
@@ -36,7 +36,13 @@ defmodule Relay.Webhooks.Settings do
     warn_after_ms: 1000 * Limits.seconds!(["webhook", "auto_disable", "warn_after"]),
     disable_after_ms: 1000 * Limits.seconds!(["webhook", "auto_disable", "after"])
   }
-  @destinations %{"https" => Destination.Https}
+  @destination %{
+    max_frame_bytes: Limits.fetch!(["webhook", "destination", "max_frame_bytes"]),
+    ack_timeout_ms: 1000 * Limits.seconds!(["webhook", "destination", "ack_timeout"]),
+    max_scram_iterations: Limits.fetch!(["webhook", "destination", "max_scram_iterations"]),
+    assertion_ttl_s: Limits.seconds!(["webhook", "destination", "assertion_ttl"]),
+    credential_ttl_s: Limits.seconds!(["webhook", "destination", "credential_ttl"])
+  }
 
   # WH-22 (2)
   @doc "The jitter of a wait in basis points."
@@ -108,8 +114,23 @@ defmodule Relay.Webhooks.Settings do
   # WH-17
   @doc "The destination implementation of an endpoint kind, or `:error` for a kind this installation does not deliver to."
   @spec destination(String.t()) :: {:ok, module()} | :error
-  def destination(kind),
-    do: @destinations |> Map.merge(Keyword.get(config(), :destinations, %{})) |> Map.fetch(kind)
+  def destination(kind) do
+    case config() |> Keyword.get(:destinations, %{}) |> Map.fetch(kind) do
+      {:ok, module} -> {:ok, module}
+      :error -> Kinds.module(kind)
+    end
+  end
+
+  # WH-17
+  @doc "The limits the destinations besides HTTPS are called with: the largest broker frame, the wait for a broker's acknowledgement, the most SCRAM iterations a broker may ask for, and the lifetime of a signed assertion and of a derived credential."
+  @spec destination_limits() :: %{
+          max_frame_bytes: pos_integer(),
+          ack_timeout_ms: pos_integer(),
+          max_scram_iterations: pos_integer(),
+          assertion_ttl_s: pos_integer(),
+          credential_ttl_s: pos_integer()
+        }
+  def destination_limits, do: @destination
 
   @doc "The options every delivery is made with."
   @spec destination_options() :: keyword()

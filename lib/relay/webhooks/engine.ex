@@ -140,7 +140,7 @@ defmodule Relay.Webhooks.Engine do
 
     {result, sent} =
       case prepared(scope, delivery, started) do
-        {:ok, sent} -> {send_out(delivery.endpoint, sent), sent}
+        {:ok, sent} -> {send_out(scope, delivery.endpoint, sent), sent}
         {:error, outcome, sent} -> {outcome, sent}
       end
 
@@ -305,47 +305,87 @@ defmodule Relay.Webhooks.Engine do
   # WH-17
   # WH-24
   # WH-19
-  defp send_out(%{"kind" => kind} = endpoint, %{prepared: prepared}) do
-    limits = Settings.request()
-
-    opts =
-      [
-        policy: Relay.Webhooks.egress_policy(),
-        resolver: Relay.Webhooks.resolver(),
-        connect_timeout_ms: limits.connect_ms,
-        total_timeout_ms: limits.total_ms,
-        max_response_bytes: limits.response_max,
-        dns_timeout_ms: limits.connect_ms
-      ]
-      |> Keyword.merge(Settings.destination_options())
-
+  defp send_out(scope, %{"kind" => kind} = endpoint, %{prepared: prepared}) do
     with {:ok, module} <- Settings.destination(kind),
-         {:ok, config} <- destination_config(endpoint) do
+         {:ok, config} <- destination_config(scope, module, endpoint) do
       :ok = Relay.NetworkGuard.check!(:http)
-      module.deliver(config, prepared, opts)
+      module.deliver(config, prepared, options())
     else
-      :error -> {:error, %{unavailable_kind() | class: :invalid}}
+      :error -> {:error, unattempted(:invalid, "kind_unavailable")}
       {:error, failure} -> {:error, failure}
     end
   end
 
-  defp unavailable_kind,
-    do: %{class: :invalid, reason: "kind_unavailable", duration_ms: 0, address: nil}
+  defp options do
+    limits = Settings.request()
+    extra = Settings.destination_limits()
 
-  defp destination_config(%{"kind" => "https", "url" => url, "destination" => destination}) do
-    case Map.get(destination, "auth", "none") do
-      "none" -> {:ok, %{url: url}}
-      _other -> unavailable("destination_auth_unavailable")
+    [
+      policy: Relay.Webhooks.egress_policy(),
+      resolver: Relay.Webhooks.resolver(),
+      connect_timeout_ms: limits.connect_ms,
+      total_timeout_ms: limits.total_ms,
+      max_response_bytes: limits.response_max,
+      dns_timeout_ms: limits.connect_ms,
+      max_frame_bytes: extra.max_frame_bytes,
+      ack_timeout_ms: extra.ack_timeout_ms,
+      max_scram_iterations: extra.max_scram_iterations,
+      assertion_ttl_s: extra.assertion_ttl_s,
+      credential_ttl_s: extra.credential_ttl_s,
+      token_cache: &uncached/1
+    ]
+    |> Keyword.merge(Settings.destination_options())
+  end
+
+  defp uncached(fetch) do
+    case fetch.() do
+      {:ok, token, _lifetime} -> {:ok, token}
+      {:error, failure} -> {:error, failure}
     end
   end
 
-  defp destination_config(%{"destination" => destination} = endpoint) do
-    {:ok,
-     %{
-       kind: endpoint["kind"],
-       destination: destination,
-       credential_ref_id: endpoint["credential_ref_id"]
-     }}
+  defp unattempted(class, reason),
+    do: %{class: class, reason: reason, duration_ms: 0, address: nil}
+
+  # WH-21
+  defp destination_config(_scope, _module, %{"kind" => "s3"}),
+    do: {:error, unattempted(:unavailable, "object_batch_unavailable")}
+
+  defp destination_config(_scope, _module, %{"kind" => "https", "url" => url} = endpoint) do
+    case Map.get(endpoint["destination"], "auth", "none") do
+      "none" -> {:ok, %{url: url}}
+      _other -> {:error, unattempted(:credentials, "destination_auth_unavailable")}
+    end
+  end
+
+  # WH-19
+  defp destination_config(scope, module, %{"destination" => destination} = endpoint) do
+    _ = Code.ensure_loaded(module)
+
+    config =
+      for {key, value} <- destination, atom = field(key), atom != nil, into: %{} do
+        {atom, value}
+      end
+
+    case credential(scope, endpoint["credential_ref_id"]) do
+      {:ok, credential} -> {:ok, Map.put(config, :credential, credential)}
+      :error -> {:error, unattempted(:credentials, "credential_unavailable")}
+    end
+  end
+
+  defp field(key) do
+    String.to_existing_atom(key)
+  rescue
+    ArgumentError -> nil
+  end
+
+  defp credential(_scope, nil), do: {:ok, nil}
+
+  defp credential(scope, ref_id) do
+    case Settings.runtime().credential(scope, ref_id) do
+      %Relay.Redacted{} = credential -> {:ok, credential}
+      nil -> :error
+    end
   end
 
   # WH-10

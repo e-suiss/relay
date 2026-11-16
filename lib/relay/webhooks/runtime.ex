@@ -34,6 +34,9 @@ defmodule Relay.Webhooks.Runtime do
   @doc "The data of the outbox event behind an event, with the identifiers in their external form, from which snapshot fields are taken; `nil` when it is no longer kept."
   @callback event_source(Scope.t(), Relay.Id.t(), DateTime.t()) :: map() | nil
 
+  @doc "Resolves the credential of a destination from its secret reference for this call only (WH-19), or `nil` when it cannot be resolved."
+  @callback credential(Scope.t(), Relay.Id.t()) :: Relay.Redacted.t() | nil
+
   @doc "Sends an operations e-mail to the tenant's contacts through the platform tenant's e-mail channel."
   @callback mail(Scope.t(), [Relay.Redacted.t(), ...], mail()) :: :ok | {:error, term()}
 end

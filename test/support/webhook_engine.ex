@@ -99,6 +99,9 @@ defmodule RelayTest.WebhookEngine do
     def event_source(_scope, _event_id, _occurred_at), do: Process.get(:webhook_source)
 
     @impl Relay.Webhooks.Runtime
+    def credential(_scope, _ref_id), do: Process.get(:webhook_credential)
+
+    @impl Relay.Webhooks.Runtime
     def mail(_scope, addresses, mail) do
       send(self(), {:webhook_mail, addresses, mail})
       Process.get(:webhook_mail, :ok)

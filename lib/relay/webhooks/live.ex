@@ -157,6 +157,12 @@ defmodule Relay.Webhooks.Live do
     end
   end
 
+  # WH-19
+  # TN-26
+  @impl Relay.Webhooks.Runtime
+  def credential(%Scope{} = scope, ref_id),
+    do: credentials(scope, %{"credential_ref_id" => ref_id})
+
   # WH-56
   @impl Relay.Webhooks.Runtime
   def mail(%Scope{}, addresses, %{from: from, subject: subject, text: text}) do

@@ -1,5 +1,5 @@
 defmodule RelayTest.Keys do
-  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per `relay-dkim/` label (DKIM keys); there are no other signing keys; secret data objects are stored in the calling process; key generation succeeds for any label. An Ed25519 key pair is derived from its label and signs only under a label that starts with `relay-webhook-`."
+  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per `relay-dkim/` label (DKIM keys); there are no other signing keys; secret data objects are stored in the calling process; key generation succeeds for any label. An Ed25519 key pair is derived from its label and signs only under a label that starts with `relay-webhook-`; once destroyed, its label no longer signs in any process for the rest of the test run."
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
@@ -24,8 +24,11 @@ defmodule RelayTest.Keys do
   def sign(:rs256, "relay-dkim/" <> _rest = label, message),
     do: {:ok, :public_key.sign(message, :sha256, rs256(label))}
 
-  def sign(:ed25519, "relay-webhook-" <> _rest = label, message),
-    do: {:ok, :crypto.sign(:eddsa, :none, message, [ed25519(label), :ed25519])}
+  def sign(:ed25519, "relay-webhook-" <> _rest = label, message) do
+    if :persistent_term.get({__MODULE__, :destroyed, label}, false),
+      do: not_found(),
+      else: {:ok, :crypto.sign(:eddsa, :none, message, [ed25519(label), :ed25519])}
+  end
 
   def sign(_alg, _label, _message), do: not_found()
 
@@ -128,6 +131,12 @@ defmodule RelayTest.Keys do
   def generate_key_pair(:ed25519, label, _id) do
     {public, _seed} = :crypto.generate_key(:eddsa, :ed25519, ed25519(label))
     {:ok, public}
+  end
+
+  @impl Relay.Keys
+  def destroy_key_pair(:ed25519, label) do
+    :persistent_term.put({__MODULE__, :destroyed, label}, true)
+    :ok
   end
 
   defp ed25519(label), do: :crypto.hash(:sha256, "relay-test-ed25519:" <> label)

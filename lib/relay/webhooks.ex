@@ -9,16 +9,22 @@ defmodule Relay.Webhooks do
   The signer and the sealer are ports: `config :relay, Relay.Webhooks, signer: Module, sealer: Module`, by default `Relay.Webhooks.Signer.KeyStore` and `Relay.Webhooks.Live`. The same configuration holds the installation's egress policy (`Relay.Webhooks.Egress.Policy`): `deployment: :saas | :self_hosted` (`:saas` when absent), `extra_ports: [port]` for HTTPS ports besides 443 (WH-40 (2)), `allow_list: [entry]` for the internal targets of a self-hosted installation (WH-44), and `resolver: Module` for the DNS port.
   """
 
-  use Boundary, top_level?: true, deps: [Relay], exports: []
+  use Boundary, top_level?: true, deps: [Relay], exports: [Runtime, Destination]
 
   alias Relay.Actor
   alias Relay.Scope
   alias Relay.Webhooks.Egress
   alias Relay.Webhooks.Egress.Policy
+  alias Relay.Webhooks.Engine
+  alias Relay.Webhooks.EngineStore
   alias Relay.Webhooks.EventSchema
+  alias Relay.Webhooks.Fanout
+  alias Relay.Webhooks.Health
   alias Relay.Webhooks.Profile
+  alias Relay.Webhooks.Settings
   alias Relay.Webhooks.Signer
   alias Relay.Webhooks.Store
+  alias Relay.Webhooks.Sweeper
 
   @signer Relay.Webhooks.Signer.KeyStore
   @sealer Relay.Webhooks.Live
@@ -386,6 +392,193 @@ defmodule Relay.Webhooks do
   defp latest([]), do: nil
   defp latest(times), do: Enum.max(times, DateTime)
 
+  # WH-41
+  @doc "The egress policy of the installation, as every delivery uses it; see `Relay.Webhooks.Egress.Policy`."
+  @spec egress_policy() :: Policy.t()
+  def egress_policy, do: policy()
+
+  @doc "The DNS port of the installation."
+  @spec resolver() :: module()
+  def resolver, do: Keyword.get(config(), :resolver, Egress.Resolver.Inet)
+
+  # WH-1
+  # WH-2
+  # WH-11
+  # INV-12
+  # OP-7
+  @doc "Records one of Relay's own events and creates its messages with their jobs, inside the caller's scoped transaction: the transaction of the outbox dispatcher. Dispatching the same event again creates nothing. See `Relay.Webhooks.Fanout.relay_event/1`."
+  @spec deliver_event(Fanout.event()) :: [map()]
+  defdelegate deliver_event(event), to: Fanout, as: :relay_event
+
+  # WH-32 (4)
+  @doc "Makes one delivery attempt of a message outside any transaction; see `Relay.Webhooks.Engine.attempt/3`. The attempt worker calls it; `manual: true` is a resend."
+  @spec attempt(Scope.t(), id(), keyword()) :: {:ok, Engine.result()} | {:error, term()}
+  defdelegate attempt(scope, message_id, opts \\ []), to: Engine
+
+  # WH-2
+  @doc "Reads a message inside the caller's scoped transaction, or `nil`."
+  @spec message(id()) :: map() | nil
+  defdelegate message(id), to: EngineStore
+
+  # WH-2
+  @doc "Reads a message, or `nil`."
+  @spec get_message(Scope.t(), id()) :: result(map() | nil)
+  def get_message(%Scope{} = scope, id), do: read(scope, fn -> EngineStore.message(id) end)
+
+  # WH-4
+  @doc "The `webhook-id` of the event of a message read by `message/1`, inside the caller's scoped transaction: the identifier a consumer deduplicates by, the same for every attempt, resend, recovery and replay (WH-33)."
+  @spec webhook_id(map()) :: String.t()
+  def webhook_id(%{"event_id" => event_id}),
+    do: event_id |> EngineStore.event() |> Engine.webhook_id()
+
+  # WH-31
+  # WH-32 (1)
+  # WH-32 (2)
+  @doc "Queues one attempt of a message at once, inside the caller's scoped transaction: a resend. If it succeeds the message is delivered and its waiting attempts are cancelled; if it fails the message keeps its state and schedule, and the attempt does not count against the schedule. Attempts of one message never run at the same time."
+  @spec resend(id()) :: :ok | {:error, term()}
+  def resend(message_id), do: Fanout.attempt_job(message_id, nil, true)
+
+  # WH-31
+  # WH-32 (3)
+  # WH-33 (1)
+  @doc "Starts the schedule of messages from the beginning, inside the caller's scoped transaction: the building block of `recover` and of a bulk retry. The event identifier stays. Returns how many were restarted; see `Relay.Webhooks.Fanout.restart/1`."
+  @spec restart_messages([id()]) :: non_neg_integer()
+  defdelegate restart_messages(message_ids), to: Fanout, as: :restart
+
+  # WH-31
+  @doc "Cancels the scheduled attempts of messages inside the caller's scoped transaction; they become `cancelled`. Returns how many; see `Relay.Webhooks.Fanout.cancel/2`."
+  @spec cancel_messages([id()], String.t()) :: non_neg_integer()
+  defdelegate cancel_messages(message_ids, actor_ref), to: Fanout, as: :cancel
+
+  # WH-31
+  # WH-33 (1)
+  @doc "Creates the message of an existing event for another endpoint inside the caller's scoped transaction: a replay with the same `webhook-id`. Returns the message's identifier or `nil`; see `Relay.Webhooks.Fanout.replay/2`."
+  @spec replay_event(id(), id()) :: id() | nil
+  defdelegate replay_event(event_id, endpoint_id), to: Fanout, as: :replay
+
+  # WH-31
+  # WH-33 (2)
+  @doc "Queues the release of an endpoint's held messages inside the caller's scoped transaction; `hold_reason` is `\"endpoint_paused\"`, `\"endpoint_disabled\"` or `\"breaker_open\"`. The release runs at a controlled rate within the endpoint's limits."
+  @spec release_held_job(id(), String.t()) :: :ok | {:error, term()}
+  def release_held_job(endpoint_id, hold_reason),
+    do: Fanout.release_job(endpoint_id, hold_reason, nil)
+
+  # WH-31
+  # WH-33 (2)
+  @doc "Releases one batch of an endpoint's held messages in its own transaction; the release worker calls it. See `Relay.Webhooks.Fanout.release/3`."
+  @spec release_held(Scope.t(), id(), String.t(), pos_integer()) :: result(non_neg_integer())
+  def release_held(%Scope{} = scope, endpoint_id, hold_reason, batch),
+    do: read(scope, fn -> Fanout.release(endpoint_id, hold_reason, batch) end)
+
+  # WH-31
+  # WH-48
+  @doc "Pauses an endpoint inside the caller's scoped transaction: its messages are held, not dropped. Returns the result (`:changed`, `:unchanged`, `:not_found`, `:archived`, `:managed` or `:invalid_state`) and the endpoint's row version."
+  @spec endpoint_pause(id(), binary(), Actor.t()) :: {atom(), pos_integer() | nil}
+  def endpoint_pause(id, digest, %Actor{} = actor),
+    do: EngineStore.endpoint_set_state(id, "paused", nil, digest, actor, Relay.Clock.utc_now())
+
+  # WH-31
+  # WH-48
+  @doc "Resumes a paused endpoint inside the caller's scoped transaction and queues the release of its held messages. Returns as `endpoint_pause/3` does."
+  @spec endpoint_resume(id(), binary(), Actor.t()) :: {atom(), pos_integer() | nil}
+  def endpoint_resume(id, digest, %Actor{} = actor) do
+    now = Relay.Clock.utc_now()
+
+    case EngineStore.endpoint_set_state(id, "active", nil, digest, actor, now) do
+      {:changed, version} ->
+        :ok = Fanout.release_job(id, "endpoint_paused", nil)
+        {:changed, version}
+
+      other ->
+        other
+    end
+  end
+
+  # WH-34
+  @doc "Appends `webhook_endpoint.recovered` to the outbox inside the caller's scoped transaction, when a disabled endpoint was enabled again."
+  @spec endpoint_recovered(id()) :: :ok
+  def endpoint_recovered(id) do
+    payload = %{"endpoint_id" => Relay.ExternalId.encode("whe", id)}
+    :appended = EngineStore.outbox_append("webhook_endpoint.recovered", id, payload)
+    :ok
+  end
+
+  # WH-45 (3)
+  @doc "Creates the test event of an endpoint read by `endpoint/1` and queues its one attempt, inside the caller's scoped transaction; returns the message or `nil`."
+  @spec test_event(map()) :: map() | nil
+  def test_event(%{"id" => _id} = endpoint) do
+    case Fanout.test_event(endpoint) do
+      nil -> nil
+      message_id -> EngineStore.message(message_id)
+    end
+  end
+
+  # WH-39
+  @doc "The health of an endpoint: the endpoint, its health row, the attempt statistics of the health window, its backlog and when it is disabled automatically if it keeps failing; `nil` for an unknown endpoint."
+  @spec endpoint_health(Scope.t(), id()) :: result(map() | nil)
+  def endpoint_health(%Scope{} = scope, id) do
+    now = Relay.Clock.utc_now()
+    window_s = Settings.health_window_s()
+
+    read(scope, fn ->
+      with %{} = endpoint <- EngineStore.endpoint(id) do
+        health = EngineStore.health(id)
+
+        %{
+          endpoint: endpoint,
+          health: health,
+          window_s: window_s,
+          statistics: EngineStore.statistics(id, DateTime.add(now, -window_s, :second)),
+          backlog: EngineStore.backlog(id),
+          disable_at: Health.disable_at(health, endpoint["auto_disable"], Settings.health())
+        }
+      end
+    end)
+  end
+
+  # WH-28
+  # WH-32 (4)
+  # WH-36
+  @doc "Runs the engine's sweep in every scope that has work for it; returns how many scopes were swept. See `Relay.Webhooks.Sweeper`."
+  @spec sweep(pos_integer()) :: non_neg_integer()
+  defdelegate sweep(limit \\ 100), to: Sweeper, as: :run
+
+  @doc "Runs the engine's sweep in one scope; see `Relay.Webhooks.Sweeper.scope/1`."
+  @spec sweep_scope(Scope.t()) :: result(map())
+  defdelegate sweep_scope(scope), to: Sweeper, as: :scope
+
+  # WH-6
+  # TN-63
+  @doc "Destroys the key store objects of the scope's retired `v1a` keys, outside any transaction, so that a retired key can never sign again; returns how many keys were finished. A key whose object could not be destroyed is tried again on the next run."
+  @spec destroy_retired_keys(Scope.t()) :: result(non_neg_integer())
+  def destroy_retired_keys(%Scope{} = scope) do
+    with {:ok, keys} <- read(scope, fn -> EngineStore.retired_keys(100) end) do
+      destroyed = for %{"id" => id} <- keys, signer().destroy(id) == :ok, do: id
+      read(scope, fn -> EngineStore.keys_destroyed(destroyed, Relay.Clock.utc_now()) end)
+    end
+  end
+
+  # WH-30
+  # WH-52
+  @doc "Erases one batch of the answers and event payloads of the scope whose retention ended: the contract's periods, or the shorter ones of the tenant's `webhook.retention` setting. Rows stay. Returns how many of each were erased."
+  @spec retire_due(Scope.t(), pos_integer()) ::
+          result(%{responses: non_neg_integer(), payloads: non_neg_integer()})
+  def retire_due(%Scope{} = scope, limit) do
+    defaults = Settings.retention()
+    now = Relay.Clock.utc_now()
+
+    read(scope, fn ->
+      setting = EngineStore.retention_setting() || %{}
+      min = defaults.min_days
+      messages = days(setting["messages_days"], defaults.messages_days, min)
+      responses = days(setting["response_body_days"], defaults.response_body_days, min)
+      EngineStore.retention_sweep(messages, responses, limit, now)
+    end)
+  end
+
+  defp days(value, default, min) when is_integer(value), do: value |> max(min) |> min(default)
+  defp days(_unset, default, _min), do: default
+
   defp with_keys([]), do: []
 
   defp with_keys(rows) do
@@ -409,7 +602,6 @@ defmodule Relay.Webhooks do
     policy
   end
 
-  defp resolver, do: Keyword.get(config(), :resolver, Egress.Resolver.Inet)
   defp signer, do: Keyword.get(config(), :signer, @signer)
   defp sealer, do: Keyword.get(config(), :sealer, @sealer)
   defp config, do: Application.get_env(:relay, __MODULE__, [])

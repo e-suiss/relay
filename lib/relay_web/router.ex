@@ -509,6 +509,18 @@ defmodule RelayWeb.Router do
     post "/webhook_endpoints/:webhook_endpoint_id/rotate_key", WebhookEndpointController, :rotate,
       private: %{relay_operation: "rotateWebhookEndpointKey"}
 
+    post "/webhook_endpoints/:webhook_endpoint_id/pause", WebhookEndpointController, :pause,
+      private: %{relay_operation: "pauseWebhookEndpoint"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/resume", WebhookEndpointController, :resume,
+      private: %{relay_operation: "resumeWebhookEndpoint"}
+
+    get "/webhook_endpoints/:webhook_endpoint_id/health", WebhookEndpointController, :health,
+      private: %{relay_operation: "getWebhookEndpointHealth"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/test", WebhookEndpointController, :test,
+      private: %{relay_operation: "sendWebhookEndpointTestEvent"}
+
     get "/webhook_endpoints/:webhook_endpoint_id/versions", WebhookEndpointController, :versions,
       private: %{relay_operation: "listWebhookEndpointVersions"}
 

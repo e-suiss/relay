@@ -426,6 +426,7 @@ defmodule Relay.Api.Webhooks do
 
       case Relay.Webhooks.endpoint_update(id, expected_version, changes, digest, actor) do
         {result, version} when result in [:updated, :unchanged] ->
+          recovered(result, current, changes, id)
           {:ok, {200, [etag(version)], view(Relay.Webhooks.endpoint(id))}}
 
         {refused, _version} ->
@@ -433,6 +434,12 @@ defmodule Relay.Api.Webhooks do
       end
     end
   end
+
+  # WH-34
+  defp recovered(:updated, %{"state" => "disabled"}, %{"state" => "active"}, id),
+    do: Relay.Webhooks.endpoint_recovered(id)
+
+  defp recovered(_result, _current, _changes, _id), do: :ok
 
   defp found(nil), do: {:error, not_found()}
   defp found(%{} = endpoint), do: {:ok, endpoint}
@@ -502,6 +509,126 @@ defmodule Relay.Api.Webhooks do
         {:error, refused(refused)}
     end
   end
+
+  # WH-31
+  # WH-48
+  @doc "Pauses an endpoint inside the request's transaction: its messages are held, not dropped. Pausing a paused endpoint returns it."
+  @spec pause(Scope.t(), Relay.Id.t(), Relay.Actor.t()) :: answer()
+  def pause(%Scope{} = scope, id, actor),
+    do: switched(Relay.Webhooks.endpoint_pause(id, digest(scope, id), actor), id)
+
+  # WH-31
+  # WH-48
+  @doc "Resumes a paused endpoint inside the request's transaction; its held messages are released within the endpoint's limits. Resuming an active endpoint returns it."
+  @spec resume(Scope.t(), Relay.Id.t(), Relay.Actor.t()) :: answer()
+  def resume(%Scope{} = scope, id, actor),
+    do: switched(Relay.Webhooks.endpoint_resume(id, digest(scope, id), actor), id)
+
+  defp digest(scope, id),
+    do: Gate.digest(scope, "webhook_endpoint.updated", Relay.Id.to_string(id))
+
+  defp switched({result, _version}, id) when result in [:changed, :unchanged] do
+    endpoint = Relay.Webhooks.endpoint(id)
+    {:ok, {200, [etag(endpoint["version"])], view(endpoint)}}
+  end
+
+  defp switched({refused, _version}, _id), do: {:error, refused(refused)}
+
+  # WH-45 (3)
+  @doc "Sends the test event of an endpoint inside the request's transaction: `202` with its message, which is attempted once whatever the endpoint subscribes to."
+  @spec test(Scope.t(), Relay.Id.t(), map() | nil) :: answer()
+  def test(%Scope{}, id, body) do
+    with {:ok, endpoint} <- found(Relay.Webhooks.endpoint(id)),
+         :ok <- testable(endpoint, body || %{}),
+         %{} = message <- Relay.Webhooks.test_event(endpoint) do
+      {:ok, {202, [], message_view(message)}}
+    else
+      nil -> {:error, archived()}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  defp testable(%{"state" => "archived"}, _body), do: {:error, archived()}
+
+  defp testable(%{"state" => state}, _body) when state != "active",
+    do: {:error, refused(:invalid_state)}
+
+  defp testable(_endpoint, %{"event_type" => type}) when type != "webhook_endpoint.tested",
+    do: {:error, Gate.field_error("/event_type", "not_found", "the event type has no example")}
+
+  defp testable(_endpoint, _body), do: :ok
+
+  # WH-2
+  @doc "The API view of a message as `Relay.Webhooks.message/1` reads it, inside the caller's scoped transaction."
+  @spec message_view(map()) :: map()
+  def message_view(m) do
+    %{
+      "object" => "webhook_message",
+      "id" => Views.id("whm", m["id"]),
+      "endpoint_id" => Views.id("whe", m["endpoint_id"]),
+      "endpoint_version" => m["endpoint_version"],
+      "event_id" => Relay.Webhooks.webhook_id(m),
+      "event_type" => m["event_type"],
+      "origin" => m["origin"],
+      "state" => m["state"],
+      "hold_reason" => m["hold_reason"],
+      "reason" => m["reason"],
+      "attempt_count" => m["total_attempt_count"],
+      "next_attempt_at" => m["next_attempt_at"],
+      "last_attempt_at" => m["last_attempt_at"],
+      "last_response_status" => m["last_response_status"],
+      "delivered_at" => m["delivered_at"],
+      "expires_at" => m["expires_at"],
+      "created_at" => m["created_at"],
+      "updated_at" => m["updated_at"]
+    }
+  end
+
+  # WH-39
+  @doc "Reads the health of an endpoint."
+  @spec health(Scope.t(), Relay.Id.t()) :: answer()
+  def health(%Scope{} = scope, id) do
+    case Relay.Webhooks.endpoint_health(scope, id) do
+      {:ok, %{} = health} -> {:ok, {200, [], health_view(health)}}
+      {:ok, nil} -> {:error, not_found()}
+      {:error, _reason} -> {:error, unavailable()}
+    end
+  end
+
+  defp health_view(%{endpoint: endpoint, health: health, statistics: statistics} = h) do
+    totals = statistics.totals
+    attempts = totals["succeeded"] + totals["failed"]
+
+    %{
+      "object" => "webhook_endpoint_health",
+      "endpoint_id" => Views.id("whe", endpoint["id"]),
+      "state" => endpoint["state"],
+      "disabled_reason" => endpoint["disabled_reason"],
+      "window" => iso(h.window_s),
+      "succeeded" => totals["succeeded"],
+      "failed" => totals["failed"],
+      "success_rate_bp" => if(attempts > 0, do: div(totals["succeeded"] * 10_000, attempts)),
+      "latency_ms" => latency(totals),
+      "last_success_at" => health["last_success_at"],
+      "last_failure_at" => health["last_failure_at"],
+      "failing_since" => health["failing_since"],
+      "disable_at" => h.disable_at,
+      "backlog" => %{
+        "waiting" => h.backlog["waiting"],
+        "held" => h.backlog["held"],
+        "oldest_at" => h.backlog["oldest_at"]
+      },
+      "breaker" => %{
+        "state" => health["breaker_state"],
+        "opened_at" => health["breaker_opened_at"],
+        "retry_at" => health["breaker_retry_at"]
+      },
+      "recent_failures" => Enum.map(statistics.failures, &Map.take(&1, ~w(code count last_at)))
+    }
+  end
+
+  defp latency(%{"p50" => nil}), do: nil
+  defp latency(totals), do: Map.take(totals, ["p50", "p95", "p99"])
 
   # WH-6
   @doc "Checks a key rotation and makes the new key, outside any transaction: the scheme is the request's or the endpoint's own, the overlap the request's or the default."

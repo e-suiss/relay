@@ -39,6 +39,9 @@ defmodule Relay.Webhooks.Signer do
   @callback sign(Scope.t(), [key(), ...], binary()) ::
               {:ok, [Profile.token(), ...]} | {:error, Error.t()}
 
+  @doc "Destroys what the key store holds of a retired `v1a` key, so that it can never sign again; a key the key store no longer holds is `:ok` as well."
+  @callback destroy(Relay.Id.t()) :: :ok | {:error, Error.t()}
+
   # WH-5
   @doc "The form in which an HMAC secret is shown once: `whsec_` and the base64 of its bytes."
   @spec secret(<<_::256>>) :: String.t()

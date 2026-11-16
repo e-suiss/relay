@@ -180,6 +180,10 @@ fn run(hsm: &Hsm, op: Op) -> Result<Vec<Zeroizing<Vec<u8>>>, Failure> {
             vec![]
         }
         Op::GenerateKeyPair { label, id } => vec![hsm.generate_key_pair(&label, &id)?],
+        Op::DestroyKeyPair { alg, label } => {
+            hsm.destroy_key_pair(alg, &label)?;
+            vec![]
+        }
     };
     Ok(fields.into_iter().map(Zeroizing::new).collect())
 }

@@ -93,6 +93,52 @@ defmodule RelayWeb.Api.WebhookEndpointController do
     end
   end
 
+  # WH-31
+  # WH-48
+  @spec pause(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def pause(conn, %{"webhook_endpoint_id" => id}) do
+    scope = conn.assigns.scope
+    actor = Work.actor(conn)
+
+    case id(id) do
+      {:ok, id} -> Work.idempotent(conn, fn _status -> Webhooks.pause(scope, id, actor) end)
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
+
+  # WH-31
+  # WH-48
+  @spec resume(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def resume(conn, %{"webhook_endpoint_id" => id}) do
+    scope = conn.assigns.scope
+    actor = Work.actor(conn)
+
+    case id(id) do
+      {:ok, id} -> Work.idempotent(conn, fn _status -> Webhooks.resume(scope, id, actor) end)
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
+
+  # WH-39
+  @spec health(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def health(conn, %{"webhook_endpoint_id" => id}) do
+    case id(id) do
+      {:ok, id} -> Work.answer(conn, Webhooks.health(conn.assigns.scope, id))
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
+
+  # WH-45 (3)
+  @spec test(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def test(conn, %{"webhook_endpoint_id" => id}) do
+    %{scope: scope, body: body} = conn.assigns
+
+    case id(id) do
+      {:ok, id} -> Work.idempotent(conn, fn _status -> Webhooks.test(scope, id, body) end)
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
+
   # WH-12
   # API-56
   @spec versions(Plug.Conn.t(), map()) :: Plug.Conn.t()

@@ -61,6 +61,18 @@ defmodule Relay.Platform.OutboxStore do
         do: {row["id"], Repo.code!(row["result"], [:dispatched, :already_dispatched, :not_found])}
   end
 
+  # WH-12
+  @doc "Reads the payload of an outbox event of the established scope by its identifier and creation time, or `nil` when the event is no longer kept."
+  @spec payload(Relay.Id.t(), DateTime.t()) :: map() | nil
+  def payload(id, %DateTime{} = created_at) do
+    sql = "SELECT o.payload FROM relay.outbox_events o WHERE o.id = $1 AND o.created_at = $2"
+
+    case Repo.scoped_query!(sql, [id, created_at]) do
+      %Postgrex.Result{rows: [[payload]]} -> payload
+      %Postgrex.Result{rows: []} -> nil
+    end
+  end
+
   # E-85
   @doc "Reads the envelope context of an outbox payload in the established scope: the environment, the bound Access tenant, the Access organization of `subtenant_id` and the `correlation_id` of the event behind `notification_id`; both are textual identifiers from the payload and may be `nil`."
   @spec envelope_context(String.t() | nil, String.t() | nil) :: map()

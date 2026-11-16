@@ -91,6 +91,8 @@ channels:
         "$ref": "#/components/messages/webhook.email_reputation.resumed"
       webhook.webhook.attempt_exhausted:
         "$ref": "#/components/messages/webhook.webhook.attempt_exhausted"
+      webhook.webhook.window_exceeded:
+        "$ref": "#/components/messages/webhook.webhook.window_exceeded"
       webhook.webhook_endpoint.disabled:
         "$ref": "#/components/messages/webhook.webhook_endpoint.disabled"
       webhook.webhook_endpoint.recovered:
@@ -160,6 +162,8 @@ channels:
     messages:
       webhook.webhook.attempt_exhausted:
         "$ref": "#/components/messages/webhook.webhook.attempt_exhausted"
+      webhook.webhook.window_exceeded:
+        "$ref": "#/components/messages/webhook.webhook.window_exceeded"
       webhook.webhook_endpoint.disabled:
         "$ref": "#/components/messages/webhook.webhook_endpoint.disabled"
       webhook.webhook_endpoint.recovered:
@@ -555,6 +559,7 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.email_reputation.stopped"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.email_reputation.resumed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook.attempt_exhausted"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook.window_exceeded"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.disabled"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.recovered"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.waitpoint.created"
@@ -592,6 +597,7 @@ operations:
       "$ref": "#/channels/operations"
     messages:
       - "$ref": "#/channels/operations/messages/webhook.webhook.attempt_exhausted"
+      - "$ref": "#/channels/operations/messages/webhook.webhook.window_exceeded"
       - "$ref": "#/channels/operations/messages/webhook.webhook_endpoint.disabled"
       - "$ref": "#/channels/operations/messages/webhook.webhook_endpoint.recovered"
       - "$ref": "#/channels/operations/messages/operations.mailbox.abuse_reported"
@@ -1421,6 +1427,8 @@ components:
                     metadata:
                       "$ref": "../openapi/components/schemas.yaml#/Metadata"
                   additionalProperties: false
+      x-relay-snapshot-only:
+        - metadata
       x-relay-surface: webhook
       x-relay-schema-version: 1
       x-relay-stage: 4
@@ -1497,6 +1505,8 @@ components:
                     metadata:
                       "$ref": "../openapi/components/schemas.yaml#/Metadata"
                   additionalProperties: false
+      x-relay-snapshot-only:
+        - metadata
       x-relay-surface: webhook
       x-relay-schema-version: 1
       x-relay-stage: 5
@@ -2162,6 +2172,11 @@ components:
                     conversation_reference:
                       "$ref": "../openapi/components/schemas.yaml#/TeamsConversationReference"
                   additionalProperties: false
+      x-relay-snapshot-only:
+        - provider_user_id
+        - action
+        - text
+        - conversation_reference
       x-relay-surface: webhook
       x-relay-schema-version: 1
       x-relay-stage: 6
@@ -2480,6 +2495,40 @@ components:
       x-relay-stage: 10
       x-relay-also:
         - operations
+    webhook.webhook.window_exceeded:
+      name: webhook.window_exceeded
+      title: webhook.window_exceeded
+      summary: "The window of a webhook delivery ended before its attempts could be made, because of the endpoint's rate limit, its backlog or its open circuit breaker; the message is in the dead letter queue (WH-28)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: webhook.window_exceeded
+                data:
+                  type: object
+                  required:
+                    - endpoint_id
+                    - event_id
+                  properties:
+                    endpoint_id:
+                      type: string
+                      maxLength: 64
+                    event_id:
+                      type: string
+                      maxLength: 512
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 10
+      x-relay-also:
+        - operations
+      x-relay-choice: true
+      x-relay-choice-note: "WH-28 asks for an alarm to the tenant when a message's window ends; the event name and its thin payload are chosen by the contract."
     webhook.webhook_endpoint.disabled:
       name: webhook_endpoint.disabled
       title: webhook_endpoint.disabled
@@ -7579,6 +7628,7 @@ x-relay-event-names:
   - waitpoint.response_rejected
   - waitpoint.stalled
   - webhook.attempt_exhausted
+  - webhook.window_exceeded
   - webhook_consumer.archived
   - webhook_consumer.created
   - webhook_consumer.updated

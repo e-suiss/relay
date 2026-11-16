@@ -41,7 +41,8 @@ config :relay, Relay.Platform.Leadership,
     {"access_link_refresh", Relay.Access.Refresh, []},
     {"tenant_suspension_activator", Relay.Operators.SuspensionActivator, []},
     {"observability_rollup", Relay.Observability.Rollup, []},
-    {"inbox_maintenance", Relay.Inbox.Maintenance, []}
+    {"inbox_maintenance", Relay.Inbox.Maintenance, []},
+    {"webhook_maintenance", Relay.Webhooks.Maintenance, []}
   ]
 
 config :relay, Relay.Audit,
@@ -71,7 +72,8 @@ config :relay, Oban,
        {"40 2 * * *", Relay.Delivery.ReportRollup, args: %{"days" => 15}},
        {"41 * * * *", Relay.Channels.Live.SettingsSweep},
        {"*/5 * * * *", Relay.Channels.Live.ReconcileSweep},
-       {"* * * * *", Relay.Channels.Live.SesQueue}
+       {"* * * * *", Relay.Channels.Live.SesQueue},
+       {"* * * * *", Relay.Webhooks.Sweep}
      ]}
   ]
 
@@ -90,7 +92,9 @@ config :relay, Relay.Workflow.Digest, sink: Relay.Workflow, release: Relay.Polic
 
 config :relay, Relay.Agents, waitpoint_sink: Relay.Workflow
 
-config :relay, Relay.Platform.Outbox, dispatcher: true
+config :relay, Relay.Platform.Outbox,
+  dispatcher: true,
+  handler: {Relay.Webhooks.Live, :outbox_jobs}
 
 config :relay, Relay.Access,
   subscriber_token_key: "subscriber-token",

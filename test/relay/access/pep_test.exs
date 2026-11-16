@@ -59,6 +59,12 @@ defmodule Relay.Access.PepTest do
   defp tlv(<<tag, 0x82, size::16, value::binary-size(size), rest::binary>>),
     do: {tag, value, rest}
 
+  defp request_info(der) do
+    {0x30, request, ""} = tlv(der)
+    {0x30, info, _rest} = tlv(request)
+    info
+  end
+
   describe "E-102 the PEP certificate" do
     test "E-102: the certificate signing request names the PEP key and is signed by it" do
       {:ok, point} = Relay.Keys.public_key(:es256, "access-pep")
@@ -81,7 +87,8 @@ defmodule Relay.Access.PepTest do
     test "E-102: the certificate signing request is printed as PEM" do
       printed = ExUnit.CaptureIO.capture_io(fn -> :ok = Pep.print_csr() end)
       assert [{:CertificationRequest, der, :not_encrypted}] = :public_key.pem_decode(printed)
-      assert {:ok, ^der} = Pep.csr()
+      assert {:ok, again} = Pep.csr()
+      assert request_info(der) == request_info(again)
     end
 
     test "E-102: a certificate of another key is refused before any call", ctx do

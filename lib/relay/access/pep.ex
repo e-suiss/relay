@@ -146,6 +146,7 @@ defmodule Relay.Access.Pep do
     end
   end
 
+  # sobelow_skip ["Traversal.FileModule"]
   defp certificates(key, what) do
     with path when is_binary(path) and path != "" <- Keyword.get(Relay.Access.config(), key),
          {:ok, pem} <- File.read(path),

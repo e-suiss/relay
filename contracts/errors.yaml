@@ -98,6 +98,20 @@ codes:
     choice: false
     description: "The API client behind this token is revoked or suspended in Access; its tokens are rejected on every node."
     type: "{base_url}/v1/errors/auth_revoked_client"
+  - code: auth_client_pending
+    family: auth
+    status: 403
+    title: API client is not assigned yet
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    choice_note: "E-99 sets the 403 but names no code for a client that waits for its environment and scopes."
+    description: "Access registered this API client, but a tenant administrator has not assigned its environment and scopes in Relay yet; its tokens are rejected until then."
+    type: "{base_url}/v1/errors/auth_client_pending"
   - code: auth_expired_token
     family: auth
     status: 401

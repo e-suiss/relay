@@ -1,7 +1,6 @@
 defmodule Relay.Access.ConsentEventsTest do
   use Relay.DataCase, async: false
 
-  alias Relay.Access.ClientStore
   alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
@@ -156,28 +155,21 @@ defmodule Relay.Access.ConsentEventsTest do
       assert rows(ctx) == []
     end
 
-    test "E-80, PC-59: the brand is the sub-tenant of the organization once it is mapped", ctx do
+    test "E-80, PC-59: the brand is the sub-tenant mapped from the organization; an unmapped one waits",
+         ctx do
       organization = "org_" <> FakeAccess.random()
-      branded = consent(ctx, %{"access_organization_id" => organization})
-      waiting = deliver!("consent.updated", branded)
-
+      unmapped = consent(ctx, %{"access_organization_id" => organization})
+      waiting = deliver!("consent.updated", unmapped)
       assert %{"state" => "deferred", "reason" => "subtenant_not_found"} = receipt_of(waiting)
 
-      mapped =
-        deliver!("organization.created", %{
-          "access_tenant_id" => ctx.access_tenant,
-          "access_organization_id" => organization,
-          "name" => "Shop"
-        })
-
-      assert receipt_of(mapped)["state"] == "processed"
-      assert receipt_of(waiting)["state"] == "processed"
-
-      {:ok, subtenant} =
-        ClientStore.in_scope(ctx.scope, fn _status -> ClientStore.subtenant(organization) end)
+      subtenant = TenantFixture.subtenant!(ctx.scope)
+      ^subtenant = TenantFixture.subtenant!(ctx.tenant.test, subtenant)
+      mapped = "org_" <> Base.encode16(subtenant, case: :lower)
+      branded = deliver!("consent.updated", consent(ctx, %{"access_organization_id" => mapped}))
+      assert receipt_of(branded)["state"] == "processed"
 
       assert [%{"brand" => brand}] = consents(ctx)
-      assert brand == Relay.ExternalId.encode("stn", subtenant.id)
+      assert brand == Relay.ExternalId.encode("stn", subtenant)
     end
   end
 end

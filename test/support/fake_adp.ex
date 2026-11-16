@@ -1,6 +1,6 @@
 defmodule RelayTest.FakeAdp do
   @moduledoc """
-  A fake Access decision point for the PEP tests (E-102), on the loopback interface with no network beyond it. `certificates/1` makes a test CA with a server certificate for `localhost` and Relay's PEP certificate for a given P-256 public key, both issued by the CA. `start/2` serves HTTP/1.1 over TLS 1.3 and takes only a client certificate of that CA, as Access does: each request is answered with the decision `answer.(x5t)` builds for the `x5t#S256` of the presented certificate, and the calling process receives `{:fake_adp, :evaluation, x5t, body}`.
+  A fake Access decision point for the PEP tests (E-102), on the loopback interface with no network beyond it. `certificates/1` makes a test CA (one key, a root certificate for each side) with a server certificate for `localhost` and Relay's PEP certificate for a given P-256 public key, both issued by the CA. `start/2` serves HTTP/1.1 over TLS 1.3 and takes only a client certificate of that CA, as Access does: each request is answered with the decision `answer.(x5t)` builds for the `x5t#S256` of the presented certificate, and the calling process receives `{:fake_adp, :evaluation, x5t, body}`.
   """
 
   use Boundary, top_level?: true, deps: [], exports: []
@@ -13,7 +13,8 @@ defmodule RelayTest.FakeAdp do
   @spec certificates(binary()) :: %{server: keyword(), cacerts: [binary()], pep: binary()}
   def certificates(<<4, _::binary-64>> = point) do
     key = {:namedCurve, @prime256v1}
-    root = :public_key.pkix_test_root_cert(~c"fake access ca", key: key, digest: :sha256)
+    ca_key = :public_key.generate_key(key)
+    root = [key: ca_key, digest: :sha256]
     san = {:Extension, {2, 5, 29, 17}, false, [{:dNSName, ~c"localhost"}]}
 
     %{server_config: server, client_config: client} =
@@ -28,8 +29,8 @@ defmodule RelayTest.FakeAdp do
 
     %{
       server: Keyword.take(server, [:cert, :key]),
-      cacerts: [root.cert],
-      pep: reissue(Keyword.fetch!(client, :cert), point, root.key)
+      cacerts: Enum.uniq(Keyword.fetch!(server, :cacerts) ++ Keyword.fetch!(client, :cacerts)),
+      pep: reissue(Keyword.fetch!(client, :cert), point, ca_key)
     }
   end
 

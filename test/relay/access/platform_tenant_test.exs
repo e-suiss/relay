@@ -9,6 +9,7 @@ defmodule Relay.Access.PlatformTenantTest do
 
   setup do
     :ok = FakeAccess.install!()
+    :ok = TenantFixture.region_defaults!()
     :ok
   end
 
@@ -24,14 +25,8 @@ defmodule Relay.Access.PlatformTenantTest do
     |> Enum.find(&(&1["webhook_id"] == webhook_id))
   end
 
-  defp tenant_data(access_tenant_id) do
-    %{
-      "access_tenant_id" => access_tenant_id,
-      "region" => FakeAccess.installation_region(),
-      "default_timezone" => "Europe/Istanbul",
-      "default_locale" => "tr-TR"
-    }
-  end
+  defp tenant_data(access_tenant_id),
+    do: %{"tenant" => access_tenant_id, "placement" => "pool-default", "at" => 1_790_000_000_000}
 
   defp platform!(product) do
     attrs = %{

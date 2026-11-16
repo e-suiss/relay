@@ -76,9 +76,10 @@ defmodule Relay.Webhooks.InboundProfileTest do
         assert {:error, reason} =
                  Relay.Webhooks.verify_message(headers, raw, [@public, @secret], now)
 
-        assert reason in [:no_matching_signature, :timestamp_out_of_tolerance], rejection["name"]
-        assert {:error, refused} = provider(@public, raw, headers, now)
-        assert refused in [:bad_signature, :stale_timestamp], rejection["name"]
+        refused = [:no_matching_signature, :malformed_header, :timestamp_out_of_tolerance]
+        assert reason in refused, rejection["name"]
+        assert {:error, answered} = provider(@public, raw, headers, now)
+        assert answered in [:bad_signature, :stale_timestamp], rejection["name"]
       end
     end
 

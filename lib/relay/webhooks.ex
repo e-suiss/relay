@@ -91,8 +91,7 @@ defmodule Relay.Webhooks do
     Profile.verify(headers, raw_body, parsed, now, @tolerance_s)
   end
 
-  defp key_text(%Relay.Redacted{} = key), do: Relay.Redacted.expose(key)
-  defp key_text(key), do: key
+  defp key_text(key), do: key |> Relay.Redacted.wrap() |> Relay.Redacted.expose()
 
   # WH-16
   # WH-52

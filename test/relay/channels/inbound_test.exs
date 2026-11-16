@@ -22,7 +22,7 @@ defmodule Relay.Channels.InboundTest do
       headers = [
         {"webhook-id", "msg_1"},
         {"webhook-timestamp", ts()},
-        {"webhook-signature", "v1,bm90IGl0 v1," <> signature}
+        {"webhook-signature", "v1," <> Base.encode64(<<0::256>>) <> " v1," <> signature}
       ]
 
       assert Relay.Channels.verify_standard_webhooks(key, @body, headers, @now) == :ok

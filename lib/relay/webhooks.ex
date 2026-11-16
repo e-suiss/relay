@@ -822,7 +822,7 @@ defmodule Relay.Webhooks do
 
   # WH-68
   # TN-26
-  @doc "Registers a completion source inside the caller's scoped transaction; `attrs` carries `:name`, `:scheme` (`\"v1a\"` or `\"v1\"`) and the `:public_key` bytes or the `:secret_ref_id` of an active `webhook_signing` secret reference. An environment holds at most `sources_per_environment` sources that are not archived. Returns the result and the source's identifier."
+  @doc "Registers a completion source inside the caller's scoped transaction; `attrs` carries `:name`, `:scheme` (`v1a` or `v1`) and the `:public_key` bytes or the `:secret_ref_id` of an active `webhook_signing` secret reference. An environment holds at most `sources_per_environment` sources that are not archived. Returns the result and the source's identifier."
   @spec source_create(map(), binary(), Actor.t()) :: {atom(), id() | nil}
   def source_create(attrs, digest, %Actor{} = actor),
     do: SourceStore.create(attrs, @sources_max, digest, actor)

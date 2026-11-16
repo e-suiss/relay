@@ -12,6 +12,7 @@ defmodule Relay.Webhooks.Completions do
 
   alias Relay.Redacted
   alias Relay.Scope
+  alias Relay.Webhooks.EngineStore
   alias Relay.Webhooks.Profile
   alias Relay.Webhooks.Settings
   alias Relay.Webhooks.SourceStore
@@ -176,7 +177,7 @@ defmodule Relay.Webhooks.Completions do
   defp queued(scope, receipt_id) do
     case port().enqueue_completion(scope, receipt_id) do
       :ok -> :recorded
-      {:error, reason} -> Relay.Repo.rollback(reason)
+      {:error, reason} -> EngineStore.rollback(reason)
     end
   end
 

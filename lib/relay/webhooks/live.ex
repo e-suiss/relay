@@ -13,6 +13,7 @@ defmodule Relay.Webhooks.Live do
     top_level?: true,
     deps: [
       Relay,
+      Relay.Agents,
       Relay.Channels,
       Relay.Datasets,
       Relay.Platform,
@@ -169,6 +170,53 @@ defmodule Relay.Webhooks.Live do
         nil
     end
   end
+
+  # WH-68
+  # TN-26
+  @doc "Resolves the secret of a completion source from its secret reference for this call only: `:none` when the reference is not an active one of kind `webhook_signing`, `:unavailable` when the secret backend cannot be read. Runs outside any transaction."
+  @spec source_secret(Scope.t(), Relay.Id.t()) :: {:ok, Relay.Redacted.t()} | :none | :unavailable
+  def source_secret(%Scope{} = scope, ref_id) do
+    case Relay.Secrets.get(scope, ref_id) do
+      {:ok, %{kind: :webhook_signing, state: :active}} -> fetched(scope, ref_id)
+      {:ok, _other_kind_or_retired} -> :none
+      {:error, _error} -> :unavailable
+    end
+  end
+
+  defp fetched(scope, ref_id) do
+    case Relay.Secrets.fetch(scope, ref_id) do
+      {:ok, secret} -> {:ok, secret}
+      {:error, %Relay.Error{code: :secret_retired}} -> :none
+      {:error, _error} -> :unavailable
+    end
+  end
+
+  # WH-68
+  # WH-49 (1)
+  # T-15
+  @doc "Queues the job that processes the receipt of a completion notification, inside the caller's scoped transaction."
+  @spec enqueue_completion(Scope.t(), Relay.Id.t()) :: :ok | {:error, term()}
+  def enqueue_completion(%Scope{} = scope, receipt_id) do
+    attrs = %{
+      id: Relay.Id.generate(),
+      lane: Relay.Platform.lane(:transactional),
+      worker: Relay.Webhooks.CompletionWorker,
+      args: Map.put(Scope.to_job_args(scope), "receipt_id", Relay.Id.to_string(receipt_id)),
+      ref_kind: "webhook_receipt",
+      ref_id: receipt_id
+    }
+
+    case Relay.Platform.enqueue_job(attrs) do
+      {:ok, _queued} -> :ok
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  # WH-68
+  @doc "Completes the event waitpoint a completion notification names, in its own transaction; see `Relay.Agents.complete_waitpoint/3`."
+  @spec complete_waitpoint(Scope.t(), Relay.Id.t()) :: {:ok, atom()} | {:error, term()}
+  def complete_waitpoint(%Scope{} = scope, waitpoint_id),
+    do: Relay.Agents.complete_waitpoint(scope, waitpoint_id)
 
   # WH-56
   @impl Relay.Webhooks

@@ -197,6 +197,30 @@ defmodule Relay.Agents.Waitpoint do
         WaitpointStore.respond(waitpoint_id, response)
       end)
 
+  # WH-68
+  # C-72
+  @doc """
+  Completes the event waitpoint named by `waitpoint_id`, for the completion notification of a long-running job: the waitpoint is resolved as an awaited event resolves it, with `source_event_id` as the event behind it when there is one, and a waitpoint that is resolved or found expired is announced to the configured sink in the same transaction. A waitpoint that is unknown, already closed, a question or a review, or that waits with a condition is left as it is.
+  """
+  @spec complete(Relay.Scope.t(), Relay.Id.t(), Relay.Id.t() | nil) ::
+          {:ok, :resolved | :expired | :already_terminal | :not_found | :not_completable}
+          | {:error, term()}
+  def complete(%Relay.Scope{} = scope, waitpoint_id, source_event_id \\ nil) do
+    WaitpointStore.in_scope(scope, fn _status ->
+      case WaitpointStore.get(waitpoint_id) do
+        nil -> :not_found
+        %{kind: "event", condition: nil} -> completed(scope, waitpoint_id, source_event_id)
+        _question_review_or_conditional -> :not_completable
+      end
+    end)
+  end
+
+  defp completed(scope, waitpoint_id, source_event_id) do
+    result = WaitpointStore.resolve_by_event(waitpoint_id, Relay.Id.generate(), source_event_id)
+    if result in [:resolved, :expired], do: :ok = closed(scope, waitpoint_id, result)
+    result
+  end
+
   # AG-10
   # AG-15
   @doc "Renews the waiter's heartbeat; a stalled waitpoint opens again."

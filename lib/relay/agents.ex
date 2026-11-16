@@ -52,6 +52,15 @@ defmodule Relay.Agents do
   @spec respond(Relay.Scope.t(), Relay.Id.t(), map()) :: {:ok, tuple()} | {:error, term()}
   defdelegate respond(scope, waitpoint_id, response), to: Waitpoint
 
+  # WH-68
+  @doc "Completes an event waitpoint by its identifier; see `Relay.Agents.Waitpoint.complete/3`."
+  @spec complete_waitpoint(Relay.Scope.t(), Relay.Id.t(), Relay.Id.t() | nil) ::
+          {:ok, :resolved | :expired | :already_terminal | :not_found | :not_completable}
+          | {:error, term()}
+  defdelegate complete_waitpoint(scope, waitpoint_id, source_event_id \\ nil),
+    to: Waitpoint,
+    as: :complete
+
   # AG-15
   @doc "Renews a waiter's heartbeat; see `Relay.Agents.Waitpoint.heartbeat/4`."
   @spec heartbeat(Relay.Scope.t(), Relay.Id.t(), Waitpoint.waiter_kind(), Relay.Id.t()) ::

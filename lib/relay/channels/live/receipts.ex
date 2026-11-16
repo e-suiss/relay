@@ -186,6 +186,12 @@ defmodule Relay.Channels.Live.Receipts do
     }
   end
 
+  # WH-49 (3)
+  # INV-12
+  @doc "The provider event identifier an item's receipt is unique by: the provider's own event identifier when it sends one, otherwise the SHA-256 of the item without its personal fields."
+  @spec event_key(item()) :: String.t()
+  def event_key(item), do: event_id(item, encode(item))
+
   defp event_id({:whatsapp, %{dedup_key: key}}, _encoded), do: String.slice(key, 0, 512)
 
   defp event_id({:email, %{id: id}}, _encoded) when is_binary(id) and id != "",

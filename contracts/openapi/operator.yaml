@@ -4474,7 +4474,7 @@ paths:
       tags:
         - webhooks
       summary: Register a webhook destination credential
-      description: "Registers the credential of a webhook destination in the selected tenant environment (WH-19): an OAuth 2.0 client secret, the private key of a mutual TLS certificate, a broker password, a cloud access key or a service account key. The secret is named by reference only, is resolved once to record its fingerprint, and needs a tenant administrator with step-up (TN-21, TN-26). The answer carries the identifier a destination names as credential_ref_id; the secret itself is never returned. Registering a secret that is already registered returns its reference. Audited as secret_ref.registered."
+      description: "Registers the credential of a webhook destination in the selected tenant environment (WH-19): an OAuth 2.0 client secret, the private key of a mutual TLS certificate, a broker password, a cloud access key or a service account key. The secret is named by reference only, is resolved once to record its fingerprint, and needs a tenant administrator with step-up (TN-21, TN-26). With kind source the secret is the whsec_ HMAC secret of a completion source (WH-68), kept apart from destination credentials: an endpoint does not accept it and a source accepts nothing else. The answer carries the identifier a destination names as credential_ref_id; the secret itself is never returned. Registering a secret that is already registered returns its reference. Audited as secret_ref.registered."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -5762,7 +5762,18 @@ components:
       properties:
         secret_ref:
           "$ref": "./components/schemas.yaml#/SecretRef"
+        kind:
+          "$ref": "#/components/schemas/WebhookCredentialKind"
       additionalProperties: false
+    WebhookCredentialKind:
+      type: string
+      description: "What the secret is for: destination (the default) is the credential an endpoint names as credential_ref_id (WH-19); source is the whsec_ HMAC secret a completion source signs with, named as secret_ref_id when the source is registered (WH-68)."
+      enum:
+        - destination
+        - source
+      default: destination
+      x-relay-choice: true
+      x-relay-choice-note: "WH-68 keeps the v1 secret of a completion source as a reference; registering it through the operator's credential operation, told apart by kind, is chosen by the contract."
     WebhookEndpointSubscribe:
       type: object
       required:
@@ -5798,6 +5809,8 @@ components:
           enum:
             - active
             - retired
+        kind:
+          "$ref": "#/components/schemas/WebhookCredentialKind"
       additionalProperties: false
     ChannelIdentityCreate:
       type: object

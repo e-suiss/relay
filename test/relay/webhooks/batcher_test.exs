@@ -8,6 +8,7 @@ defmodule Relay.Webhooks.BatcherTest do
   alias Relay.Webhooks.BatchStore
   alias Relay.Webhooks.BatchWorker
   alias Relay.Webhooks.EngineStore
+  alias Relay.Webhooks.Health
   alias RelayTest.DestinationFixture, as: Net
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
@@ -246,6 +247,43 @@ defmodule Relay.Webhooks.BatcherTest do
       refute inspect(attempts(ctx, message)) =~ @secret
       refute inspect(batch(ctx, next_id)) =~ @secret
       refute inspect(read(ctx, fn -> EngineStore.endpoint(ctx.endpoint.uuid) end)) =~ @secret
+    end
+
+    test "WH-35 (2): a write behind an open circuit breaker waits for the breaker and is the probe that closes it",
+         ctx do
+      pairs = joined!(ctx, 2, limits(%{max_events: 2}))
+      assert [_opened, closed] = jobs()
+      id = batch_id(closed)
+      now = Relay.Clock.utc_now()
+
+      open = %{
+        "breaker_state" => "open",
+        "breaker_opened_at" => now,
+        "breaker_open_seconds" => 30,
+        "breaker_retry_at" => DateTime.add(now, 30, :second),
+        "breaker_trips" => 1,
+        "consecutive_failures" => 5
+      }
+
+      read(ctx, fn ->
+        health = Map.merge(EngineStore.health(ctx.endpoint.uuid), open)
+        EngineStore.health_save(ctx.endpoint.uuid, Health.columns(health), now)
+      end)
+
+      assert {:ok, :done} = Webhooks.write_batch(ctx.scope, id)
+      assert sent() == []
+      assert [%{worker: BatchWorker, scheduled_at: at} = again] = jobs()
+      assert batch_id(again) == id
+      assert_in_delta DateTime.diff(at, now, :second), 30, 3
+      assert %{"state" => "closed", "attempt_count" => 0} = batch(ctx, id)
+
+      for {event, _message} <- pairs,
+          do: assert(%{"state" => "pending"} = message(ctx, ctx.endpoint, event))
+
+      late = [clock: at(31)]
+      assert {:ok, {:written, :delivered, 2}} = Webhooks.write_batch(ctx.scope, id, late)
+      health = read(ctx, fn -> EngineStore.health(ctx.endpoint.uuid) end)
+      assert %{"breaker_state" => "closed", "consecutive_failures" => 0} = health
     end
 
     test "WH-37: the members of a batch whose endpoint was paused are held, never dropped", ctx do

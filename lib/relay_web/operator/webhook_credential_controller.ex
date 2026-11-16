@@ -14,9 +14,8 @@ defmodule RelayWeb.Operator.WebhookCredentialController do
   def create(conn, _params) do
     case conn.assigns.operator_scope do
       %Relay.Scope{} = scope ->
-        idempotent(conn, fn ->
-          WebhookCredentials.register(scope, conn.assigns.body, actor(conn))
-        end)
+        work = fn -> WebhookCredentials.register(scope, conn.assigns.body, actor(conn)) end
+        idempotent(conn, work)
 
       nil ->
         problem(conn, tenant_required())

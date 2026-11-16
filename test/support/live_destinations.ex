@@ -15,13 +15,16 @@ defmodule RelayTest.LiveDestinations do
 
   @hosts %{
     "kafka.live.relay.test" => {10, 123, 45, 11},
+    "kafka-2.live.relay.test" => {10, 123, 45, 21},
+    "kafka-3.live.relay.test" => {10, 123, 45, 22},
+    "nats-mtls.live.relay.test" => {10, 123, 45, 17},
     "nats.live.relay.test" => {10, 123, 45, 12},
     "nats-token.live.relay.test" => {10, 123, 45, 13},
     "rabbitmq.live.relay.test" => {10, 123, 45, 14},
     "minio.live.relay.test" => {10, 123, 45, 15}
   }
   @network "10.123.45.0/24"
-  @ports [9093, 4222, 5671, 9000]
+  @ports [9093, 9095, 4222, 5671, 9000]
   @secret "relay-live-secret"
   @token "relay-live-token"
   @access_key_id "RELAYLIVEACCESSKEY0"
@@ -62,6 +65,20 @@ defmodule RelayTest.LiveDestinations do
   @doc "The address of a service name, as text."
   @spec address(String.t()) :: String.t()
   def address(host), do: @hosts |> Map.fetch!(host) |> :inet.ntoa() |> List.to_string()
+
+  @doc "The addresses of the Kafka brokers, as text."
+  @spec kafka_addresses() :: [String.t()]
+  def kafka_addresses do
+    for {"kafka" <> _rest = host, _address} <- @hosts, do: address(host)
+  end
+
+  @doc "The PEM certificate of the client the certificate authority of the run issued."
+  @spec client_certificate() :: String.t()
+  def client_certificate, do: file("client.crt")
+
+  @doc "The PEM private key of that client."
+  @spec client_key() :: String.t()
+  def client_key, do: file("client.key")
 
   @doc "The password of the users, the secret access key of the store."
   @spec secret() :: String.t()
@@ -212,6 +229,11 @@ defmodule RelayTest.LiveDestinations do
   @doc "The flags of the `nats` tool for the token."
   @spec nats_token() :: [String.t()]
   def nats_token, do: ["--user", @token]
+
+  @doc "The flags of the `nats` tool for the client certificate."
+  @spec nats_certificate() :: [String.t()]
+  def nats_certificate,
+    do: ["--tlscert", "/live/run/client.crt", "--tlskey", "/live/run/client.key"]
 
   @doc "Takes every message out of the queue through the management API of RabbitMQ."
   @spec rabbitmq_messages() :: [map()]

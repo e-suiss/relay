@@ -24,6 +24,7 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
   @kafka "kafka.live.relay.test"
   @nats "nats.live.relay.test"
   @nats_token "nats-token.live.relay.test"
+  @nats_mtls "nats-mtls.live.relay.test"
   @rabbitmq "rabbitmq.live.relay.test"
   @minio "minio.live.relay.test"
   @structured "application/cloudevents+json; charset=utf-8"
@@ -96,14 +97,30 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
     Relay.ExternalId.encode("ntf", id)
   end
 
-  defp delivered!(ctx, destination, host) do
+  defp identified(config) do
+    identity = %{
+      client_certificate: Live.client_certificate(),
+      credential: wrapped(Live.client_key())
+    }
+
+    config |> Map.delete(:username) |> Map.merge(identity)
+  end
+
+  defp key_of(partition) do
+    Enum.find_value(Stream.repeatedly(&Live.unique/0), fn name ->
+      key = "leader/" <> name
+      if Protocol.partition(key, 3) == partition, do: key
+    end)
+  end
+
+  defp delivered!(ctx, destination, addresses) do
     endpoint = endpoint!(ctx, Map.put(destination, "credential_ref_id", ctx.credential))
     {event, message} = message!(ctx, endpoint)
 
     assert {:attempted, :delivered} = attempt(ctx, message)
     assert %{"state" => "delivered"} = message(ctx, endpoint, event)
     assert [%{"result" => "succeeded", "attempt_no" => 1} = row] = attempts(ctx, message)
-    assert row["ip"] == Live.address(host)
+    assert row["ip"] in addresses
     refute inspect(row) =~ Live.secret()
     {event, Relay.ExternalId.encode("oev", event.id)}
   end
@@ -113,11 +130,11 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
       plain = for n <- 0..5, do: "order/" <> Live.unique() <> String.duplicate("x", n)
       keys = ["sipariş/日本-" <> Live.unique() | plain]
       messages = Enum.map(keys, &prepared(%{subject: &1}))
-      address = Live.address(@kafka)
 
       for message <- messages do
         assert {:ok, receipt} = Kafka.deliver(kafka(%{}), message, Live.options())
-        assert %{kind: :write, address: ^address} = receipt
+        assert %{kind: :write, address: address} = receipt
+        assert address in Live.kafka_addresses()
       end
 
       marker = "java-" <> Live.unique()
@@ -177,6 +194,50 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
     end
   end
 
+  describe "WH-58 WH-43 a Kafka cluster of three brokers" do
+    test "WH-58, WH-43, WH-18: a record is produced to the broker that leads its partition, which the metadata of the bootstrap broker names" do
+      keys = Enum.map(0..2, &key_of/1)
+      messages = Enum.map(keys, &prepared(%{subject: &1}))
+
+      addresses =
+        for message <- messages do
+          assert {:ok, receipt} = Kafka.deliver(kafka(%{}), message, Live.options())
+          receipt.address
+        end
+
+      assert Enum.all?(addresses, &(&1 in Live.kafka_addresses()))
+      assert Enum.any?(addresses, &(&1 != Live.address(@kafka)))
+      records = Live.kafka_records()
+
+      for {message, partition} <- Enum.zip(messages, 0..2) do
+        stored = record(records, message.id)
+        assert stored.partition == partition
+        assert stored.value == message.data
+      end
+    end
+
+    test "WH-58, WH-17: a client certificate identifies the producer on a listener that requires one, also at the leader" do
+      config = identified(kafka(%{brokers: [@kafka <> ":9095"]}))
+      config = Map.delete(config, :sasl_mechanism)
+      messages = Enum.map(0..2, &prepared(%{subject: key_of(&1)}))
+
+      addresses =
+        for message <- messages do
+          assert {:ok, receipt} = Kafka.deliver(config, message, Live.options())
+          receipt.address
+        end
+
+      assert Enum.all?(addresses, &(&1 in Live.kafka_addresses()))
+      assert Enum.any?(addresses, &(&1 != Live.address(@kafka)))
+      records = Live.kafka_records()
+      for message <- messages, do: assert(record(records, message.id).value == message.data)
+
+      anonymous = Map.drop(config, [:client_certificate, :credential])
+      assert {:error, failure} = Kafka.deliver(anonymous, prepared(), Live.options())
+      assert failure.class in [:tls, :connect]
+    end
+  end
+
   describe "WH-58 a NATS JetStream server over TLS" do
     test "WH-58, WH-17, WH-18: a message of a user with a password is read back with its headers and is not stored twice" do
       message = prepared()
@@ -232,6 +293,23 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
       assert stored.headers =~ "ce-id: " <> message.id <> "\r\n"
     end
 
+    test "WH-58, WH-17: a client certificate identifies the publisher on a server that verifies one" do
+      message = prepared()
+      config = identified(nats(%{servers: [@nats_mtls <> ":4222"]}))
+      address = Live.address(@nats_mtls)
+
+      assert {:ok, receipt} = NatsJetstream.deliver(config, message, Live.options())
+      assert %{kind: :write, address: ^address} = receipt
+
+      stored = Live.nats_message(@nats_mtls, config.subject, Live.nats_certificate())
+      assert stored.data == message.data
+      assert stored.headers =~ "ce-id: " <> message.id <> "\r\n"
+
+      anonymous = Map.drop(config, [:client_certificate, :credential])
+      assert {:error, failure} = NatsJetstream.deliver(anonymous, prepared(), Live.options())
+      assert failure.class in [:tls, :connect]
+    end
+
     test "WH-58, WH-17, WH-18: a wrong password is a credentials failure and a subject no stream listens on is unavailable" do
       config = nats(%{credential: wrapped("not-the-password")})
       assert {:error, failure} = NatsJetstream.deliver(config, prepared(), Live.options())
@@ -272,6 +350,17 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
       assert stored["payload"] == structured.body
       assert stored["routing_key"] == second.routing_key
       assert %{"content_type" => @structured, "delivery_mode" => 2} = stored["properties"]
+    end
+
+    test "WH-58, WH-17: a client certificate identifies the publisher with the EXTERNAL mechanism" do
+      message = prepared()
+      config = identified(rabbitmq(%{}))
+
+      assert {:ok, %{kind: :write}} = Rabbitmq.deliver(config, message, Live.options())
+
+      stored = queued(Live.rabbitmq_messages(), message.id)
+      assert stored["payload"] == message.data
+      assert stored["routing_key"] == config.routing_key
     end
 
     test "WH-58, WH-18: a body larger than the negotiated frame is split and arrives whole" do
@@ -323,12 +412,16 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
       assert Live.object("events/" <> id <> ".jsonl").body == object.body
     end
 
-    test "WH-58, WH-17: a prefix with characters the signature encodes is signed as the store expects" do
+    test "WH-58, WH-17: an object under a prefix with characters the signature encodes is read back" do
       id = "whb_" <> Live.unique()
       {:ok, batch} = Batch.prepared(id, [prepared().body], 1)
       config = store(%{prefix: "live/it's(1)!*/nested"})
 
       assert {:ok, %{status: 200}} = S3.deliver(config, batch, Live.options())
+
+      object = Live.object(config.prefix <> "/" <> id <> ".jsonl")
+      assert object.status == 200
+      assert object.body == String.trim_trailing(batch.body, "\n") <> "\n"
     end
 
     test "WH-58, WH-17, WH-18: a wrong secret access key is a credentials failure and a missing bucket is refused" do
@@ -368,7 +461,7 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
         "username" => "relay"
       }
 
-      {event, id} = delivered!(ctx, destination, @kafka)
+      {event, id} = delivered!(ctx, destination, Live.kafka_addresses())
 
       stored = record(Live.kafka_records(), id)
       assert stored.headers =~ "ce_type:notification.delivered"
@@ -389,7 +482,7 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
         "username" => "relay"
       }
 
-      {event, id} = delivered!(ctx, destination, @nats)
+      {event, id} = delivered!(ctx, destination, [Live.address(@nats)])
 
       stored = Live.nats_message(@nats, subject, Live.nats_user())
       assert stored.headers =~ "Nats-Msg-Id: " <> id <> "\r\n"
@@ -409,7 +502,7 @@ defmodule Relay.Webhooks.LiveDestinationsTest do
         "username" => "relay"
       }
 
-      {event, id} = delivered!(ctx, destination, @rabbitmq)
+      {event, id} = delivered!(ctx, destination, [Live.address(@rabbitmq)])
 
       stored = queued(Live.rabbitmq_messages(), id)
       assert stored["routing_key"] == routing_key

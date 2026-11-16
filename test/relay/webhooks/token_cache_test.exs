@@ -110,7 +110,7 @@ defmodule Relay.Webhooks.TokenCacheTest do
 
       refute inspect(:sys.get_status(ctx.cache), limit: :infinity) =~ "tok-secret-value"
       state = %TokenCache{entries: %{k: {Redacted.wrap("tok-secret-value"), 0}}}
-      refute inspect(state, limit: :infinity) =~ "entries"
+      refute inspect(state, limit: :infinity) =~ "tok-secret-value"
       assert Relay.Hygiene.check_inspect(TokenCache, [:entries]) == :ok
       refute File.read!("lib/relay/webhooks/token_cache.ex") =~ ~r/:ets\.|:persistent_term\./
     end

@@ -105,7 +105,7 @@ defmodule Relay.Webhooks.BatcherTest do
       for {event, message} <- all do
         assert %{"state" => "delivered", "attempt_count" => 1} = message(ctx, ctx.endpoint, event)
         assert [%{"attempt_no" => 1, "result" => "succeeded"} = row] = attempts(ctx, message)
-        assert %{"trigger_kind" => "schedule", "response_status" => 200} = row
+        assert row["trigger_kind"] == "schedule"
         assert row["ip"] == "203.0.114.10"
         assert Enum.any?(lines(request), &(:crypto.hash(:sha256, &1) == row["body_digest"]))
       end

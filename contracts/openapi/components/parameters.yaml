@@ -412,6 +412,42 @@ WebhookEndpointId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_whe"
+WebhookConsumerId:
+  name: webhook_consumer_id
+  in: path
+  description: "Webhook consumer identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_whc"
+WebhookEventTypeId:
+  name: webhook_event_type_id
+  in: path
+  description: "Tenant event type identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_wet"
+WebhookMessageId:
+  name: webhook_message_id
+  in: path
+  description: "Webhook message identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_whm"
+WebhookAttemptId:
+  name: webhook_attempt_id
+  in: path
+  description: "Webhook attempt identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_wha"
+WebhookVersion:
+  name: version
+  in: path
+  description: Version number.
+  required: true
+  schema:
+    type: integer
+    minimum: 1
 ManagedProviderAccountId:
   name: provider_account_id
   in: path

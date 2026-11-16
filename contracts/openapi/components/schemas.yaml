@@ -5577,6 +5577,42 @@ Id_whe:
   pattern: "^whe_[0-7][0-9a-hjkmnp-tv-z]{25}$"
   examples:
     - whe_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_whc:
+  type: string
+  description: "Webhook consumer identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^whc_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - whc_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_wet:
+  type: string
+  description: "Tenant event type identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^wet_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - wet_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_whk:
+  type: string
+  description: "Webhook signing key identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^whk_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - whk_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_whm:
+  type: string
+  description: "Webhook message identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^whm_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - whm_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_wha:
+  type: string
+  description: "Webhook attempt identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^wha_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - wha_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_whb:
+  type: string
+  description: "Webhook object store batch identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^whb_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - whb_01j9zq3k4m5n6p7q8r9s0t1v2w
 Id_acd:
   type: string
   description: "Agent ceiling decision identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
@@ -6405,21 +6441,32 @@ AgentState:
   additionalProperties: false
 WebhookEndpointUse:
   type: string
-  description: "relay_events: Relay's own events (use A). destination: target of a webhook channel step (use B)."
+  description: "relay_events: Relay's own events, delivered to the tenant (use A). destination: target of a webhook channel step, an endpoint of one of the tenant's consumers (use B)."
   enum:
     - relay_events
     - destination
 WebhookEndpointState:
   type: string
+  description: "active receives its events. paused holds them until the endpoint is resumed; nothing is dropped. disabled does not attempt new events: they are kept as missed events and recovered once the endpoint is active again. archived receives nothing and does not change any more."
   enum:
     - active
+    - paused
     - disabled
     - archived
   x-relay-choice: true
-  x-relay-choice-note: "The state names are chosen by the contract; disabled is the automatic disable of webhook_endpoint.disabled."
+  x-relay-choice-note: "The state names are chosen by the contract within WH-31, WH-36 and WH-37."
+WebhookEndpointDisabledReason:
+  type: string
+  description: "manual: disabled by the tenant or the consumer. failing: disabled automatically after five days of uninterrupted failures (WH-36). gone: the endpoint answered 410."
+  enum:
+    - manual
+    - failing
+    - gone
+  x-relay-choice: true
+  x-relay-choice-note: "The reason names are chosen by the contract within WH-23 and WH-36."
 WebhookEventTypes:
   type: array
-  description: "Subscribed event types; * is an explicit choice of every type, an empty selection receives nothing."
+  description: "Subscribed event types (WH-16): the endpoint receives only these. * is an explicit choice of every type, an empty selection receives nothing. An endpoint of use relay_events names types of Relay's event catalog, an endpoint of use destination names event types of the tenant."
   items:
     oneOf:
       - "$ref": "#/EventName"
@@ -6429,42 +6476,464 @@ WebhookEventTypes:
   uniqueItems: true
 WebhookSnapshot:
   type: array
-  description: "Snapshot whitelist: the payload fields added to the thin event. A change opens a new endpoint version."
+  description: "Snapshot allow-list (WH-12, WH-13): the payload fields added to the thin event. It is pinned to the endpoint version: a change opens a new endpoint version, and neither an API version upgrade nor a change of Relay's model changes the payload of an existing version. A field that carries personal data enters only by this explicit choice."
   items:
     type: string
     pattern: "^[a-z][a-z0-9_]{0,63}(\\.[a-z][a-z0-9_]{0,63}){0,3}$"
   maxItems: 50
   uniqueItems: true
   x-relay-choice: true
-  x-relay-choice-note: "The shape of the snapshot whitelist is chosen by the contract."
+  x-relay-choice-note: "The shape of the snapshot allow-list is chosen by the contract."
 SignatureScheme:
   type: string
-  description: "v1a Ed25519 (default) or v1 HMAC for compatibility."
+  description: "v1a Ed25519 (default) or v1 HMAC-SHA256 for compatibility (WH-4)."
   enum:
     - v1a
     - v1
+WebhookDestinationKind:
+  type: string
+  description: "Destination kind (WH-17). Success is a 2xx answer for https, the broker's durable write acknowledgement for queues and streams and the acknowledged object write for s3 (WH-18); every kind is delivered at least once."
+  enum:
+    - https
+    - kafka
+    - nats_jetstream
+    - rabbitmq
+    - aws_sqs
+    - aws_sns
+    - aws_eventbridge
+    - gcp_pubsub
+    - azure_service_bus
+    - azure_event_grid
+    - s3
+WebhookHttpsUrl:
+  type: string
+  description: "An https URL (WH-40): https only, on the test plane as well; port 443 unless the installation allows another; no user information. Every address the host resolves to is checked again when Relay connects (WH-41), and a redirect is never followed."
+  format: uri
+  pattern: "^https://"
+  maxLength: 2048
+WebhookHostPort:
+  type: string
+  description: "host:port of a broker. The address is checked when Relay connects, as for an https endpoint (WH-43)."
+  pattern: "^[A-Za-z0-9]([A-Za-z0-9.-]{0,252}[A-Za-z0-9])?:[0-9]{1,5}$"
+  maxLength: 261
+WebhookCloudEventsMode:
+  type: string
+  description: "How the CloudEvent is carried on a queue or stream (WH-8): structured puts the whole event in the message body, binary puts the attributes in the binding's headers and data in the body."
+  enum:
+    - structured
+    - binary
+WebhookPem:
+  type: string
+  description: "A PEM encoded X.509 client certificate chain. It holds no private key; the private key is named by credential_ref_id."
+  pattern: "^-----BEGIN CERTIFICATE-----"
+  maxLength: 16384
+WebhookDestinationHttps:
+  type: object
+  description: "An HTTPS endpoint signed with the Suiss webhook profile; optionally also authenticated with mutual TLS or an OAuth 2.0 client credentials token."
+  required:
+    - kind
+    - url
+  properties:
+    kind:
+      type: string
+      const: https
+    url:
+      "$ref": "#/WebhookHttpsUrl"
+    auth:
+      type: string
+      description: "Additional authentication: mtls presents client_certificate with the private key credential_ref_id names; oauth2_client_credentials sends a bearer token obtained from token_url with client_id and the client secret credential_ref_id names."
+      enum:
+        - none
+        - mtls
+        - oauth2_client_credentials
+      default: none
+    client_certificate:
+      "$ref": "#/WebhookPem"
+    token_url:
+      "$ref": "#/WebhookHttpsUrl"
+    client_id:
+      type: string
+      minLength: 1
+      maxLength: 256
+    scopes:
+      type: array
+      items:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: "^[\\x21\\x23-\\x5B\\x5D-\\x7E]+$"
+      maxItems: 20
+      uniqueItems: true
+    credential_ref_id:
+      "$ref": "#/Id_sec"
+  additionalProperties: false
+WebhookDestinationKafka:
+  type: object
+  description: "A Kafka topic. The event's subject is the record key, so the events of one subject stay in one partition (WH-20)."
+  required:
+    - kind
+    - brokers
+    - topic
+  properties:
+    kind:
+      type: string
+      const: kafka
+    brokers:
+      type: array
+      items:
+        "$ref": "#/WebhookHostPort"
+      minItems: 1
+      maxItems: 10
+      uniqueItems: true
+    topic:
+      type: string
+      pattern: "^[A-Za-z0-9._-]{1,249}$"
+    sasl_mechanism:
+      type: string
+      enum:
+        - plain
+        - scram_sha_256
+        - scram_sha_512
+    username:
+      type: string
+      minLength: 1
+      maxLength: 256
+    client_certificate:
+      "$ref": "#/WebhookPem"
+    credential_ref_id:
+      "$ref": "#/Id_sec"
+    cloudevents_mode:
+      "$ref": "#/WebhookCloudEventsMode"
+      default: binary
+  additionalProperties: false
+WebhookDestinationNatsJetstream:
+  type: object
+  description: "A NATS JetStream subject; success is the stream's publish acknowledgement."
+  required:
+    - kind
+    - servers
+    - subject
+  properties:
+    kind:
+      type: string
+      const: nats_jetstream
+    servers:
+      type: array
+      items:
+        "$ref": "#/WebhookHostPort"
+      minItems: 1
+      maxItems: 10
+      uniqueItems: true
+    subject:
+      type: string
+      pattern: "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$"
+      maxLength: 256
+    username:
+      type: string
+      minLength: 1
+      maxLength: 256
+    client_certificate:
+      "$ref": "#/WebhookPem"
+    credential_ref_id:
+      "$ref": "#/Id_sec"
+    cloudevents_mode:
+      "$ref": "#/WebhookCloudEventsMode"
+      default: binary
+  additionalProperties: false
+WebhookDestinationRabbitmq:
+  type: object
+  description: "A RabbitMQ exchange, published with publisher confirms."
+  required:
+    - kind
+    - host
+    - exchange
+  properties:
+    kind:
+      type: string
+      const: rabbitmq
+    host:
+      "$ref": "#/WebhookHostPort"
+    vhost:
+      type: string
+      minLength: 1
+      maxLength: 256
+      default: "/"
+    exchange:
+      type: string
+      minLength: 1
+      maxLength: 255
+    routing_key:
+      type: string
+      maxLength: 255
+    username:
+      type: string
+      minLength: 1
+      maxLength: 256
+    client_certificate:
+      "$ref": "#/WebhookPem"
+    credential_ref_id:
+      "$ref": "#/Id_sec"
+    cloudevents_mode:
+      "$ref": "#/WebhookCloudEventsMode"
+      default: binary
+  additionalProperties: false
+WebhookDestinationAwsSqs:
+  type: object
+  description: "An Amazon SQS queue, reached with an IAM role (role_arn) or an access key (access_key_id with the secret access key credential_ref_id names). On a FIFO queue the event's subject is the message group."
+  required:
+    - kind
+    - queue_url
+    - region
+  properties:
+    kind:
+      type: string
+      const: aws_sqs
+    queue_url:
+      "$ref": "#/WebhookHttpsUrl"
+    region:
+      "$ref": "#/WebhookAwsRegion"
+    role_arn:
+      "$ref": "#/WebhookAwsArn"
+    access_key_id:
+      "$ref": "#/WebhookAwsAccessKeyId"
+    credential_ref_id:
+      "$ref": "#/Id_sec"
+    cloudevents_mode:
+      "$ref": "#/WebhookCloudEventsMode"
+      default: structured
+  additionalProperties: false
+WebhookDestinationAwsSns:
+  type: object
+  description: "An Amazon SNS topic, reached with an IAM role or an access key. On a FIFO topic the event's subject is the message group."
+  required:
+    - kind
+    - topic_arn
+    - region
+  properties:
+    kind:
+      type: string
+      const: aws_sns
+    topic_arn:
+      "$ref": "#/WebhookAwsArn"
+    region:
+      "$ref": "#/WebhookAwsRegion"
+    role_arn:
+      "$ref": "#/WebhookAwsArn"
+    access_key_id:
+      "$ref": "#/WebhookAwsAccessKeyId"
+    credential_ref_id:
+      "$ref": "#/Id_sec"
+    cloudevents_mode:
+      "$ref": "#/WebhookCloudEventsMode"
+      default: structured
+  additionalProperties: false
+WebhookDestinationAwsEventbridge:
+  type: object
+  description: "An Amazon EventBridge event bus, reached with an IAM role or an access key. EventBridge has no mutual TLS."
+  required:
+    - kind
+    - event_bus_arn
+    - region
+  properties:
+    kind:
+      type: string
+      const: aws_eventbridge
+    event_bus_arn:
+      "$ref": "#/WebhookAwsArn"
+    region:
+      "$ref": "#/WebhookAwsRegion"
+    role_arn:
+      "$ref": "#/WebhookAwsArn"
+    access_key_id:
+      "$ref": "#/WebhookAwsAccessKeyId"
+    credential_ref_id:
+      "$ref": "#/Id_sec"
+  additionalProperties: false
+WebhookDestinationGcpPubsub:
+  type: object
+  description: "A Google Cloud Pub/Sub topic, reached with the service account key credential_ref_id names. With ordering enabled the event's subject is the ordering key."
+  required:
+    - kind
+    - project_id
+    - topic
+    - credential_ref_id
+  properties:
+    kind:
+      type: string
+      const: gcp_pubsub
+    project_id:
+      type: string
+      pattern: "^[a-z][a-z0-9-]{4,28}[a-z0-9]$"
+    topic:
+      type: string
+      pattern: "^[A-Za-z][A-Za-z0-9._~%+-]{2,254}$"
+    credential_ref_id:
+      "$ref": "#/Id_sec"
+    cloudevents_mode:
+      "$ref": "#/WebhookCloudEventsMode"
+      default: binary
+  additionalProperties: false
+WebhookDestinationAzureServiceBus:
+  type: object
+  description: "An Azure Service Bus queue or topic, reached with a managed identity (managed_identity_client_id) or the connection credential credential_ref_id names. With sessions the event's subject is the session."
+  required:
+    - kind
+    - namespace
+    - entity
+  properties:
+    kind:
+      type: string
+      const: azure_service_bus
+    namespace:
+      type: string
+      description: "Fully qualified namespace host name."
+      pattern: "^[A-Za-z0-9]([A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$"
+      maxLength: 253
+    entity:
+      type: string
+      description: "Queue or topic name."
+      minLength: 1
+      maxLength: 260
+    managed_identity_client_id:
+      type: string
+      format: uuid
+    credential_ref_id:
+      "$ref": "#/Id_sec"
+    cloudevents_mode:
+      "$ref": "#/WebhookCloudEventsMode"
+      default: binary
+  additionalProperties: false
+WebhookDestinationAzureEventGrid:
+  type: object
+  description: "An Azure Event Grid topic, reached with a managed identity or the access credential credential_ref_id names."
+  required:
+    - kind
+    - endpoint
+  properties:
+    kind:
+      type: string
+      const: azure_event_grid
+    endpoint:
+      "$ref": "#/WebhookHttpsUrl"
+    managed_identity_client_id:
+      type: string
+      format: uuid
+    credential_ref_id:
+      "$ref": "#/Id_sec"
+  additionalProperties: false
+WebhookDestinationS3:
+  type: object
+  description: "An S3 compatible object store (WH-21). Events are written in batches, closed by age, size or count (x-relay-limits webhook.object_batch), as CloudEvents structured JSON lines; the object name comes from the batch identifier, so writing a batch again produces the same object."
+  required:
+    - kind
+    - bucket
+    - region
+    - access_key_id
+    - credential_ref_id
+  properties:
+    kind:
+      type: string
+      const: s3
+    endpoint:
+      "$ref": "#/WebhookHttpsUrl"
+    bucket:
+      type: string
+      pattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+    region:
+      "$ref": "#/WebhookAwsRegion"
+    prefix:
+      type: string
+      pattern: "^[A-Za-z0-9!_.*'()/-]{0,512}$"
+    access_key_id:
+      "$ref": "#/WebhookAwsAccessKeyId"
+    credential_ref_id:
+      "$ref": "#/Id_sec"
+  additionalProperties: false
+WebhookAwsRegion:
+  type: string
+  pattern: "^[a-z0-9-]{1,32}$"
+WebhookAwsArn:
+  type: string
+  pattern: "^arn:[a-z0-9-]+:[a-z0-9-]+:[a-z0-9-]*:[0-9]{12}:[A-Za-z0-9_+=,.@/:-]{1,512}$"
+  maxLength: 640
+WebhookAwsAccessKeyId:
+  type: string
+  description: "Access key identifier. It is not a secret; the secret access key is named by credential_ref_id."
+  pattern: "^[A-Z0-9]{16,128}$"
+WebhookDestination:
+  description: "Where an endpoint delivers (WH-17), by kind. A credential is only ever named by the identifier of a secret reference an operator registered (credential_ref_id); no secret is written into a URL, a connection string or any other field, and none is returned, logged or kept in the attempt log (WH-19)."
+  oneOf:
+    - "$ref": "#/WebhookDestinationHttps"
+    - "$ref": "#/WebhookDestinationKafka"
+    - "$ref": "#/WebhookDestinationNatsJetstream"
+    - "$ref": "#/WebhookDestinationRabbitmq"
+    - "$ref": "#/WebhookDestinationAwsSqs"
+    - "$ref": "#/WebhookDestinationAwsSns"
+    - "$ref": "#/WebhookDestinationAwsEventbridge"
+    - "$ref": "#/WebhookDestinationGcpPubsub"
+    - "$ref": "#/WebhookDestinationAzureServiceBus"
+    - "$ref": "#/WebhookDestinationAzureEventGrid"
+    - "$ref": "#/WebhookDestinationS3"
+  x-relay-choice: true
+  x-relay-choice-note: "WH-17 names the destination set and its authentication methods; the configuration fields of each kind are chosen by the contract."
+WebhookRetrySchedule:
+  type: array
+  description: "The wait before each attempt, in order (WH-22): the first item is the wait before the first attempt, and the number of items is the number of attempts. 1 to 15 attempts; every wait after the first is PT5S to PT24H; the sum is PT1M to P7D. Each wait gets a deterministic jitter of 20 percent either way, derived from the message identifier. There is no endless retry."
+  items:
+    "$ref": "#/Duration"
+  minItems: 1
+  maxItems: 15
+WebhookSigningKey:
+  type: object
+  description: "A signing key of an endpoint (WH-5, WH-6). The public key of a v1a key can always be read; a v1 secret cannot be read back. A previous key still signs until expires_at, next to the active one."
+  required:
+    - id
+    - scheme
+    - state
+    - public_key
+    - activated_at
+    - expires_at
+  properties:
+    id:
+      "$ref": "#/Id_whk"
+    scheme:
+      "$ref": "#/SignatureScheme"
+    state:
+      type: string
+      enum:
+        - active
+        - previous
+    public_key:
+      oneOf:
+        - "$ref": "#/WebhookPublicKey"
+        - type: "null"
+    activated_at:
+      "$ref": "#/Timestamp"
+    expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+WebhookPublicKey:
+  type: string
+  description: "Ed25519 public key in the Standard Webhooks form: whpk_ and the base64 of the 32 key bytes."
+  pattern: "^whpk_[A-Za-z0-9+/]{43}=$"
+  examples:
+    - whpk_MCowBQYDK2VwAyEAGb9ECWmEzf6FQbrBZ9w7lshQhqowtrbLDFw4rXAxZuE=
 WebhookEndpointCreate:
   type: object
-  description: "Webhook endpoint creation request."
+  description: "Webhook endpoint creation request. The environment is the credential's and is never taken from the request (WH-45)."
   required:
-    - url
     - use
+    - destination
     - event_types
   properties:
-    url:
-      type: string
-      description: "https URL of the endpoint."
-      format: uri
-      pattern: "^https://"
-      maxLength: 2048
     use:
       "$ref": "#/WebhookEndpointUse"
     consumer:
-      type: string
-      description: "The tenant's customer reference; only for use destination."
-      minLength: 1
-      maxLength: 256
-      pattern: "^[\\x21-\\x7E]+$"
+      "$ref": "#/WebhookConsumerKey"
+    destination:
+      "$ref": "#/WebhookDestination"
     event_types:
       "$ref": "#/WebhookEventTypes"
     signature_scheme:
@@ -6474,77 +6943,134 @@ WebhookEndpointCreate:
       "$ref": "#/WebhookSnapshot"
     description:
       type: string
+      minLength: 1
       maxLength: 500
+    auto_disable:
+      type: boolean
+      description: "false keeps the endpoint active however long it fails; its messages still end by their own schedule (WH-36)."
+      default: true
+    retry_schedule:
+      "$ref": "#/WebhookRetrySchedule"
+    max_concurrency:
+      type: integer
+      description: "Attempts in flight to this endpoint at the same time (WH-38)."
+      minimum: 1
+      maximum: 100
+    rate_limit_per_second:
+      type: integer
+      description: "Attempts started per second to this endpoint (WH-38)."
+      minimum: 1
+      maximum: 1000
   additionalProperties: false
 WebhookEndpointPatch:
   type: object
-  description: "Changes to a webhook endpoint; absent fields are left untouched."
+  description: "Changes to a webhook endpoint; absent fields are left untouched. The destination kind, the use, the consumer and the environment never change."
   properties:
-    url:
-      type: string
-      description: "https URL of the endpoint."
-      format: uri
-      pattern: "^https://"
-      maxLength: 2048
+    destination:
+      "$ref": "#/WebhookDestination"
     event_types:
       "$ref": "#/WebhookEventTypes"
-    signature_scheme:
-      "$ref": "#/SignatureScheme"
     snapshot:
       "$ref": "#/WebhookSnapshot"
     description:
       oneOf:
         - type: string
+          minLength: 1
           maxLength: 500
         - type: "null"
     state:
       type: string
-      description: "active enables a disabled endpoint; disabled stops deliveries."
+      description: "active enables a disabled endpoint; disabled stops new attempts. A paused endpoint is resumed with the resume operation."
       enum:
         - active
         - disabled
+    auto_disable:
+      type: boolean
+    retry_schedule:
+      oneOf:
+        - "$ref": "#/WebhookRetrySchedule"
+        - type: "null"
+    max_concurrency:
+      oneOf:
+        - type: integer
+          minimum: 1
+          maximum: 100
+        - type: "null"
+    rate_limit_per_second:
+      oneOf:
+        - type: integer
+          minimum: 1
+          maximum: 1000
+        - type: "null"
   additionalProperties: false
   minProperties: 1
 WebhookEndpoint:
   type: object
-  description: "A webhook endpoint."
+  description: "A webhook endpoint: one delivery address of a consumer (WH-2)."
   required:
     - object
     - id
-    - url
+    - environment
     - use
+    - consumer
+    - consumer_id
+    - destination
     - event_types
     - signature_scheme
+    - signing_keys
+    - snapshot
+    - payload_version
+    - description
     - state
+    - disabled_reason
     - managed_by
+    - product
+    - auto_disable
+    - retry_schedule
+    - max_concurrency
+    - rate_limit_per_second
     - version
     - created_at
     - updated_at
+    - archived_at
   properties:
     object:
       type: string
       const: webhook_endpoint
     id:
       "$ref": "#/Id_whe"
-    url:
-      type: string
-      format: uri
+    environment:
+      "$ref": "#/Environment"
     use:
       "$ref": "#/WebhookEndpointUse"
     consumer:
       oneOf:
-        - type: string
-          description: "The tenant's customer reference; only for use destination."
-          minLength: 1
-          maxLength: 256
-          pattern: "^[\\x21-\\x7E]+$"
+        - "$ref": "#/WebhookConsumerKey"
         - type: "null"
+    consumer_id:
+      oneOf:
+        - "$ref": "#/Id_whc"
+        - type: "null"
+    destination:
+      "$ref": "#/WebhookDestination"
     event_types:
       "$ref": "#/WebhookEventTypes"
     signature_scheme:
-      "$ref": "#/SignatureScheme"
+      oneOf:
+        - "$ref": "#/SignatureScheme"
+        - type: "null"
+      description: "The scheme of the active signing key; null for a destination that is not https, which carries no signature."
+    signing_keys:
+      type: array
+      description: "The active key and, during a rotation overlap, the previous one; the newest first."
+      items:
+        "$ref": "#/WebhookSigningKey"
+      maxItems: 2
     snapshot:
       "$ref": "#/WebhookSnapshot"
+    payload_version:
+      "$ref": "#/ApiVersion"
+      description: "The payload version pinned when the endpoint was created (API-55): upgrading the API version does not change what this endpoint receives."
     description:
       oneOf:
         - type: string
@@ -6552,6 +7078,10 @@ WebhookEndpoint:
         - type: "null"
     state:
       "$ref": "#/WebhookEndpointState"
+    disabled_reason:
+      oneOf:
+        - "$ref": "#/WebhookEndpointDisabledReason"
+        - type: "null"
     managed_by:
       type: string
       description: "product for an endpoint opened for a Suiss product client; the tenant sees it and may narrow its event types but cannot delete or close it."
@@ -6563,13 +7093,35 @@ WebhookEndpoint:
         - type: string
           maxLength: 64
         - type: "null"
+    auto_disable:
+      type: boolean
+    retry_schedule:
+      oneOf:
+        - "$ref": "#/WebhookRetrySchedule"
+        - type: "null"
+      description: "null follows the default schedule (x-relay-limits webhook.retry_schedule.default)."
+    max_concurrency:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    rate_limit_per_second:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
     version:
       type: integer
+      description: "The endpoint version; a change of the snapshot allow-list opens the next one (WH-12)."
       minimum: 1
     created_at:
       "$ref": "#/Timestamp"
     updated_at:
       "$ref": "#/Timestamp"
+    archived_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
   additionalProperties: false
 WebhookEndpointList:
   allOf:
@@ -6583,45 +7135,73 @@ WebhookEndpointList:
   description: "A page of webhook endpoints."
 WebhookEndpointSecret:
   type: object
-  description: "A webhook endpoint with the secret of its new signing key."
+  description: "A webhook endpoint with the secret of its new signing key. secret is the whsec_ HMAC secret of a v1 key, shown only in this response and never readable again (WH-5); it is null for a v1a key, whose private key never leaves the key store and whose public key is in signing_keys."
   required:
     - object
     - id
-    - url
+    - environment
     - use
+    - consumer
+    - consumer_id
+    - destination
     - event_types
     - signature_scheme
+    - signing_keys
+    - snapshot
+    - payload_version
+    - description
     - state
+    - disabled_reason
     - managed_by
+    - product
+    - auto_disable
+    - retry_schedule
+    - max_concurrency
+    - rate_limit_per_second
     - version
     - created_at
     - updated_at
+    - archived_at
     - secret
+    - previous_key_expires_at
   properties:
     object:
       type: string
       const: webhook_endpoint
     id:
       "$ref": "#/Id_whe"
-    url:
-      type: string
-      format: uri
+    environment:
+      "$ref": "#/Environment"
     use:
       "$ref": "#/WebhookEndpointUse"
     consumer:
       oneOf:
-        - type: string
-          description: "The tenant's customer reference; only for use destination."
-          minLength: 1
-          maxLength: 256
-          pattern: "^[\\x21-\\x7E]+$"
+        - "$ref": "#/WebhookConsumerKey"
         - type: "null"
+    consumer_id:
+      oneOf:
+        - "$ref": "#/Id_whc"
+        - type: "null"
+    destination:
+      "$ref": "#/WebhookDestination"
     event_types:
       "$ref": "#/WebhookEventTypes"
     signature_scheme:
-      "$ref": "#/SignatureScheme"
+      oneOf:
+        - "$ref": "#/SignatureScheme"
+        - type: "null"
+      description: "The scheme of the active signing key; null for a destination that is not https, which carries no signature."
+    signing_keys:
+      type: array
+      description: "The active key and, during a rotation overlap, the previous one; the newest first."
+      items:
+        "$ref": "#/WebhookSigningKey"
+      maxItems: 2
     snapshot:
       "$ref": "#/WebhookSnapshot"
+    payload_version:
+      "$ref": "#/ApiVersion"
+      description: "The payload version pinned when the endpoint was created (API-55): upgrading the API version does not change what this endpoint receives."
     description:
       oneOf:
         - type: string
@@ -6629,6 +7209,10 @@ WebhookEndpointSecret:
         - type: "null"
     state:
       "$ref": "#/WebhookEndpointState"
+    disabled_reason:
+      oneOf:
+        - "$ref": "#/WebhookEndpointDisabledReason"
+        - type: "null"
     managed_by:
       type: string
       description: "product for an endpoint opened for a Suiss product client; the tenant sees it and may narrow its event types but cannot delete or close it."
@@ -6640,6 +7224,180 @@ WebhookEndpointSecret:
         - type: string
           maxLength: 64
         - type: "null"
+    auto_disable:
+      type: boolean
+    retry_schedule:
+      oneOf:
+        - "$ref": "#/WebhookRetrySchedule"
+        - type: "null"
+      description: "null follows the default schedule (x-relay-limits webhook.retry_schedule.default)."
+    max_concurrency:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    rate_limit_per_second:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    version:
+      type: integer
+      description: "The endpoint version; a change of the snapshot allow-list opens the next one (WH-12)."
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+    archived_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    secret:
+      oneOf:
+        - type: string
+          pattern: "^whsec_[A-Za-z0-9+/]{43}=$"
+        - type: "null"
+      x-relay-choice: true
+      x-relay-choice-note: "Returning the secret once in the create and rotate responses, in the Standard Webhooks whsec_ form, is chosen by the contract."
+    previous_key_expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+WebhookEndpointKeyRotate:
+  type: object
+  description: "Signing key rotation request (WH-6)."
+  properties:
+    signature_scheme:
+      "$ref": "#/SignatureScheme"
+      description: "The scheme of the new key; the endpoint's current scheme when absent."
+    overlap:
+      "$ref": "#/Duration"
+      description: "How long the previous key keeps signing next to the new one: PT0S to P7D, PT24H when absent."
+  additionalProperties: false
+WebhookEndpointVersion:
+  type: object
+  description: "A version of a webhook endpoint (WH-12): the snapshot allow-list and the payload version its messages are built with. Versions never change."
+  required:
+    - object
+    - endpoint_id
+    - version
+    - snapshot
+    - payload_version
+    - created_at
+  properties:
+    object:
+      type: string
+      const: webhook_endpoint_version
+    endpoint_id:
+      "$ref": "#/Id_whe"
+    version:
+      type: integer
+      minimum: 1
+    snapshot:
+      "$ref": "#/WebhookSnapshot"
+    payload_version:
+      "$ref": "#/ApiVersion"
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+WebhookEndpointVersionList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/WebhookEndpointVersion"
+  description: "A page of endpoint versions, newest first."
+WebhookConsumerKey:
+  type: string
+  description: "The tenant's own reference of a consumer, one of its customers."
+  minLength: 1
+  maxLength: 256
+  pattern: "^[\\x21-\\x7E]+$"
+WebhookConsumerCreate:
+  type: object
+  description: "Consumer creation request."
+  required:
+    - key
+  properties:
+    key:
+      "$ref": "#/WebhookConsumerKey"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 256
+    source:
+      "$ref": "#/WebhookEventSource"
+    subtenant_id:
+      "$ref": "#/Id_stn"
+  additionalProperties: false
+WebhookConsumerPatch:
+  type: object
+  description: "Changes to a consumer; absent fields are left untouched and null clears a field."
+  properties:
+    name:
+      oneOf:
+        - type: string
+          minLength: 1
+          maxLength: 256
+        - type: "null"
+    source:
+      oneOf:
+        - "$ref": "#/WebhookEventSource"
+        - type: "null"
+  additionalProperties: false
+  minProperties: 1
+WebhookEventSource:
+  type: string
+  description: "The CloudEvents source of the events delivered to the consumer (WH-8): the tenant's own value. Relay's tenant identifier is never part of an event a consumer receives."
+  minLength: 1
+  maxLength: 1024
+  pattern: "^[\\x21-\\x7E]+$"
+WebhookConsumer:
+  type: object
+  description: "A consumer (WH-2): the party that receives events of use destination, a customer of the tenant. Its endpoints, messages and portal token are its own; one consumer never sees another's."
+  required:
+    - object
+    - id
+    - key
+    - name
+    - source
+    - subtenant_id
+    - state
+    - version
+    - created_at
+    - updated_at
+    - archived_at
+  properties:
+    object:
+      type: string
+      const: webhook_consumer
+    id:
+      "$ref": "#/Id_whc"
+    key:
+      "$ref": "#/WebhookConsumerKey"
+    name:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+    source:
+      oneOf:
+        - "$ref": "#/WebhookEventSource"
+        - type: "null"
+    subtenant_id:
+      oneOf:
+        - "$ref": "#/Id_stn"
+        - type: "null"
+    state:
+      type: string
+      enum:
+        - active
+        - archived
     version:
       type: integer
       minimum: 1
@@ -6647,18 +7405,833 @@ WebhookEndpointSecret:
       "$ref": "#/Timestamp"
     updated_at:
       "$ref": "#/Timestamp"
-    secret:
-      type: string
-      description: "Signing secret of the new key, returned only in this response."
-      minLength: 32
-      maxLength: 512
-      x-relay-choice: true
-      x-relay-choice-note: "Returning the secret once in the create and rotate responses is chosen by the contract."
-    previous_key_expires_at:
+    archived_at:
       oneOf:
         - "$ref": "#/Timestamp"
         - type: "null"
   additionalProperties: false
+WebhookConsumerList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/WebhookConsumer"
+  description: "A page of consumers."
+WebhookPortalToken:
+  type: object
+  description: "A portal token (WH-47): a short-lived bearer token for the embeddable webhook portal, scoped to one consumer in the environment of the credential that minted it."
+  required:
+    - object
+    - token
+    - consumer_id
+    - expires_at
+  properties:
+    object:
+      type: string
+      const: webhook_portal_token
+    token:
+      type: string
+      minLength: 32
+      maxLength: 4096
+    consumer_id:
+      "$ref": "#/Id_whc"
+    expires_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+WebhookEventSchema:
+  type: object
+  description: "A JSON Schema 2020-12 document of an event type's data (WH-13, WH-14). It is data: Relay validates payloads against it and never runs tenant code."
+  maxProperties: 64
+WebhookEventIdentifiers:
+  type: array
+  description: "The identifier fields of the event type's data: with type and id they are the default, thin payload (WH-13). Other fields reach an endpoint only through its snapshot allow-list."
+  items:
+    type: string
+    pattern: "^[a-z][a-z0-9_]{0,63}$"
+  maxItems: 32
+  uniqueItems: true
+WebhookEventTypeCreate:
+  type: object
+  description: "Tenant event type creation request (WH-14)."
+  required:
+    - name
+    - schema
+  properties:
+    name:
+      "$ref": "#/EventName"
+    description:
+      type: string
+      minLength: 1
+      maxLength: 500
+    schema:
+      "$ref": "#/WebhookEventSchema"
+    identifiers:
+      "$ref": "#/WebhookEventIdentifiers"
+    example:
+      type: object
+      description: "An example of the event's data, valid against schema; shown in the portal."
+  additionalProperties: false
+WebhookEventTypeVersionCreate:
+  type: object
+  description: "A new schema version of a tenant event type: a schema change always opens a new version (WH-14)."
+  required:
+    - schema
+  properties:
+    schema:
+      "$ref": "#/WebhookEventSchema"
+    identifiers:
+      "$ref": "#/WebhookEventIdentifiers"
+    example:
+      type: object
+  additionalProperties: false
+WebhookEventType:
+  type: object
+  description: "An event type of the tenant (WH-14): a versioned schema with an example, kept in the tenant's scope in the same structure as Relay's event catalog."
+  required:
+    - object
+    - id
+    - name
+    - description
+    - state
+    - version
+    - schema
+    - identifiers
+    - example
+    - created_at
+    - updated_at
+    - archived_at
+  properties:
+    object:
+      type: string
+      const: webhook_event_type
+    id:
+      "$ref": "#/Id_wet"
+    name:
+      "$ref": "#/EventName"
+    description:
+      oneOf:
+        - type: string
+          maxLength: 500
+        - type: "null"
+    state:
+      type: string
+      enum:
+        - active
+        - archived
+    version:
+      type: integer
+      description: "The current schema version."
+      minimum: 1
+    schema:
+      "$ref": "#/WebhookEventSchema"
+    identifiers:
+      "$ref": "#/WebhookEventIdentifiers"
+    example:
+      oneOf:
+        - type: object
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+    archived_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+WebhookEventTypeList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/WebhookEventType"
+  description: "A page of tenant event types."
+WebhookEventTypeVersion:
+  type: object
+  description: "One schema version of a tenant event type. Versions never change."
+  required:
+    - object
+    - event_type_id
+    - name
+    - version
+    - schema
+    - identifiers
+    - example
+    - created_at
+  properties:
+    object:
+      type: string
+      const: webhook_event_type_version
+    event_type_id:
+      "$ref": "#/Id_wet"
+    name:
+      "$ref": "#/EventName"
+    version:
+      type: integer
+      minimum: 1
+    schema:
+      "$ref": "#/WebhookEventSchema"
+    identifiers:
+      "$ref": "#/WebhookEventIdentifiers"
+    example:
+      oneOf:
+        - type: object
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+WebhookEventTypeVersionList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/WebhookEventTypeVersion"
+  description: "A page of schema versions, newest first."
+WebhookCatalogEvent:
+  type: object
+  description: "An event type of Relay's event catalog as an endpoint of use relay_events can subscribe to it: its name, the version and schema of its data and an example."
+  required:
+    - object
+    - name
+    - summary
+    - version
+    - dataschema
+    - schema
+    - example
+  properties:
+    object:
+      type: string
+      const: webhook_catalog_event
+    name:
+      "$ref": "#/EventName"
+    summary:
+      type: string
+      maxLength: 1000
+    version:
+      type: integer
+      minimum: 1
+    dataschema:
+      type: string
+      format: uri
+    schema:
+      type: object
+    example:
+      oneOf:
+        - type: object
+        - type: "null"
+  additionalProperties: false
+WebhookCatalogEventList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/WebhookCatalogEvent"
+  description: "A page of catalog event types, by name."
+WebhookMessageState:
+  type: string
+  description: "pending waits for its first attempt, scheduled for a retry, in_flight has an attempt running, held waits because its endpoint is paused or disabled or its circuit breaker is open. The other states are terminal (WH-27): delivered; failed_permanent (410, a 4xx that is not retried, a 3xx, the consumer's abort); exhausted (every attempt of the schedule failed); expired (the event's delivery time ran out); window_exceeded (rate limit or backlog left no room for the attempts within the window); dead_lettered (no attempt could be made: the endpoint was archived, the destination configuration is invalid, the payload is too large or the destination refused it); cancelled. Every terminal state except delivered stays in the dead letter queue and can be recovered."
+  enum:
+    - pending
+    - scheduled
+    - in_flight
+    - held
+    - delivered
+    - failed_permanent
+    - exhausted
+    - expired
+    - window_exceeded
+    - dead_lettered
+    - cancelled
+WebhookMessageFailedState:
+  type: string
+  description: "The terminal states other than delivered (WH-27)."
+  enum:
+    - failed_permanent
+    - exhausted
+    - expired
+    - window_exceeded
+    - dead_lettered
+    - cancelled
+WebhookReasonCode:
+  type: string
+  description: "A machine readable reason, for example redirect_not_followed, aborted_by_consumer, gone, payload_too_large, endpoint_archived, destination_invalid, destination_rejected, http_4xx, http_5xx, timeout, connection_failed, tls_failed, address_blocked."
+  pattern: "^[a-z0-9_]{1,64}$"
+WebhookMessage:
+  type: object
+  description: "A message (WH-2): the delivery of one event to one endpoint. An event produces at most one message per endpoint, whatever is retried, recovered or replayed; event_id is the webhook-id the consumer deduplicates by."
+  required:
+    - object
+    - id
+    - endpoint_id
+    - endpoint_version
+    - event_id
+    - event_type
+    - origin
+    - state
+    - hold_reason
+    - reason
+    - attempt_count
+    - next_attempt_at
+    - last_attempt_at
+    - last_response_status
+    - delivered_at
+    - expires_at
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: webhook_message
+    id:
+      "$ref": "#/Id_whm"
+    endpoint_id:
+      "$ref": "#/Id_whe"
+    endpoint_version:
+      type: integer
+      minimum: 1
+    event_id:
+      type: string
+      description: "The event identifier: the CloudEvents id and the webhook-id header of every attempt."
+      maxLength: 512
+    event_type:
+      "$ref": "#/EventName"
+    origin:
+      type: string
+      description: "event: the event matched the endpoint's subscription. replay: the event was replayed to the endpoint. test: a test event."
+      enum:
+        - event
+        - replay
+        - test
+    state:
+      "$ref": "#/WebhookMessageState"
+    hold_reason:
+      oneOf:
+        - type: string
+          enum:
+            - endpoint_paused
+            - endpoint_disabled
+            - breaker_open
+        - type: "null"
+    reason:
+      oneOf:
+        - "$ref": "#/WebhookReasonCode"
+        - type: "null"
+    attempt_count:
+      type: integer
+      description: "Attempts made, manual ones included."
+      minimum: 0
+    next_attempt_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    last_attempt_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    last_response_status:
+      oneOf:
+        - type: integer
+          minimum: 100
+          maximum: 599
+        - type: "null"
+    delivered_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+WebhookMessageList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/WebhookMessage"
+  description: "A page of messages, newest first."
+WebhookAttempt:
+  type: object
+  description: "One delivery attempt of a message (WH-10): the digest of the raw body, the signature that was sent, the address Relay connected to, the status, the duration and, when the attempt is read by itself, the first 8 kB of the answer. No secret is kept in an attempt."
+  required:
+    - object
+    - id
+    - message_id
+    - endpoint_id
+    - attempt_no
+    - trigger
+    - result
+    - failure_code
+    - response_status
+    - duration_ms
+    - webhook_timestamp
+    - body_digest
+    - signature
+    - destination_ip
+    - retry_after
+    - started_at
+    - finished_at
+  properties:
+    object:
+      type: string
+      const: webhook_attempt
+    id:
+      "$ref": "#/Id_wha"
+    message_id:
+      "$ref": "#/Id_whm"
+    endpoint_id:
+      "$ref": "#/Id_whe"
+    attempt_no:
+      type: integer
+      minimum: 1
+    trigger:
+      type: string
+      description: "schedule: an attempt of the retry schedule. manual: a resend, which does not use up the schedule (WH-32). recovery: an attempt of a schedule restarted by recover or a bulk retry. test: a test event."
+      enum:
+        - schedule
+        - manual
+        - recovery
+        - test
+    result:
+      oneOf:
+        - type: string
+          enum:
+            - succeeded
+            - failed_retryable
+            - failed_permanent
+            - aborted
+            - deferred
+        - type: "null"
+      description: "null while the attempt runs. aborted: the consumer answered webhook-delivery: abort-message (WH-26). deferred: a 429 or 503 with Retry-After put the attempt off without using up the schedule (WH-25)."
+    failure_code:
+      oneOf:
+        - "$ref": "#/WebhookReasonCode"
+        - type: "null"
+    response_status:
+      oneOf:
+        - type: integer
+          minimum: 100
+          maximum: 599
+        - type: "null"
+    duration_ms:
+      oneOf:
+        - type: integer
+          minimum: 0
+        - type: "null"
+    webhook_timestamp:
+      oneOf:
+        - type: integer
+          minimum: 0
+        - type: "null"
+      description: "The webhook-timestamp of this attempt, Unix seconds; every attempt has a new one (WH-7)."
+    body_digest:
+      type: string
+      description: "SHA-256 of the raw body, lowercase hex."
+      pattern: "^[0-9a-f]{64}$"
+    signature:
+      oneOf:
+        - type: string
+          maxLength: 1024
+        - type: "null"
+      description: "The webhook-signature header that was sent."
+    destination_ip:
+      oneOf:
+        - type: string
+          maxLength: 45
+        - type: "null"
+      description: "The validated address Relay connected to."
+    retry_after:
+      oneOf:
+        - "$ref": "#/Duration"
+        - type: "null"
+    started_at:
+      "$ref": "#/Timestamp"
+    finished_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    response_body:
+      oneOf:
+        - type: object
+          required:
+            - encoding
+            - content
+            - truncated
+          properties:
+            encoding:
+              type: string
+              enum:
+                - utf8
+                - base64
+            content:
+              type: string
+              maxLength: 10924
+            truncated:
+              type: boolean
+          additionalProperties: false
+        - type: "null"
+      description: "The first 8 kB of the answer, as the consumer sent it; it may hold personal data and is kept for the response body retention of the delivery log. Present only when one attempt is read; null once it was erased."
+  additionalProperties: false
+WebhookAttemptList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/WebhookAttempt"
+  description: "A page of attempts, in attempt order."
+WebhookTestRequest:
+  type: object
+  description: "Test event request (WH-45)."
+  properties:
+    event_type:
+      "$ref": "#/EventName"
+      description: "The event type whose example is sent; webhook_endpoint.tested when absent. A test event is delivered whatever the endpoint's subscription."
+  additionalProperties: false
+WebhookRecoverRequest:
+  type: object
+  description: "Recover request (WH-31): queues again every message of the endpoint, created at or after since, that failed or was never attempted; each starts its schedule from the beginning."
+  required:
+    - since
+  properties:
+    since:
+      "$ref": "#/Timestamp"
+    until:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+WebhookRetryRequest:
+  type: object
+  description: "Filtered bulk retry request (WH-31): the messages of the endpoint that match every given filter start their schedule from the beginning."
+  properties:
+    event_types:
+      type: array
+      items:
+        "$ref": "#/EventName"
+      minItems: 1
+      maxItems: 100
+      uniqueItems: true
+    states:
+      type: array
+      items:
+        "$ref": "#/WebhookMessageFailedState"
+      minItems: 1
+      uniqueItems: true
+    reasons:
+      type: array
+      items:
+        "$ref": "#/WebhookReasonCode"
+      minItems: 1
+      maxItems: 20
+      uniqueItems: true
+    since:
+      "$ref": "#/Timestamp"
+    until:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+  minProperties: 1
+WebhookReplayRequest:
+  type: object
+  description: "Replay request (WH-31): delivers the events still in retention, created at or after since, to this endpoint, for example one that was just added. An event the endpoint already has a message for is not delivered again."
+  required:
+    - since
+  properties:
+    since:
+      "$ref": "#/Timestamp"
+    until:
+      "$ref": "#/Timestamp"
+    event_types:
+      "$ref": "#/WebhookEventTypes"
+      description: "The event types to replay; the endpoint's subscription when absent."
+  additionalProperties: false
+WebhookCancelRetriesRequest:
+  type: object
+  description: "Scheduled retry cancellation request (WH-31): the pending, scheduled and held messages of the endpoint that match every given filter become cancelled."
+  properties:
+    event_types:
+      type: array
+      items:
+        "$ref": "#/EventName"
+      minItems: 1
+      maxItems: 100
+      uniqueItems: true
+    since:
+      "$ref": "#/Timestamp"
+    until:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+WebhookRecovery:
+  type: object
+  description: "The outcome of a recovery operation: how many messages it selected. The messages are attempted at a controlled rate within the endpoint's limits, fairly between tenants, without holding back live traffic (WH-33); the event identifier of every one of them is unchanged and its attempt number goes on."
+  required:
+    - object
+    - operation
+    - endpoint_id
+    - selected
+  properties:
+    object:
+      type: string
+      const: webhook_recovery
+    operation:
+      type: string
+      enum:
+        - recover
+        - retry
+        - replay
+        - cancel_retries
+    endpoint_id:
+      "$ref": "#/Id_whe"
+    selected:
+      type: integer
+      minimum: 0
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "WH-31 names the recovery operations; their answer shape is chosen by the contract."
+WebhookEndpointHealth:
+  type: object
+  description: "The health of an endpoint (WH-39): success rate and latency over the window, the last successful delivery, the age of the backlog, the circuit breaker, why it is disabled and a summary of the latest failures."
+  required:
+    - object
+    - endpoint_id
+    - state
+    - disabled_reason
+    - window
+    - succeeded
+    - failed
+    - success_rate_bp
+    - latency_ms
+    - last_success_at
+    - last_failure_at
+    - failing_since
+    - disable_at
+    - backlog
+    - breaker
+    - recent_failures
+  properties:
+    object:
+      type: string
+      const: webhook_endpoint_health
+    endpoint_id:
+      "$ref": "#/Id_whe"
+    state:
+      "$ref": "#/WebhookEndpointState"
+    disabled_reason:
+      oneOf:
+        - "$ref": "#/WebhookEndpointDisabledReason"
+        - type: "null"
+    window:
+      "$ref": "#/Duration"
+    succeeded:
+      type: integer
+      minimum: 0
+    failed:
+      type: integer
+      minimum: 0
+    success_rate_bp:
+      oneOf:
+        - type: integer
+          minimum: 0
+          maximum: 10000
+        - type: "null"
+      description: "Successful attempts of the window in basis points; null without attempts."
+    latency_ms:
+      oneOf:
+        - type: object
+          required:
+            - p50
+            - p95
+            - p99
+          properties:
+            p50:
+              type: integer
+              minimum: 0
+            p95:
+              type: integer
+              minimum: 0
+            p99:
+              type: integer
+              minimum: 0
+          additionalProperties: false
+        - type: "null"
+    last_success_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    last_failure_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    failing_since:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+      description: "The start of the uninterrupted failure the automatic disable counts from (WH-36); one successful delivery clears it."
+    disable_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+      description: "When the endpoint is disabled automatically if it keeps failing; null while the clock has not started or auto_disable is false."
+    backlog:
+      type: object
+      required:
+        - waiting
+        - held
+        - oldest_at
+      properties:
+        waiting:
+          type: integer
+          minimum: 0
+        held:
+          type: integer
+          minimum: 0
+        oldest_at:
+          oneOf:
+            - "$ref": "#/Timestamp"
+            - type: "null"
+      additionalProperties: false
+    breaker:
+      type: object
+      required:
+        - state
+        - opened_at
+        - retry_at
+      properties:
+        state:
+          type: string
+          enum:
+            - closed
+            - open
+            - half_open
+        opened_at:
+          oneOf:
+            - "$ref": "#/Timestamp"
+            - type: "null"
+        retry_at:
+          oneOf:
+            - "$ref": "#/Timestamp"
+            - type: "null"
+      additionalProperties: false
+    recent_failures:
+      type: array
+      items:
+        type: object
+        required:
+          - code
+          - count
+          - last_at
+        properties:
+          code:
+            "$ref": "#/WebhookReasonCode"
+          count:
+            type: integer
+            minimum: 1
+          last_at:
+            "$ref": "#/Timestamp"
+        additionalProperties: false
+      maxItems: 20
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "WH-39 names what the health panel shows; the fields and the 24 hour window are chosen by the contract."
+OperationsContactsReplace:
+  type: object
+  description: "The tenant's operations contact addresses (WH-56): the recipients of Relay's operational e-mails about its webhook endpoints. The whole list is replaced."
+  required:
+    - emails
+  properties:
+    emails:
+      type: array
+      items:
+        type: string
+        format: email
+        maxLength: 254
+      maxItems: 5
+      uniqueItems: true
+  additionalProperties: false
+OperationsContacts:
+  type: object
+  description: "The tenant's operations contact addresses of this environment (WH-56). Without an address, or without a sender address in the installation configuration, an operational e-mail is skipped and recorded with the reason operations_email_unavailable; the webhook and panel notices are not affected."
+  required:
+    - object
+    - emails
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: operations_contacts
+    emails:
+      type: array
+      items:
+        type: string
+        format: email
+        maxLength: 254
+      maxItems: 5
+    updated_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "WH-56 sets at most five operations contact addresses per tenant; the resource and its fields are chosen by the contract."
+WebhookPortalEndpointCreate:
+  type: object
+  description: "Endpoint creation request of the portal: an https endpoint of the token's consumer. Use, consumer and environment come from the token."
+  required:
+    - url
+    - event_types
+  properties:
+    url:
+      "$ref": "#/WebhookHttpsUrl"
+    event_types:
+      "$ref": "#/WebhookEventTypes"
+    signature_scheme:
+      "$ref": "#/SignatureScheme"
+      default: v1a
+    description:
+      type: string
+      minLength: 1
+      maxLength: 500
+  additionalProperties: false
+WebhookPortalEndpointPatch:
+  type: object
+  description: "Changes the portal may make to an endpoint of the token's consumer; absent fields are left untouched."
+  properties:
+    url:
+      "$ref": "#/WebhookHttpsUrl"
+    event_types:
+      "$ref": "#/WebhookEventTypes"
+    description:
+      oneOf:
+        - type: string
+          minLength: 1
+          maxLength: 500
+        - type: "null"
+    state:
+      type: string
+      enum:
+        - active
+        - disabled
+  additionalProperties: false
+  minProperties: 1
 DevicePlatform:
   type: string
   description: "Push platform of a device: Apple Push Notification service, Firebase Cloud Messaging, Huawei Push Kit, a Web Push subscription or a UnifiedPush distributor."

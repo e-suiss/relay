@@ -443,6 +443,87 @@ defmodule RelayWeb.Router do
     post "/inbox/announcements/:announcement_id/retract", AnnouncementController, :retract,
       private: %{relay_operation: "retractInboxAnnouncement"}
 
+    # WH-2
+    get "/webhook_consumers", WebhookConsumerController, :index,
+      private: %{relay_operation: "listWebhookConsumers"}
+
+    post "/webhook_consumers", WebhookConsumerController, :create,
+      private: %{relay_operation: "createWebhookConsumer"}
+
+    get "/webhook_consumers/:webhook_consumer_id", WebhookConsumerController, :show,
+      private: %{relay_operation: "getWebhookConsumer"}
+
+    patch "/webhook_consumers/:webhook_consumer_id", WebhookConsumerController, :update,
+      private: %{relay_operation: "updateWebhookConsumer"}
+
+    post "/webhook_consumers/:webhook_consumer_id/archive", WebhookConsumerController, :archive,
+      private: %{relay_operation: "archiveWebhookConsumer"}
+
+    # WH-14
+    get "/webhook_event_types", WebhookEventTypeController, :index,
+      private: %{relay_operation: "listWebhookEventTypes"}
+
+    post "/webhook_event_types", WebhookEventTypeController, :create,
+      private: %{relay_operation: "createWebhookEventType"}
+
+    get "/webhook_event_types/:webhook_event_type_id", WebhookEventTypeController, :show,
+      private: %{relay_operation: "getWebhookEventType"}
+
+    post "/webhook_event_types/:webhook_event_type_id/archive",
+         WebhookEventTypeController,
+         :archive,
+         private: %{relay_operation: "archiveWebhookEventType"}
+
+    get "/webhook_event_types/:webhook_event_type_id/versions",
+        WebhookEventTypeController,
+        :versions,
+        private: %{relay_operation: "listWebhookEventTypeVersions"}
+
+    post "/webhook_event_types/:webhook_event_type_id/versions",
+         WebhookEventTypeController,
+         :add_version,
+         private: %{relay_operation: "createWebhookEventTypeVersion"}
+
+    get "/webhook_event_types/:webhook_event_type_id/versions/:version",
+        WebhookEventTypeController,
+        :version,
+        private: %{relay_operation: "getWebhookEventTypeVersion"}
+
+    # WH-2
+    # WH-45
+    get "/webhook_endpoints", WebhookEndpointController, :index,
+      private: %{relay_operation: "listWebhookEndpoints"}
+
+    post "/webhook_endpoints", WebhookEndpointController, :create,
+      private: %{relay_operation: "createWebhookEndpoint"}
+
+    get "/webhook_endpoints/:webhook_endpoint_id", WebhookEndpointController, :show,
+      private: %{relay_operation: "getWebhookEndpoint"}
+
+    patch "/webhook_endpoints/:webhook_endpoint_id", WebhookEndpointController, :update,
+      private: %{relay_operation: "updateWebhookEndpoint"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/archive", WebhookEndpointController, :archive,
+      private: %{relay_operation: "archiveWebhookEndpoint"}
+
+    post "/webhook_endpoints/:webhook_endpoint_id/rotate_key", WebhookEndpointController, :rotate,
+      private: %{relay_operation: "rotateWebhookEndpointKey"}
+
+    get "/webhook_endpoints/:webhook_endpoint_id/versions", WebhookEndpointController, :versions,
+      private: %{relay_operation: "listWebhookEndpointVersions"}
+
+    get "/webhook_endpoints/:webhook_endpoint_id/versions/:version",
+        WebhookEndpointController,
+        :version,
+        private: %{relay_operation: "getWebhookEndpointVersion"}
+
+    # WH-56
+    get "/operations_contacts", OperationsContactController, :show,
+      private: %{relay_operation: "getOperationsContacts"}
+
+    put "/operations_contacts", OperationsContactController, :replace,
+      private: %{relay_operation: "replaceOperationsContacts"}
+
     get "/topics", TopicController, :index, private: %{relay_operation: "listTopics"}
     post "/topics", TopicController, :create, private: %{relay_operation: "createTopic"}
     get "/topics/:topic_key", TopicController, :show, private: %{relay_operation: "getTopic"}

@@ -107,6 +107,13 @@ defmodule Relay.Keys.Port do
   def store_secret(server \\ __MODULE__, label, value),
     do: request(server, {:store_secret, label, fn -> Redacted.expose(value) end})
 
+  @impl Relay.Keys
+  @doc "Generates an Ed25519 key pair inside the token through the program. See `Relay.Keys.generate_key_pair/3`."
+  @spec generate_key_pair(GenServer.server(), :ed25519, String.t(), binary()) ::
+          {:ok, <<_::256>>} | {:error, Error.t()}
+  def generate_key_pair(server \\ __MODULE__, :ed25519, label, id),
+    do: request(server, {:generate_key_pair, :ed25519, label, id})
+
   defp request(server, request) do
     GenServer.call(server, {:request, request}, :infinity)
   catch

@@ -274,5 +274,11 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "AG-65: committed waitpoint and mailbox relay_fn functions are dropped for their new signature over correlation digests as their owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261217100000_create_webhook_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "WH-30, OP-9: the no-delete triggers reject TRUNCATE on the webhook consumers, event types, endpoints, keys, events, messages, batches and the operations contacts"
   }
 ]

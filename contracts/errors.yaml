@@ -1645,6 +1645,188 @@ codes:
     description: "The endpoint was opened for a Suiss product; the tenant may only narrow its event types within the product's default set. It cannot be archived, disabled or given its own key."
     type: "{base_url}/v1/errors/webhook_endpoint_managed"
     choice_note: "Code name and status chosen by the contract."
+  - code: webhook_consumer_not_found
+    family: resource
+    status: 404
+    title: "Webhook consumer not found"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No webhook consumer with this identifier exists in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/webhook_consumer_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: webhook_event_type_not_found
+    family: resource
+    status: 404
+    title: "Tenant event type not found"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No tenant event type or schema version with this identifier exists in this tenant and environment. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/webhook_event_type_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: webhook_message_not_found
+    family: resource
+    status: 404
+    title: "Webhook message not found"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "No webhook message with this identifier exists in this tenant and environment, or it belongs to another consumer. Resources of other tenants and environments also return 404."
+    type: "{base_url}/v1/errors/webhook_message_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: webhook_attempt_not_found
+    family: resource
+    status: 404
+    title: "Webhook attempt not found"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The message has no attempt with this identifier."
+    type: "{base_url}/v1/errors/webhook_attempt_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: webhook_consumer_archived
+    family: webhook
+    status: 422
+    title: "Webhook consumer is archived"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The consumer is archived: it does not change any more, takes no new endpoint and gets no portal token."
+    type: "{base_url}/v1/errors/webhook_consumer_archived"
+    choice_note: "Code name and status chosen by the contract."
+  - code: webhook_consumer_in_use
+    family: webhook
+    status: 422
+    title: "Webhook consumer has endpoints"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The consumer still has an endpoint that is not archived. Archive its endpoints first."
+    type: "{base_url}/v1/errors/webhook_consumer_in_use"
+    choice_note: "Code name and status chosen by the contract."
+  - code: webhook_event_type_archived
+    family: webhook
+    status: 422
+    title: "Tenant event type is archived"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The event type is archived and takes no new schema version."
+    type: "{base_url}/v1/errors/webhook_event_type_archived"
+    choice_note: "Code name and status chosen by the contract."
+  - code: webhook_endpoint_limit_reached
+    family: webhook
+    status: 422
+    title: "Endpoint limit reached"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The tenant already has 20 endpoints for its own events, or the consumer already has 5 endpoints. Archived endpoints are not counted."
+    type: "{base_url}/v1/errors/webhook_endpoint_limit_reached"
+    choice_note: "Code name and status chosen by the contract."
+  - code: webhook_endpoint_url_not_allowed
+    family: webhook
+    status: 422
+    title: "Endpoint address is not allowed"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The address breaks a registration rule: it must be https, use port 443 unless the installation allows another port, carry no user information and name a host. The errors member points at the field."
+    type: "{base_url}/v1/errors/webhook_endpoint_url_not_allowed"
+    choice_note: "Code name and status chosen by the contract."
+  - code: webhook_endpoint_not_signed
+    family: webhook
+    status: 422
+    title: "Endpoint carries no signature"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "Only an https endpoint has a signing key; a queue, stream or object store destination is authenticated by its own credentials."
+    type: "{base_url}/v1/errors/webhook_endpoint_not_signed"
+    choice_note: "Code name and status chosen by the contract."
+  - code: webhook_endpoint_state_conflict
+    family: webhook
+    status: 422
+    title: "Endpoint state does not allow this"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The operation does not apply to the endpoint in its current state: a paused endpoint is resumed with the resume operation, and a disabled or archived endpoint takes no test event, resend or recovery."
+    type: "{base_url}/v1/errors/webhook_endpoint_state_conflict"
+    choice_note: "Code name and status chosen by the contract."
+  - code: webhook_credential_not_found
+    family: webhook
+    status: 422
+    title: "Destination credential not found"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "credential_ref_id names no active secret reference of this tenant and environment. A destination credential is registered by an operator and only ever named by its identifier."
+    type: "{base_url}/v1/errors/webhook_credential_not_found"
+    choice_note: "Code name and status chosen by the contract."
+  - code: webhook_message_in_flight
+    family: webhook
+    status: 409
+    title: "An attempt of the message is running"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "At most one attempt of a message runs at a time. Try again once the running attempt has finished."
+    type: "{base_url}/v1/errors/webhook_message_in_flight"
+    choice_note: "Code name and status chosen by the contract."
   - code: messaging_install_failed
     family: channel
     status: 422

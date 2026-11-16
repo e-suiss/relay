@@ -1028,6 +1028,11 @@ defmodule RelayWeb.Router do
     post "/webhook_credentials", WebhookCredentialController, :create,
       private: %{relay_operation: "registerWebhookCredential"}
 
+    post "/webhook_endpoints/:webhook_endpoint_id/subscribe",
+         WebhookEndpointController,
+         :subscribe,
+         private: %{relay_operation: "subscribeWebhookEndpointExplicitType"}
+
     get "/email_reputation", ReputationController, :index,
       private: %{relay_operation: "listEmailReputationCircuits"}
 

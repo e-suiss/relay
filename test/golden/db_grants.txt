@@ -310,7 +310,7 @@ table relay.operators relay_maint INSERT,SELECT,UPDATE
 table relay.operators relay_owner SELECT
 table relay.outbox_events relay_app SELECT
 table relay.outbox_events relay_archive SELECT
-table relay.outbox_events relay_maint SELECT
+table relay.outbox_events relay_maint INSERT,SELECT
 table relay.outbox_events relay_owner INSERT,SELECT,UPDATE
 table relay.outbox_events relay_report SELECT
 table relay.partial_versions relay_app SELECT
@@ -437,7 +437,7 @@ table relay.singleton_tasks relay_maint INSERT,SELECT,UPDATE
 table relay.singleton_tasks relay_owner SELECT
 table relay.stream_heads relay_app SELECT
 table relay.stream_heads relay_archive SELECT
-table relay.stream_heads relay_maint SELECT
+table relay.stream_heads relay_maint INSERT,SELECT,UPDATE
 table relay.stream_heads relay_owner INSERT,SELECT,UPDATE
 table relay.stream_heads relay_report SELECT
 table relay.subject_keys relay_app SELECT

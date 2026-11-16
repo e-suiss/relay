@@ -15885,7 +15885,7 @@ paths:
       tags:
         - webhooks
       summary: "Create a webhook endpoint"
-      description: "Creates an endpoint of use relay_events (Relay's own events, delivered to the tenant) or destination (the target of a webhook channel step, with the key of an existing consumer). The endpoint belongs to the environment of the credential, which is never taken from the request and never changes (WH-45). event_types is an explicit selection: * is an explicit choice of every type and an empty selection receives nothing (WH-16); a relay_events endpoint names types of Relay's catalog, a destination endpoint names the tenant's event types, and an unknown type is 422 validation_failed with its pointer. An https URL must be https, on port 443 unless the installation allows another, and carry no user information (WH-40, 422 webhook_endpoint_url_not_allowed); there is no customer defined bridge URL, local development uses the CLI tunnel. A tenant has at most 20 relay_events endpoints and a consumer at most 5 endpoints, archived ones not counted (422 webhook_endpoint_limit_reached); several endpoints may share a URL. An https endpoint gets its own signing key: for v1a an Ed25519 key whose private half never leaves the key store and whose public key is in signing_keys, for v1 an HMAC secret returned once in secret. The payload version is pinned to the API version of this request (API-55). Audited as webhook_endpoint.created."
+      description: "Creates an endpoint of use relay_events (Relay's own events, delivered to the tenant) or destination (the target of a webhook channel step, with the key of an existing consumer). The endpoint belongs to the environment of the credential, which is never taken from the request and never changes (WH-45). event_types is an explicit selection: * is an explicit choice of every type and an empty selection receives nothing (WH-16); a relay_events endpoint names types of Relay's catalog, a destination endpoint names the tenant's event types, and an unknown type is 422 validation_failed with its pointer. * does not cover audit_record.appended, the thin event of a record appended to the tenant's audit log (WH-67): only an endpoint that names the type receives it, and naming it needs what reading the audit log needs, a tenant administrator's operator session, so here it is 403 auth_operator_session_required and the type is added on the operator surface. An https URL must be https, on port 443 unless the installation allows another, and carry no user information (WH-40, 422 webhook_endpoint_url_not_allowed); there is no customer defined bridge URL, local development uses the CLI tunnel. A tenant has at most 20 relay_events endpoints and a consumer at most 5 endpoints, archived ones not counted (422 webhook_endpoint_limit_reached); several endpoints may share a URL. An https endpoint gets its own signing key: for v1a an Ed25519 key whose private half never leaves the key store and whose public key is in signing_keys, for v1 an HMAC secret returned once in secret. The payload version is pinned to the API version of this request (API-55). Audited as webhook_endpoint.created."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -15962,6 +15962,7 @@ paths:
         - auth_expired_token
         - auth_revoked_client
         - auth_insufficient_scope
+        - auth_operator_session_required
         - auth_tenant_suspended
         - unsupported_api_version
         - unsupported_beta_feature
@@ -16074,7 +16075,7 @@ paths:
       tags:
         - webhooks
       summary: "Update a webhook endpoint"
-      description: "Changes the given fields. A change of the snapshot allow-list opens a new endpoint version (WH-12). destination keeps its kind and follows the registration rules of creation. state disabled stops new attempts, state active enables a disabled endpoint again and clears its failure clock; a paused endpoint is resumed with the resume operation (422 webhook_endpoint_state_conflict). Switching auto_disable off is audited as webhook_endpoint.auto_disable_switched_off, every other change as webhook_endpoint.updated (WH-48). For an endpoint managed by a Suiss product only event_types can be changed."
+      description: "Changes the given fields. A change of the snapshot allow-list opens a new endpoint version (WH-12). destination keeps its kind and follows the registration rules of creation. state disabled stops new attempts, state active enables a disabled endpoint again and clears its failure clock; a paused endpoint is resumed with the resume operation (422 webhook_endpoint_state_conflict). Switching auto_disable off is audited as webhook_endpoint.auto_disable_switched_off, every other change as webhook_endpoint.updated (WH-48). For an endpoint managed by a Suiss product only event_types can be changed. * does not cover audit_record.appended (WH-67): the type reaches only an endpoint that names it, a selection that adds it is 403 auth_operator_session_required because adding it needs a tenant administrator's operator session, and a selection keeps or drops a type the endpoint already names."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -16155,6 +16156,7 @@ paths:
         - auth_expired_token
         - auth_revoked_client
         - auth_insufficient_scope
+        - auth_operator_session_required
         - auth_tenant_suspended
         - unsupported_api_version
         - unsupported_beta_feature
@@ -17495,7 +17497,7 @@ paths:
       tags:
         - webhooks
       summary: "List webhook events"
-      description: "Pages through Relay's own events of this environment, newest first, each with the thin CloudEvents envelope an endpoint without a snapshot receives (WH-8, WH-11): identifiers only, no personal data. It is the feed of the local development tunnel (WH-45, API-64): relay listen --forward-to reads it and forwards each envelope to a local address with the headers of the webhook profile, signed with a secret of the listening session. Relay never calls a developer machine and there is no customer defined bridge URL. Events of a tenant's own event types (use destination) are not part of the feed. An event is listed whether or not an endpoint subscribes to its type, for the delivery log retention (x-relay-limits webhook.retention)."
+      description: "Pages through Relay's own events of this environment, newest first, each with the thin CloudEvents envelope an endpoint without a snapshot receives (WH-8, WH-11): identifiers only, no personal data. It is the feed of the local development tunnel (WH-45, API-64): relay listen --forward-to reads it and forwards each envelope to a local address with the headers of the webhook profile, signed with a secret of the listening session. Relay never calls a developer machine and there is no customer defined bridge URL. Events of a tenant's own event types (use destination) are not part of the feed. An event is listed whether or not an endpoint subscribes to its type, for the delivery log retention (x-relay-limits webhook.retention). An event of a type that * does not cover (audit_record.appended, WH-67) is never part of the feed."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"

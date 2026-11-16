@@ -4384,6 +4384,117 @@ paths:
       x-relay-stage: 10
       x-relay-choice: true
       x-relay-choice-note: "WH-19 keeps destination credentials as secret references only; registering one is an operator action like every other secret (TN-26). The path and shapes are chosen by the contract."
+  "/v1/operator/webhook_endpoints/{webhook_endpoint_id}/subscribe":
+    post:
+      operationId: subscribeWebhookEndpointExplicitType
+      tags:
+        - webhooks
+      summary: Subscribe a webhook endpoint to an event type that * does not cover
+      description: "Adds an event type that * does not cover to the selection of an endpoint of use relay_events in the selected tenant environment (WH-67, WH-16). The only such type is audit_record.appended: one thin event for every record appended to the tenant's audit log, with the record identifier, the action, the actor kind and the target, and no free text or personal data; the record itself is read from the audit log. Choosing it needs what reading the audit log needs, a tenant administrator (TN-50); an API client and the webhook portal cannot add the type, and the server API refuses it with 403 auth_operator_session_required. An endpoint that already names the type is returned unchanged. A type that * covers and an endpoint of use destination are 422 validation_failed at /event_type. The type is removed again with an ordinary change of the endpoint's event_types. Audited as webhook_endpoint.updated."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/WebhookEndpointSubscribe"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The endpoint with its selection.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/WebhookEndpoint"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - resource_conflict
+        - webhook_endpoint_not_found
+        - webhook_endpoint_archived
+        - auth_delegation_required
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-67 delivers audit records only to an endpoint that chose the type explicitly and names no operation or permission for the choice. The contract requires what reading the audit log requires (listAuditRecords: a tenant administrator, no step-up) and so puts the choice on the operator surface; the path and the body are chosen by the contract."
   "/v1/operator/channel_identities/{channel_identity_id}/rotate_secret":
     post:
       operationId: rotateChannelIdentitySecret
@@ -5459,6 +5570,15 @@ components:
       properties:
         secret_ref:
           "$ref": "./components/schemas.yaml#/SecretRef"
+      additionalProperties: false
+    WebhookEndpointSubscribe:
+      type: object
+      required:
+        - event_type
+      properties:
+        event_type:
+          "$ref": "./components/schemas.yaml#/EventName"
+          description: "An event type of Relay's catalog that * does not cover (WH-67): audit_record.appended."
       additionalProperties: false
     WebhookCredential:
       type: object

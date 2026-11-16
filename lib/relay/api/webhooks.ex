@@ -1,6 +1,6 @@
 defmodule Relay.Api.Webhooks do
   @moduledoc """
-  Webhook endpoints on the server API (WH-2, WH-12, WH-16, WH-40, WH-45): list, create (`201`), read, change with a JSON Merge Patch under an optional `If-Match`, archive, rotate the signing key, and read the endpoint versions. An endpoint belongs to the environment of the credential, which is never read from the request and never changes. Its subscription is an explicit selection of event types, `*` being an explicit choice of all: an endpoint of use `relay_events` names types of Relay's catalog (`Relay.EventCatalog`), one of use `destination` the tenant's own types. Every HTTPS address follows the registration rules; a credential is only ever the identifier of a registered secret reference.
+  Webhook endpoints on the server API (WH-2, WH-12, WH-16, WH-40, WH-45): list, create (`201`), read, change with a JSON Merge Patch under an optional `If-Match`, archive, rotate the signing key, and read the endpoint versions. An endpoint belongs to the environment of the credential, which is never read from the request and never changes. Its subscription is an explicit selection of event types, `*` being an explicit choice of all: an endpoint of use `relay_events` names types of Relay's catalog (`Relay.EventCatalog`), one of use `destination` the tenant's own types. A type the catalog marks explicit-only (`audit_record.appended`, WH-67) is not covered by `*` and is not added here: reading the audit log needs a tenant administrator's operator session, so an API client that adds the type is refused with `403 auth_operator_session_required`; it keeps or removes a type the endpoint already has. Every HTTPS address follows the registration rules; a credential is only ever the identifier of a registered secret reference.
 
   A signing key is made before the request's transaction, because that reaches the key store (`prepare_create/2`, `prepare_rotation/3`), and so is the early DNS check of an address (`prepare_update/1`, WH-40 (4)); the endpoint and its audit record are then written inside it. The secret of a `v1` key is in the answer of the request that made it and nowhere else.
   """
@@ -149,7 +149,7 @@ defmodule Relay.Api.Webhooks do
          :ok <- scheme_rule(body, kind),
          :ok <- destination_rules(destination, "/destination"),
          :ok <- resolved(destination, "/destination"),
-         :ok <- subscription(body["use"], body["event_types"]),
+         :ok <- subscription(body["use"], body["event_types"], []),
          {:ok, schedule} <- schedule(body["retry_schedule"]),
          {:ok, credential_ref_id} <- credential(destination, &described(scope, &1)),
          {:ok, key} <- first_key(scope, kind, Map.get(body, "signature_scheme", "v1a")) do
@@ -274,7 +274,8 @@ defmodule Relay.Api.Webhooks do
 
   # WH-16
   # WH-53
-  defp subscription("relay_events", event_types) do
+  # WH-67
+  defp subscription("relay_events", event_types, held) do
     errors =
       for {name, index} <- Enum.with_index(event_types),
           name != "*" and not Relay.EventCatalog.delivered?(name) do
@@ -282,12 +283,28 @@ defmodule Relay.Api.Webhooks do
         %{pointer: "/event_types/#{index}", code: "not_found", detail: detail}
       end
 
-    if errors == [],
-      do: :ok,
-      else: {:error, Relay.Error.new(:validation_failed, "unknown event type", %{errors: errors})}
+    cond do
+      errors != [] ->
+        {:error, Relay.Error.new(:validation_failed, "unknown event type", %{errors: errors})}
+
+      Enum.any?(event_types -- held, &Relay.EventCatalog.explicit_only?/1) ->
+        {:error, audit_stream_refused()}
+
+      true ->
+        :ok
+    end
   end
 
-  defp subscription(_destination, _event_types), do: :ok
+  defp subscription(_destination, _event_types, _held), do: :ok
+
+  # WH-67
+  # TN-50
+  defp audit_stream_refused do
+    Relay.Error.new(
+      :auth_operator_session_required,
+      "an event type that * does not cover is chosen by a tenant administrator in an operator session"
+    )
+  end
 
   # WH-22
   # WH-52
@@ -495,7 +512,7 @@ defmodule Relay.Api.Webhooks do
     do: {:error, Gate.field_error("/destination/kind", "not_allowed", "the kind never changes")}
 
   defp subscription_change(current, %{"event_types" => event_types}),
-    do: subscription(current["use_kind"], event_types)
+    do: subscription(current["use_kind"], event_types, current["event_types"])
 
   defp subscription_change(_current, _body), do: :ok
 

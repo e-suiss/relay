@@ -25,6 +25,7 @@ defmodule Relay.Webhooks do
   alias Relay.Webhooks.EngineStore
   alias Relay.Webhooks.Envelope
   alias Relay.Webhooks.EventSchema
+  alias Relay.Webhooks.ExplicitSubscription
   alias Relay.Webhooks.Fanout
   alias Relay.Webhooks.Health
   alias Relay.Webhooks.LogStore
@@ -318,6 +319,19 @@ defmodule Relay.Webhooks do
           {atom(), pos_integer() | nil}
   defdelegate endpoint_update(id, expected_version, changes, digest, actor), to: Store
 
+  # WH-67
+  # WH-16
+  # WH-48
+  @doc "Adds an event type that `*` does not cover to the selection of an endpoint of use `relay_events`, in its own scoped transaction; see `Relay.Webhooks.ExplicitSubscription.add/4`. Returns the result with the endpoint as `endpoint/1` reads it afterwards, or `nil`."
+  @spec endpoint_subscribe_explicit(Scope.t(), id(), String.t(), binary(), Actor.t()) ::
+          result({atom(), map() | nil})
+  def endpoint_subscribe_explicit(%Scope{} = scope, id, event_type, digest, %Actor{} = actor) do
+    Store.in_scope(scope, fn _status ->
+      {result, _version} = ExplicitSubscription.add(id, event_type, digest, actor)
+      {result, endpoint(id)}
+    end)
+  end
+
   # WH-48
   @doc "Archives an endpoint and retires its signing keys inside the caller's scoped transaction."
   @spec endpoint_archive(id(), binary(), Actor.t()) :: {atom(), pos_integer() | nil}
@@ -516,13 +530,15 @@ defmodule Relay.Webhooks do
 
   # WH-45 (2)
   # WH-11
+  # WH-67
   # API-56
-  @doc "Lists Relay's own events of the scope, newest first, from a decoded cursor: `filters` may hold `:event_type` and `:created_after`. Each row carries, under `\"envelope\"`, the thin CloudEvents envelope of the event as a map, or `nil` when it cannot be built; at most `limit + 1` rows come back."
+  @doc "Lists Relay's own events of the scope, newest first, from a decoded cursor: `filters` may hold `:event_type` and `:created_after`. An event of a type only an endpoint that names it receives is never listed. Each row carries, under `\"envelope\"`, the thin CloudEvents envelope of the event as a map, or `nil` when it cannot be built; at most `limit + 1` rows come back."
   @spec list_events(Scope.t(), map(), cursor(), pos_integer()) :: result([map()])
   def list_events(%Scope{} = scope, filters, cursor, limit) do
     type = Map.get(filters, :event_type)
     since = Map.get(filters, :created_after)
-    page = fn -> DestinationStore.events(type, since, cursor, limit) end
+    excluded = Relay.EventCatalog.explicit_only()
+    page = fn -> DestinationStore.events(type, since, excluded, cursor, limit) end
 
     with {:ok, rows} <- read(scope, page) do
       {:ok, Enum.map(rows, &Map.put(&1, "envelope", envelope_map(scope, &1)))}

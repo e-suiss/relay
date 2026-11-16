@@ -10,7 +10,7 @@ channels:
   tenantWebhooks:
     address: null
     title: tenantWebhooks
-    description: "Relay's events as a tenant's webhook endpoints and event destinations receive them (use A). This channel is the definitive list of Relay's event names (WH-53): every tenant-facing event type written to the outbox is in it, and a type that is not is never delivered. Endpoints subscribe to chosen types; an empty selection receives nothing and * is an explicit choice of all (WH-16). Delivery is at least once: an event can arrive more than once and in any order, and the definite state is always read from the API (WH-3). A message is the CloudEvents 1.0 structured JSON envelope (WH-8): id is the event identifier and equals the webhook-id header, source is the installation issuer, type the event name, time when the event happened, subject the object it is about, dataschema the versioned schema of data (x-relay-schema-version of the message), and the extensions seq (monotonic per subject, so a consumer sees gaps and order, WH-20), traceparent and environment (live or test). Payloads are thin (WH-11): type, id and related identifiers, no personal data; details are read from the API with the identifiers, and an endpoint adds fields only through its snapshot allow-list, pinned to the endpoint version (WH-12). An HTTPS delivery follows the Suiss webhook profile, shared with Access and compatible with Standard Webhooks (x-relay-webhook-profile). Queue and stream destinations carry the same event in the structured or binary mode of their CloudEvents binding. Events of a tenant's own event types (use B) have the same envelope with the consumer's source and never carry Relay's tenant identifier."
+    description: "Relay's events as a tenant's webhook endpoints and event destinations receive them (use A). This channel is the definitive list of Relay's event names (WH-53): every tenant-facing event type written to the outbox is in it, and a type that is not is never delivered. Endpoints subscribe to chosen types; an empty selection receives nothing and * is an explicit choice of all (WH-16), except a type marked x-relay-explicit-only, which only an endpoint that names it receives (WH-67). Delivery is at least once: an event can arrive more than once and in any order, and the definite state is always read from the API (WH-3). A message is the CloudEvents 1.0 structured JSON envelope (WH-8): id is the event identifier and equals the webhook-id header, source is the installation issuer, type the event name, time when the event happened, subject the object it is about, dataschema the versioned schema of data (x-relay-schema-version of the message), and the extensions seq (monotonic per subject, so a consumer sees gaps and order, WH-20), traceparent and environment (live or test). Payloads are thin (WH-11): type, id and related identifiers, no personal data; details are read from the API with the identifiers, and an endpoint adds fields only through its snapshot allow-list, pinned to the endpoint version (WH-12). An HTTPS delivery follows the Suiss webhook profile, shared with Access and compatible with Standard Webhooks (x-relay-webhook-profile). Queue and stream destinations carry the same event in the structured or binary mode of their CloudEvents binding. Events of a tenant's own event types (use B) have the same envelope with the consumer's source and never carry Relay's tenant identifier."
     x-relay-webhook-profile:
       headers:
         webhook-id: "The event identifier; the same on every attempt, resend, recovery and replay. The consumer deduplicates by it and keeps it for at least 96 hours, longer than the retry window."
@@ -157,6 +157,8 @@ channels:
         "$ref": "#/components/messages/webhook.export.failed"
       webhook.webhook_endpoint.tested:
         "$ref": "#/components/messages/webhook.webhook_endpoint.tested"
+      webhook.audit_record.appended:
+        "$ref": "#/components/messages/webhook.audit_record.appended"
   operations:
     address: null
     title: operations
@@ -605,6 +607,7 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.export.completed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.export.failed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.webhook_endpoint.tested"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.audit_record.appended"
   sendOperations:
     action: send
     channel:
@@ -1383,6 +1386,52 @@ components:
       x-relay-stage: 10
       x-relay-choice: true
       x-relay-choice-note: "WH-53 names the event; the fields of its thin payload are chosen by the contract."
+    webhook.audit_record.appended:
+      name: audit_record.appended
+      title: audit_record.appended
+      summary: "A record was appended to the tenant's audit log (WH-67, E-65, TN-49). Delivered only to an endpoint that names this type: * does not cover it. The record itself, with its actor and reason, is read from the audit API; where a copy at the destination differs from Relay's record, the copy is wrong."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: audit_record.appended
+                data:
+                  type: object
+                  required:
+                    - audit_record_id
+                    - action
+                    - actor_kind
+                  properties:
+                    audit_record_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_aud"
+                    action:
+                      "$ref": "../openapi/components/schemas.yaml#/EventName"
+                    actor_kind:
+                      type: string
+                      enum:
+                        - operator
+                        - installation_operator
+                        - api_client
+                        - access
+                        - system
+                    target_type:
+                      type: string
+                      maxLength: 64
+                    target_id:
+                      type: string
+                      maxLength: 128
+                  additionalProperties: false
+      x-relay-explicit-only: true
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-67 names the event and what it carries; the field names are chosen by the contract. The time of the record is the envelope's time, subject is the audit log of the tenant environment and seq counts its records (WH-20). x-relay-explicit-only marks a type that * does not cover."
     webhook.notification.suppressed:
       name: notification.suppressed
       title: notification.suppressed
@@ -7588,6 +7637,7 @@ x-relay-event-names:
   - api_client.updated
   - api_version.pinned
   - audit_log.read
+  - audit_record.appended
   - blind_index_key.registered
   - blind_index_key.rotation_started
   - campaign.audience_approved

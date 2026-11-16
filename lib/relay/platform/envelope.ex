@@ -12,7 +12,8 @@ defmodule Relay.Platform.Envelope do
     "event_id" => "evt",
     "tenant" => "stn",
     "device_id" => "dev",
-    "kill_switch_id" => "ksw"
+    "kill_switch_id" => "ksw",
+    "audit_record_id" => "aud"
   }
 
   @type context :: %{

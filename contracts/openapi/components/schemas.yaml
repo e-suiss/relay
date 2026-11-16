@@ -6466,7 +6466,7 @@ WebhookEndpointDisabledReason:
   x-relay-choice-note: "The reason names are chosen by the contract within WH-23 and WH-36."
 WebhookEventTypes:
   type: array
-  description: "Subscribed event types (WH-16): the endpoint receives only these. * is an explicit choice of every type, an empty selection receives nothing. An endpoint of use relay_events names types of Relay's event catalog, an endpoint of use destination names event types of the tenant."
+  description: "Subscribed event types (WH-16): the endpoint receives only these. * is an explicit choice of every type, an empty selection receives nothing. An endpoint of use relay_events names types of Relay's event catalog, an endpoint of use destination names event types of the tenant. * does not cover audit_record.appended (WH-67): that type is received only by an endpoint that names it."
   items:
     oneOf:
       - "$ref": "#/EventName"

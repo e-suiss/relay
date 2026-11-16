@@ -392,6 +392,18 @@ channels:
         "$ref": "#/components/messages/audit.webhook_endpoint.key_rotated"
       audit.webhook_endpoint.auto_disable_switched_off:
         "$ref": "#/components/messages/audit.webhook_endpoint.auto_disable_switched_off"
+      audit.webhook_endpoint.messages_recovered:
+        "$ref": "#/components/messages/audit.webhook_endpoint.messages_recovered"
+      audit.webhook_endpoint.messages_retried:
+        "$ref": "#/components/messages/audit.webhook_endpoint.messages_retried"
+      audit.webhook_endpoint.events_replayed:
+        "$ref": "#/components/messages/audit.webhook_endpoint.events_replayed"
+      audit.webhook_endpoint.retries_cancelled:
+        "$ref": "#/components/messages/audit.webhook_endpoint.retries_cancelled"
+      audit.webhook_message.resent:
+        "$ref": "#/components/messages/audit.webhook_message.resent"
+      audit.webhook_message.cancelled:
+        "$ref": "#/components/messages/audit.webhook_message.cancelled"
       audit.operations_contacts.replaced:
         "$ref": "#/components/messages/audit.operations_contacts.replaced"
       audit.topic.created:
@@ -715,6 +727,12 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.archived"
       - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.key_rotated"
       - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.auto_disable_switched_off"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.messages_recovered"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.messages_retried"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.events_replayed"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_endpoint.retries_cancelled"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_message.resent"
+      - "$ref": "#/channels/auditLog/messages/audit.webhook_message.cancelled"
       - "$ref": "#/channels/auditLog/messages/audit.operations_contacts.replaced"
       - "$ref": "#/channels/auditLog/messages/audit.topic.created"
       - "$ref": "#/channels/auditLog/messages/audit.topic.archived"
@@ -6147,6 +6165,114 @@ components:
       x-relay-stage: 10
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_endpoint.messages_recovered:
+      name: webhook_endpoint.messages_recovered
+      title: webhook_endpoint.messages_recovered
+      summary: "The missed messages of a webhook endpoint were queued for recovery (WH-31, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_endpoint
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_endpoint.messages_retried:
+      name: webhook_endpoint.messages_retried
+      title: webhook_endpoint.messages_retried
+      summary: "Failed messages of a webhook endpoint were queued for a bulk retry (WH-31, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_endpoint
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_endpoint.events_replayed:
+      name: webhook_endpoint.events_replayed
+      title: webhook_endpoint.events_replayed
+      summary: "Past events were queued for replay to a webhook endpoint (WH-31, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_endpoint
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_endpoint.retries_cancelled:
+      name: webhook_endpoint.retries_cancelled
+      title: webhook_endpoint.retries_cancelled
+      summary: "The scheduled retries of a webhook endpoint were cancelled (WH-31, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_endpoint
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_message.resent:
+      name: webhook_message.resent
+      title: webhook_message.resent
+      summary: "A webhook message was sent again by hand (WH-31, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_message
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.webhook_message.cancelled:
+      name: webhook_message.cancelled
+      title: webhook_message.cancelled
+      summary: "A webhook message was cancelled (WH-31, WH-48)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: webhook_message
+      x-relay-surface: audit
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.operations_contacts.replaced:
       name: operations_contacts.replaced
       title: operations_contacts.replaced
@@ -7638,13 +7764,19 @@ x-relay-event-names:
   - webhook_endpoint.auto_disable_switched_off
   - webhook_endpoint.created
   - webhook_endpoint.disabled
+  - webhook_endpoint.events_replayed
   - webhook_endpoint.key_rotated
+  - webhook_endpoint.messages_recovered
+  - webhook_endpoint.messages_retried
   - webhook_endpoint.recovered
+  - webhook_endpoint.retries_cancelled
   - webhook_endpoint.tested
   - webhook_endpoint.updated
   - webhook_event_type.archived
   - webhook_event_type.created
   - webhook_event_type.version_added
+  - webhook_message.cancelled
+  - webhook_message.resent
   - whatsapp_account.updated
   - whatsapp_number.paused
   - whatsapp_template.category_changed

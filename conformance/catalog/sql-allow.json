@@ -298,5 +298,11 @@
     "rule": "tenant_context",
     "match": "current_setting('relay.audit_head', true)",
     "reason": "WH-67: the marker says whether this transaction already holds the sequence lock of an audit target, and it is unset in a transaction that holds none; it is not the tenant context"
+  },
+  {
+    "path": "priv/repo/migrations/20261217900000_create_webhook_sources.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "WH-68, OP-9: the no-delete trigger rejects TRUNCATE on the webhook sources"
   }
 ]

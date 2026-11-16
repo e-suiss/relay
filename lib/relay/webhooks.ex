@@ -16,6 +16,7 @@ defmodule Relay.Webhooks do
   alias Relay.Actor
   alias Relay.Scope
   alias Relay.Webhooks.Batcher
+  alias Relay.Webhooks.Completions
   alias Relay.Webhooks.DeliveryLog
   alias Relay.Webhooks.DestinationEvents
   alias Relay.Webhooks.DestinationStore
@@ -34,6 +35,7 @@ defmodule Relay.Webhooks do
   alias Relay.Webhooks.Recovery
   alias Relay.Webhooks.Settings
   alias Relay.Webhooks.Signer
+  alias Relay.Webhooks.SourceStore
   alias Relay.Webhooks.Store
   alias Relay.Webhooks.Sweeper
   alias Relay.Webhooks.TokenCache
@@ -48,6 +50,7 @@ defmodule Relay.Webhooks do
   @ports Relay.Limits.fetch!(["webhook", "allowed_ports"])
   @dns_timeout_ms 1000 * Relay.Limits.seconds!(["webhook", "connect_timeout"])
   @contacts_max Relay.Limits.fetch!(["webhook", "operations_contacts_max"])
+  @sources_max Relay.Limits.fetch!(["webhook", "sources_per_environment"])
   @overlap %{
     default: Relay.Limits.seconds!(["webhook", "key_overlap", "default"]),
     max: Relay.Limits.seconds!(["webhook", "key_overlap", "max"])
@@ -822,6 +825,58 @@ defmodule Relay.Webhooks do
     by_endpoint = Enum.group_by(keys, & &1["endpoint_id"])
     Enum.map(rows, &Map.put(&1, "keys", Map.get(by_endpoint, &1["id"], [])))
   end
+
+  # WH-68
+  @doc "Reads the text form of a source's Ed25519 public key (`whpk_` and base64) into its 32 bytes."
+  @spec source_public_key(term()) :: {:ok, <<_::256>>} | :error
+  def source_public_key(text) do
+    case Profile.parse_key(text) do
+      {:ok, {:ed25519, public_key}} -> {:ok, public_key}
+      _other -> :error
+    end
+  end
+
+  # WH-68
+  # TN-26
+  @doc "Registers a completion source inside the caller's scoped transaction; `attrs` carries `:name`, `:scheme` (`v1a` or `v1`) and the `:public_key` bytes or the `:secret_ref_id` of an active `webhook_signing` secret reference. An environment holds at most `sources_per_environment` sources that are not archived. Returns the result and the source's identifier."
+  @spec source_create(map(), binary(), Actor.t()) :: {atom(), id() | nil}
+  def source_create(attrs, digest, %Actor{} = actor),
+    do: SourceStore.create(attrs, @sources_max, digest, actor)
+
+  # WH-68
+  @doc "Archives a completion source inside the caller's scoped transaction; its notifications are no longer accepted."
+  @spec source_archive(id(), binary(), Actor.t()) :: :archived | :already_archived | :not_found
+  defdelegate source_archive(id, digest, actor), to: SourceStore, as: :archive
+
+  # WH-68
+  @doc "Reads a completion source inside the caller's scoped transaction, or `nil`."
+  @spec source(id()) :: map() | nil
+  defdelegate source(id), to: SourceStore, as: :get
+
+  # WH-68
+  @doc "Reads a completion source, or `nil`."
+  @spec get_source(Scope.t(), id()) :: result(map() | nil)
+  def get_source(%Scope{} = scope, id), do: read(scope, fn -> SourceStore.get(id) end)
+
+  # WH-68
+  # API-56
+  @doc "Lists completion sources from a decoded cursor, optionally of one state; at most `limit + 1` come back."
+  @spec list_sources(Scope.t(), String.t() | nil, cursor(), pos_integer()) :: result([map()])
+  def list_sources(%Scope{} = scope, state, cursor, limit),
+    do: read(scope, fn -> SourceStore.list(state, cursor, limit) end)
+
+  # WH-68
+  # WH-50
+  @doc "Verifies a long-running job completion notification of a source and commits its receipt with its job, outside any transaction; see `Relay.Webhooks.Completions.accept/3`."
+  @spec accept_completion(Scope.t(), id(), Completions.request()) ::
+          {:ok, :recorded | :duplicate} | {:error, Completions.refusal()}
+  defdelegate accept_completion(scope, source_id, request), to: Completions, as: :accept
+
+  # WH-68
+  @doc "Processes the receipt of a completion notification; see `Relay.Webhooks.Completions.process/2`."
+  @spec process_completion(Scope.t(), id()) ::
+          {:ok, Completions.completion() | :skipped | :unreadable} | {:error, term()}
+  defdelegate process_completion(scope, receipt_id), to: Completions, as: :process
 
   defp read(scope, fun), do: Store.in_scope(scope, fn _status -> fun.() end)
 

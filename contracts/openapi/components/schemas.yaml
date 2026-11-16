@@ -5613,6 +5613,12 @@ Id_whb:
   pattern: "^whb_[0-7][0-9a-hjkmnp-tv-z]{25}$"
   examples:
     - whb_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_whs:
+  type: string
+  description: "Completion source identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^whs_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - whs_01j9zq3k4m5n6p7q8r9s0t1v2w
 Id_acd:
   type: string
   description: "Agent ceiling decision identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
@@ -7420,6 +7426,130 @@ WebhookConsumerList:
           items:
             "$ref": "#/WebhookConsumer"
   description: "A page of consumers."
+WebhookSource:
+  type: object
+  description: "A completion source (WH-68): an external system that tells Relay when a long-running job has ended. It signs with the Suiss webhook profile; Relay holds its Ed25519 public key (v1a) or the reference of its HMAC secret (v1), never the secret."
+  required:
+    - object
+    - id
+    - name
+    - scheme
+    - public_key
+    - secret_ref_id
+    - state
+    - created_at
+    - updated_at
+    - archived_at
+  properties:
+    object:
+      type: string
+      const: webhook_source
+    id:
+      "$ref": "#/Id_whs"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 256
+    scheme:
+      type: string
+      description: "The signature scheme of the source: v1a (Ed25519) with public_key, or v1 (HMAC-SHA256) with secret_ref_id."
+      enum:
+        - v1a
+        - v1
+    public_key:
+      oneOf:
+        - "$ref": "#/WebhookPublicKey"
+        - type: "null"
+    secret_ref_id:
+      oneOf:
+        - "$ref": "#/Id_sec"
+        - type: "null"
+    state:
+      type: string
+      enum:
+        - active
+        - archived
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+    archived_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+WebhookSourceCreate:
+  type: object
+  description: "Completion source registration request (WH-68): a name and exactly one of public_key and secret_ref_id."
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 256
+    public_key:
+      "$ref": "#/WebhookPublicKey"
+    secret_ref_id:
+      "$ref": "#/Id_sec"
+  additionalProperties: false
+WebhookSourceList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/WebhookSource"
+  description: "A page of sources."
+CompletionNotification:
+  type: object
+  description: "A long-running job completion notification (WH-68, WH-50): a structured CloudEvents 1.0 envelope, as Relay's own export.completed is. type is the outcome. Other CloudEvents attributes are allowed and ignored."
+  required:
+    - specversion
+    - id
+    - source
+    - type
+    - data
+  properties:
+    specversion:
+      type: string
+      const: "1.0"
+    id:
+      type: string
+      minLength: 1
+      maxLength: 512
+    source:
+      type: string
+      minLength: 1
+      maxLength: 1024
+    type:
+      type: string
+      enum:
+        - job.completed
+        - job.failed
+    time:
+      "$ref": "#/Timestamp"
+    datacontenttype:
+      type: string
+      const: application/json
+    data:
+      type: object
+      required:
+        - waitpoint_id
+      properties:
+        waitpoint_id:
+          "$ref": "#/Id_wp"
+        result:
+          type: object
+          description: "A small result of the job, at most 4096 bytes as JSON. It is kept encrypted with the notification and is never part of an event."
+      additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "WH-68 has the notification carry a waitpoint reference; the envelope, the two types and the bounded result are chosen by the contract."
+CompletionNotificationAnswer:
+  type: object
+  description: "An empty object, or an error name."
 WebhookPortalToken:
   type: object
   description: "A portal token (WH-47): a short-lived bearer token for the embeddable webhook portal, scoped to one consumer in the environment of the credential that minted it."

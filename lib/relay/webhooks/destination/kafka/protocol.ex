@@ -25,13 +25,13 @@ defmodule Relay.Webhooks.Destination.Kafka.Protocol do
   @murmur_seed 0x9747B28C
   @murmur_m 0x5BD1E995
 
-  @crc_table 0..255
-             |> Enum.map(fn index ->
-               Enum.reduce(1..8, index, fn _bit, crc ->
-                 if band(crc, 1) == 1, do: bxor(crc >>> 1, 0x82F63B78), else: crc >>> 1
-               end)
-             end)
-             |> List.to_tuple()
+  crc_entry = fn index ->
+    Enum.reduce(1..8, index, fn _bit, crc ->
+      if band(crc, 1) == 1, do: bxor(crc >>> 1, 0x82F63B78), else: crc >>> 1
+    end)
+  end
+
+  @crc_table List.to_tuple(Enum.map(0..255, crc_entry))
 
   @type header :: {String.t(), binary()}
   @type record :: %{
@@ -232,9 +232,9 @@ defmodule Relay.Webhooks.Destination.Kafka.Protocol do
 
   defp read_topic(_binary), do: :error
 
-  defp read_partition(
-         <<error_code::16-signed, index::32-signed, leader::32-signed, rest::binary>>
-       ) do
+  defp read_partition(<<head::binary-size(10), rest::binary>>) do
+    <<error_code::16-signed, index::32-signed, leader::32-signed>> = head
+
     with {:ok, _replicas, rest} <- array(rest, &read_int32/1),
          {:ok, _in_sync, rest} <- array(rest, &read_int32/1) do
       {:ok, %{error_code: error_code, index: index, leader: leader}, rest}
@@ -259,10 +259,10 @@ defmodule Relay.Webhooks.Destination.Kafka.Protocol do
     end
   end
 
-  defp read_produced(
-         <<index::32-signed, error_code::16-signed, offset::64-signed, _time::64, rest::binary>>
-       ),
-       do: {:ok, %{partition: index, error_code: error_code, base_offset: offset}, rest}
+  defp read_produced(<<head::binary-size(22), rest::binary>>) do
+    <<index::32-signed, error_code::16-signed, offset::64-signed, _time::64>> = head
+    {:ok, %{partition: index, error_code: error_code, base_offset: offset}, rest}
+  end
 
   defp read_produced(_binary), do: :error
 

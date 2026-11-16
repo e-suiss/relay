@@ -105,7 +105,8 @@ defmodule Relay.Api.WebhookPortal do
             "destination" => %{"kind" => "https", "url" => body["url"]}
           })
 
-        own_error(Webhooks.prepare_create(scope, request))
+        with {:error, error} <- Webhooks.prepare_create(scope, request),
+             do: {:error, portal_error(error)}
 
       {:ok, _missing_or_archived} ->
         {:error, gone()}
@@ -127,7 +128,7 @@ defmodule Relay.Api.WebhookPortal do
         {:ok, {201, List.keystore(headers, "location", 0, location), body}}
 
       {:error, error} ->
-        own_error({:error, error})
+        {:error, portal_error(error)}
     end
   end
 
@@ -146,9 +147,12 @@ defmodule Relay.Api.WebhookPortal do
   def prepare_update(portal, id, body) do
     with {:ok, endpoint} <- owned(portal, id),
          {:ok, patch} <- patch(endpoint, body),
-         :ok <- own_error(Webhooks.prepare_update(patch)),
+         :ok <- resolved(Webhooks.prepare_update(patch)),
          do: {:ok, patch}
   end
+
+  defp resolved(:ok), do: :ok
+  defp resolved({:error, error}), do: {:error, portal_error(error)}
 
   defp patch(%{"kind" => "https"} = endpoint, %{"url" => url} = body) do
     destination = Map.put(Webhooks.view(endpoint)["destination"], "url", url)
@@ -168,7 +172,8 @@ defmodule Relay.Api.WebhookPortal do
   @spec update(portal(), Relay.Id.t(), map(), pos_integer() | nil, Relay.Actor.t()) :: answer()
   def update(%{scope: scope} = portal, id, patch, expected_version, actor) do
     with {:ok, _endpoint} <- own(portal, id),
-         do: own_error(Webhooks.update(scope, id, patch, expected_version, actor))
+         {:error, error} <- Webhooks.update(scope, id, patch, expected_version, actor),
+         do: {:error, portal_error(error)}
   end
 
   # WH-46
@@ -318,15 +323,15 @@ defmodule Relay.Api.WebhookPortal do
     end
   end
 
-  defp own_error({:error, %Relay.Error{code: :webhook_consumer_archived}}), do: {:error, gone()}
+  defp portal_error(%Relay.Error{code: :webhook_consumer_archived}), do: gone()
 
-  defp own_error({:error, %Relay.Error{details: %{errors: [_ | _] = errors}} = error}) do
+  defp portal_error(%Relay.Error{details: %{errors: [_ | _] = errors}} = error) do
     if Enum.any?(errors, &(Map.get(&1, :pointer) == "/consumer")),
-      do: {:error, gone()},
-      else: {:error, %{error | details: %{error.details | errors: Enum.map(errors, &flat/1)}}}
+      do: gone(),
+      else: %{error | details: %{error.details | errors: Enum.map(errors, &flat/1)}}
   end
 
-  defp own_error(other), do: other
+  defp portal_error(%Relay.Error{} = error), do: error
 
   defp flat(%{pointer: "/destination/url"} = error), do: %{error | pointer: "/url"}
   defp flat(error), do: error

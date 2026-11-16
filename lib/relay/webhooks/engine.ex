@@ -207,8 +207,10 @@ defmodule Relay.Webhooks.Engine do
   end
 
   # WH-13
-  defp data(scope, %{"use_kind" => "destination"} = event, allow_list),
-    do: DestinationEvents.payload(scope, event, allow_list)
+  # WH-45 (3)
+  defp data(scope, %{"use_kind" => "destination", "origin" => origin} = event, allow_list)
+       when origin != "test",
+       do: DestinationEvents.payload(scope, event, allow_list)
 
   defp data(scope, event, allow_list), do: {:ok, snapshot(scope, event, allow_list)}
 

@@ -1,0 +1,18 @@
+{
+  "source_ref": "AG-74",
+  "legal_basis": "pending legal approval (OQ-35)",
+  "regions": [
+    {
+      "region": "tr",
+      "person_to_person": true
+    },
+    {
+      "region": "eu",
+      "person_to_person": false
+    },
+    {
+      "region": "us",
+      "person_to_person": true
+    }
+  ]
+}

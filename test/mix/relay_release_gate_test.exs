@@ -96,6 +96,55 @@ defmodule RelayDev.ReleaseTest do
     end
   end
 
+  describe "AG-74 encrypted transport in the eu region awaits legal approval" do
+    @transport "priv/datasets/encrypted_transport"
+
+    defp transport(basis, eu) do
+      Jason.encode!(%{
+        "source_ref" => "AG-74",
+        "legal_basis" => basis,
+        "regions" => [
+          %{"region" => "tr", "person_to_person" => true},
+          %{"region" => "eu", "person_to_person" => eu}
+        ]
+      })
+    end
+
+    test "AG-74: turning encrypted transport on in eu without a legal approval stops the release",
+         %{tmp_dir: dir} do
+      base = %{
+        "#{@dir}/schema.json" => "{}",
+        "#{@dir}/v1.json" => version([period("audit", "6698 m.12")]),
+        "#{@transport}/schema.json" => "{}"
+      }
+
+      pending = "pending legal approval (OQ-35)"
+      write!(dir, Map.put(base, "#{@transport}/v1.json", transport(pending, false)))
+      assert Release.gate(dir) == []
+
+      write!(dir, %{"#{@transport}/v2.json" => transport(pending, true)})
+      assert [violation] = Release.gate(dir)
+      assert violation.path == @transport <> "/v2.json"
+      assert violation.rule == "legal_approval"
+
+      write!(dir, %{"#{@transport}/v3.json" => transport("legal opinion 2027-02-01", true)})
+      assert Release.gate(dir) == []
+
+      write!(dir, %{"#{@transport}/v4.json" => "{}"})
+      assert [%{path: path}] = Release.gate(dir)
+      assert path == @transport <> "/v4.json"
+    end
+
+    test "AG-74: the bundled encrypted transport version leaves eu off and awaits legal approval" do
+      content = "priv/datasets/encrypted_transport/v1.json" |> File.read!() |> Jason.decode!()
+
+      assert Release.pending_legal_approval?(content["legal_basis"])
+      assert %{"region" => "eu", "person_to_person" => false} in content["regions"]
+      open = Enum.filter(Release.gate(File.cwd!()), &(&1.path =~ "encrypted_transport"))
+      assert open == []
+    end
+  end
+
   describe "TN-71 suspension periods await legal approval" do
     test "TN-71: a suspension policy awaiting legal approval stops the release", %{tmp_dir: dir} do
       policy = "priv/datasets/suspension_policy"

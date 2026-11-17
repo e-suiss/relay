@@ -1,12 +1,13 @@
 defmodule RelayDev.Release do
   @moduledoc """
-  Release gates: checks the release workflow runs on a version tag and normal CI does not, because what they refuse may stay open on `main` until a release. The active `retention_periods` version of a release is its newest bundled version, which the release activates (OP-65); a row of it whose legal basis still awaits legal approval stops the release. The newest bundled `suspension_policy` version, when the data set exists, stops the release while its legal basis awaits legal approval (TN-71).
+  Release gates: checks the release workflow runs on a version tag and normal CI does not, because what they refuse may stay open on `main` until a release. The active `retention_periods` version of a release is its newest bundled version, which the release activates (OP-65); a row of it whose legal basis still awaits legal approval stops the release. The newest bundled `suspension_policy` version, when the data set exists, stops the release while its legal basis awaits legal approval (TN-71). The newest bundled `encrypted_transport` version, when the data set exists, stops the release when it turns person-to-person encrypted transport on in the `eu` region while its legal basis awaits legal approval (AG-74).
   """
 
   alias RelayDev.Lint.Violation
 
   @retention_periods "priv/datasets/retention_periods"
   @suspension_policy "priv/datasets/suspension_policy"
+  @encrypted_transport "priv/datasets/encrypted_transport"
   @version ~r/\Av([1-9][0-9]{0,8})\.json\z/
   @pending_legal_approval "pending legal approval"
 
@@ -37,7 +38,43 @@ defmodule RelayDev.Release do
         :error -> [violation(@retention_periods, "no retention_periods version is bundled")]
       end
 
-    retention ++ suspension_policy(root)
+    retention ++ suspension_policy(root) ++ encrypted_transport(root)
+  end
+
+  # AG-74
+  # AG-58
+  defp encrypted_transport(root) do
+    if File.dir?(Path.join(root, @encrypted_transport)) do
+      case newest_version(Path.join(root, @encrypted_transport)) do
+        {:ok, file} -> pending_transport(root, Path.join(@encrypted_transport, file))
+        :error -> [violation(@encrypted_transport, "no encrypted_transport version is bundled")]
+      end
+    else
+      []
+    end
+  end
+
+  defp pending_transport(root, path) do
+    with {:ok, text} <- File.read(Path.join(root, path)),
+         {:ok, %{"legal_basis" => basis, "regions" => regions}} when is_list(regions) <-
+           Jason.decode(text) do
+      on? = Enum.any?(regions, &match?(%{"region" => "eu", "person_to_person" => true}, &1))
+
+      case {on?, open_basis(basis)} do
+        {true, message} when is_binary(message) ->
+          [
+            violation(
+              path,
+              "encrypted transport is on in eu: legal basis #{inspect(basis)} #{message}"
+            )
+          ]
+
+        _off_or_approved ->
+          []
+      end
+    else
+      _other -> [violation(path, "not a readable encrypted_transport version")]
+    end
   end
 
   # TN-71

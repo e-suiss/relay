@@ -9,6 +9,7 @@ defmodule Relay.Access.Events do
   * `api_client.created` registers the client in its tenant's `live` scope as pending, with no environment and no scopes, until a tenant administrator assigns them (E-99, `Relay.Access.Assignment`); a client Relay already knows is left as it is. `api_client.updated` carries nothing Relay keeps and is `processed` with reason `not_applied`. `api_client.suspended`, `api_client.reactivated` and `api_client.revoked` change the API client trace's status and announce the new generation to every node (API-44, TN-24); `api_client.disabled`, which Access emits when it retires a client, suspends it (E-97). A status event of a client that is still pending waits as `deferred` with reason `unknown_client` and is queued again once the client is assigned.
   * `user.suspended`, `user.reactivated` and `user.deleted` go to the configured user event handlers (`config :relay, Relay.Access, user_handlers: [module]`, `Relay.Access.UserHandler`); without one the receipt waits as `deferred` with reason `no_handler`.
   * `agent.suspended`, `agent.reactivated` and `agent.deleted` go, in each environment of the mapped tenant, to the configured agent event handlers (`config :relay, Relay.Access, agent_handlers: [module]`, `Relay.Access.AgentHandler`) with the agent's Access Party reference (E-29, AG-5); without one the receipt waits as `deferred` with reason `no_handler`, and an event that names no subject is `rejected`.
+  * `relationship.updated` goes, in each environment of the mapped tenant, to the configured relationship handler (`config :relay, Relay.Access, relationship_handler: module`, `Relay.Access.RelationshipHandler`) with the Access Party references of the two agents, the level in lowercase and the pair's sequence number (AG-59, AG-73). A relationship that cannot be read is `rejected`; without a handler it waits as `deferred`.
   * `consent.updated` goes, in each environment of the mapped tenant, to the configured consent handler (`config :relay, Relay.Access, consent_handler: module`, `Relay.Access.ConsentHandler`) with its status and source in lowercase, the evidence it sealed for that environment when the event was received (the receipt keeps only that ciphertext and never the evidence in clear) and its brand: the sub-tenant mapped from the event's organization, or the tenant itself without one (E-80). A consent that cannot be read is `rejected`; without a handler, or while its organization is not mapped yet, it waits as `deferred`.
 
   A receipt whose tenant, sub-tenant or client does not exist yet is `deferred` and queued again when a later event of the same Access tenant is applied; anything else that cannot apply is `rejected` with a reason.
@@ -41,7 +42,8 @@ defmodule Relay.Access.Events do
     "agent.deleted" => ~w(access_tenant_id subject),
     "consent.updated" =>
       ~w(sub access_tenant_id access_organization_id channel status consent_kind recipient_type
-         source occurred_at text_version_digest evidence iys_transaction_id sequence)
+         source occurred_at text_version_digest evidence iys_transaction_id sequence),
+    "relationship.updated" => ~w(access_tenant_id sub peer level sequence)
   }
   @statuses %{
     "api_client.suspended" => "suspended",
@@ -63,6 +65,7 @@ defmodule Relay.Access.Events do
   @consent_statuses ~w(none pending active revoked expired)
   @consent_kinds ~w(explicit_opt_in soft_opt_in legitimate_interest none)
   @recipient_types ~w(individual merchant)
+  @relationship_levels ~w(unknown known verified trusted)
   @consent_source ~r/\A[a-z][a-z0-9_]{0,63}\z/
   @requeue_after ~w(tenant.created api_client.created)
   @region_defaults "region_defaults"
@@ -254,6 +257,9 @@ defmodule Relay.Access.Events do
 
   defp handle("consent.updated", payload, receipt),
     do: with_tenant(payload, &consent(payload, receipt, &1))
+
+  defp handle("relationship.updated", payload, receipt),
+    do: with_tenant(payload, &relationship(payload, receipt, &1))
 
   defp handle(_type, _payload, _receipt), do: {:rejected, "unsupported_type"}
 
@@ -530,6 +536,44 @@ defmodule Relay.Access.Events do
       {:ok, %{id: id}} -> {:ok, id}
       {:ok, nil} -> {:deferred, "subtenant_not_found"}
       {:error, error} -> {:error, error}
+    end
+  end
+
+  # AG-59
+  # AG-73
+  defp relationship(payload, receipt, tenant_id) do
+    handler = Keyword.get(Relay.Access.config(), :relationship_handler)
+
+    case {handler, relationship_attrs(payload)} do
+      {nil, _attrs} ->
+        {:deferred, "no_handler"}
+
+      {_handler, :error} ->
+        {:rejected, "invalid_relationship"}
+
+      {handler, {:ok, attrs}} ->
+        attrs = Map.put(attrs, :source_event_ref, receipt.webhook_id)
+        scopes = Enum.map(Relay.Environment.all(), &Scope.new!(tenant_id, &1))
+        Enum.reduce_while(scopes, :processed, &relationship_step(handler, &1, attrs, &2))
+    end
+  end
+
+  defp relationship_step(handler, scope, attrs, :processed) do
+    case handler.handle_relationship(scope, attrs) do
+      :ok -> {:cont, :processed}
+      {:rejected, reason} when is_binary(reason) -> {:halt, {:rejected, reason}}
+      {:error, error} -> {:halt, {:error, error}}
+    end
+  end
+
+  defp relationship_attrs(payload) do
+    with owner when is_binary(owner) and owner != "" <- text(payload["sub"], 256),
+         peer when is_binary(peer) and peer != "" and peer != owner <- text(payload["peer"], 256),
+         level when level in @relationship_levels <- lower(payload["level"]),
+         sequence when is_integer(sequence) and sequence >= 0 <- payload["sequence"] do
+      {:ok, %{owner: owner, peer: peer, level: level, sequence: sequence}}
+    else
+      _invalid -> :error
     end
   end
 

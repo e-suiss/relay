@@ -4,6 +4,8 @@ defmodule RelayTest.FakeAccess do
 
   Every known tenant has two realms, `a` and `b` (`realm_issuer/2`), each with its own discovery document and ES256 key; the tenant snapshot names them and the tenant's region (the installation region), and a tenant whose id starts with `tnt_unknown` is not known (E-96); the snapshot of a tenant whose id starts with `tnt_down` answers 503, and that of one whose id starts with `tnt_elsewhere` names a region other than the installation's (E-95). Relay's own calls are checked as Access checks them (E-98, E-100): the tenant snapshot takes only `Authorization: Bearer` with Relay's RFC 7523 client assertion (ES256 under the key-store key `access-client`, `iss` and `sub` Relay's `client_id`, `aud` the fake issuer, a `jti` and an `exp` at most five minutes ahead); the token endpoint takes only the same assertion as `private_key_jwt` and a DPoP proof carrying the fake's nonce, answering `use_dpop_nonce` with a `DPoP-Nonce` otherwise. AuthZEN decisions are not served here: they need mutual TLS (`RelayTest.FakeAdp`, E-102). The calling test process receives `{:fake_access, :token, jkt, form}`, `{:fake_access, :nonce, :token}`, `{:fake_access, :snapshot, tenant}` and `{:fake_access, :realm_keys, slug}`.
 
+  The issuer directory of first-contact tokens (`/v1/first-contact/keys`, AG-73) answers 404 until the test process publishes keys with `publish_first_contact!/1`; `first_contact_token/1` makes a token of type `0x0002` signed by the fake's RSA key.
+
   Plug options: `region:` overrides `suiss_region` of the Suiss configuration (the installation region by default), `openid:` merges members into the OpenID document, `suiss: :missing` answers the Suiss configuration with 404, `down: true` answers every request with 503, `keys: :private` publishes a key set with private members.
   """
 
@@ -26,6 +28,7 @@ defmodule RelayTest.FakeAccess do
     "b" => :crypto.generate_key(:ecdh, :secp256r1)
   }
   @nonce "fake-access-nonce"
+  @first_contact :crypto.generate_key(:rsa, {2048, 65_537})
   @assertion_type "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 
   @doc "The fake issuer."
@@ -189,6 +192,17 @@ defmodule RelayTest.FakeAccess do
     end
   end
 
+  defp serve(conn, "/v1/first-contact/keys", _opts) do
+    case Process.get({__MODULE__, :first_contact}) do
+      nil ->
+        send_resp(conn, 404, "")
+
+      keys ->
+        listed = Enum.map(keys, &%{"token-type" => 2, "token-key" => b64(&1), "not-before" => 0})
+        json(conn, %{"issuer-request-uri" => "tokens", "token-keys" => listed})
+    end
+  end
+
   defp serve(conn, _path, _opts), do: send_resp(conn, 404, "")
 
   # E-98
@@ -336,6 +350,51 @@ defmodule RelayTest.FakeAccess do
     conn
     |> put_resp_content_type("application/json")
     |> send_resp(200, Jason.encode!(body))
+  end
+
+  @doc "The fake issuer's first-contact token key as an issuer directory publishes it: a DER `SubjectPublicKeyInfo` with the RSASSA-PSS algorithm identifier."
+  @spec first_contact_key() :: binary()
+  def first_contact_key do
+    {[exponent, modulus], _private} = @first_contact
+    numbers = der(0x30, der(0x02, positive(modulus)) <> der(0x02, positive(exponent)))
+    algorithm = der(0x30, der(0x06, <<42, 134, 72, 134, 247, 13, 1, 1, 10>>))
+    der(0x30, algorithm <> der(0x03, <<0>> <> numbers))
+  end
+
+  defp der(tag, content) when byte_size(content) < 128,
+    do: <<tag, byte_size(content)>> <> content
+
+  defp der(tag, content) when byte_size(content) < 256,
+    do: <<tag, 0x81, byte_size(content)>> <> content
+
+  defp der(tag, content), do: <<tag, 0x82, byte_size(content)::16>> <> content
+
+  defp positive(<<1::1, _rest::bitstring>> = number), do: <<0>> <> number
+  defp positive(number), do: number
+
+  @doc "Publishes `keys` in the fake's issuer directory for the calling test process and makes Relay forget the keys it kept; `nil` takes the directory away again."
+  @spec publish_first_contact!([binary()] | nil) :: :ok
+  def publish_first_contact!(keys \\ [first_contact_key()]) do
+    Process.put({__MODULE__, :first_contact}, keys)
+    Relay.Access.forget_first_contact_issuer()
+  end
+
+  @doc "A first-contact token of type `0x0002` in unpadded base64url, signed by the fake's key for the challenge of `:issuer` (the fake issuer's host) and `:origin` (`localhost`)."
+  @spec first_contact_token(keyword()) :: String.t()
+  def first_contact_token(opts \\ []) do
+    issuer = Keyword.get(opts, :issuer, "access.test")
+    origin = Keyword.get(opts, :origin, "localhost")
+    {_public, private} = @first_contact
+
+    challenge =
+      <<2::16, byte_size(issuer)::16, issuer::binary, 0, byte_size(origin)::16, origin::binary>>
+
+    input =
+      <<2::16, :crypto.strong_rand_bytes(32)::binary, :crypto.hash(:sha256, challenge)::binary,
+        :crypto.hash(:sha256, first_contact_key())::binary>>
+
+    options = [rsa_padding: :rsa_pkcs1_pss_padding, rsa_pss_saltlen: 48, rsa_mgf1_md: :sha384]
+    b64(input <> :crypto.sign(:rsa, :sha384, input, private, options))
   end
 
   @doc "The installation region."

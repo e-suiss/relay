@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "encrypted_transport",
+  "description": "Whether an installation of a region carries end-to-end encrypted envelopes between the mailboxes of agents that act for persons, and the legal basis of that decision. A region that is not listed, or whose entry says false, does not carry them.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_ref",
+    "legal_basis",
+    "regions"
+  ],
+  "properties": {
+    "source_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "legal_basis": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "regions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "region",
+          "person_to_person"
+        ],
+        "properties": {
+          "region": {
+            "type": "string",
+            "enum": [
+              "tr",
+              "eu",
+              "us"
+            ]
+          },
+          "person_to_person": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

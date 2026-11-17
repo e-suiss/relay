@@ -7,6 +7,7 @@ defmodule Relay.Agents do
 
   alias Relay.Agents.Correlation
   alias Relay.Agents.Escalation
+  alias Relay.Agents.FirstContact
   alias Relay.Agents.Mailbox
   alias Relay.Agents.Registry
   alias Relay.Agents.Waitpoint
@@ -232,6 +233,100 @@ defmodule Relay.Agents do
           pos_integer()
         ) :: {:ok, [map()]} | {:error, term()}
   defdelegate mailbox_dead_letters(scope, whose, cursor, limit), to: Mailbox, as: :dead_letters
+
+  # AG-53
+  # AG-70
+  @doc "The published limits of messages between agents; see `Relay.Agents.FirstContact.limits/0`."
+  @spec message_limits() :: map()
+  defdelegate message_limits(), to: FirstContact, as: :limits
+
+  # AG-58
+  # AG-74
+  @doc "Whether an installation of a region carries encrypted envelopes; see `Relay.Agents.FirstContact.transport/2`."
+  @spec encrypted_transport(String.t() | atom(), map() | nil) :: :enabled | :disabled
+  defdelegate encrypted_transport(region, content), to: FirstContact, as: :transport
+
+  # AG-60
+  # AG-73
+  @doc "Reads a first-contact token against the issuer; see `Relay.Agents.FirstContact.token/2`."
+  @spec first_contact_token(binary() | nil, map() | nil) :: FirstContact.token()
+  defdelegate first_contact_token(token, issuer), to: FirstContact, as: :token
+
+  # AG-60
+  # AG-73
+  @doc "The challenge a first-contact token answers; see `Relay.Agents.FirstContact.challenge/2`."
+  @spec first_contact_challenge(String.t(), String.t()) :: binary()
+  defdelegate first_contact_challenge(issuer_name, origin), to: FirstContact, as: :challenge
+
+  # AG-56
+  # AG-59
+  # AG-60
+  # AG-61
+  @doc "Sends a message to an agent's mailbox inside the caller's scoped transaction; see `Relay.Agents.FirstContact.send_in/1`."
+  @spec send_message_in(FirstContact.message()) ::
+          {:ok, map()} | {:error, atom() | {:rate_limited, map()}}
+  defdelegate send_message_in(message), to: FirstContact, as: :send_in
+
+  # AG-59
+  # AG-61
+  # AG-69
+  @doc "How a sender stands with a recipient: relationship level, block and first-contact rate; see `Relay.Agents.FirstContact.standing/3`."
+  @spec sender_standing(Relay.Scope.t(), Relay.Id.t(), Relay.Id.t()) ::
+          {:ok, FirstContact.standing()} | {:error, term()}
+  defdelegate sender_standing(scope, recipient_id, sender_id), to: FirstContact, as: :standing
+
+  # AG-69
+  @doc "How a sender stands with a recipient, inside the caller's scoped transaction; see `Relay.Agents.FirstContact.standing_in/2`."
+  @spec sender_standing_in(Relay.Id.t(), Relay.Id.t()) :: FirstContact.standing()
+  defdelegate sender_standing_in(recipient_id, sender_id), to: FirstContact, as: :standing_in
+
+  # AG-38
+  # AG-69
+  @doc "The trust label of a message by the order of AG-69; see `Relay.Agents.FirstContact.trust_label/1`."
+  @spec trust_label(map()) :: FirstContact.label()
+  defdelegate trust_label(facts), to: FirstContact
+
+  # AG-59
+  # AG-73
+  @doc "Applies a relationship level from Access to the copy of a scope; see `Relay.Agents.FirstContact.relationship_changed/2`."
+  @spec relationship_changed(Relay.Scope.t(), map()) ::
+          {:ok, :applied | :stale | :agent_not_found} | {:error, term()}
+  defdelegate relationship_changed(scope, relationship), to: FirstContact
+
+  # AG-61
+  @doc "Blocks a sender for an agent or lifts the block inside the caller's scoped transaction; see `Relay.Agents.FirstContact.set_block_in/4`."
+  @spec set_sender_block_in(Relay.Id.t(), Relay.Id.t(), boolean(), String.t()) ::
+          {:blocked | :lifted | :unchanged, map()} | {:sender_not_found, nil}
+  defdelegate set_sender_block_in(owner_id, sender_id, blocked, actor_ref),
+    to: FirstContact,
+    as: :set_block_in
+
+  # AG-61
+  @doc "Reports a message as abuse inside the caller's scoped transaction; see `Relay.Agents.FirstContact.report_abuse_in/4`."
+  @spec report_abuse_in(Relay.Id.t(), Relay.Id.t(), String.t(), String.t() | nil) ::
+          {:reported | :already_reported | :not_found, DateTime.t() | nil, boolean() | nil}
+  defdelegate report_abuse_in(reporter_id, record_id, sender_ref, statement), to: FirstContact
+
+  # AG-67
+  @doc "Reads the metadata of a message of a recipient inside the caller's scoped transaction, or `nil`."
+  @spec message_in(Relay.Id.t(), Relay.Id.t()) :: map() | nil
+  defdelegate message_in(recipient_id, record_id), to: FirstContact
+
+  # AG-56
+  # AG-67
+  @doc "Reads a message of a recipient with its stored envelope; see `Relay.Agents.FirstContact.envelope/3`."
+  @spec message_envelope(Relay.Scope.t(), Relay.Id.t(), Relay.Id.t()) ::
+          {:ok, map() | nil} | {:error, term()}
+  defdelegate message_envelope(scope, recipient_id, record_id), to: FirstContact, as: :envelope
+
+  # AG-59
+  # API-56
+  @doc "A page of the request box of a recipient; see `Relay.Agents.FirstContact.requests/4`."
+  @spec mailbox_requests(Relay.Scope.t(), Relay.Id.t(), map() | nil, pos_integer()) ::
+          {:ok, [map()]} | {:error, term()}
+  defdelegate mailbox_requests(scope, recipient_id, cursor, limit),
+    to: FirstContact,
+    as: :requests
 
   # AG-21
   @doc "The jobs the configured wake transports derive from an outbox event; see `Relay.Agents.WakeHint.jobs/1`."

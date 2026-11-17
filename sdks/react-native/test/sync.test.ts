@@ -183,7 +183,7 @@ describe('IN-28 IN-29 sync', () => {
       id: 'c11',
       d: { item_id: ITEM_ID, state_version: 2, changes: { read: true } },
       counters: { unseen: 0, unread: 0, total: 1, version: 4 },
-    } as RealtimeEnvelope);
+    } as unknown as RealtimeEnvelope);
     expect(h.store.snapshot().ready).toBe(false);
     release?.();
     await running;

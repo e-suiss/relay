@@ -80,7 +80,7 @@ export function useRelayLifecycle(client: RelayClient | null): void {
   useEffect(() => {
     if (!client) return undefined;
     void client.start().catch(() => undefined);
-    let last: string = AppState.currentState;
+    let last: string | null | undefined = AppState.currentState;
     const subscription = AppState.addEventListener('change', (next) => {
       if (next === 'active' && last !== 'active') void client.foreground().catch(() => undefined);
       if (next === 'background') client.background();

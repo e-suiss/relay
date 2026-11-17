@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { ALLOWED_OPERATIONS } from '../src/boundary';
@@ -16,7 +16,7 @@ const contract = readYaml<{ paths: Record<string, Record<string, Operation>> }>(
   'contracts/openapi/subscriber.yaml',
 );
 
-const sourceRoot = fileURLToPath(new URL('../src', import.meta.url));
+const sourceRoot = join(dirname(fileURLToPath(import.meta.url)), '..', 'src');
 
 function sources(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

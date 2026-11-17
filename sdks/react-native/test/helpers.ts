@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 import { RelayHttp, TokenManager } from '../src/http';
 import { memoryStore, type Clock, type Logger, type LogFields, type Random } from '../src/ports';
 
 export const repoFile = (path: string): string =>
-  fileURLToPath(new URL(`../../../${path}`, import.meta.url));
+  join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', path);
 
 export const readJson = <T>(path: string): T =>
   JSON.parse(readFileSync(repoFile(path), 'utf8')) as T;
@@ -172,7 +173,7 @@ export const BASE_URL = 'https://relay.example.com';
 
 export function testHttp(
   responder: Responder,
-  options: { clock?: Clock; random?: Random; logger?: Logger } = {},
+  options: { clock?: Clock; random?: Random; logger?: ReturnType<typeof recordingLogger> } = {},
 ) {
   const clock = options.clock ?? instantClock();
   const random = options.random ?? fakeRandom();

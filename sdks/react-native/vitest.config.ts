@@ -1,10 +1,13 @@
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+
+const root = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   resolve: {
     alias: {
-      'react-native': fileURLToPath(new URL('./test/shims/react-native.tsx', import.meta.url)),
+      'react-native': join(root, 'test', 'shims', 'react-native.tsx'),
     },
   },
   oxc: { jsx: { runtime: 'automatic' } },

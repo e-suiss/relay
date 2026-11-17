@@ -6,7 +6,9 @@ defmodule Relay.Repo.Migrations.HoldBlockedMailboxMessages do
   # AG-69
   # AG-84
   def up do
+    execute("SET LOCAL ROLE relay_owner")
     execute(message_append())
+    execute("RESET ROLE")
   end
 
   def down, do: :ok

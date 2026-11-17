@@ -169,6 +169,22 @@ defmodule Relay.Agents.Registry do
 
   def credential(%Scope{}, _subject), do: {:ok, nil}
 
+  # E-29
+  # E-106
+  # AG-75
+  @doc "The agent bound to the Access Party `party`, the identifier Access events name: its identifier and state, or `nil` when no record of `scope` is bound to it."
+  @spec by_party(Scope.t(), String.t() | nil) ::
+          {:ok, %{id: id(), state: String.t()} | nil} | {:error, term()}
+  def by_party(%Scope{} = scope, party) when is_binary(party) and party != "" do
+    case digests(scope, party) do
+      {:ok, bidxs} -> Store.in_scope(scope, fn _status -> Store.by_party(bidxs) end)
+      {:error, %Relay.Error{code: :blind_index_key_unavailable}} -> {:ok, nil}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  def by_party(%Scope{}, _party), do: {:ok, nil}
+
   # E-106
   @doc "Returns true if an agent of `scope` that is not deleted has no pairwise Access `sub` yet, a record created before E-106."
   @spec unbound?(Scope.t()) :: {:ok, boolean()} | {:error, term()}

@@ -224,8 +224,8 @@ defmodule Relay.Agents.FirstContact do
       })
       when is_binary(owner) and is_binary(peer) and level in @levels and is_integer(sequence) and
              sequence >= 0 and is_binary(event_ref) do
-    with {:ok, %{id: owner_id}} <- Registry.credential(scope, owner),
-         {:ok, %{id: peer_id}} <- Registry.credential(scope, peer) do
+    with {:ok, %{id: owner_id}} <- Registry.by_party(scope, owner),
+         {:ok, %{id: peer_id}} <- Registry.by_party(scope, peer) do
       Store.in_scope(scope, fn _status ->
         Store.apply_relationship(owner_id, peer_id, level, sequence, event_ref)
       end)

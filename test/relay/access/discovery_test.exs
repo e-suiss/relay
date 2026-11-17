@@ -115,14 +115,18 @@ defmodule Relay.Access.DiscoveryTest do
       assert {:ok, suiss} = Discovery.parse_suiss(document, issuer)
       assert suiss.subject_resolution == issuer <> "/access/v1/tenants/{tenant}/subjects:resolve"
 
-      for bad <- [issuer <> "/subjects:resolve", "http://access.test/{tenant}/subjects:resolve"] do
+      untemplated = issuer <> "/subjects:resolve"
+      insecure = "http://access.test/{tenant}/subjects:resolve"
+
+      for bad <- [untemplated, insecure] do
         endpoints = %{"subject_resolution" => bad}
 
         assert {:error, %Relay.Error{code: :access_discovery_invalid}} =
                  Discovery.parse_suiss(Map.put(document, "endpoints", endpoints), issuer)
       end
 
-      assert {:ok, %{subject_resolution: nil}} = Discovery.parse_suiss(%{"issuer" => issuer}, issuer)
+      minimal = %{"issuer" => issuer}
+      assert {:ok, %{subject_resolution: nil}} = Discovery.parse_suiss(minimal, issuer)
     end
   end
 

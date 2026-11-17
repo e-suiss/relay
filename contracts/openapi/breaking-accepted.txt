@@ -120,3 +120,4 @@ POST /v1/suppressions added the new `refusal` enum value to the `reason` respons
 POST /v1/suppressions/{suppression_id}/lift added the new `refusal` enum value to the `reason` response property for the response status `200`
 GET /v1/suppressions added the new `refusal` enum value to the `allOf[subschema #2]/data/items/reason` response property for the response status `200`
 POST /v1/operator/suppressions/{suppression_id}/lift added the new `refusal` enum value to the `reason` response property for the response status `200`
+POST /v1/waitpoints added the new required request property `surface_policy/recipients`

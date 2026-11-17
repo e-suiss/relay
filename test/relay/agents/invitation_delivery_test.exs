@@ -431,7 +431,7 @@ defmodule Relay.Agents.InvitationDeliveryTest do
   describe "E-107 AG-80 the origin of the Access link" do
     test "E-107, AG-80: the Access link is on the origin of an issuer of the tenant's Access environments",
          ctx do
-      issuer = FakeAccess.realm_issuer(ctx.tenant.attrs.access_tenant_id, "b")
+      issuer = FakeAccess.environment_issuer(ctx.tenant.attrs.access_tenant_id, "b")
       link = issuer <> "/v1/approve?request=7f3a"
       waitpoint = create!(ctx, question(ctx, %{"access_link" => link}))
       assert waitpoint.view["access_link"] == link

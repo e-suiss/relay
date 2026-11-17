@@ -1,12 +1,12 @@
 defmodule Relay.Access.Pairing do
   @moduledoc """
-  Relay's pairing with the realms of the Access tenants (E-101, Access OP-149 m.16–19). Relay is a `platform_product` client of Access with two keys in the key store: the client key that signs every RFC 7523 client assertion (`Relay.Access.Client`, E-100) and the Ed25519 service key of Relay's service Instance in every realm (`Relay.Access.ServiceKey`). `run/2` is the one code path of every trigger: node start, the hourly run, `tenant.created` and the operator's manual run (`request/1`).
+  Relay's pairing with the Access environments of the Access tenants (E-101, E-103, Access OP-149 m.16–19). Relay is a `platform_product` client of Access with two keys in the key store: the client key that signs every RFC 7523 client assertion (`Relay.Access.Client`, E-100) and the Ed25519 service key of Relay's service Instance in every Access environment (`Relay.Access.ServiceKey`). `run/2` is the one code path of every trigger: node start, the hourly run, `tenant.created` and the operator's manual run (`request/1`).
 
-  For each active tenant (scope `:due` and `:all`), or one tenant (`{:tenant, id}`), a run reads the tenant snapshot, records its live realms and retires the others, and, when a live realm is not paired under the service key (always for `:all` and a single tenant), asks `pairing_challenges` for challenges. A `paired` target is stored as it is, a `refused` one is stored with Access's code, and an `unpaired` one is stored and signed only when every check holds: the kernel-free checks of `Relay.Access.Pairing.Target.check/3` and those of the signer (`Relay.Access.Pairing.Signer`, by default `Relay.Access.Pairing.KernelSigner`), which recomputes the intent digests and signs the Actor Intent Statements. Every signed target goes to `pairing`, at most 64 per request, and the stream the answer names is adopted. A `400 invalid-challenge`, a `503` or a network failure is tried once more with a new challenge. A realm that does not end paired counts a failed run; three in a row are an operator signal.
+  For each active tenant (scope `:due` and `:all`), or one tenant (`{:tenant, id}`), a run reads the tenant snapshot (`Relay.Access.Environments`), records its live Access environments and retires the others, and, when a live Access environment is not paired under the service key (always for `:all` and a single tenant), asks `pairing_challenges` for challenges. A `paired` target is stored as it is, a `refused` one is stored with Access's code, and an `unpaired` one is stored and signed only when every check holds: the kernel-free checks of `Relay.Access.Pairing.Target.check/3` and those of the signer (`Relay.Access.Pairing.Signer`, by default `Relay.Access.Pairing.KernelSigner`), which recomputes the intent digests and signs the Actor Intent Statements. Every signed target goes to `pairing`, at most 64 per request, and the stream the answer names is adopted. Each answer names the Access environments with the member the challenges named them with (`Relay.Access.Pairing.Target`). A `400 invalid-challenge`, a `503` or a network failure is tried once more with a new challenge. An Access environment that does not end paired counts a failed run; three in a row are an operator signal.
 
   The run then checks Relay's Access event stream through `platform_streams`: an enabled stream is up, a paused or unreachable one is a warning, and a missing or disabled one is opened again towards Relay's receiver (`config :relay, Relay.Access, event_receiver: url`). Every call carries a fresh client assertion, nothing else.
 
-  Telemetry: `[:relay, :access, :pairing]` with `unpaired_realms` (realms not paired after three runs in a row, the `relay_access_pairing_unpaired_realms` alarm) and `stream_up` (1 while the event stream is enabled). Every signal is logged.
+  Telemetry: `[:relay, :access, :pairing]` with `unpaired_access_environments` (Access environments not paired after three runs in a row, the `relay_access_pairing_unpaired_access_environments` alarm) and `stream_up` (1 while the event stream is enabled). Every signal is logged.
   """
 
   require Logger
@@ -14,13 +14,13 @@ defmodule Relay.Access.Pairing do
   alias Relay.Access.Cache
   alias Relay.Access.Client
   alias Relay.Access.Discovery
+  alias Relay.Access.Environments
   alias Relay.Access.Http
   alias Relay.Access.Pairing.Job
   alias Relay.Access.Pairing.KernelSigner
   alias Relay.Access.Pairing.Store
   alias Relay.Access.Pairing.Streams
   alias Relay.Access.Pairing.Target
-  alias Relay.Access.Realms
   alias Relay.Access.ServiceKey
 
   @stalled_runs 3
@@ -34,12 +34,12 @@ defmodule Relay.Access.Pairing do
           tenants: non_neg_integer(),
           paired: non_neg_integer(),
           signals: [signal()],
-          unpaired_realms: non_neg_integer() | nil,
+          unpaired_access_environments: non_neg_integer() | nil,
           stream_up: boolean(),
           event_stream: String.t() | nil
         }
 
-  @doc "Failed runs in a row after which a realm is an operator signal."
+  @doc "Failed runs in a row after which an Access environment is an operator signal."
   @spec stalled_runs() :: pos_integer()
   def stalled_runs, do: @stalled_runs
 
@@ -85,7 +85,7 @@ defmodule Relay.Access.Pairing do
       tenants: 0,
       paired: 0,
       signals: [],
-      unpaired_realms: nil,
+      unpaired_access_environments: nil,
       stream_up: false,
       event_stream: nil
     }
@@ -154,7 +154,7 @@ defmodule Relay.Access.Pairing do
   end
 
   defp tenant(report, tenant, force, ctx) do
-    case Realms.snapshot(tenant) do
+    case Environments.snapshot(tenant) do
       {:ok, snapshot} -> snapshot_step(report, tenant, snapshot, force, ctx)
       {:error, :not_found} -> report
       {:error, error} -> signal(report, :failed, %{tenant: tenant, error: error})
@@ -162,7 +162,7 @@ defmodule Relay.Access.Pairing do
   end
 
   defp snapshot_step(report, tenant, snapshot, force, ctx) do
-    case live_realms(tenant, snapshot, ctx.region) do
+    case live_environments(tenant, snapshot, ctx.region) do
       {:ok, live} ->
         _retired = Store.seen(tenant, live)
         report = %{report | tenants: report.tenants + 1}
@@ -179,7 +179,7 @@ defmodule Relay.Access.Pairing do
   defp due(report, _tenant, [], _force, _ctx), do: report
 
   defp due(report, tenant, live, force, ctx) do
-    stored = Store.realms(tenant)
+    stored = Store.access_environments(tenant)
 
     if force or Enum.any?(live, &(not held?(stored, elem(&1, 0), ctx.kid))),
       do: pair(report, %{tenant: tenant, live: live, stored: stored}, ctx),
@@ -187,28 +187,36 @@ defmodule Relay.Access.Pairing do
   end
 
   # INV-41
-  defp live_realms(tenant, %{"tenant" => tenant, "realms" => realms} = snapshot, region)
-       when is_list(realms) do
+  # E-103
+  defp live_environments(tenant, snapshot, region) do
+    case Environments.listed(snapshot, tenant) do
+      {:ok, listed} -> live(listed, snapshot, region)
+      :error -> :error
+    end
+  end
+
+  defp live(listed, snapshot, region) do
     cond do
       snapshot["status"] != "active" or snapshot["region"] != region -> :skip
-      Enum.all?(realms, &realm?/1) -> distinct(Enum.map(realms, &{&1["id"], &1["slug"]}))
+      Enum.all?(listed, &listed?/1) -> distinct(Enum.map(listed, &{&1["id"], &1["slug"]}))
       true -> :error
     end
   end
 
-  defp live_realms(_tenant, _snapshot, _region), do: :error
-
-  defp realm?(%{"id" => id, "slug" => slug}) when is_binary(slug),
+  defp listed?(%{"id" => id, "slug" => slug}) when is_binary(slug),
     do: Target.uuid?(id) and byte_size(slug) in @slug_bytes
 
-  defp realm?(_realm), do: false
+  defp listed?(_listed), do: false
 
   defp distinct(live) do
     if length(Enum.uniq_by(live, &elem(&1, 0))) == length(live), do: {:ok, live}, else: :error
   end
 
-  defp held?(stored, realm, kid),
-    do: Enum.any?(stored, &(&1.realm == realm and &1.state == :paired and &1.kid == kid))
+  defp held?(stored, id, kid),
+    do: Enum.any?(stored, &paired?(&1, id, kid))
+
+  defp paired?(stored, id, kid),
+    do: stored.access_environment == id and stored.state == :paired and stored.kid == kid
 
   defp pair(report, job, ctx) do
     fresh = %{failed: MapSet.new(), paired: MapSet.new(), stream: nil, signals: []}
@@ -246,10 +254,10 @@ defmodule Relay.Access.Pairing do
   end
 
   defp count_failures(report, tenant, failed) do
-    Enum.reduce(failed, report, fn realm, report ->
-      case Store.change(tenant, realm, :failed) do
+    Enum.reduce(failed, report, fn id, report ->
+      case Store.change(tenant, id, :failed) do
         {:ok, runs} when runs >= @stalled_runs ->
-          signal(report, :unpaired, %{tenant: tenant, realm: realm, runs: runs})
+          signal(report, :unpaired, %{tenant: tenant, access_environment: id, runs: runs})
 
         _counted ->
           report
@@ -263,6 +271,7 @@ defmodule Relay.Access.Pairing do
     with {:ok, document} <- call(:post, url, nil, 201, ctx),
          {:ok, answer} <- answer(document, job.tenant) do
       {acc, signed} = plan(answer.targets, job, acc, ctx, now_ms())
+      job = Map.put(job, :field, answer.field)
 
       signed
       |> Enum.chunk_every(Target.max_targets())
@@ -273,12 +282,12 @@ defmodule Relay.Access.Pairing do
   end
 
   defp send_chunk(chunk, {:ok, acc}, job, ctx) do
-    {:ok, body} = Target.pairing_body(chunk)
+    {:ok, body} = Target.pairing_body(chunk, job.field)
     url = expand(ctx.endpoints.pairing, job.tenant)
 
     with {:ok, document} <- call(:post, url, body, 200, ctx),
          {:ok, answer} <- answer(document, job.tenant) do
-      acc = Enum.reduce(chunk, acc, &result(&1.realm, answer.targets, job, &2))
+      acc = Enum.reduce(chunk, acc, &result(&1.access_environment, answer.targets, job, &2))
       {:cont, {:ok, %{acc | stream: answer.event_stream || acc.stream}}}
     else
       {:error, reason} -> {:halt, {{:error, reason}, acc}}
@@ -294,43 +303,47 @@ defmodule Relay.Access.Pairing do
     end)
   end
 
-  defp result(realm, targets, job, acc) do
-    case Enum.find(targets, &(&1.realm == realm)) do
+  defp result(id, targets, job, acc) do
+    case Enum.find(targets, &(&1.access_environment == id)) do
       %{status: status} = target when status in [:paired, :refused] -> settled(target, job, acc)
-      _unpaired_or_missing -> %{acc | failed: MapSet.put(acc.failed, realm)}
+      _unpaired_or_missing -> %{acc | failed: MapSet.put(acc.failed, id)}
     end
   end
 
   defp settled(%{status: :paired} = target, job, acc) do
+    id = target.access_environment
     fields = %{kid: target.kid, domain: nil, party: target.party, instance: target.instance}
-    _stored = Store.change(job.tenant, target.realm, {:paired, fields})
-    first? = not MapSet.member?(acc.paired, target.realm)
-    acc = %{acc | failed: MapSet.delete(acc.failed, target.realm)}
-    acc = %{acc | paired: MapSet.put(acc.paired, target.realm)}
+    _stored = Store.change(job.tenant, id, {:paired, fields})
+    first? = not MapSet.member?(acc.paired, id)
+    acc = %{acc | failed: MapSet.delete(acc.failed, id)}
+    acc = %{acc | paired: MapSet.put(acc.paired, id)}
 
-    if first? and refused_before?(job.stored, target.realm),
-      do: add(acc, :cleared, %{tenant: job.tenant, realm: target.realm, slug: slug(job, target)}),
+    if first? and refused_before?(job.stored, id),
+      do: add(acc, :cleared, %{tenant: job.tenant, access_environment: id, slug: slug(job, id)}),
       else: acc
   end
 
   defp settled(%{status: :refused} = target, job, acc) do
-    _stored = Store.change(job.tenant, target.realm, {:refused, target.code})
-    acc = %{acc | failed: MapSet.put(acc.failed, target.realm)}
-    meta = %{tenant: job.tenant, realm: target.realm, slug: slug(job, target), code: target.code}
+    id = target.access_environment
+    _stored = Store.change(job.tenant, id, {:refused, target.code})
+    acc = %{acc | failed: MapSet.put(acc.failed, id)}
+    meta = %{tenant: job.tenant, access_environment: id, slug: slug(job, id), code: target.code}
     add(acc, :refused, meta)
   end
 
   defp challenged(target, job, acc, signed, {ctx, now}) do
     fields = %{kid: target.kid, domain: target.domain, party: target.party}
-    _stored = Store.change(job.tenant, target.realm, {:unpaired, fields})
+    id = target.access_environment
+    _stored = Store.change(job.tenant, id, {:unpaired, fields})
 
     case sign(target, ctx, now) do
       {:ok, one} ->
         {acc, [one | signed]}
 
       {:error, code} ->
-        acc = %{acc | failed: MapSet.put(acc.failed, target.realm)}
-        {add(acc, :unsignable, %{tenant: job.tenant, realm: target.realm, code: code}), signed}
+        acc = %{acc | failed: MapSet.put(acc.failed, id)}
+        meta = %{tenant: job.tenant, access_environment: id, code: code}
+        {add(acc, :unsignable, meta), signed}
     end
   end
 
@@ -340,7 +353,7 @@ defmodule Relay.Access.Pairing do
          {:ok, signed} <- signer_result(ctx.signer.sign(target, ctx.key, now)) do
       {:ok,
        %{
-         realm: target.realm,
+         access_environment: target.access_environment,
          challenge: target.challenge,
          ais: signed.ais,
          register_ais: signed.register_ais
@@ -352,13 +365,13 @@ defmodule Relay.Access.Pairing do
   defp signer_result({:error, {:unsignable, code}}) when is_binary(code), do: {:error, code}
   defp signer_result(_failed), do: {:error, "pairing-signer"}
 
-  defp refused_before?(stored, realm),
-    do: Enum.any?(stored, &(&1.realm == realm and &1.state == :refused))
+  defp refused_before?(stored, id),
+    do: Enum.any?(stored, &(&1.access_environment == id and &1.state == :refused))
 
-  defp slug(job, target) do
-    case List.keyfind(job.live, target.realm, 0) do
-      {_realm, slug} -> slug
-      nil -> target.realm
+  defp slug(job, id) do
+    case List.keyfind(job.live, id, 0) do
+      {_id, slug} -> slug
+      nil -> id
     end
   end
 
@@ -494,8 +507,9 @@ defmodule Relay.Access.Pairing do
   defp gauges(report) do
     unpaired = Store.stalled(@stalled_runs)
     up = if report.stream_up, do: 1, else: 0
-    :telemetry.execute([:relay, :access, :pairing], %{unpaired_realms: unpaired, stream_up: up})
-    %{report | unpaired_realms: unpaired}
+    measurements = %{unpaired_access_environments: unpaired, stream_up: up}
+    :telemetry.execute([:relay, :access, :pairing], measurements)
+    %{report | unpaired_access_environments: unpaired}
   end
 
   defp finish(report) do
@@ -509,10 +523,10 @@ defmodule Relay.Access.Pairing do
   defp add(acc, kind, meta), do: %{acc | signals: [{kind, meta} | acc.signals]}
 
   defp log({:unpaired, meta}) do
-    Logger.error("access realm unpaired",
-      event: "access.realm_unpaired",
+    Logger.error("access environment unpaired",
+      event: "access.access_environment_unpaired",
       access_tenant_id: meta.tenant,
-      realm: meta.realm,
+      access_environment: meta.access_environment,
       runs: meta.runs
     )
   end

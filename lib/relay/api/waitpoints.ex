@@ -263,7 +263,7 @@ defmodule Relay.Api.Waitpoints do
   defp access_issuers(scope) do
     with {:ok, %{"access_tenant_id" => tenant}} when is_binary(tenant) <-
            Relay.Tenancy.tenant(scope),
-         {:ok, issuers} when is_list(issuers) <- Relay.Access.environment_issuers(tenant) do
+         {:ok, issuers} when is_list(issuers) <- Relay.Access.access_environment_issuers(tenant) do
       {:ok, issuers}
     else
       {:ok, :unknown} -> {:ok, []}

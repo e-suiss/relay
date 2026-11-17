@@ -1,6 +1,6 @@
 defmodule Relay.Access.ServiceKey do
   @moduledoc """
-  Relay's Access service key (E-101): the Ed25519 key of Relay's service Instance in every realm it pairs with, named by `config :relay, Relay.Access, service_key: label` (`access-service` by default) and kept in the key store (TN-63). Its public JWK is registered with Relay's client in Access next to the client key; Access names it in every pairing challenge by its RFC 7638 thumbprint (`kid`). `print_service_key/0` prints both (`bin/relay eval 'Relay.Access.ServiceKey.print_service_key()'`, or `mix relay.access.service_key` in development).
+  Relay's Access service key (E-101): the Ed25519 key of Relay's service Instance in every Access environment it pairs with (E-103), named by `config :relay, Relay.Access, service_key: label` (`access-service` by default) and kept in the key store (TN-63). Its public JWK is registered with Relay's client in Access next to the client key; Access names it in every pairing challenge by its RFC 7638 thumbprint (`kid`). `print_service_key/0` prints both (`bin/relay eval 'Relay.Access.ServiceKey.print_service_key()'`, or `mix relay.access.service_key` in development).
   """
 
   alias Relay.Access.Cache

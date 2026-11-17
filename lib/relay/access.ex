@@ -1,8 +1,8 @@
 defmodule Relay.Access do
   @moduledoc """
-  The link to Access, Suiss's identity and authority product (MD-1, E-1 … E-5, E-40, E-78). Relay always runs with Access and is never an authority source. The link is configured with the Access `issuer` and the `client_id` of Relay's own Access client registration (`config :relay, Relay.Access, issuer: "https://…", client_id: "…"`); endpoints, keys and capabilities come from discovery (`Relay.Access.Link`). Every subscriber's pairwise `sub` is in the sector of that client (E-90). Other contexts use only the functions of this module.
+  The link to Access, Suiss's identity and authority product (MD-1, E-1 … E-5, E-40, E-78). Relay always runs with Access and is never an authority source. The link is configured with the Access `issuer`, the issuer of the Access platform environment (the host root of a subdomain environment or `<base>/env/{slug}`, E-103), and the `client_id` of Relay's own Access client registration (`config :relay, Relay.Access, issuer: "https://…", client_id: "…"`); endpoints, keys and capabilities come from discovery (`Relay.Access.Link`). Every subscriber's pairwise `sub` is in the sector of that client (E-90). Other contexts use only the functions of this module.
 
-  * Server API credentials are DPoP-bound Access access tokens addressed to Relay's `client_id` (API-41, API-48, API-71, E-93): `verify_server_token/2` checks them and their proof on every request and maps the API client trace to its tenant, environment, sub-tenant and API-75 scopes. A token of a platform product is issued by the linked issuer; a token of a tenant API client or end user by a realm of its `access_tenant`, found in the tenant snapshot (`Relay.Access.Realms`, E-96).
+  * Server API credentials are DPoP-bound Access access tokens addressed to Relay's `client_id` (API-41, API-48, API-71, E-93): `verify_server_token/2` checks them and their proof on every request and maps the API client trace to its tenant, environment, sub-tenant and API-75 scopes. A token of a platform product is issued by the linked issuer; a token of a tenant API client or end user by an Access environment of its `access_tenant`, found in the tenant snapshot (`Relay.Access.Environments`, E-96, E-103).
   * Relay's own calls to Access take its client assertion, signed by a key-store key (the tenant snapshot and the token requests, `Relay.Access.Client`, E-100); AuthZEN decisions go over mutual TLS with Relay's PEP certificate, whose key stays in the key store (`Relay.Access.Pep`, E-102).
   * An ingest connector acts as an API client trace of its configuration (`connector_principal/2`, T-41), checked like a server token.
   * API client traces, tenant and sub-tenant mappings follow Access lifecycle events, pushed as Security Event Tokens (`accept_event/1`, `process_event/1`, E-94). An API client Access registers waits as pending until a tenant administrator assigns its environment and scopes (`pending_api_clients/1`, `assign_api_client/4`, E-99).
@@ -37,6 +37,7 @@ defmodule Relay.Access do
   alias Relay.Access.Clients
   alias Relay.Access.ClientStore
   alias Relay.Access.Dpop
+  alias Relay.Access.Environments
   alias Relay.Access.Events
   alias Relay.Access.FirstContact
   alias Relay.Access.Jose
@@ -44,7 +45,6 @@ defmodule Relay.Access do
   alias Relay.Access.Pairing
   alias Relay.Access.PlatformTenant
   alias Relay.Access.PortalToken
-  alias Relay.Access.Realms
   alias Relay.Access.Subjects
   alias Relay.Access.SubscriberToken
   alias Relay.Access.SubscriberTokenKeys
@@ -119,7 +119,7 @@ defmodule Relay.Access do
   @spec client_id() :: String.t() | nil
   def client_id, do: Keyword.get(config(), :client_id)
 
-  @doc "Supervised children: the link snapshot, the realm and outbound cache, the API client cache, the usage writer and the start-up pairing run (E-101)."
+  @doc "Supervised children: the link snapshot, the Access environment and outbound cache, the API client cache, the usage writer and the start-up pairing run (E-101)."
   @spec children() :: [module()]
   def children, do: [Link, Cache, Clients, Usage, Pairing]
 
@@ -150,7 +150,7 @@ defmodule Relay.Access do
   # TN-24
   # E-93
   @doc """
-  Verifies an Access access token for the server API (E-93): an `at+jwt` token of the linked issuer or of a realm of its `access_tenant` (E-96) whose `aud` is Relay's own Access `client_id` (`client_id/0`), bound by `cnf.jkt` to the key of the request's DPoP proof (`Relay.Access.Dpop`). Options: `:proof` (the `DPoP` header value), `:method` and `:url` (the request's method and external URL, which the proof must name), `:ip` (the client address, for last use) and `:certificate` (the DER client certificate of the connection, for RFC 8705 binding).
+  Verifies an Access access token for the server API (E-93): an `at+jwt` token of the linked issuer or of an Access environment of its `access_tenant` (E-96, E-103) whose `aud` is Relay's own Access `client_id` (`client_id/0`), bound by `cnf.jkt` to the key of the request's DPoP proof (`Relay.Access.Dpop`). Options: `:proof` (the `DPoP` header value), `:method` and `:url` (the request's method and external URL, which the proof must name), `:ip` (the client address, for last use) and `:certificate` (the DER client certificate of the connection, for RFC 8705 binding).
 
   The token names its Access tenant in `access_tenant` and its Access client in `client_id` (`Relay.AccessClaims`); tenant, environment and sub-tenant come from the API client trace, never from the token or the request. A client whose trace is not known is `auth_invalid_token` (E-79 (3)). The granted scopes are the trace's API-75 scopes, narrowed to those the token carries when it carries a `scope` claim; an Access service token carries none, so the registration alone grants them. A client still waiting for its environment and scopes is `auth_client_pending` (E-99), a revoked or suspended client `auth_revoked_client`, a suspended tenant or sub-tenant `auth_tenant_suspended`, a link without keys or an unset `client_id` `service_unavailable`. A token bound to a certificate (`cnf.x5t#S256`) also needs that certificate.
   """
@@ -203,17 +203,18 @@ defmodule Relay.Access do
 
   # E-95
   # E-96
-  @doc "Reads the snapshot of an Access tenant from Access now; see `Relay.Access.Realms.snapshot/1`."
+  # E-103
+  @doc "Reads the snapshot of an Access tenant from Access now; see `Relay.Access.Environments.snapshot/1`."
   @spec tenant_snapshot(String.t()) ::
           {:ok, map()} | {:error, :not_found} | {:error, Relay.Error.t()}
-  defdelegate tenant_snapshot(access_tenant), to: Realms, as: :snapshot
+  defdelegate tenant_snapshot(access_tenant), to: Environments, as: :snapshot
 
-  # E-107
   # E-96
-  @doc "The issuers of an Access tenant's environments, from the cache or from its snapshot; `:unknown` when Access does not know the tenant. See `Relay.Access.Realms.issuers/1`."
-  @spec environment_issuers(String.t()) ::
+  # E-103
+  @doc "The Access environment issuers of an Access tenant, cached; `:unknown` when Access does not know the tenant. See `Relay.Access.Environments.issuers/1`."
+  @spec access_environment_issuers(String.t()) ::
           {:ok, [String.t()] | :unknown} | {:error, Relay.Error.t()}
-  defdelegate environment_issuers(access_tenant), to: Realms, as: :issuers
+  defdelegate access_environment_issuers(access_tenant), to: Environments, as: :issuers
 
   # E-106
   # AG-75
@@ -272,12 +273,15 @@ defmodule Relay.Access do
 
   # E-93
   # E-96
+  # E-103
   defp verified(token, audience) do
     with {:ok, issuer} <- linked_issuer(),
          {:ok, claimed} <- claimed(token) do
+      expectation = %{audience: audience, now: now(), typ: @access_typ}
+
       if Token.same?(claimed["iss"], issuer),
         do: platform(token, audience),
-        else: Realms.verify(token, claimed, %{audience: audience, now: now(), typ: @access_typ})
+        else: Environments.verify(token, claimed, expectation)
     end
   end
 
@@ -446,19 +450,21 @@ defmodule Relay.Access do
   defdelegate accept_event(token), to: Events, as: :accept
 
   # AG-73
-  @doc "The issuer of first-contact tokens with its token keys; see `Relay.Access.FirstContact.issuer/0`."
-  @spec first_contact_issuer() :: {:ok, FirstContact.issuer()} | :unconfigured
-  defdelegate first_contact_issuer(), to: FirstContact, as: :issuer
+  # E-103
+  @doc "The issuers of first-contact tokens of the scope's Access environments with their token keys; see `Relay.Access.FirstContact.issuers/1`."
+  @spec first_contact_issuers(Scope.t()) :: {:ok, [FirstContact.issuer()]} | :unconfigured
+  defdelegate first_contact_issuers(scope), to: FirstContact, as: :issuers
 
   # AG-73
-  @doc "The issuer of first-contact tokens with its token keys read again; see `Relay.Access.FirstContact.refresh/0`."
-  @spec refresh_first_contact_issuer() :: {:ok, FirstContact.issuer()} | :unconfigured
-  defdelegate refresh_first_contact_issuer(), to: FirstContact, as: :refresh
+  # E-103
+  @doc "The issuers of first-contact tokens with their token keys read again; see `Relay.Access.FirstContact.refresh/1`."
+  @spec refresh_first_contact_issuers(Scope.t()) :: {:ok, [FirstContact.issuer()]} | :unconfigured
+  defdelegate refresh_first_contact_issuers(scope), to: FirstContact, as: :refresh
 
   # AG-73
   @doc "Forgets the kept first-contact token keys; see `Relay.Access.FirstContact.forget/0`."
-  @spec forget_first_contact_issuer() :: :ok
-  defdelegate forget_first_contact_issuer(), to: FirstContact, as: :forget
+  @spec forget_first_contact_issuers() :: :ok
+  defdelegate forget_first_contact_issuers(), to: FirstContact, as: :forget
 
   # E-36
   @doc "Applies one Access event receipt; the `Relay.Access.EventConsumer` job calls it."

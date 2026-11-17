@@ -618,10 +618,10 @@ defmodule RelayWeb.Telemetry do
         measurement: :down,
         description: "1 while the Access link is not established or its keys are stale"
       ),
-      last_value("relay.access.pairing.unpaired_realms",
+      last_value("relay.access.pairing.unpaired_access_environments",
         event_name: [:relay, :access, :pairing],
-        measurement: :unpaired_realms,
-        description: "Realms of the Access tenants not paired after three runs in a row"
+        measurement: :unpaired_access_environments,
+        description: "Access environments of Access tenants unpaired after three runs in a row"
       ),
       counter("relay.frequency_counter.unavailable.total",
         event_name: [:relay, :frequency_counter, :unavailable],

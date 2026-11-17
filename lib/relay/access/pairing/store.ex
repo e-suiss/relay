@@ -1,11 +1,11 @@
 defmodule Relay.Access.Pairing.Store do
   @moduledoc """
-  Data access of the pairing (E-101): the active Access tenants, Relay's pairing state with each of their realms (`relay.access_pairing_realms`: `unpaired`, `paired`, `refused` or `retired`, the `kid`, governing domain, service Party and Instance it is paired or challenged under, Access's refusal code and the failed runs in a row) and Relay's Access event stream (`relay.access_event_stream`, one row). Rows are written only through `relay_ops` functions; nothing is ever deleted, a realm that leaves the tenant snapshot is `retired` (INV-47).
+  Data access of the pairing (E-101): the active Access tenants, Relay's pairing state with each of their Access environments (`relay.access_pairing_realms`, whose `realm` column holds the Access environment, E-103: `unpaired`, `paired`, `refused` or `retired`, the `kid`, governing domain, service Party and Instance it is paired or challenged under, Access's refusal code and the failed runs in a row) and Relay's Access event stream (`relay.access_event_stream`, one row). Rows are written only through `relay_ops` functions; nothing is ever deleted, an Access environment that leaves the tenant snapshot is `retired` (INV-47).
   """
 
   alias Relay.Repo
 
-  @realms "SELECT realm, slug, state, kid, failed_runs FROM relay.access_pairing_realms WHERE access_tenant_id = $1 ORDER BY realm"
+  @environments "SELECT realm, slug, state, kid, failed_runs FROM relay.access_pairing_realms WHERE access_tenant_id = $1 ORDER BY realm"
   @stalled "SELECT count(*) FROM relay.access_pairing_realms WHERE state IN ('unpaired', 'refused') AND failed_runs >= $1"
   @stream "SELECT stream, status, recreated FROM relay.access_event_stream WHERE singleton"
   @states %{
@@ -22,8 +22,8 @@ defmodule Relay.Access.Pairing.Store do
   }
 
   @type state :: :unpaired | :paired | :refused | :retired
-  @type realm :: %{
-          realm: String.t(),
+  @type access_environment :: %{
+          access_environment: String.t(),
           slug: String.t(),
           state: state(),
           kid: binary() | nil,
@@ -45,22 +45,24 @@ defmodule Relay.Access.Pairing.Store do
   end
 
   # E-101
+  # E-103
   # INV-47
-  @doc "Records the live realms of a tenant snapshot (`{realm, slug}`): a new one is `unpaired`, a retired one is `unpaired` again, and every other realm of the tenant is retired; returns how many were retired."
+  @doc "Records the live Access environments of a tenant snapshot (`{access_environment, slug}`): a new one is `unpaired`, a retired one is `unpaired` again, and every other Access environment of the tenant is retired; returns how many were retired."
   @spec seen(String.t(), [{String.t(), String.t()}]) :: non_neg_integer()
-  def seen(access_tenant_id, realms) do
-    ids = Enum.map(realms, &uuid(elem(&1, 0)))
-    slugs = Enum.map(realms, &elem(&1, 1))
+  def seen(access_tenant_id, access_environments) do
+    ids = Enum.map(access_environments, &uuid(elem(&1, 0)))
+    slugs = Enum.map(access_environments, &elem(&1, 1))
     params = [access_tenant_id, ids, slugs]
     [row] = Repo.call_unscoped!(:access_pairing, "relay_ops.access_pairing_seen", params)
     row["access_pairing_seen"]
   end
 
   # E-101
-  @doc "Applies one change to a stored realm; `{:ok, runs}` gives its failed runs in a row after the change."
+  # E-103
+  @doc "Applies one change to a stored Access environment; `{:ok, runs}` gives its failed runs in a row after the change."
   @spec change(String.t(), String.t(), change()) :: {:ok, non_neg_integer()} | :not_found
-  def change(access_tenant_id, realm, change) do
-    params = [access_tenant_id, uuid(realm) | change_params(change)]
+  def change(access_tenant_id, access_environment, change) do
+    params = [access_tenant_id, uuid(access_environment) | change_params(change)]
 
     case Repo.call_unscoped!(:access_pairing, "relay_ops.access_pairing_apply", params) do
       [%{"result" => "stored", "runs" => runs}] -> {:ok, runs}
@@ -78,12 +80,13 @@ defmodule Relay.Access.Pairing.Store do
   defp change_params(:failed), do: ["failed", nil, nil, nil, nil, nil]
 
   # E-101
-  @doc "The stored realms of a tenant."
-  @spec realms(String.t()) :: [realm()]
-  def realms(access_tenant_id) do
-    for [realm, slug, state, kid, runs] <- query!(@realms, [access_tenant_id]) do
+  # E-103
+  @doc "The stored Access environments of a tenant."
+  @spec access_environments(String.t()) :: [access_environment()]
+  def access_environments(access_tenant_id) do
+    for [id, slug, state, kid, runs] <- query!(@environments, [access_tenant_id]) do
       %{
-        realm: text(realm),
+        access_environment: text(id),
         slug: slug,
         state: Map.fetch!(@states, state),
         kid: kid,
@@ -93,7 +96,7 @@ defmodule Relay.Access.Pairing.Store do
   end
 
   # E-101
-  @doc "How many realms of the installation are not paired after `runs` or more failed runs in a row."
+  @doc "How many Access environments of the installation are not paired after `runs` or more failed runs in a row."
   @spec stalled(pos_integer()) :: non_neg_integer()
   def stalled(runs) do
     [[count]] = query!(@stalled, [runs])

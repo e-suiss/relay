@@ -8,8 +8,8 @@ defmodule Relay.Access.Subjects do
   alias Relay.Access.Cache
   alias Relay.Access.Client
   alias Relay.Access.Discovery
+  alias Relay.Access.Environments
   alias Relay.Access.Http
-  alias Relay.Access.Realms
 
   @template_ms 300_000
   @tenant ~r/\A[A-Za-z0-9_-]{1,128}\z/
@@ -67,9 +67,9 @@ defmodule Relay.Access.Subjects do
   defp tenant(_tenant), do: unavailable()
 
   defp environments(tenant) do
-    case Realms.snapshot(tenant) do
+    case Environments.snapshot(tenant) do
       {:ok, %{"tenant" => ^tenant} = snapshot} ->
-        {:ok, ids(Map.get(snapshot, "environments", snapshot["realms"]))}
+        {:ok, ids(snapshot["environments"])}
 
       {:ok, _other} ->
         {:ok, []}

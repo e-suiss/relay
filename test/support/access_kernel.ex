@@ -9,7 +9,7 @@ defmodule RelayTest.AccessKernel do
 
   @content_type "application/access-ais+cbor"
   @min_validity_ms 60_000
-  @realm "00000000-0000-4000-8000-00000000000a"
+  @access_environment "00000000-0000-4000-8000-00000000000a"
 
   @type cbor ::
           integer() | String.t() | {:bytes, binary()} | [cbor()] | %{optional(cbor()) => cbor()}
@@ -194,18 +194,18 @@ defmodule RelayTest.AccessKernel do
     unsigned(protected, payload) <> <<0x58, 0x40>> <> signature
   end
 
-  @doc "An `unpaired` target as Access issues it for the service key `key` at Unix millisecond `now_ms`: a fresh challenge with ten minutes of validity, the bootstrap Grant of the realm's domain as basis and both Exercises with the intent digests Access computes. `party_register: false` leaves the registration out."
+  @doc "An `unpaired` target as Access issues it for the service key `key` at Unix millisecond `now_ms`: a fresh challenge with ten minutes of validity, the bootstrap Grant of the Access environment's domain as basis and both Exercises with the intent digests Access computes. `party_register: false` leaves the registration out."
   @spec target(<<_::256>>, integer(), keyword()) :: map()
   def target(<<_::256>> = key, now_ms, opts \\ []) do
-    domain = :crypto.hash(:sha256, @realm)
-    party = binary_part(:crypto.hash(:sha256, "party" <> @realm), 0, 16)
+    domain = :crypto.hash(:sha256, @access_environment)
+    party = binary_part(:crypto.hash(:sha256, "party" <> @access_environment), 0, 16)
     challenge = Keyword.get_lazy(opts, :challenge, fn -> :crypto.strong_rand_bytes(32) end)
     window = {now_ms - 1_000, now_ms + 600_000}
     register = %{nonce: challenge <> <<1>>, intent: intent(:party_register, party, key, window)}
 
     %{
       status: :unpaired,
-      realm: @realm,
+      access_environment: @access_environment,
       domain: domain,
       basis: bootstrap_basis(domain),
       pep: "access-identity",

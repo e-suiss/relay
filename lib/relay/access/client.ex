@@ -2,7 +2,7 @@ defmodule Relay.Access.Client do
   @moduledoc """
   Relay's own calls to Access with its client key (E-98, E-100, E-102): the Access product routes such as the tenant snapshot, and the token requests of an operator login and of a service token for another platform product. Every call is signed in the key store (TN-63) with Relay's Access client key, the P-256 key named by `config :relay, Relay.Access, client_key: label` (`access-client` by default). Its public JWK is registered with Relay's client in Access (`[[products]] client_key`); `print_client_key/0` prints it (`bin/relay eval 'Relay.Access.Client.print_client_key()'`, or `mix relay.access.client_key` in development).
 
-  * `product_get/2` reads a product route with `Authorization: Bearer` and a fresh RFC 7523 client assertion (E-100): ES256, `iss` and `sub` Relay's Access `client_id`, `aud` the linked (platform realm) issuer, a single-use `jti` and an `exp` one minute ahead. No access token is involved.
+  * `product_get/2` reads a product route with `Authorization: Bearer` and a fresh RFC 7523 client assertion (E-100): ES256, `iss` and `sub` Relay's Access `client_id`, `aud` the linked (platform environment) issuer, a single-use `jti` and an `exp` one minute ahead. No access token is involved.
 
   * `resolve_subjects/4` maps an agent's Access Party to its pairwise `sub` in Relay's sector and back (E-106), with the same client assertion.
 

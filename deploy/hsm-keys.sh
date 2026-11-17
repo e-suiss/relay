@@ -30,7 +30,7 @@ exist under their label are left untouched, so the script can be rerun.
                      DPoP proofs (register its public key with Relay's Access
                      client)
   access-service     Ed25519 key pair of Relay's service Instance in every Access
-                     realm it pairs with (register its public key with Relay's
+                     environment it pairs with (register its public key with Relay's
                      Access client)
   access-pep         P-256 key pair of Relay's AuthZEN PEP: its TLS client
                      certificate is issued for it (bin/relay eval

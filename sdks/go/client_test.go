@@ -13,9 +13,10 @@ import (
 )
 
 type stubResponse struct {
-	status int
-	header http.Header
-	body   string
+	status     int
+	header     http.Header
+	body       string
+	networkErr bool
 }
 
 type stubTransport struct {
@@ -40,6 +41,9 @@ func (s *stubTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 	r := s.responses[0]
 	s.responses = s.responses[1:]
+	if r.networkErr {
+		return nil, errors.New("connection reset")
+	}
 	h := r.header
 	if h == nil {
 		h = http.Header{}
@@ -216,20 +220,20 @@ func TestX29RetriesStopAtMax(t *testing.T) {
 
 func TestX29FullJitterBounds(t *testing.T) {
 	p := defaultRetryPolicy
-	for retry := 0; retry < 10; retry++ {
-		ceiling := p.base << retry
+	for retry := 1; retry <= 10; retry++ {
+		ceiling := p.base << (retry - 1)
 		if ceiling > p.maxDelay {
 			ceiling = p.maxDelay
 		}
-		low, _ := p.delay(retry, nil, 0)
-		high, _ := p.delay(retry, nil, 0.999999)
+		low := p.backoff(retry, 0)
+		high := p.backoff(retry, 0.999999)
 		if low != 0 || high >= ceiling || high < ceiling*99/100 {
 			t.Fatalf("retry %d: [%v, %v] for ceiling %v", retry, low, high, ceiling)
 		}
 	}
-	ra := 2 * time.Second
-	if d, ok := p.delay(0, &ra, 0.9); !ok || d != ra {
-		t.Fatalf("Retry-After above the jitter wins: %v", d)
+	ra := 100 * time.Millisecond
+	if d, reason := p.decide(1, 3, true, &ra, 0.9); reason != "" || d != ra {
+		t.Fatalf("Retry-After is waited exactly: %v %s", d, reason)
 	}
 }
 
@@ -248,44 +252,56 @@ func TestX29ExpiredTokenRenewedOnce(t *testing.T) {
 	}
 }
 
-func TestX29TransportErrorIsConnectionError(t *testing.T) {
+func TestX29TransportErrorIsRetriedThenConnectionError(t *testing.T) {
 	tc := newTestClient(t)
-	err := tc.Do(context.Background(), "GET", "/v1/x", nil, nil)
+	err := tc.Do(context.Background(), "POST", "/v1/x", map[string]any{}, nil)
 	var connErr *ConnectionError
-	if !errors.As(err, &connErr) || len(tc.transport.requests) != 1 {
-		t.Fatalf("got %v", err)
+	if !errors.As(err, &connErr) || len(tc.transport.requests) != 4 || len(tc.sleeps) != 3 {
+		t.Fatalf("got %v after %d attempts", err, len(tc.transport.requests))
 	}
+	key := tc.transport.requests[0].Header.Get("Idempotency-Key")
+	for _, req := range tc.transport.requests {
+		if req.Header.Get("Idempotency-Key") != key {
+			t.Fatal("the key changed across retries of a request without an answer")
+		}
+	}
+}
+
+func classOf(err error) string {
+	var (
+		authErr *AuthenticationError
+		rateErr *RateLimitError
+		idemErr *IdempotencyError
+		srvErr  *ServerError
+		valErr  *ValidationError
+	)
+	switch {
+	case errors.As(err, &authErr):
+		return "auth"
+	case errors.As(err, &rateErr):
+		return "rate_limit"
+	case errors.As(err, &idemErr):
+		return "idempotency"
+	case errors.As(err, &srvErr):
+		return "server"
+	case errors.As(err, &valErr):
+		return "validation"
+	}
+	return fmt.Sprintf("%T", err)
 }
 
 func TestX29ErrorHierarchyFollowsCatalog(t *testing.T) {
 	for code, spec := range errorCatalog {
 		err := classify(&APIError{StatusCode: spec.status, Code: code})
-		var ok bool
-		switch {
-		case spec.family == "idempotency":
-			var e *IdempotencyError
-			ok = errors.As(err, &e)
-		case spec.family == "auth":
-			var e *AuthenticationError
-			ok = errors.As(err, &e)
-		case spec.family == "quota":
-			var e *RateLimitError
-			ok = errors.As(err, &e)
-		case spec.status >= 500:
-			var e *ServerError
-			ok = errors.As(err, &e)
-		case spec.status == 404:
-			var e *NotFoundError
-			ok = errors.As(err, &e)
-		case spec.status == 409 || spec.status == 412 || spec.status == 428:
-			var e *ConflictError
-			ok = errors.As(err, &e)
-		default:
-			var e *ValidationError
-			ok = errors.As(err, &e)
+		want := map[string]string{"auth": "auth", "quota": "rate_limit", "idempotency": "idempotency", "platform": "server"}[spec.family]
+		if want == "" {
+			want = "validation"
+			if spec.status >= 500 {
+				want = "server"
+			}
 		}
-		if !ok {
-			t.Errorf("%s (%s, %d) classified as %T", code, spec.family, spec.status, err)
+		if got := classOf(err); got != want {
+			t.Errorf("%s (%s, %d) classified as %s, want %s", code, spec.family, spec.status, got, want)
 		}
 		var apiErr *APIError
 		if !errors.As(err, &apiErr) || apiErr.Code != code {
@@ -304,7 +320,6 @@ func TestAPI56PaginationIsLazy(t *testing.T) {
 	}
 	r := newRequest("GET", "/v1/things", false)
 	r.addQuery("limit", "2")
-	r.addQuery("ending_before", "x")
 	seq := pageIter(context.Background(), func() (*Page[item], error) {
 		return fetchPage[item](context.Background(), tc.Client, r, nil)
 	})

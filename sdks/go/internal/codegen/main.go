@@ -294,6 +294,18 @@ func emitCatalog(l *loader, errorsFile, version string) []byte {
 		fmt.Fprintf(&b, "\t%q: {family: %q, status: %d, retryable: %s},\n",
 			str(c, "code"), str(c, "family"), status, boolString(str(c, "retryable")))
 	}
+	b.WriteString("}\n\n")
+	b.WriteString("var statusRetryable = map[int]bool{\n")
+	for _, d := range items(get(root, "retryable_defaults")) {
+		if str(d, "code") != "" {
+			continue
+		}
+		status, err := strconv.Atoi(str(d, "status"))
+		if err != nil {
+			panic(err)
+		}
+		fmt.Fprintf(&b, "\t%d: %s,\n", status, boolString(str(d, "retryable")))
+	}
 	b.WriteString("}\n")
 	return b.Bytes()
 }

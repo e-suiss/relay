@@ -31,14 +31,16 @@ for notification, err := range client.ListNotificationsIter(ctx, nil) {
   (`go run ./internal/codegen` in `internal/codegen` regenerates `*_gen.go`).
 - Requests carry a DPoP-bound Access token with a fresh proof per attempt and are pinned to
   `relay.APIVersion` through `Relay-Version`.
-- Mutating requests get an `Idempotency-Key` (or `relay.WithIdempotencyKey`) that stays the same
-  on every retry. Only problems marked `retryable: true` are retried, with exponential backoff,
-  full jitter and `Retry-After`.
+- Operations that take an `Idempotency-Key` get one (or `relay.WithIdempotencyKey`) that stays
+  the same on every retry. Only problems marked `retryable: true` and requests that got no answer
+  are retried, with exponential backoff, full jitter and `Retry-After`.
 - Errors are typed: `*relay.AuthenticationError`, `*relay.ValidationError`,
-  `*relay.NotFoundError`, `*relay.ConflictError`, `*relay.RateLimitError`,
-  `*relay.IdempotencyError`, `*relay.ServerError`; each unwraps to `*relay.APIError`.
-- List operations return a `*relay.Page[T]`; the `...Iter` methods walk every page lazily.
-- `relay.NewWebhookVerifier` checks webhook signatures (v1a Ed25519, v1 HMAC) over the raw body.
+  `*relay.RateLimitError`, `*relay.IdempotencyError`, `*relay.ServerError`; each unwraps to
+  `*relay.APIError`.
+- List operations return a `*relay.Page[T]`; the `...Iter` methods walk every page lazily,
+  backwards when the list starts with `ending_before`.
+- `relay.NewWebhookVerifier` checks webhook signatures (v1a Ed25519, v1 HMAC) over the raw body
+  and reports the scheme that verified.
 - Agent helpers: `OpenWaitpoint`, `AwaitWaitpoint`, `ReadMailbox`, `LeaseMailbox`, `AckMailbox`,
   `MergeMailbox` and `MergeStreamAndHistory`.
 

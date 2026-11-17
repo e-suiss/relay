@@ -3,9 +3,10 @@ package relay
 import (
 	"context"
 	"iter"
+	"slices"
 )
 
-// Page is one page of a cursor-paginated list. Next fetches the following page; All and the generated Iter methods iterate items lazily, fetching a page only when the previous one is used up.
+// Page is one page of a cursor-paginated list. Next fetches the following page: towards older items with starting_after, or, for a list started with ending_before, towards newer items. All and the generated Iter methods iterate items lazily, fetching a page only when the previous one is used up; backward iteration yields each page's items in reverse order.
 type Page[T any] struct {
 	Data           []T
 	HasMore        bool
@@ -26,6 +27,9 @@ type pageEnvelope[T any] struct {
 
 // API-56
 func fetchPage[T any](ctx context.Context, c *Client, r *request, opts []RequestOption) (*Page[T], error) {
+	if r.query.Has("starting_after") && r.query.Has("ending_before") {
+		return nil, ErrBothCursors
+	}
 	resp, err := c.send(ctx, r, opts)
 	if err != nil {
 		return nil, err
@@ -45,8 +49,15 @@ func fetchPage[T any](ctx context.Context, c *Client, r *request, opts []Request
 	}, nil
 }
 
-// HasNext reports whether another page follows.
+func (p *Page[T]) backward() bool {
+	return p.req.query.Has("ending_before")
+}
+
+// HasNext reports whether another page follows in the direction of iteration.
 func (p *Page[T]) HasNext() bool {
+	if p.backward() {
+		return p.PreviousCursor != nil && *p.PreviousCursor != ""
+	}
 	return p.HasMore && p.NextCursor != nil && *p.NextCursor != ""
 }
 
@@ -56,8 +67,11 @@ func (p *Page[T]) Next(ctx context.Context) (*Page[T], error) {
 		return nil, nil
 	}
 	r := p.req.clone()
-	r.query.Del("ending_before")
-	r.query.Set("starting_after", *p.NextCursor)
+	if p.backward() {
+		r.query.Set("ending_before", *p.PreviousCursor)
+	} else {
+		r.query.Set("starting_after", *p.NextCursor)
+	}
 	return fetchPage[T](ctx, p.client, r, p.opts)
 }
 
@@ -78,7 +92,12 @@ func pageIter[T any](ctx context.Context, first func() (*Page[T], error)) iter.S
 			if page == nil {
 				return
 			}
-			for _, item := range page.Data {
+			data := page.Data
+			if page.backward() {
+				data = slices.Clone(data)
+				slices.Reverse(data)
+			}
+			for _, item := range data {
 				if !yield(item, nil) {
 					return
 				}

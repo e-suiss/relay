@@ -95,7 +95,7 @@ func TestWH7WebhookSignatureVectorsAccept(t *testing.T) {
 			{hmacOnly, []string{c.V1a}, false},
 		}
 		for i, check := range checks {
-			err := check.verifier.VerifyAt(body, webhookHeader(c.WebhookID, c.WebhookTimestamp, check.sigs...), now)
+			_, err := check.verifier.VerifyAt(body, webhookHeader(c.WebhookID, c.WebhookTimestamp, check.sigs...), now)
 			if (err == nil) != check.ok {
 				t.Errorf("%s check %d: got %v", c.Name, i, err)
 			}
@@ -134,7 +134,7 @@ func TestWH7WebhookSignatureVectorsReject(t *testing.T) {
 				_, h, _ := strings.Cut(c.V1, ",")
 				sigs = []string{"v1a," + h, "v1," + a}
 			}
-			err := verifier.VerifyAt(body, webhookHeader(id, c.WebhookTimestamp, sigs...), now)
+			_, err := verifier.VerifyAt(body, webhookHeader(id, c.WebhookTimestamp, sigs...), now)
 			var verr *WebhookVerificationError
 			if err == nil || !errors.As(err, &verr) {
 				t.Errorf("%s: accepted (%v)", r.Name, err)
@@ -149,7 +149,7 @@ func TestWH7WebhookSignatureVectorsReject(t *testing.T) {
 func TestWH7WebhookMissingHeadersAndBadKeys(t *testing.T) {
 	v := loadSignatureVectors(t)
 	verifier, _ := NewWebhookVerifier(v.Keys.HMACSecret)
-	if err := verifier.VerifyAt([]byte("{}"), http.Header{}, time.Now()); err == nil {
+	if _, err := verifier.VerifyAt([]byte("{}"), http.Header{}, time.Now()); err == nil {
 		t.Fatal("accepted a request without headers")
 	}
 	if _, err := NewWebhookVerifier("nope"); err == nil {

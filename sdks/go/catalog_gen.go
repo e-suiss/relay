@@ -180,3 +180,15 @@ var errorCatalog = map[string]errorSpec{
 	"inbox_bulk_operation_not_found":   {family: "resource", status: 404, retryable: false},
 	"inbox_announcement_not_found":     {family: "resource", status: 404, retryable: false},
 }
+
+var statusRetryable = map[int]bool{
+	400: false,
+	401: false,
+	403: false,
+	404: false,
+	413: false,
+	422: false,
+	500: true,
+	503: true,
+	504: true,
+}

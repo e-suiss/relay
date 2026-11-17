@@ -40,7 +40,7 @@ func WithHTTPClient(h *http.Client) ClientOption {
 	return func(c *Client) { c.httpClient = h }
 }
 
-// WithMaxRetries sets how many times a retryable problem is retried (default 3, 0 disables retries).
+// WithMaxRetries sets how many times a retryable problem or a request without an answer is retried (default 3, 0 disables retries).
 func WithMaxRetries(n int) ClientOption {
 	return func(c *Client) {
 		if n >= 0 {
@@ -83,11 +83,12 @@ func NewClient(baseURL string, auth Authorizer, opts ...ClientOption) (*Client, 
 	return c, nil
 }
 
-// Response is the raw answer of one request.
+// Response is the raw answer of one request; Replayed is true when Relay answered a repeated Idempotency-Key with the first response.
 type Response struct {
 	StatusCode int
 	Header     http.Header
 	Body       []byte
+	Replayed   bool
 }
 
 // RequestOption configures one call.
@@ -178,35 +179,41 @@ func (c *Client) send(ctx context.Context, r *request, opts []RequestOption) (*R
 		}
 	}
 	renewed := false
-	retry := 0
-	for {
+	for retry := 1; ; retry++ {
+		var failure error
+		var retryAfter *time.Duration
+		retryable := false
 		resp, err := c.attempt(ctx, r, payload, key, o)
 		if err != nil {
-			return nil, err
-		}
-		if o.capture != nil {
-			*o.capture = resp
-		}
-		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-			return resp, nil
-		}
-		apiErr := c.parseAPIError(resp)
-		if resp.StatusCode == http.StatusUnauthorized && apiErr.Code == "auth_expired_token" &&
-			!renewed && c.auth != nil {
-			c.auth.Invalidate()
-			renewed = true
-			continue
-		}
-		if apiErr.Retryable && retry < o.maxRetries {
-			if d, ok := c.policy.delay(retry, apiErr.RetryAfter, c.random()); ok {
-				if err := c.sleep(ctx, d); err != nil {
-					return nil, &ConnectionError{Err: err}
-				}
-				retry++
+			var connErr *ConnectionError
+			if !errors.As(err, &connErr) || ctx.Err() != nil {
+				return nil, err
+			}
+			failure, retryable = err, true
+		} else {
+			if o.capture != nil {
+				*o.capture = resp
+			}
+			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+				return resp, nil
+			}
+			apiErr := parseAPIError(resp, c.now())
+			if resp.StatusCode == http.StatusUnauthorized && apiErr.Code == "auth_expired_token" &&
+				!renewed && c.auth != nil {
+				c.auth.Invalidate()
+				renewed = true
+				retry--
 				continue
 			}
+			failure, retryable, retryAfter = classify(apiErr), apiErr.Retryable, apiErr.RetryAfter
 		}
-		return nil, classify(apiErr)
+		delay, reason := c.policy.decide(retry, o.maxRetries, retryable, retryAfter, c.random())
+		if reason != "" {
+			return nil, failure
+		}
+		if err := c.sleep(ctx, delay); err != nil {
+			return nil, &ConnectionError{Err: err}
+		}
 	}
 }
 
@@ -262,7 +269,12 @@ func (c *Client) attempt(ctx context.Context, r *request, payload []byte, key st
 	if err != nil {
 		return nil, &ConnectionError{Err: err}
 	}
-	return &Response{StatusCode: res.StatusCode, Header: res.Header, Body: data}, nil
+	return &Response{
+		StatusCode: res.StatusCode,
+		Header:     res.Header,
+		Body:       data,
+		Replayed:   strings.EqualFold(res.Header.Get("Idempotency-Replayed"), "true"),
+	}, nil
 }
 
 func sleepContext(ctx context.Context, d time.Duration) error {

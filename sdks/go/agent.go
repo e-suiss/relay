@@ -48,8 +48,8 @@ func (c *Client) AwaitWaitpoint(ctx context.Context, waitpointID string, timeout
 				half := every / 2
 				if lastBeat.IsZero() || now.Sub(lastBeat) >= half {
 					if _, err := c.HeartbeatWaitpoint(ctx, waitpointID); err != nil {
-						var conflict *ConflictError
-						if !errors.As(err, &conflict) {
+						var refused *APIError
+						if !errors.As(err, &refused) || refused.StatusCode != 409 {
 							return nil, err
 						}
 					}

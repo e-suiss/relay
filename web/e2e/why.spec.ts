@@ -19,7 +19,7 @@ async function answer(page: Page, value: string): Promise<number> {
   interactions += 1;
   await page.getByRole("button", { name: "Find" }).click();
   interactions += 1;
-  await expect(page.getByText(sentence)).toBeVisible();
+  await expect(page.locator(".answer", { hasText: sentence })).toBeVisible();
   await expect(page.getByText("consent.missing").first()).toBeVisible();
   return interactions;
 }

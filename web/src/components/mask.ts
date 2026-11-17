@@ -1,7 +1,7 @@
 const star = "•";
 
 function hide(text: string, keep: number): string {
-  const chars = [...text];
+  const chars = Array.from(text);
   if (chars.length <= keep) return star.repeat(Math.max(chars.length, 1));
   return chars.slice(0, keep).join("") + star.repeat(chars.length - keep);
 }
@@ -22,7 +22,7 @@ export function maskEmail(value: string): string {
 // X-5
 /** Masks a phone number: the country prefix and the last two digits stay visible. */
 export function maskPhone(value: string): string {
-  const digits = [...value];
+  const digits = Array.from(value);
   if (digits.length <= 5) return star.repeat(digits.length);
   const head = value.startsWith("+") ? 3 : 1;
   return (

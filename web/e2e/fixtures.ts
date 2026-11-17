@@ -214,7 +214,7 @@ export const recipientHandlers: Handler[] = [
       [`${base}/subscriptions`]: list([]),
       [`/v1/notifications/${notification.id}`]: notification,
       [`/v1/notifications/${notification.id}/deliveries`]: deliveries,
-      [`/v1/deliveries/${deliveries.data[1]?.id ?? ""}/history`]: history,
+      ["/v1/deliveries/dlv_01hzx3k5v7m9p2q4r6s8t0w2y5/history"]: history,
       "/v1/notifications": list([notification]),
     };
     if (url.pathname === "/v1/subscribers") {

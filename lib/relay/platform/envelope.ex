@@ -13,8 +13,11 @@ defmodule Relay.Platform.Envelope do
     "tenant" => "stn",
     "device_id" => "dev",
     "kill_switch_id" => "ksw",
-    "audit_record_id" => "aud"
+    "audit_record_id" => "aud",
+    "mailbox_id" => "mbx",
+    "record_id" => "mbr"
   }
+  @record_appended "mailbox.record_appended"
 
   @type context :: %{
           required(:issuer) => String.t(),
@@ -54,13 +57,23 @@ defmodule Relay.Platform.Envelope do
       "datacontenttype" => "application/json",
       "seq" => event.seq,
       "environment" => context.environment,
-      "data" => data(event.payload)
+      "data" => event_data(event)
     }
     |> put("traceparent", event.traceparent)
     |> put("accesstenant", context.access_tenant)
     |> put("accessorganization", Map.get(context, :access_organization))
     |> put("correlationid", Map.get(context, :correlation_id))
   end
+
+  # API-72
+  # C-71
+  # AG-21
+  @doc "The thin data of an outbox event: `data/1` of its payload. A mailbox record takes the position of the outbox event written with it, so the data of `mailbox.record_appended` also carries that `epoch` and `seq`."
+  @spec event_data(OutboxStore.event()) :: map()
+  def event_data(%{event_type: @record_appended, payload: payload, epoch: epoch, seq: seq}),
+    do: payload |> data() |> Map.merge(%{"epoch" => epoch, "seq" => seq})
+
+  def event_data(%{payload: payload}), do: data(payload)
 
   # API-72
   @doc "The thin data of an outbox payload with prefixed external identifiers."

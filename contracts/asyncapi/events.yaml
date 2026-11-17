@@ -3330,6 +3330,9 @@ components:
                     kind:
                       type: string
                       maxLength: 32
+                    record_id:
+                      type: string
+                      pattern: "^mbr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
                   additionalProperties: false
       x-relay-surface: webhook
       x-relay-schema-version: 1

@@ -149,7 +149,8 @@ defmodule RelayTest.Isolation do
       "webhook_event_type_id" => &webhook_event_type!/1,
       "webhook_endpoint_id" => &webhook_endpoint!/1,
       "webhook_message_id" => &webhook_message!/1,
-      "webhook_attempt_id" => &webhook_attempt!/1
+      "webhook_attempt_id" => &webhook_attempt!/1,
+      "record_id" => &mailbox_record!/1
     }
   end
 
@@ -706,5 +707,22 @@ defmodule RelayTest.Isolation do
       end)
 
     Relay.ExternalId.encode("ksw", id)
+  end
+
+  @doc "Appends a record to the mailbox of a new API client in `scope` and returns its identifier."
+  @spec mailbox_record!(Relay.Scope.t()) :: String.t()
+  def mailbox_record!(scope) do
+    id = Relay.Id.generate()
+    owner = [Relay.Id.generate(), "api_client", Relay.Id.generate()]
+    digest = :crypto.strong_rand_bytes(32)
+
+    {:ok, [%{"result" => "appended"}]} =
+      Relay.Repo.in_scope(scope, fn _status ->
+        [%{"mailbox_id" => mailbox}] = Relay.Repo.call!("relay_fn.mailbox_ensure", owner)
+        record = [id, mailbox, "message", "agent.note", nil, nil, nil, nil, nil, nil, digest, nil]
+        Relay.Repo.call!("relay_fn.mailbox_append", record)
+      end)
+
+    Relay.ExternalId.encode("mbr", id)
   end
 end

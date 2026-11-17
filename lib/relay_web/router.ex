@@ -890,6 +890,28 @@ defmodule RelayWeb.Router do
 
     get "/realtime/poll", RealtimeController, :poll,
       private: %{relay_operation: "pollRealtimeEvents"}
+
+    # AG-20
+    # AG-21
+    # AG-22
+    # AG-24
+    # AG-64
+    get "/mailbox", MailboxController, :show, private: %{relay_operation: "getMailbox"}
+
+    post "/mailbox/leases", MailboxController, :lease,
+      private: %{relay_operation: "leaseMailboxRecords"}
+
+    post "/mailbox/acks", MailboxController, :ack,
+      private: %{relay_operation: "ackMailboxRecords"}
+
+    get "/mailbox/records", MailboxController, :index,
+      private: %{relay_operation: "listMailboxRecords"}
+
+    get "/mailbox/records/:record_id", MailboxController, :record,
+      private: %{relay_operation: "getMailboxRecord"}
+
+    get "/mailbox/dead_letters", MailboxController, :dead_letters,
+      private: %{relay_operation: "listMailboxDeadLetters"}
   end
 
   # WH-14

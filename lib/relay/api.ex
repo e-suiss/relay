@@ -32,7 +32,8 @@ defmodule Relay.Api do
       Relay.Topics,
       Relay.Inbox,
       Relay.Webhooks,
-      Relay.Iys
+      Relay.Iys,
+      Relay.Agents
     ],
     exports: [
       Contract,
@@ -105,6 +106,7 @@ defmodule Relay.Api do
       WebhookCatalog,
       WebhookPortal,
       WebhookSources,
-      OperationsContacts
+      OperationsContacts,
+      Mailbox
     ]
 end

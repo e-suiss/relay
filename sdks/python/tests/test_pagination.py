@@ -25,7 +25,7 @@ def test_api56_pages_are_fetched_lazily() -> None:
         answer(200, page(["c"], True, "c2")),
         answer(200, page(["d"], False, None)),
     )
-    first = client(transport).list_notifications(limit=2, ending_before="c0")
+    first = client(transport).list_notifications(limit=2)
     assert len(transport.requests) == 1
     assert [item["id"] for item in first.data] == ["a", "b"]
     iterator = iter(first)

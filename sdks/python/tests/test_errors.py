@@ -28,6 +28,7 @@ FAMILY_CLASSES: dict[str, type[APIError]] = {
     "auth": AuthenticationError,
     "idempotency": IdempotencyError,
     "quota": RateLimitError,
+    "platform": ServerError,
 }
 
 
@@ -37,10 +38,6 @@ def expected(entry: dict[str, Any]) -> type[APIError]:
     status = int(entry["status"])
     if status >= 500:
         return ServerError
-    if status in (401, 403):
-        return AuthenticationError
-    if status == 429:
-        return RateLimitError
     if status == 404:
         return NotFoundError
     if status in (409, 412, 428):

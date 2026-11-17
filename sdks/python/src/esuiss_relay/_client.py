@@ -12,7 +12,7 @@ from typing import Any, Literal
 from ._agents import AgentHelpers
 from ._auth import Auth, AuthContext
 from ._base import RequestOptions
-from ._errors import api_error
+from ._errors import RelayConnectionError, api_error
 from ._generated.version import API_VERSION
 from ._pagination import Page
 from ._retry import RetryPolicy, retry_after_seconds
@@ -29,6 +29,11 @@ class Response:
     status: int
     headers: Mapping[str, str]
     body: bytes
+
+    @property
+    def replayed(self) -> bool:
+        """True when Relay answered with the stored response of an earlier request with this key."""
+        return self.headers.get("idempotency-replayed", "").lower() == "true"
 
     def json(self) -> Any:
         """The body decoded as JSON, or None when empty."""
@@ -76,10 +81,13 @@ class Relay(AgentHelpers):
         json_body: Any = None,
         content_type: str = "application/json",
         idempotency_key: str | None = None,
+        idempotent: bool | None = None,
         options: RequestOptions | None = None,
     ) -> Response:
-        """Calls any path of the API with the client's auth, idempotency and retry rules."""
+        """Calls any path with the client's auth, idempotency and retry rules; writes take a key."""
         mutating = method.upper() in ("POST", "PUT", "PATCH", "DELETE")
+        if idempotent is not None:
+            mutating = idempotent
         answer = self._send(
             method.upper(),
             self._url(path, {}, query or {}),
@@ -138,9 +146,16 @@ class Relay(AgentHelpers):
         idempotency_key: str | None,
         options: RequestOptions | None,
     ) -> Page[Any]:
+        backward = query.get("ending_before") is not None
+        if backward and query.get("starting_after") is not None:
+            raise ValueError("both_cursors: pass starting_after or ending_before, not both")
+        cursor_name = "ending_before" if backward else "starting_after"
+
         def fetch(cursor: str) -> Page[Any]:
-            following = {k: v for k, v in query.items() if k != "ending_before"}
-            following["starting_after"] = cursor
+            following = {
+                k: v for k, v in query.items() if k not in ("starting_after", "ending_before")
+            }
+            following[cursor_name] = cursor
             return self._page(
                 method,
                 template,
@@ -167,7 +182,7 @@ class Relay(AgentHelpers):
             options=options,
             response="json",
         )
-        return Page(answer if isinstance(answer, dict) else {}, fetch)
+        return Page(answer if isinstance(answer, dict) else {}, fetch, backward=backward)
 
     def _url(self, template: str, path: Mapping[str, Any], query: Mapping[str, Any]) -> str:
         url = template
@@ -208,7 +223,7 @@ class Relay(AgentHelpers):
         if body is not None:
             payload = json.dumps(body, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         context = AuthContext(self.base_url, self._transport, self._clock, timeout)
-        retries = 0
+        retry = 1
         renewed = False
         while True:
             headers = {
@@ -226,7 +241,15 @@ class Relay(AgentHelpers):
             if key is not None:
                 headers["Idempotency-Key"] = key
             headers.update(self._auth.headers(method, url, context))
-            answer = self._transport.send(HttpRequest(method, url, headers, payload, timeout))
+            try:
+                answer = self._transport.send(HttpRequest(method, url, headers, payload, timeout))
+            except RelayConnectionError:
+                decision = self._retry.decide(retry, True, None, self._random(), budget)
+                if not decision.retry:
+                    raise
+                self._sleep(decision.delay_ms / 1000)
+                retry += 1
+                continue
             if 200 <= answer.status < 300:
                 return answer
             error = api_error(answer.status, answer.body, answer.headers)
@@ -234,17 +257,17 @@ class Relay(AgentHelpers):
                 renewed = True
                 self._auth.invalidate()
                 continue
-            if error.retryable and retries < budget:
-                wait = self._retry.delay(
-                    retries,
-                    retry_after_seconds(answer.headers, error.retry_after, self._clock),
-                    self._random,
-                )
-                if wait is not None:
-                    self._sleep(wait)
-                    retries += 1
-                    continue
-            raise error
+            decision = self._retry.decide(
+                retry,
+                error.retryable,
+                retry_after_seconds(answer.headers, error.retry_after, self._clock),
+                self._random(),
+                budget,
+            )
+            if not decision.retry:
+                raise error
+            self._sleep(decision.delay_ms / 1000)
+            retry += 1
 
 
 def _text(value: Any) -> str:

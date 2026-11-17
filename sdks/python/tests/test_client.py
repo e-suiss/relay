@@ -164,7 +164,7 @@ def test_x29_errors_without_problem_body_are_typed() -> None:
     with pytest.raises(ServerError) as raised:
         client(transport).create_event(EVENT)
     assert isinstance(raised.value, RelayError)
-    assert raised.value.code == "unexpected_response"
+    assert raised.value.code is None
 
 
 def test_x29_query_and_path_parameters_are_encoded() -> None:

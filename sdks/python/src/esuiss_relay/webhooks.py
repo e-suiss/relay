@@ -7,6 +7,7 @@ import binascii
 import hashlib
 import hmac
 import json
+import re
 import time
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
@@ -18,12 +19,34 @@ from ._errors import WebhookVerificationError
 
 DEFAULT_TOLERANCE = 300
 
+_TIMESTAMP = re.compile(r"^(?:0|[1-9][0-9]*)$")
+_LENGTHS = {"v1a": 64, "v1": 32}
+
 
 def _decode(text: str) -> bytes:
     try:
         return base64.b64decode(text, validate=True)
     except (binascii.Error, ValueError) as error:
         raise ValueError("webhook key is not valid base64") from error
+
+
+def _tokens(header: str) -> list[tuple[str, bytes]]:
+    parts = header.split()
+    if not parts:
+        raise WebhookVerificationError("malformed_header", "webhook-signature is empty")
+    tokens: list[tuple[str, bytes]] = []
+    for part in parts:
+        version, comma, encoded = part.partition(",")
+        if version not in _LENGTHS:
+            continue
+        try:
+            signature = base64.b64decode(encoded, validate=True) if comma else b""
+        except (binascii.Error, ValueError):
+            signature = b""
+        if len(signature) != _LENGTHS[version]:
+            raise WebhookVerificationError("malformed_header", "webhook-signature is malformed")
+        tokens.append((version, signature))
+    return tokens
 
 
 # X-29
@@ -52,32 +75,30 @@ class Webhook:
         self._tolerance = tolerance
         self._clock = clock
 
-    def verify(self, body: bytes, headers: Mapping[str, str]) -> None:
-        """Raises WebhookVerificationError unless a signature over the raw body is valid in time."""
-        lowered = {name.lower(): value for name, value in headers.items()}
+    def verify(self, body: bytes, headers: Mapping[str, str | None]) -> str:
+        """Verifies a signature over the raw body within the tolerance; returns its scheme."""
+        lowered = {name.lower(): value for name, value in headers.items() if value is not None}
         webhook_id = lowered.get("webhook-id")
         timestamp = lowered.get("webhook-timestamp")
         signatures = lowered.get("webhook-signature")
-        if not webhook_id or not timestamp or not signatures:
-            raise WebhookVerificationError("webhook headers are missing")
-        if not timestamp.isdigit():
-            raise WebhookVerificationError("webhook-timestamp is not a number")
+        if not webhook_id or not timestamp or signatures is None:
+            raise WebhookVerificationError("missing_header", "webhook headers are missing")
+        if not _TIMESTAMP.match(timestamp):
+            raise WebhookVerificationError("malformed_header", "webhook-timestamp is malformed")
         if abs(self._clock() - int(timestamp)) > self._tolerance:
-            raise WebhookVerificationError("webhook-timestamp is outside the tolerance")
+            raise WebhookVerificationError(
+                "timestamp_out_of_tolerance", "webhook-timestamp is outside the tolerance"
+            )
+        tokens = _tokens(signatures)
         content = f"{webhook_id}.{timestamp}.".encode() + body
-        for entry in signatures.split():
-            version, _, encoded = entry.partition(",")
-            try:
-                signature = base64.b64decode(encoded, validate=True)
-            except (binascii.Error, ValueError):
-                continue
+        for version, signature in tokens:
             if version == "v1a" and self._valid_ed25519(signature, content):
-                return
+                return version
             if version == "v1" and self._valid_hmac(signature, content):
-                return
-        raise WebhookVerificationError("no webhook signature matches")
+                return version
+        raise WebhookVerificationError("no_matching_signature", "no webhook signature matches")
 
-    def verify_event(self, body: bytes, headers: Mapping[str, str]) -> Any:
+    def verify_event(self, body: bytes, headers: Mapping[str, str | None]) -> Any:
         """Verifies the request and returns its JSON body."""
         self.verify(body, headers)
         return json.loads(body)

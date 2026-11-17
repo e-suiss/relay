@@ -37,7 +37,8 @@ defmodule Relay.Api.Events do
           optional(:api_client_id) => String.t() | nil,
           optional(:subtenant_id) => Relay.Id.t() | nil,
           optional(:traceparent) => String.t() | nil,
-          optional(:agent) => boolean()
+          optional(:agent) => boolean(),
+          optional(:agent_id) => Relay.Id.t() | nil
         }
 
   @type prepared :: map()
@@ -55,6 +56,7 @@ defmodule Relay.Api.Events do
   @spec prepare(context(), map(), keyword()) :: {:ok, prepared()} | {:error, Relay.Error.t()}
   def prepare(%{scope: scope} = ctx, body, opts \\ []) do
     cloudevent = Keyword.get(opts, :cloudevent)
+    body = labelled(body, ctx)
 
     with {:ok, workflow} <- workflow(scope, body["workflow"]),
          {:ok, routes} <- routes(scope, workflow),
@@ -121,6 +123,16 @@ defmodule Relay.Api.Events do
        }}
     end
   end
+
+  # E-55
+  # E-56
+  # PC-57 (7)
+  defp labelled(body, %{agent_id: <<_::128>> = agent_id}) do
+    actor = %{"type" => "agent", "id" => Relay.ExternalId.encode("agt", agent_id)}
+    Map.put(body, "actor", actor)
+  end
+
+  defp labelled(body, _ctx), do: body
 
   # AG-65
   defp digests(scope, workflow, request, recipients, cloudevent) do

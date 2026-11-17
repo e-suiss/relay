@@ -78,5 +78,8 @@ defmodule RelayWeb.Api.WaitpointController do
   end
 
   # AG-6
-  defp caller(conn), do: Waitpoints.caller(conn.assigns.principal.api_client_id)
+  defp caller(conn) do
+    principal = conn.assigns.principal
+    Waitpoints.caller(principal.api_client_id, principal.agent_id)
+  end
 end

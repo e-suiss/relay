@@ -546,6 +546,16 @@ channels:
         "$ref": "#/components/messages/audit.recurrence.created"
       audit.throttle.reset:
         "$ref": "#/components/messages/audit.throttle.reset"
+      audit.agent.created:
+        "$ref": "#/components/messages/audit.agent.created"
+      audit.agent.updated:
+        "$ref": "#/components/messages/audit.agent.updated"
+      audit.agent.suspended:
+        "$ref": "#/components/messages/audit.agent.suspended"
+      audit.agent.reactivated:
+        "$ref": "#/components/messages/audit.agent.reactivated"
+      audit.agent.deleted:
+        "$ref": "#/components/messages/audit.agent.deleted"
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
@@ -575,6 +585,12 @@ channels:
         "$ref": "#/components/messages/access.user.reactivated"
       access.user.deleted:
         "$ref": "#/components/messages/access.user.deleted"
+      access.agent.suspended:
+        "$ref": "#/components/messages/access.agent.suspended"
+      access.agent.reactivated:
+        "$ref": "#/components/messages/access.agent.reactivated"
+      access.agent.deleted:
+        "$ref": "#/components/messages/access.agent.deleted"
       access.consent.updated:
         "$ref": "#/components/messages/access.consent.updated"
   accessOutbound:
@@ -850,6 +866,11 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.recurrence.created"
       - "$ref": "#/channels/auditLog/messages/audit.recurrence.cancelled"
       - "$ref": "#/channels/auditLog/messages/audit.throttle.reset"
+      - "$ref": "#/channels/auditLog/messages/audit.agent.created"
+      - "$ref": "#/channels/auditLog/messages/audit.agent.updated"
+      - "$ref": "#/channels/auditLog/messages/audit.agent.suspended"
+      - "$ref": "#/channels/auditLog/messages/audit.agent.reactivated"
+      - "$ref": "#/channels/auditLog/messages/audit.agent.deleted"
   receiveAccessInbound:
     action: receive
     channel:
@@ -867,6 +888,9 @@ operations:
       - "$ref": "#/channels/accessInbound/messages/access.user.suspended"
       - "$ref": "#/channels/accessInbound/messages/access.user.reactivated"
       - "$ref": "#/channels/accessInbound/messages/access.user.deleted"
+      - "$ref": "#/channels/accessInbound/messages/access.agent.suspended"
+      - "$ref": "#/channels/accessInbound/messages/access.agent.reactivated"
+      - "$ref": "#/channels/accessInbound/messages/access.agent.deleted"
       - "$ref": "#/channels/accessInbound/messages/access.consent.updated"
   sendAccessOutbound:
     action: send
@@ -6091,6 +6115,117 @@ components:
       x-relay-stage: 3
       x-relay-choice: true
       x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.agent.suspended:
+      name: agent.suspended
+      title: agent.suspended
+      summary: "An agent's Access identity was suspended; nothing is delivered to the agent record bound to the subject and its own requests are refused. Its mailbox is kept."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:agent.suspended"
+                  properties:
+                    "urn:suiss:access:event:agent.suspended":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - subject
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        subject:
+                          type: string
+                          description: "The agent's Access Party for the Relay client: the sub of the agent's Access tokens."
+                          maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.agent.reactivated:
+      name: agent.reactivated
+      title: agent.reactivated
+      summary: "An agent's Access identity was reactivated; the suspension of the agent record bound to the subject is lifted."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:agent.reactivated"
+                  properties:
+                    "urn:suiss:access:event:agent.reactivated":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - subject
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        subject:
+                          type: string
+                          description: "The agent's Access Party for the Relay client: the sub of the agent's Access tokens."
+                          maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+    access.agent.deleted:
+      name: agent.deleted
+      title: agent.deleted
+      summary: "An agent's Access identity was deleted; the agent record bound to the subject becomes deleted and its mailbox is kept."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:agent.deleted"
+                  properties:
+                    "urn:suiss:access:event:agent.deleted":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - subject
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        subject:
+                          type: string
+                          description: "The agent's Access Party for the Relay client: the sub of the agent's Access tokens."
+                          maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
     access.user.suspended:
       name: user.suspended
       title: user.suspended
@@ -6942,6 +7077,96 @@ components:
                   const: topic
       x-relay-surface: audit
       x-relay-stage: 8
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.agent.created:
+      name: agent.created
+      title: agent.created
+      summary: "An agent recipient record was created with its Access binding."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: agent
+      x-relay-surface: audit
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.agent.updated:
+      name: agent.updated
+      title: agent.updated
+      summary: "An agent recipient record's name, owner, endpoints or topic subscriptions changed."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: agent
+      x-relay-surface: audit
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.agent.suspended:
+      name: agent.suspended
+      title: agent.suspended
+      summary: "An agent was suspended by an Access agent.suspended event; delivery to it and its own requests stop and its mailbox is kept."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: agent
+      x-relay-surface: audit
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.agent.reactivated:
+      name: agent.reactivated
+      title: agent.reactivated
+      summary: "An agent's suspension was lifted by an Access agent.reactivated event."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: agent
+      x-relay-surface: audit
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.agent.deleted:
+      name: agent.deleted
+      title: agent.deleted
+      summary: "An agent recipient record was deleted by the tenant or by an Access agent.deleted event; the record and its mailbox are kept."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: agent
+      x-relay-surface: audit
+      x-relay-stage: 12
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.topic.subscribed:
@@ -8233,6 +8458,11 @@ components:
 x-relay-event-names:
   - address.disabled
   - agent.ceiling_exceeded
+  - agent.created
+  - agent.deleted
+  - agent.reactivated
+  - agent.suspended
+  - agent.updated
   - api_client.assigned
   - api_client.created
   - api_client.disabled

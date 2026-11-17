@@ -865,6 +865,12 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "agents",
+      "personal_columns": [],
+      "tenant_close": "rows kept",
+      "subject_erasure": "holds no personal column: the name and the owner reference are tenant labels that must not carry personal data, and the Access Party reference is the recipient's external identifier in recipients, sealed under the recipient_profile key and erased with it; erasing the recipient marks the row deleted"
+    },
+    {
       "table": "dsr_log",
       "personal_columns": [],
       "tenant_close": "row kept under the dsr_log retention",

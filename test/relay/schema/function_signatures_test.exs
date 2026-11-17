@@ -21,6 +21,11 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.recipient_create" => ~w(created exists tenant_inactive),
     "relay_fn.recipient_suspend" => ~w(suspended already_suspended not_found),
     "relay_fn.recipient_resume" => ~w(resumed not_suspended not_found),
+    "relay_fn.agent_create" =>
+      ~w(created party_conflict endpoint_not_found topic_not_found topic_archived tenant_inactive),
+    "relay_fn.agent_update" =>
+      ~w(updated version_conflict not_found deleted endpoint_not_found topic_not_found topic_archived),
+    "relay_fn.agent_set_state" => ~w(suspended reactivated deleted unchanged not_found),
     "relay_fn.subject_key_create" => ~w(created exists recipient_not_found recipient_deleted),
     "relay_fn.subject_erase" => ~w(erased already_erased held not_found),
     "relay_fn.subject_key_retire" => ~w(retired already_destroyed held not_found),

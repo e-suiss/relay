@@ -336,6 +336,12 @@
     "reason": "PC-32, OP-9: the no-delete triggers reject TRUNCATE on the İYS permission cache and the synchronisation state"
   },
   {
+    "path": "priv/repo/migrations/20261226000100_create_agents.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "INV-47, OP-9: the no-delete triggers reject TRUNCATE on the agent recipient records"
+  },
+  {
     "path": "priv/repo/migrations/20261221000000_create_refusal_tables.exs",
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",

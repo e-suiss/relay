@@ -120,4 +120,14 @@ POST /v1/suppressions added the new `refusal` enum value to the `reason` respons
 POST /v1/suppressions/{suppression_id}/lift added the new `refusal` enum value to the `reason` response property for the response status `200`
 GET /v1/suppressions added the new `refusal` enum value to the `allOf[subschema #2]/data/items/reason` response property for the response status `200`
 POST /v1/operator/suppressions/{suppression_id}/lift added the new `refusal` enum value to the `reason` response property for the response status `200`
+GET /v1/operator/api_clients/{api_client_id} added the new `agent:mailbox` enum value to the `scopes/items/` response property for the response status `200`
+GET /v1/operator/api_clients/{api_client_id} added the new `agent:send` enum value to the `scopes/items/` response property for the response status `200`
+GET /v1/operator/api_clients/{api_client_id} added the new `agent:waitpoint` enum value to the `scopes/items/` response property for the response status `200`
+GET /v1/operator/api_clients/{api_client_id} added the new `agents` enum value to the `scopes/items/` response property for the response status `200`
+GET /v1/operator/api_clients/{api_client_id} added the new `presence:read` enum value to the `scopes/items/` response property for the response status `200`
+POST /v1/operator/pending_api_clients/assign added the new `agent:mailbox` enum value to the `scopes/items/` response property for the response status `200`
+POST /v1/operator/pending_api_clients/assign added the new `agent:send` enum value to the `scopes/items/` response property for the response status `200`
+POST /v1/operator/pending_api_clients/assign added the new `agent:waitpoint` enum value to the `scopes/items/` response property for the response status `200`
+POST /v1/operator/pending_api_clients/assign added the new `agents` enum value to the `scopes/items/` response property for the response status `200`
+POST /v1/operator/pending_api_clients/assign added the new `presence:read` enum value to the `scopes/items/` response property for the response status `200`
 POST /v1/waitpoints added the new required request property `surface_policy/recipients`

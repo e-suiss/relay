@@ -6707,7 +6707,7 @@ components:
         scopes:
           type: array
           items:
-            "$ref": "./components/schemas.yaml#/ScopeName"
+            "$ref": "./components/schemas.yaml#/ApiClientScope"
         status:
           type: string
           enum:
@@ -6776,11 +6776,12 @@ components:
           maxLength: 256
         scopes:
           type: array
+          description: "Either server scopes or agent scopes; a set that mixes the two groups is 422 validation_failed."
           minItems: 1
-          maxItems: 5
+          maxItems: 6
           uniqueItems: true
           items:
-            "$ref": "./components/schemas.yaml#/ScopeName"
+            "$ref": "./components/schemas.yaml#/ApiClientScope"
       additionalProperties: false
     QueuePanel:
       type: object

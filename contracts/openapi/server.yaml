@@ -48,7 +48,7 @@ tags:
   - name: access
     description: Inbound Access events (installation level).
   - name: agents
-    description: "Agent family: waitpoints, escalation policies and agent ceiling decisions (scope agents)."
+    description: "Agent family: agent recipient records (scope subscribers for writes; read, subscribers or agents for reads), waitpoints, escalation policies and agent ceiling decisions (scope agents). An agent's own credential holds only the narrow agent scopes agent:send, agent:waitpoint, agent:mailbox and presence:read, never a server scope."
   - name: webhooks
     description: "Management family: webhook consumers, tenant event types, endpoints, the delivery log and its recovery operations, and the operations contacts (scope config for writes, read or config for reads). Relay delivers at least once: an event can arrive more than once and in any order, the consumer deduplicates by webhook-id, and the definite state is always read from the API."
   - name: messaging-inbound
@@ -114,6 +114,8 @@ paths:
       security:
         - access_bearer:
             - publish
+        - access_bearer:
+            - "agent:send"
       responses:
         "202":
           description: Accepted. For a CloudEvents batch the body is a batch result and the status follows the batch status map (202 all accepted, 207 partial).
@@ -231,6 +233,7 @@ paths:
         - auth_revoked_client
         - auth_client_pending
         - auth_insufficient_scope
+        - auth_agent_inactive
         - auth_tenant_suspended
         - unsupported_api_version
         - unsupported_beta_feature
@@ -260,6 +263,7 @@ paths:
         - auth_environment_mismatch
       x-relay-scopes:
         - publish
+        - "agent:send"
       x-relay-weight: 1
       x-relay-weight-note: A CloudEvents batch weighs its number of events.
       x-relay-idempotency: derived
@@ -285,6 +289,8 @@ paths:
       security:
         - access_bearer:
             - publish
+        - access_bearer:
+            - "agent:send"
       responses:
         "202":
           description: Every row accepted.
@@ -400,6 +406,7 @@ paths:
         - auth_revoked_client
         - auth_client_pending
         - auth_insufficient_scope
+        - auth_agent_inactive
         - auth_tenant_suspended
         - unsupported_api_version
         - unsupported_beta_feature
@@ -420,6 +427,7 @@ paths:
         - link_scheme_not_allowed
       x-relay-scopes:
         - publish
+        - "agent:send"
       x-relay-weight: rows
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -14095,6 +14103,8 @@ paths:
             - publish
         - access_bearer:
             - agents
+        - access_bearer:
+            - "agent:waitpoint"
       responses:
         "201":
           description: Created.
@@ -14184,6 +14194,7 @@ paths:
       x-relay-scopes:
         - publish
         - agents
+        - "agent:waitpoint"
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -14394,6 +14405,8 @@ paths:
             - publish
         - access_bearer:
             - agents
+        - access_bearer:
+            - "agent:waitpoint"
       responses:
         "200":
           description: "The waitpoint."
@@ -14477,6 +14490,7 @@ paths:
       x-relay-scopes:
         - publish
         - agents
+        - "agent:waitpoint"
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -14494,6 +14508,8 @@ paths:
       security:
         - access_bearer:
             - agents
+        - access_bearer:
+            - "agent:mailbox"
       responses:
         "200":
           description: "The mailbox."
@@ -14554,6 +14570,7 @@ paths:
         - agent_not_found
       x-relay-scopes:
         - agents
+        - "agent:mailbox"
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -14578,6 +14595,8 @@ paths:
       security:
         - access_bearer:
             - agents
+        - access_bearer:
+            - "agent:mailbox"
       responses:
         "200":
           description: "The lease and its records."
@@ -14660,6 +14679,7 @@ paths:
         - mailbox_inactive
       x-relay-scopes:
         - agents
+        - "agent:mailbox"
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -14684,6 +14704,8 @@ paths:
       security:
         - access_bearer:
             - agents
+        - access_bearer:
+            - "agent:mailbox"
       responses:
         "200":
           description: "The result for each record."
@@ -14765,6 +14787,7 @@ paths:
         - agent_not_found
       x-relay-scopes:
         - agents
+        - "agent:mailbox"
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -14789,6 +14812,8 @@ paths:
       security:
         - access_bearer:
             - agents
+        - access_bearer:
+            - "agent:mailbox"
       responses:
         "200":
           description: "The records after the position."
@@ -14852,6 +14877,7 @@ paths:
         - agent_not_found
       x-relay-scopes:
         - agents
+        - "agent:mailbox"
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -14872,6 +14898,8 @@ paths:
             - agents
         - access_bearer:
             - read
+        - access_bearer:
+            - "agent:mailbox"
       responses:
         "200":
           description: "The record."
@@ -14932,6 +14960,7 @@ paths:
       x-relay-scopes:
         - agents
         - read
+        - "agent:mailbox"
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -14960,6 +14989,8 @@ paths:
             - agents
         - access_bearer:
             - read
+        - access_bearer:
+            - "agent:mailbox"
       responses:
         "200":
           description: "A page of dead-lettered records."
@@ -15024,6 +15055,7 @@ paths:
       x-relay-scopes:
         - agents
         - read
+        - "agent:mailbox"
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -15537,6 +15569,502 @@ paths:
       x-relay-idempotency: required
       x-relay-step-up: false
       x-relay-stage: 12
+  "/v1/agents":
+    get:
+      operationId: listAgents
+      tags:
+        - agents
+      summary: "List agents"
+      description: "Pages through the agent recipient records of the tenant environment, newest first, deleted ones included."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - subscribers
+        - access_bearer:
+            - agents
+      responses:
+        "200":
+          description: "A page of agents."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/AgentList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_agent_inactive
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - subscribers
+        - agents
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: "The spec defines the agent recipient record and its fields; the path, the object shape and the scopes are chosen by the contract."
+    post:
+      operationId: createAgent
+      tags:
+        - agents
+      summary: "Create an agent"
+      description: "Registers an agent as a recipient: its name, its owner, the endpoints a wake-up hint goes to, its topic subscriptions and its Access binding, which is mandatory. The record gets its one mailbox at once. It serves delivery only: it grants the agent nothing and changes no authority, which stays in Access. The agent proves its identity with its Access token, whose sub is the bound Access Party. 409 resource_conflict when the Access Party is already bound to a record of this environment; an unknown or archived endpoint or topic is 422 validation_failed with its pointer."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/AgentCreate"
+      security:
+        - access_bearer:
+            - subscribers
+      responses:
+        "201":
+          description: "Created."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            ETag:
+              "$ref": "./components/headers.yaml#/ETag"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Agent"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_agent_inactive
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - resource_conflict
+      x-relay-scopes:
+        - subscribers
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: "The spec defines the agent recipient record and its fields; the path, the object shape and the scopes are chosen by the contract."
+  "/v1/agents/{agent_id}":
+    get:
+      operationId: getAgent
+      tags:
+        - agents
+      summary: "Get an agent"
+      description: "Returns the agent recipient record with its state, its mailbox and the keys of the topics it is subscribed to."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/AgentId"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - subscribers
+        - access_bearer:
+            - agents
+      responses:
+        "200":
+          description: "The agent."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            ETag:
+              "$ref": "./components/headers.yaml#/ETag"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Agent"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_agent_inactive
+        - agent_not_found
+      x-relay-scopes:
+        - read
+        - subscribers
+        - agents
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: "The spec defines the agent recipient record and its fields; the path, the object shape and the scopes are chosen by the contract."
+    patch:
+      operationId: updateAgent
+      tags:
+        - agents
+      summary: "Update an agent"
+      description: "JSON Merge Patch of the name, the owner, the endpoints and the topic subscriptions: an absent field is untouched, a null endpoint is cleared and topics replaces the whole set. The Access binding and the state cannot be changed here: the state follows Access, and a deleted agent is 409 resource_conflict."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/AgentId"
+        - "$ref": "./components/parameters.yaml#/IfMatch"
+      requestBody:
+        required: true
+        content:
+          "application/merge-patch+json":
+            schema:
+              "$ref": "./components/schemas.yaml#/AgentPatch"
+      security:
+        - access_bearer:
+            - subscribers
+      responses:
+        "200":
+          description: "Updated."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            ETag:
+              "$ref": "./components/headers.yaml#/ETag"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Agent"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "412":
+          "$ref": "./components/responses.yaml#/PreconditionFailed"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "428":
+          "$ref": "./components/responses.yaml#/PreconditionRequired"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_agent_inactive
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - agent_not_found
+        - resource_conflict
+        - precondition_failed
+        - precondition_required
+      x-relay-scopes:
+        - subscribers
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: "The spec defines the agent recipient record and its fields; the path, the object shape and the scopes are chosen by the contract."
+    delete:
+      operationId: deleteAgent
+      tags:
+        - agents
+      summary: "Delete an agent"
+      description: "Soft delete: the record stays with state deleted, nothing is delivered to the agent any more and its own requests are refused. Its mailbox is not deleted; the records in it stay under their retention rule. Deleting a deleted agent returns it unchanged."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/AgentId"
+      security:
+        - access_bearer:
+            - subscribers
+      responses:
+        "200":
+          description: "Deleted."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            ETag:
+              "$ref": "./components/headers.yaml#/ETag"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Agent"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_agent_inactive
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - validation_failed
+        - agent_not_found
+      x-relay-scopes:
+        - subscribers
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: "The spec defines the agent recipient record and its fields; the path, the object shape and the scopes are chosen by the contract."
   "/v1/agents/{agent_id}/ceiling_decisions":
     post:
       operationId: createAgentCeilingDecision
@@ -25581,6 +26109,10 @@ components:
             config: "Write workflows, templates, layouts, partials, routes, recurrences, CloudEvents mappings and webhook endpoints, with their consumers, event types, delivery log recovery and portal tokens."
             kill_switch: Engage and tighten kill switches of campaign and workflow scope only.
             agents: "Create and manage waitpoints and escalation policies, and decide on held agent notifications."
+            "agent:send": "Agent credential only: send events and batches as the agent; each is recorded with sender type agent."
+            "agent:waitpoint": "Agent credential only: open the agent's own waitpoints and keep them alive."
+            "agent:mailbox": "Agent credential only: read and acknowledge the agent's own mailbox."
+            "presence:read": "Agent credential only: read the device status signals of a subscriber."
     mtls:
       type: mutualTLS
       description: "Optional additional layer for enterprise tenants: RFC 8705 certificate-bound Access tokens. It is used together with access_bearer (a DPoP-bound token), never alone. Behind a proxy that terminates TLS, the client certificate is read from the RFC 9440 Client-Cert header (and Client-Cert-Chain) only when the connection comes from a trusted proxy (RELAY_TRUSTED_PROXIES); the header from any other peer is ignored."

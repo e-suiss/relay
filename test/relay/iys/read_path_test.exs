@@ -98,6 +98,7 @@ defmodule Relay.Iys.ReadPathTest do
 
   defp gate(ctx, channel, address) do
     name = Atom.to_string(channel)
+
     {:ok, [{_key_id, digest} | _older]} =
       Relay.Subscribers.address_digests(ctx.scope, name, address)
 
@@ -159,25 +160,22 @@ defmodule Relay.Iys.ReadPathTest do
     Enum.reverse(rows)
   end
 
-  defp movement(ctx, changes \\ %{}) do
-    Map.merge(
-      %{
-        channel: "sms",
-        status: :approval,
-        address: @phone,
-        source: "web",
-        occurred_at: DateTime.add(DateTime.utc_now(), -30, :second),
-        origin: :access,
-        recipient_type: "individual",
-        recipient_id: nil,
-        brand_subtenant_id: nil
-      },
-      changes
-    )
+  defp movement do
+    %{
+      channel: "sms",
+      status: :approval,
+      address: @phone,
+      source: "web",
+      occurred_at: DateTime.add(DateTime.utc_now(), -30, :second),
+      origin: :access,
+      recipient_type: "individual",
+      recipient_id: nil,
+      brand_subtenant_id: nil
+    }
   end
 
   defp approve!(ctx) do
-    assert {:ok, :queued} = Relay.Iys.write(ctx.scope, movement(ctx))
+    assert {:ok, :queued} = Relay.Iys.write(ctx.scope, movement())
     upload = List.last(uploads(ctx))
     assert Relay.Iys.run_upload(ctx.scope, upload["id"]) == :done
     upload
@@ -502,7 +500,7 @@ defmodule Relay.Iys.ReadPathTest do
     end
   end
 
-  describe "OP-42 PC-62 reconciliation" do
+  describe "OP-42 E-22 reconciliation" do
     test "OP-42: the hourly reconciliation counts an upload no pull reported as drift and the verification repairs it",
          ctx do
       configure!(ctx)
@@ -522,7 +520,7 @@ defmodule Relay.Iys.ReadPathTest do
       assert [["ONAY", "upload", nil, true, true]] = permissions(ctx)
     end
 
-    test "PC-62: the distinct addresses of a brand are counted and measured against the direct access threshold in integrator mode",
+    test "E-22: the distinct addresses of a brand are counted and measured against the direct access threshold in integrator mode",
          ctx do
       configure!(ctx, %{"mode" => "integrator", "integrator_code" => 700_001})
       citizen!("ONAY")

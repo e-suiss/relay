@@ -2,6 +2,8 @@ defmodule Relay.Iys.ReadPathTest do
   use Relay.DataCase, async: false
 
   alias Relay.Datasets
+  alias Relay.Iys.Store
+  alias Relay.Iys.Sync
   alias Relay.Policy.Engine
   alias Relay.Policy.Fixture
   alias Relay.Policy.IysGate
@@ -489,7 +491,7 @@ defmodule Relay.Iys.ReadPathTest do
       assert [_warning, %{"state" => "stopped"}] =
                OutboxEvents.data(ctx.scope, "iys.copy_stale")
 
-      overview = Relay.Iys.Store.overview(at(ctx, 25 * @hour))
+      overview = Store.overview(at(ctx, 25 * @hour))
       assert overview["stale_stopped"] >= 1
       assert :ok = Relay.Iys.SyncSweep.report(overview)
 
@@ -513,7 +515,7 @@ defmodule Relay.Iys.ReadPathTest do
       :ok = Fake.fail_next(:status, 503, "H192")
       assert %{reconciled: true, verified: 0} = sync!(ctx, 2 * @hour)
       assert state(ctx, 2 * @hour).drift_count == 1
-      assert Relay.Iys.Store.overview(at(ctx, 2 * @hour))["drift"] >= 1
+      assert Store.overview(at(ctx, 2 * @hour))["drift"] >= 1
 
       assert %{reconciled: true, verified: 1} = sync!(ctx, 3 * @hour + 60)
       assert state(ctx, 3 * @hour + 60).drift_count == 0
@@ -536,11 +538,11 @@ defmodule Relay.Iys.ReadPathTest do
       integrator = %{"mode" => "integrator"}
       threshold = Relay.Limits.fetch!(["iys", "direct_access_threshold"])
       assert threshold == 250_000
-      assert Relay.Iys.Sync.address_state(integrator, 199_999) == "ok"
-      assert Relay.Iys.Sync.address_state(integrator, 200_000) == "warning"
-      assert Relay.Iys.Sync.address_state(integrator, 249_999) == "warning"
-      assert Relay.Iys.Sync.address_state(integrator, threshold) == "reached"
-      assert Relay.Iys.Sync.address_state(%{"mode" => "own"}, threshold) == "ok"
+      assert Sync.address_state(integrator, 199_999) == "ok"
+      assert Sync.address_state(integrator, 200_000) == "warning"
+      assert Sync.address_state(integrator, 249_999) == "warning"
+      assert Sync.address_state(integrator, threshold) == "reached"
+      assert Sync.address_state(%{"mode" => "own"}, threshold) == "ok"
     end
   end
 end

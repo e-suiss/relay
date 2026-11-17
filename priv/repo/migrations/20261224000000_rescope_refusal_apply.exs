@@ -2,14 +2,12 @@ defmodule Relay.Repo.Migrations.RescopeRefusalApply do
   use Ecto.Migration
 
   @previous "relay_fn.refusal_apply(uuid, uuid, uuid, text, text, text, text, text, timestamptz, bytea, uuid, bytea, bytea, uuid, bytea, text)"
-  @signature "relay_fn.refusal_apply(uuid, uuid, uuid, text, text, text, text, text, timestamptz, bytea, uuid, bytea, uuid, text)"
+  @signature "relay_fn.refusal_apply(uuid, uuid, uuid, text, text, text, text, text, timestamptz, bytea, uuid, bytea, text)"
 
-  # PC-37
   # PC-38
   # PC-39
   # PC-61
   # INV-18
-  # WH-15
   # OP-8
   def up do
     execute("SET LOCAL ROLE relay_owner")
@@ -28,8 +26,7 @@ defmodule Relay.Repo.Migrations.RescopeRefusalApply do
     CREATE FUNCTION relay_fn.refusal_apply(p_id uuid, p_recipient_id uuid,
       p_brand_subtenant_id uuid, p_channel text, p_source text, p_scope text,
       p_category_key text, p_request_ref text, p_occurred_at timestamptz, p_evidence_ct bytea,
-      p_evidence_key_id uuid, p_consent_evidence_ct bytea, p_provider_account_id uuid,
-      p_actor_ref text)
+      p_evidence_key_id uuid, p_consent_evidence_ct bytea, p_actor_ref text)
       RETURNS TABLE (result text, refusal_id uuid)
     LANGUAGE plpgsql VOLATILE SECURITY DEFINER
     SET search_path = pg_catalog, pg_temp
@@ -141,13 +138,6 @@ defmodule Relay.Repo.Migrations.RescopeRefusalApply do
         VALUES (v_tenant, v_env, p_id, p_recipient_id, p_brand_subtenant_id, p_channel,
           p_source, p_scope, p_category_key, p_request_ref, p_occurred_at, p_evidence_ct,
           p_evidence_key_id, now());
-        IF p_channel = 'sms' AND p_source = 'sms_keyword' THEN
-          PERFORM relay_fn.outbox_append(uuidv7(), 'sms.opted_out', v_stream,
-            jsonb_build_object('recipient_id', p_recipient_id, 'recipient_kind', v_kind,
-              'provider_account_id', p_provider_account_id, 'rule_id', 'consent.revoked',
-              'opted_out_at', v_at),
-            NULL);
-        END IF;
       END IF;
       IF NOT v_changed THEN
         RETURN QUERY SELECT 'applied'::text, p_id;

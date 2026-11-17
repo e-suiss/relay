@@ -2,14 +2,15 @@ defmodule Relay.Channels.Live.Receipts do
   @moduledoc """
   The durable receipt path of provider events (WH-49, L-17, INV-12, DS-22): receipt first, a fast `2xx`, processing from the queue. It serves the SMS and e-mail provider webhooks, the SES event queue (`Relay.Channels.Live.SesQueue`), WhatsApp message statuses (their `wamid + status + timestamp` key is the receipt's event identifier, and a written failed status is followed by `Relay.Channels.Live.Whatsapp.after_status/3`) and the reconciliation's answers.
 
-    1. `accept/4` verifies the request on its raw body with the account's verification secret (`Relay.Channels.provider_webhook/3`) and reads its items. Each item is one provider event: a delivery report that is not pending or an e-mail event that names a delivery.
-    2. Each item is a receipt `(tenant, environment, provider, provider_event_id)`, unique in the database (INV-12): the provider's own event identifier when it sends one (`email:<id>`), otherwise the SHA-256 of the item without its personal fields and its actor (`sha256:<hex>`). The item is sealed with the tenant's data key as the receipt body (retention class `delivery_record`). A repeated event is counted on its receipt and processed no further. The receipts and their processing jobs (`Relay.Channels.Live.ReceiptWorker`, at most 100 receipts each, identifiers only, T-15) are committed in one transaction before the provider is answered.
-    3. `process/2`, run by the delivery report batcher (`Relay.Channels.Live.ReportBatcher`, T-41), reads a batch of receipts of one scope, opens each sealed item and records the events of the whole batch in one transaction through the evidence table (`Relay.Channels.Live.Events.record_many/2`), with the receipt's actor (`provider_webhook`, or `provider_api` for a reconciliation's items, `record/4`) and the receipt on each ledger entry, so a receipt becomes `processed` with its ledger entry. A report whose delivery is unknown or whose body cannot be read is `rejected`; an e-mail event without a classification is `processed` with no entry. The suppressions and telemetry of a recorded e-mail event follow the commit (`Relay.Channels.Live.EmailEvents`).
+    1. `accept/4` verifies the request on its raw body with the account's verification secret (`Relay.Channels.provider_webhook/3`) and reads its items. Each item is one provider event: a delivery report that is not pending, a message one of the account's numbers received or an e-mail event that names a delivery.
+    2. Each item is a receipt `(tenant, environment, provider, provider_event_id)`, unique in the database (INV-12): the provider's own event identifier when it sends one (`email:<id>`, `sms_in:<id>` for a received message), otherwise the SHA-256 of the item without its personal fields and its actor (`sha256:<hex>`). The item is sealed with the tenant's data key as the receipt body (retention class `delivery_record`). A repeated event is counted on its receipt and processed no further. The receipts and their processing jobs (`Relay.Channels.Live.ReceiptWorker`, at most 100 receipts each, identifiers only, T-15) are committed in one transaction before the provider is answered.
+    3. `process/2`, run by the delivery report batcher (`Relay.Channels.Live.ReportBatcher`, T-41), reads a batch of receipts of one scope, opens each sealed item and records the events of the whole batch in one transaction through the evidence table (`Relay.Channels.Live.Events.record_many/2`), with the receipt's actor (`provider_webhook`, or `provider_api` for a reconciliation's items, `record/4`) and the receipt on each ledger entry, so a receipt becomes `processed` with its ledger entry. A report whose delivery is unknown or whose body cannot be read is `rejected`; an e-mail event without a classification is `processed` with no entry. A received message is no delivery event: its keyword is applied first (`Relay.Channels.Live.InboundSms`, PC-37), its receipt becomes `processed` and only then is its one reply sent, so a reply is never sent twice. The suppressions and telemetry of a recorded e-mail event follow the commit (`Relay.Channels.Live.EmailEvents`).
   """
 
   alias Relay.Channels.Live
   alias Relay.Channels.Live.EmailEvents
   alias Relay.Channels.Live.Events
+  alias Relay.Channels.Live.InboundSms
   alias Relay.Channels.Live.ReceiptWorker
   alias Relay.Channels.Live.Store
   alias Relay.Channels.Live.Whatsapp
@@ -159,6 +160,18 @@ defmodule Relay.Channels.Live.Receipts do
     }
   end
 
+  defp encode({:inbound_sms, message}) do
+    %{
+      "kind" => "inbound_sms",
+      "provider_message_id" => message.provider_message_id,
+      "from" => exposed(message.from),
+      "to" => message.to,
+      "text" => exposed(message.text),
+      "received_at" => time(message.received_at),
+      "replied" => message.replied?
+    }
+  end
+
   defp encode({:whatsapp, %{event: event}}) do
     %{
       "kind" => "whatsapp",
@@ -196,6 +209,9 @@ defmodule Relay.Channels.Live.Receipts do
 
   defp event_id({:email, %{id: id}}, _encoded) when is_binary(id) and id != "",
     do: String.slice("email:" <> id, 0, 512)
+
+  defp event_id({:inbound_sms, %{provider_message_id: id}}, _encoded),
+    do: String.slice("sms_in:" <> id, 0, 512)
 
   defp event_id(_item, encoded) do
     binary = encoded |> Map.drop(@unhashed) |> :erlang.term_to_binary([:deterministic])
@@ -288,6 +304,9 @@ defmodule Relay.Channels.Live.Receipts do
     end
   end
 
+  defp item(_declarations, _table, row, {:ok, %{"kind" => "inbound_sms"} = item}),
+    do: {:inbound, row, item}
+
   defp item(_declarations, _table, row, _unreadable),
     do: {:mark, row["id"], :rejected, "unreadable"}
 
@@ -348,12 +367,30 @@ defmodule Relay.Channels.Live.Receipts do
     events = for {:event, event, _post} <- planned, do: event
     posts = for {:event, _event, post} <- planned, do: post
     marks = for {:mark, id, state, reason} <- planned, do: {id, state, reason}
+    inbound = for {:inbound, row, item} <- planned, do: {row, item}
 
-    with {:ok, _marked} <- mark(scope, marks),
+    with {:ok, replies} <- inbound(scope, inbound),
+         {:ok, _marked} <- mark(scope, marks ++ Enum.map(inbound, &read/1)),
          {:ok, results} <- Events.record_many(scope, events) do
+      Enum.each(replies, &InboundSms.reply(scope, &1))
       posts |> Enum.zip(results) |> Enum.each(&follow(scope, &1))
     end
   end
+
+  # PC-37
+  defp inbound(scope, inbound) do
+    inbound
+    |> Enum.reduce_while({:ok, []}, fn {row, item}, {:ok, acc} ->
+      case InboundSms.apply_message(scope, row, item) do
+        {:ok, nil} -> {:cont, {:ok, acc}}
+        {:ok, reply} -> {:cont, {:ok, [reply | acc]}}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+    |> reversed()
+  end
+
+  defp read({row, _item}), do: {row["id"], :processed, nil}
 
   defp mark(_scope, []), do: {:ok, []}
 

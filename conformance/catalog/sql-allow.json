@@ -340,5 +340,11 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "OP-24: the committed relay_fn.subject_erase is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit, so an erasure also ends the subject's workflow runs, recurrence rules and digest windows; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261224000000_rescope_refusal_apply.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "PC-39, PC-61: the committed relay_fn.refusal_apply is dropped as its owner, relay_owner, which relay_migrator may SET but does not inherit, so a refusal notice no longer suppresses an address; the role is reset in the same migration transaction"
   }
 ]

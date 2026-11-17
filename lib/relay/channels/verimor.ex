@@ -260,6 +260,8 @@ defmodule Relay.Channels.Verimor do
     end
   end
 
+  defp parse(body), do: {:ok, [call_report(URI.decode_query(body))]}
+
   defp read(%{"type" => "inbound"} = row), do: inbound(row)
   defp read(row), do: sms_report(row)
 
@@ -289,8 +291,6 @@ defmodule Relay.Channels.Verimor do
   end
 
   defp received_at(_none), do: nil
-
-  defp parse(body), do: {:ok, [call_report(URI.decode_query(body))]}
 
   # CH-10
   @doc "Reads one Verimor SMS delivery report: `DELIVERED` is delivered, `SENDING`, `WAITING` and `SENT` (sent without an operator report) pending, and any other status a failure `dlr:<STATUS>`."

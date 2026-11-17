@@ -59,8 +59,14 @@ defmodule Relay.Compliance.Refusals do
   defp write_one(scope, refusal, sealed) do
     {code, refusal_id} = Store.apply_refusal(Relay.Id.generate(), refusal, sealed)
     if queued?(refusal, code), do: Store.insert_job!(SinkWorker.job(scope, refusal_id))
+    if code == :applied and opted_out?(refusal), do: Store.opted_out(refusal)
     {code, refusal_id}
   end
+
+  # PC-37
+  # WH-15
+  defp opted_out?(%Refusal{channel: "sms", source: "sms_keyword"}), do: true
+  defp opted_out?(_refusal), do: false
 
   # PC-61
   defp covered(refusal, channel),

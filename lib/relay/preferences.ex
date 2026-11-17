@@ -186,7 +186,7 @@ defmodule Relay.Preferences do
   # PC-59 (1)
   # E-80
   @doc """
-  Records a consent of a recipient in its consent copy (E-80). `attrs` carries `:recipient_id`, `:brand_subtenant_id`, `:channel`, `:status`, `:consent_kind`, `:recipient_type`, `:source`, `:sequence`, `:occurred_at`, `:text_version_digest`, `:evidence` (a map or `nil`), `:iys_transaction_ref` and `:source_event_ref`; instead of `:evidence` it may carry `:sealed`, evidence already sealed by `seal_consent_evidence/3`. The evidence is encrypted under the recipient's `commercial_consent` subject key, which is created on first use; the key store is called outside any transaction, so this function must not run inside one. An older or repeated sequence changes nothing.
+  Records a consent of a recipient in its consent copy (E-80). `attrs` carries `:recipient_id`, `:brand_subtenant_id`, `:channel`, `:status`, `:consent_kind`, `:recipient_type`, `:source`, `:sequence`, `:occurred_at`, `:text_version_digest`, `:evidence` (a map or `nil`), `:iys_transaction_ref` and `:source_event_ref`, and optionally `:writer` (`access` by default, `relay` for a consent Relay itself received, PC-37); instead of `:evidence` it may carry `:sealed`, evidence already sealed by `seal_consent_evidence/3`. The evidence is encrypted under the recipient's `commercial_consent` subject key, which is created on first use; the key store is called outside any transaction, so this function must not run inside one. An older or repeated sequence changes nothing.
   """
   @spec record_consent(Scope.t(), map()) :: result(atom())
   def record_consent(%Scope{} = scope, attrs) do

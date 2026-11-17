@@ -234,6 +234,22 @@ defmodule Relay.Channels.Live.Store do
     for row <- all(sql, [digests]), do: row["recipient_id"]
   end
 
+  # PC-37
+  @doc "The active recipients with an active phone address among the address blind indexes `digests`: the identifier, locale and legal type of each, in identifier order."
+  @spec sms_recipients([binary()]) :: [map()]
+  def sms_recipients(digests) do
+    sql = """
+    SELECT DISTINCT r.id, r.locale, r.legal_type FROM relay.recipient_addresses a
+    JOIN relay.recipients r ON r.tenant_id = a.tenant_id AND r.environment = a.environment
+      AND r.id = a.recipient_id
+    WHERE a.kind = 'phone' AND a.state = 'active' AND r.state = 'active'
+      AND (a.address_bidx = ANY ($1) OR a.address_bidx_next = ANY ($1))
+    ORDER BY r.id
+    """
+
+    all(sql, [digests])
+  end
+
   # PC-43
   @doc "The keys of the active categories of the `marketing` class, in key order."
   @spec marketing_categories() :: [String.t()]

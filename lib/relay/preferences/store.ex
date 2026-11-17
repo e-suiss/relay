@@ -314,7 +314,7 @@ defmodule Relay.Preferences.Store do
         c.evidence_ct,
         c.evidence_key_id,
         c.iys_transaction_ref,
-        "access",
+        Map.get(c, :writer, "access"),
         c.source_event_ref
       ])
 

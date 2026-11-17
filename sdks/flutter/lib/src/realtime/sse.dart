@@ -46,14 +46,17 @@ class RelaySseTransport implements RelayRealtimeTransport {
     String? deviceId,
   ) async {
     const RelayOperation op = RelayOperation.streamRealtimeEvents;
-    final Uri uri = http.url(op.path, query: <String, String?>{'device_id': deviceId});
+    final Uri uri = http.url(
+      op.path,
+      query: <String, String?>{'device_id': deviceId},
+    );
     RelayBoundary.check(op.method, op.path);
     final hc.Request request = hc.Request(op.method, uri)
       ..headers.addAll(<String, String>{
         'Authorization': 'Bearer $token',
         'Accept': 'text/event-stream',
         'Relay-Version': relayApiVersion,
-        if (cursor != null) 'Last-Event-ID': cursor,
+        'Last-Event-ID': ?cursor,
       });
     final hc.StreamedResponse response;
     try {
@@ -91,34 +94,35 @@ class RelaySseTransport implements RelayRealtimeTransport {
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen(
-      (String line) {
-        if (line.isEmpty) {
-          if (data.isNotEmpty) {
-            _dispatch(controller, event, id, data.toString());
-          }
-          event = null;
-          data.clear();
-          return;
-        }
-        if (line.startsWith(':')) return;
-        final int colon = line.indexOf(':');
-        final String field = colon < 0 ? line : line.substring(0, colon);
-        String value = colon < 0 ? '' : line.substring(colon + 1);
-        if (value.startsWith(' ')) value = value.substring(1);
-        switch (field) {
-          case 'event':
-            event = value;
-          case 'data':
-            if (data.isNotEmpty) data.write('\n');
-            data.write(value);
-          case 'id':
-            id = value;
-        }
-      },
-      onDone: () => _fail(controller, const RelayRealtimeClosed('stream_ended')),
-      onError: (Object _) =>
-          _fail(controller, const RelayRealtimeClosed('stream_error')),
-    );
+          (String line) {
+            if (line.isEmpty) {
+              if (data.isNotEmpty) {
+                _dispatch(controller, event, id, data.toString());
+              }
+              event = null;
+              data.clear();
+              return;
+            }
+            if (line.startsWith(':')) return;
+            final int colon = line.indexOf(':');
+            final String field = colon < 0 ? line : line.substring(0, colon);
+            String value = colon < 0 ? '' : line.substring(colon + 1);
+            if (value.startsWith(' ')) value = value.substring(1);
+            switch (field) {
+              case 'event':
+                event = value;
+              case 'data':
+                if (data.isNotEmpty) data.write('\n');
+                data.write(value);
+              case 'id':
+                id = value;
+            }
+          },
+          onDone: () =>
+              _fail(controller, const RelayRealtimeClosed('stream_ended')),
+          onError: (Object _) =>
+              _fail(controller, const RelayRealtimeClosed('stream_error')),
+        );
   }
 
   void _dispatch(
@@ -139,10 +143,15 @@ class RelaySseTransport implements RelayRealtimeTransport {
       if (decoded['id'] == null && id != null) 'id': id,
     };
     if (event != null && envelope['t'] != event) return;
-    if (!controller.isClosed) controller.add(RelayRealtimeEnvelopeFrame(envelope));
+    if (!controller.isClosed) {
+      controller.add(RelayRealtimeEnvelopeFrame(envelope));
+    }
   }
 
-  void _fail(StreamController<RelayRealtimeFrame> controller, RelayRealtimeClosed reason) {
+  void _fail(
+    StreamController<RelayRealtimeFrame> controller,
+    RelayRealtimeClosed reason,
+  ) {
     if (!controller.isClosed) {
       controller.addError(reason);
       unawaited(controller.close());

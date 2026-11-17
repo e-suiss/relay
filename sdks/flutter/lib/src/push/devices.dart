@@ -90,8 +90,9 @@ class RelayDeviceRegistrar {
 
   Future<String> _report() async {
     final DevicePermission permission = await adapter.getPermission();
-    final List<AndroidChannel> channels =
-        _android ? await adapter.getAndroidChannels() : <AndroidChannel>[];
+    final List<AndroidChannel> channels = _android
+        ? await adapter.getAndroidChannels()
+        : <AndroidChannel>[];
     return jsonEncode(<String, Object?>{
       'permission': permission.wire,
       'channels': <Object?>[
@@ -103,8 +104,9 @@ class RelayDeviceRegistrar {
   Future<Device?> _register(String token) async {
     final DevicePermission permission = await adapter.getPermission();
     _permission = permission;
-    final List<AndroidChannel>? channels =
-        _android ? await adapter.getAndroidChannels() : null;
+    final List<AndroidChannel>? channels = _android
+        ? await adapter.getAndroidChannels()
+        : null;
     final String? previous = await store.read(_tokenKey);
     final DeviceRegistration registration = DeviceRegistration(
       platform: adapter.platform,

@@ -53,17 +53,57 @@ const List<String> operations = <String>[
 ];
 
 const Set<String> keywords = <String>{
-  'assert', 'break', 'case', 'catch', 'class', 'const', 'continue',
-  'default', 'do', 'else', 'enum', 'extends', 'false', 'final', 'finally',
-  'for', 'if', 'in', 'is', 'new', 'null', 'rethrow', 'return', 'super',
-  'switch', 'this', 'throw', 'true', 'try', 'var', 'void', 'while', 'with',
+  'assert',
+  'break',
+  'case',
+  'catch',
+  'class',
+  'const',
+  'continue',
+  'default',
+  'do',
+  'else',
+  'enum',
+  'extends',
+  'false',
+  'final',
+  'finally',
+  'for',
+  'if',
+  'in',
+  'is',
+  'new',
+  'null',
+  'rethrow',
+  'return',
+  'super',
+  'switch',
+  'this',
+  'throw',
+  'true',
+  'try',
+  'var',
+  'void',
+  'while',
+  'with',
 };
 
 const Set<String> enumReserved = <String>{'values', 'index', 'name'};
 
 String normalize(String path) => Uri.file(path).normalizePath().toFilePath();
 
-enum Kind { string, integer, number, boolean, any, map, stringMap, enumT, classT, list }
+enum Kind {
+  string,
+  integer,
+  number,
+  boolean,
+  any,
+  map,
+  stringMap,
+  enumT,
+  classT,
+  list,
+}
 
 class DartType {
   DartType(this.kind, {this.name, this.item, this.nullable = false});
@@ -73,7 +113,8 @@ class DartType {
   final DartType? item;
   final bool nullable;
 
-  DartType asNullable() => DartType(kind, name: name, item: item, nullable: true);
+  DartType asNullable() =>
+      DartType(kind, name: name, item: item, nullable: true);
 
   String get base {
     switch (kind) {
@@ -160,8 +201,10 @@ Node deref(Doc doc, String ref, void Function(String name) named) {
     final String dir = File(doc.file).parent.path;
     target = load('$dir/$filePart');
   }
-  final List<String> parts =
-      pointer.split('/').where((String p) => p.isNotEmpty).toList();
+  final List<String> parts = pointer
+      .split('/')
+      .where((String p) => p.isNotEmpty)
+      .toList();
   Object? cur = target.root;
   for (final String p in parts) {
     cur = (cur! as Map<String, Object?>)[p];
@@ -374,7 +417,8 @@ String emitClass(String name, Node node) {
   final Map<String, Object?> props = s['properties']! as Map<String, Object?>;
   final List<Field> fields = <Field>[];
   for (final MapEntry<String, Object?> p in props.entries) {
-    final Map<String, Object?> pn = p.value as Map<String, Object?>? ?? <String, Object?>{};
+    final Map<String, Object?> pn =
+        p.value as Map<String, Object?>? ?? <String, Object?>{};
     DartType t = resolve(Node(node.doc, pn), '$name${pascal(p.key)}');
     final bool required = req.contains(p.key);
     if (!required) t = t.asNullable();
@@ -384,7 +428,9 @@ String emitClass(String name, Node node) {
   b.writeln('class $name {');
   b.writeln('  const $name({');
   for (final Field f in fields) {
-    b.writeln(f.required ? '    required this.${f.name},' : '    this.${f.name},');
+    b.writeln(
+      f.required ? '    required this.${f.name},' : '    this.${f.name},',
+    );
   }
   b.writeln('  });');
   b.writeln();
@@ -406,7 +452,9 @@ String emitClass(String name, Node node) {
           : encode(f.type, f.name, 0);
       b.writeln("        '${f.key}': $v,");
     } else {
-      final String v = f.type.identity ? f.name : encode(f.type, '${f.name}!', 0);
+      final String v = f.type.identity
+          ? f.name
+          : encode(f.type, '${f.name}!', 0);
       b.writeln("        if (${f.name} != null) '${f.key}': $v,");
     }
   }
@@ -431,15 +479,20 @@ String emitEnum(String name, Node node) {
   b.writeln('  final String wire;');
   b.writeln();
   b.writeln('  static $name fromWire(String value) => $name.values');
-  b.writeln('      .firstWhere((e) => e.wire == value, orElse: () => $name.unrecognized);');
+  b.writeln(
+    '      .firstWhere((e) => e.wire == value, orElse: () => $name.unrecognized);',
+  );
   b.writeln('}');
   return b.toString();
 }
 
 String models() {
-  final Doc subscriber = load(File('$contractsDir/openapi/subscriber.yaml').absolute.path);
-  final Doc components =
-      load(File('$contractsDir/openapi/components/schemas.yaml').absolute.path);
+  final Doc subscriber = load(
+    File('$contractsDir/openapi/subscriber.yaml').absolute.path,
+  );
+  final Doc components = load(
+    File('$contractsDir/openapi/components/schemas.yaml').absolute.path,
+  );
   final Map<String, Object?> subSchemas =
       ((subscriber.root['components']! as Map<String, Object?>)['schemas'])!
           as Map<String, Object?>;
@@ -447,7 +500,10 @@ String models() {
     registerClass(r, Node(subscriber, subSchemas[r]! as Map<String, Object?>));
   }
   for (final String r in componentRoots) {
-    registerClass(r, Node(components, components.root[r]! as Map<String, Object?>));
+    registerClass(
+      r,
+      Node(components, components.root[r]! as Map<String, Object?>),
+    );
   }
   final List<String> out = <String>[];
   int i = 0;
@@ -472,8 +528,11 @@ String models() {
 }
 
 String operationsFile() {
-  final Doc subscriber = load(File('$contractsDir/openapi/subscriber.yaml').absolute.path);
-  final Map<String, Object?> paths = subscriber.root['paths']! as Map<String, Object?>;
+  final Doc subscriber = load(
+    File('$contractsDir/openapi/subscriber.yaml').absolute.path,
+  );
+  final Map<String, Object?> paths =
+      subscriber.root['paths']! as Map<String, Object?>;
   final Map<String, String> lines = <String, String>{};
   for (final MapEntry<String, Object?> p in paths.entries) {
     final Map<String, Object?> item = p.value! as Map<String, Object?>;
@@ -485,7 +544,8 @@ String operationsFile() {
       if (id == null || !operations.contains(id)) continue;
       final bool idem = o!['x-relay-idempotency'] == 'required';
       final List<String> scopes = <String>[
-        for (final Object? s in (o['x-relay-scopes'] as List<Object?>? ?? <Object?>[]))
+        for (final Object? s
+            in (o['x-relay-scopes'] as List<Object?>? ?? <Object?>[]))
           "'$s'",
       ];
       lines[id] =
@@ -500,7 +560,9 @@ String operationsFile() {
   b.writeln('  ;');
   b.writeln();
   b.writeln('  const RelayOperation(this.method, this.path,');
-  b.writeln('      {required this.idempotencyRequired, required this.scopes});');
+  b.writeln(
+    '      {required this.idempotencyRequired, required this.scopes});',
+  );
   b.writeln();
   b.writeln('  final String method;');
   b.writeln();
@@ -518,12 +580,14 @@ String operationsFile() {
 }
 
 String errorCatalog() {
-  final Map<String, Object?> errors = plain(
-    loadYaml(File('$contractsDir/errors.yaml').readAsStringSync()),
-  )! as Map<String, Object?>;
+  final Map<String, Object?> errors =
+      plain(loadYaml(File('$contractsDir/errors.yaml').readAsStringSync()))!
+          as Map<String, Object?>;
   final StringBuffer b = StringBuffer();
   b.writeln('class RelayErrorSpec {');
-  b.writeln('  const RelayErrorSpec(this.status, this.family, {required this.retryable});');
+  b.writeln(
+    '  const RelayErrorSpec(this.status, this.family, {required this.retryable});',
+  );
   b.writeln();
   b.writeln('  final int status;');
   b.writeln();
@@ -533,7 +597,9 @@ String errorCatalog() {
   b.writeln('}');
   b.writeln();
   b.writeln('class RelayRetryDefault {');
-  b.writeln('  const RelayRetryDefault(this.status, this.code, {required this.retryable});');
+  b.writeln(
+    '  const RelayRetryDefault(this.status, this.code, {required this.retryable});',
+  );
   b.writeln();
   b.writeln('  final int status;');
   b.writeln();
@@ -542,20 +608,30 @@ String errorCatalog() {
   b.writeln('  final bool retryable;');
   b.writeln('}');
   b.writeln();
-  b.writeln('const List<RelayRetryDefault> relayRetryDefaults = <RelayRetryDefault>[');
+  b.writeln(
+    'const List<RelayRetryDefault> relayRetryDefaults = <RelayRetryDefault>[',
+  );
   for (final Object? d in errors['retryable_defaults']! as List<Object?>) {
     final Map<String, Object?> m = d! as Map<String, Object?>;
     final Object? code = m['code'];
     final String c = code == null ? 'null' : "'$code'";
-    b.writeln('  RelayRetryDefault(${m['status']}, $c, retryable: ${m['retryable']}),');
+    b.writeln(
+      '  RelayRetryDefault(${m['status']}, $c, retryable: ${m['retryable']}),',
+    );
   }
   b.writeln('];');
   b.writeln();
-  b.writeln('const Map<String, RelayErrorSpec> relayErrorCatalog = <String, RelayErrorSpec>{');
-  final List<Map<String, Object?>> codes = <Map<String, Object?>>[
-    for (final Object? c in errors['codes']! as List<Object?>) c! as Map<String, Object?>,
-  ]..sort((Map<String, Object?> a, Map<String, Object?> z) =>
-      (a['code']! as String).compareTo(z['code']! as String));
+  b.writeln(
+    'const Map<String, RelayErrorSpec> relayErrorCatalog = <String, RelayErrorSpec>{',
+  );
+  final List<Map<String, Object?>> codes =
+      <Map<String, Object?>>[
+        for (final Object? c in errors['codes']! as List<Object?>)
+          c! as Map<String, Object?>,
+      ]..sort(
+        (Map<String, Object?> a, Map<String, Object?> z) =>
+            (a['code']! as String).compareTo(z['code']! as String),
+      );
   for (final Map<String, Object?> m in codes) {
     b.writeln(
       "  '${m['code']}': RelayErrorSpec(${m['status']}, '${m['family']}', retryable: ${m['retryable']}),",

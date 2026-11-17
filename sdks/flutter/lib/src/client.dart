@@ -46,9 +46,9 @@ class RelayClient {
     this.locale,
     String? timezone,
     this.openTimeout = const Duration(seconds: 5),
-  })  : store = store ?? MemoryRelayKeyValueStore(),
-        clock = clock ?? const SystemRelayClock(),
-        logger = logger ?? const SilentRelayLogger() {
+  }) : store = store ?? MemoryRelayKeyValueStore(),
+       clock = clock ?? const SystemRelayClock(),
+       logger = logger ?? const SilentRelayLogger() {
     final RelayRandom rnd = random ?? SecureRelayRandom();
     final RelayDelay wait = delay ?? relayDefaultDelay;
     http = RelayHttp(
@@ -67,7 +67,11 @@ class RelayClient {
       inbox: inbox,
       logger: this.logger,
     );
-    receipts = RelayReceiptQueue(http: http, store: this.store, clock: this.clock);
+    receipts = RelayReceiptQueue(
+      http: http,
+      store: this.store,
+      clock: this.clock,
+    );
     preferences = RelayPreferencesApi(http);
     final RelayPushAdapter? adapter = push;
     if (adapter != null) {
@@ -101,7 +105,8 @@ class RelayClient {
       logger: this.logger,
     );
     realtime = RelayRealtime(
-      transports: transports ??
+      transports:
+          transports ??
           <RelayRealtimeTransport>[
             RelayPhoenixTransport(
               baseUrl: baseUrl,
@@ -179,8 +184,11 @@ class RelayClient {
       try {
         await d.start();
       } on Object catch (error) {
-        logger.log(RelayLogLevel.warning, 'device.register_failed',
-            <String, Object?>{'error': error.runtimeType.toString()});
+        logger.log(
+          RelayLogLevel.warning,
+          'device.register_failed',
+          <String, Object?>{'error': error.runtimeType.toString()},
+        );
       }
     }
     await foreground();
@@ -193,8 +201,11 @@ class RelayClient {
     try {
       await sync.refreshCounters();
     } on Object catch (error) {
-      logger.log(RelayLogLevel.warning, 'inbox.counters_failed',
-          <String, Object?>{'error': error.runtimeType.toString()});
+      logger.log(
+        RelayLogLevel.warning,
+        'inbox.counters_failed',
+        <String, Object?>{'error': error.runtimeType.toString()},
+      );
     }
     if (!_foreground) return;
     await _waitOpen(realtime.start());
@@ -202,8 +213,9 @@ class RelayClient {
       await sync.sync();
       await intents.flush();
     } on Object catch (error) {
-      logger.log(RelayLogLevel.warning, 'inbox.sync_failed',
-          <String, Object?>{'error': error.runtimeType.toString()});
+      logger.log(RelayLogLevel.warning, 'inbox.sync_failed', <String, Object?>{
+        'error': error.runtimeType.toString(),
+      });
     }
     unawaited(receipts.flush().catchError((Object _) {}));
     final RelayDeviceRegistrar? d = devices;
@@ -217,10 +229,12 @@ class RelayClient {
     final Timer timer = Timer(openTimeout, () {
       if (!done.isCompleted) done.complete();
     });
-    unawaited(opened.then((bool _) {
-      timer.cancel();
-      if (!done.isCompleted) done.complete();
-    }));
+    unawaited(
+      opened.then((bool _) {
+        timer.cancel();
+        if (!done.isCompleted) done.complete();
+      }),
+    );
     return done.future;
   }
 
@@ -237,8 +251,12 @@ class RelayClient {
     String? snoozeUntil,
     bool interactive = true,
   }) async {
-    await intents.enqueue(itemId, op,
-        snoozeUntil: snoozeUntil, interactive: interactive);
+    await intents.enqueue(
+      itemId,
+      op,
+      snoozeUntil: snoozeUntil,
+      interactive: interactive,
+    );
     await intents.flush();
   }
 

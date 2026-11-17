@@ -6,10 +6,12 @@ import 'package:yaml/yaml.dart';
 
 Future<void> main(List<String> args) async {
   final String? stamp = Platform.environment['LOCK_DATE'];
-  final DateTime lockDate =
-      stamp == null || stamp.isEmpty ? DateTime.now().toUtc() : DateTime.parse(stamp).toUtc();
+  final DateTime lockDate = stamp == null || stamp.isEmpty
+      ? DateTime.now().toUtc()
+      : DateTime.parse(stamp).toUtc();
   final DateTime cutoff = lockDate.subtract(const Duration(days: 7));
-  final YamlMap lock = loadYaml(File('pubspec.lock').readAsStringSync()) as YamlMap;
+  final YamlMap lock =
+      loadYaml(File('pubspec.lock').readAsStringSync()) as YamlMap;
   final YamlMap packages = lock['packages'] as YamlMap;
   final http.Client client = http.Client();
   final List<String> young = <String>[];
@@ -18,9 +20,11 @@ Future<void> main(List<String> args) async {
     if (p['source'] != 'hosted') continue;
     final String name = e.key as String;
     final String version = p['version'] as String;
-    final http.Response r =
-        await client.get(Uri.parse('https://pub.dev/api/packages/$name'));
-    final Map<String, Object?> info = jsonDecode(r.body) as Map<String, Object?>;
+    final http.Response r = await client.get(
+      Uri.parse('https://pub.dev/api/packages/$name'),
+    );
+    final Map<String, Object?> info =
+        jsonDecode(r.body) as Map<String, Object?>;
     final List<Object?> versions = info['versions']! as List<Object?>;
     final Map<String, Object?> v = versions
         .cast<Map<String, Object?>>()
@@ -31,7 +35,9 @@ Future<void> main(List<String> args) async {
   }
   client.close();
   if (young.isNotEmpty) {
-    stderr.writeln('Published less than 7 days before $lockDate: ${young.join(', ')}');
+    stderr.writeln(
+      'Published less than 7 days before $lockDate: ${young.join(', ')}',
+    );
     exit(1);
   }
 }

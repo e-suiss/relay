@@ -39,9 +39,9 @@ class RelayDeviceStatusWriter {
     RelayClock? clock,
     RelayDelay? delay,
     RelayLogger? logger,
-  })  : clock = clock ?? const SystemRelayClock(),
-        delay = delay ?? relayDefaultDelay,
-        logger = logger ?? const SilentRelayLogger();
+  }) : clock = clock ?? const SystemRelayClock(),
+       delay = delay ?? relayDefaultDelay,
+       logger = logger ?? const SilentRelayLogger();
 
   /// The HTTP core.
   final RelayHttp http;
@@ -135,8 +135,11 @@ class RelayDeviceStatusWriter {
         _sent.addAll(batch);
         logger.log(RelayLogLevel.debug, 'device_status.written');
       } on RelayError catch (error) {
-        logger.log(RelayLogLevel.debug, 'device_status.failed',
-            <String, Object?>{'status': error.status});
+        logger.log(
+          RelayLogLevel.debug,
+          'device_status.failed',
+          <String, Object?>{'status': error.status},
+        );
         if (error is RelayRateLimitError) {
           batch.forEach((RelayDeviceSignal k, bool v) {
             _pending.putIfAbsent(k, () => v);

@@ -159,13 +159,15 @@ List<RelayAndroidChannel> relayAndroidChannels(List<RelayCategory> categories) {
       if (c.critical) RelayInterruptionLevel.critical,
     ];
     for (final RelayInterruptionLevel l in levels) {
-      out.add(RelayAndroidChannel(
-        id: 'relay.${c.key}.${l.wire}',
-        category: c.key,
-        level: l,
-        importance: _importance(c.messageClass, l),
-        bypassDnd: l == RelayInterruptionLevel.critical,
-      ));
+      out.add(
+        RelayAndroidChannel(
+          id: 'relay.${c.key}.${l.wire}',
+          category: c.key,
+          level: l,
+          importance: _importance(c.messageClass, l),
+          bypassDnd: l == RelayInterruptionLevel.critical,
+        ),
+      );
     }
   }
   return out;
@@ -175,5 +177,7 @@ List<RelayAndroidChannel> relayAndroidChannels(List<RelayCategory> categories) {
 /// Whether to ask for iOS provisional authorisation: only when every class the app starts with is marketing or social.
 bool relayUseProvisional(Iterable<RelayMessageClass> classes) =>
     classes.isNotEmpty &&
-    classes.every((RelayMessageClass c) =>
-        c == RelayMessageClass.marketing || c == RelayMessageClass.social);
+    classes.every(
+      (RelayMessageClass c) =>
+          c == RelayMessageClass.marketing || c == RelayMessageClass.social,
+    );

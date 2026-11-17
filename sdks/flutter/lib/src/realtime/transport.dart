@@ -66,7 +66,8 @@ RelayRealtimeClosed relayClassifyClose(String? reason, {Duration? retryAfter}) {
     case 'auth_insufficient_scope':
       return RelayRealtimeClosed(reason!, fatal: true);
   }
-  final RegExpMatch? m = RegExp(r'^retry-after=(\d+)$').firstMatch(reason ?? '');
+  final RegExpMatch? m = RegExp(r'^retry-after=(\d+)$')
+      .firstMatch(reason ?? '');
   if (m != null) {
     return RelayRealtimeClosed(
       'overloaded',

@@ -8,7 +8,9 @@ import 'payload.dart';
 import 'receipts.dart';
 
 /// Refreshes the counters after a sync signal and returns them.
-typedef RelaySyncCallback = Future<InboxCounters?> Function(int? counterVersion);
+typedef RelaySyncCallback = Future<InboxCounters?> Function(
+  int? counterVersion,
+);
 
 // CH-32
 // CH-33
@@ -78,7 +80,12 @@ class RelayPushHandler {
     if (!n.contentFree) {
       if (!foreground) return;
       final RelayNeutralText neutral = relayNeutralText(locale);
-      await _show(n.deliveryId, n.title ?? neutral.title, n.body ?? neutral.body, n.url);
+      await _show(
+        n.deliveryId,
+        n.title ?? neutral.title,
+        n.body ?? neutral.body,
+        n.url,
+      );
       return;
     }
     RelayPushContent? content;
@@ -102,21 +109,29 @@ class RelayPushHandler {
     );
   }
 
-  Future<void> _show(String deliveryId, String title, String body, String? url) async {
-    await adapter.show(RelayLocalNotification(
-      tag: deliveryId,
-      title: title,
-      body: body,
-      url: url,
-    ));
+  Future<void> _show(
+    String deliveryId,
+    String title,
+    String body,
+    String? url,
+  ) async {
+    await adapter.show(
+      RelayLocalNotification(
+        tag: deliveryId,
+        title: title,
+        body: body,
+        url: url,
+      ),
+    );
     await displayed(deliveryId);
   }
 
   Future<Map<String, String>> _index() async {
     final String? raw = await store.read(_indexKey);
     if (raw == null) return <String, String>{};
-    return (jsonDecode(raw) as Map<String, Object?>)
-        .map((String k, Object? v) => MapEntry<String, String>(k, v! as String));
+    return (jsonDecode(raw) as Map<String, Object?>).map(
+      (String k, Object? v) => MapEntry<String, String>(k, v! as String),
+    );
   }
 
   Future<void> _remember(String notificationId, String deliveryId) async {

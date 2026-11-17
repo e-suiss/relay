@@ -72,7 +72,9 @@ Object? _normalize(Object? v) {
         e.key.toString(): _normalize(e.value),
     };
   }
-  if (v is List<Object?>) return <Object?>[for (final Object? e in v) _normalize(e)];
+  if (v is List<Object?>) {
+    return <Object?>[for (final Object? e in v) _normalize(e)];
+  }
   return v;
 }
 
@@ -103,8 +105,9 @@ RelayPushMessage? _apns(Map<String, Object?> payload) {
   final Object? relay = payload['relay'];
   if (relay is! Map<String, Object?>) return null;
   final Object? aps = payload['aps'];
-  final Map<String, Object?> apsMap =
-      aps is Map<String, Object?> ? aps : const <String, Object?>{};
+  final Map<String, Object?> apsMap = aps is Map<String, Object?>
+      ? aps
+      : const <String, Object?>{};
   if (relay['sync'] == true) {
     final Object? v = relay['counter_version'];
     if (v != null && v is! int) return null;
@@ -122,7 +125,8 @@ RelayPushMessage? _apns(Map<String, Object?> payload) {
     body = alert;
   }
   final bool contentFree =
-      apsMap['mutable-content'] == 1 && relay.keys.every((String k) => k == 'id');
+      apsMap['mutable-content'] == 1 &&
+      relay.keys.every((String k) => k == 'id');
   return RelayPushNotification(
     deliveryId: id,
     contentFree: contentFree,
@@ -183,10 +187,11 @@ class RelayNeutralText {
 // CH-33
 /// The generic fallback text for a locale: Turkish for tr, English otherwise.
 RelayNeutralText relayNeutralText(String? locale) {
-  final String lang =
-      (locale ?? '').toLowerCase().split(RegExp('[-_]')).first;
+  final String lang = (locale ?? '').toLowerCase().split(RegExp('[-_]')).first;
   return lang == 'tr'
       ? const RelayNeutralText('Yeni bildirim', 'Yeni bir bildiriminiz var.')
       : const RelayNeutralText(
-          'New notification', 'You have a new notification.');
+          'New notification',
+          'You have a new notification.',
+        );
 }

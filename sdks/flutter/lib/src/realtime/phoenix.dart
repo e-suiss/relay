@@ -77,7 +77,7 @@ class RelayPhoenixTransport implements RelayRealtimeTransport {
       path: '$prefix$relayWebSocketPath',
       queryParameters: <String, String>{
         'vsn': '2.0.0',
-        if (deviceId != null) 'device_id': deviceId,
+        'device_id': ?deviceId,
       },
     );
   }
@@ -98,9 +98,16 @@ class RelayPhoenixTransport implements RelayRealtimeTransport {
     return controller.stream;
   }
 
-  void _push(String? joinRef, String topic, String event, Object? payload,
-      {String? ref}) {
-    _socket?.send(jsonEncode(<Object?>[joinRef, ref ?? _next(), topic, event, payload]));
+  void _push(
+    String? joinRef,
+    String topic,
+    String event,
+    Object? payload, {
+    String? ref,
+  }) {
+    _socket?.send(
+      jsonEncode(<Object?>[joinRef, ref ?? _next(), topic, event, payload]),
+    );
   }
 
   Future<void> _run(
@@ -111,10 +118,10 @@ class RelayPhoenixTransport implements RelayRealtimeTransport {
   ) async {
     final RelayWebSocket socket;
     try {
-      socket = await connector(
-        url(deviceId: deviceId),
-        <String>['phoenix', relayPhoenixTokenProtocol(token)],
-      );
+      socket = await connector(url(deviceId: deviceId), <String>[
+        'phoenix',
+        relayPhoenixTokenProtocol(token),
+      ]);
     } on Object {
       _fail(controller, const RelayRealtimeClosed('connect_failed'));
       return;
@@ -126,19 +133,16 @@ class RelayPhoenixTransport implements RelayRealtimeTransport {
     _socket = socket;
     _sub = socket.messages.listen(
       (String text) => _onMessage(controller, text),
-      onDone: () => _fail(
-        controller,
-        relayClassifyClose(socket.closeReason),
-      ),
+      onDone: () => _fail(controller, relayClassifyClose(socket.closeReason)),
       onError: (Object _) =>
           _fail(controller, const RelayRealtimeClosed('socket_error')),
     );
     final String joinRef = _next();
     _joinRef = joinRef;
     _joinPushRef = joinRef;
-    _push(joinRef, 'inbox', 'phx_join',
-        <String, Object?>{if (cursor != null) 'cursor': cursor},
-        ref: joinRef);
+    _push(joinRef, 'inbox', 'phx_join', <String, Object?>{
+      'cursor': ?cursor,
+    }, ref: joinRef);
     _timer = Timer.periodic(heartbeat, (_) {
       if (_pendingHeartbeat != null) {
         _fail(controller, const RelayRealtimeClosed('heartbeat_timeout'));
@@ -150,7 +154,10 @@ class RelayPhoenixTransport implements RelayRealtimeTransport {
     });
   }
 
-  void _onMessage(StreamController<RelayRealtimeFrame> controller, String text) {
+  void _onMessage(
+    StreamController<RelayRealtimeFrame> controller,
+    String text,
+  ) {
     final Object? decoded;
     try {
       decoded = jsonDecode(text);
@@ -173,10 +180,13 @@ class RelayPhoenixTransport implements RelayRealtimeTransport {
           if (!controller.isClosed) controller.add(const RelayRealtimeOpened());
         } else {
           final Object? response = payload['response'];
-          final Object? reason =
-              response is Map<String, Object?> ? response['reason'] : null;
-          _fail(controller,
-              relayClassifyClose(reason is String ? reason : 'join_refused'));
+          final Object? reason = response is Map<String, Object?>
+              ? response['reason']
+              : null;
+          _fail(
+            controller,
+            relayClassifyClose(reason is String ? reason : 'join_refused'),
+          );
         }
       }
       return;
@@ -187,11 +197,16 @@ class RelayPhoenixTransport implements RelayRealtimeTransport {
       return;
     }
     if (payload is Map<String, Object?> && payload['t'] == event) {
-      if (!controller.isClosed) controller.add(RelayRealtimeEnvelopeFrame(payload));
+      if (!controller.isClosed) {
+        controller.add(RelayRealtimeEnvelopeFrame(payload));
+      }
     }
   }
 
-  void _fail(StreamController<RelayRealtimeFrame> controller, RelayRealtimeClosed reason) {
+  void _fail(
+    StreamController<RelayRealtimeFrame> controller,
+    RelayRealtimeClosed reason,
+  ) {
     if (!controller.isClosed) {
       controller.addError(reason);
       unawaited(controller.close());

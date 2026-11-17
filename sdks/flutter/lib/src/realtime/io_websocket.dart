@@ -8,9 +8,8 @@ class _IoWebSocket implements RelayWebSocket {
   final WebSocket _socket;
 
   @override
-  Stream<String> get messages => _socket
-      .where((dynamic m) => m is String)
-      .map((dynamic m) => m as String);
+  Stream<String> get messages =>
+      _socket.where((dynamic m) => m is String).map((dynamic m) => m as String);
 
   @override
   void send(String data) => _socket.add(data);

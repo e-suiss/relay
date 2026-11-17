@@ -44,9 +44,12 @@ class RelayError implements Exception {
     final String? detail = rawDetail is String ? rawDetail : null;
     final Object? flag = problem['retryable'];
     final bool known = code != null && relayErrorCatalog.containsKey(code);
-    final bool retryable =
-        !known && flag is bool ? flag : relayRetryable(status, code);
-    final String? family = code == null ? null : relayErrorCatalog[code]?.family;
+    final bool retryable = !known && flag is bool
+        ? flag
+        : relayRetryable(status, code);
+    final String? family = code == null
+        ? null
+        : relayErrorCatalog[code]?.family;
     if (family == 'idempotency') {
       return RelayIdempotencyError(
         status: status,
@@ -268,7 +271,7 @@ class RelayServerError extends RelayError {
 class RelayNetworkError extends RelayError {
   /// Creates the error.
   RelayNetworkError({required this.cause})
-      : super(status: 0, code: null, retryable: true);
+    : super(status: 0, code: null, retryable: true);
 
   /// The underlying failure.
   final Object cause;
@@ -278,7 +281,7 @@ class RelayNetworkError extends RelayError {
 class RelayBoundaryError extends RelayError {
   /// Creates the error.
   RelayBoundaryError(this.method, this.path)
-      : super(status: 0, code: 'client_boundary', retryable: false);
+    : super(status: 0, code: 'client_boundary', retryable: false);
 
   /// The refused method.
   final String method;

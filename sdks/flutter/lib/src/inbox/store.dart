@@ -29,12 +29,20 @@ class RelayInboxStore extends ChangeNotifier {
 
   /// The visible items of the inbox tab, newest activity first.
   List<InboxItem> get items {
-    final List<InboxItem> list = _items.values
-        .where((InboxItem i) =>
-            !i.hidden && !i.expired && !i.archived && i.snoozedUntil == null)
-        .toList()
-      ..sort((InboxItem a, InboxItem b) =>
-          b.lastActivityAt.compareTo(a.lastActivityAt));
+    final List<InboxItem> list =
+        _items.values
+            .where(
+              (InboxItem i) =>
+                  !i.hidden &&
+                  !i.expired &&
+                  !i.archived &&
+                  i.snoozedUntil == null,
+            )
+            .toList()
+          ..sort(
+            (InboxItem a, InboxItem b) =>
+                b.lastActivityAt.compareTo(a.lastActivityAt),
+          );
     return list;
   }
 
@@ -58,14 +66,14 @@ class RelayInboxStore extends ChangeNotifier {
 
   /// Applies the counters an envelope carries.
   bool applyEnvelopeCounters(RealtimeEnvelopeCounters c) => applyCounters(
-        InboxCounters(
-          object: 'inbox_counters',
-          unseen: c.unseen,
-          unread: c.unread,
-          total: c.total,
-          version: c.version,
-        ),
-      );
+    InboxCounters(
+      object: 'inbox_counters',
+      unseen: c.unseen,
+      unread: c.unread,
+      total: c.total,
+      version: c.version,
+    ),
+  );
 
   /// Replaces the contents with a cold sync's first page.
   void replaceAll(
@@ -83,7 +91,9 @@ class RelayInboxStore extends ChangeNotifier {
     }
     if (counters != null) {
       final InboxCounters? held = _counters;
-      if (held == null || counters.version >= held.version) _counters = counters;
+      if (held == null || counters.version >= held.version) {
+        _counters = counters;
+      }
     }
     this.cursor = cursor ?? this.cursor;
     this.nextCursor = nextCursor;
@@ -93,7 +103,11 @@ class RelayInboxStore extends ChangeNotifier {
   }
 
   /// Adds a further page.
-  void appendPage(List<InboxItem> items, {String? nextCursor, bool hasMore = false}) {
+  void appendPage(
+    List<InboxItem> items, {
+    String? nextCursor,
+    bool hasMore = false,
+  }) {
     for (final InboxItem i in items) {
       _upsert(i);
     }

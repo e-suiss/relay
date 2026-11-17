@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 // X-32
@@ -22,31 +21,31 @@ class RelayThemeData extends ThemeExtension<RelayThemeData> {
 
   /// The light default.
   const RelayThemeData.light()
-      : surface = const Color(0xFFFFFFFF),
-        onSurface = const Color(0xFF1B1F24),
-        onSurfaceMuted = const Color(0xFF545D68),
-        accent = const Color(0xFF0B5CAD),
-        onAccent = const Color(0xFFFFFFFF),
-        badge = const Color(0xFFB3261E),
-        onBadge = const Color(0xFFFFFFFF),
-        unread = const Color(0xFF0B5CAD),
-        danger = const Color(0xFFB3261E),
-        divider = const Color(0xFFD0D7DE),
-        radius = 12;
+    : surface = const Color(0xFFFFFFFF),
+      onSurface = const Color(0xFF1B1F24),
+      onSurfaceMuted = const Color(0xFF545D68),
+      accent = const Color(0xFF0B5CAD),
+      onAccent = const Color(0xFFFFFFFF),
+      badge = const Color(0xFFB3261E),
+      onBadge = const Color(0xFFFFFFFF),
+      unread = const Color(0xFF0B5CAD),
+      danger = const Color(0xFFB3261E),
+      divider = const Color(0xFFD0D7DE),
+      radius = 12;
 
   /// The dark default.
   const RelayThemeData.dark()
-      : surface = const Color(0xFF121417),
-        onSurface = const Color(0xFFE8EAED),
-        onSurfaceMuted = const Color(0xFFADB5BD),
-        accent = const Color(0xFF8AB4F8),
-        onAccent = const Color(0xFF0B1A2E),
-        badge = const Color(0xFFF2B8B5),
-        onBadge = const Color(0xFF3C0D0A),
-        unread = const Color(0xFF8AB4F8),
-        danger = const Color(0xFFF2B8B5),
-        divider = const Color(0xFF3A3F45),
-        radius = 12;
+    : surface = const Color(0xFF121417),
+      onSurface = const Color(0xFFE8EAED),
+      onSurfaceMuted = const Color(0xFFADB5BD),
+      accent = const Color(0xFF8AB4F8),
+      onAccent = const Color(0xFF0B1A2E),
+      badge = const Color(0xFFF2B8B5),
+      onBadge = const Color(0xFF3C0D0A),
+      unread = const Color(0xFF8AB4F8),
+      danger = const Color(0xFFF2B8B5),
+      divider = const Color(0xFF3A3F45),
+      radius = 12;
 
   /// The background of lists and sheets.
   final Color surface;
@@ -107,20 +106,19 @@ class RelayThemeData extends ThemeExtension<RelayThemeData> {
     Color? danger,
     Color? divider,
     double? radius,
-  }) =>
-      RelayThemeData(
-        surface: surface ?? this.surface,
-        onSurface: onSurface ?? this.onSurface,
-        onSurfaceMuted: onSurfaceMuted ?? this.onSurfaceMuted,
-        accent: accent ?? this.accent,
-        onAccent: onAccent ?? this.onAccent,
-        badge: badge ?? this.badge,
-        onBadge: onBadge ?? this.onBadge,
-        unread: unread ?? this.unread,
-        danger: danger ?? this.danger,
-        divider: divider ?? this.divider,
-        radius: radius ?? this.radius,
-      );
+  }) => RelayThemeData(
+    surface: surface ?? this.surface,
+    onSurface: onSurface ?? this.onSurface,
+    onSurfaceMuted: onSurfaceMuted ?? this.onSurfaceMuted,
+    accent: accent ?? this.accent,
+    onAccent: onAccent ?? this.onAccent,
+    badge: badge ?? this.badge,
+    onBadge: onBadge ?? this.onBadge,
+    unread: unread ?? this.unread,
+    danger: danger ?? this.danger,
+    divider: divider ?? this.divider,
+    radius: radius ?? this.radius,
+  );
 
   @override
   RelayThemeData lerp(covariant RelayThemeData? other, double t) {

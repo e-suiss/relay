@@ -38,7 +38,8 @@ class RelayUndoBuffer {
 
   /// Sends every pending action now.
   Future<void> flush() async {
-    final List<(Timer, Future<void> Function())> entries = _pending.values.toList();
+    final List<(Timer, Future<void> Function())> entries = _pending.values
+        .toList();
     _pending.clear();
     for (final (Timer, Future<void> Function()) e in entries) {
       e.$1.cancel();

@@ -18,7 +18,10 @@ enum _OffChoice { instant, digest, never }
 /// The preference center: category by channel switches, locked cells shown as such, push shown off when the device disallows it, and a three-way step without a preselected choice when a category is turned off.
 class RelayPreferenceCenter extends StatefulWidget {
   /// Creates the preference center.
-  const RelayPreferenceCenter({super.key, this.categoryLabels = const <String, String>{}});
+  const RelayPreferenceCenter({
+    super.key,
+    this.categoryLabels = const <String, String>{},
+  });
 
   /// Display names of category keys.
   final Map<String, String> categoryLabels;
@@ -50,7 +53,10 @@ class _RelayPreferenceCenterState extends State<RelayPreferenceCenter> {
 
   String _label(String category) => widget.categoryLabels[category] ?? category;
 
-  Future<void> _write(Future<SubscriberPreferences> Function() write, String category) async {
+  Future<void> _write(
+    Future<SubscriberPreferences> Function() write,
+    String category,
+  ) async {
     final RelayLocalizations l10n = RelayLocalizations.of(context);
     setState(() => _busy = true);
     try {
@@ -63,9 +69,13 @@ class _RelayPreferenceCenterState extends State<RelayPreferenceCenter> {
         'preference_digest_not_allowed' => 'digest_not_allowed',
         _ => 'error_generic',
       };
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
-        content: Text(l10n.text(key, <String, String>{'category': _label(category)})),
-      ));
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.text(key, <String, String>{'category': _label(category)}),
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -76,7 +86,11 @@ class _RelayPreferenceCenterState extends State<RelayPreferenceCenter> {
     final SubscriberPreferences current = _prefs!;
     if (on) {
       await _write(
-        () => client.preferences.setCell(cell.category, cell.channel, PreferenceValue.optIn),
+        () => client.preferences.setCell(
+          cell.category,
+          cell.channel,
+          PreferenceValue.optIn,
+        ),
         cell.category,
       );
       return;
@@ -101,7 +115,11 @@ class _RelayPreferenceCenterState extends State<RelayPreferenceCenter> {
         );
       case _OffChoice.never:
         await _write(
-          () => client.preferences.setCell(cell.category, cell.channel, PreferenceValue.optOut),
+          () => client.preferences.setCell(
+            cell.category,
+            cell.channel,
+            PreferenceValue.optOut,
+          ),
           cell.category,
         );
     }
@@ -120,12 +138,16 @@ class _RelayPreferenceCenterState extends State<RelayPreferenceCenter> {
             setState(() => _failed = false);
             unawaited(_load());
           },
-          child: Text(l10n.text('retry'), style: TextStyle(color: theme.accent)),
+          child: Text(
+            l10n.text('retry'),
+            style: TextStyle(color: theme.accent),
+          ),
         ),
       );
     }
     if (prefs == null) return const Center(child: CircularProgressIndicator());
-    final Map<String, List<PreferenceCell>> byCategory = <String, List<PreferenceCell>>{};
+    final Map<String, List<PreferenceCell>> byCategory =
+        <String, List<PreferenceCell>>{};
     for (final PreferenceCell c in prefs.cells) {
       byCategory.putIfAbsent(c.category, () => <PreferenceCell>[]).add(c);
     }
@@ -134,7 +156,8 @@ class _RelayPreferenceCenterState extends State<RelayPreferenceCenter> {
       color: theme.surface,
       child: ListView(
         children: <Widget>[
-          for (final MapEntry<String, List<PreferenceCell>> entry in byCategory.entries) ...<Widget>[
+          for (final MapEntry<String, List<PreferenceCell>> entry
+              in byCategory.entries) ...<Widget>[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
               child: Semantics(
@@ -150,14 +173,24 @@ class _RelayPreferenceCenterState extends State<RelayPreferenceCenter> {
               ),
             ),
             for (final PreferenceCell cell in entry.value)
-              _cell(cell, theme, l10n, osDisabled && cell.channel == Channel.push),
+              _cell(
+                cell,
+                theme,
+                l10n,
+                osDisabled && cell.channel == Channel.push,
+              ),
           ],
         ],
       ),
     );
   }
 
-  Widget _cell(PreferenceCell cell, RelayThemeData theme, RelayLocalizations l10n, bool osDisabled) {
+  Widget _cell(
+    PreferenceCell cell,
+    RelayThemeData theme,
+    RelayLocalizations l10n,
+    bool osDisabled,
+  ) {
     final String channel = l10n.channel(cell.channel);
     if (cell.source == PreferenceSource.locked) {
       return Semantics(
@@ -170,7 +203,10 @@ class _RelayPreferenceCenterState extends State<RelayPreferenceCenter> {
         child: ListTile(
           minTileHeight: 48,
           title: Text(channel, style: TextStyle(color: theme.onSurface)),
-          trailing: Text(l10n.text('locked_on'), style: TextStyle(color: theme.onSurfaceMuted)),
+          trailing: Text(
+            l10n.text('locked_on'),
+            style: TextStyle(color: theme.onSurfaceMuted),
+          ),
         ),
       );
     }
@@ -180,15 +216,23 @@ class _RelayPreferenceCenterState extends State<RelayPreferenceCenter> {
       activeTrackColor: theme.accent,
       title: Text(channel, style: TextStyle(color: theme.onSurface)),
       subtitle: Text(
-        osDisabled ? l10n.text('os_disabled') : l10n.text(cell.effective ? 'on' : 'off'),
-        style: TextStyle(color: osDisabled ? theme.danger : theme.onSurfaceMuted),
+        osDisabled
+            ? l10n.text('os_disabled')
+            : l10n.text(cell.effective ? 'on' : 'off'),
+        style: TextStyle(
+          color: osDisabled ? theme.danger : theme.onSurfaceMuted,
+        ),
       ),
     );
   }
 }
 
 class _OffStep extends StatelessWidget {
-  const _OffStep({required this.category, required this.l10n, required this.theme});
+  const _OffStep({
+    required this.category,
+    required this.l10n,
+    required this.theme,
+  });
 
   final String category;
 
@@ -199,17 +243,22 @@ class _OffStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget option(_OffChoice choice, String key) => SimpleDialogOption(
-          onPressed: () => Navigator.of(context).pop(choice),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48),
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: Text(l10n.text(key), style: TextStyle(color: theme.onSurface, fontSize: 16)),
-            ),
+      onPressed: () => Navigator.of(context).pop(choice),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Text(
+            l10n.text(key),
+            style: TextStyle(color: theme.onSurface, fontSize: 16),
           ),
-        );
+        ),
+      ),
+    );
     return SimpleDialog(
-      title: Text(l10n.text('off_step_title', <String, String>{'category': category})),
+      title: Text(
+        l10n.text('off_step_title', <String, String>{'category': category}),
+      ),
       children: <Widget>[
         option(_OffChoice.instant, 'off_instant'),
         option(_OffChoice.digest, 'off_digest'),

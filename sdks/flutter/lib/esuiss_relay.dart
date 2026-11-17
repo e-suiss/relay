@@ -4,7 +4,13 @@ library;
 export 'src/client.dart';
 export 'src/core/boundary.dart';
 export 'src/core/errors.dart';
-export 'src/core/http.dart' show RelayHttp, RelayResponse, SubscriberToken, SubscriberTokenProvider, parseRetryAfter;
+export 'src/core/http.dart'
+    show
+        RelayHttp,
+        RelayResponse,
+        SubscriberToken,
+        SubscriberTokenProvider,
+        parseRetryAfter;
 export 'src/core/ports.dart';
 export 'src/generated/models.dart';
 export 'src/generated/operations.dart';

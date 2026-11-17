@@ -54,12 +54,12 @@ class RelayHttp {
     RelayLogger? logger,
     RelayClock? clock,
     this.maxRetries = 3,
-  })  : baseUrl = _checkBase(baseUrl),
-        clock = clock ?? const SystemRelayClock(),
-        client = client ?? http.Client(),
-        random = random ?? SecureRelayRandom(),
-        delay = delay ?? relayDefaultDelay,
-        logger = logger ?? const SilentRelayLogger();
+  }) : baseUrl = _checkBase(baseUrl),
+       clock = clock ?? const SystemRelayClock(),
+       client = client ?? http.Client(),
+       random = random ?? SecureRelayRandom(),
+       delay = delay ?? relayDefaultDelay,
+       logger = logger ?? const SilentRelayLogger();
 
   /// The region base URL.
   final Uri baseUrl;
@@ -99,10 +99,13 @@ class RelayHttp {
   Future<SubscriberToken> token({bool forceRefresh = false}) async {
     final SubscriberToken? held = _token;
     final DateTime? expiresAt = held?.expiresAt;
-    final bool expiring = expiresAt != null &&
+    final bool expiring =
+        expiresAt != null &&
         !clock.now().isBefore(expiresAt.subtract(const Duration(seconds: 30)));
     if (!forceRefresh && held != null && !expiring) return held;
-    final SubscriberToken fresh = await tokenProvider(forceRefresh: forceRefresh);
+    final SubscriberToken fresh = await tokenProvider(
+      forceRefresh: forceRefresh,
+    );
     _token = fresh;
     return fresh;
   }
@@ -164,7 +167,7 @@ class RelayHttp {
           'Relay-Version': relayApiVersion,
           'Accept': 'application/json',
           ...headers,
-          if (key != null) 'Idempotency-Key': key,
+          'Idempotency-Key': ?key,
         });
       if (body != null) {
         request.headers['Content-Type'] = 'application/json';
@@ -235,8 +238,18 @@ class RelayHttp {
 }
 
 const List<String> _months = <String>[
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 /// Parses a Retry-After header: delay seconds or an HTTP date.

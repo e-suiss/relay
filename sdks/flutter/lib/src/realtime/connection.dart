@@ -43,10 +43,10 @@ class RelayRealtime {
     RelayLogger? logger,
     this.failuresBeforeFallback = 2,
     this.fallbackRetry = const Duration(minutes: 10),
-  })  : random = random ?? SecureRelayRandom(),
-        delay = delay ?? relayDefaultDelay,
-        clock = clock ?? const SystemRelayClock(),
-        logger = logger ?? const SilentRelayLogger();
+  }) : random = random ?? SecureRelayRandom(),
+       delay = delay ?? relayDefaultDelay,
+       clock = clock ?? const SystemRelayClock(),
+       logger = logger ?? const SilentRelayLogger();
 
   /// The transports in order of preference.
   final List<RelayRealtimeTransport> transports;
@@ -147,7 +147,9 @@ class RelayRealtime {
               status.value = RelayRealtimeStatus.connected;
               _scheduleRefresh(transport, token, generation);
               _settle(true);
-            case RelayRealtimeEnvelopeFrame(:final Map<String, Object?> envelope):
+            case RelayRealtimeEnvelopeFrame(
+              :final Map<String, Object?> envelope,
+            ):
               onEnvelope(envelope);
             case RelayRealtimeCursorFrame(cursor: final String c):
               onCursor?.call(c);
@@ -196,7 +198,8 @@ class RelayRealtime {
       if (!opened) {
         final int failures = (_failures[_index] ?? 0) + 1;
         _failures[_index] = failures;
-        if (failures >= failuresBeforeFallback && _index < transports.length - 1) {
+        if (failures >= failuresBeforeFallback &&
+            _index < transports.length - 1) {
           _index++;
         } else if (_index == transports.length - 1) {
           _settle(false);
@@ -205,7 +208,9 @@ class RelayRealtime {
       final Duration backoff = relayBackoff(attempt, random);
       final Duration? retryAfter = closed?.retryAfter;
       attempt++;
-      await delay(retryAfter != null && retryAfter > backoff ? retryAfter : backoff);
+      await delay(
+        retryAfter != null && retryAfter > backoff ? retryAfter : backoff,
+      );
     }
   }
 

@@ -32,25 +32,29 @@ class RelayPreferencesApi {
     String category,
     Channel channel,
     PreferenceValue value,
-  ) =>
-      update(MyPreferencesPatch(preferences: <PreferenceWrite>[
+  ) => update(
+    MyPreferencesPatch(
+      preferences: <PreferenceWrite>[
         PreferenceWrite(
           level: PreferenceLevel.categoryChannel,
           category: category,
           channel: channel,
           value: value,
         ),
-      ]));
+      ],
+    ),
+  );
 
   /// Chooses instant or digest delivery for a category.
   Future<SubscriberPreferences> setDigest(
     SubscriberPreferences current,
     String category,
     String choice,
-  ) =>
-      update(MyPreferencesPatch(
-        profile: PreferenceProfileWrite(
-          digest: <String, String>{...current.profile.digest, category: choice},
-        ),
-      ));
+  ) => update(
+    MyPreferencesPatch(
+      profile: PreferenceProfileWrite(
+        digest: <String, String>{...current.profile.digest, category: choice},
+      ),
+    ),
+  );
 }

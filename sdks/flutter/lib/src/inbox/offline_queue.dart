@@ -64,15 +64,15 @@ class RelayQueuedIntent {
 
   /// Writes the entry.
   Map<String, Object?> toJson() => <String, Object?>{
-        'item_id': itemId,
-        'op': op,
-        'client_seq': clientSeq,
-        'key': idempotencyKey,
-        'session': session,
-        'base_state_version': baseStateVersion,
-        'snooze_until': snoozeUntil,
-        'interactive': interactive,
-      };
+    'item_id': itemId,
+    'op': op,
+    'client_seq': clientSeq,
+    'key': idempotencyKey,
+    'session': session,
+    'base_state_version': baseStateVersion,
+    'snooze_until': snoozeUntil,
+    'interactive': interactive,
+  };
 }
 
 /// A notice that an on-screen reverse change lost to another device.
@@ -97,8 +97,8 @@ class RelayIntentQueue {
     required this.store,
     required this.inbox,
     RelayLogger? logger,
-  })  : logger = logger ?? const SilentRelayLogger(),
-        session = http.newIdempotencyKey();
+  }) : logger = logger ?? const SilentRelayLogger(),
+       session = http.newIdempotencyKey();
 
   /// The HTTP core.
   final RelayHttp http;
@@ -130,11 +130,14 @@ class RelayIntentQueue {
   Future<List<RelayQueuedIntent>> entries() async {
     final String? raw = await store.read(_queueKey);
     if (raw == null) return <RelayQueuedIntent>[];
-    final List<RelayQueuedIntent> list = <RelayQueuedIntent>[
-      for (final Object? e in jsonDecode(raw) as List<Object?>)
-        RelayQueuedIntent.fromJson(e! as Map<String, Object?>),
-    ]..sort((RelayQueuedIntent a, RelayQueuedIntent b) =>
-        a.clientSeq.compareTo(b.clientSeq));
+    final List<RelayQueuedIntent> list =
+        <RelayQueuedIntent>[
+          for (final Object? e in jsonDecode(raw) as List<Object?>)
+            RelayQueuedIntent.fromJson(e! as Map<String, Object?>),
+        ]..sort(
+          (RelayQueuedIntent a, RelayQueuedIntent b) =>
+              a.clientSeq.compareTo(b.clientSeq),
+        );
     return list;
   }
 
@@ -144,7 +147,9 @@ class RelayIntentQueue {
     } else {
       await store.write(
         _queueKey,
-        jsonEncode(<Object?>[for (final RelayQueuedIntent e in list) e.toJson()]),
+        jsonEncode(<Object?>[
+          for (final RelayQueuedIntent e in list) e.toJson(),
+        ]),
       );
     }
   }
@@ -164,16 +169,18 @@ class RelayIntentQueue {
   }) async {
     final List<RelayQueuedIntent> list = await entries()
       ..removeWhere((RelayQueuedIntent e) => e.itemId == itemId);
-    list.add(RelayQueuedIntent(
-      itemId: itemId,
-      op: op,
-      clientSeq: await _nextSeq(),
-      idempotencyKey: http.newIdempotencyKey(),
-      session: session,
-      baseStateVersion: inbox.versionOf(itemId),
-      snoozeUntil: snoozeUntil,
-      interactive: interactive,
-    ));
+    list.add(
+      RelayQueuedIntent(
+        itemId: itemId,
+        op: op,
+        clientSeq: await _nextSeq(),
+        idempotencyKey: http.newIdempotencyKey(),
+        session: session,
+        baseStateVersion: inbox.versionOf(itemId),
+        snoozeUntil: snoozeUntil,
+        interactive: interactive,
+      ),
+    );
     await _save(list);
     inbox.applyLocal(itemId, op, snoozeUntil: snoozeUntil);
   }
@@ -187,8 +194,10 @@ class RelayIntentQueue {
 
   Future<void> _done(RelayQueuedIntent e) async {
     final List<RelayQueuedIntent> list = await entries()
-      ..removeWhere((RelayQueuedIntent x) =>
-          x.itemId == e.itemId && x.clientSeq == e.clientSeq);
+      ..removeWhere(
+        (RelayQueuedIntent x) =>
+            x.itemId == e.itemId && x.clientSeq == e.clientSeq,
+      );
     await _save(list);
   }
 
@@ -219,7 +228,9 @@ class RelayIntentQueue {
             snoozeUntil: e.snoozeUntil,
           ).toJson(),
         );
-        final InboxIntentResult result = InboxIntentResult.fromJson(response.json);
+        final InboxIntentResult result = InboxIntentResult.fromJson(
+          response.json,
+        );
         inbox.applyState(result.state);
         inbox.applyCounters(result.counters);
       } on RelayConflictError catch (error) {
@@ -232,8 +243,10 @@ class RelayIntentQueue {
         }
       } on RelayError catch (error) {
         if (error.retryable || error is RelayAuthError) return;
-        logger.log(RelayLogLevel.debug, 'intent.dropped',
-            <String, Object?>{'status': error.status, 'code': error.code});
+        logger.log(RelayLogLevel.debug, 'intent.dropped', <String, Object?>{
+          'status': error.status,
+          'code': error.code,
+        });
       }
       await _done(e);
     }

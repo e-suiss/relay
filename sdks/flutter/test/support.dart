@@ -35,7 +35,8 @@ class FakeClock implements RelayClock {
 }
 
 class RecordingLogger implements RelayLogger {
-  final List<(String, Map<String, Object?>)> events = <(String, Map<String, Object?>)>[];
+  final List<(String, Map<String, Object?>)> events =
+      <(String, Map<String, Object?>)>[];
 
   @override
   void log(
@@ -75,103 +76,139 @@ class Server {
   final List<hc.Request> requests = <hc.Request>[];
 
   MockClient get client => MockClient((hc.Request r) async {
-        requests.add(r);
-        return handler(r);
-      });
+    requests.add(r);
+    return handler(r);
+  });
 
   List<String> get calls => <String>[
-        for (final hc.Request r in requests) '${r.method} ${r.url.path}',
-      ];
+    for (final hc.Request r in requests) '${r.method} ${r.url.path}',
+  ];
 }
 
-hc.Response json(Object? body, {int status = 200, Map<String, String> headers = const <String, String>{}}) =>
-    hc.Response(
-      jsonEncode(body),
-      status,
-      headers: <String, String>{'content-type': 'application/json', ...headers},
-    );
+hc.Response json(
+  Object? body, {
+  int status = 200,
+  Map<String, String> headers = const <String, String>{},
+}) => hc.Response(
+  jsonEncode(body),
+  status,
+  headers: <String, String>{'content-type': 'application/json', ...headers},
+);
 
-hc.Response problem(int status, String code, {bool retryable = false, Map<String, String> headers = const <String, String>{}, Map<String, Object?> extra = const <String, Object?>{}}) =>
-    json(
-      <String, Object?>{
-        'type': 'https://relay.test/v1/errors/$code',
-        'title': code,
-        'status': status,
-        'code': code,
-        'retryable': retryable,
-        ...extra,
-      },
-      status: status,
-      headers: headers,
-    );
+hc.Response problem(
+  int status,
+  String code, {
+  bool retryable = false,
+  Map<String, String> headers = const <String, String>{},
+  Map<String, Object?> extra = const <String, Object?>{},
+}) => json(
+  <String, Object?>{
+    'type': 'https://relay.test/v1/errors/$code',
+    'title': code,
+    'status': status,
+    'code': code,
+    'retryable': retryable,
+    ...extra,
+  },
+  status: status,
+  headers: headers,
+);
 
-RelayHttp httpCore(Server server, {TokenSource? tokens, Delays? delays, RelayLogger? logger}) => RelayHttp(
-      baseUrl: base,
-      tokenProvider: tokens ?? TokenSource().call,
-      client: server.client,
-      random: FakeRandom(),
-      delay: delays ?? Delays().call,
-      logger: logger,
-    );
+RelayHttp httpCore(
+  Server server, {
+  TokenSource? tokens,
+  Delays? delays,
+  RelayLogger? logger,
+}) => RelayHttp(
+  baseUrl: base,
+  tokenProvider: (tokens ?? TokenSource()).call,
+  client: server.client,
+  random: FakeRandom(),
+  delay: (delays ?? Delays()).call,
+  logger: logger,
+);
 
 const String ts = '2026-11-18T09:00:00Z';
 
-Map<String, Object?> counters({int unseen = 0, int unread = 0, int total = 0, int version = 1}) =>
-    <String, Object?>{
-      'object': 'inbox_counters',
-      'unseen': unseen,
-      'unread': unread,
-      'total': total,
-      'version': version,
-    };
+Map<String, Object?> counters({
+  int unseen = 0,
+  int unread = 0,
+  int total = 0,
+  int version = 1,
+}) => <String, Object?>{
+  'object': 'inbox_counters',
+  'unseen': unseen,
+  'unread': unread,
+  'total': total,
+  'version': version,
+};
 
-Map<String, Object?> state(String id, {int version = 1, bool read = false, bool hidden = false, bool archived = false}) =>
-    <String, Object?>{
-      'id': id,
-      'state_version': version,
-      'seen': read,
-      'read': read,
-      'archived': archived,
-      'hidden': hidden,
-      'expired': false,
-      'snoozed_until': null,
-      'seen_at': null,
-      'read_at': read ? ts : null,
-      'archived_at': null,
-    };
+Map<String, Object?> state(
+  String id, {
+  int version = 1,
+  bool read = false,
+  bool hidden = false,
+  bool archived = false,
+}) => <String, Object?>{
+  'id': id,
+  'state_version': version,
+  'seen': read,
+  'read': read,
+  'archived': archived,
+  'hidden': hidden,
+  'expired': false,
+  'snoozed_until': null,
+  'seen_at': null,
+  'read_at': read ? ts : null,
+  'archived_at': null,
+};
 
-Map<String, Object?> item(String id, {int version = 1, bool read = false, String title = 'Title', String activity = ts}) =>
-    <String, Object?>{
-      'object': 'inbox_item',
-      ...state(id, version: version, read: read),
-      'created_at': ts,
-      'last_activity_at': activity,
-      'category': 'orders',
-      'tags': <Object?>[],
-      'severity': null,
-      'group_key': null,
-      'title': title,
-      'body': 'Body of $id',
-      'avatar_url': null,
-      'url': null,
-      'actions': <Object?>[],
-      'data': <Object?>[],
-      'locale': 'en',
-      'dir': null,
-      'activity_count': 1,
-      'actor_count': 0,
-      'expires_at': null,
-    };
+Map<String, Object?> item(
+  String id, {
+  int version = 1,
+  bool read = false,
+  String title = 'Title',
+  String activity = ts,
+}) => <String, Object?>{
+  'object': 'inbox_item',
+  ...state(id, version: version, read: read),
+  'created_at': ts,
+  'last_activity_at': activity,
+  'category': 'orders',
+  'tags': <Object?>[],
+  'severity': null,
+  'group_key': null,
+  'title': title,
+  'body': 'Body of $id',
+  'avatar_url': null,
+  'url': null,
+  'actions': <Object?>[],
+  'data': <Object?>[],
+  'locale': 'en',
+  'dir': null,
+  'activity_count': 1,
+  'actor_count': 0,
+  'expires_at': null,
+};
 
-Map<String, Object?> envelope(String t, Map<String, Object?> d, {String id = 'c1', int version = 1}) =>
-    <String, Object?>{
-      't': t,
-      'v': 1,
-      'ts': ts,
-      'id': id,
-      'd': d,
-      'counters': <String, Object?>{'unseen': 0, 'unread': 0, 'total': 0, 'version': version},
-    };
+Map<String, Object?> envelope(
+  String t,
+  Map<String, Object?> d, {
+  String id = 'c1',
+  int version = 1,
+}) => <String, Object?>{
+  't': t,
+  'v': 1,
+  'ts': ts,
+  'id': id,
+  'd': d,
+  'counters': <String, Object?>{
+    'unseen': 0,
+    'unread': 0,
+    'total': 0,
+    'version': version,
+  },
+};
 
 const String inb1 = 'inb_01j9zq3k4m5n6p7q8r9s0t1v2w';
 const String inb2 = 'inb_01j9zq3k4m5n6p7q8r9s0t1v2x';
@@ -180,28 +217,34 @@ const String dlv1 = 'dlv_01j9zq3k4m5n6p7q8r9s0t1v2w';
 const String ntf1 = 'ntf_01j9zq3k4m5n6p7q8r9s0t1v2w';
 const String sub1 = 'sub_01j9zq3k4m5n6p7q8r9s0t1v2w';
 
-Map<String, Object?> device({String permission = 'granted', String platform = 'fcm'}) => <String, Object?>{
-      'object': 'device',
-      'id': dev1,
-      'subscriber_id': sub1,
-      'platform': platform,
-      'app': 'com.example.app',
-      'token_fingerprint': '0123456789abcdef',
-      'apns_environment': null,
-      'permission': permission,
-      'android_channels': <Object?>[],
-      'locale': null,
-      'state': 'active',
-      'disabled_reason': null,
-      'registered_at': ts,
-      'last_seen_at': ts,
-      'deleted_at': null,
-      'created_at': ts,
-      'updated_at': ts,
-    };
+Map<String, Object?> device({
+  String permission = 'granted',
+  String platform = 'fcm',
+}) => <String, Object?>{
+  'object': 'device',
+  'id': dev1,
+  'subscriber_id': sub1,
+  'platform': platform,
+  'app': 'com.example.app',
+  'token_fingerprint': '0123456789abcdef',
+  'apns_environment': null,
+  'permission': permission,
+  'android_channels': <Object?>[],
+  'locale': null,
+  'state': 'active',
+  'disabled_reason': null,
+  'registered_at': ts,
+  'last_seen_at': ts,
+  'deleted_at': null,
+  'created_at': ts,
+  'updated_at': ts,
+};
 
 class FakePushAdapter implements RelayPushAdapter {
-  FakePushAdapter({this.platform = DevicePlatform.fcm, this.token = 'push-token-1'});
+  FakePushAdapter({
+    this.platform = DevicePlatform.fcm,
+    this.token = 'push-token-1',
+  });
 
   @override
   final DevicePlatform platform;
@@ -230,9 +273,13 @@ class FakePushAdapter implements RelayPushAdapter {
   Future<DevicePermission> getPermission() async => permission;
 
   @override
-  Future<DevicePermission> requestPermission({required bool provisional}) async {
+  Future<DevicePermission> requestPermission({
+    required bool provisional,
+  }) async {
     lastProvisional = provisional;
-    permission = provisional ? DevicePermission.provisional : DevicePermission.granted;
+    permission = provisional
+        ? DevicePermission.provisional
+        : DevicePermission.granted;
     return permission;
   }
 
@@ -243,9 +290,9 @@ class FakePushAdapter implements RelayPushAdapter {
 
   @override
   Future<List<AndroidChannel>> getAndroidChannels() async => <AndroidChannel>[
-        for (final RelayAndroidChannel c in created)
-          AndroidChannel(id: c.id, importance: c.importance),
-      ];
+    for (final RelayAndroidChannel c in created)
+      AndroidChannel(id: c.id, importance: c.importance),
+  ];
 
   @override
   Future<RelayInterruptionCapabilities> getInterruptionCapabilities() async =>
@@ -258,9 +305,9 @@ class FakePushAdapter implements RelayPushAdapter {
 
   @override
   Future<List<String>> shownTags() async => <String>[
-        for (final RelayLocalNotification n in shown)
-          if (!removed.contains(n.tag)) n.tag,
-      ];
+    for (final RelayLocalNotification n in shown)
+      if (!removed.contains(n.tag)) n.tag,
+  ];
 
   @override
   Future<void> remove(List<String> tags) async {

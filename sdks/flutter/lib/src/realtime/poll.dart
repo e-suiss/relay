@@ -55,10 +55,12 @@ class RelayPollTransport implements RelayRealtimeTransport {
         poll = RealtimePoll.fromJson(response.json);
       } on RelayError catch (error) {
         if (!controller.isClosed) {
-          controller.addError(relayClassifyClose(
-            error.code ?? 'http_${error.status}',
-            retryAfter: error.retryAfter,
-          ));
+          controller.addError(
+            relayClassifyClose(
+              error.code ?? 'http_${error.status}',
+              retryAfter: error.retryAfter,
+            ),
+          );
           unawaited(controller.close());
         }
         return;

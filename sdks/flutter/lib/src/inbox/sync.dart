@@ -77,7 +77,9 @@ class RelayInboxSync {
         final Object? itemId = d['item_id'];
         final Object? version = d['state_version'];
         final Object? changes = d['changes'];
-        if (itemId is String && version is int && changes is Map<String, Object?>) {
+        if (itemId is String &&
+            version is int &&
+            changes is Map<String, Object?>) {
           store.applyChanges(itemId, version, changes);
         }
       case 'inbox.items_bulk_updated':
@@ -129,8 +131,9 @@ class RelayInboxSync {
       );
     } finally {
       _buffering = false;
-      final List<Map<String, Object?>> pending =
-          List<Map<String, Object?>>.of(_buffer);
+      final List<Map<String, Object?>> pending = List<Map<String, Object?>>.of(
+        _buffer,
+      );
       _buffer.clear();
       pending.forEach(_apply);
     }
@@ -142,8 +145,9 @@ class RelayInboxSync {
     if (store.hasMore || counters == null) return;
     final int listed = store.items.where((InboxItem i) => !i.read).length;
     if (listed == counters.unread) return;
-    final RelayResponse r =
-        await http.send(RelayOperation.reportMyInboxInconsistency);
+    final RelayResponse r = await http.send(
+      RelayOperation.reportMyInboxInconsistency,
+    );
     store.applyCounters(InboxReconciliation.fromJson(r.json).counters);
   }
 
@@ -179,8 +183,9 @@ class RelayInboxSync {
       }
     } finally {
       _buffering = false;
-      final List<Map<String, Object?>> pending =
-          List<Map<String, Object?>>.of(_buffer);
+      final List<Map<String, Object?>> pending = List<Map<String, Object?>>.of(
+        _buffer,
+      );
       _buffer.clear();
       pending.forEach(_apply);
     }
@@ -200,7 +205,11 @@ class RelayInboxSync {
       query: <String, String?>{'limit': '$pageSize', 'starting_after': next},
     );
     final InboxItemList page = InboxItemList.fromJson(r.json);
-    store.appendPage(page.data, nextCursor: page.nextCursor, hasMore: page.hasMore);
+    store.appendPage(
+      page.data,
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+    );
   }
 
   /// Marks every unread item read, or one category.

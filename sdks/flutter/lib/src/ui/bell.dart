@@ -28,7 +28,9 @@ class RelayInboxBell extends StatelessWidget {
       builder: (BuildContext context, Widget? _) {
         final int count = inbox.unseen;
         final String label = count > 0
-            ? l10n.text('bell_label', <String, String>{'count': l10n.badge(count)})
+            ? l10n.text('bell_label', <String, String>{
+                'count': l10n.badge(count),
+              })
             : l10n.text('bell_label_none');
         return Semantics(
           button: true,
@@ -50,7 +52,10 @@ class RelayInboxBell extends StatelessWidget {
                       top: 6,
                       right: 4,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 1,
+                        ),
                         constraints: const BoxConstraints(minWidth: 18),
                         decoration: BoxDecoration(
                           color: theme.badge,

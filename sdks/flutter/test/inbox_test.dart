@@ -7,29 +7,51 @@ import 'package:http/http.dart' as hc;
 
 import 'support.dart';
 
-Map<String, Object?> body(hc.Request r) => jsonDecode(r.body) as Map<String, Object?>;
+Map<String, Object?> body(hc.Request r) =>
+    jsonDecode(r.body) as Map<String, Object?>;
 
-Map<String, Object?> intentResult(String id, String op, int seq, {int version = 2, bool read = true}) =>
-    <String, Object?>{
-      'object': 'inbox_intent_result',
-      'item_id': id,
-      'op': op,
-      'client_seq': seq,
-      'result': 'applied',
-      'state': state(id, version: version, read: read),
-      'counters': counters(version: 5),
-    };
+Map<String, Object?> intentResult(
+  String id,
+  String op,
+  int seq, {
+  int version = 2,
+  bool read = true,
+}) => <String, Object?>{
+  'object': 'inbox_intent_result',
+  'item_id': id,
+  'op': op,
+  'client_seq': seq,
+  'result': 'applied',
+  'state': state(id, version: version, read: read),
+  'counters': counters(version: 5),
+};
 
 void main() {
   group('IN-27 store', () {
     test('IN-27 drops items and counters whose version is not newer', () {
       final RelayInboxStore store = RelayInboxStore();
       expect(store.upsert(InboxItem.fromJson(item(inb1, version: 2))), isTrue);
-      expect(store.upsert(InboxItem.fromJson(item(inb1, version: 2, title: 'dup'))), isFalse);
-      expect(store.upsert(InboxItem.fromJson(item(inb1, version: 1, title: 'old'))), isFalse);
+      expect(
+        store.upsert(InboxItem.fromJson(item(inb1, version: 2, title: 'dup'))),
+        isFalse,
+      );
+      expect(
+        store.upsert(InboxItem.fromJson(item(inb1, version: 1, title: 'old'))),
+        isFalse,
+      );
       expect(store.item(inb1)!.title, 'Title');
-      expect(store.applyCounters(InboxCounters.fromJson(counters(version: 3, unseen: 4))), isTrue);
-      expect(store.applyCounters(InboxCounters.fromJson(counters(version: 3, unseen: 9))), isFalse);
+      expect(
+        store.applyCounters(
+          InboxCounters.fromJson(counters(version: 3, unseen: 4)),
+        ),
+        isTrue,
+      );
+      expect(
+        store.applyCounters(
+          InboxCounters.fromJson(counters(version: 3, unseen: 9)),
+        ),
+        isFalse,
+      );
       expect(store.unseen, 4);
     });
 
@@ -48,10 +70,15 @@ void main() {
 
     setUp(() {
       inbox = RelayInboxStore()
-        ..replaceAll(<InboxItem>[
-          InboxItem.fromJson(item(inb1, version: 1)),
-          InboxItem.fromJson(item(inb2, version: 1)),
-        ], counters: InboxCounters.fromJson(counters(unseen: 2, unread: 2, total: 2, version: 1)));
+        ..replaceAll(
+          <InboxItem>[
+            InboxItem.fromJson(item(inb1, version: 1)),
+            InboxItem.fromJson(item(inb2, version: 1)),
+          ],
+          counters: InboxCounters.fromJson(
+            counters(unseen: 2, unread: 2, total: 2, version: 1),
+          ),
+        );
       kv = MemoryRelayKeyValueStore();
     });
 
@@ -61,31 +88,59 @@ void main() {
         if (!online) throw hc.ClientException('offline');
         final Map<String, Object?> b = body(r);
         final String id = r.url.pathSegments[4];
-        return json(intentResult(id, b['op']! as String, b['client_seq']! as int));
+        return json(
+          intentResult(id, b['op']! as String, b['client_seq']! as int),
+        );
       });
-      final RelayIntentQueue queue = RelayIntentQueue(http: httpCore(server), store: kv, inbox: inbox);
+      final RelayIntentQueue queue = RelayIntentQueue(
+        http: httpCore(server),
+        store: kv,
+        inbox: inbox,
+      );
       await queue.enqueue(inb1, 'read');
       await queue.enqueue(inb2, 'archive');
       await queue.enqueue(inb1, 'archive');
       await queue.flush();
       final List<RelayQueuedIntent> waiting = await queue.entries();
-      expect(waiting.map((RelayQueuedIntent e) => '${e.itemId}:${e.op}:${e.clientSeq}'),
-          <String>['$inb2:archive:2', '$inb1:archive:3']);
+      expect(
+        waiting.map(
+          (RelayQueuedIntent e) => '${e.itemId}:${e.op}:${e.clientSeq}',
+        ),
+        <String>['$inb2:archive:2', '$inb1:archive:3'],
+      );
       expect(inbox.item(inb1)!.archived, isTrue);
       online = true;
       await queue.flush();
       expect(await queue.entries(), isEmpty);
-      final List<hc.Request> sent = server.requests.where((hc.Request r) => r.body.isNotEmpty).toList();
-      expect(sent.map((hc.Request r) => body(r)['client_seq']), containsAllInOrder(<int>[2, 3]));
+      final List<hc.Request> sent = server.requests
+          .where((hc.Request r) => r.body.isNotEmpty)
+          .toList();
+      expect(
+        sent.map((hc.Request r) => body(r)['client_seq']),
+        containsAllInOrder(<int>[2, 3]),
+      );
       expect(sent.first.headers['Idempotency-Key'], isNotNull);
     });
 
     test('IN-12 a 409 is accepted silently and a notice is raised only for an on-screen change', () async {
-      final Server server = Server((hc.Request r) => problem(409, 'inbox_item_conflict',
-          extra: <String, Object?>{'current': state(inb1, version: 7, read: true)}));
-      final RelayIntentQueue queue = RelayIntentQueue(http: httpCore(server), store: kv, inbox: inbox);
+      final Server server = Server(
+        (hc.Request r) => problem(
+          409,
+          'inbox_item_conflict',
+          extra: <String, Object?>{
+            'current': state(inb1, version: 7, read: true),
+          },
+        ),
+      );
+      final RelayIntentQueue queue = RelayIntentQueue(
+        http: httpCore(server),
+        store: kv,
+        inbox: inbox,
+      );
       final List<RelayConflictNotice> notices = <RelayConflictNotice>[];
-      final StreamSubscription<RelayConflictNotice> sub = queue.notices.listen(notices.add);
+      final StreamSubscription<RelayConflictNotice> sub = queue.notices.listen(
+        notices.add,
+      );
       await queue.enqueue(inb1, 'unread');
       await queue.flush();
       expect(inbox.item(inb1)!.stateVersion, 7);
@@ -102,8 +157,14 @@ void main() {
     });
 
     test('IN-13 an old reverse intent never overrides a newer state from another device', () async {
-      final Server server = Server((hc.Request r) => json(intentResult(inb1, 'unread', 1)));
-      final RelayIntentQueue queue = RelayIntentQueue(http: httpCore(server), store: kv, inbox: inbox);
+      final Server server = Server(
+        (hc.Request r) => json(intentResult(inb1, 'unread', 1)),
+      );
+      final RelayIntentQueue queue = RelayIntentQueue(
+        http: httpCore(server),
+        store: kv,
+        inbox: inbox,
+      );
       await queue.enqueue(inb1, 'unread');
       inbox.applyChanges(inb1, 4, <String, Object?>{'read': true});
       await queue.flush();
@@ -112,7 +173,9 @@ void main() {
     });
 
     test('IN-15 undo cancels an action before any request', () async {
-      final RelayUndoBuffer undo = RelayUndoBuffer(window: const Duration(milliseconds: 10));
+      final RelayUndoBuffer undo = RelayUndoBuffer(
+        window: const Duration(milliseconds: 10),
+      );
       int commits = 0;
       undo.schedule(inb1, () async => commits++);
       expect(undo.undo(inb1), isTrue);
@@ -128,11 +191,18 @@ void main() {
     test('IN-28 envelopes buffered during a cold sync are applied after the list by id and version', () async {
       late RelayInboxSync sync;
       final Server server = Server((hc.Request r) {
-        sync.onEnvelope(envelope('inbox.item_updated', <String, Object?>{
-          'item_id': inb1,
-          'state_version': 3,
-          'changes': <String, Object?>{'read': true},
-        }, id: 'c9', version: 4));
+        sync.onEnvelope(
+          envelope(
+            'inbox.item_updated',
+            <String, Object?>{
+              'item_id': inb1,
+              'state_version': 3,
+              'changes': <String, Object?>{'read': true},
+            },
+            id: 'c9',
+            version: 4,
+          ),
+        );
         return json(<String, Object?>{
           'object': 'list',
           'data': <Object?>[item(inb1, version: 2)],
@@ -152,30 +222,36 @@ void main() {
       expect(store.counters!.version, 4);
     });
 
-    test('IN-21 a fully listed inbox that disagrees with the counters is reported', () async {
-      final Server server = Server((hc.Request r) {
-        if (r.url.path.endsWith('/inconsistency')) {
+    test(
+      'IN-21 a fully listed inbox that disagrees with the counters is reported',
+      () async {
+        final Server server = Server((hc.Request r) {
+          if (r.url.path.endsWith('/inconsistency')) {
+            return json(<String, Object?>{
+              'object': 'inbox_reconciliation',
+              'result': 'repaired',
+              'counters': counters(unread: 1, version: 9),
+            });
+          }
           return json(<String, Object?>{
-            'object': 'inbox_reconciliation',
-            'result': 'repaired',
-            'counters': counters(unread: 1, version: 9),
+            'object': 'list',
+            'data': <Object?>[item(inb1)],
+            'has_more': false,
+            'next_cursor': null,
+            'previous_cursor': null,
+            'counters': counters(unread: 3, version: 2),
+            'cursor': 'c1',
           });
-        }
-        return json(<String, Object?>{
-          'object': 'list',
-          'data': <Object?>[item(inb1)],
-          'has_more': false,
-          'next_cursor': null,
-          'previous_cursor': null,
-          'counters': counters(unread: 3, version: 2),
-          'cursor': 'c1',
         });
-      });
-      final RelayInboxStore store = RelayInboxStore();
-      await RelayInboxSync(http: httpCore(server), store: store).coldSync();
-      expect(server.calls.last, 'POST /v1/subscriber/inbox/counters/inconsistency');
-      expect(store.counters!.unread, 1);
-    });
+        final RelayInboxStore store = RelayInboxStore();
+        await RelayInboxSync(http: httpCore(server), store: store).coldSync();
+        expect(
+          server.calls.last,
+          'POST /v1/subscriber/inbox/counters/inconsistency',
+        );
+        expect(store.counters!.unread, 1);
+      },
+    );
 
     test('IN-29 a truncated delta goes back to a cold sync', () async {
       final Server server = Server((hc.Request r) {
@@ -202,7 +278,10 @@ void main() {
       });
       final RelayInboxStore store = RelayInboxStore()..cursor = 'c1';
       await RelayInboxSync(http: httpCore(server), store: store).deltaSync();
-      expect(server.calls, <String>['GET /v1/subscriber/inbox/changes', 'GET /v1/subscriber/inbox/items']);
+      expect(server.calls, <String>[
+        'GET /v1/subscriber/inbox/changes',
+        'GET /v1/subscriber/inbox/items',
+      ]);
       expect(server.requests.first.url.queryParameters['since'], 'c1');
       expect(store.cursor, 'c8');
     });

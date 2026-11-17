@@ -38,9 +38,13 @@ class _RelayInboxListState extends State<RelayInboxList> {
       _client = client;
       _notices = client.intents.notices.listen((RelayConflictNotice _) {
         if (!mounted) return;
-        ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
-          content: Text(RelayLocalizations.of(context).text('updated_elsewhere')),
-        ));
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: Text(
+              RelayLocalizations.of(context).text('updated_elsewhere'),
+            ),
+          ),
+        );
       });
     }
   }
@@ -58,17 +62,19 @@ class _RelayInboxListState extends State<RelayInboxList> {
       if (mounted) setState(() => _pending.remove(item.id));
       await client.intent(item.id, op);
     });
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
-      content: Text(l10n.text(op == 'archive' ? 'archived' : 'hidden')),
-      action: SnackBarAction(
-        label: l10n.text('undo'),
-        onPressed: () {
-          if (client.undo.undo(item.id) && mounted) {
-            setState(() => _pending.remove(item.id));
-          }
-        },
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        content: Text(l10n.text(op == 'archive' ? 'archived' : 'hidden')),
+        action: SnackBarAction(
+          label: l10n.text('undo'),
+          onPressed: () {
+            if (client.undo.undo(item.id) && mounted) {
+              setState(() => _pending.remove(item.id));
+            }
+          },
+        ),
       ),
-    ));
+    );
   }
 
   @override
@@ -104,8 +110,10 @@ class _RelayInboxListState extends State<RelayInboxList> {
                 return Center(
                   child: TextButton(
                     onPressed: () => unawaited(client.sync.loadMore()),
-                    child: Text(l10n.text('load_more'),
-                        style: TextStyle(color: theme.accent)),
+                    child: Text(
+                      l10n.text('load_more'),
+                      style: TextStyle(color: theme.accent),
+                    ),
                   ),
                 );
               }
@@ -120,7 +128,9 @@ class _RelayInboxListState extends State<RelayInboxList> {
                 },
                 onToggleRead: () {
                   final InboxItem item = items[index];
-                  unawaited(client.intent(item.id, item.read ? 'unread' : 'read'));
+                  unawaited(
+                    client.intent(item.id, item.read ? 'unread' : 'read'),
+                  );
                 },
                 onArchive: () => _remove(client, items[index], 'archive'),
                 onHide: () => _remove(client, items[index], 'hide'),
@@ -209,14 +219,19 @@ class _RelayInboxRow extends StatelessWidget {
                           style: TextStyle(
                             color: theme.onSurface,
                             fontSize: 16,
-                            fontWeight: unread ? FontWeight.w700 : FontWeight.w400,
+                            fontWeight: unread
+                                ? FontWeight.w700
+                                : FontWeight.w400,
                           ),
                         ),
                       if (item.body != null)
                         Text(
                           item.body!,
                           textDirection: dir,
-                          style: TextStyle(color: theme.onSurfaceMuted, fontSize: 14),
+                          style: TextStyle(
+                            color: theme.onSurfaceMuted,
+                            fontSize: 14,
+                          ),
                         ),
                     ],
                   ),
@@ -233,7 +248,11 @@ class _RelayInboxRow extends StatelessWidget {
         IconButton(
           tooltip: l10n.text(unread ? 'mark_read' : 'mark_unread'),
           color: theme.onSurface,
-          icon: Icon(unread ? Icons.mark_email_read_outlined : Icons.mark_email_unread_outlined),
+          icon: Icon(
+            unread
+                ? Icons.mark_email_read_outlined
+                : Icons.mark_email_unread_outlined,
+          ),
           onPressed: onToggleRead,
         ),
         IconButton(

@@ -144,11 +144,12 @@ defmodule Relay.Policy.Live do
   # PC-8
   # INV-15
   @doc """
-  Evaluates the lattice for a delivery being opened, inside the accepting transaction. `input` carries `:scope`, `:now`, `:delivery_id`, `:recipient_id`, `:subtenant_id`, `:channel`, `:category`, `:workflow_key`, `:notification` (see `Relay.Policy.Live.Inputs.notification/1`), `:frequency` and `:compliance` (from `compliance/1`). The kill switch stop point of acceptance runs after the delivery is opened (TN-40), so the snapshot carries none here; the delivery job evaluates every gate again.
+  Evaluates the lattice for a delivery being opened, inside the accepting transaction. `input` carries `:scope`, `:now`, `:delivery_id`, `:recipient_id`, `:subtenant_id`, `:channel`, `:category`, `:workflow_key`, `:notification` (see `Relay.Policy.Live.Inputs.notification/1`), `:frequency` and `:compliance` (from `compliance/1`, read here when the caller gives none). The kill switch stop point of acceptance runs after the delivery is opened (TN-40), so the snapshot carries none here; the delivery job evaluates every gate again.
   """
   @spec decide(map()) :: result()
   def decide(input) do
     input
+    |> Map.put_new_lazy(:compliance, fn -> compliance(input.scope) end)
     |> Map.merge(%{kill_switch: :allow, tenant_status: :active, scope_match: :match})
     |> Inputs.snapshot()
     |> Relay.Policy.evaluate()

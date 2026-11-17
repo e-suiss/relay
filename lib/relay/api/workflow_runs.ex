@@ -252,6 +252,7 @@ defmodule Relay.Api.WorkflowRuns do
         now: Relay.Clock.business_now(scope),
         expires_at: run["expires_at"],
         frequency: frequency(scope, policy, run["recipient_id"], plan),
+        compliance: Live.compliance(scope),
         request: request(plan),
         providers: plan["providers"] || %{},
         templates: decode_templates(plan["templates"]),

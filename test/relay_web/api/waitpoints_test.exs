@@ -296,6 +296,7 @@ defmodule RelayWeb.Api.WaitpointsTest do
       ]
 
       created = create(ctx, question(ctx, %{"responders" => responders}))
+
       assert Enum.sort_by(created["responders"], & &1["kind"]) ==
                Enum.sort_by(responders, & &1["kind"])
 

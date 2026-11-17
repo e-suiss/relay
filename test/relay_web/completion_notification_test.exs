@@ -383,7 +383,7 @@ defmodule RelayWeb.CompletionNotificationTest do
       assert Relay.Id.to_string(stored.receipt_id) == receipt
 
       assert [[resolved]] = announced(ctx.scope, "waitpoint.resolved")
-      assert %{"state" => "resolved"} = resolved
+      assert %{"kind" => "event"} = resolved
       refute inspect(resolved) =~ "rows"
       refute inspect(resolved) =~ "completed"
     end

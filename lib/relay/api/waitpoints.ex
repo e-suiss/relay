@@ -275,7 +275,7 @@ defmodule Relay.Api.Waitpoints do
       seconds = DateTime.diff(at, now)
 
       if seconds > @max_wait,
-        do: [over("/expires_at", "waitpoint.max_wait", @max_wait, seconds)],
+        do: [over("/expires_at", limit_name("max_wait"), @max_wait, seconds)],
         else: []
     else
       {:error, _reason} -> [error("/expires_at", "invalid_format", "not a timestamp")]
@@ -343,7 +343,7 @@ defmodule Relay.Api.Waitpoints do
       :ok
     else
       {:error, :size} ->
-        {:error, [over("", "waitpoint.max_response_bytes", @max_response, size)]}
+        {:error, [over("", limit_name("max_response_bytes"), @max_response, size)]}
 
       {:error, %Relay.Error{details: %{errors: [_ | _] = errors}}} ->
         {:error, errors}
@@ -412,7 +412,7 @@ defmodule Relay.Api.Waitpoints do
     count = length(Map.get(body, "responders", [])) + length(Map.get(body, "deliver_to", []))
 
     if count > @max_messages,
-      do: [over("/responders", "waitpoint.max_messages", @max_messages, count)],
+      do: [over("/responders", limit_name("max_messages"), @max_messages, count)],
       else: []
   end
 
@@ -623,7 +623,7 @@ defmodule Relay.Api.Waitpoints do
     do: Relay.Error.new(:resource_conflict, "the waitpoint exists")
 
   defp refused(:expires_invalid, _attrs),
-    do: invalid([over("/expires_at", "waitpoint.max_wait", @max_wait, nil)])
+    do: invalid([over("/expires_at", limit_name("max_wait"), @max_wait, nil)])
 
   defp refused(:condition_unsupported, _attrs),
     do: invalid([error("/condition", "not_allowed", "a condition is not taken")])
@@ -635,8 +635,8 @@ defmodule Relay.Api.Waitpoints do
 
     {name, limit} =
       if counted.open + 1 > tenant,
-        do: {"waitpoint.max_open_per_environment", tenant},
-        else: {"waitpoint.max_open_per_waiter", waiter}
+        do: {limit_name("max_open_per_environment"), tenant},
+        else: {limit_name("max_open_per_waiter"), waiter}
 
     message = "the limit of open waitpoints is reached"
     Relay.Error.new(:waitpoint_limit_reached, message, %{limit: limit, limit_name: name})
@@ -831,6 +831,8 @@ defmodule Relay.Api.Waitpoints do
 
   defp over(pointer, name, limit, actual),
     do: Map.put(over(pointer, name, limit, nil), :actual, actual)
+
+  defp limit_name(key), do: Enum.join(["waitpoint", key], ".")
 
   defp error(pointer, code, detail), do: %{pointer: pointer, code: code, detail: detail}
 

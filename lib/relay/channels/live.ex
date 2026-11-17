@@ -496,6 +496,11 @@ defmodule Relay.Channels.Live do
   defp only(targets, %{"is_test" => true, "target_id" => <<_::128>> = id}),
     do: Enum.filter(targets, &(&1.id == id))
 
+  # AG-28
+  # AG-63
+  defp only(targets, %{"subject_type" => "waitpoint", "target_id" => <<_::128>> = id}),
+    do: Enum.filter(targets, &(&1.id == id))
+
   defp only(targets, _delivery), do: targets
 
   defp pinned([], account), do: device_skip(account, :no_device)

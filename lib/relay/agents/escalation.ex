@@ -4,7 +4,7 @@ defmodule Relay.Agents.Escalation do
 
   Tiers and surface steps are rows of one table that the waitpoint's one timer runs (`Relay.Agents.WaitpointTimer`, WF-43): the nearest armed step is the waitpoint's escalation time. A step fires only on an open waitpoint before its deadline; a resolved, expired or cancelled waitpoint cancels its pending steps and the invitations not yet delivered, a stalled one suspends its armed step with the time it had left and a returning heartbeat arms it again (AG-10, AG-19). These rules are triggers and constraints of the database, so no caller can skip them. Relay cancels only these steps and invitations of its own; it compensates nothing (INV-35, AG-3).
 
-  An invitation is the durable request to invite one responder on a set of surfaces. Every responder an invitation names is in the waitpoint's responders by foreign key (AG-12). After a pin, a fired step or a settled invitation, the invitations still requested are announced inside the same transaction to the configured sink (`config :relay, Relay.Agents, invitation_sink: Module`: `Module.waitpoint_invitations(scope, waitpoint_id, invitations)`); without a sink they stay requested. The delivery side settles each one with `settle/3`.
+  An invitation is the durable request to invite one responder on a set of surfaces. Every responder an invitation names is in the waitpoint's responders by foreign key (AG-12). After a pin, a fired step or a settled invitation, the invitations still requested are announced inside the same transaction to the configured sink (`config :relay, Relay.Agents, invitation_sink: Module`: `Module.waitpoint_invitations(scope, waitpoint_id, invitations)`); without a sink they stay requested. The delivery side settles each one with `settle/3`. When the waitpoint is resolved, expired or cancelled, the sink derives its closing jobs from the waitpoint's outbox event (`Module.waitpoint_closed_jobs(scope, waitpoint_id)`, AG-35).
   """
 
   alias Relay.Actor
@@ -12,6 +12,7 @@ defmodule Relay.Agents.Escalation do
 
   @limit ["waitpoint", "max_escalation_tiers"]
   @max_tiers Relay.Limits.fetch!(@limit)
+  @closing ["waitpoint.resolved", "waitpoint.expired", "waitpoint.cancelled"]
 
   @typedoc "What a waitpoint asks for when it is opened: a stored policy by `:key` and optional `:version`, or inline `:tiers`."
   @type escalation :: %{
@@ -181,6 +182,40 @@ defmodule Relay.Agents.Escalation do
     end)
   end
 
+  # AG-63
+  @doc "Reads an invitation with the kind of its responder (`recipient_kind`) inside the caller's scoped transaction, or `nil`."
+  @spec invitation(Relay.Id.t()) :: map() | nil
+  defdelegate invitation(invitation_id), to: EscalationStore
+
+  # AG-28
+  # AG-63
+  @doc "The plan of a waitpoint that carries neither an escalation nor a surface policy: every responder is invited once, on all its surfaces at the same time."
+  @spec direct_plan() :: EscalationStore.plan()
+  def direct_plan, do: %{policy_key: nil, policy_version: nil, tiers: nil, surface_policy: nil}
+
+  # AG-35
+  # AG-19
+  @doc "The jobs the configured invitation sink derives from the outbox event of a waitpoint that was resolved, expired or cancelled, inside the dispatch transaction (`Module.waitpoint_closed_jobs(scope, waitpoint_id)`, the identifier as text); none for any other event or without a sink."
+  @spec closed_jobs(map()) :: [Ecto.Changeset.t()]
+  def closed_jobs(%{event_type: type, payload: %{"waitpoint_id" => waitpoint_id}})
+      when type in @closing and is_binary(waitpoint_id) do
+    case {sink(), EscalationStore.current_scope()} do
+      {nil, _scope} -> []
+      {_sink, nil} -> []
+      {sink, scope} -> closing(sink, scope, waitpoint_id)
+    end
+  end
+
+  def closed_jobs(_event), do: []
+
+  defp closing(sink, scope, waitpoint_id) do
+    if Code.ensure_loaded?(sink) and function_exported?(sink, :waitpoint_closed_jobs, 2),
+      do: sink.waitpoint_closed_jobs(scope, waitpoint_id),
+      else: []
+  end
+
+  defp sink, do: Application.get_env(:relay, Relay.Agents, [])[:invitation_sink]
+
   defp reannounce(scope, invitation_id, {:settled, _next_at}, :unreachable) do
     case EscalationStore.invitation_waitpoint(invitation_id) do
       nil -> :ok
@@ -191,7 +226,7 @@ defmodule Relay.Agents.Escalation do
   defp reannounce(_scope, _invitation_id, _settled, _outcome), do: :ok
 
   defp announce(scope, waitpoint_id) do
-    case Application.get_env(:relay, Relay.Agents, [])[:invitation_sink] do
+    case sink() do
       nil ->
         :ok
 

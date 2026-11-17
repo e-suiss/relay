@@ -52,6 +52,8 @@ defmodule Relay.Config do
     Relay.Workflow,
     Relay.Workflow.Digest,
     Relay.Agents,
+    Relay.Agents.Live,
+    Relay.Templates.Live,
     Relay.Inbox,
     Relay.Webhooks,
     Relay.Realtime,

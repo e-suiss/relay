@@ -42,7 +42,6 @@ jobs:
       - run: npm install --package-lock-only --no-audit --no-fund
       - id: install
         run: npm ci --no-audit --no-fund
-      - run: npm audit
       # X-48
       - id: generate
         run: npm run generate
@@ -66,6 +65,10 @@ jobs:
             !sdks/typescript/node_modules
             !sdks/typescript/dist
           include-hidden-files: true
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm audit --omit=dev
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm audit --audit-level=critical
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run typecheck
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}

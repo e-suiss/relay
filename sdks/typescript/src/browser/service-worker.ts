@@ -126,7 +126,7 @@ interface NotificationEventLike {
 /** Installs the push and notification click handlers on the service worker scope. */
 export function installServiceWorkerHandlers(scope: ServiceWorkerScopeLike): void {
   scope.addEventListener("push", (event: PushEventLike) => {
-    let payload: unknown = null;
+    let payload: unknown;
     try {
       payload = event.data?.json() ?? null;
     } catch {

@@ -15,6 +15,21 @@ export type Channel = ServerSchemas["Delivery"]["channel"];
 export type DeliveryStatus = ServerSchemas["Delivery"]["status"];
 export type SenderType = ServerSchemas["Notification"]["sender_type"];
 
+export type Notification = ServerSchemas["Notification"];
+export type Delivery = ServerSchemas["Delivery"];
+export type DeliveryHistory = ServerSchemas["DeliveryHistory"];
+export type Attempt = ServerSchemas["Attempt"];
+export type LedgerEvent = ServerSchemas["LedgerEvent"];
+export type Subscriber = ServerSchemas["Subscriber"];
+export type NotificationDecision = ServerSchemas["NotificationDecision"];
+export type DeliveryDecision = ServerSchemas["DeliveryDecision"];
+export type DecisionStep = ServerSchemas["DecisionStep"];
+export type Consent = ServerSchemas["Consent"];
+export type Device = ServerSchemas["Device"];
+export type SubscriberPreferences = ServerSchemas["SubscriberPreferences"];
+export type TopicSubscription = ServerSchemas["TopicSubscription"];
+export type Topic = ServerSchemas["Topic"];
+
 export interface Problem {
   type?: string;
   title?: string;

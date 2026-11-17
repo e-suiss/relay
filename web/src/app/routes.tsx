@@ -1,6 +1,13 @@
 import type { ReactNode } from "react";
 import type { MessageKey } from "../i18n/en";
+import { Activity } from "../pages/activity/Activity";
+import { NotificationDetail } from "../pages/activity/NotificationDetail";
+import {
+  RecipientDetail,
+  Recipients,
+} from "../pages/recipients/Recipients";
 import { RouteSlot } from "../pages/RouteSlot";
+import { Why } from "../pages/why/Why";
 import type { Params } from "./router";
 
 export type NavGroup =
@@ -86,7 +93,29 @@ function area(path: string, label: MessageKey): ConsoleRoute[] {
   ];
 }
 
-export const pages: readonly ConsoleRoute[] = [];
+function param(params: Params, name: string): string {
+  return params[name] ?? "";
+}
+
+export const pages: readonly ConsoleRoute[] = [
+  { pattern: "/activity", render: () => <Activity /> },
+  {
+    pattern: "/activity/notifications/:id",
+    render: (params) => {
+      const id = param(params, "id");
+      return <NotificationDetail key={id} id={id} />;
+    },
+  },
+  { pattern: "/why", render: () => <Why /> },
+  { pattern: "/recipients", render: () => <Recipients /> },
+  {
+    pattern: "/recipients/:id",
+    render: (params) => {
+      const id = param(params, "id");
+      return <RecipientDetail key={id} id={id} />;
+    },
+  },
+];
 
 export const routes: readonly ConsoleRoute[] = [
   ...pages,

@@ -124,15 +124,16 @@ defmodule EsuissRelay.Error do
     cond do
       family == "idempotency" -> :idempotency
       status >= 500 -> :server
-      status == 429 and code == "quota_exhausted" -> :quota
-      status == 429 -> :rate_limit
+      status == 429 -> if code == "quota_exhausted", do: :quota, else: :rate_limit
       family == "auth" or status == 401 -> :authentication
-      status in [400, 413, 415, 422] -> :validation
-      status == 404 -> :not_found
-      status in [409, 412, 428] -> :conflict
-      true -> :api
+      true -> by_status(status)
     end
   end
+
+  defp by_status(status) when status in [400, 413, 415, 422], do: :validation
+  defp by_status(404), do: :not_found
+  defp by_status(status) when status in [409, 412, 428], do: :conflict
+  defp by_status(_status), do: :api
 
   defp family(code) when is_binary(code) do
     case ErrorCatalog.lookup(code) do

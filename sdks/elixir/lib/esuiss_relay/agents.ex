@@ -88,11 +88,15 @@ defmodule EsuissRelay.Agents do
 
     with {:ok, feed} <- deliver(client, feed, handler) do
       Enum.reduce_while(hints, {:ok, feed}, fn _hint, {:ok, feed} ->
-        case deliver(client, feed, handler) do
-          {:ok, feed} -> {:cont, {:ok, feed}}
-          {:error, error} -> {:halt, {:error, error}}
-        end
+        on_hint(client, feed, handler)
       end)
+    end
+  end
+
+  defp on_hint(client, feed, handler) do
+    case deliver(client, feed, handler) do
+      {:ok, feed} -> {:cont, {:ok, feed}}
+      {:error, error} -> {:halt, {:error, error}}
     end
   end
 

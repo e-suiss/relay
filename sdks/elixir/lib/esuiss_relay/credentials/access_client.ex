@@ -61,10 +61,14 @@ defmodule EsuissRelay.Credentials.AccessClient do
         {:ok, token, credentials.key}
 
       _none ->
-        with {:ok, token, expires_in} <- request(credentials, client, nil) do
-          Agent.update(credentials.cache, fn _ -> {token, now + expires_in - @skew} end)
-          {:ok, token, credentials.key}
-        end
+        refresh(credentials, client, now)
+    end
+  end
+
+  defp refresh(credentials, client, now) do
+    with {:ok, token, expires_in} <- request(credentials, client, nil) do
+      Agent.update(credentials.cache, fn _ -> {token, now + expires_in - @skew} end)
+      {:ok, token, credentials.key}
     end
   end
 

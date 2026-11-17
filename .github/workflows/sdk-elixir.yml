@@ -68,7 +68,7 @@ jobs:
       - run: mix deps.unlock --check-unused
       - run: mix format --check-formatted
       - run: mix compile --warnings-as-errors --force
-      - run: mix credo --strict
+      - run: mix credo --strict --config-file .credo.exs
       - run: mix test --warnings-as-errors
       - run: mix hex.audit
       - run: mix dialyzer

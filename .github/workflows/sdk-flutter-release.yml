@@ -1,0 +1,44 @@
+name: sdk-flutter-release
+
+on:
+  push:
+    tags: ["sdk-flutter-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: pub.dev
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: sdks/flutter
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.47.9
+      - name: Tag matches the package version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="$(sed -n 's/^version: //p' pubspec.yaml)"
+          test "$TAG" = "sdk-flutter-v$version"
+      - run: flutter pub get --enforce-lockfile
+      - run: dart run tool/generate.dart && dart format lib/src/generated && git diff --exit-code -- lib/src/generated
+      - run: dart analyze --fatal-infos
+      - run: flutter test
+      # X-50
+      - name: pub.dev token from GitHub OIDC
+        run: |
+          token="$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://pub.dev" | jq -r .value)"
+          echo "::add-mask::$token"
+          echo "PUB_TOKEN=$token" >> "$GITHUB_ENV"
+      - run: flutter pub token add https://pub.dev --env-var PUB_TOKEN
+      - run: flutter pub publish --force

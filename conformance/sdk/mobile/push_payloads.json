@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "rules": ["CH-33", "CH-67", "IN-35", "IN-38"],
+  "fallback": {
+    "tr": {"title": "Yeni bildirim", "body": "Yeni bir bildiriminiz var."},
+    "en": {"title": "New notification", "body": "You have a new notification."}
+  },
+  "cases": [
+    {
+      "name": "apns visible notification",
+      "platform": "apns",
+      "payload": {
+        "aps": {"alert": {"title": "Siparişiniz yolda", "body": "Kargo yarın teslim edilecek."}, "sound": "default", "thread-id": "c2f1"},
+        "relay": {"id": "dlv_01j9zq3k4m5n6p7q8r9s0t1v2w", "topic": "c2f1", "url": "https://shop.example.com/orders/1"}
+      },
+      "expected": {"kind": "notification", "delivery_id": "dlv_01j9zq3k4m5n6p7q8r9s0t1v2w", "content_free": false, "topic": "c2f1", "url": "https://shop.example.com/orders/1", "title": "Siparişiniz yolda", "body": "Kargo yarın teslim edilecek."}
+    },
+    {
+      "name": "apns content-free notification",
+      "platform": "apns",
+      "payload": {
+        "aps": {"alert": {"title": "Yeni bildirim", "body": "Yeni bir bildiriminiz var."}, "mutable-content": 1, "sound": "default"},
+        "relay": {"id": "dlv_01j9zq3k4m5n6p7q8r9s0t1v2x"}
+      },
+      "expected": {"kind": "notification", "delivery_id": "dlv_01j9zq3k4m5n6p7q8r9s0t1v2x", "content_free": true, "topic": null, "url": null, "title": "Yeni bildirim", "body": "Yeni bir bildiriminiz var."}
+    },
+    {
+      "name": "apns sync signal",
+      "platform": "apns",
+      "payload": {"aps": {"content-available": 1}, "relay": {"sync": true, "counter_version": 42}},
+      "expected": {"kind": "sync", "counter_version": 42, "notification_id": null}
+    },
+    {
+      "name": "fcm visible notification",
+      "platform": "fcm",
+      "payload": {
+        "notification": {"title": "Your order is on its way", "body": "It arrives tomorrow."},
+        "data": {"relay_id": "dlv_01j9zq3k4m5n6p7q8r9s0t1v2w", "relay_topic": "c2f1", "relay_url": "https://shop.example.com/orders/1"}
+      },
+      "expected": {"kind": "notification", "delivery_id": "dlv_01j9zq3k4m5n6p7q8r9s0t1v2w", "content_free": false, "topic": "c2f1", "url": "https://shop.example.com/orders/1", "title": "Your order is on its way", "body": "It arrives tomorrow."}
+    },
+    {
+      "name": "fcm content-free data message",
+      "platform": "fcm",
+      "payload": {
+        "data": {"relay_id": "dlv_01j9zq3k4m5n6p7q8r9s0t1v2x", "relay_neutral_title": "New notification", "relay_neutral_body": "You have a new notification."}
+      },
+      "expected": {"kind": "notification", "delivery_id": "dlv_01j9zq3k4m5n6p7q8r9s0t1v2x", "content_free": true, "topic": null, "url": null, "title": "New notification", "body": "You have a new notification."}
+    },
+    {
+      "name": "fcm sync signal",
+      "platform": "fcm",
+      "payload": {"data": {"relay_sync": "1", "relay_counter_version": "42"}},
+      "expected": {"kind": "sync", "counter_version": 42, "notification_id": null}
+    },
+    {
+      "name": "fcm read signal",
+      "platform": "fcm",
+      "payload": {"data": {"relay_sync": "1", "relay_counter_version": "43", "relay_read": "ntf_01j9zq3k4m5n6p7q8r9s0t1v2w"}},
+      "expected": {"kind": "read", "counter_version": 43, "notification_id": "ntf_01j9zq3k4m5n6p7q8r9s0t1v2w"}
+    },
+    {
+      "name": "fcm sync signal without counter version",
+      "platform": "fcm",
+      "payload": {"data": {"relay_sync": "1"}},
+      "expected": {"kind": "sync", "counter_version": null, "notification_id": null}
+    }
+  ],
+  "ignored": [
+    {"name": "not a relay push", "platform": "fcm", "payload": {"data": {"campaign": "x"}}},
+    {"name": "apns without relay member", "platform": "apns", "payload": {"aps": {"alert": "hi"}}},
+    {"name": "malformed delivery id", "platform": "fcm", "payload": {"data": {"relay_id": "dlv_short"}}},
+    {"name": "malformed counter version", "platform": "fcm", "payload": {"data": {"relay_sync": "1", "relay_counter_version": "x1"}}},
+    {"name": "malformed notification id", "platform": "fcm", "payload": {"data": {"relay_sync": "1", "relay_read": "dlv_01j9zq3k4m5n6p7q8r9s0t1v2w"}}}
+  ]
+}

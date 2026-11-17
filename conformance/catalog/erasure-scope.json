@@ -873,6 +873,12 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "agent_task_notifications",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data: the task identifier and the task state a registered source reported"
+    },
+    {
       "table": "agents",
       "personal_columns": [],
       "tenant_close": "rows kept",

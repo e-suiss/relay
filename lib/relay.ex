@@ -43,6 +43,7 @@ defmodule Relay do
       Timing,
       Limits,
       ChannelParameters,
+      AgentProtocols,
       ChannelDeclarations,
       DeliveryWindows,
       RuleDictionary,

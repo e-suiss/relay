@@ -8,7 +8,7 @@ defmodule Relay.Realtime do
   use Boundary,
     top_level?: true,
     deps: [Relay, Relay.Platform],
-    exports: [Admission, Connections, Envelope, Feed, Source]
+    exports: [Admission, Connections, Envelope, Feed, Source, OpaqueSource]
 
   alias Relay.Realtime.Admission
   alias Relay.Realtime.Connections
@@ -43,8 +43,25 @@ defmodule Relay.Realtime do
 
   # IN-32
   # IN-37
-  @doc "True when a subscriber token's scopes let a connection carry `stream`: the inbox needs `inbox:read`. An opaque payload stream (IN-37) follows the same `(stream, epoch, seq)` model and authorization, but no subscriber token scope grants one yet, so none is permitted."
+  @doc "True when a subscriber token's scopes let a connection carry `stream`: the inbox needs `inbox:read`. An opaque payload stream (IN-37) follows the same `(stream, epoch, seq)` model and authorization and needs a scope of its own: `agui:read` for the AG-UI stream (AG-44). No other opaque stream exists."
   @spec permitted?([String.t()], stream()) :: boolean()
   def permitted?(scopes, :inbox) when is_list(scopes), do: "inbox:read" in scopes
+  def permitted?(scopes, {:opaque, "ag_ui"}) when is_list(scopes), do: "agui:read" in scopes
   def permitted?(scopes, {:opaque, _kind}) when is_list(scopes), do: false
+
+  # IN-37
+  # AG-44
+  @doc "The stream a client names: the inbox when it names none, the AG-UI stream for `ag_ui`; `:error` for any other name."
+  @spec stream(term()) :: {:ok, stream()} | :error
+  def stream(nil), do: {:ok, :inbox}
+  def stream("inbox"), do: {:ok, :inbox}
+  def stream("ag_ui"), do: {:ok, {:opaque, "ag_ui"}}
+  def stream(_other), do: :error
+
+  # IN-23
+  # IN-37
+  @doc "The source module of a stream: the configured source for the inbox, `Relay.Realtime.OpaqueSource` for an opaque stream."
+  @spec source(stream()) :: module()
+  def source(:inbox), do: source()
+  def source({:opaque, _kind}), do: Relay.Realtime.OpaqueSource
 end

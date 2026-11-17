@@ -98,7 +98,8 @@ config :relay, Relay.Workflow.Digest, sink: Relay.Workflow, release: Relay.Polic
 
 config :relay, Relay.Agents,
   waitpoint_sink: Relay.Workflow,
-  invitation_sink: Relay.Agents.Live
+  invitation_sink: Relay.Agents.Live,
+  wake_transports: [Relay.Webhooks.Live.A2aPush]
 
 config :relay, Relay.Templates.Live, planless: Relay.Agents.Live
 

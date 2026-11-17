@@ -128,6 +128,7 @@ paths:
         - preferences
         - "devices:write"
         - "presence:write"
+        - "agui:read"
   "/v1/subscriber/preferences":
     get:
       operationId: getMyPreferences
@@ -987,6 +988,15 @@ paths:
           schema:
             type: string
             maxLength: 64
+        - name: stream
+          in: query
+          required: false
+          description: "The stream to read: inbox (the default) or ag_ui, the opaque AG-UI stream, which needs the agui:read scope beside inbox:read (IN-37). Both follow the same cursor, order and recovery rules."
+          schema:
+            type: string
+            enum:
+              - inbox
+              - ag_ui
       security:
         - subscriber_bearer:
             - "inbox:read"
@@ -1072,6 +1082,15 @@ paths:
           schema:
             type: string
             maxLength: 512
+        - name: stream
+          in: query
+          required: false
+          description: "The stream to read: inbox (the default) or ag_ui, the opaque AG-UI stream, which needs the agui:read scope beside inbox:read (IN-37). Both follow the same cursor, order and recovery rules."
+          schema:
+            type: string
+            enum:
+              - inbox
+              - ag_ui
       security:
         - subscriber_bearer:
             - "inbox:read"
@@ -3625,7 +3644,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: "Relay subscriber token from the token exchange. Scopes: inbox:read, inbox:write, preferences, devices:write, presence:write. Access tokens are never accepted here."
+      description: "Relay subscriber token from the token exchange. Scopes: inbox:read, inbox:write, preferences, devices:write, presence:write, agui:read. Access tokens are never accepted here."
     portal_bearer:
       type: http
       scheme: bearer
@@ -3660,8 +3679,8 @@ components:
           x-relay-choice-note: Token type URI chosen by the contract.
         scope:
           type: string
-          description: "Space-separated subset of inbox:read inbox:write preferences devices:write presence:write. Default: inbox:read inbox:write preferences."
-          pattern: "^(inbox:read|inbox:write|preferences|devices:write|presence:write)( (inbox:read|inbox:write|preferences|devices:write|presence:write))*$"
+          description: "Space-separated subset of inbox:read inbox:write preferences devices:write presence:write agui:read. Default: inbox:read inbox:write preferences."
+          pattern: "^(inbox:read|inbox:write|preferences|devices:write|presence:write|agui:read)( (inbox:read|inbox:write|preferences|devices:write|presence:write|agui:read))*$"
       additionalProperties: false
     TokenExchangeResponse:
       type: object
@@ -3865,6 +3884,7 @@ components:
             - inbox.items_bulk_updated
             - inbox.counters_changed
             - stream.resync_required
+            - opaque.ag_ui
         v:
           type: integer
           minimum: 1
@@ -4513,4 +4533,5 @@ x-relay-subscriber-scopes:
   - preferences
   - "devices:write"
   - "presence:write"
+  - "agui:read"
 x-relay-error-catalog: "../errors.yaml"

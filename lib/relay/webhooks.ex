@@ -38,6 +38,7 @@ defmodule Relay.Webhooks do
   alias Relay.Webhooks.SourceStore
   alias Relay.Webhooks.Store
   alias Relay.Webhooks.Sweeper
+  alias Relay.Webhooks.TaskNotifications
   alias Relay.Webhooks.TokenCache
 
   @signer Relay.Webhooks.Signer.KeyStore
@@ -825,6 +826,35 @@ defmodule Relay.Webhooks do
     by_endpoint = Enum.group_by(keys, & &1["endpoint_id"])
     Enum.map(rows, &Map.put(&1, "keys", Map.get(by_endpoint, &1["id"], [])))
   end
+
+  # AG-42
+  # E-51
+  # L-28
+  @doc "Records a protocol push notification and creates its one message with its job for the endpoint it is addressed to, inside the caller's scoped transaction; the engine delivers it with its retries, signature, dead letter state and address rules like any other message. See `Relay.Webhooks.Fanout.push/2`."
+  @spec push_event(id(), Fanout.event()) :: id() | nil
+  defdelegate push_event(endpoint_id, event), to: Fanout, as: :push
+
+  # AG-42
+  # AG-37
+  # WH-50
+  @doc "Verifies an agent task notification of a source and commits its receipt with its job, outside any transaction; see `Relay.Webhooks.TaskNotifications.accept/3`."
+  @spec accept_task_notification(Scope.t(), id(), TaskNotifications.request()) ::
+          {:ok, :recorded | :duplicate} | {:error, TaskNotifications.refusal()}
+  defdelegate accept_task_notification(scope, source_id, request),
+    to: TaskNotifications,
+    as: :accept
+
+  # AG-37
+  # INV-35
+  @doc "Processes the receipt of an agent task notification; see `Relay.Webhooks.TaskNotifications.process/2`."
+  @spec process_task_notification(Scope.t(), id()) ::
+          {:ok, TaskNotifications.applied() | :skipped | :unreadable} | {:error, term()}
+  defdelegate process_task_notification(scope, receipt_id), to: TaskNotifications, as: :process
+
+  # AG-42
+  @doc "The event type of an A2A push notification."
+  @spec a2a_push_type() :: String.t()
+  def a2a_push_type, do: Engine.a2a_push_type()
 
   # WH-68
   @doc "Reads the text form of a source's Ed25519 public key (`whpk_` and base64) into its 32 bytes."

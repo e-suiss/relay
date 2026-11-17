@@ -6,12 +6,12 @@ defmodule Relay.Realtime.Envelope do
   alias Relay.Realtime.Source
 
   @version 1
-  @types ~w(inbox.item_created inbox.item_updated inbox.items_bulk_updated inbox.counters_changed stream.resync_required)
+  @types ~w(inbox.item_created inbox.item_updated inbox.items_bulk_updated inbox.counters_changed stream.resync_required opaque.ag_ui)
 
   @type t :: %{required(String.t()) => term()}
 
   # IN-26
-  @doc "The event types of the human inbox stream."
+  @doc "The event types of the realtime channel: those of the human inbox stream and `opaque.ag_ui`, the envelope of an AG-UI event whose payload Relay carries without reading it (IN-37)."
   @spec types() :: [String.t(), ...]
   def types, do: @types
 

@@ -1,0 +1,61 @@
+{
+  "source_ref": "Relay spec §17.13.5; AG-46, AG-47, AG-72, E-50, E-74, L-28; A2A Protocol Specification 1.0, Model Context Protocol 2026-07-28 with the io.modelcontextprotocol/tasks extension, Anthropic Managed Agents session events",
+  "protocols": {
+    "a2a": {"current": "1.0", "served": ["1.0"], "version_header": "A2A-Version"},
+    "mcp": {"current": "2026-07-28", "served": ["2026-07-28"], "version_header": "MCP-Protocol-Version"},
+    "mcp_tasks": {"identifier": "io.modelcontextprotocol/tasks"},
+    "ag_ui": {"transport": "opaque"},
+    "managed_agents": {"identifier": "session.status_idle stop_reason"}
+  },
+  "states": [
+    {
+      "waitpoint": "open",
+      "interaction": "response",
+      "a2a": {"rule": "state", "state": "TASK_STATE_INPUT_REQUIRED"},
+      "mcp_tasks": {"rule": "state", "state": "input_required"},
+      "managed_agents": {"rule": "state", "state": "requires_action"}
+    },
+    {
+      "waitpoint": "open",
+      "interaction": "access_invitation",
+      "a2a": {"rule": "state", "state": "TASK_STATE_AUTH_REQUIRED"},
+      "mcp_tasks": {"rule": "state", "state": "input_required"},
+      "managed_agents": {"rule": "state", "state": "requires_action"}
+    },
+    {
+      "waitpoint": "open",
+      "interaction": "event",
+      "a2a": {"rule": "unchanged"},
+      "mcp_tasks": {"rule": "unchanged"},
+      "managed_agents": {"rule": "unchanged"}
+    },
+    {
+      "waitpoint": "stalled",
+      "interaction": "any",
+      "a2a": {"rule": "unchanged"},
+      "mcp_tasks": {"rule": "unchanged"},
+      "managed_agents": {"rule": "unchanged"}
+    },
+    {
+      "waitpoint": "resolved",
+      "interaction": "any",
+      "a2a": {"rule": "state", "state": "TASK_STATE_WORKING"},
+      "mcp_tasks": {"rule": "state", "state": "working"},
+      "managed_agents": {"rule": "state", "state": "running"}
+    },
+    {
+      "waitpoint": "expired",
+      "interaction": "any",
+      "a2a": {"rule": "owner_decides"},
+      "mcp_tasks": {"rule": "owner_decides"},
+      "managed_agents": {"rule": "owner_decides"}
+    },
+    {
+      "waitpoint": "cancelled",
+      "interaction": "any",
+      "a2a": {"rule": "owner_decides"},
+      "mcp_tasks": {"rule": "owner_decides"},
+      "managed_agents": {"rule": "owner_decides"}
+    }
+  ]
+}

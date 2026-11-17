@@ -62,6 +62,11 @@ table relay.agent_run_states relay_archive SELECT
 table relay.agent_run_states relay_maint SELECT
 table relay.agent_run_states relay_owner INSERT,SELECT,UPDATE
 table relay.agent_run_states relay_report SELECT
+table relay.agent_task_notifications relay_app SELECT
+table relay.agent_task_notifications relay_archive SELECT
+table relay.agent_task_notifications relay_maint SELECT
+table relay.agent_task_notifications relay_owner INSERT,SELECT,UPDATE
+table relay.agent_task_notifications relay_report SELECT
 table relay.agents relay_app SELECT
 table relay.agents relay_archive SELECT
 table relay.agents relay_maint SELECT

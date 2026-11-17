@@ -89,6 +89,42 @@ defmodule Relay.Webhooks.Fanout do
 
   defp own_disable?(_endpoint, _type, _data), do: false
 
+  # AG-42
+  # E-51
+  # L-28
+  @doc "Records a protocol push notification under `id` and creates its one message for the endpoint it is addressed to, whatever the endpoint subscribes to; the event keeps its data as given. Returns the message's identifier, or `nil` when the type is not in the catalog, the endpoint is unknown, archived or not of use `relay_events`, or the push was recorded before."
+  @spec push(Relay.Id.t(), event()) :: Relay.Id.t() | nil
+  def push(endpoint_id, %{id: id, type: type, data: data} = event) do
+    with {:ok, %{version: version}} <- Relay.EventCatalog.fetch(type),
+         %{"use_kind" => "relay_events", "state" => state} = endpoint when state != "archived" <-
+           EngineStore.endpoint(endpoint_id) do
+      now = Relay.Clock.utc_now()
+
+      row = %{
+        "use_kind" => "relay_events",
+        "event_type" => type,
+        "schema_version" => version,
+        "origin" => "outbox",
+        "source" => Settings.source(),
+        "subject" => event.subject,
+        "stream_epoch" => event.epoch,
+        "seq" => event.seq,
+        "occurred_at" => event.occurred_at,
+        "traceparent" => Map.get(event, :traceparent)
+      }
+
+      message = planned(endpoint, now)
+      digest = :crypto.hash(:sha256, Jason.encode!(data))
+
+      id
+      |> EngineStore.fan_out(row, data, digest, [message], %{origin: "event"}, now)
+      |> queued([message])
+      |> created_id()
+    else
+      _unknown -> nil
+    end
+  end
+
   # WH-45 (3)
   @doc "Creates the test event of an endpoint and its one message, which is attempted once; returns the message's identifier, or `nil` when the endpoint is archived."
   @spec test_event(map()) :: Relay.Id.t() | nil

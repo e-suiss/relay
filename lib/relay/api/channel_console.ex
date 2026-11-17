@@ -231,7 +231,7 @@ defmodule Relay.Api.ChannelConsole do
 
   defp channel(channel) when channel in @paid, do: {:ok, channel}
   defp channel(nil), do: field("/query/channel", "required", "sms, voice or whatsapp")
-  defp channel(_other), do: field("/query/channel", "invalid_value", "sms, voice or whatsapp")
+  defp channel(_other), do: field("/query/channel", "unsupported_value", "sms, voice or whatsapp")
 
   defp country(country) when is_binary(country) do
     if country =~ ~r/\A[A-Z]{2}\z/,
@@ -256,11 +256,11 @@ defmodule Relay.Api.ChannelConsole do
   defp quantity(text) when is_binary(text) do
     case Integer.parse(text) do
       {n, ""} when n in 1..10_000_000 -> {:ok, n}
-      _other -> field("/query/quantity", "invalid_value", "an integer from 1 to 10000000")
+      _other -> field("/query/quantity", "unsupported_value", "an integer from 1 to 10000000")
     end
   end
 
-  defp quantity(_other), do: field("/query/quantity", "invalid_value", "an integer")
+  defp quantity(_other), do: field("/query/quantity", "unsupported_value", "an integer")
 
   defp quoted({id, provider, routable}, request, declarations, card) do
     declaration =

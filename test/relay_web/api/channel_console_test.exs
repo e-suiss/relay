@@ -1,11 +1,23 @@
 defmodule RelayWeb.Api.ChannelConsoleTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Datasets
   alias RelayTest.EmailResolver
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
 
+  @datasets ["channel_event_evidence", "channel_parameters"]
+
+  defp forget do
+    for name <- @datasets,
+        do: :ok = Datasets.Cache.invalidate(Datasets.Cache, {Datasets.installation_scope(), name})
+  end
+
   setup do
+    forget()
+    {:ok, _report} = Datasets.load_package(TenantFixture.actor())
+    on_exit(&forget/0)
+
     tenant = TenantFixture.tenant!()
     %{scope: tenant.live, other: tenant.test, token: F.token(tenant.live)}
   end

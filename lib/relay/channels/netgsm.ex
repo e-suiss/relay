@@ -5,7 +5,7 @@ defmodule Relay.Channels.Netgsm do
     * The provider account's `settings.usercode` and the credential (the API password) authenticate with HTTP Basic; the sender identity's value is the header (`msgheader`).
     * A `security` message on the OTP product (`product: "otp"`) goes to `/sms/rest/v2/otp`, Netgsm's prioritized OTP service with its own credit; every other message to `/sms/rest/v2/send` (CH-53).
     * The encoding is named on every send (CH-48): `GSM7_TR` is `encoding: "TR"`; Netgsm has no UCS-2 value, so its catalogue lists only `GSM7` and `GSM7_TR`, and while its Turkish single shift is unverified Turkish text is refused before the call (CH-75).
-    * A commercial (`marketing`) message is sent with the İYS filter `11`; any other with `0`.
+    * The İYS filter is the send's commercial declaration (`Relay.Channels.Commercial`, PC-4): `11` for a commercial message to an individual (`BIREYSEL`), `12` to a merchant (`TACIR`) and `0` for a message that is not commercial; it is never left to the account's default.
     * The validity end (`stopdate`, Turkish time, `ddMMyyyyHHmm`) follows the channel time to live (CH-9).
     * A failure answers with a code in the body: `send:<code>`, `otp:<code>`, or `http:<status>` without one. A delivery report row's status is `dlr:<status>` (`report/1`); the reconciliation reads the report of a send by its `jobid` (`delivery_status/1`, DS-48).
     * The settings check asks the balance (`/balance`) with the account's user code and password: Netgsm's code `30` (wrong credentials or no API access) is a credential mismatch (CH-14, CH-52).
@@ -14,6 +14,7 @@ defmodule Relay.Channels.Netgsm do
   @behaviour Relay.Channels.Adapter
 
   alias Relay.Channels.Adapter
+  alias Relay.Channels.Commercial
   alias Relay.Channels.ProviderHttp
   alias Relay.Channels.Request
   alias Relay.Channels.SettingsCheck
@@ -58,13 +59,18 @@ defmodule Relay.Channels.Netgsm do
       %{
         "msgheader" => ProviderHttp.sender(request),
         "messages" => [message],
-        "iysfilter" => if(request.message_class == "marketing", do: "11", else: "0")
+        "iysfilter" => iys_filter(Commercial.of(request))
       }
       |> put_encoding(request.encoding)
       |> put_stop(request.ttl_s)
 
     {"/sms/rest/v2/send", body}
   end
+
+  # PC-4
+  defp iys_filter(%{commercial: false}), do: "0"
+  defp iys_filter(%{iys_recipient_type: "TACIR"}), do: "12"
+  defp iys_filter(_individual), do: "11"
 
   defp put_encoding(body, "GSM7_TR"), do: Map.put(body, "encoding", "TR")
   defp put_encoding(body, _gsm7), do: body

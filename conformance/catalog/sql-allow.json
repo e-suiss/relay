@@ -310,5 +310,11 @@
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",
     "reason": "WH-68, OP-9: the no-delete trigger rejects TRUNCATE on the waitpoint completions"
+  },
+  {
+    "path": "priv/repo/migrations/20261222000000_create_sms_destination_stops.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "CH-54, OP-9: the no-delete trigger rejects TRUNCATE on the SMS destination stops"
   }
 ]

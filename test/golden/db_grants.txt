@@ -444,6 +444,11 @@ table relay.singleton_tasks relay_app SELECT
 table relay.singleton_tasks relay_archive SELECT
 table relay.singleton_tasks relay_maint INSERT,SELECT,UPDATE
 table relay.singleton_tasks relay_owner SELECT
+table relay.sms_destination_stops relay_app SELECT
+table relay.sms_destination_stops relay_archive SELECT
+table relay.sms_destination_stops relay_maint SELECT
+table relay.sms_destination_stops relay_owner INSERT,SELECT,UPDATE
+table relay.sms_destination_stops relay_report SELECT
 table relay.stream_heads relay_app SELECT
 table relay.stream_heads relay_archive SELECT
 table relay.stream_heads relay_maint INSERT,SELECT,UPDATE

@@ -508,14 +508,14 @@ defmodule Relay.Tenancy.KillSwitch do
   end
 
   # TN-47
-  @doc "Cancels every delivery a kill switch paused, batch by batch, each with `delivery.cancelled` and the rule `killswitch.bulk_cancel:<ksw_…>`; the command writes one `killswitch.bulk_cancelled` audit record before its first batch."
+  @doc "Cancels every delivery a kill switch paused, batch by batch, each with `delivery.cancelled` and the rule `killswitch.bulk_cancel:<ksw_…>`; the command writes one `killswitch.bulk_cancelled` audit record before its first batch, in `change[:scope]` (a tenant record's scope) or else the installation scope."
   @spec bulk_cancel(String.t() | Relay.Id.t(), map(), operator()) :: result()
   def bulk_cancel(id, change, %{kind: _, ref: _} = operator) do
     with {:ok, kill_switch_id} <- decode_id(id),
          :ok <-
            Authz.authorize(operator, :bulk_cancel, Map.put_new(change, :scope_kind, :platform)) do
       actor = actor(operator)
-      scope = installation_scope()
+      scope = Map.get(change, :scope) || installation_scope()
       external = Record.external_id(kill_switch_id)
       rule_id = "killswitch.bulk_cancel:" <> external
       audit_id = Relay.Id.generate()
@@ -523,7 +523,7 @@ defmodule Relay.Tenancy.KillSwitch do
       digest =
         Relay.Audit.record_digest(%{
           tenant_id: scope.tenant_id,
-          environment: "live",
+          environment: Relay.Environment.dump(scope.environment),
           action: "killswitch.bulk_cancelled",
           actor_kind: Atom.to_string(actor.kind),
           actor_ref: actor.ref,
@@ -910,6 +910,15 @@ defmodule Relay.Tenancy.KillSwitch do
       kind: :installation_operator,
       ref: ref,
       on_behalf_of_ref: ref,
+      access_record_ref: Map.get(operator, :access_record_ref)
+    }
+  end
+
+  defp actor(%{kind: kind, ref: ref} = operator) when kind in [:tenant_admin, :tenant_operator] do
+    %Actor{
+      kind: :operator,
+      ref: ref,
+      on_behalf_of_ref: Map.get(operator, :on_behalf_of_ref) || ref,
       access_record_ref: Map.get(operator, :access_record_ref)
     }
   end

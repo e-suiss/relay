@@ -42,7 +42,7 @@ class PageTest {
         stub.client()
             .api()
             .listWaitpoints(
-                new ListWaitpointsParams().limit(2).endingBefore("x"), RequestOptions.none());
+                new ListWaitpointsParams().limit(2), RequestOptions.none());
 
     assertEquals(1, stub.requests.size());
     assertEquals(2, first.data().size());

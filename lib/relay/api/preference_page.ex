@@ -81,20 +81,21 @@ defmodule Relay.Api.PreferencePage do
   @spec read(String.t()) :: {:ok, model()} | {:error, failure()}
   def read(token) do
     with {:ok, claims} <- Relay.Preferences.verify_page_token(token) do
-      result =
-        Store.in_scope(claims.scope, fn _status ->
-          case Preferences.read(claims.recipient_id) do
-            nil -> nil
-            preferences -> facts(claims.recipient_id, preferences)
-          end
-        end)
+      claims.scope
+      |> Store.in_scope(fn _status -> facts(claims.recipient_id) end)
+      |> modelled(claims)
+    end
+  end
 
-      case result do
-        {:ok, %{} = facts} -> {:ok, model(claims, facts)}
-        {:ok, nil} -> {:error, :invalid}
-        {:error, %Relay.Error{code: :not_found}} -> {:error, :invalid}
-        {:error, _reason} -> {:error, :unavailable}
-      end
+  defp modelled({:ok, %{} = facts}, claims), do: {:ok, model(claims, facts)}
+  defp modelled({:ok, nil}, _claims), do: {:error, :invalid}
+  defp modelled({:error, %Relay.Error{code: :not_found}}, _claims), do: {:error, :invalid}
+  defp modelled({:error, _reason}, _claims), do: {:error, :unavailable}
+
+  defp facts(recipient_id) do
+    case Preferences.read(recipient_id) do
+      nil -> nil
+      preferences -> facts(recipient_id, preferences)
     end
   end
 
@@ -129,17 +130,17 @@ defmodule Relay.Api.PreferencePage do
   @spec change(String.t(), map()) :: :ok | {:error, failure() | Relay.Error.t()}
   def change(token, form) when is_map(form) do
     with {:ok, claims} <- Relay.Preferences.verify_page_token(token) do
-      id = claims.recipient_id
-
-      case Store.in_scope(claims.scope, fn _status -> apply_form(id, form) end) do
-        {:ok, :ok} -> :ok
-        {:error, %Relay.Error{code: :not_found}} -> {:error, :invalid}
-        {:error, %Relay.Error{} = error} -> {:error, error}
-        {:error, :invalid} -> {:error, :invalid}
-        {:error, _reason} -> {:error, :unavailable}
-      end
+      claims.scope
+      |> Store.in_scope(fn _status -> apply_form(claims.recipient_id, form) end)
+      |> changed()
     end
   end
+
+  defp changed({:ok, :ok}), do: :ok
+  defp changed({:error, %Relay.Error{code: :not_found}}), do: {:error, :invalid}
+  defp changed({:error, %Relay.Error{} = error}), do: {:error, error}
+  defp changed({:error, :invalid}), do: {:error, :invalid}
+  defp changed({:error, _reason}), do: {:error, :unavailable}
 
   defp apply_form(id, form) do
     with %{} = preferences <- Preferences.read(id) || {:error, :invalid},

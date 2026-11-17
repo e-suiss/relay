@@ -100,7 +100,7 @@ trait AgentHelpers
      */
     public function ackMailbox(string $leaseId, array $recordIds): array
     {
-        return $this->ackMailboxRecords(['lease_id' => $leaseId, 'record_ids' => array_values($recordIds)]);
+        return $this->ackMailboxRecords(['lease_id' => $leaseId, 'record_ids' => $recordIds]);
     }
 
     // X-30

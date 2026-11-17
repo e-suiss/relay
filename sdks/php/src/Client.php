@@ -173,8 +173,8 @@ final class Client
     {
         $url = $this->baseUrl . $call->target();
         $key = $call->idempotent ? ($call->idempotencyKey ?? Uuid::v4()) : null;
-        $maxRetries = $call->options?->maxRetries ?? $this->maxRetries;
-        $timeout = $call->options?->timeout ?? $this->timeout;
+        $maxRetries = $call->options->maxRetries ?? $this->maxRetries;
+        $timeout = $call->options->timeout ?? $this->timeout;
         $body = $call->encodedBody();
         $retries = 0;
         $renewed = false;
@@ -232,7 +232,7 @@ final class Client
                 };
             }
         }
-        foreach ($call->options?->headers ?? [] as $name => $value) {
+        foreach ($call->options->headers ?? [] as $name => $value) {
             $headers[$name] = $value;
         }
         $headers['Relay-Version'] = Meta::API_VERSION;

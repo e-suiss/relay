@@ -13,6 +13,11 @@ final class CurlTransport implements Transport
 {
     public function send(HttpRequest $request, float $timeout): HttpResponse
     {
+        $url = $request->url;
+        $method = $request->method;
+        if ($url === '' || $method === '') {
+            throw new ConnectionException('a request needs a method and a URL');
+        }
         $handle = curl_init();
         if ($handle === false) {
             throw new ConnectionException('curl could not be initialised');
@@ -24,8 +29,8 @@ final class CurlTransport implements Transport
         }
         $received = [];
         $options = [
-            CURLOPT_URL => $request->url,
-            CURLOPT_CUSTOMREQUEST => $request->method,
+            CURLOPT_URL => $url,
+            CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => false,

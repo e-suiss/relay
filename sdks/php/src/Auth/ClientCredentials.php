@@ -32,8 +32,14 @@ final class ClientCredentials implements Authorizer
      */
     private readonly Closure $now;
 
+    /**
+     * @var non-empty-string
+     */
     private readonly string $secretKey;
 
+    /**
+     * @var non-empty-string
+     */
     private readonly string $publicKey;
 
     private ?string $token = null;
@@ -63,8 +69,13 @@ final class ClientCredentials implements Authorizer
         $this->transport = $transport ?? new CurlTransport();
         $this->now = $now ?? static fn (): float => microtime(true);
         $keypair = sodium_crypto_sign_keypair();
-        $this->secretKey = sodium_crypto_sign_secretkey($keypair);
-        $this->publicKey = sodium_crypto_sign_publickey($keypair);
+        $secretKey = sodium_crypto_sign_secretkey($keypair);
+        $publicKey = sodium_crypto_sign_publickey($keypair);
+        if ($secretKey === '' || $publicKey === '') {
+            throw new TokenException('dpop_key_failed', 'no DPoP key could be made');
+        }
+        $this->secretKey = $secretKey;
+        $this->publicKey = $publicKey;
     }
 
     // API-65
@@ -113,6 +124,8 @@ final class ClientCredentials implements Authorizer
 
     /**
      * The raw 32-byte Ed25519 public key of this instance's DPoP key.
+     *
+     * @return non-empty-string
      */
     public function publicKey(): string
     {
@@ -132,10 +145,12 @@ final class ClientCredentials implements Authorizer
         if ($this->token !== null && ($this->now)() < $this->expiresAt) {
             return $this->token;
         }
-        $this->resource ??= $this->discoverResource($url);
-        $this->tokenEndpoint ??= $this->discoverTokenEndpoint();
+        $resource = $this->resource ?? $this->discoverResource($url);
+        $this->resource = $resource;
+        $endpoint = $this->tokenEndpoint ?? $this->discoverTokenEndpoint();
+        $this->tokenEndpoint = $endpoint;
 
-        return $this->request($this->tokenEndpoint, $this->resource, null);
+        return $this->request($endpoint, $resource, null);
     }
 
     private function discoverResource(string $url): string

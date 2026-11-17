@@ -143,8 +143,12 @@ final class ClientCredentialsTest extends TestCase
         self::assertSame('dpop+jwt', $header['typ']);
         self::assertSame('Ed25519', $header['alg']);
         self::assertSame(['kty' => 'OKP', 'crv' => 'Ed25519', 'x' => self::b64($auth->publicKey())], $header['jwk']);
+        $signature = self::unb64($parts[2]);
+        if ($signature === '') {
+            self::fail('the proof has no signature');
+        }
         self::assertTrue(sodium_crypto_sign_verify_detached(
-            self::unb64($parts[2]),
+            $signature,
             $parts[0] . '.' . $parts[1],
             $auth->publicKey(),
         ));

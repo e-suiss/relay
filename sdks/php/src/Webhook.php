@@ -16,7 +16,7 @@ use SensitiveParameter;
 final class Webhook
 {
     /**
-     * @var list<string>
+     * @var list<non-empty-string>
      */
     private array $publicKeys = [];
 
@@ -43,7 +43,7 @@ final class Webhook
         foreach ((array) $keys as $key) {
             if (str_starts_with($key, 'whpk_')) {
                 $raw = base64_decode(substr($key, 5), true);
-                if ($raw === false || strlen($raw) !== SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES) {
+                if ($raw === false || $raw === '' || strlen($raw) !== SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES) {
                     throw new InvalidArgumentException('a whpk_ key must hold a base64 Ed25519 public key');
                 }
                 $this->publicKeys[] = $raw;
@@ -139,7 +139,7 @@ final class Webhook
 
     private function ed25519(string $signature, string $content): bool
     {
-        if (strlen($signature) !== SODIUM_CRYPTO_SIGN_BYTES) {
+        if ($signature === '' || strlen($signature) !== SODIUM_CRYPTO_SIGN_BYTES) {
             return false;
         }
         foreach ($this->publicKeys as $key) {

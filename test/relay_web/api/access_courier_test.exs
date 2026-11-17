@@ -4,8 +4,8 @@ defmodule RelayWeb.Api.AccessCourierTest do
   import Plug.Conn
 
   alias Relay.Api.Courier.Catalog
-  alias Relay.Api.PayloadErasure
   alias Relay.Api.Courier.Provision
+  alias Relay.Api.PayloadErasure
   alias Relay.Repo
   alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F

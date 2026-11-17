@@ -25475,9 +25475,6 @@ x-relay-limits:
     max_partials: 50
     preview_masked_samples: 20
     preview_masked_window: P7D
-  iys:
-    stale_warning: PT6H
-    stale_stop: PT24H
   test_send:
     max_test_recipients: 5
     verification_window: P7D
@@ -25672,6 +25669,8 @@ x-relay-limits:
     x-relay-choice: true
     x-relay-choice-note: "WH-16 and WH-52 set 20 endpoints per tenant and 5 per consumer, WH-6 the key overlap, WH-7 the timestamp tolerance and the webhook-id retention, WH-52 the 256 KiB payload limit, the delivery log retention, the object batch thresholds and the bounds of a tenant's retry schedule, WH-22 the default schedule and its jitter, WH-24 the timeouts and the 8 kB of an answer, WH-25 the three Retry-After deferrals, WH-36 the automatic disable, WH-55 the circuit breaker and WH-56 the five operations contacts. The 20 per tenant count the tenant's own relay_events endpoints and the 5 per consumer the endpoints of one consumer; archived endpoints and endpoints managed by a product are not counted. The 20 completion sources of an environment and the 4096 bytes of a completion result (WH-68) are contract choices; a completion notification is held to payload_max_bytes and its webhook-id to id_retention. The per-endpoint concurrency and rate (WH-38), the limits of the broker and cloud destinations (destination: the largest frame, the acknowledgement wait, the SCRAM iteration ceiling and the lifetimes of an assertion and of a derived credential), the health window, the portal token lifetime, the schema size and the per-endpoint list sizes are contract choices. allowed_ports is the default; an installation adds ports in its configuration (WH-40)."
   iys:
+    stale_warning: PT6H
+    stale_stop: PT24H
     requests_per_second: 10
     token_requests_per_hour: 100
     consent_status_requests_per_hour: 1000

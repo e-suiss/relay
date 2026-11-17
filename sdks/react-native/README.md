@@ -60,14 +60,14 @@ export function App() {
 
 Implement `PushAdapter` on top of your push library:
 
-| Member | Purpose |
-|---|---|
-| `platform`, `app`, `apnsEnvironment` | `apns`, `fcm` or `hms`; bundle id or package name; APNs environment |
-| `getToken`, `onTokenRefresh` | the current token and its refreshes |
-| `getPermission`, `requestPermission` | OS notification permission (`granted`, `denied`, `provisional`, `not_determined`) |
-| `createAndroidChannels`, `getAndroidChannels` | Android channels and their current importance |
-| `getInterruptionCapabilities` | Do Not Disturb access, Critical Alerts and time-sensitive permission |
-| `displayNotification`, `getDisplayedNotifications`, `removeDisplayedNotifications` | show and remove notifications |
+| Member                                                                             | Purpose                                                                           |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `platform`, `app`, `apnsEnvironment`                                               | `apns`, `fcm` or `hms`; bundle id or package name; APNs environment               |
+| `getToken`, `onTokenRefresh`                                                       | the current token and its refreshes                                               |
+| `getPermission`, `requestPermission`                                               | OS notification permission (`granted`, `denied`, `provisional`, `not_determined`) |
+| `createAndroidChannels`, `getAndroidChannels`                                      | Android channels and their current importance                                     |
+| `getInterruptionCapabilities`                                                      | Do Not Disturb access, Critical Alerts and time-sensitive permission              |
+| `displayNotification`, `getDisplayedNotifications`, `removeDisplayedNotifications` | show and remove notifications                                                     |
 
 The SDK registers the token, the permission and the channel importances on every start and whenever they change, and sends the previous token when the platform rotates it. `relay.devices.requestPermission()` asks for provisional authorisation on iOS only when every category the app starts with is `marketing` or `social`.
 
@@ -111,10 +111,10 @@ Signals are `worn`, `locked`, `headphones`, `focus` and `break`. Writes are limi
 
 ## Components
 
-| Component | What it shows |
-|---|---|
-| `InboxBell` | bell with the unseen badge, capped at `99+` |
-| `InboxList` | items with read, unread, archive and hide, and a five second undo for archive and hide |
+| Component          | What it shows                                                                                                                                                                                |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `InboxBell`        | bell with the unseen badge, capped at `99+`                                                                                                                                                  |
+| `InboxList`        | items with read, unread, archive and hide, and a five second undo for archive and hide                                                                                                       |
 | `PreferenceCenter` | category by channel switches; locked categories with their reason; push shown off when disabled in device settings; a three-option step (instant, digest, never) when a switch is turned off |
 
 Theme with `scheme` (`light`, `dark` or `system`), `brand` (accent and radius, also per subtenant) and `theme` overrides. Texts follow the locale (`tr` or `en`) and can be replaced with `messages`. Components set accessibility roles, labels and states, never rely on colour alone, keep touch targets at least 44 points and ship colour tokens that meet WCAG 2.2 AA contrast.

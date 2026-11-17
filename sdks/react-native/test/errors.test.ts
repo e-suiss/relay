@@ -65,7 +65,11 @@ describe('X-29 X-48 error to retryable mapping from contracts/errors.yaml', () =
   });
 
   it('X-29 uses the problem retryable member only for codes the catalog does not know', () => {
-    expect(errorFromProblem(500, { code: 'future_code', retryable: false }, null, null).retryable).toBe(false);
-    expect(errorFromProblem(422, { code: 'validation_failed', retryable: true }, null, null).retryable).toBe(false);
+    expect(
+      errorFromProblem(500, { code: 'future_code', retryable: false }, null, null).retryable,
+    ).toBe(false);
+    expect(
+      errorFromProblem(422, { code: 'validation_failed', retryable: true }, null, null).retryable,
+    ).toBe(false);
   });
 });

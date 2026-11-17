@@ -49,7 +49,8 @@ export function classifyClose(
   retryAfterMs: number | null = null,
 ): CloseInfo {
   const reason = detail ?? '';
-  if (AUTH.has(reason) || code === 401) return { reason: 'auth_expired', detail, retryAfterMs: null };
+  if (AUTH.has(reason) || code === 401)
+    return { reason: 'auth_expired', detail, retryAfterMs: null };
   if (FATAL.has(reason) || code === 403) return { reason: 'fatal', detail, retryAfterMs: null };
   if (code === 1013 || code === 503 || code === 429) {
     const match = /retry-after=(\d+)/.exec(reason);

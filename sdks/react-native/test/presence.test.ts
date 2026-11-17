@@ -9,13 +9,21 @@ function setup(respond: () => Response = () => json(200, status)) {
   const clock = fakeClock();
   const logger = recordingLogger();
   const harness = testHttp(respond, { clock, logger });
-  const writer = new DeviceStatusWriter(harness.http, () => Promise.resolve(DEVICE_ID), clock, logger);
+  const writer = new DeviceStatusWriter(
+    harness.http,
+    () => Promise.resolve(DEVICE_ID),
+    clock,
+    logger,
+  );
   return { ...harness, writer, clock, logger };
 }
 
 describe('IN-47 IN-48 IN-53 device status signals', () => {
   it('IN-53 writes only dictionary v1 booleans with a clamped time to live', () => {
-    expect(validSignals({ worn: true, locked: 'yes', mood: true, focus: false })).toEqual({ worn: true, focus: false });
+    expect(validSignals({ worn: true, locked: 'yes', mood: true, focus: false })).toEqual({
+      worn: true,
+      focus: false,
+    });
     expect(statusTtl()).toBe('PT300S');
     expect(statusTtl(5000)).toBe('PT900S');
     expect(statusTtl(0)).toBe('PT1S');
@@ -32,7 +40,11 @@ describe('IN-47 IN-48 IN-53 device status signals', () => {
     await clock.advance(500);
     expect(requests).toHaveLength(2);
     expect(requests[0]?.body).toEqual({ version: 'v1', signals: { locked: true }, ttl: 'PT300S' });
-    expect(requests[1]?.body).toEqual({ version: 'v1', signals: { headphones: true, focus: true }, ttl: 'PT300S' });
+    expect(requests[1]?.body).toEqual({
+      version: 'v1',
+      signals: { headphones: true, focus: true },
+      ttl: 'PT300S',
+    });
     expect(requests[0]?.method).toBe('PATCH');
     expect(requests[0]?.path).toBe(`/v1/subscriber/devices/${DEVICE_ID}/status`);
   });

@@ -17,7 +17,10 @@ export type CellDisplay = 'on' | 'off' | 'locked' | 'os_disabled';
 // X-51
 // PC-15
 /** How a cell is shown: locked cells are on and cannot change, push cells are off in device settings while the OS permission is denied. */
-export function cellDisplay(cell: PreferenceCell, permission: DevicePermission | null): CellDisplay {
+export function cellDisplay(
+  cell: PreferenceCell,
+  permission: DevicePermission | null,
+): CellDisplay {
   if (cell.source === 'locked') return 'locked';
   if ((cell.channel === 'push' || cell.channel === 'web_push') && permission === 'denied') {
     return 'os_disabled';
@@ -41,7 +44,12 @@ export function stepPatch(
   }
   return {
     preferences: [
-      { level: 'category_channel', category: cell.category, channel: cell.channel, value: 'opt_out' },
+      {
+        level: 'category_channel',
+        category: cell.category,
+        channel: cell.channel,
+        value: 'opt_out',
+      },
     ],
   };
 }
@@ -50,7 +58,12 @@ export function stepPatch(
 export function enablePatch(cell: PreferenceCell): MyPreferencesPatch {
   return {
     preferences: [
-      { level: 'category_channel', category: cell.category, channel: cell.channel, value: 'opt_in' },
+      {
+        level: 'category_channel',
+        category: cell.category,
+        channel: cell.channel,
+        value: 'opt_in',
+      },
     ],
   };
 }
@@ -106,7 +119,12 @@ function Choice(props: {
 // PC-17
 // PC-18
 /** The preference center: category by channel switches, locked categories with their reason, push cells off in device settings, and the three-option step when a switch is turned off. It writes preferences only; consents and the profile of the subscriber are never written. */
-export function PreferenceCenter({ categories, channels, permission = null, testID }: PreferenceCenterProps) {
+export function PreferenceCenter({
+  categories,
+  channels,
+  permission = null,
+  testID,
+}: PreferenceCenterProps) {
   const ui = useRelay();
   const { client, theme, t } = ui;
   const [preferences, setPreferences] = useState<SubscriberPreferences | null>(null);
@@ -163,12 +181,27 @@ export function PreferenceCenter({ categories, channels, permission = null, test
     (names.get(step.category)?.class === 'social' || step.category in preferences.profile.digest);
 
   return (
-    <ScrollView testID={testID ?? 'relay-preferences'} style={{ backgroundColor: theme.colors.background }}>
-      <Text accessibilityRole="header" style={{ color: theme.colors.text, fontSize: theme.fontSize + 4, fontWeight: '700', padding: theme.spacing }}>
+    <ScrollView
+      testID={testID ?? 'relay-preferences'}
+      style={{ backgroundColor: theme.colors.background }}
+    >
+      <Text
+        accessibilityRole="header"
+        style={{
+          color: theme.colors.text,
+          fontSize: theme.fontSize + 4,
+          fontWeight: '700',
+          padding: theme.spacing,
+        }}
+      >
         {t('prefs.title')}
       </Text>
       {error !== null ? (
-        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ color: theme.colors.danger, paddingHorizontal: theme.spacing }}>
+        <Text
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          style={{ color: theme.colors.danger, paddingHorizontal: theme.spacing }}
+        >
           {error}
         </Text>
       ) : null}
@@ -176,12 +209,24 @@ export function PreferenceCenter({ categories, channels, permission = null, test
         const label = names.get(category)?.name ?? category;
         const locked = cells.some((cell) => cell.source === 'locked');
         return (
-          <View key={category} style={{ padding: theme.spacing, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-            <Text accessibilityRole="header" style={{ color: theme.colors.text, fontSize: theme.fontSize, fontWeight: '600' }}>
+          <View
+            key={category}
+            style={{
+              padding: theme.spacing,
+              borderBottomWidth: 1,
+              borderBottomColor: theme.colors.border,
+            }}
+          >
+            <Text
+              accessibilityRole="header"
+              style={{ color: theme.colors.text, fontSize: theme.fontSize, fontWeight: '600' }}
+            >
               {label}
             </Text>
             {locked ? (
-              <Text style={{ color: theme.colors.textMuted, fontSize: theme.fontSize - 2 }}>{t('prefs.lockedHint')}</Text>
+              <Text style={{ color: theme.colors.textMuted, fontSize: theme.fontSize - 2 }}>
+                {t('prefs.lockedHint')}
+              </Text>
             ) : null}
             {cells.map((cell) => {
               const display = cellDisplay(cell, permission);
@@ -194,14 +239,25 @@ export function PreferenceCenter({ categories, channels, permission = null, test
                     : display === 'on'
                       ? t('prefs.on')
                       : t('prefs.off');
-              const accessibilityLabel = t('prefs.cell', { category: label, channel: channelName, state: stateText });
+              const accessibilityLabel = t('prefs.cell', {
+                category: label,
+                channel: channelName,
+                state: stateText,
+              });
               return (
                 <View
                   key={cell.channel}
                   testID={`relay-pref-${cell.category}-${cell.channel}`}
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: theme.minTouchTarget }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    minHeight: theme.minTouchTarget,
+                  }}
                 >
-                  <Text style={{ color: theme.colors.text, fontSize: theme.fontSize, flex: 1 }}>{channelName}</Text>
+                  <Text style={{ color: theme.colors.text, fontSize: theme.fontSize, flex: 1 }}>
+                    {channelName}
+                  </Text>
                   {display === 'locked' || display === 'os_disabled' ? (
                     <Text
                       accessibilityLabel={accessibilityLabel}
@@ -238,17 +294,35 @@ export function PreferenceCenter({ categories, channels, permission = null, test
           setStep(null);
         }}
       >
-        <View style={{ flex: 1, justifyContent: 'center', padding: theme.spacing * 2, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            padding: theme.spacing * 2,
+            backgroundColor: 'rgba(0,0,0,0.4)',
+          }}
+        >
           <View
             accessibilityViewIsModal
-            style={{ backgroundColor: theme.colors.surface, borderRadius: theme.radius, padding: theme.spacing * 1.5 }}
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.radius,
+              padding: theme.spacing * 1.5,
+            }}
           >
-            <Text accessibilityRole="header" style={{ color: theme.colors.text, fontSize: theme.fontSize + 2, fontWeight: '600' }}>
+            <Text
+              accessibilityRole="header"
+              style={{ color: theme.colors.text, fontSize: theme.fontSize + 2, fontWeight: '600' }}
+            >
               {t('prefs.stepTitle', { category: stepCategory })}
             </Text>
             {(['instant', 'digest', 'never'] as const).map((choice) => {
               const key: MessageKey =
-                choice === 'instant' ? 'prefs.stepInstant' : choice === 'digest' ? 'prefs.stepDigest' : 'prefs.stepNever';
+                choice === 'instant'
+                  ? 'prefs.stepInstant'
+                  : choice === 'digest'
+                    ? 'prefs.stepDigest'
+                    : 'prefs.stepNever';
               return (
                 <Choice
                   key={choice}

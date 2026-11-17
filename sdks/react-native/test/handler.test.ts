@@ -10,21 +10,36 @@ const DLV = 'dlv_01j9zq3k4m5n6p7q8r9s0t1v2x';
 const NTF = 'ntf_01j9zq3k4m5n6p7q8r9s0t1v2w';
 
 const contentFree = {
-  data: { relay_id: DLV, relay_neutral_title: 'New notification', relay_neutral_body: 'You have a new notification.' },
+  data: {
+    relay_id: DLV,
+    relay_neutral_title: 'New notification',
+    relay_neutral_body: 'You have a new notification.',
+  },
 };
 
-function setup(options: {
-  content?: PushContentSource;
-  unread?: number;
-  receiptStatus?: number;
-} = {}) {
+function setup(
+  options: {
+    content?: PushContentSource;
+    unread?: number;
+    receiptStatus?: number;
+  } = {},
+) {
   const harness = testHttp(() =>
     options.receiptStatus && options.receiptStatus >= 400
-      ? problem(options.receiptStatus, options.receiptStatus === 404 ? 'delivery_not_found' : 'service_unavailable')
+      ? problem(
+          options.receiptStatus,
+          options.receiptStatus === 404 ? 'delivery_not_found' : 'service_unavailable',
+        )
       : json(202, { object: 'push_receipt' }),
   );
   const adapter = new FakePushAdapter();
-  const receipts = new ReceiptQueue(harness.http, harness.store, harness.clock, harness.random, harness.logger);
+  const receipts = new ReceiptQueue(
+    harness.http,
+    harness.store,
+    harness.clock,
+    harness.random,
+    harness.logger,
+  );
   const syncs: number[] = [];
   const handler = new PushHandler({
     adapter,
@@ -45,11 +60,27 @@ function setup(options: {
 describe('CH-33 content-free push', () => {
   it('CH-33 fetches the content over TLS and shows it, never the payload', async () => {
     const { handler, adapter } = setup({
-      content: { fetch: () => Promise.resolve({ title: 'Kargo', body: 'Yarın geliyor', url: 'https://shop.example.com/o/1' }) },
+      content: {
+        fetch: () =>
+          Promise.resolve({
+            title: 'Kargo',
+            body: 'Yarın geliyor',
+            url: 'https://shop.example.com/o/1',
+          }),
+      },
     });
     const shown = await handler.received(contentFree, 'display');
-    expect(shown).toMatchObject({ title: 'Kargo', body: 'Yarın geliyor', contentFree: true, fetched: true });
-    expect(adapter.displayed[0]).toMatchObject({ deliveryId: DLV, title: 'Kargo', body: 'Yarın geliyor' });
+    expect(shown).toMatchObject({
+      title: 'Kargo',
+      body: 'Yarın geliyor',
+      contentFree: true,
+      fetched: true,
+    });
+    expect(adapter.displayed[0]).toMatchObject({
+      deliveryId: DLV,
+      title: 'Kargo',
+      body: 'Yarın geliyor',
+    });
   });
 
   it('CH-33 (4) falls back to the neutral text of the payload when the content cannot be fetched', async () => {
@@ -67,7 +98,13 @@ describe('CH-33 content-free push', () => {
     const handler = new PushHandler({
       adapter: new FakePushAdapter('apns'),
       contentSource: { fetch: () => new Promise(() => undefined) },
-      receipts: new ReceiptQueue(harness.http, harness.store, clock, harness.random, harness.logger),
+      receipts: new ReceiptQueue(
+        harness.http,
+        harness.store,
+        clock,
+        harness.random,
+        harness.logger,
+      ),
       store: harness.store,
       clock,
       logger: harness.logger,
@@ -75,12 +112,13 @@ describe('CH-33 content-free push', () => {
       syncCounters: () => Promise.resolve(null),
       fetchTimeoutMs: 1000,
     });
-    const pending = handler.received(
-      { aps: { 'mutable-content': 1 }, relay: { id: DLV } },
-      'none',
-    );
+    const pending = handler.received({ aps: { 'mutable-content': 1 }, relay: { id: DLV } }, 'none');
     await clock.advance(1000);
-    expect(await pending).toMatchObject({ title: 'Yeni bildirim', body: 'Yeni bir bildiriminiz var.', fetched: false });
+    expect(await pending).toMatchObject({
+      title: 'Yeni bildirim',
+      body: 'Yeni bir bildiriminiz var.',
+      fetched: false,
+    });
   });
 });
 
@@ -90,9 +128,15 @@ describe('CH-32 push receipts', () => {
     await handler.received(contentFree, 'display');
     const opened = await handler.opened(contentFree);
     expect(opened).toEqual({ deliveryId: DLV, url: null });
-    expect(requests.map((request) => (request.body as { receipt: string }).receipt)).toEqual(['displayed', 'clicked']);
+    expect(requests.map((request) => (request.body as { receipt: string }).receipt)).toEqual([
+      'displayed',
+      'clicked',
+    ]);
     expect(requests[0]?.path).toBe('/v1/subscriber/push_receipts');
-    expect(requests[0]?.body).toMatchObject({ delivery_id: DLV, occurred_at: expect.any(String) as string });
+    expect(requests[0]?.body).toMatchObject({
+      delivery_id: DLV,
+      occurred_at: expect.any(String) as string,
+    });
   });
 
   it('CH-32 keeps receipts on the device while Relay cannot be reached and resends with the same key', async () => {
@@ -122,7 +166,10 @@ describe('IN-38 removal from other devices', () => {
       content: { fetch: () => Promise.resolve({ title: 'a', body: 'b', notificationId: NTF }) },
     });
     await handler.received(contentFree, 'display');
-    await handler.received({ data: { relay_sync: '1', relay_counter_version: '10', relay_read: NTF } }, 'none');
+    await handler.received(
+      { data: { relay_sync: '1', relay_counter_version: '10', relay_read: NTF } },
+      'none',
+    );
     expect(adapter.removed).toEqual(['n1']);
   });
 

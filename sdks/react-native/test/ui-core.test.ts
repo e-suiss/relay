@@ -20,7 +20,9 @@ describe('X-32 localisation', () => {
     expect(resolveLocale('de')).toBe('en');
     expect(resolveLocale(undefined)).toBe('en');
     expect(translate('tr', 'inbox.bell', { count: 3 })).toBe('Bildirimler, 3 görülmemiş');
-    expect(translate('en', 'inbox.bell', { count: 3 }, { 'inbox.bell': 'Bell {count}' })).toBe('Bell 3');
+    expect(translate('en', 'inbox.bell', { count: 3 }, { 'inbox.bell': 'Bell {count}' })).toBe(
+      'Bell 3',
+    );
   });
 
   it('CH-33 the generic push text matches the server and the shared vector', () => {
@@ -94,17 +96,27 @@ describe('X-51 PC-17 preference cells', () => {
       channels: [],
       workflows: [],
       scope_keys: [],
-      profile: { quiet_hours: [], schedule: [], dnd_until: null, quiet_hours_email: false, digest: { mentions: 'instant' } },
+      profile: {
+        quiet_hours: [],
+        schedule: [],
+        dnd_until: null,
+        quiet_hours_email: false,
+        digest: { mentions: 'instant' },
+      },
     } as unknown as SubscriberPreferences;
     expect(stepPatch(cell(), 'instant', preferences)).toBeNull();
     expect(stepPatch(cell(), 'digest', preferences)).toEqual({
       profile: { digest: { mentions: 'instant', order_updates: 'digest' } },
     });
     expect(stepPatch(cell(), 'never', preferences)).toEqual({
-      preferences: [{ level: 'category_channel', category: 'order_updates', channel: 'push', value: 'opt_out' }],
+      preferences: [
+        { level: 'category_channel', category: 'order_updates', channel: 'push', value: 'opt_out' },
+      ],
     });
     expect(enablePatch(cell())).toEqual({
-      preferences: [{ level: 'category_channel', category: 'order_updates', channel: 'push', value: 'opt_in' }],
+      preferences: [
+        { level: 'category_channel', category: 'order_updates', channel: 'push', value: 'opt_in' },
+      ],
     });
   });
 });

@@ -81,11 +81,17 @@ export class FakePushAdapter implements PushAdapter {
   }
 
   getAndroidChannels(): Promise<readonly AndroidChannel[]> {
-    return Promise.resolve(this.created.map((channel) => ({ id: channel.id, importance: channel.importance })));
+    return Promise.resolve(
+      this.created.map((channel) => ({ id: channel.id, importance: channel.importance })),
+    );
   }
 
   getInterruptionCapabilities(): Promise<InterruptionCapabilities> {
-    return Promise.resolve({ dndAccess: 'denied', criticalAlerts: 'unsupported', timeSensitive: 'unsupported' });
+    return Promise.resolve({
+      dndAccess: 'denied',
+      criticalAlerts: 'unsupported',
+      timeSensitive: 'unsupported',
+    });
   }
 
   displayNotification(notification: LocalNotification) {

@@ -12,13 +12,24 @@ interface ChannelVectors {
   cases: {
     name: string;
     categories: CategoryDefinition[];
-    channels: { id: string; category: string; level: string; importance: string; bypass_dnd: boolean }[];
+    channels: {
+      id: string;
+      category: string;
+      level: string;
+      importance: string;
+      bypass_dnd: boolean;
+    }[];
   }[];
   invalid: { name: string; categories: CategoryDefinition[] }[];
 }
 
 interface PayloadVectors {
-  cases: { name: string; platform: PushPlatform; payload: unknown; expected: Record<string, unknown> }[];
+  cases: {
+    name: string;
+    platform: PushPlatform;
+    payload: unknown;
+    expected: Record<string, unknown>;
+  }[];
   ignored: { name: string; platform: PushPlatform; payload: unknown }[];
 }
 
@@ -46,7 +57,9 @@ describe('CH-30 CH-65 stable Android channels', () => {
   }
 
   it('CH-30 matches the server channel naming relay.<category>.<level>', () => {
-    expect(androidChannelId('order_updates', 'time-sensitive')).toBe('relay.order_updates.time-sensitive');
+    expect(androidChannelId('order_updates', 'time-sensitive')).toBe(
+      'relay.order_updates.time-sensitive',
+    );
   });
 
   it('CH-29 asks for provisional permission only for marketing and social starts', () => {

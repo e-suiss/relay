@@ -40,7 +40,9 @@ describe('X-31 mobile SDK boundary', () => {
   it('X-29 sends an Idempotency-Key exactly where the contract requires one', () => {
     for (const operation of ALLOWED_OPERATIONS) {
       const entry = contract.paths[operation.path]?.[operation.method.toLowerCase()];
-      expect(operation.idempotencyKey, operation.path).toBe(entry?.['x-relay-idempotency'] === 'required');
+      expect(operation.idempotencyKey, operation.path).toBe(
+        entry?.['x-relay-idempotency'] === 'required',
+      );
     }
   });
 
@@ -66,7 +68,8 @@ describe('X-31 mobile SDK boundary', () => {
     ];
     for (const file of sources(sourceRoot)) {
       const text = readFileSync(file, 'utf8');
-      for (const pattern of forbidden) expect(text, `${file} ${String(pattern)}`).not.toMatch(pattern);
+      for (const pattern of forbidden)
+        expect(text, `${file} ${String(pattern)}`).not.toMatch(pattern);
     }
   });
 

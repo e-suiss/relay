@@ -31,5 +31,7 @@ export const REALTIME_WEBSOCKET_PATH = '/v1/realtime/websocket';
 
 /** The allowed operation for a method and path template, or `undefined` when the subscriber boundary forbids it. */
 export function allowedOperation(method: string, path: string): AllowedOperation | undefined {
-  return ALLOWED_OPERATIONS.find((operation) => operation.method === method && operation.path === path);
+  return ALLOWED_OPERATIONS.find(
+    (operation) => operation.method === method && operation.path === path,
+  );
 }

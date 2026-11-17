@@ -42,7 +42,9 @@ function Action(props: {
         borderColor: theme.colors.border,
       }}
     >
-      <Text style={{ color: theme.colors.primary, fontSize: theme.fontSize - 2 }}>{props.label}</Text>
+      <Text style={{ color: theme.colors.primary, fontSize: theme.fontSize - 2 }}>
+        {props.label}
+      </Text>
     </Pressable>
   );
 }
@@ -68,7 +70,8 @@ export function InboxList({ tab = 'inbox', onOpenItem, undoWindowMs, testID }: I
       void client
         .intent(itemId, op, { interactive: true })
         .then((result) => {
-          if (result.conflicts.some((conflict) => conflict.notify)) setNotice(t('inbox.updatedElsewhere'));
+          if (result.conflicts.some((conflict) => conflict.notify))
+            setNotice(t('inbox.updatedElsewhere'));
         })
         .catch(() => undefined);
     },
@@ -108,7 +111,9 @@ export function InboxList({ tab = 'inbox', onOpenItem, undoWindowMs, testID }: I
       if (pending) {
         clearTimeout(pending.handle as ReturnType<typeof setTimeout>);
         undoRef.current = null;
-        void client.intent(pending.itemId, pending.op, { interactive: true }).catch(() => undefined);
+        void client
+          .intent(pending.itemId, pending.op, { interactive: true })
+          .catch(() => undefined);
       }
     },
     [client],
@@ -117,7 +122,10 @@ export function InboxList({ tab = 'inbox', onOpenItem, undoWindowMs, testID }: I
   const visible = items.filter((item) => item.id !== undo?.itemId);
 
   return (
-    <View testID={testID ?? 'relay-inbox-list'} style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <View
+      testID={testID ?? 'relay-inbox-list'}
+      style={{ flex: 1, backgroundColor: theme.colors.background }}
+    >
       <View
         style={{
           flexDirection: 'row',
@@ -126,7 +134,10 @@ export function InboxList({ tab = 'inbox', onOpenItem, undoWindowMs, testID }: I
           padding: theme.spacing,
         }}
       >
-        <Text accessibilityRole="header" style={{ color: theme.colors.text, fontSize: theme.fontSize + 4, fontWeight: '700' }}>
+        <Text
+          accessibilityRole="header"
+          style={{ color: theme.colors.text, fontSize: theme.fontSize + 4, fontWeight: '700' }}
+        >
           {t('inbox.title')}
         </Text>
         <Action
@@ -139,7 +150,11 @@ export function InboxList({ tab = 'inbox', onOpenItem, undoWindowMs, testID }: I
         />
       </View>
       {notice !== null ? (
-        <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={{ color: theme.colors.text, padding: theme.spacing }}>
+        <Text
+          accessibilityLiveRegion="polite"
+          accessibilityRole="alert"
+          style={{ color: theme.colors.text, padding: theme.spacing }}
+        >
           {notice}
         </Text>
       ) : null}
@@ -148,7 +163,13 @@ export function InboxList({ tab = 'inbox', onOpenItem, undoWindowMs, testID }: I
         keyExtractor={(item) => item.id}
         accessibilityRole="list"
         ListEmptyComponent={
-          <Text style={{ color: theme.colors.textMuted, padding: theme.spacing, fontSize: theme.fontSize }}>
+          <Text
+            style={{
+              color: theme.colors.textMuted,
+              padding: theme.spacing,
+              fontSize: theme.fontSize,
+            }}
+          >
             {snapshot.ready ? t('inbox.empty') : t('inbox.loading')}
           </Text>
         }
@@ -178,16 +199,33 @@ export function InboxList({ tab = 'inbox', onOpenItem, undoWindowMs, testID }: I
                   {!item.read ? (
                     <View
                       importantForAccessibility="no"
-                      style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.primary }}
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: theme.colors.primary,
+                      }}
                     />
                   ) : null}
-                  <Text style={{ color: theme.colors.text, fontSize: theme.fontSize, fontWeight: item.read ? '400' : '700', flex: 1 }}>
+                  <Text
+                    style={{
+                      color: theme.colors.text,
+                      fontSize: theme.fontSize,
+                      fontWeight: item.read ? '400' : '700',
+                      flex: 1,
+                    }}
+                  >
                     {title}
                   </Text>
-                  <Text style={{ color: theme.colors.textMuted, fontSize: theme.fontSize - 4 }}>{state}</Text>
+                  <Text style={{ color: theme.colors.textMuted, fontSize: theme.fontSize - 4 }}>
+                    {state}
+                  </Text>
                 </View>
                 {item.body ? (
-                  <Text style={{ color: theme.colors.textMuted, fontSize: theme.fontSize - 2 }} numberOfLines={3}>
+                  <Text
+                    style={{ color: theme.colors.textMuted, fontSize: theme.fontSize - 2 }}
+                    numberOfLines={3}
+                  >
                     {item.body}
                   </Text>
                 ) : null}

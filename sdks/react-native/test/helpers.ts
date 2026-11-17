@@ -7,7 +7,8 @@ import { memoryStore, type Clock, type Logger, type LogFields, type Random } fro
 export const repoFile = (path: string): string =>
   fileURLToPath(new URL(`../../../${path}`, import.meta.url));
 
-export const readJson = <T>(path: string): T => JSON.parse(readFileSync(repoFile(path), 'utf8')) as T;
+export const readJson = <T>(path: string): T =>
+  JSON.parse(readFileSync(repoFile(path), 'utf8')) as T;
 
 export const readYaml = <T>(path: string): T => parse(readFileSync(repoFile(path), 'utf8')) as T;
 
@@ -118,14 +119,34 @@ export interface RecordedRequest {
 
 export type Responder = (request: RecordedRequest) => Response | Promise<Response> | 'network';
 
-export const json = (status: number, body: unknown, headers: Record<string, string> = {}): Response =>
+export const json = (
+  status: number,
+  body: unknown,
+  headers: Record<string, string> = {},
+): Response =>
   new Response(body === null ? null : JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json', ...headers },
   });
 
-export const problem = (status: number, code: string, extra: Record<string, unknown> = {}, headers: Record<string, string> = {}) =>
-  json(status, { type: `https://relay.example.com/v1/errors/${code}`, title: code, status, code, retryable: false, ...extra }, headers);
+export const problem = (
+  status: number,
+  code: string,
+  extra: Record<string, unknown> = {},
+  headers: Record<string, string> = {},
+) =>
+  json(
+    status,
+    {
+      type: `https://relay.example.com/v1/errors/${code}`,
+      title: code,
+      status,
+      code,
+      retryable: false,
+      ...extra,
+    },
+    headers,
+  );
 
 export function mockFetch(responder: Responder) {
   const requests: RecordedRequest[] = [];
@@ -149,7 +170,10 @@ export function mockFetch(responder: Responder) {
 
 export const BASE_URL = 'https://relay.example.com';
 
-export function testHttp(responder: Responder, options: { clock?: Clock; random?: Random; logger?: Logger } = {}) {
+export function testHttp(
+  responder: Responder,
+  options: { clock?: Clock; random?: Random; logger?: Logger } = {},
+) {
   const clock = options.clock ?? instantClock();
   const random = options.random ?? fakeRandom();
   const logger = options.logger ?? recordingLogger();

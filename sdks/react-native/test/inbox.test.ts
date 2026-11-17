@@ -18,7 +18,12 @@ import {
 
 const item = (overrides: Record<string, unknown> = {}) => inboxItem(overrides) as InboxItem;
 
-const envelope = (t: string, d: Record<string, unknown>, version: number, id = `c${String(version)}`) =>
+const envelope = (
+  t: string,
+  d: Record<string, unknown>,
+  version: number,
+  id = `c${String(version)}`,
+) =>
   ({
     t,
     v: 1,
@@ -49,28 +54,64 @@ describe('IN-27 inbox store versions', () => {
   it('IN-26 applies item_updated changes and removes hidden items', () => {
     const store = new InboxStore();
     store.reset([item()], counters(1), 'c1');
-    store.applyEnvelope(envelope('inbox.item_updated', { item_id: ITEM_ID, state_version: 2, changes: { read: true } }, 2));
+    store.applyEnvelope(
+      envelope(
+        'inbox.item_updated',
+        { item_id: ITEM_ID, state_version: 2, changes: { read: true } },
+        2,
+      ),
+    );
     expect(store.item(ITEM_ID)?.read).toBe(true);
     expect(store.streamCursor).toBe('c2');
     expect(store.currentCounters?.version).toBe(2);
-    store.applyEnvelope(envelope('inbox.item_updated', { item_id: ITEM_ID, state_version: 3, changes: { hidden: true } }, 3));
+    store.applyEnvelope(
+      envelope(
+        'inbox.item_updated',
+        { item_id: ITEM_ID, state_version: 3, changes: { hidden: true } },
+        3,
+      ),
+    );
     expect(store.item(ITEM_ID)).toBeUndefined();
-    store.applyEnvelope(envelope('inbox.item_updated', { item_id: ITEM_ID, state_version: 3, changes: { hidden: false } }, 4));
+    store.applyEnvelope(
+      envelope(
+        'inbox.item_updated',
+        { item_id: ITEM_ID, state_version: 3, changes: { hidden: false } },
+        4,
+      ),
+    );
     expect(store.item(ITEM_ID)).toBeUndefined();
   });
 
   it('IN-27 a thin item_created asks for the item; bulk and resync ask for a sync', () => {
     const store = new InboxStore();
     expect(
-      store.applyEnvelope(envelope('inbox.item_created', { item: { id: ITEM_ID_2, state_version: 1 }, state_version: 1, thin: true }, 1)),
+      store.applyEnvelope(
+        envelope(
+          'inbox.item_created',
+          { item: { id: ITEM_ID_2, state_version: 1 }, state_version: 1, thin: true },
+          1,
+        ),
+      ),
     ).toEqual({ kind: 'fetch', itemId: ITEM_ID_2 });
-    expect(store.applyEnvelope(envelope('inbox.items_bulk_updated', { scope: 'all', action: 'read' }, 2))).toEqual({ kind: 'refresh' });
-    expect(store.applyEnvelope(envelope('stream.resync_required', { reason: 'epoch_changed' }, 3))).toEqual({ kind: 'resync' });
+    expect(
+      store.applyEnvelope(
+        envelope('inbox.items_bulk_updated', { scope: 'all', action: 'read' }, 2),
+      ),
+    ).toEqual({ kind: 'refresh' });
+    expect(
+      store.applyEnvelope(envelope('stream.resync_required', { reason: 'epoch_changed' }, 3)),
+    ).toEqual({ kind: 'resync' });
   });
 
   it('IN-28 a cold page keeps a newer version already seen on the stream', () => {
     const store = new InboxStore();
-    store.applyEnvelope(envelope('inbox.item_created', { item: item({ state_version: 5, title: 'stream' }), state_version: 5 }, 1));
+    store.applyEnvelope(
+      envelope(
+        'inbox.item_created',
+        { item: item({ state_version: 5, title: 'stream' }), state_version: 5 },
+        1,
+      ),
+    );
     store.reset([item({ state_version: 4, title: 'page' })], counters(0), 'c9');
     expect(store.version(ITEM_ID)).toBe(5);
   });
@@ -88,8 +129,19 @@ describe('IN-27 inbox store versions', () => {
 function queueHarness(responder: Responder, session = 'session-a') {
   const harness = testHttp(responder);
   const store = new InboxStore();
-  store.reset([item({ state_version: 3 }), item({ id: ITEM_ID_2, state_version: 1 })], counters(1, 2), 'c1');
-  const queue = new IntentQueue(harness.http, harness.store, store, fakeRandom(), recordingLogger(), session);
+  store.reset(
+    [item({ state_version: 3 }), item({ id: ITEM_ID_2, state_version: 1 })],
+    counters(1, 2),
+    'c1',
+  );
+  const queue = new IntentQueue(
+    harness.http,
+    harness.store,
+    store,
+    fakeRandom(),
+    recordingLogger(),
+    session,
+  );
   return { ...harness, inbox: store, queue };
 }
 
@@ -126,7 +178,9 @@ describe('IN-12 IN-13 offline intent queue', () => {
   });
 
   it('IN-12 sends the intent with client_seq and base_state_version and applies the answer', async () => {
-    const { queue, inbox, requests } = queueHarness(() => applied(itemState({ state_version: 4, read: false }), 2));
+    const { queue, inbox, requests } = queueHarness(() =>
+      applied(itemState({ state_version: 4, read: false }), 2),
+    );
     await queue.enqueue(ITEM_ID, 'unread', { interactive: true });
     const result = await queue.flush();
     expect(result).toMatchObject({ sent: 1, dropped: 0, remaining: 0 });
@@ -155,7 +209,9 @@ describe('IN-12 IN-13 offline intent queue', () => {
   });
 
   it('IN-13 (2) drops a queued reverse intent once a newer server state is known, and still sends monotone ones', async () => {
-    const { queue, inbox, requests } = queueHarness(() => applied(itemState({ id: ITEM_ID_2, state_version: 9 }), 3));
+    const { queue, inbox, requests } = queueHarness(() =>
+      applied(itemState({ id: ITEM_ID_2, state_version: 9 }), 3),
+    );
     await queue.enqueue(ITEM_ID, 'unread');
     await queue.enqueue(ITEM_ID_2, 'read');
     inbox.applyState(itemState({ state_version: 5 }));

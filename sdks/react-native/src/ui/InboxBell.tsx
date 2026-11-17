@@ -52,7 +52,9 @@ export function InboxBell({ onPress, testID }: InboxBellProps) {
             alignItems: 'center',
           }}
         >
-          <Text style={{ color: theme.colors.onBadge, fontSize: 12, fontWeight: '700' }}>{badge}</Text>
+          <Text style={{ color: theme.colors.onBadge, fontSize: 12, fontWeight: '700' }}>
+            {badge}
+          </Text>
         </View>
       ) : null}
     </Pressable>

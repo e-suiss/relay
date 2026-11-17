@@ -77,7 +77,8 @@ export const MESSAGES = {
     'prefs.on': 'On',
     'prefs.off': 'Off',
     'prefs.locked': 'On (locked)',
-    'prefs.lockedHint': 'These notifications are required for your account and cannot be turned off.',
+    'prefs.lockedHint':
+      'These notifications are required for your account and cannot be turned off.',
     'prefs.osDisabled': 'Off in device settings',
     'prefs.cell': '{category}, {channel}: {state}',
     'prefs.stepTitle': 'How should {category} notifications reach you?',

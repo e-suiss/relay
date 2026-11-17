@@ -177,7 +177,9 @@ export class SseTransport implements RealtimeTransport {
           }
           const envelope = asEnvelope(parsed);
           if (envelope) {
-            this.handlers?.onEnvelope(event.id ? { ...envelope, id: envelope.id ?? event.id } : envelope);
+            this.handlers?.onEnvelope(
+              event.id ? { ...envelope, id: envelope.id ?? event.id } : envelope,
+            );
           }
         }
       },

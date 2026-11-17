@@ -95,7 +95,11 @@ export class InboxStore {
   snapshot(): InboxSnapshot {
     this.cached ??= {
       items: [...this.items.values()].sort((a, b) =>
-        a.last_activity_at < b.last_activity_at ? 1 : a.last_activity_at > b.last_activity_at ? -1 : 0,
+        a.last_activity_at < b.last_activity_at
+          ? 1
+          : a.last_activity_at > b.last_activity_at
+            ? -1
+            : 0,
       ),
       counters: this.counters,
       cursor: this.cursor,
@@ -194,9 +198,7 @@ export class InboxStore {
           const known = this.versions.get(item.id);
           const version = typeof d.state_version === 'number' ? d.state_version : 0;
           outcome =
-            known !== undefined && known >= version
-              ? outcome
-              : { kind: 'fetch', itemId: item.id };
+            known !== undefined && known >= version ? outcome : { kind: 'fetch', itemId: item.id };
         } else if (this.putItem(item as unknown as InboxItem)) {
           outcome = { kind: 'applied' };
         }

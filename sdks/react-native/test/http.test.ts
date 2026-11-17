@@ -8,7 +8,11 @@ const prefs = { object: 'subscriber_preferences', cells: [] };
 describe('X-29 HTTP core', () => {
   it('X-29 sends the subscriber token, Relay-Version and an Idempotency-Key on mutations', async () => {
     const { http, requests } = testHttp(() => json(200, prefs));
-    await http.request({ method: 'PATCH', path: '/v1/subscriber/preferences', body: { profile: {} } });
+    await http.request({
+      method: 'PATCH',
+      path: '/v1/subscriber/preferences',
+      body: { profile: {} },
+    });
     await http.request({ method: 'GET', path: '/v1/subscriber/preferences' });
     const [patch, get] = requests;
     expect(patch?.headers.Authorization).toBe('Bearer subscriber-token-1');
@@ -22,9 +26,15 @@ describe('X-29 HTTP core', () => {
     let calls = 0;
     const { http, requests } = testHttp(() => {
       calls += 1;
-      return calls < 3 ? problem(503, 'service_unavailable', { retryable: true }) : json(200, prefs);
+      return calls < 3
+        ? problem(503, 'service_unavailable', { retryable: true })
+        : json(200, prefs);
     });
-    await http.request({ method: 'PATCH', path: '/v1/subscriber/preferences', body: { profile: {} } });
+    await http.request({
+      method: 'PATCH',
+      path: '/v1/subscriber/preferences',
+      body: { profile: {} },
+    });
     expect(requests).toHaveLength(3);
     const keys = new Set(requests.map((request) => request.headers['Idempotency-Key']));
     expect(keys.size).toBe(1);
@@ -34,7 +44,9 @@ describe('X-29 HTTP core', () => {
     let calls = 0;
     const { http, clock } = testHttp(() => {
       calls += 1;
-      return calls === 1 ? problem(429, 'rate_limited', {}, { 'Retry-After': '7' }) : json(200, prefs);
+      return calls === 1
+        ? problem(429, 'rate_limited', {}, { 'Retry-After': '7' })
+        : json(200, prefs);
     });
     await http.request({ method: 'GET', path: '/v1/subscriber/preferences' });
     expect((clock as unknown as { delays: number[] }).delays).toEqual([7000]);
@@ -89,7 +101,11 @@ describe('X-29 HTTP core', () => {
   it('X-29 encodes path parameters and drops undefined query values', () => {
     const { http } = testHttp(() => json(200, {}));
     expect(
-      http.url('/v1/subscriber/inbox/items/{item_id}', { item_id: 'inb_a/b' }, { a: undefined, b: 2 }),
+      http.url(
+        '/v1/subscriber/inbox/items/{item_id}',
+        { item_id: 'inb_a/b' },
+        { a: undefined, b: 2 },
+      ),
     ).toBe('https://relay.example.com/v1/subscriber/inbox/items/inb_a%2Fb?b=2');
   });
 });

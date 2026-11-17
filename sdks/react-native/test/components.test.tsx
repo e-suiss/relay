@@ -52,7 +52,9 @@ function renderWith(relay: RelayClient, element: ReactElement, locale = 'en') {
 function minHeights(container: HTMLElement): number[] {
   return Array.from(container.querySelectorAll('button, [role="switch"]')).map((element) => {
     const style = JSON.parse(element.getAttribute('data-style') ?? '{}') as { minHeight?: number };
-    const parent = JSON.parse(element.parentElement?.getAttribute('data-style') ?? '{}') as { minHeight?: number };
+    const parent = JSON.parse(element.parentElement?.getAttribute('data-style') ?? '{}') as {
+      minHeight?: number;
+    };
     return Math.max(style.minHeight ?? 0, parent.minHeight ?? 0);
   });
 }
@@ -105,7 +107,11 @@ describe('X-32 inbox components', () => {
           })
         : json(200, {}),
     );
-    relay.inbox.reset([inboxItem({ read: true, state_version: 2 }) as InboxItem], counters(1, 0), 'c1');
+    relay.inbox.reset(
+      [inboxItem({ read: true, state_version: 2 }) as InboxItem],
+      counters(1, 0),
+      'c1',
+    );
     renderWith(relay, <InboxList />);
     fireEvent.click(screen.getByTestId(`relay-inbox-toggle-read-${ITEM_ID}`));
     await waitFor(() => {
@@ -118,9 +124,27 @@ const preferences = {
   object: 'subscriber_preferences',
   subscriber_id: 'sub_01j9zq3k4m5n6p7q8r9s0t1v2w',
   cells: [
-    { category: 'account_security', channel: 'push', value: 'unset', effective: true, source: 'locked' },
-    { category: 'order_updates', channel: 'push', value: 'unset', effective: true, source: 'class_default' },
-    { category: 'order_updates', channel: 'email', value: 'unset', effective: true, source: 'class_default' },
+    {
+      category: 'account_security',
+      channel: 'push',
+      value: 'unset',
+      effective: true,
+      source: 'locked',
+    },
+    {
+      category: 'order_updates',
+      channel: 'push',
+      value: 'unset',
+      effective: true,
+      source: 'class_default',
+    },
+    {
+      category: 'order_updates',
+      channel: 'email',
+      value: 'unset',
+      effective: true,
+      source: 'class_default',
+    },
   ],
   channels: [],
   workflows: [],
@@ -131,17 +155,28 @@ const preferences = {
 describe('X-32 X-51 PC-17 preference center', () => {
   it('X-51 a locked category is shown on with its reason and cannot be switched', async () => {
     const { relay } = client(() => json(200, preferences));
-    renderWith(relay, <PreferenceCenter categories={[{ key: 'account_security', class: 'security', name: 'Security' }]} />);
+    renderWith(
+      relay,
+      <PreferenceCenter
+        categories={[{ key: 'account_security', class: 'security', name: 'Security' }]}
+      />,
+    );
     await screen.findByText('Notification preferences');
     expect(screen.getByLabelText('Security, Push: On (locked)')).toBeTruthy();
     expect(screen.queryByTestId('relay-pref-switch-account_security-push')).toBeNull();
-    expect(screen.getByText('These notifications are required for your account and cannot be turned off.')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'These notifications are required for your account and cannot be turned off.',
+      ),
+    ).toBeTruthy();
   });
 
   it('X-51 push is shown off in device settings while the OS permission is denied', async () => {
     const { relay } = client(() => json(200, preferences));
     renderWith(relay, <PreferenceCenter permission="denied" />);
-    expect(await screen.findByLabelText('order_updates, Push: Off in device settings')).toBeTruthy();
+    expect(
+      await screen.findByLabelText('order_updates, Push: Off in device settings'),
+    ).toBeTruthy();
   });
 
   it('PC-17 turning a switch off offers three choices with none preselected, and Never writes an opt-out', async () => {
@@ -151,9 +186,15 @@ describe('X-32 X-51 PC-17 preference center', () => {
     fireEvent.click(toggle);
     const dialog = await screen.findByRole('dialog');
     const choices = Array.from(dialog.querySelectorAll('button'));
-    expect(choices.map((choice) => choice.textContent)).toEqual(['Get them instantly', 'Get a digest', 'Never']);
+    expect(choices.map((choice) => choice.textContent)).toEqual([
+      'Get them instantly',
+      'Get a digest',
+      'Never',
+    ]);
     for (const choice of choices) expect(choice.getAttribute('aria-selected')).toBeNull();
-    const styles = new Set(choices.map((choice) => choice.getAttribute('data-style')?.replace(/"opacity":[0-9.]+/, '')));
+    const styles = new Set(
+      choices.map((choice) => choice.getAttribute('data-style')?.replace(/"opacity":[0-9.]+/, '')),
+    );
     expect(styles.size).toBe(1);
     fireEvent.click(screen.getByText('Never'));
     await waitFor(() => {
@@ -161,21 +202,43 @@ describe('X-32 X-51 PC-17 preference center', () => {
     });
     const patch = requests.find((request) => request.method === 'PATCH');
     expect(patch?.body).toEqual({
-      preferences: [{ level: 'category_channel', category: 'order_updates', channel: 'email', value: 'opt_out' }],
+      preferences: [
+        {
+          level: 'category_channel',
+          category: 'order_updates',
+          channel: 'email',
+          value: 'opt_out',
+        },
+      ],
     });
   });
 
   it('X-20 turning a switch on is a single tap', async () => {
     const off = {
       ...preferences,
-      cells: [{ category: 'order_updates', channel: 'email', value: 'opt_out', effective: false, source: 'user' }],
+      cells: [
+        {
+          category: 'order_updates',
+          channel: 'email',
+          value: 'opt_out',
+          effective: false,
+          source: 'user',
+        },
+      ],
     };
     const { relay, requests } = client(() => json(200, off));
     renderWith(relay, <PreferenceCenter />);
     fireEvent.click(await screen.findByTestId('relay-pref-switch-order_updates-email'));
     await waitFor(() => {
       expect(requests.find((request) => request.method === 'PATCH')?.body).toEqual({
-        preferences: [{ level: 'category_channel', category: 'order_updates', channel: 'email', value: 'opt_in' }],
+        preferences: [
+          {
+            level: 'category_channel',
+            category: 'order_updates',
+            channel: 'email',
+            value: 'opt_in',
+          },
+        ],
       });
     });
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -188,7 +251,9 @@ describe('X-32 X-51 PC-17 preference center', () => {
     renderWith(relay, <PreferenceCenter />);
     fireEvent.click(await screen.findByTestId('relay-pref-switch-order_updates-push'));
     fireEvent.click(await screen.findByText('Never'));
-    expect(await screen.findByText('At least one channel must stay on for this category.')).toBeTruthy();
+    expect(
+      await screen.findByText('At least one channel must stay on for this category.'),
+    ).toBeTruthy();
   });
 
   it('X-32 every control meets the touch target', async () => {

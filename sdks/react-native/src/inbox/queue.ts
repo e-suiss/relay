@@ -123,7 +123,9 @@ export class IntentQueue {
     const body: InboxIntent = {
       op: entry.op,
       client_seq: entry.client_seq,
-      ...(entry.base_state_version === null ? {} : { base_state_version: entry.base_state_version }),
+      ...(entry.base_state_version === null
+        ? {}
+        : { base_state_version: entry.base_state_version }),
       ...(entry.snooze_until === null ? {} : { snooze_until: entry.snooze_until }),
     };
     try {

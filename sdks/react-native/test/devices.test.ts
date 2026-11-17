@@ -26,7 +26,9 @@ describe('CH-28 CH-30 CH-31 device registration', () => {
     const { registrar, requests, adapter } = setup();
     const registered = await registrar.start();
     expect(registered?.id).toBe(DEVICE_ID);
-    expect(adapter.created.map((channel) => channel.id)).toContain('relay.order_updates.time-sensitive');
+    expect(adapter.created.map((channel) => channel.id)).toContain(
+      'relay.order_updates.time-sensitive',
+    );
     const [request] = requests;
     expect(request?.method).toBe('POST');
     expect(request?.path).toBe('/v1/subscriber/devices');
@@ -52,7 +54,10 @@ describe('CH-28 CH-30 CH-31 device registration', () => {
     await registrar.start();
     adapter.refresh('fcm-token-2');
     await flushPromises();
-    expect(requests[1]?.body).toMatchObject({ token: 'fcm-token-2', previous_token: 'fcm-token-1' });
+    expect(requests[1]?.body).toMatchObject({
+      token: 'fcm-token-2',
+      previous_token: 'fcm-token-1',
+    });
   });
 
   it('CH-28 re-registers on foreground only when the permission or channels changed', async () => {
@@ -67,7 +72,9 @@ describe('CH-28 CH-30 CH-31 device registration', () => {
   });
 
   it('CH-28 an iOS device carries its APNs environment and no Android channels', async () => {
-    const { registrar, requests } = setup(new FakePushAdapter('apns', 'com.example.shop', 'sandbox'));
+    const { registrar, requests } = setup(
+      new FakePushAdapter('apns', 'com.example.shop', 'sandbox'),
+    );
     await registrar.start();
     const body = requests[0]?.body as Record<string, unknown>;
     expect(body.apns_environment).toBe('sandbox');

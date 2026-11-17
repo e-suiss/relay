@@ -99,7 +99,9 @@ function channel(value: number): number {
 export function luminance(hex: string): number {
   const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
   if (!match) throw new Error(`${hex} is not #RRGGBB`);
-  const [r, g, b] = [match[1], match[2], match[3]].map((part) => channel(parseInt(part ?? '0', 16)));
+  const [r, g, b] = [match[1], match[2], match[3]].map((part) =>
+    channel(parseInt(part ?? '0', 16)),
+  );
   return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0);
 }
 

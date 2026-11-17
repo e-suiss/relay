@@ -5,7 +5,8 @@ type Props = Record<string, unknown> & { children?: ReactNode };
 type Style = Record<string, unknown> | undefined | null | false | Style[];
 
 function flatten(style: unknown): Record<string, unknown> {
-  if (Array.isArray(style)) return Object.assign({}, ...style.map(flatten)) as Record<string, unknown>;
+  if (Array.isArray(style))
+    return Object.assign({}, ...style.map(flatten)) as Record<string, unknown>;
   if (style && typeof style === 'object') return style as Record<string, unknown>;
   return {};
 }
@@ -21,8 +22,12 @@ function common(props: Props): Record<string, unknown> {
   if (state.disabled !== undefined) attributes['aria-disabled'] = String(state.disabled);
   if (state.checked !== undefined) attributes['aria-checked'] = String(state.checked);
   if (state.selected !== undefined) attributes['aria-selected'] = String(state.selected);
-  if (props.accessibilityLiveRegion !== undefined) attributes['aria-live'] = props.accessibilityLiveRegion;
-  if (props.importantForAccessibility === 'no-hide-descendants' || props.accessibilityElementsHidden === true) {
+  if (props.accessibilityLiveRegion !== undefined)
+    attributes['aria-live'] = props.accessibilityLiveRegion;
+  if (
+    props.importantForAccessibility === 'no-hide-descendants' ||
+    props.accessibilityElementsHidden === true
+  ) {
     attributes['aria-hidden'] = 'true';
   }
   return attributes;

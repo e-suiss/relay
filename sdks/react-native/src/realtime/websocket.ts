@@ -79,7 +79,13 @@ export class WebSocketTransport implements RealtimeTransport {
     const socket = this.factory(websocketUrl(this.baseUrl, options.deviceId), protocols);
     this.socket = socket;
     socket.onopen = () => {
-      this.send([JOIN_REF, JOIN_REF, 'inbox', 'phx_join', options.cursor ? { cursor: options.cursor } : {}]);
+      this.send([
+        JOIN_REF,
+        JOIN_REF,
+        'inbox',
+        'phx_join',
+        options.cursor ? { cursor: options.cursor } : {},
+      ]);
       this.scheduleHeartbeat();
     };
     socket.onmessage = (event) => {

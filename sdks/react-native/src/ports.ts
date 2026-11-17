@@ -9,7 +9,9 @@ export interface SubscriberToken {
 }
 
 /** Supplies the subscriber token. The host app owns the Access session and the token exchange; the SDK never sees a secret. */
-export type TokenProvider = (options: { readonly forceRefresh: boolean }) => Promise<SubscriberToken>;
+export type TokenProvider = (options: {
+  readonly forceRefresh: boolean;
+}) => Promise<SubscriberToken>;
 
 export type TimerHandle = number | object;
 

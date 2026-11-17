@@ -28,7 +28,14 @@ function harness(routes: Record<string, Handler>) {
   });
   const store = new InboxStore();
   const queue = new IntentQueue(h.http, h.store, store, fakeRandom(), recordingLogger(), 's');
-  const sync = new InboxSync({ http: h.http, store, queue, clock: h.clock, logger: h.logger, openWaitMs: 0 });
+  const sync = new InboxSync({
+    http: h.http,
+    store,
+    queue,
+    clock: h.clock,
+    logger: h.logger,
+    openWaitMs: 0,
+  });
   const connection = {
     current: 'idle',
     start: () => {
@@ -124,7 +131,17 @@ describe('IN-28 IN-29 sync', () => {
     const h = harness({
       'GET /v1/subscriber/inbox/items': () => list([inboxItem()]),
       'GET /v1/subscriber/inbox/changes': () =>
-        changes({ changes: [{ type: 'updated', item_id: ITEM_ID, state_version: 2, cursor: 'c11', item: inboxItem({ state_version: 2, read: true }) }] }),
+        changes({
+          changes: [
+            {
+              type: 'updated',
+              item_id: ITEM_ID,
+              state_version: 2,
+              cursor: 'c11',
+              item: inboxItem({ state_version: 2, read: true }),
+            },
+          ],
+        }),
     });
     await h.sync.sync();
     await h.sync.sync();
@@ -177,7 +194,14 @@ describe('IN-28 IN-29 sync', () => {
   it('IN-50 mark all read writes and then syncs', async () => {
     const h = harness({
       'POST /v1/subscriber/inbox/read_all': () =>
-        json(200, { object: 'inbox_read_all_result', scope: 'all', category: null, updated: 2, cut_off: '2026-11-18T09:00:00Z', counters: counters(8, 0) }),
+        json(200, {
+          object: 'inbox_read_all_result',
+          scope: 'all',
+          category: null,
+          updated: 2,
+          cut_off: '2026-11-18T09:00:00Z',
+          counters: counters(8, 0),
+        }),
       'GET /v1/subscriber/inbox/items': () => list([], { counters: counters(8, 0) }),
     });
     const result = await h.sync.readAll();

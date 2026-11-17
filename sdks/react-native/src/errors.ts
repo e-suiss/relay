@@ -72,10 +72,14 @@ export function isRetryable(status: number, code: string | null): boolean {
   if (code !== null) {
     const known = ERROR_CODES[code];
     if (known) return known.retryable;
-    const exact = RETRYABLE_DEFAULTS.find((entry) => entry.status === status && entry.code === code);
+    const exact = RETRYABLE_DEFAULTS.find(
+      (entry) => entry.status === status && entry.code === code,
+    );
     if (exact) return exact.retryable;
   }
-  const byStatus = RETRYABLE_DEFAULTS.find((entry) => entry.status === status && entry.code === null);
+  const byStatus = RETRYABLE_DEFAULTS.find(
+    (entry) => entry.status === status && entry.code === null,
+  );
   if (byStatus) return byStatus.retryable;
   return status >= 500;
 }

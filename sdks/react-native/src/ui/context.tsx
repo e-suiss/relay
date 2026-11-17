@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import { AppState, useColorScheme } from 'react-native';
 import type { RelayClient } from '../client';
 import { resolveLocale, translate, type MessageKey, type RelayLocale } from '../i18n';
@@ -29,11 +36,12 @@ export interface RelayProviderProps {
 /** Supplies the client, theme, brand and locale to Relay components, and by default follows the app's foreground and background. */
 export function RelayProvider(props: RelayProviderProps) {
   const system = useColorScheme();
-  const scheme = props.scheme === 'light' || props.scheme === 'dark'
-    ? props.scheme
-    : system === 'dark'
-      ? 'dark'
-      : 'light';
+  const scheme =
+    props.scheme === 'light' || props.scheme === 'dark'
+      ? props.scheme
+      : system === 'dark'
+        ? 'dark'
+        : 'light';
   const locale = props.locale ? resolveLocale(props.locale) : props.client.locale;
   const { client, brand, theme: overrides, messages } = props;
   const value = useMemo<RelayUi>(

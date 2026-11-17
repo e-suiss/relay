@@ -20,13 +20,7 @@ export type { MessageKey, RelayLocale } from './i18n';
 export { inTab, InboxStore } from './inbox/store';
 export type { InboxSnapshot, InboxTab } from './inbox/store';
 export type { FlushResult, IntentConflict } from './inbox/queue';
-export {
-  API_VERSION,
-  cryptoRandom,
-  memoryStore,
-  silentLogger,
-  systemClock,
-} from './ports';
+export { API_VERSION, cryptoRandom, memoryStore, silentLogger, systemClock } from './ports';
 export type {
   Clock,
   FetchLike,

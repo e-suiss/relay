@@ -80,7 +80,11 @@ function socketHarness() {
   return { sockets, clock, transport };
 }
 
-const options: ConnectOptions = { token: 'tok.en-1', cursor: 'c4', deviceId: 'dev_01j9zq3k4m5n6p7q8r9s0t1v2w' };
+const options: ConnectOptions = {
+  token: 'tok.en-1',
+  cursor: 'c4',
+  deviceId: 'dev_01j9zq3k4m5n6p7q8r9s0t1v2w',
+};
 
 describe('IN-23 IN-58 WebSocket transport', () => {
   it('IN-23 connects with the token in the Phoenix subprotocol and joins inbox with the cursor', () => {
@@ -91,7 +95,10 @@ describe('IN-23 IN-58 WebSocket transport', () => {
     expect(socket?.url).toBe(
       'wss://relay.example.com/v1/realtime/websocket?vsn=2.0.0&device_id=dev_01j9zq3k4m5n6p7q8r9s0t1v2w',
     );
-    expect(socket?.protocols).toEqual(['phoenix', `base64url.bearer.phx.${base64NoPadding('tok.en-1')}`]);
+    expect(socket?.protocols).toEqual([
+      'phoenix',
+      `base64url.bearer.phx.${base64NoPadding('tok.en-1')}`,
+    ]);
     socket?.onopen?.({});
     expect(socket?.sent[0]).toEqual(['1', '1', 'inbox', 'phx_join', { cursor: 'c4' }]);
     socket?.receive(['1', '1', 'inbox', 'phx_reply', { status: 'ok', response: {} }]);
@@ -136,13 +143,23 @@ describe('IN-23 IN-58 WebSocket transport', () => {
     expect(classifyClose(1008, 'auth_expired_token').reason).toBe('auth_expired');
     expect(classifyClose(1008, 'auth_subscriber_suspended').reason).toBe('fatal');
     expect(classifyClose(1008, 'connection_limit').reason).toBe('fatal');
-    expect(classifyClose(1013, 'retry-after=4')).toEqual({ reason: 'overloaded', detail: 'retry-after=4', retryAfterMs: 4000 });
-    expect(classifyClose(503, null, 2000)).toEqual({ reason: 'overloaded', detail: null, retryAfterMs: 2000 });
+    expect(classifyClose(1013, 'retry-after=4')).toEqual({
+      reason: 'overloaded',
+      detail: 'retry-after=4',
+      retryAfterMs: 4000,
+    });
+    expect(classifyClose(503, null, 2000)).toEqual({
+      reason: 'overloaded',
+      detail: null,
+      retryAfterMs: 2000,
+    });
     expect(classifyClose(1006, null).reason).toBe('error');
   });
 
   it('IN-23 builds ws URLs from http base addresses', () => {
-    expect(websocketUrl('http://localhost:4000', null)).toBe('ws://localhost:4000/v1/realtime/websocket?vsn=2.0.0');
+    expect(websocketUrl('http://localhost:4000', null)).toBe(
+      'ws://localhost:4000/v1/realtime/websocket?vsn=2.0.0',
+    );
   });
 });
 
@@ -156,7 +173,9 @@ describe('IN-23 SSE transport', () => {
   });
 
   it('IN-23 resumes with Last-Event-ID and hands envelopes over', () => {
-    let captured: { url: string; headers: Readonly<Record<string, string>>; handlers: StreamingHandlers } | undefined;
+    let captured:
+      | { url: string; headers: Readonly<Record<string, string>>; handlers: StreamingHandlers }
+      | undefined;
     const transport = new SseTransport(
       (deviceId) => `https://relay.example.com/v1/realtime/events?device_id=${deviceId ?? ''}`,
       (url, headers, handlers) => {
@@ -169,7 +188,9 @@ describe('IN-23 SSE transport', () => {
     expect(captured?.headers['Last-Event-ID']).toBe('c4');
     expect(captured?.headers.Authorization).toBe('Bearer tok.en-1');
     captured?.handlers.onResponse(200, () => null);
-    captured?.handlers.onChunk(`id: c5\nevent: inbox.counters_changed\ndata: ${JSON.stringify(ENVELOPE)}\n\n`);
+    captured?.handlers.onChunk(
+      `id: c5\nevent: inbox.counters_changed\ndata: ${JSON.stringify(ENVELOPE)}\n\n`,
+    );
     expect(events).toEqual(['open']);
     expect(envelopes).toEqual([ENVELOPE]);
   });
@@ -267,12 +288,18 @@ describe('IN-23 IN-34 connection fallback and reconnect', () => {
     const { clock, connection } = connectionHarness([ws]);
     connection.start();
     await clock.advance(400_000);
-    expect(clock.delays.slice(0, 8)).toEqual([1000, 2000, 4000, 8000, 16_000, 32_000, 60_000, 60_000]);
+    expect(clock.delays.slice(0, 8)).toEqual([
+      1000, 2000, 4000, 8000, 16_000, 32_000, 60_000, 60_000,
+    ]);
   });
 
   it('IN-33 a fatal close stops reconnecting', async () => {
     const ws = new ScriptedTransport('websocket', (_attempt, handlers) => {
-      handlers.onClose({ reason: 'fatal', detail: 'auth_subscriber_suspended', retryAfterMs: null });
+      handlers.onClose({
+        reason: 'fatal',
+        detail: 'auth_subscriber_suspended',
+        retryAfterMs: null,
+      });
     });
     const { clock, connection, fatal } = connectionHarness([ws]);
     connection.start();
@@ -284,7 +311,12 @@ describe('IN-23 IN-34 connection fallback and reconnect', () => {
 
   it('IN-33 an expired token is renewed once before reconnecting', async () => {
     const ws = new ScriptedTransport('websocket', (attempt, handlers) => {
-      if (attempt === 1) handlers.onClose({ reason: 'auth_expired', detail: 'auth_expired_token', retryAfterMs: null });
+      if (attempt === 1)
+        handlers.onClose({
+          reason: 'auth_expired',
+          detail: 'auth_expired_token',
+          retryAfterMs: null,
+        });
       else handlers.onOpen();
     });
     const { clock, connection, forced, opened } = connectionHarness([ws]);
@@ -298,7 +330,8 @@ describe('IN-23 IN-34 connection fallback and reconnect', () => {
 
   it('IN-52 waits at least the Retry-After of an overloaded node', async () => {
     const ws = new ScriptedTransport('websocket', (attempt, handlers) => {
-      if (attempt === 1) handlers.onClose({ reason: 'overloaded', detail: 'retry-after=5', retryAfterMs: 5000 });
+      if (attempt === 1)
+        handlers.onClose({ reason: 'overloaded', detail: 'retry-after=5', retryAfterMs: 5000 });
       else handlers.onOpen();
     });
     const { clock, connection } = connectionHarness([ws]);

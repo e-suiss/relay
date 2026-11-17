@@ -162,14 +162,15 @@ defmodule Relay.Agents.Messages do
   def views(%Relay.Scope{} = scope, records, include) when include in [:inline, :referenced] do
     with {:ok, public_key} <- MessageSigner.public_key(scope),
          {:ok, read} <- MailboxStore.in_scope(scope, fn _status -> read(records, include) end) do
-      key = MessageSigner.key_text(public_key)
+      context = %{read: read, include: include, key: MessageSigner.key_text(public_key)}
+      Enum.reduce_while(records, {:ok, %{}}, &viewed(scope, &1, context, &2))
+    end
+  end
 
-      Enum.reduce_while(records, {:ok, %{}}, fn record, {:ok, done} ->
-        case view(scope, record, read, include, key) do
-          {:ok, view} -> {:cont, {:ok, Map.put(done, record["id"], view)}}
-          {:error, error} -> {:halt, {:error, error}}
-        end
-      end)
+  defp viewed(scope, record, context, {:ok, done}) do
+    case view(scope, record, context.read, context.include, context.key) do
+      {:ok, view} -> {:cont, {:ok, Map.put(done, record["id"], view)}}
+      {:error, error} -> {:halt, {:error, error}}
     end
   end
 

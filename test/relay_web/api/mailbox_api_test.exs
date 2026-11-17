@@ -6,6 +6,7 @@ defmodule RelayWeb.Api.MailboxApiTest do
   alias Relay.Inbox.Mailbox, as: Core
   alias Relay.Platform.VirtualClock
   alias Relay.Repo
+  alias Relay.Webhooks.Profile
   alias RelayTest.Api
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
@@ -288,7 +289,7 @@ defmodule RelayWeb.Api.MailboxApiTest do
 
     defp verified!(message, key) do
       assert %{"key" => ^key, "id" => id, "timestamp" => timestamp} = message
-      {:ok, public_key} = Relay.Webhooks.Profile.parse_key(key)
+      {:ok, public_key} = Profile.parse_key(key)
 
       headers = [
         {"webhook-id", id},
@@ -298,10 +299,9 @@ defmodule RelayWeb.Api.MailboxApiTest do
 
       now = DateTime.from_unix!(timestamp)
 
-      assert {:ok, _verified} =
-               Relay.Webhooks.Profile.verify(headers, message["envelope"], [public_key], now, 300)
-
-      Jason.decode!(message["envelope"])
+      envelope = message["envelope"]
+      assert {:ok, _verified} = Profile.verify(headers, envelope, [public_key], now, 300)
+      Jason.decode!(envelope)
     end
 
     test "AG-40: a lease, a read and a record by its handle carry the signed message", ctx do

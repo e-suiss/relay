@@ -5744,6 +5744,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "CH-88",
+    "section": "§12",
+    "status": "policy_default",
+    "title": "Starting values of the security SMS destination protections",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
     "id": "PC-1",
     "section": "§13",
     "status": "canonical_invariant",
@@ -6213,6 +6221,54 @@
     "status": "frozen_technical",
     "title": "Consent copy and suppression records",
     "verify_stage": 4
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-60",
+    "section": "§13",
+    "status": "policy_default",
+    "title": "Business calendar data set and business day counting",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-61",
+    "section": "§13",
+    "status": "policy_default",
+    "title": "A United States SMS or voice revocation covers the brand's consent-bound messages on both channels",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-62",
+    "section": "§13",
+    "status": "policy_default",
+    "title": "The direct access threshold is adapter data and measured per brand",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-63",
+    "section": "§13",
+    "status": "policy_default",
+    "title": "How the compliance table resolves a country and applies its rows",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-64",
+    "section": "§13",
+    "status": "frozen_technical",
+    "title": "Unsubscribe token, refusal events, revocation scope and SMS keyword matching",
+    "verify_stage": 11
+  },
+  {
+    "acceptance": "pending",
+    "id": "PC-65",
+    "section": "§13",
+    "status": "policy_default",
+    "title": "Permission changes are pulled, cached and reconciled; operator sync view and upload retry",
+    "verify_stage": 11
   },
   {
     "acceptance": "pending",
@@ -8733,6 +8789,14 @@
     "status": "frozen_technical",
     "title": "Subscriber suspension by tenant operators and Access user events",
     "verify_stage": 3
+  },
+  {
+    "acceptance": "pending",
+    "id": "TN-74",
+    "section": "§18",
+    "status": "frozen_technical",
+    "title": "Lifting a takedown is a second operator action with step-up",
+    "verify_stage": 11
   },
   {
     "acceptance": "pending",

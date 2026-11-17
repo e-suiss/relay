@@ -59,7 +59,6 @@ defmodule Relay.Api.Courier do
     end
   end
 
-
   # E-108
   defp environment(%{"source" => source, "accessenvironment" => environment}) do
     environment = String.downcase(environment)

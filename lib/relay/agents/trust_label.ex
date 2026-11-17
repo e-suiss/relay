@@ -23,8 +23,10 @@ defmodule Relay.Agents.TrustLabel do
           optional(:blocked) => boolean(),
           optional(:suspended) => boolean(),
           optional(:flagged) => boolean(),
+          optional(:marked_spam) => boolean(),
           optional(:over_first_contact_rate) => boolean(),
-          optional(:proof) => proof() | nil
+          optional(:proof) => proof() | nil,
+          optional(:authenticated) => boolean()
         }
 
   # C-77
@@ -39,13 +41,14 @@ defmodule Relay.Agents.TrustLabel do
 
   # AG-69
   # AG-38
-  @doc "The label of a message from the facts about its sender and carrier."
+  @doc "The label of a message from the facts about its sender and carrier. The carrier's mark is `:flagged` or `:marked_spam`; a verified identity is a `:proof` or `:authenticated`."
   @spec assign(facts()) :: t()
   def assign(facts) when is_map(facts) do
     cond do
       fact?(facts, :blocked) or fact?(facts, :suspended) -> :blocked
-      fact?(facts, :flagged) or fact?(facts, :over_first_contact_rate) -> :spam
-      Map.get(facts, :proof) in @proofs -> :authenticated
+      fact?(facts, :flagged) or fact?(facts, :marked_spam) -> :spam
+      fact?(facts, :over_first_contact_rate) -> :spam
+      Map.get(facts, :proof) in @proofs or fact?(facts, :authenticated) -> :authenticated
       true -> :unauthenticated
     end
   end

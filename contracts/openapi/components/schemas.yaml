@@ -6000,6 +6000,8 @@ AgentMessageData:
     - subject_digest
     - response_digest
     - content_encryption
+    - content_marking
+    - relationship
     - parts
     - links
     - links_withheld
@@ -6097,9 +6099,20 @@ AgentMessageData:
         - "$ref": "#/Sha256Digest"
         - type: "null"
     content_encryption:
+      description: "The scheme of an end-to-end encrypted envelope as its sender named it; null for content Relay can read."
+      oneOf:
+        - "$ref": "#/ContentEncryption"
+        - type: "null"
+    content_marking:
+      description: "encrypted_untrusted_content for a message that carries an end-to-end encrypted envelope (AG-57): Relay cannot read it and applies no content rule to it, the message has no parts, the envelope is read with getMailboxMessage and the recipient treats what it decrypts as untrusted content. Null otherwise."
       oneOf:
         - type: string
-          maxLength: 64
+          const: encrypted_untrusted_content
+        - type: "null"
+    relationship:
+      description: "The relationship level the recipient holds towards the sender of a message between agents; null for any other message."
+      oneOf:
+        - "$ref": "#/RelationshipLevel"
         - type: "null"
     parts:
       type: array
@@ -6467,6 +6480,216 @@ MailboxRecordList:
           items:
             "$ref": "#/MailboxRecord"
   description: "A page of mailbox records."
+RelationshipLevel:
+  type: string
+  description: "The relationship level a recipient holds towards a sender, copied from Access relationship events (AG-59). A level is a policy input and never an authority."
+  enum:
+    - unknown
+    - known
+    - verified
+    - trusted
+ContentEncryption:
+  type: string
+  description: "The name of the scheme the sender encrypted the envelope with, as the sender states it. Relay records it and does not interpret it."
+  pattern: "^[A-Za-z0-9][A-Za-z0-9._+:/-]{0,63}$"
+EncryptedEnvelope:
+  type: object
+  description: "An end-to-end encrypted envelope (AG-56). ciphertext is the envelope in base64, at most x-relay-limits encrypted_envelope.max_bytes once decoded. Relay holds no key for it."
+  required:
+    - content_encryption
+    - ciphertext
+  properties:
+    content_encryption:
+      "$ref": "#/ContentEncryption"
+    ciphertext:
+      type: string
+      minLength: 4
+      maxLength: 349528
+      pattern: "^[A-Za-z0-9+/]+={0,2}$"
+  additionalProperties: false
+MailboxMessageRequest:
+  type: object
+  description: "A message to the mailbox of another agent. first_contact_token is a Privacy Pass token of type 0x0002 (RFC 9578) in unpadded base64url, needed only while the recipient's relationship level towards the sender is unknown (AG-60)."
+  required:
+    - to
+    - encrypted_envelope
+  properties:
+    to:
+      "$ref": "#/Id_agt"
+    encrypted_envelope:
+      "$ref": "#/EncryptedEnvelope"
+    first_contact_token:
+      type: string
+      pattern: "^[A-Za-z0-9_-]{472}$"
+  additionalProperties: false
+MailboxMessageReceipt:
+  type: object
+  description: "The answer to a sent message: the identifier of its record. It says nothing about the recipient's relationship level or block list."
+  required:
+    - object
+    - id
+    - created_at
+  properties:
+    object:
+      type: string
+      const: mailbox_message_receipt
+    id:
+      "$ref": "#/Id_mbr"
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+MailboxMessage:
+  type: object
+  description: "What Relay records of a message that carries an encrypted envelope (AG-67): the sender, the recipient, the size of the envelope in bytes, the time, the trust label, relationship and content_encryption, with the record's identifier and position. No field is derived from the content. content_marking says how the envelope is to be treated: encrypted, untrusted content (AG-57)."
+  required:
+    - object
+    - id
+    - mailbox_id
+    - epoch
+    - seq
+    - sender
+    - recipient
+    - size
+    - sent_at
+    - trust_label
+    - relationship
+    - content_encryption
+    - content_marking
+  properties:
+    object:
+      type: string
+      const: mailbox_message
+    id:
+      "$ref": "#/Id_mbr"
+    mailbox_id:
+      "$ref": "#/Id_mbx"
+    epoch:
+      type: integer
+      minimum: 1
+    seq:
+      type: integer
+      minimum: 1
+    sender:
+      "$ref": "#/Id_agt"
+    recipient:
+      "$ref": "#/Id_agt"
+    size:
+      type: integer
+      minimum: 1
+    sent_at:
+      "$ref": "#/Timestamp"
+    trust_label:
+      "$ref": "#/TrustLabel"
+    relationship:
+      "$ref": "#/RelationshipLevel"
+    content_encryption:
+      "$ref": "#/ContentEncryption"
+    content_marking:
+      type: string
+      const: encrypted_untrusted_content
+  additionalProperties: false
+MailboxMessageList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/MailboxMessage"
+  description: "A page of messages."
+MailboxEnvelope:
+  type: object
+  description: "A message with its encrypted envelope as it was sent, in base64. ciphertext is null once the content was erased."
+  required:
+    - object
+    - message
+    - ciphertext
+  properties:
+    object:
+      type: string
+      const: mailbox_envelope
+    message:
+      "$ref": "#/MailboxMessage"
+    ciphertext:
+      oneOf:
+        - type: string
+          maxLength: 349528
+        - type: "null"
+  additionalProperties: false
+MailboxBlockRequest:
+  type: object
+  description: "Blocks a sender (blocked true) or lifts the block (blocked false)."
+  required:
+    - sender
+    - blocked
+  properties:
+    sender:
+      "$ref": "#/Id_agt"
+    blocked:
+      type: boolean
+  additionalProperties: false
+MailboxBlock:
+  type: object
+  description: "The block of a sender on the caller's mailbox (AG-61)."
+  required:
+    - object
+    - sender
+    - state
+    - blocked_at
+    - lifted_at
+  properties:
+    object:
+      type: string
+      const: mailbox_block
+    sender:
+      "$ref": "#/Id_agt"
+    state:
+      type: string
+      enum:
+        - blocked
+        - lifted
+    blocked_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    lifted_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+MailboxAbuseReportRequest:
+  type: object
+  description: "An abuse report of one message. statement is the reporter's own account of the content, attached only by the reporter's choice; it is carried as the reporter's statement, unverified."
+  required:
+    - record_id
+  properties:
+    record_id:
+      "$ref": "#/Id_mbr"
+    statement:
+      type: string
+      minLength: 1
+      maxLength: 8192
+  additionalProperties: false
+MailboxAbuseReport:
+  type: object
+  description: "An abuse report as recorded (AG-61)."
+  required:
+    - object
+    - record_id
+    - reported_at
+    - statement_attached
+  properties:
+    object:
+      type: string
+      const: mailbox_abuse_report
+    record_id:
+      "$ref": "#/Id_mbr"
+    reported_at:
+      "$ref": "#/Timestamp"
+    statement_attached:
+      type: boolean
+  additionalProperties: false
 CorrelationId:
   type: string
   description: "The sender's correlation identifier, 1 to 128 printable ASCII characters. Returned in outgoing events as the correlationid extension."

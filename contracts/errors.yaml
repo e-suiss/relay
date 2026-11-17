@@ -1621,6 +1621,33 @@ codes:
     description: "The mailbox is suspended because its owner is suspended; it hands out no lease. Its records stay and can be read."
     type: "{base_url}/v1/errors/mailbox_inactive"
     choice_note: "Code name and status chosen by the contract."
+  - code: first_contact_token_required
+    family: agent
+    status: 403
+    title: "First-contact token required"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: "The recipient's relationship level towards the sender is unknown, so the message is a first contact and needs a Privacy Pass token of type 0x0002 issued by Access for Relay's origin. The request carried no token, one that does not verify or one that was spent before; the same answer is given while Relay knows no issuer key."
+    type: "{base_url}/v1/errors/first_contact_token_required"
+  - code: encrypted_transport_disabled
+    family: agent
+    status: 403
+    title: "Encrypted transport is not carried here"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "This installation's region does not carry end-to-end encrypted envelopes between agents: in the eu region they are off until the installation's encrypted_transport data set turns them on."
+    type: "{base_url}/v1/errors/encrypted_transport_disabled"
+    choice_note: "Code name and status chosen by the contract."
   - code: escalation_policy_not_found
     family: resource
     status: 404

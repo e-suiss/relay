@@ -8208,6 +8208,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "AG-67",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "The agent contracts come before the code that depends on them; an encrypted envelope has seven metadata fields and no other",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
     "id": "AG-68",
     "section": "§17",
     "status": "frozen_technical",
@@ -8219,7 +8227,7 @@
     "id": "AG-69",
     "section": "§17",
     "status": "frozen_technical",
-    "title": "The trust label is blocked before spam before authenticated before unauthenticated, from facts about the sender and never from content",
+    "title": "The trust label is assigned in a fixed order: blocked, spam, authenticated, unauthenticated",
     "verify_stage": 12
   },
   {
@@ -8236,6 +8244,22 @@
     "section": "§17",
     "status": "policy_default",
     "title": "The agent operations alarms have fixed thresholds and none of them pages",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-73",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "A first-contact token is a publicly verifiable Privacy Pass token verified offline; the relationship copy follows a monotone sequence per pair",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-74",
+    "section": "§17",
+    "status": "policy_default",
+    "title": "Person-to-person encrypted transport is off in the eu region until a recorded legal approval; turning it on without one stops the release",
     "verify_stage": 12
   },
   {

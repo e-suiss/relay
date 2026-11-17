@@ -17,6 +17,9 @@ defmodule Relay.Agents.TrustLabelTest do
 
     test "AG-69: a flagged message or a sender over the first contact rate is spam" do
       assert TrustLabel.assign(%{flagged: true}) == :spam
+      assert TrustLabel.assign(%{marked_spam: true, authenticated: true}) == :spam
+      assert Relay.Agents.trust_label(%{authenticated: true}) == :authenticated
+      assert Relay.Agents.trust_label(%{authenticated: true, blocked: true}) == :blocked
       assert TrustLabel.assign(%{over_first_contact_rate: true}) == :spam
       assert TrustLabel.assign(%{flagged: true, proof: :a2a}) == :spam
     end
@@ -83,14 +86,19 @@ defmodule Relay.Agents.TrustLabelTest do
       refute TrustLabel.wakes?(:blocked)
     end
 
-    test "AG-69: without a block list and a first contact rate no sender is blocked or over it" do
+    test "AG-69: a sender that is no registered agent is neither blocked nor over the rate" do
       scope = %Relay.Scope{tenant_id: Relay.Id.generate(), environment: :test}
       owner = {:agent, Relay.Id.generate()}
       sender = %{kind: :agent, id: "agent-1"}
 
-      assert SenderStanding.impl() == SenderStanding.None
-      refute SenderStanding.None.blocked?(scope, owner, sender)
-      refute SenderStanding.None.over_first_contact_rate?(scope, owner, sender)
+      assert SenderStanding.impl() == SenderStanding.Registered
+      none = {:ok, %{blocked: false, over_first_contact_rate: false}}
+      assert SenderStanding.Registered.standing(scope, owner, sender) == none
+
+      human = %{kind: :human, id: Relay.ExternalId.encode("agt", Relay.Id.generate())}
+      assert SenderStanding.Registered.standing(scope, owner, human) == none
+      client = {:api_client, Relay.Id.generate()}
+      assert SenderStanding.Registered.standing(scope, client, %{human | kind: :agent}) == none
     end
   end
 end

@@ -2,13 +2,14 @@ defmodule Relay.Agents.Messages do
   @moduledoc """
   Messages in a mailbox: the delivery of an incoming message to the mailbox of an agent or an API client, and the signed envelope of every record of the agent face (C-76, C-77, AG-38, AG-39, AG-40, AG-41, AG-69).
 
-  `deliver/3` is the one way a message of a sender enters a mailbox. It assigns the trust label from facts about the sender and the carrier (`Relay.Agents.TrustLabel`), asking the configured `Relay.Agents.SenderStanding` for the block list and the first contact rate; prepares the content as untrusted parts and filters its links against the tenant's allow list (`Relay.Agents.Message`); seals the content under the tenant's data key; and appends the record with its label and its event in one transaction. A message of a blocked sender is recorded as any other; its label and its event say what it is. The label is an outcome that is returned, never an error.
+  `deliver/3` is the one way a message of a sender enters a mailbox. It assigns the trust label from facts about the sender and the carrier (`Relay.Agents.TrustLabel`), asking the configured `Relay.Agents.SenderStanding` for the block list and the first contact rate, by default those of registered agents; prepares the content as untrusted parts and filters its links against the tenant's allow list (`Relay.Agents.Message`); seals the content under the tenant's data key; and appends the record with its label and its event in one transaction. A message of a blocked sender is recorded as any other; its label and its event say what it is. The label is an outcome that is returned, never an error.
 
-  `views/3` gives each record its message: the CloudEvents envelope around the typed data of the record, signed with the tenant's message key (`Relay.Agents.MessageSigner`). The content is opened and the envelope signed outside any transaction. A message whose content can no longer be opened has no envelope.
+  `views/3` gives each record its message: the CloudEvents envelope around the typed data of the record, signed with the tenant's message key (`Relay.Agents.MessageSigner`). The content is opened and the envelope signed outside any transaction. A message whose content can no longer be opened has no envelope. A message that carries an end-to-end encrypted envelope (`Relay.Agents.FirstContact`) gets the typed fields Relay recorded of it and no part: Relay cannot read its content, marks it `encrypted_untrusted_content` and applies none of the content rules to it; the recipient applies them after it decrypts (AG-57).
 
   The field cipher is configured as `config :relay, Relay.Agents, field_cipher: Module`, by default `Relay.Tenancy`.
   """
 
+  alias Relay.Agents.FirstContactStore
   alias Relay.Agents.Mailbox
   alias Relay.Agents.MailboxStore
   alias Relay.Agents.Message
@@ -54,7 +55,7 @@ defmodule Relay.Agents.Messages do
       when kind in [:agent, :api_client] and is_map(input) do
     with {:ok, origins} <- MailboxStore.in_scope(scope, fn _status -> origins() end),
          {:ok, prepared} <- Message.prepare(input, origins),
-         label = label(scope, owner, input),
+         {:ok, label} <- label(scope, owner, input),
          {:ok, sealed} <- seal(scope, prepared) do
       record =
         Map.merge(sealed, %{
@@ -75,15 +76,17 @@ defmodule Relay.Agents.Messages do
   # AG-69
   defp label(scope, owner, input) do
     sender = Map.get(input, :sender)
-    standing = SenderStanding.impl()
 
-    TrustLabel.assign(%{
-      blocked: standing.blocked?(scope, owner, sender),
-      suspended: Map.get(input, :suspended) == true,
-      flagged: Map.get(input, :flagged) == true,
-      over_first_contact_rate: standing.over_first_contact_rate?(scope, owner, sender),
-      proof: Map.get(input, :proof)
-    })
+    with {:ok, standing} <- SenderStanding.impl().standing(scope, owner, sender) do
+      {:ok,
+       TrustLabel.assign(%{
+         blocked: standing.blocked,
+         suspended: Map.get(input, :suspended) == true,
+         flagged: Map.get(input, :flagged) == true,
+         over_first_contact_rate: standing.over_first_contact_rate,
+         proof: Map.get(input, :proof)
+       })}
+    end
   end
 
   defp append(owner, record) do
@@ -181,12 +184,29 @@ defmodule Relay.Agents.Messages do
           into: %{},
           do: {id, Waitpoint.read_in(id)}
 
-    %{contents: MessageStore.contents(records, include == :referenced), waitpoints: waitpoints}
+    encrypted =
+      for %{"kind" => "message", "id" => id} <- records,
+          %{} = message <- [FirstContactStore.message(id)],
+          into: %{},
+          do: {id, message}
+
+    %{
+      contents: MessageStore.contents(records, include == :referenced),
+      waitpoints: waitpoints,
+      encrypted: encrypted
+    }
   end
 
   defp view(scope, %{"kind" => "waitpoint_event"} = record, read, _include, key) do
     waitpoint = Map.get(read.waitpoints, record["waitpoint_id"])
     signed(scope, record, Message.waitpoint_data(record, waitpoint), key, nil)
+  end
+
+  # AG-57
+  defp view(scope, %{"id" => id} = record, %{encrypted: encrypted}, _include, key)
+       when is_map_key(encrypted, id) do
+    message = Map.fetch!(encrypted, id)
+    signed(scope, record, Message.encrypted_data(record, message), key, message["trust_label"])
   end
 
   defp view(scope, record, read, include, key) do

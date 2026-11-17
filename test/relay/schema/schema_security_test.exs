@@ -12,7 +12,8 @@ defmodule Relay.Schema.SchemaSecurityTest do
                           subscriber_token_keys)
   @append_only ~w(audit_checkpoint_publications audit_checkpoints audit_leaves audit_log
                   cancellations consents dataset_versions delivery_events erasure_log
-                  escalation_policy_versions
+                  agent_messages escalation_policy_versions first_contact_tokens
+                  mailbox_abuse_reports
                   inbox_item_deliveries load_shed_events preference_changes refusals
                   render_snapshots unsubscribe_token_revocations usage_records
                   waitpoint_responders waitpoint_responses waitpoint_response_rejections

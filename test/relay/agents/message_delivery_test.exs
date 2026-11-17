@@ -24,10 +24,13 @@ defmodule Relay.Agents.MessageDeliveryTest do
     @behaviour Relay.Agents.SenderStanding
 
     @impl Relay.Agents.SenderStanding
-    def blocked?(_scope, _recipient, sender), do: sender.id == "party:blocked"
-
-    @impl Relay.Agents.SenderStanding
-    def over_first_contact_rate?(_scope, _recipient, sender), do: sender.id == "party:flood"
+    def standing(_scope, _recipient, sender) do
+      {:ok,
+       %{
+         blocked: sender.id == "party:blocked",
+         over_first_contact_rate: sender.id == "party:flood"
+       }}
+    end
   end
 
   setup do
@@ -283,7 +286,7 @@ defmodule Relay.Agents.MessageDeliveryTest do
 
     test "AG-68: raw and oversized content is read by reference with the same marks", ctx do
       html = "Visible<span style=\"display:none\"> hidden order</span>"
-      big = String.duplicate("b", Agents.message_limits().max_bytes)
+      big = String.duplicate("b", Agents.mailbox_message_limits().max_bytes)
 
       delivered =
         deliver!(ctx, %{

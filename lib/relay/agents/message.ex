@@ -434,6 +434,29 @@ defmodule Relay.Agents.Message do
 
   defp escaped(other), do: other
 
+  # AG-56
+  # AG-57
+  # AG-67
+  @doc "The typed data of a message that carries an end-to-end encrypted envelope, from what Relay recorded of it (`message`, a row of the message metadata): the sender, the trust label, the relationship and the name of the encryption scheme. Relay cannot read the content, so the message has no part; the whole envelope is marked `encrypted_untrusted_content` and is read with the message itself."
+  @spec encrypted_data(map(), map()) :: Jason.OrderedObject.t()
+  def encrypted_data(record, message) do
+    label = message["trust_label"]
+
+    typed(record, %{
+      "message_type" => "message",
+      "trust_label" => label,
+      "sender" => %{
+        "kind" => "agent",
+        "id" => Relay.ExternalId.encode("agt", message["sender_agent_id"]),
+        "verified" => label == "authenticated"
+      },
+      "channel" => "mailbox",
+      "content_encryption" => message["content_encryption"],
+      "content_marking" => "encrypted_untrusted_content",
+      "relationship" => message["relationship"]
+    })
+  end
+
   # C-76
   # AG-25
   # AG-26
@@ -503,7 +526,9 @@ defmodule Relay.Agents.Message do
       {"evidence_level", fields["evidence_level"]},
       {"subject_digest", fields["subject_digest"]},
       {"response_digest", fields["response_digest"]},
-      {"content_encryption", nil},
+      {"content_encryption", fields["content_encryption"]},
+      {"content_marking", fields["content_marking"]},
+      {"relationship", fields["relationship"]},
       {"parts", Map.get(fields, "parts", [])},
       {"links", Map.get(fields, "links", [])},
       {"links_withheld", Map.get(fields, "links_withheld", 0)}

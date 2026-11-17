@@ -119,6 +119,8 @@ channels:
         "$ref": "#/components/messages/webhook.mailbox.record_appended"
       webhook.mailbox.record_flagged:
         "$ref": "#/components/messages/webhook.mailbox.record_flagged"
+      webhook.mailbox.request_received:
+        "$ref": "#/components/messages/webhook.mailbox.request_received"
       webhook.mailbox.record_dead_lettered:
         "$ref": "#/components/messages/webhook.mailbox.record_dead_lettered"
       webhook.killswitch.engaged:
@@ -654,6 +656,7 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.agent.ceiling_exceeded"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.mailbox.record_appended"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.mailbox.record_flagged"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.mailbox.request_received"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.mailbox.record_dead_lettered"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.killswitch.engaged"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.killswitch.released"
@@ -3307,7 +3310,7 @@ components:
     operations.mailbox.abuse_reported:
       name: mailbox.abuse_reported
       title: mailbox.abuse_reported
-      summary: A recipient reported a mailbox message as abuse (metadata only).
+      summary: "A recipient reported a mailbox message as abuse: metadata only, with the reporter's own unverified statement when the reporter attached it."
       contentType: application/cloudevents+json
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -3337,6 +3340,37 @@ components:
                       maxLength: 256
                     reported_at:
                       "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    sent_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    size:
+                      type: integer
+                      minimum: 1
+                    rate:
+                      type: object
+                      required:
+                        - messages_last_hour
+                        - recipients_last_day
+                      properties:
+                        messages_last_hour:
+                          type: integer
+                          minimum: 0
+                        recipients_last_day:
+                          type: integer
+                          minimum: 0
+                      additionalProperties: false
+                    statement:
+                      type: object
+                      required:
+                        - marking
+                        - content
+                      properties:
+                        marking:
+                          type: string
+                          const: reporter_statement_unverified
+                        content:
+                          type: string
+                          maxLength: 8192
+                      additionalProperties: false
                   additionalProperties: false
       x-relay-surface: operations
       x-relay-stage: 12
@@ -3433,6 +3467,46 @@ components:
       x-relay-stage: 12
       x-relay-choice: true
       x-relay-choice-note: "AG-38 asks for an explicit subscription before a spam or blocked message wakes an agent. The contract gives such a record an event type of its own that * does not cover (x-relay-explicit-only), so mailbox.record_appended, the hint that wakes an agent, is never produced for it; the name and the fields are chosen by the contract. The data of both events carries trust_label, so the label is known before the record is read."
+    webhook.mailbox.request_received:
+      name: mailbox.request_received
+      title: mailbox.request_received
+      summary: "A first-contact message arrived in the request box of a mailbox; it names the record and its position, never the content or the sender."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: mailbox.request_received
+                data:
+                  type: object
+                  required:
+                    - mailbox_id
+                    - epoch
+                    - seq
+                    - kind
+                  properties:
+                    mailbox_id:
+                      type: string
+                      pattern: "^mbx_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    epoch:
+                      type: integer
+                    seq:
+                      type: integer
+                    kind:
+                      type: string
+                      maxLength: 32
+                    record_id:
+                      type: string
+                      pattern: "^mbr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                  additionalProperties: false
+      x-relay-explicit-only: true
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 12
     webhook.mailbox.record_dead_lettered:
       name: mailbox.record_dead_lettered
       title: mailbox.record_dead_lettered
@@ -8651,6 +8725,7 @@ x-relay-event-names:
   - mailbox.record_appended
   - mailbox.record_dead_lettered
   - mailbox.record_flagged
+  - mailbox.request_received
   - messaging_installation.completed
   - messaging_interaction.received
   - messaging_target.disabled

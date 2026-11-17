@@ -282,5 +282,10 @@
   {"file": "20261230000200_create_agent_operations_overview.exs", "sha256": "061b0f460ea253580b8baf5f3a6427068e0e38258987884924b723e80b66d803"},
   {"file": "20261230000300_rebuild_reference_check_for_agent_ceiling.exs", "sha256": "133ad77a22b204e880155a4fc6d225b1b1c3b5a963c1f359e6e9e2e73daa8b04"},
   {"file": "20270102000000_add_mailbox_message_fields.exs", "sha256": "60b14c5c82fbf33e57ddfd1c954ad8ea5f344035eb5dd81991f46bd5fd26a7c6"},
-  {"file": "20270102000100_validate_mailbox_message_checks.exs", "sha256": "48983b39ec39389d8220f800e18a0dc6c40eef98376e6ea76a5315753f07ee2a"}
+  {"file": "20270102000100_validate_mailbox_message_checks.exs", "sha256": "48983b39ec39389d8220f800e18a0dc6c40eef98376e6ea76a5315753f07ee2a"},
+  {"file": "20270104000000_create_first_contact_tables.exs", "sha256": "98331633d438717324aff7982b7e05beb4093976ab5b6b2d140a8b9abff469b2"},
+  {"file": "20270104000100_create_first_contact_functions.exs", "sha256": "9cf8597a7b8ddb15315d970b6d2746071f2a8b320ab049ce5c5b44b05b54bca9"},
+  {"file": "20270104000200_validate_mailbox_record_kind_checks.exs", "sha256": "e66572c217c7528b3837d4e45016723fd6fe54de37a6e1dbf703e21da7677f0d"},
+  {"file": "20270104000300_register_encrypted_transport.exs", "sha256": "947b83161fdcc41b7372ac00cf5a9d8e5c5a80c7c2bb5ffdb0bcd5d09138f0fb"},
+  {"file": "20270104000400_rebuild_reference_check_for_first_contact.exs", "sha256": "805a172b2ecee51c3c3115880c99330f7cadbc1dfa59141b6e2025dafc8fc094"}
 ]

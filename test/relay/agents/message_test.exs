@@ -103,9 +103,9 @@ defmodule Relay.Agents.MessageTest do
       message = data(prepared!())
 
       assert Map.keys(message) == ~w(
-               channel content_encryption epoch evidence_level links links_withheld mailbox_id
-               message_type parts responder response_digest result sender seq subject_digest
-               trust_label waitpoint_id
+               channel content_encryption content_marking epoch evidence_level links
+               links_withheld mailbox_id message_type parts relationship responder
+               response_digest result sender seq subject_digest trust_label waitpoint_id
              )
 
       assert %{
@@ -404,6 +404,34 @@ defmodule Relay.Agents.MessageTest do
              } = decoded = Jason.decode!(envelope)
 
       assert map_size(decoded) == 8
+    end
+
+    test "AG-57: an encrypted envelope has typed fields, its marking and no part" do
+      sender = Relay.Id.generate()
+
+      recorded = %{
+        "trust_label" => "authenticated",
+        "sender_agent_id" => sender,
+        "relationship" => "known",
+        "content_encryption" => "hpke-x25519"
+      }
+
+      record = record(%{"event_type" => "agent.message", "trust_label" => nil})
+      message = record |> Message.encrypted_data(recorded) |> Jason.encode!() |> Jason.decode!()
+
+      assert %{
+               "message_type" => "message",
+               "trust_label" => "authenticated",
+               "content_encryption" => "hpke-x25519",
+               "content_marking" => "encrypted_untrusted_content",
+               "relationship" => "known",
+               "channel" => "mailbox",
+               "parts" => [],
+               "links" => []
+             } = message
+
+      id = Relay.ExternalId.encode("agt", sender)
+      assert %{"kind" => "agent", "id" => ^id, "verified" => true} = message["sender"]
     end
 
     test "AG-38: a message record without a label is unauthenticated" do

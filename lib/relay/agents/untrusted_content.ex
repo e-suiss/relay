@@ -84,7 +84,7 @@ defmodule Relay.Agents.UntrustedContent do
   defp scrub(<<char::utf8, rest::binary>>, acc), do: scrub(rest, [<<char::utf8>> | acc])
   defp scrub(<<_byte, rest::binary>>, acc), do: scrub(rest, [@replacement | acc])
 
-  # AG-68 (2a)
+  # AG-68 (2)
   defp walk(html, acc, hidden) do
     case :binary.split(html, "<") do
       [text] -> keep(acc, text, hidden)
@@ -289,7 +289,7 @@ defmodule Relay.Agents.UntrustedContent do
 
   defp code_point(_invalid), do: @replacement
 
-  # AG-68 (2c)
+  # AG-68 (2)
   defp drop_invisible(text),
     do: for(<<char::utf8 <- text>>, not invisible?(char), into: "", do: <<char::utf8>>)
 

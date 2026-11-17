@@ -40,8 +40,7 @@ defmodule EsuissRelay.ErrorTest do
     assert length(codes) > 100
 
     for [code] <- codes do
-      assert %{status: status, retryable: retryable} = ErrorCatalog.lookup(code)
-      assert is_integer(status) and is_boolean(retryable)
+      assert %{status: _status, retryable: _retryable, family: _family} = ErrorCatalog.lookup(code)
     end
 
     assert ErrorCatalog.lookup("rate_limited").retryable

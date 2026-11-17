@@ -7,7 +7,7 @@ defmodule EsuissRelay.ClientTest do
 
   @waitpoint %{"object" => "waitpoint", "id" => "wp_1", "state" => "open"}
 
-  defp problem(status, code, extra \\ %{}) do
+  defp problem(status, code, extra) do
     Map.merge(
       %{
         "type" => "https://relay.test/v1/errors/#{code}",

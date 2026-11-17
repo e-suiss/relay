@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from "react";
+import { useId, useState, type SyntheticEvent } from "react";
 import { ApiError, idempotencyKey, request } from "../api/client";
 import type { RevealField, RevealResult } from "../api/types";
 import { useRouter, href } from "../app/router";
@@ -39,7 +39,7 @@ export function MaskedValue({
   const reasonId = useId();
   const fieldName = t(`pii.field.${field}`);
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (phase.kind !== "asking" && phase.kind !== "failed") return;
     const key = phase.key;

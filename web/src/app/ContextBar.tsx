@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from "react";
+import { useId, useState, type SyntheticEvent } from "react";
 import type { Environment } from "../api/types";
 import { useI18n } from "../i18n/i18n";
 import { subtenantPattern, useSession } from "../session/session";
@@ -16,7 +16,7 @@ export function ContextBar() {
   const invalid = value !== "" && !subtenantPattern.test(value);
   const choice = tenants.find((item) => item.tenant === context.tenant);
 
-  const apply = (event: FormEvent<HTMLFormElement>) => {
+  const apply = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (invalid) return;
     setContext({ subtenant: value === "" ? null : value });

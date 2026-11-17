@@ -90,9 +90,7 @@ function storedContext(): Partial<WorkingContext> {
   if (raw === null) return {};
   try {
     const parsed: unknown = JSON.parse(raw);
-    return parsed !== null && typeof parsed === "object"
-      ? (parsed as Partial<WorkingContext>)
-      : {};
+    return parsed !== null && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
   }

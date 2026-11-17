@@ -43,20 +43,27 @@ jobs:
           npm install --package-lock-only --no-audit
           git add --intent-to-add package-lock.json
           git diff --exit-code -- package-lock.json
-      - run: npm ci --no-audit
-      - run: npm audit --omit=dev
-      - run: npm audit --audit-level=critical
+      - id: ci
+        run: npm ci --no-audit
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm audit --omit=dev
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm audit --audit-level=critical
       # X-47
       - id: types
+        if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
         name: contract types match the OpenAPI contracts
         continue-on-error: true
         run: |
           npm run generate
           git add --intent-to-add src/api/generated
           git diff --exit-code --stat -- src/api/generated
-      - run: npm run typecheck
-      - run: npm run lint
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm run typecheck
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm run lint
       - id: format
+        if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
         name: prettier
         continue-on-error: true
         run: |
@@ -66,11 +73,17 @@ jobs:
             cp "$RUNNER_TEMP/format.patch" format.patch
             exit 1
           fi
-      - run: npm test
-      - run: npm run build
-      - run: npx playwright install --with-deps chromium
-      - run: npm run e2e
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm test
+      - id: build
+        if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm run build
+      - if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: npx playwright install --with-deps chromium
+      - if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: npm run e2e
       - name: generated files are committed
+        if: ${{ !cancelled() }}
         env:
           LOCK: ${{ steps.lock.outcome }}
           TYPES: ${{ steps.types.outcome }}

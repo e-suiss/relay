@@ -148,6 +148,7 @@ defmodule Relay.DestinationGuardTest do
 
       assert admit(ctx.scope, number, count?: false) == :ok
       assert counted("sms_destination:n:k" <> digits(number)) == 0
+
       assert admit(ctx.scope, @abroad, count?: false) ==
                {:skip, "destination.country_not_allowed"}
     end

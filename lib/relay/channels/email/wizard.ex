@@ -8,7 +8,7 @@ defmodule Relay.Channels.Email.Wizard do
   @streams ["transactional", "marketing"]
   @dmarc "v=DMARC1; p=reject; t=y; np=reject; adkim=s; aspf=s"
 
-  @type record :: %{
+  @type dns_record :: %{
           purpose: String.t(),
           type: String.t(),
           name: String.t(),
@@ -17,7 +17,7 @@ defmodule Relay.Channels.Email.Wizard do
   @type check :: %{
           stream: String.t(),
           domain: String.t(),
-          records: [record()],
+          records: [dns_record()],
           result: DomainCheck.t()
         }
 

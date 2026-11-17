@@ -113,7 +113,13 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.waitpoint_event_offer" => ~w(matched buffered unmatched),
     "relay_fn.waitpoint_resolve_by_event" => ~w(resolved expired already_terminal not_found),
     "relay_fn.waitpoint_respond" =>
-      ~w(resolved rejected_expired rejected_closed rejected_not_responder rejected_is_waiter rejected_digest_mismatch rejected_session_mismatch not_found),
+      ~w(resolved duplicate rejected_expired rejected_closed rejected_not_responder rejected_is_waiter rejected_evidence_level rejected_digest_mismatch rejected_session_mismatch not_found),
+    "relay_fn.waitpoint_response_token_mint" =>
+      ~w(minted not_found not_open profile_refused not_responder),
+    "relay_fn.waitpoint_response_token_consume" =>
+      ~w(consumed replayed already_consumed rotated expired not_found),
+    "relay_fn.waitpoint_response_token_process" =>
+      ~w(settled already_settled not_processing not_found),
     "relay_fn.waitpoint_heartbeat" =>
       ~w(renewed reopened no_heartbeat already_terminal not_waiter not_found),
     "relay_fn.waitpoint_timer_fire" =>

@@ -115,6 +115,7 @@ defmodule Relay.Api do
       Agents,
       Mailbox,
       MailboxMessages,
-      Waitpoints
+      Waitpoints,
+      WaitpointResponses
     ]
 end

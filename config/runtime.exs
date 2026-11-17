@@ -53,6 +53,9 @@ if config_env() == :prod do
 
   config :relay, RelayWeb.Api, trusted_proxies: Relay.Config.Env.cidrs!("RELAY_TRUSTED_PROXIES")
 
+  config :relay, Relay.Agents.Live,
+    response_link: "https://" <> Relay.Config.Env.fetch!("RELAY_HOST") <> "/respond/"
+
   config :relay, RelayWeb.Endpoint,
     url: [host: Relay.Config.Env.fetch!("RELAY_HOST"), port: 443, scheme: "https"],
     http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: Relay.Config.Env.integer!("PORT")]

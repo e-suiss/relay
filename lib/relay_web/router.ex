@@ -78,6 +78,16 @@ defmodule RelayWeb.Router do
     post "/:token", LinkController, :create
   end
 
+  # AG-31
+  # AG-35
+  # CH-44
+  scope "/respond", RelayWeb do
+    pipe_through :links
+
+    get "/:token", ResponseLinkController, :show
+    post "/:token", ResponseLinkController, :create
+  end
+
   # PC-35
   # PC-36
   # X-22
@@ -908,6 +918,12 @@ defmodule RelayWeb.Router do
 
     post "/subscriber/test_recipients/:test_recipient_id/confirm", TesterController, :confirm,
       private: %{relay_operation: "confirmMyTestRecipient"}
+
+    post "/subscriber/waitpoints/:waitpoint_id/response", WaitpointResponseController, :respond,
+      private: %{relay_operation: "respondToMyWaitpoint"}
+
+    post "/channel_responses", WaitpointResponseController, :submit,
+      private: %{relay_operation: "submitChannelResponse"}
 
     get "/subscriber/inbox/items", InboxController, :index,
       private: %{relay_operation: "listMyInboxItems"}

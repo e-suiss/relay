@@ -20,10 +20,12 @@ defmodule Relay.Agents.WaitpointStore do
   ]
   @respond [
     :resolved,
+    :duplicate,
     :rejected_expired,
     :rejected_closed,
     :rejected_not_responder,
     :rejected_is_waiter,
+    :rejected_evidence_level,
     :rejected_digest_mismatch,
     :rejected_session_mismatch,
     :not_found
@@ -329,12 +331,12 @@ defmodule Relay.Agents.WaitpointStore do
 
   # AG-25
   # AG-11
-  @doc "The responses that resolved waitpoints, by waitpoint, without their sealed value."
+  @doc "The responses that resolved waitpoints, by waitpoint, their value still sealed (`:value_ct`) and, for an `access_aas_ref` response, the reference of the Access decision (`:evidence_ref`)."
   @spec responses([Relay.Id.t()]) :: %{Relay.Id.t() => map()}
   def responses(waitpoint_ids) do
     """
     SELECT p.waitpoint_id, p.id, p.responder_recipient_id, r.kind, p.via, p.evidence_level,
-      p.subject_digest, p.value_digest, p.responded_at
+      p.subject_digest, p.value_digest, p.responded_at, p.value_ct, p.evidence_ref
     FROM relay.waitpoint_responses p
     JOIN relay.recipients r ON r.tenant_id = p.tenant_id AND r.environment = p.environment
       AND r.id = p.responder_recipient_id
@@ -351,7 +353,9 @@ defmodule Relay.Agents.WaitpointStore do
          evidence_level: row["evidence_level"],
          subject_digest: row["subject_digest"],
          value_digest: row["value_digest"],
-         responded_at: row["responded_at"]
+         responded_at: row["responded_at"],
+         value_ct: row["value_ct"],
+         evidence_ref: row["evidence_ref"]
        }}
     end)
   end

@@ -451,14 +451,26 @@ defmodule Relay.Agents.InvitationDeliveryTest do
       refute inspect(items(ctx)) =~ @token
     end
 
-    test "AG-30: without a served token a request is delivered without a response link", ctx do
+    test "AG-30: without a response link address a request is delivered without a link", ctx do
       waitpoint = create!(ctx, question(ctx))
       assert :ok = invite!(ctx, waitpoint)
       email = output(ctx, copy(ctx, waitpoint, "email"), :verify)
       refute email["text"] =~ "Respond"
+    end
 
-      assert {:error, :response_token_unavailable} =
-               Relay.Agents.mint_response_token(ctx.scope, waitpoint.id, ctx.responder)
+    test "AG-31: the message of a human channel carries a served, single-use token", ctx do
+      previous = Application.get_env(:relay, Live, [])
+      Application.put_env(:relay, Live, response_link: @prefix)
+      on_exit(fn -> Application.put_env(:relay, Live, previous) end)
+
+      waitpoint = create!(ctx, question(ctx))
+      assert :ok = invite!(ctx, waitpoint)
+      email = output(ctx, copy(ctx, waitpoint, "email"), :verify)
+      assert email["text"] =~ @prefix <> "rt1."
+
+      minted = Relay.Agents.mint_response_token(ctx.scope, waitpoint.id, ctx.responder)
+      assert {:ok, "rt1." <> _rest} = minted
+      refute Jason.encode!(output(ctx, copy(ctx, waitpoint, "in_app"), :verify)) =~ "rt1."
     end
   end
 

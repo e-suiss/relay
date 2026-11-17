@@ -599,6 +599,8 @@ channels:
         "$ref": "#/components/messages/access.agent.deleted"
       access.consent.updated:
         "$ref": "#/components/messages/access.consent.updated"
+      access.approval.decided:
+        "$ref": "#/components/messages/access.approval.decided"
   accessOutbound:
     address: null
     title: accessOutbound
@@ -901,6 +903,7 @@ operations:
       - "$ref": "#/channels/accessInbound/messages/access.agent.reactivated"
       - "$ref": "#/channels/accessInbound/messages/access.agent.deleted"
       - "$ref": "#/channels/accessInbound/messages/access.consent.updated"
+      - "$ref": "#/channels/accessInbound/messages/access.approval.decided"
   sendAccessOutbound:
     action: send
     channel:
@@ -8170,6 +8173,62 @@ components:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    access.approval.decided:
+      name: approval.decided
+      title: approval.decided
+      summary: "A decision was given on the Access approval surface for a request a waitpoint asks about; the waitpoint is resolved at evidence level access_aas_ref with the reference of the decision (AG-27). A waitpoint of the profile guardian_approval closes only this way (AG-62)."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:approval.decided"
+                  properties:
+                    "urn:suiss:access:event:approval.decided":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - subject
+                        - waitpoint_id
+                        - decision
+                        - decision_ref
+                        - subject_digest
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        subject:
+                          type: string
+                          description: "The pairwise sub of the person who decided, for the Relay client: the external_id of the responding subscriber."
+                          maxLength: 256
+                        waitpoint_id:
+                          type: string
+                          description: "The waitpoint the invitation to the approval surface named."
+                          pattern: "^wp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                        decision:
+                          description: "The decision as a response value; it follows the waitpoint's response_schema. Relay carries it and never judges it."
+                        decision_ref:
+                          type: string
+                          description: "The reference of the decision record on the Access approval surface."
+                          minLength: 1
+                          maxLength: 512
+                        subject_digest:
+                          type: string
+                          description: "The digest of the subject the decision was given for; it is the waitpoint's subject_digest."
+                          pattern: "^sha256:[0-9a-f]{64}$"
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: "Name and members proposed to Access; Relay follows what Access approves in its own contract."
     access.consent.updated:
       name: consent.updated
       title: consent.updated
@@ -8590,6 +8649,7 @@ x-relay-event-names:
   - api_client.suspended
   - api_client.updated
   - api_version.pinned
+  - approval.decided
   - audit_log.read
   - audit_record.appended
   - blind_index_key.registered

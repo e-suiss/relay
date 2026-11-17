@@ -17,16 +17,18 @@ if [ ! -f "$jar" ]; then
 fi
 echo "$sha256  $jar" | sha256sum -c -
 
-npx --yes @redocly/cli@2.69.0 bundle "$root/contracts/openapi/subscriber.yaml" --output "$work/openapi.yaml"
+npx --yes @redocly/cli@2.69.0 bundle "$root/contracts/openapi/subscriber.yaml" --ext json --output "$work/bundled.json"
+python3 -I "$sdk/scripts/normalize.py" "$work/bundled.json" "$work/openapi.json"
 
 java -jar "$jar" generate \
   --generator-name kotlin \
-  --input-spec "$work/openapi.yaml" \
+  --input-spec "$work/openapi.json" \
   --output "$work/out" \
   --package-name app.suiss.relay.api \
   --model-package app.suiss.relay.api.model \
   --global-property models,modelDocs=false,modelTests=false \
   --additional-properties serializationLibrary=gson,dateLibrary=string,enumPropertyNaming=UPPERCASE,sourceFolder=src/main/kotlin \
+  --schema-mappings DeviceSignal=kotlin.Any \
   --skip-validate-spec
 
 target="$sdk/relay/src/generated/kotlin"

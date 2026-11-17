@@ -174,7 +174,7 @@ defmodule Relay.Policy.EngineTest do
                )
     end
 
-    test "PC-14 PC-54 PC-58 (3): marketing stays off on consent channels and non-Android push" do
+    test "PC-14 PC-54: a cell the compliance table locks off stays off whatever the tenant chose" do
       for channel <- [:email, :sms, :voice, :whatsapp] do
         assert {:skip, :preference_off, "preference.category_default", detail} =
                  evaluate(
@@ -187,8 +187,24 @@ defmodule Relay.Policy.EngineTest do
         assert detail.source == :class_default
       end
 
-      for platform <- [:ios, :web, nil] do
-        assert {:skip, :preference_off, "preference.category_default", _} =
+      assert {:skip, :preference_off, "preference.category_default", _} =
+               evaluate(
+                 channel: :push,
+                 target: [platform: :ios],
+                 notification: [message_class: :marketing],
+                 category: [channel_defaults: %{push: :on}]
+               )
+
+      assert {:send, _} =
+               evaluate(
+                 channel: :push,
+                 target: [platform: :ios],
+                 notification: [message_class: :marketing],
+                 preferences: [category_channel: :opt_in]
+               )
+
+      for platform <- [:android, :web] do
+        assert {:send, _} =
                  evaluate(
                    channel: :push,
                    target: [platform: platform],
@@ -196,14 +212,6 @@ defmodule Relay.Policy.EngineTest do
                    category: [channel_defaults: %{push: :on}]
                  )
       end
-
-      assert {:send, _} =
-               evaluate(
-                 channel: :push,
-                 target: [platform: :android],
-                 notification: [message_class: :marketing],
-                 category: [channel_defaults: %{push: :on}]
-               )
 
       assert {:send, _} =
                evaluate(
@@ -253,8 +261,8 @@ defmodule Relay.Policy.EngineTest do
                evaluate(kill_switch: {:pause, id, "killswitch.paused_until"})
     end
 
-    test "PC-58 (3): marketing on email, SMS, voice and WhatsApp needs ACTIVE consent" do
-      for channel <- [:email, :sms, :voice, :whatsapp] do
+    test "PC-40: marketing on email, SMS and voice needs ACTIVE consent where the row asks for it" do
+      for channel <- [:email, :sms, :voice] do
         for {state, reason, rule_id} <- [
               {:none, :consent_missing, "consent.missing"},
               {:pending, :consent_missing, "consent.missing"},
@@ -273,8 +281,8 @@ defmodule Relay.Policy.EngineTest do
       end
     end
 
-    test "PC-43 PC-58 (3): marketing push and in-app need no consent, but a refusal still stops them" do
-      for channel <- [:push, :in_app] do
+    test "PC-43: marketing push, in-app and WhatsApp need no consent, but a refusal still stops them" do
+      for channel <- [:push, :in_app, :whatsapp] do
         changes = [
           channel: channel,
           notification: [message_class: :marketing],

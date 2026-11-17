@@ -47,6 +47,24 @@ defmodule Relay.Phone do
 
   def country(_number), do: nil
 
+  # PC-40
+  # PC-47
+  @doc "The country calling code of an E.164 number, without the `+`: the code of the country it names, or `1` or `7` for the codes several countries share; `nil` when the number names no known code."
+  @spec calling_code(String.t()) :: String.t() | nil
+  def calling_code("+" <> digits) do
+    three = String.slice(digits, 0, 3)
+    two = String.slice(digits, 0, 2)
+
+    cond do
+      Map.has_key?(@countries, three) -> three
+      Map.has_key?(@countries, two) -> two
+      String.starts_with?(digits, ["1", "7"]) -> String.slice(digits, 0, 1)
+      true -> nil
+    end
+  end
+
+  def calling_code(_number), do: nil
+
   defp validate(number) when is_binary(number) do
     cond do
       not Regex.match?(@e164, number) -> invalid("not an E.164 number")

@@ -88,6 +88,7 @@ defmodule Relay.Devices do
          permission: registration.permission,
          android_channels: registration.android_channels,
          locale: registration.locale,
+         time_zone: registration.time_zone,
          previous_digests: previous
        }}
     end
@@ -138,7 +139,16 @@ defmodule Relay.Devices do
   # CH-74
   @doc "Registers a prepared device inside the caller's scoped transaction under the subscriber's active device limit; returns the result (`:created`, `:updated`, `:reassigned`, `:recipient_not_found` or `:key_not_found`) and the device's identifier."
   @spec register(plan()) :: {atom(), Relay.Id.t() | nil}
-  def register(plan), do: Store.register(plan, limit())
+  def register(plan) do
+    case Store.register(plan, limit()) do
+      {result, id} = registered when result in [:created, :updated, :reassigned] ->
+        _ = Store.time_zone(id, Map.get(plan, :time_zone))
+        registered
+
+      refused ->
+        refused
+    end
+  end
 
   defp limit do
     case Store.limit_setting() do

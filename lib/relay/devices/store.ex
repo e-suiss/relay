@@ -7,7 +7,8 @@ defmodule Relay.Devices.Store do
 
   @select """
   SELECT d.id, d.recipient_id, d.platform, d.app, d.token_ct, d.fingerprint, d.apns_environment,
-    d.permission, d.android_channels, d.locale, d.state, d.disabled_reason, d.registered_at,
+    d.permission, d.android_channels, d.locale, d.time_zone, d.state, d.disabled_reason,
+    d.registered_at,
     d.last_seen_at, d.deleted_at, d.created_at, d.updated_at
   FROM relay.devices d
   """
@@ -43,6 +44,14 @@ defmodule Relay.Devices.Store do
       ])
 
     {Repo.code!(row["result"], @register), row["device_id"]}
+  end
+
+  # WF-45
+  @doc "Records the time zone a device reported with its registration through `relay_fn.device_time_zone_set`; `nil` clears it."
+  @spec time_zone(Relay.Id.t(), String.t() | nil) :: :set | :unchanged | :not_found
+  def time_zone(device_id, time_zone) do
+    [row] = Repo.call!("relay_fn.device_time_zone_set", [device_id, time_zone])
+    Repo.code!(row["device_time_zone_set"], [:set, :unchanged, :not_found])
   end
 
   # CH-11

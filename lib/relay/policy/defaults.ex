@@ -2,7 +2,7 @@ defmodule Relay.Policy.Defaults do
   @moduledoc """
   The default of a category × channel cell when the recipient's value is `unset` (PC-13, PC-14): the tenant's category default, otherwise the class default matrix. The matrix has the columns push, email, SMS, WhatsApp and in-app; web push reads the push column, voice the SMS column, Slack, Teams, Telegram and Discord the WhatsApp column and webhook the in-app column.
 
-  `marketing` starts safe-closed: on email, SMS, voice and WhatsApp, and on push to a device that is not Android, a tenant default of `on` does not apply, because the country and platform rows ask for prior consent (PC-14 ¹ ², PC-54, PC-58 (3)). `system` has no preference surface and is always on.
+  A cell can be locked off by the compliance table (PC-14 ¹ ², PC-54): on a channel whose platform row keeps `marketing` off (iOS push, WhatsApp) and on a channel whose country row asks for prior consent, the default is always off and a tenant default of `on` does not apply; only the recipient's own `opt_in` opens the cell. `system` has no preference surface and is always on.
   """
 
   alias Relay.Policy.Snapshot
@@ -31,8 +31,6 @@ defmodule Relay.Policy.Defaults do
     webhook: :in_app
   }
 
-  @consent_channels [:email, :sms, :voice, :whatsapp]
-
   @type source :: :category_default | :class_default
 
   # PC-14
@@ -46,29 +44,19 @@ defmodule Relay.Policy.Defaults do
   # PC-13
   # PC-14
   # PC-54
-  # PC-58 (3)
-  @doc "The default of a cell and where it came from: the tenant's category default when it applies, otherwise the class default."
+  @doc "The default of a cell and where it came from: the tenant's category default when it applies, otherwise the class default. `cell` is the cell's derived state from the compliance table: `:locked_off` or `:tenant`."
   @spec default(
           Snapshot.message_class(),
           Snapshot.channel(),
           %{optional(Snapshot.channel()) => :on | :off},
-          :ios | :android | :web | nil
+          :locked_off | :tenant
         ) :: {:on | :off, source()}
-  def default(class, channel, channel_defaults, platform) do
-    case Map.get(channel_defaults, channel) do
-      value when value in [:on, :off] ->
-        if forced_off?(class, channel, platform, value),
-          do: {:off, :class_default},
-          else: {value, :category_default}
-
-      nil ->
-        {class_default(class, channel), :class_default}
+  def default(class, channel, channel_defaults, cell) do
+    case {Map.get(channel_defaults, channel), cell} do
+      {:off, _cell} -> {:off, :category_default}
+      {_on_or_none, :locked_off} -> {:off, :class_default}
+      {:on, :tenant} -> {:on, :category_default}
+      {nil, :tenant} -> {class_default(class, channel), :class_default}
     end
   end
-
-  defp forced_off?(:marketing, channel, _platform, :on) when channel in @consent_channels,
-    do: true
-
-  defp forced_off?(:marketing, :push, platform, :on), do: platform != :android
-  defp forced_off?(_class, _channel, _platform, _value), do: false
 end

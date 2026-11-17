@@ -19,6 +19,8 @@ defmodule Relay.Subscribers do
     on_behalf_of_ref: "relay:subscriber_erasure"
   }
 
+  @locality ["country", "phone"]
+
   @type mode :: :create | :replace | :patch | :implicit | :inbox_only | :require
   @type input :: %{external_id: String.t(), fields: %{optional(String.t()) => term()}}
   @type plan :: map()
@@ -125,6 +127,7 @@ defmodule Relay.Subscribers do
   defp put_field(_scope, plan, "locale", value, _key), do: {:ok, %{plan | locale: value}}
   defp put_field(_scope, plan, "timezone", value, _key), do: {:ok, %{plan | timezone: value}}
   defp put_field(_scope, plan, "legal_type", value, _key), do: {:ok, %{plan | legal_type: value}}
+  defp put_field(_scope, plan, "country", value, _key), do: {:ok, %{plan | country: value}}
 
   defp put_field(_scope, plan, "name", nil, _key),
     do: {:ok, %{plan | plain: Map.put(plan.plain, "name", nil)}}
@@ -152,6 +155,7 @@ defmodule Relay.Subscribers do
     with {:ok, ct} <- seal(scope, plan.id, "recipient_addresses", "address_ct", value, key),
          {:ok, {bidx_key_id, bidx}} <- index(scope, "address", value) do
       plan = %{plan | address_bidx_key_id: bidx_key_id, plain: Map.put(plan.plain, kind, value)}
+      plan = if kind == "phone", do: %{plan | calling_code: calling_code(value)}, else: plan
 
       {:ok,
        if kind == "email" do
@@ -161,6 +165,10 @@ defmodule Relay.Subscribers do
        end}
     end
   end
+
+  # PC-40
+  defp calling_code(value) when is_binary(value), do: Relay.Phone.calling_code(value)
+  defp calling_code(_value), do: nil
 
   defp seal(scope, id, table, column, value, key),
     do: Relay.Tenancy.encrypt_field(field(scope, id, table, column), value, data_key: key)
@@ -201,6 +209,8 @@ defmodule Relay.Subscribers do
       locale: nil,
       timezone: nil,
       legal_type: nil,
+      country: nil,
+      calling_code: nil,
       email_address_id: nil,
       email_ct: nil,
       email_bidx: nil,
@@ -215,9 +225,35 @@ defmodule Relay.Subscribers do
 
   # API-21
   # API-66
-  @doc "Writes a prepared subscriber inside the caller's scoped transaction; returns `{result, recipient_id, version}`."
+  # PC-40
+  # PC-47
+  @doc "Writes a prepared subscriber inside the caller's scoped transaction; returns `{result, recipient_id, version}`. A write that names the profile country or the phone number also records the country and the number's country calling code, which the compliance table reads; a country that changed makes an otherwise unchanged write `:updated`."
   @spec upsert(plan(), pos_integer() | nil) :: {atom(), Relay.Id.t() | nil, pos_integer() | nil}
-  defdelegate upsert(plan, expected_version), to: Store
+  def upsert(plan, expected_version) do
+    case Store.upsert(plan, expected_version) do
+      {result, id, _version} = written when result in [:created, :updated, :unchanged] ->
+        locality(plan, locality_fields(plan), id, written)
+
+      refused ->
+        refused
+    end
+  end
+
+  defp locality_fields(%{mode: :replace}), do: @locality
+  defp locality_fields(%{fields: fields}), do: Enum.filter(@locality, &(&1 in fields))
+
+  defp locality(_plan, [], _id, written), do: written
+
+  defp locality(plan, fields, id, {result, id, _version} = written) do
+    case Store.locality(id, fields, plan.country, plan.calling_code) do
+      {:set, version} -> {if(result == :unchanged, do: :updated, else: result), id, version}
+      {_unchanged_or_not_found, _version} -> written
+    end
+  end
+
+  @doc "The profile fields a subscriber write may carry; see `Relay.Subscribers.Profile.fields/0`."
+  @spec fields() :: [String.t()]
+  defdelegate fields(), to: Profile
 
   # API-66
   @doc "Reads a subscriber row inside the caller's scoped transaction, or `nil`."
@@ -315,6 +351,7 @@ defmodule Relay.Subscribers do
       "locale" => row["locale"],
       "timezone" => row["timezone"],
       "legal_type" => row["legal_type"],
+      "country" => row["country"],
       "channels" =>
         Profile.channels(
           row["email_state"],

@@ -3,7 +3,7 @@ defmodule Relay.Subscribers.Profile do
   Pure rules of a subscriber profile: normalisation of contact fields before they are indexed and encrypted (email lowercase, phone in E.164), masking for API answers (X-5: personal fields are never returned in full) and the reachability summary of each channel (S-85, CH-28), derived when read and never stored.
   """
 
-  @fields ~w(email phone name locale timezone legal_type attributes)
+  @fields ~w(email phone name locale timezone legal_type country attributes)
   @phone_channels ~w(sms voice whatsapp)
 
   @doc "The profile fields a subscriber write may carry."

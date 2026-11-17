@@ -1,6 +1,6 @@
 defmodule Relay.Policy.Live.Store do
   @moduledoc """
-  Data access of the running policy lattice: the inputs of one evaluation (the delivery and its notification with its `next_break` timing and release, the category with its sub-tenant setting, the recipient's preferences and profile, the consent copy, the address and its suppression, the tenant's zone and the sub-tenant's state) and the decision records. Every function except `in_scope/2` runs inside `Relay.Repo.in_scope/3`; the decision is written by `relay_fn.delivery_decide`, which writes the ledger event and, for a skip or an expiry, the `notification.suppressed` outbox event in the same transaction.
+  Data access of the running policy lattice: the inputs of one evaluation (the delivery and its notification with its `next_break` timing and release, the category with its sub-tenant setting, the recipient's preferences and profile, the recipient's country, phone calling code and device zone, the consent copy, the address and its suppression, the tenant's zone and region and the sub-tenant's state) and the decision records. Every function except `in_scope/2` runs inside `Relay.Repo.in_scope/3`; the decision is written by `relay_fn.delivery_decide`, which writes the ledger event and, for a skip or an expiry, the `notification.suppressed` outbox event in the same transaction.
   """
 
   alias Relay.Repo
@@ -63,7 +63,18 @@ defmodule Relay.Policy.Live.Store do
   FROM relay.preference_profiles p WHERE p.recipient_id = $1
   """
 
-  @recipient "SELECT r.timezone FROM relay.recipients r WHERE r.id = $1"
+  @recipient """
+  SELECT r.timezone, r.country, r.legal_type,
+    (SELECT a.calling_code FROM relay.recipient_addresses a
+      WHERE a.tenant_id = r.tenant_id AND a.environment = r.environment
+        AND a.recipient_id = r.id AND a.kind = 'phone' AND a.state = 'active'
+      LIMIT 1) AS calling_code,
+    (SELECT d.time_zone FROM relay.devices d
+      WHERE d.tenant_id = r.tenant_id AND d.environment = r.environment
+        AND d.recipient_id = r.id AND d.state <> 'disabled' AND d.time_zone IS NOT NULL
+      ORDER BY d.last_seen_at DESC, d.id DESC LIMIT 1) AS device_time_zone
+  FROM relay.recipients r WHERE r.id = $1
+  """
 
   @address """
   SELECT a.state, a.address_bidx, a.address_bidx_next FROM relay.recipient_addresses a
@@ -71,7 +82,9 @@ defmodule Relay.Policy.Live.Store do
   ORDER BY (a.state = 'active') DESC LIMIT 1
   """
 
-  @tenant "SELECT t.default_timezone FROM relay.tenants t WHERE t.id = $1"
+  @tenant """
+  SELECT t.default_timezone, t.region::text AS region FROM relay.tenants t WHERE t.id = $1
+  """
 
   @subtenant "SELECT s.state FROM relay.subtenants s WHERE s.id = $1"
 
@@ -103,14 +116,11 @@ defmodule Relay.Policy.Live.Store do
   @spec profile(Relay.Id.t()) :: map() | nil
   def profile(recipient_id), do: one(@profile, [recipient_id])
 
-  @doc "The time zone of the recipient's profile, or `nil`."
-  @spec recipient_time_zone(Relay.Id.t()) :: String.t() | nil
-  def recipient_time_zone(recipient_id) do
-    case one(@recipient, [recipient_id]) do
-      %{"timezone" => zone} -> zone
-      nil -> nil
-    end
-  end
+  # WF-45
+  # PC-40
+  @doc "The recipient's place: the `timezone`, `country` and `legal_type` of its profile, the country calling code of its active phone address (`calling_code`) and the zone its most recently seen device reported (`device_time_zone`); `nil` when there is no such recipient."
+  @spec recipient(Relay.Id.t()) :: map() | nil
+  def recipient(recipient_id), do: one(@recipient, [recipient_id])
 
   # PC-59 (1)
   @doc "The current consent states of a recipient per brand and channel."
@@ -129,14 +139,11 @@ defmodule Relay.Policy.Live.Store do
   def suppressions(channel, digests),
     do: Repo.call!("relay_fn.suppression_match", [channel, digests])
 
-  @doc "The tenant's default time zone."
-  @spec tenant_time_zone(Relay.Id.t()) :: String.t() | nil
-  def tenant_time_zone(tenant_id) do
-    case one(@tenant, [tenant_id]) do
-      %{"default_timezone" => zone} -> zone
-      nil -> nil
-    end
-  end
+  # WF-45
+  # PC-40
+  @doc "The tenant's `default_timezone` and `region`, or `nil`."
+  @spec tenant(Relay.Id.t()) :: map() | nil
+  def tenant(tenant_id), do: one(@tenant, [tenant_id])
 
   @doc "The state of a sub-tenant, or `nil`."
   @spec subtenant_state(Relay.Id.t()) :: String.t() | nil

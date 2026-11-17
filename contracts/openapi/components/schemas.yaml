@@ -506,6 +506,12 @@ Warning:
     detail:
       type: string
   additionalProperties: false
+CountryCode:
+  type: string
+  description: "The profile country of a recipient as an ISO 3166-1 alpha-2 code. With the country calling code of the phone number it selects the rows of the compliance table and the legal send window; when the two name different countries the more restrictive row applies."
+  pattern: "^[A-Z]{2}$"
+  examples:
+    - TR
 LegalType:
   type: string
   enum:
@@ -535,6 +541,8 @@ RecipientObject:
       "$ref": "#/TimeZone"
     legal_type:
       "$ref": "#/LegalType"
+    country:
+      "$ref": "#/CountryCode"
     attributes:
       type: object
       description: Recipient attributes available to templates and conditions. Values are strings, numbers or booleans.
@@ -1849,6 +1857,10 @@ Subscriber:
       oneOf:
         - "$ref": "#/LegalType"
         - type: "null"
+    country:
+      oneOf:
+        - "$ref": "#/CountryCode"
+        - type: "null"
     attributes:
       type: object
     channels:
@@ -1911,6 +1923,10 @@ SubscriberCreate:
       oneOf:
         - "$ref": "#/LegalType"
         - type: "null"
+    country:
+      oneOf:
+        - "$ref": "#/CountryCode"
+        - type: "null"
     attributes:
       oneOf:
         - type: object
@@ -1956,6 +1972,10 @@ SubscriberReplace:
       oneOf:
         - "$ref": "#/LegalType"
         - type: "null"
+    country:
+      oneOf:
+        - "$ref": "#/CountryCode"
+        - type: "null"
     attributes:
       oneOf:
         - type: object
@@ -2000,6 +2020,10 @@ SubscriberPatch:
     legal_type:
       oneOf:
         - "$ref": "#/LegalType"
+        - type: "null"
+    country:
+      oneOf:
+        - "$ref": "#/CountryCode"
         - type: "null"
     attributes:
       oneOf:
@@ -2059,6 +2083,10 @@ SubscriberBulkRow:
     legal_type:
       oneOf:
         - "$ref": "#/LegalType"
+        - type: "null"
+    country:
+      oneOf:
+        - "$ref": "#/CountryCode"
         - type: "null"
     attributes:
       oneOf:
@@ -4298,6 +4326,9 @@ DryRunDecision:
       oneOf:
         - "$ref": "#/Timestamp"
         - type: "null"
+    detail:
+      type: object
+      description: "The detail of the decision as the rule records it. A compliance decision names the row of the compliance table that decided: compliance_row, compliance_country, compliance_version, required_consent and recipient_type."
   additionalProperties: false
 Id_tpv:
   type: string
@@ -8740,6 +8771,8 @@ DeviceRegistration:
         "$ref": "#/AndroidChannel"
     locale:
       "$ref": "#/Locale"
+    timezone:
+      "$ref": "#/TimeZone"
     previous_token:
       "$ref": "#/DeviceToken"
   additionalProperties: false
@@ -8801,6 +8834,11 @@ Device:
     locale:
       oneOf:
         - "$ref": "#/Locale"
+        - type: "null"
+    timezone:
+      description: "The IANA time zone the device reported with its registration; null when it reported none or one Relay does not know."
+      oneOf:
+        - "$ref": "#/TimeZone"
         - type: "null"
     state:
       "$ref": "#/DeviceState"
@@ -9937,6 +9975,66 @@ DeliveryWindowsReplace:
       maxItems: 64
       items:
         "$ref": "#/DeliveryWindow"
+  additionalProperties: false
+ComplianceRefusal:
+  type: object
+  description: "Consent kinds that are not accepted in a country or a region of the compliance table although the table's row accepts them."
+  required:
+    - country
+    - consent_kinds
+  properties:
+    country:
+      type: string
+      description: "An ISO 3166-1 alpha-2 country code or a region key of the compliance table (EU)."
+      pattern: "^[A-Z]{2}$"
+    consent_kinds:
+      type: array
+      minItems: 1
+      uniqueItems: true
+      items:
+        type: string
+        enum:
+          - soft_opt_in
+          - legitimate_interest
+  additionalProperties: false
+ComplianceSettings:
+  type: object
+  required:
+    - object
+    - version
+    - refusals
+    - installation_refusals
+  properties:
+    object:
+      type: string
+      const: compliance_settings
+    version:
+      description: "The number of the tenant's active compliance_settings version; null while the tenant refuses nothing of its own."
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    refusals:
+      description: "The tenant's own refusals."
+      type: array
+      items:
+        "$ref": "#/ComplianceRefusal"
+    installation_refusals:
+      description: "The refusals the installation sets for every tenant; they apply together with the tenant's own."
+      type: array
+      items:
+        "$ref": "#/ComplianceRefusal"
+  additionalProperties: false
+ComplianceSettingsReplace:
+  type: object
+  required:
+    - refusals
+  properties:
+    refusals:
+      type: array
+      maxItems: 256
+      items:
+        "$ref": "#/ComplianceRefusal"
   additionalProperties: false
 Id_piv:
   type: string

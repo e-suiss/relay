@@ -2,12 +2,16 @@ defmodule Relay.Policy.Engine do
   @moduledoc """
   The policy lattice: a pure function of a `Relay.Policy.Snapshot` (PC-8, PC-58, WF-41). The order is fixed:
 
-  1. Gates, which nothing passes (INV-15): kill switch and tenant suspension (1a), suppression (1b), refusal (1c), compliance (1d), the channel's technical state and the OTP subtype channel rule (1e), sub-tenant scope (1f).
+  1. Gates, which nothing passes (INV-15): kill switch and tenant suspension (1a), suppression (1b), refusal (1c), compliance (1d: the compliance table, then İYS), the channel's technical state and the OTP subtype channel rule (1e), sub-tenant scope (1f).
   2. Exemption: a locked category skips the filters, never a gate. `security` is always locked; `system` has no preference surface.
   3. Filters, all of which must allow: the tenant's category switch (3a), the category × channel value or its default (3b, which a `scope_key` value overrides), the general channel switch, the workflow value (3c), a `scope_key` mute (3d) and, for `action_required`, which is never deferred, the weekly availability schedule (3e).
   4. Expiry: a delivery at or past `expires_at` expires; a `security` notification sent with `on_expire: inbox_only` keeps only its `in_app` delivery, which lands in the inbox (WF-39).
-  5. Shapers, for `transactional`, `operational`, `social` and `marketing` only: the availability schedule, the tenant zone window of PC-48, quiet hours, `dnd_until`, then the frequency cap. A blocked delivery is deferred to the next allowed instant within eight days and before `expires_at`, plus the WF-42 release jitter, or expires when there is none (PC-46).
+  5. Shapers, for `transactional`, `operational`, `social` and `marketing` only: the legal send window of the compliance table (4a, on every channel), the availability schedule, the tenant zone window of PC-48, quiet hours, `dnd_until`, then the frequency cap. A blocked delivery is deferred to the next allowed instant within eight days and before `expires_at`, plus the WF-42 release jitter, or expires when there is none (PC-46).
   5a. The next break (WF-56, WF-57), between `dnd_until` and the frequency cap, for a notification sent with `timing: next_break` on a channel quiet hours apply to: until its break is released it is deferred with `next_break.deferred` to the end of the recipient's next quiet hours (with the release jitter) or to its `max_defer` instant, whichever comes first; at that instant, or when a device status break transition released it earlier, it passes the lattice again and quiet hours stay a hard limit. An `action_required` notification takes this step only when the sender asked for it, and then quiet hours apply to it as well. The deferral detail never carries a device status value (IN-48).
+
+  Gate 1d reads the compliance input of the snapshot (PC-40): a delivery whose row needs consent goes only with an `ACTIVE` consent record of a kind the row accepts; a row that needs none (a merchant, an opt-out regime, an informational class) passes without one (PC-24, PC-42). A marketing delivery on e-mail, SMS or voice then passes the İYS input (PC-27, PC-33, INV-19): a tenant in scope without İYS information stops it, a rejection in the İYS copy stops it, a copy older than the stop limit stops it, and an individual recipient needs an approval in the copy while a merchant needs only the absence of a rejection.
+
+  A legal send window (PC-47, WF-46) is kept in the recipient's zone when the recipient chose it; when the zone was inferred (device, profile country, tenant default) it is kept in every zone the row lists for the country at once, which is the narrowest window, and the 10:00–18:00 window of the tenant's zone (PC-48) is not added on top of it, because the two together could leave no instant at all. The tenant cannot switch it off or widen it.
 
   Results:
 
@@ -41,6 +45,8 @@ defmodule Relay.Policy.Engine do
           | :tenant_suspended
           | :suppression
           | :consent
+          | :compliance
+          | :iys
           | :target
           | :scope
           | :category
@@ -55,7 +61,8 @@ defmodule Relay.Policy.Engine do
           | {:pause, String.t(), detail()}
           | {:error, {:input_unavailable, input()}}
 
-  @consent_channels [:email, :sms, :voice, :whatsapp]
+  @iys_channels [:email, :sms, :voice]
+  @every_day [1, 2, 3, 4, 5, 6, 7]
   @otp_channels [:sms, :whatsapp, :voice]
   @permission_channels [:push, :web_push]
   @quiet_channels [:push, :web_push, :sms, :voice, :whatsapp, :slack, :teams, :telegram, :discord]
@@ -140,18 +147,87 @@ defmodule Relay.Policy.Engine do
   defp refusal(_s), do: :pass
 
   # PC-8
-  # PC-58 (3)
-  defp compliance(%{notification: %{message_class: :marketing}, channel: channel} = s)
-       when channel in @consent_channels do
-    case s.consent do
-      %{state: :active} -> :pass
-      %{state: :expired, ref: ref} -> skip(:consent_expired, %{consent_ref: ref})
-      %{state: _none_or_pending, ref: ref} -> skip(:consent_missing, %{consent_ref: ref})
-      _unreadable -> unavailable(:consent)
+  # PC-40
+  # PC-41
+  # PC-42
+  # PC-24
+  # INV-17
+  defp compliance(%{compliance: %{required: :none}} = s), do: iys(s)
+
+  defp compliance(%{compliance: %{accepted: accepted} = compliance, consent: consent} = s) do
+    case consent do
+      %{state: :active} ->
+        kind = Map.get(consent, :kind)
+
+        if kind in accepted,
+          do: iys(s),
+          else: stop(:consent_insufficient, compliance, consent, %{consent_kind: kind})
+
+      %{state: :revoked} ->
+        stop(:consent_revoked, compliance, consent, %{})
+
+      %{state: :expired} ->
+        stop(:consent_expired, compliance, consent, %{})
+
+      %{state: _none_or_pending} ->
+        stop(:consent_missing, compliance, consent, %{})
+
+      _unreadable ->
+        unavailable(:consent)
     end
   end
 
-  defp compliance(_s), do: :pass
+  defp compliance(_s), do: unavailable(:compliance)
+
+  # PC-58 (1)
+  defp stop(rule, compliance, consent, extra) do
+    detail = compliance |> Map.get(:detail, %{}) |> Map.put(:consent_ref, consent.ref)
+    skip(rule, Map.merge(detail, extra))
+  end
+
+  # PC-27
+  # PC-33
+  # PC-24
+  # PC-21
+  # INV-19
+  # INV-43
+  defp iys(%{notification: %{message_class: :marketing}, channel: channel} = s)
+       when channel in @iys_channels do
+    case s.iys do
+      status when status in [:out_of_scope, :not_applicable] -> :pass
+      :not_configured -> skip(:iys_not_configured, iys_detail(s, %{}))
+      {:cached, :rejected, _synced} -> skip(:iys_rejected, iys_detail(s, %{}))
+      {:cached, state, synced} when state in [:approved, :none] -> iys_copy(s, state, synced)
+      _unreadable -> unavailable(:iys)
+    end
+  end
+
+  defp iys(_s), do: :pass
+
+  defp iys_copy(s, state, synced) do
+    cond do
+      stale?(s, synced) ->
+        skip(:iys_stale, iys_detail(s, %{iys_synced_at: synced_at(synced)}))
+
+      state == :none and s.compliance.recipient_type == :individual ->
+        skip(:iys_approval_missing, iys_detail(s, %{}))
+
+      true ->
+        :pass
+    end
+  end
+
+  # PC-33
+  defp stale?(_s, nil), do: true
+
+  defp stale?(s, synced),
+    do: DateTime.to_unix(s.now, :millisecond) - synced >= s.iys_stale_after_ms
+
+  defp synced_at(nil), do: nil
+  defp synced_at(synced), do: DateTime.from_unix!(synced, :millisecond)
+
+  defp iys_detail(s, extra),
+    do: Map.merge(%{recipient_type: s.compliance.recipient_type}, extra)
 
   # PC-8
   # PC-16
@@ -223,9 +299,8 @@ defmodule Relay.Policy.Engine do
 
   defp category_channel(s) do
     class = s.notification.message_class
-    platform = if is_map(s.target), do: s.target.platform, else: nil
 
-    case Defaults.default(class, s.channel, s.category.channel_defaults, platform) do
+    case Defaults.default(class, s.channel, s.category.channel_defaults, s.compliance.default) do
       {:on, _source} ->
         :pass
 
@@ -291,7 +366,7 @@ defmodule Relay.Policy.Engine do
 
       case Window.blocking(s.now, zone, constraints) do
         nil -> next_break(s, profile, tz, {:frequency, constraints})
-        name -> defer(s, name, s.now, tz, constraints, %{})
+        name -> defer(s, name, s.now, tz, constraints, legal_detail(s, name, tz))
       end
     end
   end
@@ -369,23 +444,56 @@ defmodule Relay.Policy.Engine do
   defp earliest(a, b), do: if(DateTime.compare(a, b) == :gt, do: b, else: a)
 
   # PC-45
+  # PC-47
   # PC-48
   # PC-58 (4)
   # PC-58 (5)
-  defp constraints(s, profile, {_zone, source}) do
+  defp constraints(s, profile, {_zone, source} = tz) do
     quiet? = quiet_channel?(s.channel, profile)
-    pc48? = source == :tenant_default and s.notification.message_class in @pc48_classes
+    legal = legal_windows(s, tz)
+
+    pc48? =
+      legal == [] and source == :tenant_default and
+        s.notification.message_class in @pc48_classes
+
     schedule = profile.schedule
     quiet = profile.quiet_hours
     dnd = profile.dnd_until
 
     Enum.concat([
+      legal,
       on(quiet? and ranges?(schedule), {:schedule_deferred, {:only, schedule}}),
       on(pc48?, {:tenant_timezone_window_deferred, {:only, @pc48_window}}),
       on(quiet? and ranges?(quiet), {:quiet_hours_deferred, {:quiet, quiet}}),
       on(quiet? and match?(%DateTime{}, dnd), {:dnd_deferred, {:until, dnd}})
     ])
   end
+
+  # PC-47
+  # WF-46
+  # C-63
+  # INV-17
+  defp legal_windows(%{compliance: %{legal_windows: windows}}, {zone, source}) do
+    for %{from: from, to: to, zones: zones} <- windows,
+        name <- window_zones(zone, source, zones) do
+      range = %{days: @every_day, from: from, to: to}
+      {:legal_window_deferred, {:in_zone, name, {:only, [range]}}}
+    end
+  end
+
+  defp window_zones(zone, :profile, _zones), do: [zone]
+
+  defp window_zones(zone, _inferred, zones) do
+    listed = for name <- zones, {:ok, canonical} <- [Relay.TimeZone.new(name)], do: canonical
+    if listed == [], do: [zone], else: Enum.uniq(listed)
+  end
+
+  defp legal_detail(%{compliance: %{legal_windows: windows}}, :legal_window_deferred, tz) do
+    {_zone, source} = tz
+    %{legal_window: Enum.map(windows, & &1.row), timezone_inferred: source != :profile}
+  end
+
+  defp legal_detail(_s, _rule, _tz), do: %{}
 
   defp on(true, constraint), do: [constraint]
   defp on(false, _constraint), do: []

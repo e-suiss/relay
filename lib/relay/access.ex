@@ -16,6 +16,7 @@ defmodule Relay.Access do
     deps: [
       Relay,
       Relay.Datasets,
+      Relay.Iys,
       Relay.Platform,
       Relay.Platform.Leadership,
       Relay.Tenancy,
@@ -40,6 +41,7 @@ defmodule Relay.Access do
   alias Relay.Access.Environments
   alias Relay.Access.Events
   alias Relay.Access.FirstContact
+  alias Relay.Access.IysReport
   alias Relay.Access.Jose
   alias Relay.Access.Link
   alias Relay.Access.Pairing
@@ -113,6 +115,28 @@ defmodule Relay.Access do
   @doc "The configured Access issuer."
   @spec issuer() :: String.t() | nil
   def issuer, do: Keyword.get(config(), :issuer)
+
+  # E-109
+  @doc "The public origin of Access's product routes such as `/relay/v1/iys-status`: the configured `api_base`, or the origin of the linked issuer; `nil` without either."
+  @spec api_base() :: String.t() | nil
+  def api_base do
+    case Keyword.get(config(), :api_base) do
+      base when is_binary(base) and base != "" -> String.trim_trailing(base, "/")
+      _unset -> origin(issuer())
+    end
+  end
+
+  defp origin(issuer) when is_binary(issuer) do
+    case URI.parse(issuer) do
+      %URI{scheme: "https", host: host, port: port} when is_binary(host) ->
+        "https://" <> host <> if(port in [nil, 443], do: "", else: ":#{port}")
+
+      _other ->
+        nil
+    end
+  end
+
+  defp origin(_issuer), do: nil
 
   # E-90
   @doc "The `client_id` of Relay's own Access client registration: the sector of every subscriber's pairwise `sub`."
@@ -556,6 +580,25 @@ defmodule Relay.Access do
   @doc "The message class of a platform tenant's event; see `Relay.Access.PlatformTenant.message_class/2`."
   @spec message_class(String.t() | nil, atom() | nil) :: atom() | nil
   defdelegate message_class(platform_product, declared), to: PlatformTenant
+
+  # E-108
+  # TN-1
+  @doc "The Relay tenant mapped from an Access tenant identifier, with its status and platform product, or `nil`."
+  @spec mapped_tenant(String.t()) :: map() | nil
+  def mapped_tenant(access_tenant) when is_binary(access_tenant),
+    do: ClientStore.tenant(access_tenant)
+
+  # E-108
+  # E-103
+  @doc "Whether an Access environment belongs to an Access tenant; see `Relay.Access.Environments.includes/2`."
+  @spec access_environment?(String.t(), String.t()) ::
+          {:ok, boolean() | :unknown} | {:error, Relay.Error.t()}
+  defdelegate access_environment?(access_tenant, environment), to: Environments, as: :includes
+
+  # E-109
+  @doc "Queues the report of an Access İYS consent record inside the caller's scoped transaction; see `Relay.Access.IysReport.enqueue/2`."
+  @spec queue_iys_report(Relay.Scope.t(), map()) :: :ok | {:error, term()}
+  defdelegate queue_iys_report(scope, report), to: IysReport, as: :enqueue
 
   # E-11
   # API-28

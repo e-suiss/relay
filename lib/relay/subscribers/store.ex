@@ -127,6 +127,15 @@ defmodule Relay.Subscribers.Store do
      ]), row["recipient_id"], row["version"]}
   end
 
+  # E-108
+  @doc "Marks a recipient written by a send as a transient recipient through `relay_fn.recipient_transient_set`, inside the caller's scoped transaction."
+  @spec transient(Relay.Id.t()) :: :ok
+  def transient(recipient_id) do
+    [row] = Repo.call!("relay_fn.recipient_transient_set", [recipient_id])
+    _result = Repo.code!(row["recipient_transient_set"], [:set, :unchanged, :not_found])
+    :ok
+  end
+
   # PC-40
   # PC-47
   @doc "Writes the profile country and the country calling code of the active phone address of a subscriber through `relay_fn.recipient_locality_set`, for the fields `fields` names (`country`, `phone`); returns the result and the subscriber's version."
@@ -176,7 +185,7 @@ defmodule Relay.Subscribers.Store do
 
     sql =
       @row <>
-        " WHERE r.kind = 'subscriber' AND r.state <> 'deleted'#{condition}" <>
+        " WHERE r.kind = 'subscriber' AND NOT r.transient AND r.state <> 'deleted'#{condition}" <>
         " ORDER BY r.created_at #{order}, r.id #{order} LIMIT #{limit + 1}"
 
     rows = maps(Repo.scoped_query!(sql, params))

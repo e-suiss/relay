@@ -38,7 +38,9 @@ defmodule Relay.Iys do
           optional(:recipient_id) => Relay.Id.t() | nil,
           optional(:consent_id) => Relay.Id.t() | nil,
           optional(:brand_subtenant_id) => Relay.Id.t() | nil,
-          optional(:brand_code) => pos_integer()
+          optional(:brand_code) => pos_integer(),
+          optional(:access_record) => String.t(),
+          optional(:access_environment) => String.t()
         }
   @type written :: :queued | :duplicate | :not_configured | :out_of_scope | :brand_not_mapped
   @type swept :: %{expired: non_neg_integer(), queued: non_neg_integer()}
@@ -74,6 +76,9 @@ defmodule Relay.Iys do
   @doc "The address of a recipient on a channel in clear, for one request to İYS; runs outside any transaction."
   @callback recipient_address(Scope.t(), Relay.Id.t(), String.t()) ::
               {:ok, String.t()} | :none | {:error, term()}
+
+  @doc "Queues, inside the caller's scoped transaction, the report to Access of an upload that came as an Access İYS consent record and has settled (E-109)."
+  @callback report(Scope.t(), Relay.Id.t()) :: :ok | {:error, term()}
 
   @doc "Supervised children: the token cache."
   @spec children() :: [module()]
@@ -119,6 +124,21 @@ defmodule Relay.Iys do
   @spec list_uploads(Scope.t(), String.t() | nil, map() | nil, pos_integer()) :: result([map()])
   def list_uploads(%Scope{} = scope, state, cursor, limit),
     do: Store.in_scope(scope, fn _status -> Store.uploads(state, cursor, limit) end)
+
+  # E-109
+  @doc "The state of an upload that came as an Access İYS consent record, for its report to Access: its state, error code, settlement time, record and Access environment; `nil` for an unknown upload or one of another origin."
+  @spec access_report(Scope.t(), Relay.Id.t()) :: result(map() | nil)
+  def access_report(%Scope{} = scope, <<_::128>> = upload_id) do
+    Store.in_scope(scope, fn _status ->
+      case Store.upload(upload_id) do
+        %{"access_record" => <<_::128>>} = upload ->
+          Map.take(upload, ~w(state error_code settled_at access_record access_environment))
+
+        _other ->
+          nil
+      end
+    end)
+  end
 
   # PC-29
   # PC-34

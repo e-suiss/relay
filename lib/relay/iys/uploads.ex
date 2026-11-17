@@ -34,6 +34,7 @@ defmodule Relay.Iys.Uploads do
   @idle_s 3_600
   @sweep_rows 500
   @unmapped "UNMAPPED"
+  @terminal ~w(confirmed failed expired skipped)
   @access %{"MESAJ" => "message_access", "ARAMA" => "call_access", "EPOSTA" => "email_access"}
 
   @type outcome :: :done | {:snooze, pos_integer()} | {:error, term()}
@@ -104,8 +105,15 @@ defmodule Relay.Iys.Uploads do
       "deadline_at" => deadline
     }
 
-    Map.merge(base, brand(movement))
+    base |> Map.merge(brand(movement)) |> Map.merge(access(movement))
   end
+
+  # E-109
+  defp access(%{access_record: record, access_environment: environment})
+       when is_binary(record) and is_binary(environment),
+       do: %{"access_record" => record, "access_environment" => environment}
+
+  defp access(_movement), do: %{}
 
   defp brand(%{brand_code: code}) when is_integer(code), do: %{"brand_code" => code}
 
@@ -122,7 +130,7 @@ defmodule Relay.Iys.Uploads do
     work = fn _status ->
       case Store.upload_enqueue(Relay.Id.generate(), upload, sealed, index, now) do
         {:queued, id} -> queued(runtime.enqueue(scope, id, priority))
-        {:brand_not_mapped, id} -> unmapped(id, now)
+        {:brand_not_mapped, id} -> unmapped(scope, runtime, id, now)
         {result, _id} -> result
       end
     end
@@ -133,10 +141,14 @@ defmodule Relay.Iys.Uploads do
   defp queued(:ok), do: :queued
   defp queued({:error, reason}), do: Store.rollback(reason)
 
-  defp unmapped(id, now) do
-    failed(Store.upload(id), "brand_not_mapped", now)
-    :brand_not_mapped
+  defp unmapped(scope, runtime, id, now) do
+    upload = Store.upload(id)
+    failed(upload, "brand_not_mapped", now)
+    reported(report(scope, runtime, upload, "failed"), :brand_not_mapped)
   end
+
+  defp reported(:ok, value), do: value
+  defp reported({:error, reason}, _value), do: Store.rollback(reason)
 
   # PC-30
   @doc "Runs one attempt of an upload; see the module documentation."
@@ -353,8 +365,12 @@ defmodule Relay.Iys.Uploads do
 
     work = fn _status ->
       case Store.upload_settle(upload["id"], outcome, detail, Relay.Id.generate(), now) do
-        :settled -> announce(upload, outcome, detail, now)
-        _already -> :ok
+        :settled ->
+          announced = announce(upload, outcome, detail, now)
+          reported(report(scope, Iys.runtime(), upload, outcome), announced)
+
+        _already ->
+          :ok
       end
     end
 
@@ -363,6 +379,13 @@ defmodule Relay.Iys.Uploads do
       {:error, reason} -> {:error, reason}
     end
   end
+
+  # E-109
+  defp report(scope, runtime, %{"access_record" => <<_::128>>, "id" => id}, outcome)
+       when outcome in @terminal,
+       do: runtime.report(scope, id)
+
+  defp report(_scope, _runtime, _upload, _outcome), do: :ok
 
   # PC-34
   # WH-15

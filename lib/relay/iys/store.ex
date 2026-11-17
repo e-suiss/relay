@@ -22,7 +22,7 @@ defmodule Relay.Iys.Store do
   u.address_ct, u.address_key_id, u.address_digest, u.state, u.deadline_at, u.attempts,
   u.error_code, u.error_at, u.transaction_ref, u.registered_at, u.trace_ref, u.created_at,
   u.updated_at, u.settled_at, b.brand_code, b.message_access, b.call_access, b.email_access,
-  b.authorised_at, u.address_digest_key_id
+  b.authorised_at, u.address_digest_key_id, u.access_record, u.access_environment
   """
 
   # TN-13 (2)

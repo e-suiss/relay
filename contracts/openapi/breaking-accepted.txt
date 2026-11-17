@@ -132,3 +132,4 @@ POST /v1/operator/pending_api_clients/assign added the new `agents` enum value t
 POST /v1/operator/pending_api_clients/assign added the new `presence:read` enum value to the `scopes/items/` response property for the response status `200`
 POST /v1/waitpoints added the new required request property `surface_policy/recipients`
 GET /v1/realtime/poll added the new `opaque.ag_ui` enum value to the `events/items/t` response property for the response status `200`
+POST /v1/events added `#/components/schemas/IysConsentRecordAccepted` to the response body `oneOf` list for the response status `202`

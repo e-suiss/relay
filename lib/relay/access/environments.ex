@@ -4,6 +4,8 @@ defmodule Relay.Access.Environments do
 
   The snapshot lists the Access environments in `environments`, each `{id, issuer, slug}`. A snapshot of an Access release before the rename names the same list `realms`; it is read the same way while no `environments` member is present.
 
+  `includes/2` answers whether an Access environment `id` is one of a tenant's (E-108), for the `accessenvironment` of an Access message; the identifiers are kept like the issuers.
+
   Issuers are kept for five minutes and keys for ten in `Relay.Access.Cache`. An issuer the cached snapshot does not name reads the snapshot again, and a `kid` the cached keys do not hold reads the keys again, each at most once every 30 seconds per tenant or Access environment. A tenant Access does not know is remembered as unknown for five minutes.
 
   The token's `iss` and `access_tenant` are read unverified only to choose the keys; nothing in the token is trusted before its signature verifies under them. A tenant Access does not know, an issuer that is not one of the tenant's Access environments and a key the Access environment does not publish are `auth_invalid_token`; an Access that cannot answer is `service_unavailable`.
@@ -65,6 +67,65 @@ defmodule Relay.Access.Environments do
       {:ok, issuers} -> {:ok, issuers}
       :miss -> read_issuers(access_tenant)
     end
+  end
+
+  # E-108
+  # E-103
+  @doc "Whether `environment` is the `id` of one of the Access environments of `access_tenant`: `{:ok, true | false}`, or `{:ok, :unknown}` for a tenant Access does not know."
+  @spec includes(String.t(), String.t()) ::
+          {:ok, boolean() | :unknown} | {:error, Relay.Error.t()}
+  def includes(access_tenant, environment)
+      when is_binary(access_tenant) and is_binary(environment) do
+    id = String.downcase(environment)
+
+    case environment_ids(access_tenant) do
+      {:ok, :unknown} -> {:ok, :unknown}
+      {:ok, ids} -> if id in ids, do: {:ok, true}, else: ids_again(access_tenant, id)
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  defp environment_ids(access_tenant) do
+    case Cache.fetch({:access_environment_ids, access_tenant}) do
+      {:ok, ids} -> {:ok, ids}
+      :miss -> read_ids(access_tenant)
+    end
+  end
+
+  defp ids_again(access_tenant, id) do
+    if Cache.claim({:access_environment_ids_again, access_tenant}, @again_ms) do
+      case read_ids(access_tenant) do
+        {:ok, ids} when is_list(ids) -> {:ok, id in ids}
+        other -> other
+      end
+    else
+      {:ok, false}
+    end
+  end
+
+  defp read_ids(access_tenant) do
+    key = {:access_environment_ids, access_tenant}
+
+    case snapshot(access_tenant) do
+      {:ok, snapshot} -> keep(key, ids(access_tenant, snapshot), @issuers_ms)
+      {:error, :not_found} -> keep(key, :unknown, @issuers_ms)
+      {:error, _error} -> {:error, ids_unavailable()}
+    end
+  end
+
+  defp ids(access_tenant, snapshot) do
+    case listed(snapshot, access_tenant) do
+      {:ok, environments} ->
+        for %{"id" => id} <- environments, is_binary(id), do: String.downcase(id)
+
+      :error ->
+        []
+    end
+  end
+
+  defp ids_unavailable do
+    message = "the Access environments could not be read"
+    Relay.Error.new(:service_unavailable, message, %{retry_after: 30})
   end
 
   defp tenant(tenant) when is_binary(tenant) do

@@ -152,6 +152,7 @@ paths:
                 oneOf:
                   - "$ref": "./components/schemas.yaml#/EventAccepted"
                   - "$ref": "./components/schemas.yaml#/BatchResult"
+                  - "$ref": "./components/schemas.yaml#/IysConsentRecordAccepted"
         "207":
           description: "CloudEvents batch: some rows accepted, some rejected."
           headers:

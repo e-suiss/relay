@@ -29,7 +29,8 @@ defmodule Relay.Subscribers do
   # C-20
   # API-21
   # TN-33
-  @doc "Prepares a subscriber write outside any transaction: blind indexes, the lookup, the data key and the encrypted fields of `input`. `fields` holds only the fields the request names; `nil` clears one."
+  # E-108
+  @doc "Prepares a subscriber write outside any transaction: blind indexes, the lookup, the data key and the encrypted fields of `input`. `fields` holds only the fields the request names; `nil` clears one. Option `transient: true` makes the write a transient recipient (E-108): a recipient row that carries only an address for one producer's protected messages, is never listed or addressed as a subscriber and has no profile of its own."
   @spec prepare(Scope.t(), input(), mode(), keyword()) :: {:ok, plan()} | {:error, term()}
   def prepare(%Scope{} = scope, %{external_id: external_id, fields: fields}, mode, opts \\ []) do
     with {:ok, {bidx_key_id, bidx}} <- index(scope, "external_id", external_id),
@@ -40,7 +41,8 @@ defmodule Relay.Subscribers do
           bidx: bidx,
           bidx_key_id: bidx_key_id,
           external_id: external_id,
-          existing: existing
+          existing: existing,
+          transient: Keyword.get(opts, :transient, false)
         })
 
       with {:ok, plan} <- plan(scope, base, fields, existing),
@@ -219,7 +221,8 @@ defmodule Relay.Subscribers do
       phone_bidx: nil,
       address_bidx_key_id: nil,
       plain: %{},
-      masked: %{}
+      masked: %{},
+      transient: false
     }
   end
 
@@ -232,12 +235,17 @@ defmodule Relay.Subscribers do
   def upsert(plan, expected_version) do
     case Store.upsert(plan, expected_version) do
       {result, id, _version} = written when result in [:created, :updated, :unchanged] ->
+        :ok = transient(plan, id)
         locality(plan, locality_fields(plan), id, written)
 
       refused ->
         refused
     end
   end
+
+  # E-108
+  defp transient(%{transient: true}, id), do: Store.transient(id)
+  defp transient(_plan, _id), do: :ok
 
   defp locality_fields(%{mode: :replace}), do: @locality
   defp locality_fields(%{fields: fields}), do: Enum.filter(@locality, &(&1 in fields))

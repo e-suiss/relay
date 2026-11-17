@@ -3,15 +3,26 @@ defmodule Relay.Api.CloudEvent do
   CloudEvents on the send entry (API-28 … API-31): an event in binary or structured mode, or one row of a batch, is resolved through the tenant's type mapping (`422 event_type_not_mapped` without one, API-29) to a native event request, checked against the native request schema and prepared like any other event. `(tenant, source, id)` is its dedup key and `traceparent` travels with it.
   """
 
+  alias Relay.Api.Courier
   alias Relay.Api.Events
   alias Relay.Api.Schema
 
   # API-28
   # API-29
   # MD-16
-  @doc "Prepares a CloudEvent (its decoded attributes and `data`) as a native event."
-  @spec prepare(Events.context(), map()) :: {:ok, Events.prepared()} | {:error, Relay.Error.t()}
-  def prepare(%{scope: scope} = ctx, event) do
+  # E-108
+  # E-109
+  @doc "Prepares a CloudEvent (its decoded attributes and `data`) as a native event. A message of Access's `relay.message.*.v1` namespace sent by the Access platform tenant takes its protected path instead (`Relay.Api.Courier`): its İYS consent record answers `{:ok, {:iys, body}}` once handed to the İYS write path, which a batch or a connector (`iys: false`) refuses instead."
+  @spec prepare(Events.context(), map(), keyword()) ::
+          {:ok, Events.prepared() | {:iys, map()}} | {:error, Relay.Error.t()}
+  def prepare(ctx, event, opts \\ []) do
+    case Courier.prepare(ctx, event, opts) do
+      :not_courier -> mapped(ctx, event)
+      taken -> taken
+    end
+  end
+
+  defp mapped(%{scope: scope} = ctx, event) do
     with {:ok, mapping} <- mapping(scope, event),
          {:ok, key} <- workflow(scope, mapping),
          {:ok, native} <- Relay.Ingest.ce_map(event, mapping),

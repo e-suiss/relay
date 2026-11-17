@@ -2,7 +2,7 @@ defmodule Relay.Access.Client do
   @moduledoc """
   Relay's own calls to Access with its client key (E-98, E-100, E-102): the Access product routes such as the tenant snapshot, and the token requests of an operator login and of a service token for another platform product. Every call is signed in the key store (TN-63) with Relay's Access client key, the P-256 key named by `config :relay, Relay.Access, client_key: label` (`access-client` by default). Its public JWK is registered with Relay's client in Access (`[[products]] client_key`); `print_client_key/0` prints it (`bin/relay eval 'Relay.Access.Client.print_client_key()'`, or `mix relay.access.client_key` in development).
 
-  * `product_get/2` reads a product route with `Authorization: Bearer` and a fresh RFC 7523 client assertion (E-100): ES256, `iss` and `sub` Relay's Access `client_id`, `aud` the linked (platform environment) issuer, a single-use `jti` and an `exp` one minute ahead. No access token is involved.
+  * `product_get/2` reads a product route with `Authorization: Bearer` and a fresh RFC 7523 client assertion (E-100): ES256, `iss` and `sub` Relay's Access `client_id`, `aud` the linked (platform environment) issuer, a single-use `jti` and an `exp` one minute ahead. No access token is involved. `product_post/3` posts a report to a product route the same way (E-109).
 
   * `resolve_subjects/4` maps an agent's Access Party to its pairwise `sub` in Relay's sector and back (E-106), with the same client assertion.
 
@@ -53,6 +53,16 @@ defmodule Relay.Access.Client do
       type = if is_map(body), do: [{"content-type", "application/json"}], else: []
       call(url, [method: method, headers: headers ++ type] ++ json, opts)
     end
+  end
+
+  # E-109
+  # E-100
+  @doc "Posts `body` as JSON to an Access product route (such as `/relay/v1/iys-status`) as Relay, authenticated by a fresh RFC 7523 client assertion sent as `Authorization: Bearer`, and answers the HTTP status. Options: `:http`, extra Req options."
+  @spec product_post(String.t(), map(), keyword()) ::
+          {:ok, pos_integer()} | {:error, Relay.Error.t()}
+  def product_post(url, body, opts \\ []) when is_binary(url) and is_map(body) do
+    with {:ok, %Req.Response{status: status}} <- product_request(:post, url, body, opts),
+         do: {:ok, status}
   end
 
   # E-106

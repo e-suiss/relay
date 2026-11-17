@@ -170,6 +170,7 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.push_critical_set" => ~w(opened changed closed unchanged),
     "relay_fn.recipient_upsert" =>
       ~w(created updated unchanged exists recipient_not_found deletion_pending is_agent version_conflict tenant_inactive),
+    "relay_fn.recipient_transient_set" => ~w(set unchanged not_found),
     "relay_fn.recipient_deletion_request" => ~w(requested already_requested not_found held),
     "relay_fn.recipient_deletion_complete" => ~w(completed held not_pending),
     "relay_fn.workflow_create" => ~w(created key_conflict tenant_inactive),

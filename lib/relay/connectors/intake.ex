@@ -54,7 +54,7 @@ defmodule Relay.Connectors.Intake do
          {:ok, _edge} <- tenant(principal),
          :ok <- Schema.validate_request(@operation, @media, event),
          ctx = context(principal),
-         {:ok, prepared} <- CloudEvent.prepare(ctx, event),
+         {:ok, prepared} <- CloudEvent.prepare(ctx, event, iys: false),
          :ok <- admission(prepared),
          {:ok, key} <- key(event) do
       endpoint = "CONNECTOR " <> to_string(connector.name)

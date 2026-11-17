@@ -217,10 +217,15 @@ defmodule Relay.Sql.PreferencesTest do
       for environment <- ~w(live test) do
         ctx(tenant, environment)
 
-        assert rows("SELECT key, message_class, locked, builtin, state FROM relay.categories") ==
-                 [["security", "security", true, true, "active"]]
+        sql = "SELECT key, message_class, locked, builtin, state FROM relay.categories"
+
+        assert rows(sql <> " ORDER BY key") == [
+                 ["action_required", "action_required", true, true, "active"],
+                 ["security", "security", true, true, "active"]
+               ]
 
         assert archive("security") == ["builtin", 1]
+        assert archive("action_required") == ["builtin", 1]
       end
     end
 

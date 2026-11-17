@@ -206,6 +206,14 @@ defmodule RelayTest.FakeAccess do
     end
   end
 
+  defp serve(conn, "/relay/v1/iys-status", _opts) do
+    asserted(conn, fn conn ->
+      {:ok, body, conn} = read_body(conn)
+      send(self(), {:fake_access, :iys_status, Jason.decode!(body)})
+      send_resp(conn, Process.get({__MODULE__, :iys_status}, 204), "")
+    end)
+  end
+
   defp serve(conn, _path, _opts), do: send_resp(conn, 404, "")
 
   # E-98

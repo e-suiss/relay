@@ -15,6 +15,7 @@ defmodule Relay.Iys.Live do
     top_level?: true,
     deps: [
       Relay,
+      Relay.Access,
       Relay.Compliance,
       Relay.Datasets,
       Relay.Iys,
@@ -109,6 +110,11 @@ defmodule Relay.Iys.Live do
       {:error, error} -> {:error, error}
     end
   end
+
+  # E-109
+  @impl Relay.Iys
+  def report(%Scope{} = scope, upload_id),
+    do: Relay.Access.queue_iys_report(scope, %{"upload_id" => Relay.Id.to_string(upload_id)})
 
   # PC-34
   # T-19

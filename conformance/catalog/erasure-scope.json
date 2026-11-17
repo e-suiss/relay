@@ -901,6 +901,36 @@
       "subject_erasure": "identifiers, states and times only; the recipient's personal fields live in the notification and its subscriber record; row kept"
     },
     {
+      "table": "agent_relationships",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data in clear: the identifiers of two agent records, a level and a sequence number; the agent records are soft deleted and the row is kept"
+    },
+    {
+      "table": "agent_blocks",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers of two agent records, a state and times only; row kept"
+    },
+    {
+      "table": "agent_messages",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers, a size, a time, a trust label, a relationship level and the name of an encryption scheme only, never content; the envelope lives in the mailbox record and is erased with it; row kept"
+    },
+    {
+      "table": "first_contact_tokens",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data: the digest of a blind-issued token that names nobody and the identifier of the issuer key"
+    },
+    {
+      "table": "mailbox_abuse_reports",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers and a flag only; the reporter's statement is never stored here; row kept"
+    },
+    {
       "table": "agent_run_states",
       "personal_columns": [],
       "tenant_close": "row kept",

@@ -20,7 +20,15 @@ defmodule Relay.Access do
       Relay.Tenancy,
       Relay.Tenancy.Provisioning
     ],
-    exports: [Client, Pep, ServiceKey, UserHandler, AgentHandler, ConsentHandler]
+    exports: [
+      Client,
+      Pep,
+      ServiceKey,
+      UserHandler,
+      AgentHandler,
+      ConsentHandler,
+      RelationshipHandler
+    ]
 
   alias Relay.Access.Assignment
   alias Relay.Access.Cache
@@ -28,6 +36,7 @@ defmodule Relay.Access do
   alias Relay.Access.ClientStore
   alias Relay.Access.Dpop
   alias Relay.Access.Events
+  alias Relay.Access.FirstContact
   alias Relay.Access.Jose
   alias Relay.Access.Link
   alias Relay.Access.Pairing
@@ -413,6 +422,21 @@ defmodule Relay.Access do
   @spec accept_event(binary()) ::
           :ok | {:error, {:refused, String.t(), String.t()}} | {:error, Relay.Error.t()}
   defdelegate accept_event(token), to: Events, as: :accept
+
+  # AG-73
+  @doc "The issuer of first-contact tokens with its token keys; see `Relay.Access.FirstContact.issuer/0`."
+  @spec first_contact_issuer() :: {:ok, FirstContact.issuer()} | :unconfigured
+  defdelegate first_contact_issuer(), to: FirstContact, as: :issuer
+
+  # AG-73
+  @doc "The issuer of first-contact tokens with its token keys read again; see `Relay.Access.FirstContact.refresh/0`."
+  @spec refresh_first_contact_issuer() :: {:ok, FirstContact.issuer()} | :unconfigured
+  defdelegate refresh_first_contact_issuer(), to: FirstContact, as: :refresh
+
+  # AG-73
+  @doc "Forgets the kept first-contact token keys; see `Relay.Access.FirstContact.forget/0`."
+  @spec forget_first_contact_issuer() :: :ok
+  defdelegate forget_first_contact_issuer(), to: FirstContact, as: :forget
 
   # E-36
   @doc "Applies one Access event receipt; the `Relay.Access.EventConsumer` job calls it."

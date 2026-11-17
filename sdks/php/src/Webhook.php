@@ -66,45 +66,58 @@ final class Webhook
     // X-29
     // WH-7
     /**
-     * Verifies the raw body against the webhook-id, webhook-timestamp and webhook-signature headers.
+     * Verifies the raw body against the webhook-id, webhook-timestamp and webhook-signature headers and returns the scheme (v1a or v1) of the first signature that verified.
      *
      * @param array<string, string|list<string>> $headers
      * @throws WebhookVerificationException
      */
-    public function verify(string $body, array $headers): void
+    public function verify(string $body, array $headers): string
     {
         $id = self::header($headers, 'webhook-id');
         $timestamp = self::header($headers, 'webhook-timestamp');
         $signatures = self::header($headers, 'webhook-signature');
         if ($id === null || $timestamp === null || $signatures === null) {
-            throw new WebhookVerificationException('the webhook headers are missing');
+            throw new WebhookVerificationException('missing_header', 'a webhook header is missing');
         }
-        if (preg_match('/^\d{1,15}$/', $timestamp) !== 1) {
-            throw new WebhookVerificationException('the webhook timestamp is not a number');
-        }
-        if (abs(($this->now)() - (int) $timestamp) > $this->tolerance) {
-            throw new WebhookVerificationException('the webhook timestamp is outside the tolerance');
+        if (preg_match('/^(0|[1-9][0-9]{0,14})$/', $timestamp) !== 1) {
+            throw new WebhookVerificationException('malformed_header', 'the webhook timestamp is not a number');
         }
 
-        $content = $id . '.' . $timestamp . '.' . $body;
-        foreach (explode(' ', $signatures) as $entry) {
+        $tokens = [];
+        foreach (preg_split('/\s+/', trim($signatures), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $entry) {
             $parts = explode(',', $entry, 2);
-            if (count($parts) !== 2) {
+            if (count($parts) !== 2 || $parts[0] === '') {
+                throw new WebhookVerificationException('malformed_header', 'a webhook signature is not well formed');
+            }
+            $length = match ($parts[0]) {
+                'v1a' => SODIUM_CRYPTO_SIGN_BYTES,
+                'v1' => 32,
+                default => null,
+            };
+            if ($length === null) {
                 continue;
             }
             $signature = base64_decode($parts[1], true);
-            if ($signature === false) {
-                continue;
+            if ($signature === false || strlen($signature) !== $length) {
+                throw new WebhookVerificationException('malformed_header', 'a webhook signature is not well formed');
             }
-            if ($parts[0] === 'v1a' && $this->ed25519($signature, $content)) {
-                return;
-            }
-            if ($parts[0] === 'v1' && $this->hmac($signature, $content)) {
-                return;
+            $tokens[] = [$parts[0], $signature];
+        }
+        if (trim($signatures) === '') {
+            throw new WebhookVerificationException('malformed_header', 'the webhook signature header is empty');
+        }
+        if (abs(($this->now)() - (int) $timestamp) > $this->tolerance) {
+            throw new WebhookVerificationException('timestamp_out_of_tolerance', 'the webhook timestamp is outside the tolerance');
+        }
+
+        $content = $id . '.' . $timestamp . '.' . $body;
+        foreach ($tokens as [$scheme, $signature]) {
+            if ($scheme === 'v1a' ? $this->ed25519($signature, $content) : $this->hmac($signature, $content)) {
+                return $scheme;
             }
         }
 
-        throw new WebhookVerificationException('no webhook signature matched');
+        throw new WebhookVerificationException('no_matching_signature', 'no webhook signature matched');
     }
 
     /**
@@ -120,10 +133,10 @@ final class Webhook
         try {
             $decoded = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $e) {
-            throw new WebhookVerificationException('the webhook body is not JSON', 0, $e);
+            throw new WebhookVerificationException('malformed_body', 'the webhook body is not JSON', $e);
         }
         if (!is_array($decoded)) {
-            throw new WebhookVerificationException('the webhook body is not a JSON object');
+            throw new WebhookVerificationException('malformed_body', 'the webhook body is not a JSON object');
         }
 
         return $decoded;
@@ -167,14 +180,19 @@ final class Webhook
      */
     private static function header(array $headers, string $name): ?string
     {
+        $found = [];
         foreach ($headers as $key => $value) {
             if (strcasecmp((string) $key, $name) === 0) {
-                $value = is_array($value) ? ($value[0] ?? null) : $value;
-
-                return $value === null || $value === '' ? null : trim($value);
+                foreach (is_array($value) ? $value : [$value] as $one) {
+                    $found[] = $one;
+                }
             }
         }
+        if (count($found) > 1) {
+            throw new WebhookVerificationException('duplicate_header', 'the webhook header ' . $name . ' is repeated');
+        }
+        $value = $found[0] ?? null;
 
-        return null;
+        return $value === null || $value === '' ? null : trim($value);
     }
 }

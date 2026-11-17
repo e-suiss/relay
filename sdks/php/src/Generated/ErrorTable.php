@@ -12,6 +12,25 @@ namespace Esuiss\Relay\Generated;
 final class ErrorTable
 {
     /**
+     * @var list<array{status: int, code: string|null, retryable: bool}>
+     */
+    public const RETRYABLE_DEFAULTS = [
+        ['status' => 400, 'code' => null, 'retryable' => false],
+        ['status' => 401, 'code' => null, 'retryable' => false],
+        ['status' => 403, 'code' => null, 'retryable' => false],
+        ['status' => 404, 'code' => null, 'retryable' => false],
+        ['status' => 413, 'code' => null, 'retryable' => false],
+        ['status' => 422, 'code' => null, 'retryable' => false],
+        ['status' => 409, 'code' => 'resource_conflict', 'retryable' => false],
+        ['status' => 409, 'code' => 'idempotency_key_in_progress', 'retryable' => true],
+        ['status' => 429, 'code' => 'rate_limited', 'retryable' => true],
+        ['status' => 429, 'code' => 'quota_exhausted', 'retryable' => false],
+        ['status' => 500, 'code' => null, 'retryable' => true],
+        ['status' => 503, 'code' => null, 'retryable' => true],
+        ['status' => 504, 'code' => null, 'retryable' => true],
+    ];
+
+    /**
      * @var array<string, array{family: string, status: int, retryable: bool}>
      */
     public const CODES = [

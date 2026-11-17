@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Esuiss\Relay\Exception;
 
 /**
- * An RFC 9457 problem answered by Relay, with its status, code, retryable flag and the full problem body.
+ * An error answer of Relay with its status, code, retryable flag, field errors and the full RFC 9457 problem body.
  */
 class ApiException extends RelayException
 {
@@ -15,9 +15,12 @@ class ApiException extends RelayException
 
     public readonly ?string $type;
 
-    public readonly bool $retryable;
-
     public readonly ?string $requestId;
+
+    /**
+     * @var list<array<string, mixed>>
+     */
+    public readonly array $fieldErrors;
 
     /**
      * @param array<mixed> $problem
@@ -29,12 +32,20 @@ class ApiException extends RelayException
         public readonly array $problem = [],
         public readonly array $headers = [],
         public readonly ?float $retryAfter = null,
+        public readonly bool $retryable = false,
     ) {
         $this->title = self::text($problem, 'title');
         $this->detail = self::text($problem, 'detail');
         $this->type = self::text($problem, 'type');
-        $this->retryable = ($problem['retryable'] ?? false) === true;
         $this->requestId = self::text($problem, 'request_id') ?? ($headers['request-id'] ?? null);
+        $fieldErrors = [];
+        foreach (is_array($problem['errors'] ?? null) ? $problem['errors'] : [] as $error) {
+            if (is_array($error)) {
+                /** @var array<string, mixed> $error */
+                $fieldErrors[] = $error;
+            }
+        }
+        $this->fieldErrors = $fieldErrors;
 
         $message = 'Relay answered HTTP ' . $status;
         if ($errorCode !== null) {

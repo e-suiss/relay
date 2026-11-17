@@ -205,13 +205,34 @@ final class ClientTest extends TestCase
         $h->client->getWaitpoint('wp_1');
     }
 
-    public function testX29DoesNotRetryTransportFailures(): void
+    public function testX29RetriesTransportFailuresWithTheSameKey(): void
     {
         $h = new Harness();
-        $h->transport->push(new ConnectionException('down'));
+        $h->transport->push(new ConnectionException('down'), StubTransport::json(201, self::WAITPOINT));
+
+        $h->client->createWaitpoint(['kind' => 'event']);
+
+        self::assertCount(2, $h->transport->requests);
+        self::assertSame(
+            $h->transport->requests[0]->header('Idempotency-Key'),
+            $h->transport->requests[1]->header('Idempotency-Key'),
+        );
+        self::assertSame([0.25], $h->sleeps);
+    }
+
+    public function testX29GivesUpOnTransportFailuresAfterTheLimit(): void
+    {
+        $h = new Harness();
+        for ($i = 0; $i < 4; ++$i) {
+            $h->transport->push(new ConnectionException('down'));
+        }
 
         $this->expectException(ConnectionException::class);
-        $h->client->getWaitpoint('wp_1');
+        try {
+            $h->client->getWaitpoint('wp_1');
+        } finally {
+            self::assertCount(4, $h->transport->requests);
+        }
     }
 
     public function testAPI10SendsNoKeyWhereTheOperationTakesNone(): void
@@ -244,9 +265,9 @@ final class ClientTest extends TestCase
             ]),
         );
 
-        $page = $h->client->listNotifications(limit: 2, endingBefore: 'cur_x', isTest: true);
+        $page = $h->client->listNotifications(limit: 2, isTest: true);
         self::assertCount(1, $h->transport->requests);
-        self::assertSame('https://relay.test/v1/notifications?limit=2&ending_before=cur_x&is_test=true', $h->transport->requests[0]->url);
+        self::assertSame('https://relay.test/v1/notifications?limit=2&is_test=true', $h->transport->requests[0]->url);
         self::assertTrue($page->hasMore);
         self::assertSame('cur_1', $page->nextCursor);
 

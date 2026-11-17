@@ -6,6 +6,7 @@ namespace Esuiss\Relay;
 
 use Closure;
 use Esuiss\Relay\Auth\Authorizer;
+use Esuiss\Relay\Exception\ConnectionException;
 use Esuiss\Relay\Exception\RelayException;
 use Esuiss\Relay\Generated\Meta;
 use Esuiss\Relay\Generated\Operations;
@@ -19,7 +20,7 @@ use JsonException;
 /**
  * Client of the Relay server API, pinned to the API version it was generated from.
  *
- * Mutating calls carry an Idempotency-Key that stays the same on every retry; only problems marked retryable are retried, with exponential backoff, full jitter and Retry-After.
+ * Mutating calls carry an Idempotency-Key that stays the same on every retry; only retryable errors and requests that got no response are retried, after Retry-After or with exponential backoff and full jitter.
  */
 final class Client
 {
@@ -141,19 +142,38 @@ final class Client
      */
     protected function callPage(Call $call): Page
     {
+        $after = $call->query['starting_after'] ?? null;
+        $before = $call->query['ending_before'] ?? null;
+        if ($after !== null && $before !== null) {
+            throw new InvalidArgumentException('both_cursors: starting_after and ending_before cannot be sent together');
+        }
+        $backward = $before !== null;
+
         $body = $this->callJson($call);
         /** @var list<array<string, mixed>> $items */
         $items = is_array($body['data'] ?? null) ? array_values($body['data']) : [];
         $hasMore = ($body['has_more'] ?? false) === true;
         $next = is_string($body['next_cursor'] ?? null) ? $body['next_cursor'] : null;
         $previous = is_string($body['previous_cursor'] ?? null) ? $body['previous_cursor'] : null;
+        $cursor = $backward ? $previous : $next;
         $fetch = null;
-        if ($hasMore && $next !== null) {
-            $following = $call->withQuery(['starting_after' => $next, 'ending_before' => null]);
+        if ($cursor !== null) {
+            $following = $call->withQuery($backward
+                ? ['ending_before' => $cursor, 'starting_after' => null]
+                : ['starting_after' => $cursor, 'ending_before' => null]);
             $fetch = fn (): Page => $this->callPage($following);
         }
 
-        return new Page($items, $hasMore, $next, $previous, $body, $fetch);
+        return new Page($items, $hasMore, $next, $previous, $body, $fetch, $backward);
+    }
+
+    // X-29
+    /**
+     * Sends one call with authentication, version pinning, idempotency and retries and returns the raw response; the response says whether it was a replay.
+     */
+    public function send(Call $call): HttpResponse
+    {
+        return $this->execute($call);
     }
 
     protected function clock(): float
@@ -184,7 +204,18 @@ final class Client
             if ($call->authenticated) {
                 $headers = array_merge($headers, $this->auth->authorize($call->method, $url));
             }
-            $response = $this->transport->send(new HttpRequest($call->method, $url, $headers, $body), $timeout);
+            try {
+                $response = $this->transport->send(new HttpRequest($call->method, $url, $headers, $body), $timeout);
+            } catch (ConnectionException $failure) {
+                $decision = $this->retry->decide($retries + 1, $maxRetries, true, null);
+                if (!$decision->retry || $decision->delay === null) {
+                    throw $failure;
+                }
+                ($this->sleep)($decision->delay);
+                ++$retries;
+
+                continue;
+            }
             if ($response->status >= 200 && $response->status < 300) {
                 return $response;
             }
@@ -196,17 +227,12 @@ final class Client
 
                 continue;
             }
-            if ($error->retryable && $retries < $maxRetries) {
-                $delay = $this->retry->delay($retries, $error->retryAfter);
-                if ($delay !== null) {
-                    ($this->sleep)($delay);
-                    ++$retries;
-
-                    continue;
-                }
+            $decision = $this->retry->decide($retries + 1, $maxRetries, $error->retryable, $error->retryAfter);
+            if (!$decision->retry || $decision->delay === null) {
+                throw $error;
             }
-
-            throw $error;
+            ($this->sleep)($decision->delay);
+            ++$retries;
         }
     }
 

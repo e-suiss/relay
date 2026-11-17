@@ -7,6 +7,6 @@ namespace Esuiss\Relay\Exception;
 /**
  * A resource conflict or a failed or missing precondition (409, 412, 428).
  */
-class ConflictException extends ApiException
+class ConflictException extends ValidationException
 {
 }

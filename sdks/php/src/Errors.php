@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Esuiss\Relay;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use Esuiss\Relay\Exception\ApiException;
 use Esuiss\Relay\Exception\AuthenticationException;
 use Esuiss\Relay\Exception\ConflictException;
@@ -17,10 +19,17 @@ use Esuiss\Relay\Http\HttpResponse;
 use JsonException;
 
 /**
- * Turns an error response into the typed exception of its code and reads its Retry-After.
+ * Turns an error response into the typed exception of its code, with its retryable flag and Retry-After.
  */
 final class Errors
 {
+    private const FAMILY_CLASSES = [
+        'auth' => AuthenticationException::class,
+        'quota' => RateLimitException::class,
+        'idempotency' => IdempotencyException::class,
+        'platform' => ServerException::class,
+    ];
+
     // X-29
     // API-65
     /**
@@ -48,33 +57,60 @@ final class Errors
             $problem,
             $response->headers,
             self::retryAfter($response, $problem, $now),
+            self::retryable($response->status, $code, $problem),
         );
     }
 
     /**
-     * The exception class of a status and error code: the code's family first, then the status.
+     * The exception class of a status and error code: a known code by its catalog family, an unknown one by its status.
      *
      * @return class-string<ApiException>
      */
     public static function classFor(int $status, ?string $code): string
     {
-        $family = $code === null ? null : (ErrorTable::CODES[$code]['family'] ?? null);
+        $known = $code === null ? null : (ErrorTable::CODES[$code] ?? null);
+        if ($known !== null) {
+            $class = self::FAMILY_CLASSES[$known['family']] ?? null;
+            if ($class !== null) {
+                return $class;
+            }
+            if ($status >= 500) {
+                return ServerException::class;
+            }
+
+            return self::validation($status);
+        }
 
         return match (true) {
-            $family === 'idempotency' => IdempotencyException::class,
-            $family === 'auth' => AuthenticationException::class,
-            $family === 'quota' => RateLimitException::class,
-            $status >= 500 => ServerException::class,
             $status === 401, $status === 403 => AuthenticationException::class,
             $status === 429 => RateLimitException::class,
-            $status === 404 => NotFoundException::class,
-            $status === 409, $status === 412, $status === 428 => ConflictException::class,
-            default => ValidationException::class,
+            $status >= 500 => ServerException::class,
+            default => self::validation($status),
         };
     }
 
     /**
-     * Seconds to wait from the Retry-After header (seconds or HTTP date), else the problem's retry_after.
+     * The problem's own retryable member, else the status defaults of the error catalog; a status outside them is not retryable.
+     *
+     * @param array<mixed> $problem
+     */
+    public static function retryable(int $status, ?string $code, array $problem): bool
+    {
+        $own = $problem['retryable'] ?? null;
+        if (is_bool($own)) {
+            return $own;
+        }
+        foreach (ErrorTable::RETRYABLE_DEFAULTS as $row) {
+            if ($row['status'] === $status && ($row['code'] === null || $row['code'] === $code)) {
+                return $row['retryable'];
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Seconds to wait from the Retry-After header (delta seconds or HTTP date, never negative), else the problem's retry_after; null when neither is usable.
      *
      * @param array<mixed> $problem
      */
@@ -86,9 +122,9 @@ final class Errors
             if (preg_match('/^\d+$/', $header) === 1) {
                 return (float) $header;
             }
-            $date = strtotime($header);
+            $date = DateTimeImmutable::createFromFormat('!D, d M Y H:i:s \G\M\T', $header, new DateTimeZone('UTC'));
             if ($date !== false) {
-                return max(0.0, $date - $now);
+                return max(0.0, $date->getTimestamp() - $now);
             }
         }
         $body = $problem['retry_after'] ?? null;
@@ -97,5 +133,17 @@ final class Errors
         }
 
         return null;
+    }
+
+    /**
+     * @return class-string<ValidationException>
+     */
+    private static function validation(int $status): string
+    {
+        return match ($status) {
+            404 => NotFoundException::class,
+            409, 412, 428 => ConflictException::class,
+            default => ValidationException::class,
+        };
     }
 }

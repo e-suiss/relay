@@ -118,16 +118,17 @@ final class ErrorsTest extends TestCase
         $low = new RetryPolicy(random: static fn (): float => 0.0);
         $high = new RetryPolicy(random: static fn (): float => 0.999999);
 
-        for ($retry = 0; $retry < 8; ++$retry) {
-            $ceiling = min(8.0, 0.5 * (2 ** $retry));
-            self::assertSame(0.0, $low->delay($retry, null));
-            $delay = $high->delay($retry, null);
-            self::assertNotNull($delay);
+        for ($retry = 1; $retry < 9; ++$retry) {
+            $ceiling = min(8000, 500 * (2 ** ($retry - 1)));
+            self::assertSame(0, $low->backoffMs($retry));
+            $delay = $high->backoffMs($retry);
             self::assertLessThan($ceiling, $delay);
             self::assertGreaterThan($ceiling * 0.99, $delay);
         }
-        self::assertSame(30.0, $high->delay(0, 30.0));
-        self::assertSame(60.0, $high->delay(0, 60.0));
-        self::assertNull($high->delay(0, 60.5));
+        self::assertSame(30.0, $high->decide(1, 3, true, 30.0)->delay);
+        self::assertSame(60.0, $high->decide(1, 3, true, 60.0)->delay);
+        self::assertSame('retry_after_too_long', $high->decide(1, 3, true, 60.5)->reason);
+        self::assertSame('retries_exhausted', $high->decide(4, 3, true, null)->reason);
+        self::assertSame('not_retryable', $high->decide(1, 3, false, 1.0)->reason);
     }
 }

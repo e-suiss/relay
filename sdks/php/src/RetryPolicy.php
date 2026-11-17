@@ -7,7 +7,7 @@ namespace Esuiss\Relay;
 use Closure;
 
 /**
- * Exponential backoff with full jitter that never waits less than Retry-After and refuses a Retry-After above its ceiling.
+ * When a call is retried and how long it waits: only retryable errors and requests without a response, Retry-After exactly when given, else exponential backoff with full jitter.
  */
 final class RetryPolicy
 {
@@ -20,8 +20,8 @@ final class RetryPolicy
      * @param (Closure(): float)|null $random returns a number in [0, 1)
      */
     public function __construct(
-        public readonly float $baseDelay = 0.5,
-        public readonly float $maxDelay = 8.0,
+        public readonly int $baseMs = 500,
+        public readonly int $capMs = 8000,
         public readonly float $maxRetryAfter = 60.0,
         ?Closure $random = null,
     ) {
@@ -29,17 +29,36 @@ final class RetryPolicy
     }
 
     // X-29
+    // API-65
     /**
-     * Seconds to wait before retry number $retryIndex (from 0), or null when the call must not be retried.
+     * The decision for retry number $retry (counted from 1) of a call allowed $maxRetries retries.
      */
-    public function delay(int $retryIndex, ?float $retryAfter): ?float
+    public function decide(int $retry, int $maxRetries, bool $retryable, ?float $retryAfter): RetryDecision
     {
-        if ($retryAfter !== null && $retryAfter > $this->maxRetryAfter) {
-            return null;
+        if (!$retryable) {
+            return new RetryDecision(false, null, 'not_retryable');
         }
-        $ceiling = min($this->maxDelay, $this->baseDelay * (2 ** $retryIndex));
-        $jitter = ($this->random)() * $ceiling;
+        if ($retry > $maxRetries) {
+            return new RetryDecision(false, null, 'retries_exhausted');
+        }
+        if ($retryAfter !== null) {
+            if ($retryAfter > $this->maxRetryAfter) {
+                return new RetryDecision(false, null, 'retry_after_too_long');
+            }
 
-        return $retryAfter === null ? $jitter : max($retryAfter, $jitter);
+            return new RetryDecision(true, $retryAfter, null);
+        }
+
+        return new RetryDecision(true, $this->backoffMs($retry) / 1000, null);
+    }
+
+    /**
+     * Full-jitter backoff in milliseconds for retry number $retry (counted from 1).
+     */
+    public function backoffMs(int $retry): int
+    {
+        $ceiling = min($this->capMs, $this->baseMs * (2 ** min(max($retry - 1, 0), 30)));
+
+        return (int) floor(($this->random)() * $ceiling);
     }
 }

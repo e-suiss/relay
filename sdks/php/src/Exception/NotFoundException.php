@@ -7,6 +7,6 @@ namespace Esuiss\Relay\Exception;
 /**
  * The resource does not exist in this tenant and environment.
  */
-class NotFoundException extends ApiException
+class NotFoundException extends ValidationException
 {
 }

@@ -36,4 +36,12 @@ final class HttpResponse
     {
         return $this->headers[strtolower($name)] ?? null;
     }
+
+    /**
+     * Whether Relay answered with the stored first response of this Idempotency-Key (Idempotency-Replayed: true).
+     */
+    public function replayed(): bool
+    {
+        return strtolower(trim((string) $this->header('idempotency-replayed'))) === 'true';
+    }
 }

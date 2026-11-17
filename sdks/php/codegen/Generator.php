@@ -595,10 +595,22 @@ final class Generator
                 . (($entry['retryable'] ?? false) === true ? 'true' : 'false') . '],';
         }
 
+        $defaults = [];
+        foreach (is_array($errors['retryable_defaults'] ?? null) ? $errors['retryable_defaults'] : [] as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            $code = is_string($entry['code'] ?? null) ? $this->literal($entry['code']) : 'null';
+            $defaults[] = "        ['status' => " . (int) ($entry['status'] ?? 0) . ", 'code' => " . $code
+                . ", 'retryable' => " . (($entry['retryable'] ?? false) === true ? 'true' : 'false') . '],';
+        }
+
         $out = "<?php\n\n" . self::HEADER . "\n\ndeclare(strict_types=1);\n\n";
         $out .= "namespace Esuiss\\Relay\\Generated;\n\n";
         $out .= "/**\n * Error codes of the Relay API with their family, status and retryable flag.\n */\n";
         $out .= "final class ErrorTable\n{\n";
+        $out .= "    /**\n     * @var list<array{status: int, code: string|null, retryable: bool}>\n     */\n";
+        $out .= "    public const RETRYABLE_DEFAULTS = [\n" . implode("\n", $defaults) . "\n    ];\n\n";
         $out .= "    /**\n     * @var array<string, array{family: string, status: int, retryable: bool}>\n     */\n";
         $out .= "    public const CODES = [\n" . implode("\n", $rows) . "\n    ];\n";
 

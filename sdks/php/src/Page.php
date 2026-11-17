@@ -11,6 +11,8 @@ use IteratorAggregate;
 /**
  * One page of a cursor-paginated list; iterating it yields every item of this and the following pages, fetching each next page only when it is reached.
  *
+ * A list read backwards (started with ending_before) follows previous_cursor and yields each page's items in reverse order.
+ *
  * @template T
  * @implements IteratorAggregate<int, T>
  */
@@ -28,12 +30,13 @@ final class Page implements IteratorAggregate
         public readonly ?string $previousCursor,
         public readonly array $raw = [],
         private readonly ?Closure $fetchNext = null,
+        public readonly bool $backward = false,
     ) {
     }
 
     // API-56
     /**
-     * The next page, or null on the last page.
+     * The following page in the direction of reading, or null on the last one.
      *
      * @return Page<T>|null
      */
@@ -62,7 +65,7 @@ final class Page implements IteratorAggregate
     public function getIterator(): Generator
     {
         foreach ($this->pages() as $page) {
-            foreach ($page->data as $item) {
+            foreach ($page->backward ? array_reverse($page->data) : $page->data as $item) {
                 yield $item;
             }
         }

@@ -90,6 +90,11 @@ defmodule Relay.Platform.Envelope do
 
   defp external("recipient_id", id, kind) when is_binary(id), do: encode(recipient(kind), id)
 
+  # E-86
+  defp external("responder", %{"recipient_id" => id, "kind" => kind} = responder, _kind)
+       when is_binary(id),
+       do: %{responder | "recipient_id" => encode(recipient(kind), id)}
+
   defp external(key, id, _kind) when is_map_key(@prefixes, key) and is_binary(id),
     do: encode(Map.fetch!(@prefixes, key), id)
 

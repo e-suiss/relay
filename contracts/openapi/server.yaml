@@ -27433,6 +27433,7 @@ x-relay-limits:
     max_messages: 50
     max_response_bytes: 65536
     max_escalation_tiers: 10
+    response_token_ttl: PT15M
   idempotency_key_ttl_hours: 24
   idempotency_key_length:
     min: 8

@@ -1451,6 +1451,211 @@ paths:
       x-relay-stage: 9
       x-relay-choice: true
       x-relay-choice-note: "One intent per request, the path and the snooze bound of 366 days are chosen by the contract; unsnooze is treated as a reverse intent like unread and unarchive."
+  "/v1/subscriber/waitpoints/{waitpoint_id}/response":
+    post:
+      operationId: respondToMyWaitpoint
+      tags:
+        - inbox
+      summary: Respond to a waitpoint that asks me
+      description: "The token subscriber answers a question or a review it is a responder of, in the session of its subscriber token: the evidence level of the response is relay_session (AG-26). The value is checked against the waitpoint's response schema and the response size limit before anything is recorded; a value that does not fit is not written and is answered 422 with the failing fields (INV-31). The response carries the subject_digest the request showed and is refused when it is not the waitpoint's (AG-11). The first valid response resolves the waitpoint; the same response sent again is answered as the first was, so a repeated click changes nothing, and any other later response is rejected and the rejection recorded (AG-28). A subscriber that is not a responder is answered 404: knowing the identifier does not let it respond. A response is collected and passed to the waiter; it is never an approval and gives no authority (AG-25, E-49). A waitpoint of the profile guardian_approval takes no response here: it closes only with the decision given on the Access approval surface (AG-62, AG-32). The operation takes no Idempotency-Key: a waitpoint is resolved once."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/WaitpointId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/WaitpointResponseRequest"
+      security:
+        - subscriber_bearer:
+            - "inbox:write"
+      responses:
+        "200":
+          description: "The response resolved the waitpoint, now or when it was first sent."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/WaitpointResponseReceipt"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - waitpoint_not_found
+        - waitpoint_closed
+        - waitpoint_response_refused
+      x-relay-scopes:
+        - "inbox:write"
+      x-relay-weight: 1
+      x-relay-idempotency: none
+      x-relay-step-up: false
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: "Path, body and status codes chosen by the contract; the spec names the evidence level and the invariants."
+  "/v1/channel_responses":
+    post:
+      operationId: submitChannelResponse
+      tags:
+        - inbox
+      summary: Send a response from a channel with a response token
+      description: "A response button or link of a human channel (SMS, e-mail, a messaging channel) answers a waitpoint with the response token the message carried; the evidence level of the response is channel_claim (AG-26). The token names one waitpoint and one responder, is used once, lives at most x-relay-limits waitpoint.response_token_ttl and never past the waitpoint's deadline, and is rotated when the message is sent again (AG-31). The value is checked against the response schema first: a value that does not fit is answered 422 and the token stays unused (INV-31). The channel is acknowledged at once with 202 and status processing, and the response is processed afterwards; sending the same value with the same token again changes nothing and answers the current status: processing, responded (who and when) or not_awaited with the rule that refused it (AG-35, AG-28). A forged, expired, rotated or otherwise used token is answered 403 without saying which. A response is never an approval and gives no authority (AG-32, E-49); a waitpoint of the profile guardian_approval has no response token. The token is never part of anything returned to the waiter (AG-30)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/ChannelResponseRequest"
+      security: []
+      responses:
+        "200":
+          description: The status of a response that was already processed.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/WaitpointResponseReceipt"
+        "202":
+          description: "Acknowledged; the response is being processed."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/WaitpointResponseReceipt"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - response_token_invalid
+      x-relay-weight: 1
+      x-relay-idempotency: none
+      x-relay-step-up: false
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: "Path, body and status codes chosen by the contract; the token travels in the body so that it never appears in a URL."
   "/v1/subscriber/inbox/counters":
     get:
       operationId: getMyInboxCounters
@@ -4067,6 +4272,68 @@ components:
             - position_out_of_range
         counters:
           "$ref": "#/components/schemas/InboxCounters"
+      additionalProperties: false
+    WaitpointResponseRequest:
+      type: object
+      description: "A response to a waitpoint (C-74). The field is response, never approval (AG-26)."
+      required:
+        - response
+        - subject_digest
+      properties:
+        response:
+          description: "The response value; it follows the waitpoint's response_schema and is at most x-relay-limits waitpoint.max_response_bytes."
+        subject_digest:
+          "$ref": "./components/schemas.yaml#/Sha256Digest"
+      additionalProperties: false
+    ChannelResponseRequest:
+      type: object
+      description: "A response sent from a channel with a response token."
+      required:
+        - token
+        - response
+      properties:
+        token:
+          type: string
+          description: "The response token the channel message carried."
+          minLength: 1
+          maxLength: 256
+        response:
+          description: "The response value; it follows the waitpoint's response_schema and is at most x-relay-limits waitpoint.max_response_bytes."
+        channel:
+          "$ref": "./components/schemas.yaml#/Channel"
+      additionalProperties: false
+    WaitpointResponseReceipt:
+      type: object
+      description: "What became of a response: processing, responded (who and when) or not awaited any more."
+      required:
+        - object
+        - waitpoint_id
+        - status
+      properties:
+        object:
+          type: string
+          enum:
+            - waitpoint_response_receipt
+        waitpoint_id:
+          "$ref": "./components/schemas.yaml#/Id_wp"
+        status:
+          type: string
+          enum:
+            - processing
+            - responded
+            - not_awaited
+        response_id:
+          "$ref": "./components/schemas.yaml#/Id_wpr"
+        responder:
+          "$ref": "./components/schemas.yaml#/WaitpointResponder"
+        evidence_level:
+          "$ref": "./components/schemas.yaml#/EvidenceLevel"
+        responded_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        response_digest:
+          "$ref": "./components/schemas.yaml#/Sha256Digest"
+        rule_id:
+          "$ref": "./components/schemas.yaml#/RuleId"
       additionalProperties: false
     InboxIntent:
       type: object

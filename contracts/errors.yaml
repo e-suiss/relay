@@ -1579,6 +1579,34 @@ codes:
     description: "The waitpoint was created without heartbeat_interval, or the caller is not the API client that waits on it. Only the waiter sends the heartbeat of its waitpoint."
     type: "{base_url}/v1/errors/waitpoint_heartbeat_refused"
     choice_note: "Code name and status chosen by the contract."
+  - code: waitpoint_response_refused
+    family: agent
+    status: 409
+    title: "Response refused"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The response was not recorded: it was given for another subject digest than the waitpoint's, or the waitpoint closes only with a decision given on the Access approval surface. The refusal is recorded with its rule and reported as waitpoint.response_rejected."
+    type: "{base_url}/v1/errors/waitpoint_response_refused"
+    choice_note: "Code name and status chosen by the contract."
+  - code: response_token_invalid
+    family: agent
+    status: 403
+    title: "Response token is not valid"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The response token is forged, expired, rotated by a newer message or already used with another response. A token is used once and names one waitpoint and one responder; the answer does not say which of these applies."
+    type: "{base_url}/v1/errors/response_token_invalid"
+    choice_note: "Code name and status chosen by the contract."
   - code: mailbox_not_found
     family: resource
     status: 404

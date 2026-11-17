@@ -27,6 +27,7 @@ defmodule Relay.Access do
       UserHandler,
       AgentHandler,
       ConsentHandler,
+      DecisionHandler,
       RelationshipHandler
     ]
 

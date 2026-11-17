@@ -668,6 +668,11 @@ table relay.waitpoint_response_rejections relay_archive SELECT
 table relay.waitpoint_response_rejections relay_maint SELECT
 table relay.waitpoint_response_rejections relay_owner INSERT,SELECT
 table relay.waitpoint_response_rejections relay_report SELECT
+table relay.waitpoint_response_tokens relay_app SELECT
+table relay.waitpoint_response_tokens relay_archive SELECT
+table relay.waitpoint_response_tokens relay_maint SELECT
+table relay.waitpoint_response_tokens relay_owner INSERT,SELECT,UPDATE
+table relay.waitpoint_response_tokens relay_report SELECT
 table relay.waitpoint_responses relay_app SELECT
 table relay.waitpoint_responses relay_archive SELECT
 table relay.waitpoint_responses relay_maint SELECT

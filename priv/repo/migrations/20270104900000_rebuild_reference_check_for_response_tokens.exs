@@ -1,11 +1,12 @@
-defmodule Relay.Repo.Migrations.RebuildReferenceCheckForAgentTaskNotifications do
+defmodule Relay.Repo.Migrations.RebuildReferenceCheckForResponseTokens do
   use Ecto.Migration
 
   @foreign_keys [
-    {"agent_task_notifications", "agent_task_notifications_receipt_id_fkey",
-     "tenant_id,environment,receipt_id", "webhook_receipts", "tenant_id,environment,id"},
-    {"agent_task_notifications", "agent_task_notifications_source_id_fkey",
-     "tenant_id,environment,source_id", "webhook_sources", "tenant_id,environment,id"},
+    {"waitpoint_response_tokens", "waitpoint_response_tokens_recipient_id_fkey",
+     "tenant_id,environment,waitpoint_id,recipient_id", "waitpoint_responders",
+     "tenant_id,environment,waitpoint_id,recipient_id"},
+    {"waitpoint_response_tokens", "waitpoint_response_tokens_value_key_id_fkey",
+     "tenant_id,environment,value_key_id", "subject_keys", "tenant_id,environment,id"},
     {"agent_blocks", "agent_blocks_owner_agent_id_fkey", "tenant_id,environment,owner_agent_id",
      "recipients", "tenant_id,environment,id"},
     {"agent_blocks", "agent_blocks_sender_agent_id_fkey", "tenant_id,environment,sender_agent_id",

@@ -281,6 +281,10 @@
   {"file": "20261230000100_create_agent_ceiling_functions.exs", "sha256": "5b68b73cf565f7d28801f68727a4af43c977517cc00c1561eb35ba075a8cee12"},
   {"file": "20261230000200_create_agent_operations_overview.exs", "sha256": "061b0f460ea253580b8baf5f3a6427068e0e38258987884924b723e80b66d803"},
   {"file": "20261230000300_rebuild_reference_check_for_agent_ceiling.exs", "sha256": "133ad77a22b204e880155a4fc6d225b1b1c3b5a963c1f359e6e9e2e73daa8b04"},
+  {"file": "20270101000000_create_waitpoint_response_tokens.exs", "sha256": "8be4040908753fa1b3e71b586b88ad1a403e6f48f69f93dc912f13d9377ef91d"},
+  {"file": "20270101000100_allow_evidence_level_rejections.exs", "sha256": "f2c44ae45d1b9ab135b71ab4aee41e3b70ed47831de7a423cf3dffd7455293c8"},
+  {"file": "20270101000200_create_response_collection_functions.exs", "sha256": "b45f622e9e9ff5900cab1039240cdb10d1712adb97b87b2b392ddbcd471c243c"},
+  {"file": "20270101000300_validate_evidence_level_rejections.exs", "sha256": "a4ad9a43d7ff64ed8293d0573186e5bbd5931c1d5a27d7dc2f1ee455a3543a56"},
   {"file": "20270103000000_register_agent_protocols.exs", "sha256": "5e54d56fa035f9d29158616a5417e73a6da41586612470ab15bc99eebd03a8d6"},
   {"file": "20270103000100_create_agent_task_notifications.exs", "sha256": "ba574f9d7ad09ebc742d275dc65e03c9c3c8d27da3187a529c2750c9a68a9f61"},
   {"file": "20270103000200_create_agent_task_notification_function.exs", "sha256": "aa30436ed1110a47c088656d55d8bb23b4bf4ca7576929abb1261007f6459694"},
@@ -289,5 +293,6 @@
   {"file": "20270104000200_validate_mailbox_record_kind_checks.exs", "sha256": "e66572c217c7528b3837d4e45016723fd6fe54de37a6e1dbf703e21da7677f0d"},
   {"file": "20270104000300_register_encrypted_transport.exs", "sha256": "947b83161fdcc41b7372ac00cf5a9d8e5c5a80c7c2bb5ffdb0bcd5d09138f0fb"},
   {"file": "20270104000400_rebuild_reference_check_for_first_contact.exs", "sha256": "805a172b2ecee51c3c3115880c99330f7cadbc1dfa59141b6e2025dafc8fc094"},
-  {"file": "20270104900000_rebuild_reference_check_for_agent_task_notifications.exs", "sha256": "bf13ef6edf33a899d109ea451db72ee93bbcc8fa1bbac1d3a896c942ccdbe8bd"}
+  {"file": "20270104900000_rebuild_reference_check_for_response_tokens.exs", "sha256": "8011de0073a4c3d3b953fb88cfcde8548f982cc4007105e1d5f33691990733d9"},
+  {"file": "20270104900100_rebuild_reference_check_for_agent_task_notifications.exs", "sha256": "80dd3f4f4664d262dc841b026328db8c021881dab0fde10bc8da7ad8b9f805eb"}
 ]

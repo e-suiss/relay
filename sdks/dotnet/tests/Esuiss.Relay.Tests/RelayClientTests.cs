@@ -120,13 +120,31 @@ public sealed class RelayClientTests
     public void X_29_the_backoff_ceiling_doubles_and_is_capped()
     {
         var baseDelay = TimeSpan.FromMilliseconds(500);
-        var max = TimeSpan.FromSeconds(20);
-        Assert.Equal(TimeSpan.Zero, RetryPolicy.Backoff(0, 0, baseDelay, max));
-        Assert.Equal(TimeSpan.FromSeconds(0.5), RetryPolicy.Backoff(0, 1, baseDelay, max));
-        Assert.Equal(TimeSpan.FromSeconds(4), RetryPolicy.Backoff(3, 1, baseDelay, max));
-        Assert.Equal(TimeSpan.FromSeconds(20), RetryPolicy.Backoff(10, 1, baseDelay, max));
-        Assert.Null(RetryPolicy.Delay(0, TimeSpan.FromSeconds(61), 0.5, baseDelay, max, TimeSpan.FromSeconds(60)));
-        Assert.Equal(TimeSpan.FromSeconds(60), RetryPolicy.Delay(0, TimeSpan.FromSeconds(60), 0.5, baseDelay, max, TimeSpan.FromSeconds(60)));
+        var max = TimeSpan.FromSeconds(8);
+        var limit = TimeSpan.FromSeconds(60);
+        Assert.Equal(TimeSpan.Zero, RetryPolicy.Backoff(1, 0, baseDelay, max));
+        Assert.Equal(TimeSpan.FromMilliseconds(250), RetryPolicy.Backoff(1, 0.5, baseDelay, max));
+        Assert.Equal(TimeSpan.FromMilliseconds(3996), RetryPolicy.Backoff(4, 0.999, baseDelay, max));
+        Assert.Equal(TimeSpan.FromMilliseconds(6000), RetryPolicy.Backoff(10, 0.75, baseDelay, max));
+        Assert.Equal(RetryVerdict.RetryAfterTooLong, RetryPolicy.Decide(1, 3, true, TimeSpan.FromSeconds(61), 0.5, baseDelay, max, limit).Verdict);
+        Assert.Equal(TimeSpan.FromSeconds(60), RetryPolicy.Decide(1, 3, true, TimeSpan.FromSeconds(60), 0.5, baseDelay, max, limit).Delay);
+        Assert.Equal(RetryVerdict.RetriesExhausted, RetryPolicy.Decide(4, 3, true, null, 0.5, baseDelay, max, limit).Verdict);
+        Assert.Equal(RetryVerdict.NotRetryable, RetryPolicy.Decide(1, 3, false, null, 0.5, baseDelay, max, limit).Verdict);
+        var now = new DateTimeOffset(2026, 11, 18, 10, 0, 0, TimeSpan.Zero);
+        Assert.Equal(TimeSpan.FromSeconds(12), RetryPolicy.ParseRetryAfter("Wed, 18 Nov 2026 10:00:12 GMT", now));
+        Assert.Equal(TimeSpan.Zero, RetryPolicy.ParseRetryAfter("Wed, 18 Nov 2026 09:59:00 GMT", now));
+        Assert.Null(RetryPolicy.ParseRetryAfter("-3", now));
+        Assert.Null(RetryPolicy.ParseRetryAfter("soon", now));
+    }
+
+    [Fact]
+    public async Task API_56_both_cursors_are_refused_before_sending()
+    {
+        using var h = new Harness();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => h.Client.Api.ListWaitpointsAsync(startingAfter: "c1", endingBefore: "c2"));
+
+        Assert.Empty(h.Handler.Requests);
     }
 
     [Fact]

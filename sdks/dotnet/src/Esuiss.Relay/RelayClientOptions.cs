@@ -15,8 +15,8 @@ public sealed class RelayClientOptions
     /// <summary>The first backoff ceiling; it doubles on every retry. Defaults to 0.5 seconds.</summary>
     public TimeSpan BaseDelay { get; init; } = TimeSpan.FromMilliseconds(500);
 
-    /// <summary>The largest backoff ceiling. Defaults to 20 seconds.</summary>
-    public TimeSpan MaxDelay { get; init; } = TimeSpan.FromSeconds(20);
+    /// <summary>The largest backoff ceiling. Defaults to 8 seconds.</summary>
+    public TimeSpan MaxDelay { get; init; } = TimeSpan.FromSeconds(8);
 
     /// <summary>The longest Retry-After the client waits; a longer one surfaces the error. Defaults to 60 seconds.</summary>
     public TimeSpan MaxRetryAfter { get; init; } = TimeSpan.FromSeconds(60);
@@ -32,4 +32,7 @@ public sealed class RelayClientOptions
 
     /// <summary>Returns a uniform random number in [0, 1) for the backoff jitter.</summary>
     public Func<double>? Random { get; init; }
+
+    /// <summary>The clock that dates Retry-After values, or null for the system clock.</summary>
+    public TimeProvider? TimeProvider { get; init; }
 }

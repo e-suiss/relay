@@ -47,7 +47,9 @@ public sealed class QueryBuilder
         }
     }
 
-    internal QueryBuilder WithCursor(string cursor)
+    internal bool Has(string name) => _values.Exists(pair => pair.Key == name);
+
+    internal QueryBuilder WithCursor(string name, string cursor)
     {
         var next = new QueryBuilder();
         foreach (var pair in _values)
@@ -58,7 +60,7 @@ public sealed class QueryBuilder
             }
         }
 
-        next._values.Add(new("starting_after", cursor));
+        next._values.Add(new(name, cursor));
         return next;
     }
 

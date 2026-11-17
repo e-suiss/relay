@@ -20,7 +20,7 @@ public class RelayException : Exception
 
 /// <summary>The details of an RFC 9457 problem returned by Relay.</summary>
 /// <param name="Status">The HTTP status.</param>
-/// <param name="Code">The error code.</param>
+/// <param name="Code">The error code, or null when the response carried no problem document.</param>
 /// <param name="Title">The fixed title of the code.</param>
 /// <param name="Detail">The explanation of this occurrence.</param>
 /// <param name="Type">The URL of the error code page.</param>
@@ -30,7 +30,7 @@ public class RelayException : Exception
 /// <param name="Problem">The whole problem document.</param>
 public sealed record RelayError(
     int Status,
-    string Code,
+    string? Code,
     string Title,
     string? Detail,
     string? Type,
@@ -55,8 +55,8 @@ public class RelayApiException : RelayException
     /// <summary>The HTTP status.</summary>
     public int Status => Error.Status;
 
-    /// <summary>The error code.</summary>
-    public string Code => Error.Code;
+    /// <summary>The error code, or null when the response carried no problem document.</summary>
+    public string? Code => Error.Code;
 
     /// <summary>Whether Relay said the request may be retried.</summary>
     public bool Retryable => Error.Retryable;
@@ -66,8 +66,8 @@ public class RelayApiException : RelayException
 
     private static string Describe(RelayError error) =>
         error.Detail is null
-            ? $"{error.Status} {error.Code}: {error.Title}"
-            : $"{error.Status} {error.Code}: {error.Title} ({error.Detail})";
+            ? $"{error.Status} {error.Code ?? "error"}: {error.Title}"
+            : $"{error.Status} {error.Code ?? "error"}: {error.Title} ({error.Detail})";
 }
 
 /// <summary>The credentials are missing, not valid or not allowed to make the request.</summary>
@@ -90,7 +90,7 @@ public class RelayValidationException : RelayApiException
     }
 }
 
-/// <summary>The request was refused by a rate limit.</summary>
+/// <summary>The request was refused by a rate limit or a quota.</summary>
 public class RelayRateLimitException : RelayApiException
 {
     /// <summary>Creates the error.</summary>
@@ -100,7 +100,7 @@ public class RelayRateLimitException : RelayApiException
     }
 }
 
-/// <summary>The request was refused because a quota is exhausted.</summary>
+/// <summary>The request was refused by a quota, such as an exhausted sending quota or a batch above its limit.</summary>
 public class RelayQuotaException : RelayRateLimitException
 {
     /// <summary>Creates the error.</summary>
@@ -131,7 +131,7 @@ public class RelayServerException : RelayApiException
 }
 
 /// <summary>The resource does not exist.</summary>
-public class RelayNotFoundException : RelayApiException
+public class RelayNotFoundException : RelayValidationException
 {
     /// <summary>Creates the error.</summary>
     public RelayNotFoundException(RelayError error)
@@ -141,7 +141,7 @@ public class RelayNotFoundException : RelayApiException
 }
 
 /// <summary>The request conflicts with the state of the resource.</summary>
-public class RelayConflictException : RelayApiException
+public class RelayConflictException : RelayValidationException
 {
     /// <summary>Creates the error.</summary>
     public RelayConflictException(RelayError error)
@@ -178,28 +178,56 @@ public class RelayWaitpointTimeoutException : RelayException
     public JsonNode LastSeen { get; }
 }
 
+internal enum ErrorClass
+{
+    Auth,
+    Validation,
+    RateLimit,
+    Idempotency,
+    Server,
+}
+
 internal static class ErrorMapping
 {
-    internal static RelayApiException Create(RelayError error)
+    internal static ErrorClass Classify(int status, string? code)
     {
-        var family = ErrorCatalog.Family(error.Code);
-        if (family == "idempotency" || error.Code.StartsWith("idempotency_", StringComparison.Ordinal))
+        switch (ErrorCatalog.Family(code))
         {
-            return new RelayIdempotencyException(error);
+            case "auth":
+                return ErrorClass.Auth;
+            case "quota":
+                return ErrorClass.RateLimit;
+            case "idempotency":
+                return ErrorClass.Idempotency;
+            case "platform":
+                return ErrorClass.Server;
+            case not null:
+                return status >= 500 ? ErrorClass.Server : ErrorClass.Validation;
+            default:
+                return status switch
+                {
+                    401 or 403 => ErrorClass.Auth,
+                    429 => ErrorClass.RateLimit,
+                    >= 500 => ErrorClass.Server,
+                    _ => ErrorClass.Validation,
+                };
         }
-
-        return error.Status switch
-        {
-            401 => new RelayAuthenticationException(error),
-            403 when family == "auth" || error.Code.StartsWith("auth_", StringComparison.Ordinal) =>
-                new RelayAuthenticationException(error),
-            400 or 413 or 415 or 422 => new RelayValidationException(error),
-            429 when error.Code == "quota_exhausted" => new RelayQuotaException(error),
-            429 => new RelayRateLimitException(error),
-            404 => new RelayNotFoundException(error),
-            409 or 412 or 428 => new RelayConflictException(error),
-            >= 500 => new RelayServerException(error),
-            _ => new RelayApiException(error),
-        };
     }
+
+    internal static RelayApiException Create(RelayError error) =>
+        Classify(error.Status, error.Code) switch
+        {
+            ErrorClass.Auth => new RelayAuthenticationException(error),
+            ErrorClass.RateLimit when error.Code is not null && error.Code != "rate_limited" &&
+                ErrorCatalog.Family(error.Code) == "quota" => new RelayQuotaException(error),
+            ErrorClass.RateLimit => new RelayRateLimitException(error),
+            ErrorClass.Idempotency => new RelayIdempotencyException(error),
+            ErrorClass.Server => new RelayServerException(error),
+            _ => error.Status switch
+            {
+                404 => new RelayNotFoundException(error),
+                409 or 412 or 428 => new RelayConflictException(error),
+                _ => new RelayValidationException(error),
+            },
+        };
 }

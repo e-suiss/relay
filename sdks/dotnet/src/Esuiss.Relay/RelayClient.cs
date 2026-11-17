@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -20,6 +19,7 @@ public sealed class RelayClient : IDisposable
     private readonly bool _ownsHttp;
     private readonly Func<TimeSpan, CancellationToken, Task> _delay;
     private readonly Func<double> _random;
+    private readonly TimeProvider _time;
     private readonly string _base;
 
     /// <summary>Creates a client.</summary>
@@ -44,6 +44,7 @@ public sealed class RelayClient : IDisposable
         _http = options.HttpClient ?? new HttpClient { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
         _delay = options.Delay ?? ((wait, token) => Task.Delay(wait, token));
         _random = options.Random ?? (() => System.Random.Shared.NextDouble());
+        _time = options.TimeProvider ?? TimeProvider.System;
         Api = new RelayApi(this);
         Agents = new RelayAgents(this);
     }
@@ -103,9 +104,8 @@ public sealed class RelayClient : IDisposable
         var maxRetries = options?.MaxRetries ?? _options.MaxRetries;
         var timeout = options?.Timeout ?? _options.Timeout;
 
-        for (var attempt = 0; ; attempt++)
+        for (var retry = 1; ; retry++)
         {
-            var canRetry = attempt < maxRetries;
             HttpResponseMessage response;
             try
             {
@@ -117,10 +117,10 @@ public sealed class RelayClient : IDisposable
             }
             catch (Exception ex) when (Transport(ex, cancellationToken))
             {
-                if (canRetry && RetryPolicy.TransportRetryable(operation.Method, idempotencyKey))
+                var decision = Decide(retry, maxRetries, RetryPolicy.TransportRetryable(operation.Method, idempotencyKey), null);
+                if (decision.ShouldRetry)
                 {
-                    var wait = RetryPolicy.Backoff(attempt, _random(), _options.BaseDelay, _options.MaxDelay);
-                    await _delay(wait, cancellationToken).ConfigureAwait(false);
+                    await _delay(decision.Delay, cancellationToken).ConfigureAwait(false);
                     continue;
                 }
 
@@ -136,16 +136,12 @@ public sealed class RelayClient : IDisposable
                     return new ApiResponse(status, Headers(response), bytes);
                 }
 
-                var error = Problem(status, response, bytes);
-                if (canRetry && error.Retryable)
+                var error = Problem(status, response, bytes, _time.GetUtcNow());
+                var decision = Decide(retry, maxRetries, error.Retryable, error.RetryAfter);
+                if (decision.ShouldRetry)
                 {
-                    var wait = RetryPolicy.Delay(attempt, error.RetryAfter, _random(), _options.BaseDelay,
-                        _options.MaxDelay, _options.MaxRetryAfter);
-                    if (wait is { } delay)
-                    {
-                        await _delay(delay, cancellationToken).ConfigureAwait(false);
-                        continue;
-                    }
+                    await _delay(decision.Delay, cancellationToken).ConfigureAwait(false);
+                    continue;
                 }
 
                 throw ErrorMapping.Create(error);
@@ -196,11 +192,22 @@ public sealed class RelayClient : IDisposable
         RequestOptions? options,
         CancellationToken cancellationToken)
     {
+        var backward = query.Has("ending_before");
+        if (backward && query.Has("starting_after"))
+        {
+            throw new ArgumentException($"{operation.Id} takes starting_after or ending_before, not both", nameof(query));
+        }
+
         var json = await SendJsonAsync(operation, pathParameters, query, body, options, cancellationToken)
             .ConfigureAwait(false);
-        return new Page(json, (cursor, token) =>
-            ListAsync(operation, pathParameters, query.WithCursor(cursor), body, options, token));
+        var cursorName = backward ? "ending_before" : "starting_after";
+        return new Page(json, backward, (cursor, token) =>
+            ListAsync(operation, pathParameters, query.WithCursor(cursorName, cursor), body, options, token));
     }
+
+    private RetryDecision Decide(int retry, int maxRetries, bool retryable, TimeSpan? retryAfter) =>
+        RetryPolicy.Decide(retry, maxRetries, retryable, retryAfter, _random(), _options.BaseDelay,
+            _options.MaxDelay, _options.MaxRetryAfter);
 
     internal static string NewIdempotencyKey() => Guid.NewGuid().ToString("D");
 
@@ -313,7 +320,7 @@ public sealed class RelayClient : IDisposable
         return headers;
     }
 
-    internal static RelayError Problem(int status, HttpResponseMessage response, byte[] bytes)
+    internal static RelayError Problem(int status, HttpResponseMessage response, byte[] bytes, DateTimeOffset now)
     {
         JsonObject? problem = null;
         try
@@ -324,9 +331,9 @@ public sealed class RelayClient : IDisposable
         {
         }
 
-        var code = Text(problem, "code") ?? $"http_{status}";
+        var code = Text(problem, "code");
         var stated = problem?["retryable"] is JsonValue flag && flag.TryGetValue<bool>(out var b) ? b : (bool?)null;
-        var retryAfter = RetryAfter(response, problem);
+        var retryAfter = RetryAfter(response, problem, now);
         var requestId = response.Headers.TryGetValues("Request-Id", out var ids) ? ids.FirstOrDefault() : null;
         return new RelayError(
             status,
@@ -335,17 +342,17 @@ public sealed class RelayClient : IDisposable
             Text(problem, "detail"),
             Text(problem, "type"),
             Text(problem, "request_id") ?? requestId,
-            ErrorCatalog.Retryable(status, Text(problem, "code"), stated),
+            ErrorCatalog.Retryable(status, code, stated),
             retryAfter,
             problem);
     }
 
-    private static TimeSpan? RetryAfter(HttpResponseMessage response, JsonObject? problem)
+    private static TimeSpan? RetryAfter(HttpResponseMessage response, JsonObject? problem, DateTimeOffset now)
     {
         if (response.Headers.TryGetValues("Retry-After", out var values) &&
-            long.TryParse(values.FirstOrDefault(), NumberStyles.None, CultureInfo.InvariantCulture, out var seconds))
+            RetryPolicy.ParseRetryAfter(values.FirstOrDefault(), now) is { } header)
         {
-            return TimeSpan.FromSeconds(seconds);
+            return header;
         }
 
         if (problem?["retry_after"] is JsonValue value && value.TryGetValue<long>(out var stated) && stated >= 0)

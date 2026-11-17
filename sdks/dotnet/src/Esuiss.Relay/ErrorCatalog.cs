@@ -37,6 +37,6 @@ internal static partial class ErrorCatalog
             }
         }
 
-        return status >= 500;
+        return false;
     }
 }

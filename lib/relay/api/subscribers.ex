@@ -28,6 +28,11 @@ defmodule Relay.Api.Subscribers do
   def etag(version), do: {"etag", ~s("#{version}")}
 
   # API-66
+  @doc "The profile fields a subscriber write may carry."
+  @spec fields() :: [String.t()]
+  def fields, do: Relay.Subscribers.fields()
+
+  # API-66
   @doc "Prepares a subscriber write outside any transaction; `mode` is `:create`, `:replace`, `:patch` or `:implicit`."
   @spec prepare(Relay.Scope.t(), String.t(), map(), atom()) ::
           {:ok, map()} | {:error, Relay.Error.t()}

@@ -2,7 +2,7 @@ defmodule Relay.Policy.Live do
   @moduledoc """
   The policy lattice at run time (PC-58 (2), TN-70 (2)): it reads the input snapshot of one delivery from the database, adds the frequency readings, evaluates the pure lattice (`Relay.Policy.evaluate/1`) and records the decision. It runs in three places: when a delivery is opened at acceptance (`decide/1` and `record/2`, inside the accepting transaction), on every run of the delivery job (`job/2`, PC-8) and when a kill switch or a suspension resumes a paused delivery (`reevaluate/1`, the `Relay.Policy.Lattice` port, TN-40).
 
-  Every skip and expiry is recorded on the delivery with its reason, rule and detail, with a ledger event and a `notification.suppressed` outbox event in the same transaction; a deferral is a `delivery.deferred` ledger event and the delivery stays `queued` with `deferred_until` (DS-24, DS-26, DS-27). An input that cannot be read records nothing and the job retries (INV-43); only the frequency counter fails open (INV-45). At acceptance and in the job, a deferral by quiet hours of a `social` or `marketing` delivery, a frequency cap met with the `digest` fate and a send past the category's density threshold hold the delivery in a digest window instead (`Relay.Policy.Live.Hold`, PC-46, PC-50, WF-30): it is recorded as deferred with its digest rule until the window fires and its job ends; the window's release (`digest_ready/2`, configured as `config :relay, Relay.Workflow.Digest, release: Relay.Policy.Live`) queues it again. Counters are read outside every transaction and counted only for a delivery the lattice sends, by its identifier. Each recorded decision emits `[:relay, :policy, :decision]` telemetry with its kind and reason. `config :relay, Relay.Policy.Live, frequency_counter: […]` passes options to `Relay.Policy.FrequencyCounter`.
+  Every skip and expiry is recorded on the delivery with its reason, rule and detail, with a ledger event and a `notification.suppressed` outbox event in the same transaction; a deferral is a `delivery.deferred` ledger event and the delivery stays `queued` with `deferred_until` (DS-24, DS-26, DS-27). An input that cannot be read records nothing and the job retries (INV-43); only the frequency counter fails open (INV-45). At acceptance and in the job, a deferral by quiet hours of a `social` or `marketing` delivery, a frequency cap met with the `digest` fate and a send past the category's density threshold hold the delivery in a digest window instead (`Relay.Policy.Live.Hold`, PC-46, PC-50, WF-30): it is recorded as deferred with its digest rule until the window fires and its job ends; the window's release (`digest_ready/2`, configured as `config :relay, Relay.Workflow.Digest, release: Relay.Policy.Live`) queues it again. Counters are read outside every transaction and counted only for a delivery the lattice sends, by its identifier. Each recorded decision emits `[:relay, :policy, :decision]` telemetry with its kind and reason, and a send whose time zone was inferred (device, profile country, tenant default) emits `[:relay, :policy, :fallback_zone]` with the source, so those deliveries are counted apart (WF-46, PC-48). `config :relay, Relay.Policy.Live, frequency_counter: […]` passes options to `Relay.Policy.FrequencyCounter`.
 
   A delivery sent with `timing: next_break`, or opened by a channel step that has it while the send request gives none (WF-56, WF-57), waits as a deferral with `next_break.deferred` and its job snoozes until the deferral ends (WF-43). Its break is released, once and durably, when that deferral or a quiet hours deferral of it has run out at the next evaluation, or at once when a device of the recipient reports a break transition (`break_reached/2`, IN-53); a released delivery passes the lattice like any other.
   """
@@ -11,10 +11,13 @@ defmodule Relay.Policy.Live do
     top_level?: true,
     deps: [
       Relay,
+      Relay.Compliance,
+      Relay.Datasets,
       Relay.Delivery,
       Relay.Devices,
       Relay.Policy,
       Relay.Policy.FrequencyCounter,
+      Relay.Policy.IysGate,
       Relay.Policy.Lattice,
       Relay.Tenancy.KillSwitch,
       Relay.Workflow
@@ -23,6 +26,7 @@ defmodule Relay.Policy.Live do
 
   @behaviour Relay.Policy.Lattice
 
+  alias Relay.Datasets
   alias Relay.Policy.FrequencyCounter
   alias Relay.Policy.Live.Hold
   alias Relay.Policy.Live.Inputs
@@ -39,6 +43,11 @@ defmodule Relay.Policy.Live do
     action_required: 24 * @hour,
     system: @hour
   }
+
+  @table "compliance_table"
+  @settings "compliance_settings"
+  @zones "country_time_zones"
+  @inferred [:device, :country, :tenant_default]
 
   @break_ends ["next_break.deferred", "quiet_hours.deferred", "digest.quiet_hours"]
   @break_batch 100
@@ -95,15 +104,52 @@ defmodule Relay.Policy.Live do
     read(scope, recipient_id, Relay.Id.generate(), keys)
   end
 
+  # PC-40
+  # PC-44
+  # INV-17
+  # INV-43
+  @doc """
+  Reads the compliance data of a scope, outside any transaction where the active versions are cached: the content and number of the active `compliance_table` version (the version bundled with the release when the installation has none), the refusals in force from the installation's and the tenant's `compliance_settings` versions and the zones of `country_time_zones`. `:unreadable` when a version could not be read; the lattice then decides nothing (INV-43).
+  """
+  @spec compliance(Scope.t()) :: Inputs.compliance() | :unreadable
+  def compliance(%Scope{} = scope) do
+    installation = Datasets.installation_scope()
+
+    with {:ok, table} <- Datasets.active(installation, @table),
+         {:ok, defaults} <- Datasets.active(installation, @settings),
+         {:ok, own} <- Datasets.active(scope, @settings),
+         {:ok, zones} <- Datasets.active(installation, @zones) do
+      {version, content} = table(table)
+
+      %{
+        table: content,
+        version: version,
+        refusals: Relay.Compliance.refusals(content(defaults), content(own)),
+        country_zones: zones && zones.content["zones"]
+      }
+    else
+      _error -> :unreadable
+    end
+  end
+
+  defp table(%{content: %{"country_rows" => _} = content, version_no: version}),
+    do: {version, content}
+
+  defp table(_none), do: Relay.Compliance.bundled_table()
+
+  defp content(%{content: content}), do: content
+  defp content(nil), do: nil
+
   # PC-58 (2)
   # PC-8
   # INV-15
   @doc """
-  Evaluates the lattice for a delivery being opened, inside the accepting transaction. `input` carries `:scope`, `:now`, `:delivery_id`, `:recipient_id`, `:subtenant_id`, `:channel`, `:category`, `:workflow_key`, `:notification` (see `Relay.Policy.Live.Inputs.notification/1`) and `:frequency`. The kill switch stop point of acceptance runs after the delivery is opened (TN-40), so the snapshot carries none here; the delivery job evaluates every gate again.
+  Evaluates the lattice for a delivery being opened, inside the accepting transaction. `input` carries `:scope`, `:now`, `:delivery_id`, `:recipient_id`, `:subtenant_id`, `:channel`, `:category`, `:workflow_key`, `:notification` (see `Relay.Policy.Live.Inputs.notification/1`), `:frequency` and `:compliance` (from `compliance/1`, read here when the caller gives none). The kill switch stop point of acceptance runs after the delivery is opened (TN-40), so the snapshot carries none here; the delivery job evaluates every gate again.
   """
   @spec decide(map()) :: result()
   def decide(input) do
     input
+    |> Map.put_new_lazy(:compliance, fn -> compliance(input.scope) end)
     |> Map.merge(%{kill_switch: :allow, tenant_status: :active, scope_match: :match})
     |> Inputs.snapshot()
     |> Relay.Policy.evaluate()
@@ -114,9 +160,10 @@ defmodule Relay.Policy.Live do
   # DS-27
   @doc "Records a lattice result on a delivery inside the caller's transaction; `send` changes nothing on a delivery opened to be sent."
   @spec record(Relay.Id.t(), result()) :: atom()
-  def record(delivery_id, {:send, _info}) do
+  def record(delivery_id, {:send, info}) do
     result = Store.decide(delivery_id, "send", nil, nil, nil, nil)
     if result in [:recorded, :unchanged], do: emit(:send, nil)
+    if result == :recorded, do: fallback_zone(info)
     result
   end
 
@@ -167,32 +214,35 @@ defmodule Relay.Policy.Live do
 
   # PC-58 (8)
   # DS-26
-  @doc "The dry run answer of one channel for a lattice result: `send`, `skip` (an expiry is a skip with reason `expired`) or `defer`; `:error` when an input could not be read."
+  @doc "The dry run answer of one channel for a lattice result: `send`, `skip` (an expiry is a skip with reason `expired`) or `defer`, each with the decision's detail, which for a compliance decision names the row that decided (PC-58 (1)); `:error` when an input could not be read."
   @spec dry_run(String.t(), result()) :: {:ok, map()} | :error
-  def dry_run(channel, {:send, _info}), do: {:ok, answer(channel, "send", nil, nil, nil)}
+  def dry_run(channel, {:send, _info}), do: {:ok, answer(channel, "send", nil, nil, nil, %{})}
 
-  def dry_run(channel, {:skip, reason, rule_id, _detail}),
-    do: {:ok, answer(channel, "skip", Atom.to_string(reason), rule_id, nil)}
+  def dry_run(channel, {:skip, reason, rule_id, detail}),
+    do: {:ok, answer(channel, "skip", Atom.to_string(reason), rule_id, nil, detail)}
 
-  def dry_run(channel, {:defer, reason, rule_id, until, _detail}),
-    do: {:ok, answer(channel, "defer", Atom.to_string(reason), rule_id, until)}
+  def dry_run(channel, {:defer, reason, rule_id, until, detail}),
+    do: {:ok, answer(channel, "defer", Atom.to_string(reason), rule_id, until, detail)}
 
-  def dry_run(channel, {:expire, rule_id, _detail}),
-    do: {:ok, answer(channel, "skip", "expired", rule_id, nil)}
+  def dry_run(channel, {:expire, rule_id, detail}),
+    do: {:ok, answer(channel, "skip", "expired", rule_id, nil, detail)}
 
   def dry_run(_channel, _unavailable), do: :error
 
   @doc "The dry run answer of a skip decided before the lattice."
   @spec dry_run_skip(String.t(), String.t(), String.t()) :: map()
-  def dry_run_skip(channel, reason, rule_id), do: answer(channel, "skip", reason, rule_id, nil)
+  def dry_run_skip(channel, reason, rule_id),
+    do: answer(channel, "skip", reason, rule_id, nil, %{})
 
-  defp answer(channel, decision, reason, rule_id, until) do
+  # PC-58 (1)
+  defp answer(channel, decision, reason, rule_id, until, detail) do
     %{
       "channel" => channel,
       "decision" => decision,
       "reason" => reason,
       "rule_id" => rule_id,
-      "deferred_until" => whole_second(until)
+      "deferred_until" => whole_second(until),
+      "detail" => Map.new(detail, fn {key, value} -> {to_string(key), value} end)
     }
   end
 
@@ -252,12 +302,13 @@ defmodule Relay.Policy.Live do
   defp load(scope, delivery_id) do
     kill_switches = KillSwitch.current_snapshot()
     now = Relay.Clock.business_now(scope)
+    compliance = compliance(scope)
 
     result =
       Store.in_scope(scope, fn status ->
         case Store.context(delivery_id) do
           nil -> nil
-          context -> snapshot(scope, status, context, kill_switches, now)
+          context -> snapshot({scope, compliance}, status, context, kill_switches, now)
         end
       end)
 
@@ -273,7 +324,7 @@ defmodule Relay.Policy.Live do
     end
   end
 
-  defp snapshot(scope, status, context, kill_switches, now) do
+  defp snapshot({scope, compliance}, status, context, kill_switches, now) do
     class = Inputs.class(context["message_class"])
     key = context["category_key"]
     row = if key, do: Store.category(key, context["subtenant_id"])
@@ -305,7 +356,8 @@ defmodule Relay.Policy.Live do
         scope_match: :match,
         kill_switch: kill_switch(scope, context, kill_switches),
         tenant_status: status,
-        frequency: :unavailable
+        frequency: :unavailable,
+        compliance: compliance
       })
 
     hold = %{
@@ -445,6 +497,13 @@ defmodule Relay.Policy.Live do
     if result == :recorded, do: emit(kind, reason)
     result
   end
+
+  # WF-46
+  # PC-48
+  defp fallback_zone(%{timezone_source: source}) when source in @inferred,
+    do: :telemetry.execute([:relay, :policy, :fallback_zone], %{count: 1}, %{source: source})
+
+  defp fallback_zone(_info), do: :ok
 
   # DS-24
   defp emit(kind, reason) do

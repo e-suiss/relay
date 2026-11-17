@@ -1,0 +1,411 @@
+{
+  "source_ref": "PC-40; PC-41; PC-42; PC-44; PC-54; PC-24; PC-47; PC-61; PC-62",
+  "review": "Version 1. The IYS direct connection threshold of 250000 addresses (PC-62) was reviewed against the regulation for this version and is unchanged. The effective date of the US consent revocation rule is under watch (OQ-33).",
+  "regions": [
+    {
+      "key": "EU",
+      "countries": [
+        "AT",
+        "BE",
+        "BG",
+        "CY",
+        "CZ",
+        "DE",
+        "DK",
+        "EE",
+        "ES",
+        "FI",
+        "FR",
+        "GR",
+        "HR",
+        "HU",
+        "IE",
+        "IT",
+        "LT",
+        "LU",
+        "LV",
+        "MT",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SE",
+        "SI",
+        "SK"
+      ]
+    }
+  ],
+  "shared_calling_codes": [
+    {
+      "code": "1",
+      "countries": [
+        "US",
+        "CA"
+      ]
+    },
+    {
+      "code": "7",
+      "countries": [
+        "RU",
+        "KZ"
+      ]
+    }
+  ],
+  "country_rows": [
+    {
+      "id": "tr.marketing.individual",
+      "country": "TR",
+      "channels": [
+        "sms",
+        "email",
+        "voice"
+      ],
+      "classes": [
+        "marketing"
+      ],
+      "recipient_types": [
+        "individual"
+      ],
+      "consent": [
+        "explicit_opt_in"
+      ],
+      "iys": "approval",
+      "footer": [
+        "legal_name",
+        "mersis_or_contact",
+        "opt_out",
+        "commercial_notice"
+      ],
+      "conditions": "Explicit opt-in and an IYS approval; the IYS gate fails closed; sender identity and opt-out instruction in the footer; on SMS the commercial mark at the start of the message.",
+      "basis": "Law 6563 and the Commercial Communication Regulation; IYS"
+    },
+    {
+      "id": "tr.marketing.merchant",
+      "country": "TR",
+      "channels": [
+        "sms",
+        "email",
+        "voice"
+      ],
+      "classes": [
+        "marketing"
+      ],
+      "recipient_types": [
+        "merchant"
+      ],
+      "consent": [
+        "none"
+      ],
+      "iys": "rejection",
+      "footer": [
+        "legal_name",
+        "mersis_or_contact",
+        "opt_out",
+        "commercial_notice"
+      ],
+      "conditions": "No prior consent for a merchant or tradesman; an IYS rejection is checked and obeyed; the same footer.",
+      "basis": "Commercial Communication Regulation art. 6/1-c and 6/6"
+    },
+    {
+      "id": "tr.marketing.app_channels",
+      "country": "TR",
+      "channels": [
+        "push",
+        "web_push",
+        "in_app",
+        "whatsapp"
+      ],
+      "classes": [
+        "marketing"
+      ],
+      "recipient_types": [
+        "individual",
+        "merchant"
+      ],
+      "consent": [
+        "none"
+      ],
+      "conditions": "The recipient's preference (the right to opt out) applies; the platform row applies as well.",
+      "basis": "IYS knows only calls, messages and e-mail"
+    },
+    {
+      "id": "tr.informational",
+      "country": "TR",
+      "channels": [
+        "push",
+        "web_push",
+        "email",
+        "sms",
+        "voice",
+        "whatsapp",
+        "slack",
+        "teams",
+        "telegram",
+        "discord",
+        "in_app",
+        "webhook"
+      ],
+      "classes": [
+        "transactional",
+        "operational"
+      ],
+      "recipient_types": [
+        "individual",
+        "merchant"
+      ],
+      "consent": [
+        "none"
+      ],
+      "conditions": "Informational message: it carries no promotion; IYS is not queried.",
+      "basis": "Commercial Communication Regulation art. 6/2 and 6/5"
+    },
+    {
+      "id": "eu.marketing.individual",
+      "country": "EU",
+      "channels": [
+        "email",
+        "sms"
+      ],
+      "classes": [
+        "marketing"
+      ],
+      "recipient_types": [
+        "individual"
+      ],
+      "consent": [
+        "explicit_opt_in",
+        "soft_opt_in"
+      ],
+      "conditions": "Soft opt-in only for an existing customer, the sender's own similar products and an opt-out in every message; the sender identity is never concealed.",
+      "basis": "GDPR and the ePrivacy Directive art. 13"
+    },
+    {
+      "id": "eu.marketing.legal_person",
+      "country": "EU",
+      "channels": [
+        "email",
+        "sms"
+      ],
+      "classes": [
+        "marketing"
+      ],
+      "recipient_types": [
+        "merchant"
+      ],
+      "consent": [
+        "legitimate_interest"
+      ],
+      "conditions": "Legitimate interest for a legal person, subject to the member state's own rule.",
+      "basis": "GDPR art. 6/1-f and the ePrivacy Directive art. 13/5"
+    },
+    {
+      "id": "eu.marketing.app_channels",
+      "country": "EU",
+      "channels": [
+        "push",
+        "web_push",
+        "in_app",
+        "whatsapp"
+      ],
+      "classes": [
+        "marketing"
+      ],
+      "recipient_types": [
+        "individual",
+        "merchant"
+      ],
+      "consent": [
+        "none"
+      ],
+      "conditions": "The recipient's preference applies; the platform row applies as well.",
+      "basis": "No prior consent rule for these channels"
+    },
+    {
+      "id": "us.marketing.email",
+      "country": "US",
+      "channels": [
+        "email"
+      ],
+      "classes": [
+        "marketing"
+      ],
+      "recipient_types": [
+        "individual",
+        "merchant"
+      ],
+      "consent": [
+        "none"
+      ],
+      "footer": [
+        "postal_address"
+      ],
+      "conditions": "Opt-out regime: a physical postal address in the footer, an opt-out that works for at least 30 days and a notice that the message is an advertisement.",
+      "basis": "CAN-SPAM"
+    },
+    {
+      "id": "us.marketing.sms_voice",
+      "country": "US",
+      "channels": [
+        "sms",
+        "voice"
+      ],
+      "classes": [
+        "marketing"
+      ],
+      "recipient_types": [
+        "individual",
+        "merchant"
+      ],
+      "consent": [
+        "explicit_opt_in"
+      ],
+      "legal_window": {
+        "from": "08:00",
+        "to": "21:00",
+        "zones": [
+          "America/New_York",
+          "America/Chicago",
+          "America/Denver",
+          "America/Phoenix",
+          "America/Los_Angeles",
+          "America/Anchorage",
+          "Pacific/Honolulu"
+        ]
+      },
+      "revocation_scope": {
+        "scope": "all_channel",
+        "channels": [
+          "sms",
+          "voice"
+        ],
+        "status": "PC-61: a revocation received by SMS or voice covers every message of the brand that needs consent on SMS and voice, at once, whatever the effective date of the FCC consent revocation rule; that date stays under watch (OQ-33) and only this note changes with it."
+      },
+      "conditions": "Written explicit opt-in; a 10DLC or toll-free verified sender; the legal send window 08:00-21:00 in the recipient's local time; the STOP family; program name, frequency and HELP/STOP information in the first message.",
+      "basis": "TCPA; CTIA messaging principles"
+    },
+    {
+      "id": "us.sms.transactional_security",
+      "country": "US",
+      "channels": [
+        "sms"
+      ],
+      "classes": [
+        "transactional",
+        "security"
+      ],
+      "recipient_types": [
+        "individual",
+        "merchant"
+      ],
+      "consent": [
+        "explicit_opt_in"
+      ],
+      "revocation_scope": {
+        "scope": "all_channel",
+        "channels": [
+          "sms",
+          "voice"
+        ],
+        "status": "PC-61: a revocation received by SMS or voice covers every message of the brand that needs consent on SMS and voice, at once, whatever the effective date of the FCC consent revocation rule; that date stays under watch (OQ-33) and only this note changes with it."
+      },
+      "conditions": "The 10DLC campaign use case matches the message class.",
+      "basis": "TCPA; 10DLC campaign registry"
+    },
+    {
+      "id": "other.marketing",
+      "country": "*",
+      "channels": [
+        "push",
+        "web_push",
+        "email",
+        "sms",
+        "voice",
+        "whatsapp",
+        "slack",
+        "teams",
+        "telegram",
+        "discord",
+        "in_app",
+        "webhook"
+      ],
+      "classes": [
+        "marketing"
+      ],
+      "recipient_types": [
+        "individual",
+        "merchant"
+      ],
+      "consent": [
+        "explicit_opt_in"
+      ],
+      "conditions": "Safe default for a country without a row of its own.",
+      "basis": "PC-41"
+    }
+  ],
+  "platform_rows": [
+    {
+      "id": "platform.ios.push",
+      "name": "iOS",
+      "platform": "ios",
+      "channels": [
+        "push"
+      ],
+      "classes": [
+        "marketing"
+      ],
+      "consent": [
+        "explicit_opt_in"
+      ],
+      "default": "off",
+      "basis": "App Store Review Guidelines 4.5.4"
+    },
+    {
+      "id": "platform.whatsapp",
+      "name": "WhatsApp",
+      "platform": null,
+      "channels": [
+        "whatsapp"
+      ],
+      "classes": [
+        "marketing"
+      ],
+      "consent": [
+        "explicit_opt_in"
+      ],
+      "default": "off",
+      "basis": "Meta WhatsApp Business policy"
+    },
+    {
+      "id": "platform.android.push",
+      "name": "Android",
+      "platform": "android",
+      "channels": [
+        "push"
+      ],
+      "classes": [
+        "marketing"
+      ],
+      "consent": [
+        "none"
+      ],
+      "default": "tenant",
+      "basis": "The platform sets no further condition"
+    },
+    {
+      "id": "platform.in_app",
+      "name": "in-app inbox",
+      "platform": null,
+      "channels": [
+        "in_app"
+      ],
+      "classes": [
+        "marketing"
+      ],
+      "consent": [
+        "none"
+      ],
+      "default": "tenant",
+      "basis": "The platform sets no further condition"
+    }
+  ]
+}

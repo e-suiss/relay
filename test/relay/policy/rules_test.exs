@@ -14,13 +14,18 @@ defmodule Relay.Policy.RulesTest do
     next_break.deferred
   )
 
+  @stage11 ~w(
+    consent.insufficient iys.not_configured iys.stale iys.approval_missing iys.rejected
+    legal_window.deferred
+  )
+
   @reasons ~w(preference_off consent_missing consent_revoked suppressed_address frequency_capped
     scope_mismatch no_address no_permission channel_policy tenant_suspended expired quiet_hours
-    schedule dnd tenant_timezone_window next_break)a
+    schedule dnd tenant_timezone_window next_break iys_not_configured iys_stale legal_window)a
 
   describe "DS-47 rule ids" do
-    test "DS-47 (5) WF-56: the lattice writes exactly the stage 4 rule ids and next_break" do
-      assert Rules.ids() == Enum.sort(@stage4)
+    test "DS-47 (5) WF-56 PC-27 PC-47: the lattice writes exactly the stage 4 rule ids, next_break and the compliance rules" do
+      assert Rules.ids() == Enum.sort(@stage4 ++ @stage11)
       assert Relay.Policy.rule_ids() == Rules.ids()
     end
 
@@ -41,6 +46,9 @@ defmodule Relay.Policy.RulesTest do
       assert Rules.kind(:scope_mismatch) == :gate
       assert Rules.outcome(:frequency_digest) == :defer
       assert Rules.reason(:consent_expired) == :consent_missing
+      assert Rules.kind(:iys_stale) == :gate
+      assert Rules.outcome(:legal_window_deferred) == :defer
+      assert Rules.reason(:iys_rejected) == :consent_revoked
     end
 
     test "DS-47 (1): kill switch rules pass through with an optional reference" do

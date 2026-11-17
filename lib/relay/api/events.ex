@@ -101,6 +101,7 @@ defmodule Relay.Api.Events do
          now: now,
          expires_at: expires_at,
          frequency: frequency(scope, category, recipients, request.steps),
+         compliance: Live.compliance(scope),
          request: request,
          providers: providers,
          recipients: OtpChain.destinations(scope, otp, recipients),
@@ -942,7 +943,8 @@ defmodule Relay.Api.Events do
           max_defer_until: Map.get(p.request, :max_defer_until),
           timing_released: false
         }),
-      frequency: Map.get(p.frequency, {row["id"], channel}, @no_readings)
+      frequency: Map.get(p.frequency, {row["id"], channel}, @no_readings),
+      compliance: p.compliance
     }
   end
 

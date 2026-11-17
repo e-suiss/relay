@@ -23,6 +23,31 @@ defmodule Relay.Policy.WindowTest do
     assert DateTime.compare(at, expected) == :eq, "#{at} is not #{expected}"
   end
 
+  describe "PC-47 WF-46 a window kept in its own zone" do
+    test "PC-47: a constraint in its own zone is read on that zone's wall clock" do
+      range = %{days: @all_days, from: ~T[08:00:00], to: ~T[21:00:00]}
+      legal = [{:legal, {:in_zone, @ny, {:only, [range]}}}]
+
+      assert Window.blocking(~U[2026-11-02 12:00:00Z], @ist, legal) == :legal
+      assert Window.blocking(~U[2026-11-02 13:00:00Z], @ist, legal) == nil
+      expect_next(@ist, legal, ~U[2026-11-02 12:00:00Z], ~U[2026-11-02 13:00:00Z])
+      expect_next(@ist, legal, ~U[2026-11-03 02:00:00Z], ~U[2026-11-03 13:00:00Z])
+    end
+
+    test "WF-46: windows in several zones leave only the instants inside all of them" do
+      range = %{days: @all_days, from: ~T[08:00:00], to: ~T[21:00:00]}
+
+      both = [
+        {:legal, {:in_zone, @ny, {:only, [range]}}},
+        {:legal, {:in_zone, "Pacific/Honolulu", {:only, [range]}}}
+      ]
+
+      expect_next(@berlin, both, ~U[2026-11-02 12:00:00Z], ~U[2026-11-02 18:00:00Z])
+      assert Window.blocking(~U[2026-11-03 01:59:00Z], @berlin, both) == nil
+      assert Window.blocking(~U[2026-11-03 02:00:00Z], @berlin, both) == :legal
+    end
+  end
+
   describe "PC-45 PC-58 (5) quiet hours" do
     test "PC-45: a range crossing midnight ends on the next day (Istanbul, no DST)" do
       constraints = quiet(~T[22:00:00], ~T[07:00:00])

@@ -746,6 +746,12 @@ defmodule RelayWeb.Router do
     put "/delivery_windows", DeliveryWindowsController, :replace,
       private: %{relay_operation: "replaceDeliveryWindows"}
 
+    get "/compliance_settings", ComplianceSettingsController, :show,
+      private: %{relay_operation: "getComplianceSettings"}
+
+    put "/compliance_settings", ComplianceSettingsController, :replace,
+      private: %{relay_operation: "replaceComplianceSettings"}
+
     get "/timing_settings", TimingSettingsController, :show,
       private: %{relay_operation: "getTimingSettings"}
 

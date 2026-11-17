@@ -68,7 +68,7 @@ tasks.register("resolveAll") {
 spotless {
     java {
         target("src/*/java/**/*.java")
-        googleJavaFormat("1.37.0")
+        googleJavaFormat("1.36.1")
     }
 }
 

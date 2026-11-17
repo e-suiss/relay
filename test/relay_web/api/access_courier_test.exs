@@ -4,6 +4,7 @@ defmodule RelayWeb.Api.AccessCourierTest do
   import Plug.Conn
 
   alias Relay.Api.Courier.Catalog
+  alias Relay.Api.PayloadErasure
   alias Relay.Api.Courier.Provision
   alias Relay.Repo
   alias RelayTest.FakeAccess
@@ -99,6 +100,35 @@ defmodule RelayWeb.Api.AccessCourierTest do
   defp subscribers(ctx),
     do: F.body(F.request(:get, "/v1/subscribers", ctx.token), 200)["data"]
 
+  defp erasure_args(ctx, body) do
+    {:ok, event_id} = Relay.ExternalId.decode(body["id"], ["evt"])
+    [[reason]] = F.jobs("Relay.Api.PayloadErasure", ctx.scope, "reason")
+    [[queued]] = F.jobs("Relay.Api.PayloadErasure", ctx.scope, "event_id")
+    assert queued == Relay.Id.to_string(event_id)
+
+    {event_id,
+     Map.merge(Relay.Scope.to_job_args(ctx.scope), %{"event_id" => queued, "reason" => reason})}
+  end
+
+  defp payload(ctx, event_id) do
+    {:ok, [row]} =
+      Repo.in_scope(ctx.scope, fn _status ->
+        Repo.scoped_query!(
+          """
+          SELECT p.data_ct IS NOT NULL, p.erase_reason
+          FROM relay.events e
+          JOIN relay.event_payloads p ON p.tenant_id = e.tenant_id
+            AND p.environment = e.environment AND p.event_id = e.id
+            AND p.created_at = e.payload_created_at
+          WHERE e.id = $1
+          """,
+          [event_id]
+        ).rows
+      end)
+
+    row
+  end
+
   describe "E-108 Access's messages" do
     test "E-108 INV-22: an OTP by SMS reaches an inline number as a transient recipient with the otp_oob subtype",
          ctx do
@@ -136,6 +166,48 @@ defmodule RelayWeb.Api.AccessCourierTest do
       assert seen.subtype == "email_verification"
       assert seen.channels == ["email"]
       assert seen.transient == true
+    end
+
+    test "INV-22 E-108: the code of an Access OTP leaves the stored event once its delivery ends",
+         ctx do
+      data = %{
+        "recipient" => %{"phone" => @phone},
+        "code" => "482913",
+        "purpose" => "sign_in",
+        "expires_at" => later(300)
+      }
+
+      body = F.body(post(ctx, message(ctx, "sms_otp", data)), 202)
+      {event_id, args} = erasure_args(ctx, body)
+
+      assert args["reason"] == "security_subtype"
+      assert payload(ctx, event_id) == [true, nil]
+
+      F.body(F.request(:post, "/v1/events/#{body["id"]}/cancel", ctx.token, %{}), 200)
+
+      assert PayloadErasure.perform(%Oban.Job{args: args}) == :ok
+      assert payload(ctx, event_id) == [false, "security_subtype"]
+      assert PayloadErasure.perform(%Oban.Job{args: args}) == :ok
+    end
+
+    test "INV-22 E-108: an approval link is sent with retention none and erased the same way",
+         ctx do
+      data = %{
+        "recipient" => %{"email" => @email},
+        "link" => "https://access.test/login?reason=ciba&request=def",
+        "client" => "Banka",
+        "expires_at" => later(120)
+      }
+
+      body = F.body(post(ctx, message(ctx, "ciba_invite", data)), 202)
+      {_event_id, args} = erasure_args(ctx, body)
+
+      assert args["reason"] == "retention_none"
+
+      {:deliver, invite} = Catalog.lookup("relay.message.ciba_invite.v1")
+      {:deliver, notice} = Catalog.lookup("relay.message.password_changed.v1")
+      assert Catalog.erasure(invite) == {"retention_none", true}
+      assert Catalog.erasure(notice) == nil
     end
 
     test "E-108 E-12: the same address is one transient recipient, never a subscriber profile",

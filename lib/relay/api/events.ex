@@ -8,6 +8,7 @@ defmodule Relay.Api.Events do
   """
 
   alias Relay.Api.OtpChain
+  alias Relay.Api.PayloadErasure
   alias Relay.Api.Schema
   alias Relay.Api.Views
   alias Relay.Api.WorkflowRuns
@@ -54,7 +55,7 @@ defmodule Relay.Api.Events do
   # API-81
   # WF-52
   # AG-75
-  @doc "Prepares a native event request outside any transaction. `opts`: `:source` (`:api` or `:cloudevents`), `:cloudevent` (its attributes) and `:dedup_key`. A request that states the sender type `agent` without an agent's credential is refused at `/actor/type`, so every agent notification names its agent (AG-48, INV-34)."
+  @doc "Prepares a native event request outside any transaction. `opts`: `:source` (`:api` or `:cloudevents`), `:cloudevent` (its attributes), `:dedup_key` and `:erase_payload`, the reason (`security_subtype` or `retention_none`) for which the accepted event's data is erased once its deliveries end (`Relay.Api.PayloadErasure`). A request that states the sender type `agent` without an agent's credential is refused at `/actor/type`, so every agent notification names its agent (AG-48, INV-34)."
   @spec prepare(context(), map(), keyword()) :: {:ok, prepared()} | {:error, Relay.Error.t()}
   def prepare(%{scope: scope} = ctx, body, opts \\ []) do
     cloudevent = Keyword.get(opts, :cloudevent)
@@ -124,7 +125,8 @@ defmodule Relay.Api.Events do
          api_client_id: api_client(Map.get(ctx, :api_client_id)),
          agent_id: Map.get(ctx, :agent_id),
          correlation_digests: digests,
-         webhook_events: hooks
+         webhook_events: hooks,
+         erase_payload: Keyword.get(opts, :erase_payload)
        }}
     end
   end
@@ -540,7 +542,8 @@ defmodule Relay.Api.Events do
          {:ok, event} <- event(prepared),
          :ok <- Relay.Topics.record(prepared.request, event.id),
          prepared = templates(prepared),
-         {:ok, notifications} <- notifications(prepared, event, ctx) do
+         {:ok, notifications} <- notifications(prepared, event, ctx),
+         :ok <- erasure(prepared) do
       {:ok,
        Views.event_accepted(%{
          id: prepared.event_id,
@@ -553,6 +556,18 @@ defmodule Relay.Api.Events do
        })}
     end
   end
+
+  # INV-22
+  # E-108
+  defp erasure(%{erase_payload: reason, scope: scope, event_id: event_id})
+       when is_binary(reason) do
+    case PayloadErasure.enqueue(scope, event_id, reason) do
+      :ok -> :ok
+      {:error, _error} -> {:error, unavailable("the erasure job could not be queued")}
+    end
+  end
+
+  defp erasure(_prepared), do: :ok
 
   # API-58
   # INV-60

@@ -378,7 +378,8 @@ defmodule Relay.Api.Courier.Catalog do
           class: String.t(),
           category: String.t(),
           verification: boolean(),
-          link: String.t() | nil
+          link: String.t() | nil,
+          secrets: [String.t()]
         }
 
   # E-108
@@ -428,8 +429,15 @@ defmodule Relay.Api.Courier.Catalog do
       class: class,
       category: class,
       verification: name in @verification,
-      link: link
+      link: link,
+      secrets: secrets(type)
     }
+  end
+
+  defp secrets(type) do
+    properties = get_in(@schema, ["$defs", type, "properties"]) || %{}
+    secret = for {field, %{"description" => "Secret" <> _rest}} <- properties, do: field
+    Enum.sort(secret)
   end
 
   # E-108
@@ -532,6 +540,16 @@ defmodule Relay.Api.Courier.Catalog do
       "</body></html>"
     ])
   end
+
+  # INV-22
+  # E-108
+  @doc "The reason for which the stored data of an entry's message is erased once its deliveries end, and whether its request asks `retention: none`: a sign-in or verification secret is erased as `security_subtype`; another secret field (a link or challenge, which Access's schema marks `Secret`) of an `action_required` type is sent with `retention: none` and erased as `retention_none`; `nil` otherwise, as for a security notice whose link stays sealed under the tenant's keys (`retention: none` is refused for the `security` class, API-26)."
+  @spec erasure(entry()) :: {String.t(), boolean()} | nil
+  def erasure(%{verification: true}), do: {"security_subtype", false}
+
+  def erasure(%{class: "action_required", secrets: [_ | _]}), do: {"retention_none", true}
+
+  def erasure(_entry), do: nil
 
   # INV-22
   # API-24

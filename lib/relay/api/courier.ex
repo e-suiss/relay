@@ -2,7 +2,7 @@ defmodule Relay.Api.Courier do
   @moduledoc """
   Access's own messages on the send entry (E-108, E-109, E-10, E-12). A CloudEvent whose type is in Access's `relay.message.*.v1` namespace, sent with the credential of the Access platform tenant, does not go through the tenant's type mapping: it is checked against Access's message schema (the exact copy in `contracts/access/`), its `source` must name the environment of its `accessenvironment` attribute, and that environment must be one of the environments of its `accesstenant` in the tenant snapshot (E-103). Relay answers `422` only for an event that can never be taken (the schema, the source, an environment the tenant does not have, an address of the wrong kind, a device recipient Relay cannot route); a tenant Relay does not know yet, an Access that cannot answer and a workflow still being published are `503` with `Retry-After`, so Access keeps the message. The CloudEvent `id` is the idempotency key and, with the `source`, the dedup key.
 
-    * A delivered type is met by its protected workflow and template (`Relay.Api.Courier.Catalog`, written on first use by `Relay.Api.Courier.Provision`). The recipient set is the one recipient Access names (E-12): an inline e-mail address or phone number is a transient recipient (`Relay.Subscribers.prepare/4` with `transient: true`), whose address is sealed like any address and which never becomes a subscriber profile. The request is narrowed to the channel of the address, and a message that carries a sign-in or verification secret names the security subtype of that channel, so its rendered content is never stored (INV-22, INV-26). Its `expires_at` is the message's own when it has one (E-13).
+    * A delivered type is met by its protected workflow and template (`Relay.Api.Courier.Catalog`, written on first use by `Relay.Api.Courier.Provision`). The recipient set is the one recipient Access names (E-12): an inline e-mail address or phone number is a transient recipient (`Relay.Subscribers.prepare/4` with `transient: true`), whose address is sealed like any address and which never becomes a subscriber profile. The request is narrowed to the channel of the address, and a message that carries a sign-in or verification secret names the security subtype of that channel, so its rendered content is never stored (INV-22, INV-26); an approval or invitation carrying a link or challenge is sent with `retention: none` (API-26). The stored data of either is erased once its deliveries end (`Relay.Api.PayloadErasure`, `Relay.Api.Courier.Catalog.erasure/1`). Its `expires_at` is the message's own when it has one (E-13).
     * `relay.message.iys_consent.v1` is the İYS channel of E-21 (E-109): the consent is written to İYS through Relay's own write path for the tenant `accesstenant` names, with that tenant's own brand, and is never written to the consent copy (E-80 stays its source). When the record cannot be written at all (the tenant entered no İYS configuration) its `failed` report to Access is queued at once; otherwise the report follows the upload's settlement (`Relay.Access.IysReport`).
   """
 
@@ -103,21 +103,31 @@ defmodule Relay.Api.Courier do
         }
         |> put_present("expires_at", data["expires_at"])
         |> put_present("security_subtype", Catalog.subtype(entry, kind))
+        |> retention(Catalog.erasure(entry))
 
       case Schema.validate_request("createEvent", "application/json", native) do
-        :ok -> native_event(ctx, event, native)
+        :ok -> native_event(ctx, event, native, Catalog.erasure(entry))
         {:error, error} -> {:error, error}
       end
     end
   end
 
-  defp native_event(ctx, event, native) do
+  # INV-22
+  # API-26
+  defp retention(native, {_reason, true}), do: Map.put(native, "retention", "none")
+  defp retention(native, _erasure), do: native
+
+  defp native_event(ctx, event, native, erasure) do
     Events.prepare(Map.put(ctx, :transient, true), native,
       source: :cloudevents,
       cloudevent: Map.drop(event, ["accesstenant", "accessenvironment"]),
-      dedup_key: Relay.Access.dedup_key(event["source"], event["id"])
+      dedup_key: Relay.Access.dedup_key(event["source"], event["id"]),
+      erase_payload: erase_reason(erasure)
     )
   end
+
+  defp erase_reason({reason, _retention_none?}), do: reason
+  defp erase_reason(nil), do: nil
 
   defp recipient(%{} = recipient) do
     case Enum.filter(@kinds, &is_binary(recipient[&1])) do

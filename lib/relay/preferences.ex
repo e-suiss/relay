@@ -218,16 +218,27 @@ defmodule Relay.Preferences do
   def seal_consent_evidence(%Scope{} = scope, recipient_id, %{} = evidence),
     do: seal_evidence(scope, recipient_id, evidence)
 
+  # PC-35
+  # PC-38
+  @doc "Encrypts the evidence of a refusal of a recipient for `relay.refusals` under the recipient's `commercial_consent` subject key, created on first use; call it outside any transaction."
+  @spec seal_refusal_evidence(Scope.t(), Relay.Id.t(), map()) ::
+          {:ok, %{evidence_ct: binary(), evidence_key_id: Relay.Id.t()}} | {:error, term()}
+  def seal_refusal_evidence(%Scope{} = scope, recipient_id, %{} = evidence),
+    do: seal(scope, recipient_id, evidence, "refusals")
+
   defp seal_evidence(_scope, _recipient_id, nil),
     do: {:ok, %{evidence_ct: nil, evidence_key_id: nil}}
 
-  defp seal_evidence(scope, recipient_id, evidence) do
+  defp seal_evidence(scope, recipient_id, evidence),
+    do: seal(scope, recipient_id, evidence, "consents")
+
+  defp seal(scope, recipient_id, evidence, table) do
     field = %{
       tenant_id: scope.tenant_id,
       environment: scope.environment,
       subject_id: recipient_id,
       retention_class: :commercial_consent,
-      table: "consents",
+      table: table,
       column: "evidence_ct"
     }
 

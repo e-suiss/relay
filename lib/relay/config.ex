@@ -56,6 +56,8 @@ defmodule Relay.Config do
     Relay.Webhooks,
     Relay.Realtime,
     Relay.Realtime.InboxSource,
+    Relay.Compliance,
+    RelayWeb.Links,
     Oban
   ]
   @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.ReportRepo, Relay.Platform.MaintRepo]

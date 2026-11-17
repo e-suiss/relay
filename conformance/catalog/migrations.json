@@ -243,5 +243,10 @@
   {"file": "20261220000300_create_iys_functions.exs", "sha256": "8bf06fecb8136d593ccf6c0bad26d2e5f2bd34dbcba19aca9151dee95071cabd"},
   {"file": "20261220000400_register_business_calendar.exs", "sha256": "bbf387adc93ea132ed74c2caa48a9f6158a1dba987ec8a1e7f91367b733339e2"},
   {"file": "20261220000500_validate_iys_checks.exs", "sha256": "d0c4ad06480e8626f8cb391fffed43bb1102452d5c97ec44e2796f85c9f55e90"},
-  {"file": "20261220000600_rebuild_reference_check_for_iys.exs", "sha256": "8814ca4607957aa40c3f93c9bc4d270341b444b41929472b6bae0b5fa4c3efbd"}
+  {"file": "20261221000000_create_refusal_tables.exs", "sha256": "095499bdf7a30417f9a1dd5fa2097aaeefdc667bd79bfb82c1594054088d6d2a"},
+  {"file": "20261221000100_allow_refusal_suppressions.exs", "sha256": "230e5d0c266d4a5c4e822fc0b2419afe770ee309347c8618ece42db3a603eee7"},
+  {"file": "20261221000200_create_refusal_functions.exs", "sha256": "7207e8da54b9876782c2cec291bd2788c1e6d9eec093e0ef83ef4de761eb583a"},
+  {"file": "20261221000300_validate_refusal_suppression_check.exs", "sha256": "285135fa747ea712e296c5c553f55bd6d3496c15be78d22858c83e6497a9c46d"},
+  {"file": "20261221000400_rebuild_reference_check_for_refusals.exs", "sha256": "8b3bcd03f3a654e19deb6a5b152e4134752ba2a94dd2fc17d37d24e345b9a74d"},
+  {"file": "20261221900000_rebuild_reference_check_for_iys.exs", "sha256": "7fafdeff037e83f371e6d7b1ffa2f027ae6df68576fd61fc239a152811ca25d1"}
 ]

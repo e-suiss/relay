@@ -145,6 +145,8 @@ channels:
         "$ref": "#/components/messages/webhook.email.complained"
       webhook.consent.rejected:
         "$ref": "#/components/messages/webhook.consent.rejected"
+      webhook.consent.revoked:
+        "$ref": "#/components/messages/webhook.consent.revoked"
       webhook.subscription.unsubscribed:
         "$ref": "#/components/messages/webhook.subscription.unsubscribed"
       webhook.sms.opted_out:
@@ -617,6 +619,7 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.email.bounced"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.email.complained"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.consent.rejected"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.consent.revoked"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.subscription.unsubscribed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.sms.opted_out"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.iys.consent_expired"
@@ -1201,6 +1204,53 @@ components:
       x-relay-stage: 10
       x-relay-choice: true
       x-relay-choice-note: "WH-53 names the event; the fields of its thin payload are chosen by the contract."
+    webhook.consent.revoked:
+      name: consent.revoked
+      title: consent.revoked
+      summary: "The recipient refused the brand's commercial messages on a channel: a refusal notice, applied at once (PC-38, PC-39, WH-15). A preference change is `preference.changed`, never this event."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: consent.revoked
+                data:
+                  type: object
+                  required:
+                    - recipient_id
+                    - channel
+                    - source
+                    - scope
+                  properties:
+                    recipient_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    source:
+                      type: string
+                      enum:
+                        - unsubscribe_page
+                        - sms_keyword
+                        - complaint
+                        - whatsapp
+                        - iys
+                    scope:
+                      type: string
+                      enum:
+                        - all_marketing
+                        - all_channel
+                    revoked_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "PC-38 asks for a tenant event of a refusal notice and names none; the name and the fields of its thin payload are chosen by the contract."
     webhook.subscription.unsubscribed:
       name: subscription.unsubscribed
       title: subscription.unsubscribed
@@ -7899,6 +7949,7 @@ x-relay-event-names:
   - channel_identity.changed
   - channel_identity.retired
   - consent.rejected
+  - consent.revoked
   - consent.updated
   - cross_tenant.queried
   - dataset.activated

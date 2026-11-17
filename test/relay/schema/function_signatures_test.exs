@@ -354,7 +354,10 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.iys_brands_observe" => ~w(observed not_integrator),
     "relay_fn.iys_upload_enqueue" => ~w(queued duplicate not_configured brand_not_mapped),
     "relay_fn.iys_upload_claim" => ~w(claimed busy settled overdue not_found),
-    "relay_fn.iys_upload_settle" => ~w(settled already_settled not_found)
+    "relay_fn.iys_upload_settle" => ~w(settled already_settled not_found),
+    "relay_fn.refusal_apply" =>
+      ~w(applied reapplied exists recipient_not_found subtenant_not_found evidence_key_invalid key_not_found category_not_found not_allowed),
+    "relay_fn.unsubscribe_token_revoke" => ~w(revoked already_revoked)
   }
 
   defp functions do

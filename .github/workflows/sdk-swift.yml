@@ -53,7 +53,17 @@ jobs:
       # X-48
       - name: Regenerate from the contract
         run: sh scripts/generate.sh
-      - name: Generated code and lockfiles match the repository
+      - name: Format
+        run: swift format format --in-place --recursive --parallel Package.swift Sources/EsuissRelay Sources/EsuissRelayUI Sources/EsuissRelayNotificationService Tests
+      - name: Build
+        run: swift build --force-resolved-versions
+      - name: Test
+        run: swift test --force-resolved-versions
+      - name: Lint
+        if: always()
+        run: swift format lint --strict --recursive --parallel Package.swift Sources/EsuissRelay Sources/EsuissRelayUI Sources/EsuissRelayNotificationService Tests
+      - name: Generated code, formatting and lockfiles match the repository
+        if: always()
         run: |
           status=$(git status --porcelain -- . ':!.build' ':!Generator/.build')
           if [ -n "$status" ]; then
@@ -68,11 +78,6 @@ jobs:
           path: |
             sdks/swift/Package.resolved
             sdks/swift/Generator/Package.resolved
-            sdks/swift/Sources/EsuissRelayAPI
+            sdks/swift/Sources
+            sdks/swift/Tests
           if-no-files-found: ignore
-      - name: Format
-        run: swift format lint --strict --recursive --parallel Package.swift Sources/EsuissRelay Sources/EsuissRelayUI Sources/EsuissRelayNotificationService Tests
-      - name: Build
-        run: swift build --force-resolved-versions
-      - name: Test
-        run: swift test --force-resolved-versions

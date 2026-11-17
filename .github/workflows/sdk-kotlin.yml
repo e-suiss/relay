@@ -59,16 +59,20 @@ jobs:
           echo "$KTLINT_SHA256  $RELAY_TOOL_CACHE/ktlint" | sha256sum -c -
           echo "$DETEKT_SHA256  $RELAY_TOOL_CACHE/detekt.jar" | sha256sum -c -
           chmod +x "$RELAY_TOOL_CACHE/ktlint"
-      - name: ktlint
-        run: '"$RELAY_TOOL_CACHE/ktlint" --relative "relay/src/main/**/*.kt" "relay/src/test/**/*.kt" "*.kts" "relay/*.kts"'
-      - name: detekt
-        run: java -jar "$RELAY_TOOL_CACHE/detekt.jar" --input relay/src/main/kotlin,relay/src/test/kotlin --config detekt.yml --build-upon-default-config
+      - name: Format
+        run: '"$RELAY_TOOL_CACHE/ktlint" --format --relative "relay/src/main/**/*.kt" "relay/src/test/**/*.kt" "*.kts" "relay/*.kts" || true'
       - name: Build and test
         run: ./gradlew --no-daemon --stacktrace :relay:testDebugUnitTest :relay:assembleRelease
       - name: Write dependency locks and verification metadata
         if: always()
         run: ./gradlew --no-daemon --write-locks --write-verification-metadata sha256 :relay:testDebugUnitTest :relay:assembleRelease
-      - name: Generated code and lockfiles match the repository
+      - name: ktlint
+        if: always()
+        run: '"$RELAY_TOOL_CACHE/ktlint" --relative "relay/src/main/**/*.kt" "relay/src/test/**/*.kt" "*.kts" "relay/*.kts"'
+      - name: detekt
+        if: always()
+        run: java -jar "$RELAY_TOOL_CACHE/detekt.jar" --input relay/src/main/kotlin,relay/src/test/kotlin --config detekt.yml --build-upon-default-config
+      - name: Generated code, formatting and lockfiles match the repository
         if: always()
         run: |
           status=$(git status --porcelain -- . ':!build' ':!relay/build' ':!.gradle' ':!.kotlin')
@@ -84,5 +88,7 @@ jobs:
           path: |
             sdks/kotlin/gradle/verification-metadata.xml
             sdks/kotlin/relay/gradle.lockfile
-            sdks/kotlin/relay/src/generated
+            sdks/kotlin/relay/src
+            sdks/kotlin/*.kts
+            sdks/kotlin/relay/*.kts
           if-no-files-found: ignore

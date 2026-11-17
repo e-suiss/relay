@@ -1,6 +1,7 @@
 defmodule RelayWeb.Api.IysApiTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Iys.TokenCache
   alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.IysFake, as: Fake
@@ -123,7 +124,7 @@ defmodule RelayWeb.Api.IysApiTest do
       assert Fake.consents() == %{}
 
       :ok = Fake.put(:password, "changed")
-      :ok = Relay.Iys.TokenCache.drop(Relay.Iys.TokenCache, cache_key(ctx))
+      :ok = TokenCache.drop(TokenCache, cache_key(ctx))
       assert F.body(get(ctx, "/v1/iys/connection_test"), 200)["token"] == "H251"
     end
 

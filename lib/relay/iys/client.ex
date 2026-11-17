@@ -70,30 +70,33 @@ defmodule Relay.Iys.Client do
 
   defp granted(conn, grant, refresh?) do
     with :ok <- allowed(conn, :token) do
-      case send_request(conn, method: :post, url: "/oauth2/token", json: grant) do
-        {:ok, %Req.Response{status: 200, body: %{"access_token" => access} = body}}
-        when is_binary(access) ->
-          keep(conn, body)
+      request = [method: :post, url: "/oauth2/token", json: grant]
 
-        {:ok, %Req.Response{status: 429} = response} ->
-          TokenCache.block(cache(conn), conn.cache_key, @hour_s)
-          {:error, failure(:rate_limited, 429, code(response), @hour_s, trace(response))}
-
-        {:ok, %Req.Response{status: status}} when refresh? and status in [400, 401] ->
-          TokenCache.drop(cache(conn), conn.cache_key)
-          granted(conn, password_grant(conn), false)
-
-        {:ok, %Req.Response{status: status} = response} when status in [400, 401] ->
-          {:error, failure(:unauthorised, status, code(response), nil, trace(response))}
-
-        {:ok, %Req.Response{} = response} ->
-          {:error, classified(response)}
-
-        {:error, _transport} ->
-          {:error, failure(:retry, nil, nil, nil, nil)}
+      case send_request(conn, request) do
+        {:ok, %Req.Response{} = response} -> issued(conn, response, refresh?)
+        {:error, _transport} -> {:error, failure(:retry, nil, nil, nil, nil)}
       end
     end
   end
+
+  defp issued(conn, %Req.Response{status: 200, body: %{"access_token" => access} = body}, _)
+       when is_binary(access),
+       do: keep(conn, body)
+
+  defp issued(conn, %Req.Response{status: 429} = response, _refresh?) do
+    TokenCache.block(cache(conn), conn.cache_key, @hour_s)
+    {:error, failure(:rate_limited, 429, code(response), @hour_s, trace(response))}
+  end
+
+  defp issued(conn, %Req.Response{status: status}, true) when status in [400, 401] do
+    TokenCache.drop(cache(conn), conn.cache_key)
+    granted(conn, password_grant(conn), false)
+  end
+
+  defp issued(_conn, %Req.Response{status: status} = response, false) when status in [400, 401],
+    do: {:error, failure(:unauthorised, status, code(response), nil, trace(response))}
+
+  defp issued(_conn, %Req.Response{} = response, _refresh?), do: {:error, classified(response)}
 
   defp keep(conn, %{"access_token" => access} = body) do
     token = Redacted.wrap(access)

@@ -22,11 +22,13 @@ defmodule Relay.Iys.Live do
     exports: []
 
   @behaviour Relay.Iys
-  @behaviour Relay.Preferences.ConsentSink
 
   alias Relay.Iys.Calendar
   alias Relay.Iys.Consent
+  alias Relay.Preferences.ConsentSink
   alias Relay.Scope
+
+  @behaviour ConsentSink
 
   @table "iys_uploads"
   @column "address_ct"
@@ -148,7 +150,7 @@ defmodule Relay.Iys.Live do
   end
 
   # PC-27
-  @impl Relay.Preferences.ConsentSink
+  @impl ConsentSink
   def registry?(%Scope{} = scope, channel) do
     case Consent.type(channel) do
       {:ok, _type} -> Relay.Iys.configured?(scope) or turkey?(scope)
@@ -166,7 +168,7 @@ defmodule Relay.Iys.Live do
   # E-21
   # PC-28
   # PC-30
-  @impl Relay.Preferences.ConsentSink
+  @impl ConsentSink
   def recorded(%Scope{} = scope, %{recipient_id: recipient_id, channel: channel} = consent) do
     status = if consent.status == "revoked", do: :rejection, else: :approval
 

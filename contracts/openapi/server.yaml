@@ -24335,6 +24335,12 @@ x-relay-id-prefixes:
     stage: 9
     x-relay-choice: true
     x-relay-choice-note: Prefix chosen by the contract.
+  - prefix: tkd_
+    concept: Takedown
+    table: takedowns
+    stage: 11
+    x-relay-choice: true
+    x-relay-choice-note: Prefix chosen by the contract.
 x-relay-api-versions:
   supported:
     - "2026-11-01"

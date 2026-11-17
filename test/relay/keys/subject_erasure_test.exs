@@ -58,7 +58,7 @@ defmodule Relay.Keys.SubjectErasureTest do
       assert rows!(
                "SELECT failure_kind, failure_rule_id FROM relay.deliveries WHERE id = $1",
                [delivery]
-             ) == [["cancelled", "subject_erasure"]]
+             ) == [["cancelled", "erasure.subject"]]
 
       assert rows!(
                "SELECT state, external_id_bidx IS NULL, deleted_reason FROM relay.recipients WHERE id = $1",

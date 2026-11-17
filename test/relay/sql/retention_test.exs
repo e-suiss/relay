@@ -90,6 +90,65 @@ defmodule Relay.Sql.RetentionTest do
     assert due(tenant) == []
   end
 
+  test "OP-19, DS-44: a tenant's longer period keeps a commercial message key past the legal period and a shorter value never shortens it" do
+    %{tenant: tenant, recipient: recipient} = scenario!()
+
+    wrap =
+      one("SELECT wrapping_key_id FROM relay.subject_keys WHERE recipient_id = $1", [recipient])
+
+    ["created", key] =
+      row("SELECT * FROM relay_fn.subject_key_create($1, $2, 'commercial_message', $3, $4)", [
+        id(),
+        recipient,
+        digest(),
+        wrap
+      ])
+
+    seed_periods([
+      %{
+        "region" => region(),
+        "sector" => "general",
+        "retention_class" => "commercial_message",
+        "days" => 0
+      }
+    ])
+
+    assert due(tenant) == [[key, "commercial_message"]]
+
+    ctx(tenant)
+    setting = "SELECT * FROM relay_fn.setting_set($1, $2, $3, $4, $5, $6, $7, $8, $9)"
+
+    assert ["created", 1] =
+             row(setting, [nil, "retention.commercial_message", 30, nil, digest() | actor()])
+
+    assert due(tenant) == []
+
+    assert ["created", 1] =
+             row(setting, [nil, "retention.delivery_record", 30, nil, digest() | actor()])
+
+    assert due(tenant) == []
+  end
+
+  test "DS-44: the notification and delivery records of a marketing message carry the commercial message class" do
+    %{recipient: recipient, notification: transactional} = scenario!()
+    marketing = id()
+
+    ["created", ^marketing] =
+      row(
+        "SELECT result, notification_id FROM relay_fn.notification_accept($1, $2, NULL, $3, 'marketing', NULL, 'system', NULL, NULL, NULL, false, NULL)",
+        [marketing, recipient, "dedup:" <> Base.encode16(digest())]
+      )
+
+    delivery!(transactional)
+    delivery!(marketing)
+
+    classes =
+      "SELECT n.retention_class, d.retention_class FROM relay.notifications n JOIN relay.deliveries d ON d.notification_id = n.id WHERE n.id = $1"
+
+    assert row(classes, [transactional]) == ["delivery_record", "delivery_record"]
+    assert row(classes, [marketing]) == ["commercial_message", "commercial_message"]
+  end
+
   test "OP-16: when the profile data key's retention ends the recipient is soft deleted and its blind index cleared" do
     %{tenant: tenant, recipient: recipient} = scenario!()
 

@@ -106,6 +106,31 @@ defmodule Relay.Tenancy.Store do
     Repo.code!(row["subtenant_archive"], [:archived, :already_archived, :not_found])
   end
 
+  @doc "Rolls the current transaction back with `value`."
+  @spec rollback(term()) :: no_return()
+  def rollback(value), do: Repo.rollback(value)
+
+  # OP-19
+  # OP-69 (3)
+  @doc "The legal retention period in days of a retention class for the tenant's region and sector, from the active `retention_periods` data set of the installation; `nil` when the data set has no such row."
+  @spec retention_legal_days(String.t()) :: pos_integer() | nil
+  def retention_legal_days(class) do
+    sql = """
+    SELECT max((p ->> 'days')::integer)
+    FROM relay.tenants t
+    CROSS JOIN relay.dataset_active a
+    JOIN relay.dataset_versions v
+      ON v.tenant_id = a.tenant_id AND v.environment = a.environment AND v.id = a.version_id
+    CROSS JOIN LATERAL jsonb_array_elements(v.content -> 'periods') AS p
+    WHERE a.dataset_name = 'retention_periods' AND a.environment = 'live'
+      AND p ->> 'region' = t.region AND p ->> 'sector' = t.sector
+      AND p ->> 'retention_class' = $1
+    """
+
+    %Postgrex.Result{rows: [[days]]} = Repo.scoped_query!(sql, [class])
+    days
+  end
+
   # TN-4
   @doc "Sets or clears a setting at tenant level (`nil` sub-tenant) or at sub-tenant level."
   @spec setting_set(Relay.Id.t() | nil, String.t(), term(), integer() | nil, digest(), Actor.t()) ::

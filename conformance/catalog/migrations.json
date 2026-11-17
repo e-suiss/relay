@@ -236,5 +236,9 @@
   {"file": "20261217900200_rebuild_reference_check_for_webhook_sources.exs", "sha256": "b45f2020bfba794e4fc7b556b280c8dfdee3e4e0e270fea05a6ab8a16d4661df"},
   {"file": "20261218000000_create_waitpoint_completions.exs", "sha256": "6ef18cce2cdacf450457c9f93dcd38c96d8bc6deb57373d2ed54c5676853ac20"},
   {"file": "20261218000100_create_waitpoint_completion_function.exs", "sha256": "604701a479c25e8a2cc1098047d1756f0bb50249a5b9498ebf3b825b7b64c34f"},
-  {"file": "20261218000200_rebuild_reference_check_for_waitpoint_completions.exs", "sha256": "70dfe6a6d5ec92ad3f14b3043dcb6b384ec51dc8aa3ebd3c63b3dc5141c686f8"}
+  {"file": "20261218000200_rebuild_reference_check_for_waitpoint_completions.exs", "sha256": "70dfe6a6d5ec92ad3f14b3043dcb6b384ec51dc8aa3ebd3c63b3dc5141c686f8"},
+  {"file": "20261223000000_create_dsr_log_and_takedowns.exs", "sha256": "4cdd5b6fc92daef70894dd92787d85a2fba8c4a5bc25b68ef78635489f148652"},
+  {"file": "20261223000100_create_record_functions.exs", "sha256": "0809b87b835d1ad5de4428fde93d48994f04cf82c1231b191bf8d53e07aeba9e"},
+  {"file": "20261223000200_validate_record_checks.exs", "sha256": "86d4ae8693c984541fd1728e74f2fd850a97772bfd5100e3c6457cdc99cc60a0"},
+  {"file": "20261223000300_rebuild_reference_check_for_records.exs", "sha256": "45ed6f8f85306cb3b89b4d87d8473312af541b53d6d8485a97de3a4369e309e9"}
 ]

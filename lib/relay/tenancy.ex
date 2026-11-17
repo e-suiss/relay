@@ -186,12 +186,15 @@ defmodule Relay.Tenancy do
     do: within(scope, fn _status -> Store.subtenant_archive(subtenant_id, digest, actor) end)
 
   # TN-4
-  @doc "Sets or clears a stored setting at tenant level or, with `:subtenant_id`, at sub-tenant level. The key must be in the setting catalog and the value must pass its check (`Relay.Tenancy.SettingKeys`); `nil` clears."
+  # OP-19
+  @doc "Sets or clears a stored setting at tenant level or, with `:subtenant_id`, at sub-tenant level. The key must be in the setting catalog and the value must pass its check (`Relay.Tenancy.SettingKeys`); `nil` clears. A `retention.<class>` period is set at tenant level only and may only extend the legal period of the tenant's region and sector in the active `retention_periods` data set: a shorter one is refused with `retention_shortened` and a class without a legal period with `retention_rule_missing`."
   @spec put_setting(Scope.t(), map(), Actor.t()) ::
           {:ok, {atom(), integer() | nil}} | {:error, term()}
   def put_setting(scope, change, actor) do
     with {:ok, value} <- SettingKeys.cast(change.key, change.value) do
       within(scope, fn _status ->
+        :ok = extends!(change.key, value, Map.get(change, :subtenant_id))
+
         Store.setting_set(
           Map.get(change, :subtenant_id),
           change.key,
@@ -203,6 +206,39 @@ defmodule Relay.Tenancy do
       end)
     end
   end
+
+  # OP-19
+  # DS-44
+  defp extends!("retention." <> class, days, subtenant_id) when is_integer(days) do
+    legal = Store.retention_legal_days(class)
+
+    cond do
+      subtenant_id != nil ->
+        Store.rollback(
+          Relay.Error.new(:invalid_setting, "a retention period is set at tenant level")
+        )
+
+      legal == nil ->
+        Store.rollback(
+          Relay.Error.new(:retention_rule_missing, "no legal retention period for the class", %{
+            retention_class: class
+          })
+        )
+
+      days < legal ->
+        Store.rollback(
+          Relay.Error.new(:retention_shortened, "a tenant may only extend a retention period", %{
+            retention_class: class,
+            legal_days: legal
+          })
+        )
+
+      true ->
+        :ok
+    end
+  end
+
+  defp extends!(_key, _value, _subtenant_id), do: :ok
 
   # TN-4
   @doc "Resolves stored settings for an optional sub-tenant."

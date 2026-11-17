@@ -94,7 +94,7 @@ defmodule RelayWeb.Operator.OperatorApiTest do
       FakeAccess.issue("code", %{
         "sub" => session.subject,
         "auth_time" => 0,
-        "acr" => "step_up",
+        "acr" => "http://idmanagement.gov/ns/assurance/aal/2",
         "step_up_ref" => "stepup-" <> session.subject
       })
 
@@ -279,7 +279,7 @@ defmodule RelayWeb.Operator.OperatorApiTest do
 
       problem = json(conn, 401)
       assert problem["code"] == "auth_step_up_required"
-      assert problem["step_up"]["acr_values"] == "step_up"
+      assert problem["step_up"]["acr_values"] == "http://idmanagement.gov/ns/assurance/aal/2"
       assert [challenge] = get_resp_header(conn, "www-authenticate")
       assert challenge =~ "insufficient_user_authentication"
 

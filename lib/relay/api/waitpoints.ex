@@ -8,7 +8,7 @@ defmodule Relay.Api.Waitpoints do
 
   The limits are the contract's `x-relay-limits.waitpoint` (AG-53, AG-70) and every refusal names its limit: the longest wait, the messages a waitpoint may produce (its responders and its topics), the size of a response value, and the open waitpoints of the tenant environment and of the waiter.
 
-  A waitpoint that carries `access_link`, the deep link to the Access approval surface, is an approval-type request: the link is the only action of its inbox and notification items and no channel takes a response to it (AG-32, IN-6, E-16); it is sealed with the content.
+  A waitpoint that carries `access_link`, the deep link to the Access approval surface, is an approval-type request: the link is the only action of its inbox and notification items and no channel takes a response to it (AG-32, IN-6, E-16); it is sealed with the content. The link must be an `https` address whose origin is that of one of the issuers of the tenant's Access environments, read from the tenant snapshot outside the transaction; any other link is refused at `/access_link` (E-107, AG-80).
 
   The profile `guardian_approval` is a review that takes no default response; its deadline comes from the creator and is never moved, and expiry produces `waitpoint.expired` alone (AG-62, AG-18).
 
@@ -60,6 +60,7 @@ defmodule Relay.Api.Waitpoints do
     :surface_recipient_outside_set
   ]
   @sealed ~w(content actions evidence access_link)
+  @link_detail "not an https address on an issuer of the tenant's Access environments"
 
   # AG-6
   # AG-46
@@ -225,10 +226,12 @@ defmodule Relay.Api.Waitpoints do
   # AG-53
   # AG-62
   # AG-65
-  @doc "Prepares a creation before the request's transaction: checks the rules of the waitpoint's kind, profile and limits, names the waiter, finds the responders, computes the correlation digests and seals the personal fields. Every broken field rule is reported."
+  # E-107
+  @doc "Prepares a creation before the request's transaction: checks the rules of the waitpoint's kind, profile and limits and the origin of its Access link, names the waiter, finds the responders, computes the correlation digests and seals the personal fields. Every broken field rule is reported."
   @spec prepare(Scope.t(), map(), caller()) :: {:ok, map()} | {:error, Relay.Error.t()}
   def prepare(%Scope{} = scope, body, caller) do
     with :ok <- rules(scope, body),
+         :ok <- access_link(scope, body["access_link"]),
          {:ok, waiter} <- waiter(Map.get(body, "waiter"), caller),
          {:ok, responders} <- responders(scope, Map.get(body, "responders", [])),
          {:ok, digests} <- digests(scope, body["match"]),
@@ -238,6 +241,57 @@ defmodule Relay.Api.Waitpoints do
       attrs = Map.merge(attrs(body, waiter, ids, digests, sealed), plan)
       names = for {id, name} when is_binary(name) <- responders, into: %{}, do: {id, name}
       {:ok, %{attrs: attrs, names: names, opened: plain(body)}}
+    end
+  end
+
+  # E-107
+  # AG-80
+  defp access_link(_scope, nil), do: :ok
+
+  defp access_link(scope, link) do
+    case access_issuers(scope) do
+      {:ok, issuers} ->
+        if access_origin?(link, issuers),
+          do: :ok,
+          else: {:error, invalid([error("/access_link", "not_allowed", @link_detail)])}
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
+  defp access_issuers(scope) do
+    with {:ok, %{"access_tenant_id" => tenant}} when is_binary(tenant) <-
+           Relay.Tenancy.tenant(scope),
+         {:ok, issuers} when is_list(issuers) <- Relay.Access.environment_issuers(tenant) do
+      {:ok, issuers}
+    else
+      {:ok, :unknown} -> {:ok, []}
+      _unreadable -> {:error, unavailable()}
+    end
+  end
+
+  # E-107
+  # AG-80
+  @doc "Returns true if `link` is an `https` URL whose origin (scheme, host and port) is the origin of one of the `issuers` of the tenant's Access environments."
+  @spec access_origin?(term(), [String.t()]) :: boolean()
+  def access_origin?(link, issuers) when is_binary(link) and is_list(issuers) do
+    case origin(link) do
+      nil -> false
+      origin -> Enum.any?(issuers, &(origin(&1) == origin))
+    end
+  end
+
+  def access_origin?(_link, _issuers), do: false
+
+  defp origin(url) when is_binary(url) do
+    case URI.new(url) do
+      {:ok, %URI{scheme: "https", host: host, port: port, userinfo: nil}}
+      when is_binary(host) and host != "" ->
+        {String.downcase(host), port}
+
+      _other ->
+        nil
     end
   end
 

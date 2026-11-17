@@ -7,6 +7,7 @@ defmodule Relay.Access do
   * An ingest connector acts as an API client trace of its configuration (`connector_principal/2`, T-41), checked like a server token.
   * API client traces, tenant and sub-tenant mappings follow Access lifecycle events, pushed as Security Event Tokens (`accept_event/1`, `process_event/1`, E-94). An API client Access registers waits as pending until a tenant administrator assigns its environment and scopes (`pending_api_clients/1`, `assign_api_client/4`, E-99).
   * Subscriber tokens come only from the RFC 8693 exchange (`exchange_subscriber_token/3`) and are checked with `verify_subscriber_token/2`; an Access token is never a subscriber credential (E-25).
+  * An agent's Access Party and its pairwise `sub` in Relay's sector are mapped by Access's subject resolution (`agent_sub/2`, `agent_party/2`, `Relay.Access.Subjects`, E-106).
   * Platform tenants (`message_class/2`, `dedup_key/2`) and sub-tenant selection (`select_subtenant/3`).
   """
 
@@ -44,6 +45,7 @@ defmodule Relay.Access do
   alias Relay.Access.PlatformTenant
   alias Relay.Access.PortalToken
   alias Relay.Access.Realms
+  alias Relay.Access.Subjects
   alias Relay.Access.SubscriberToken
   alias Relay.Access.SubscriberTokenKeys
   alias Relay.Access.Token
@@ -205,6 +207,25 @@ defmodule Relay.Access do
   @spec tenant_snapshot(String.t()) ::
           {:ok, map()} | {:error, :not_found} | {:error, Relay.Error.t()}
   defdelegate tenant_snapshot(access_tenant), to: Realms, as: :snapshot
+
+  # E-107
+  # E-96
+  @doc "The issuers of an Access tenant's environments, from the cache or from its snapshot; `:unknown` when Access does not know the tenant. See `Relay.Access.Realms.issuers/1`."
+  @spec environment_issuers(String.t()) ::
+          {:ok, [String.t()] | :unknown} | {:error, Relay.Error.t()}
+  defdelegate environment_issuers(access_tenant), to: Realms, as: :issuers
+
+  # E-106
+  # AG-75
+  @doc "The pairwise `sub` in Relay's sector of an agent's Access Party, from Access's subject resolution, read outside any transaction; `:unknown` when no environment of the tenant resolves it. See `Relay.Access.Subjects.sub/2`."
+  @spec agent_sub(String.t(), String.t()) :: Subjects.answer()
+  defdelegate agent_sub(access_tenant, party), to: Subjects, as: :sub
+
+  # E-106
+  # AG-75
+  @doc "The Access Party whose pairwise `sub` in Relay's sector is `sub`, read outside any transaction. See `Relay.Access.Subjects.party/2`."
+  @spec agent_party(String.t(), String.t()) :: Subjects.answer()
+  defdelegate agent_party(access_tenant, sub), to: Subjects, as: :party
 
   # E-93
   @doc "The algorithms a DPoP proof may be signed with, as a `WWW-Authenticate: DPoP` challenge names them."

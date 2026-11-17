@@ -297,5 +297,8 @@
   {"file": "20270104000400_rebuild_reference_check_for_first_contact.exs", "sha256": "805a172b2ecee51c3c3115880c99330f7cadbc1dfa59141b6e2025dafc8fc094"},
   {"file": "20270104900000_rebuild_reference_check_for_response_tokens.exs", "sha256": "8011de0073a4c3d3b953fb88cfcde8548f982cc4007105e1d5f33691990733d9"},
   {"file": "20270104900100_rebuild_reference_check_for_agent_task_notifications.exs", "sha256": "80dd3f4f4664d262dc841b026328db8c021881dab0fde10bc8da7ad8b9f805eb"},
-  {"file": "20270105000000_hold_blocked_mailbox_messages.exs", "sha256": "a8d06a968095e8dd472107522903adbf47381c47d4809c477f501c6135e3f1e3"}
+  {"file": "20270105000000_hold_blocked_mailbox_messages.exs", "sha256": "a8d06a968095e8dd472107522903adbf47381c47d4809c477f501c6135e3f1e3"},
+  {"file": "20270108000000_add_agent_access_sub.exs", "sha256": "9b4cd3116f9aaaffb49a2b11f92c0e80ff17805a2d19f138d342680c4d722299"},
+  {"file": "20270108000100_index_agent_access_sub.exs", "sha256": "af9d0818bb57af70369dcc10e3f75c4464811024eb57bbe33c1732fbfab24957"},
+  {"file": "20270108000200_validate_agent_access_sub_checks.exs", "sha256": "4fdc1d9657623d31771d806f1e97cc667b3762548a30e5ae2e6b86be95f01550"}
 ]

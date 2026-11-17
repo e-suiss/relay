@@ -118,7 +118,9 @@ Problem:
       properties:
         acr_values:
           type: string
-          description: Space-separated ACR values Access must satisfy.
+          description: "The Access acr value of the Authenticator Assurance Level the step-up must reach, http://idmanagement.gov/ns/assurance/aal/2 unless the installation raises it to aal/3; a higher level also satisfies it (E-105)."
+          examples:
+            - "http://idmanagement.gov/ns/assurance/aal/2"
         max_age:
           type: integer
           minimum: 0

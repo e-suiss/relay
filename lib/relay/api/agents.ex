@@ -2,7 +2,9 @@ defmodule Relay.Api.Agents do
   @moduledoc """
   Agent recipient records on the server API (C-21, E-28, E-29, AG-5): list, create (`201`), read, change (JSON Merge Patch under `If-Match`) and soft-delete an agent. A record names the agent, its owner, the endpoints a wake-up hint goes to, its topic subscriptions and its mandatory Access binding; it has one mailbox from the start. It serves delivery and changes no authority. Its state follows Access and is never written here: `agent.suspended` and `agent.deleted` stop delivery to the agent and its own requests, and the mailbox is kept in every state (AG-23, INV-47).
 
-  `credential/2` resolves the agent of a verified credential that holds agent scopes (AG-6): only an active record bound to the token's Access Party makes it an agent's credential.
+  The Access binding names the agent's Access Party (E-106, AG-75); creation asks Access's subject resolution, outside any transaction, for the pairwise `sub` the agent's tokens carry in Relay's sector and stores both. A Party Access does not resolve is refused at `/access/party` and an Access that cannot answer is `service_unavailable`: no agent is created without its `sub`.
+
+  `credential/2` resolves the agent of a verified credential that holds agent scopes (AG-6): only an active record bound to the token's pairwise `sub` makes it an agent's credential. A record created before E-106 has no `sub`; while the environment holds one, a `sub` no record matches is resolved to its Party through Access and bound to that Party's record on first use.
   """
 
   alias Relay.Api.Page
@@ -45,15 +47,19 @@ defmodule Relay.Api.Agents do
 
   # C-21
   # E-29
-  @doc "Prepares the creation of an agent outside any transaction; see `Relay.Agents.Registry.prepare/2`."
+  # E-106
+  @doc "Prepares the creation of an agent outside any transaction: resolves the pairwise `sub` of its Access Party through Access; see `Relay.Agents.Registry.prepare/2`."
   @spec prepare(Scope.t(), map()) :: {:ok, map()} | {:error, Relay.Error.t()}
   def prepare(%Scope{} = scope, body) do
     endpoints = Map.get(body, "endpoints", %{})
+    party = body["access"]["party"]
 
     with {:ok, webhook} <- endpoint(endpoints, "webhook_endpoint_id"),
-         {:ok, a2a_push} <- endpoint(endpoints, "a2a_push_endpoint_id") do
+         {:ok, a2a_push} <- endpoint(endpoints, "a2a_push_endpoint_id"),
+         {:ok, sub} <- sub(scope, party) do
       Relay.Agents.prepare_agent(scope, %{
-        party: body["access"]["party"],
+        party: party,
+        sub: sub,
         name: body["name"],
         owner_ref: body["owner_ref"],
         webhook_endpoint_id: webhook,
@@ -175,14 +181,52 @@ defmodule Relay.Api.Agents do
 
   # AG-6
   # E-29
+  # E-106
   # AG-5
-  @doc "The active agent bound to the Access Party `subject` of a verified credential that holds agent scopes; an unregistered, suspended or deleted agent is `auth_agent_inactive`."
+  @doc "The active agent bound to the pairwise Access `sub` (`subject`) of a verified credential that holds agent scopes; an unregistered, suspended or deleted agent is `auth_agent_inactive`. A `sub` no record matches is bound first to the record of its Access Party that has none yet, when the environment holds such a record."
   @spec credential(Scope.t(), String.t() | nil) :: {:ok, Relay.Id.t()} | {:error, Relay.Error.t()}
   def credential(%Scope{} = scope, subject) do
     case Relay.Agents.agent_credential(scope, subject) do
-      {:ok, %{id: id, state: "active"}} -> {:ok, id}
-      {:ok, _unbound_or_inactive} -> {:error, inactive()}
+      {:ok, nil} when is_binary(subject) and subject != "" -> backfill(scope, subject)
+      found -> active(found)
+    end
+  end
+
+  defp active({:ok, %{id: id, state: "active"}}), do: {:ok, id}
+  defp active({:ok, _unbound_or_inactive}), do: {:error, inactive()}
+  defp active({:error, _reason}), do: {:error, unavailable()}
+
+  # E-106
+  defp backfill(scope, subject) do
+    with {:ok, true} <- Relay.Agents.agents_unbound?(scope),
+         {:ok, access_tenant} <- access_tenant(scope),
+         {:ok, party} <- Relay.Access.agent_party(access_tenant, subject),
+         {:ok, _bound} <- Relay.Agents.bind_agent_sub(scope, party, subject) do
+      active(Relay.Agents.agent_credential(scope, subject))
+    else
+      {:ok, false} -> {:error, inactive()}
+      :unknown -> {:error, inactive()}
       {:error, _reason} -> {:error, unavailable()}
+    end
+  end
+
+  # E-106
+  defp sub(_scope, party) when not is_binary(party), do: {:error, unresolved()}
+
+  defp sub(scope, party) do
+    with {:ok, access_tenant} <- access_tenant(scope) do
+      case Relay.Access.agent_sub(access_tenant, party) do
+        {:ok, sub} -> {:ok, sub}
+        :unknown -> {:error, unresolved()}
+        {:error, _error} -> {:error, unavailable()}
+      end
+    end
+  end
+
+  defp access_tenant(scope) do
+    case Relay.Tenancy.tenant(scope) do
+      {:ok, %{"access_tenant_id" => tenant}} when is_binary(tenant) -> {:ok, tenant}
+      _unreadable -> {:error, unavailable()}
     end
   end
 
@@ -231,6 +275,9 @@ defmodule Relay.Api.Agents do
         end
     end
   end
+
+  defp unresolved,
+    do: field_error("/access/party", "not_found", "Access does not resolve this Party")
 
   defp invalid(:endpoint_not_found),
     do: field_error("/endpoints", "not_found", "no webhook endpoint has this id")

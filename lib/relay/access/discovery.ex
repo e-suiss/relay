@@ -1,6 +1,6 @@
 defmodule Relay.Access.Discovery do
   @moduledoc """
-  The Access discovery documents (E-78, E-92), all under the configured issuer: the OpenID Provider Configuration (`/.well-known/openid-configuration`, OIDC Discovery and RFC 8414), which names the key set (`jwks_uri`) and the token endpoint; the Suiss configuration (`/.well-known/suiss-configuration`, Access OP-149 item 3), which names the Suiss members `suiss_region`, `suiss_relay`, `suiss_management_api` and `suiss_event_subscriptions` (an object whose `ssf_configuration` is the address of the event transmitter metadata), and whose `endpoints` name the address template of the tenant snapshot (`tenant_snapshot`) and the platform routes of the pairing (E-101): `pairing_challenges` and `pairing`, templates that hold `{tenant}`, and `platform_streams`, an address; and the AuthZEN configuration (`/.well-known/authzen-configuration`). The `issuer` of the OpenID and Suiss documents must equal the configured issuer byte for byte, and every URL they name must use HTTPS.
+  The Access discovery documents (E-78, E-92), all under the configured issuer: the OpenID Provider Configuration (`/.well-known/openid-configuration`, OIDC Discovery and RFC 8414), which names the key set (`jwks_uri`) and the token endpoint; the Suiss configuration (`/.well-known/suiss-configuration`, Access OP-149 item 3), which names the Suiss members `suiss_region`, `suiss_relay`, `suiss_management_api` and `suiss_event_subscriptions` (an object whose `ssf_configuration` is the address of the event transmitter metadata), and whose `endpoints` name the address template of the tenant snapshot (`tenant_snapshot`) and the platform routes of the pairing (E-101): `pairing_challenges` and `pairing`, templates that hold `{tenant}`, and `platform_streams`, an address, and the address template of the subject resolution (`subject_resolution`, E-106), which holds `{tenant}`; and the AuthZEN configuration (`/.well-known/authzen-configuration`). The `issuer` of the OpenID and Suiss documents must equal the configured issuer byte for byte, and every URL they name must use HTTPS.
   """
 
   @type document :: %{
@@ -17,7 +17,8 @@ defmodule Relay.Access.Discovery do
           tenant_snapshot: String.t() | nil,
           pairing_challenges: String.t() | nil,
           pairing: String.t() | nil,
-          platform_streams: String.t() | nil
+          platform_streams: String.t() | nil,
+          subject_resolution: String.t() | nil
         }
 
   # E-78
@@ -56,8 +57,9 @@ defmodule Relay.Access.Discovery do
   # E-92
   # E-96
   # E-101
+  # E-106
   # INV-41
-  @doc "Reads the Suiss members of a Suiss configuration, the address template of the tenant snapshot (`endpoints.tenant_snapshot`, Access OP-149 item 4) and those of the pairing routes (`endpoints.pairing_challenges` and `endpoints.pairing`), which must hold `{tenant}`, and the address of the platform streams (`endpoints.platform_streams`), which must hold no template."
+  @doc "Reads the Suiss members of a Suiss configuration, the address template of the tenant snapshot (`endpoints.tenant_snapshot`, Access OP-149 item 4), those of the pairing routes (`endpoints.pairing_challenges` and `endpoints.pairing`) and that of the subject resolution (`endpoints.subject_resolution`), which must hold `{tenant}`, and the address of the platform streams (`endpoints.platform_streams`), which must hold no template."
   @spec parse_suiss(map(), String.t()) :: {:ok, suiss()} | {:error, Relay.Error.t()}
   def parse_suiss(%{"issuer" => issuer} = document, issuer) do
     events = event_subscriptions(document["suiss_event_subscriptions"])
@@ -89,7 +91,8 @@ defmodule Relay.Access.Discovery do
       tenant_snapshot: endpoint(endpoints, "tenant_snapshot", true),
       pairing_challenges: endpoint(endpoints, "pairing_challenges", true),
       pairing: endpoint(endpoints, "pairing", true),
-      platform_streams: endpoint(endpoints, "platform_streams", false)
+      platform_streams: endpoint(endpoints, "platform_streams", false),
+      subject_resolution: endpoint(endpoints, "subject_resolution", true)
     }
   end
 

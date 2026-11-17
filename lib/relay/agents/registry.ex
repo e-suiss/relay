@@ -2,7 +2,7 @@ defmodule Relay.Agents.Registry do
   @moduledoc """
   The agent recipient record (C-19, C-21, C-68, E-28, E-42, AG-5): a first-class recipient kind next to the subscriber and Relay's canonical record of an agent. It holds the agent's name, its owner, the endpoints a wake-up hint goes to (a signed webhook endpoint, an A2A push endpoint, a realtime connection), its one mailbox, its topic subscriptions and its state. The record serves delivery: it changes no authority, stands in for no human subscriber and is no human work queue.
 
-  The record is bound to the agent's Access identity (E-29, TN-25): the recipient's external identifier is the Access Party reference, the pairwise `sub` of the agent's Access token in Relay's sector, stored encrypted and found through its blind index like a subscriber's external identifier. A credential whose `sub` is that reference is the agent's (`credential/2`). Access's `agent.suspended` and `agent.deleted` events stop delivery to the agent and the agent's own requests, and `agent.reactivated` lifts a suspension (`access_changed/4`); the mailbox is suspended with the agent and is never deleted, so its records stay under their retention rule (AG-23, INV-47). Deleting a record is a soft delete: the row stays `deleted`, its Access Party reference leaves the blind index so that the Party can be bound again, and its mailbox stays.
+  The record is bound to the agent's Access identity (E-29, TN-25, E-106): the recipient's external identifier is the agent's Access Party, stored encrypted and found through its blind index like a subscriber's external identifier, and the agent row holds the pairwise `sub` of the agent's Access tokens in Relay's sector, which Access's subject resolution gives for the Party at creation, encrypted under the same data key and found through its own blind index. A credential whose `sub` is that value is the agent's (`credential/2`); Access events name the Party and match the external identifier. A record created before E-106 has no `sub` until `bind_sub/3` binds it. Access's `agent.suspended` and `agent.deleted` events stop delivery to the agent and the agent's own requests, and `agent.reactivated` lifts a suspension (`access_changed/4`); the mailbox is suspended with the agent and is never deleted, so its records stay under their retention rule (AG-23, INV-47). Deleting a record is a soft delete: the row stays `deleted`, its Access Party reference leaves the blind index so that the Party can be bound again, and its mailbox stays.
 
   A write happens in two parts, like a subscriber's: `prepare/2` runs outside any transaction and takes the blind index, the data key and the encrypted Party reference from the key store, through the keyring step configured as `config :relay, Relay.Agents, keyring: Module`, by default `Relay.Tenancy`; `create/3`, `update/5` and `delete/3` run inside the caller's scoped transaction.
   """
@@ -17,6 +17,7 @@ defmodule Relay.Agents.Registry do
   @type id :: Relay.Id.t()
   @type input :: %{
           party: String.t(),
+          sub: String.t(),
           name: String.t(),
           owner_ref: String.t(),
           webhook_endpoint_id: id() | nil,
@@ -38,19 +39,23 @@ defmodule Relay.Agents.Registry do
 
   # C-21
   # E-29
+  # E-106
   # TN-33
-  @doc "Prepares the creation of an agent outside any transaction: its identifier, the blind index of its Access Party reference, its data key and the encrypted reference."
+  @doc "Prepares the creation of an agent outside any transaction: its identifier, the blind indexes of its Access Party reference and of its pairwise Access `sub`, its data key and both values encrypted."
   @spec prepare(Scope.t(), input()) :: {:ok, plan()} | {:error, Relay.Error.t()}
-  def prepare(%Scope{} = scope, %{party: party} = input) when is_binary(party) do
+  def prepare(%Scope{} = scope, %{party: party, sub: sub} = input)
+      when is_binary(party) and is_binary(sub) do
     id = Relay.Id.generate()
 
     keyring = keyring()
 
     with {:ok, {bidx_key_id, bidx}} <- keyring.blind_index(index(scope), party),
+         {:ok, {_sub_key_id, sub_bidx}} <- keyring.blind_index(sub_index(scope), sub),
          {:ok, wrapping_key_id} <- keyring.active_tenant_key(scope, :dek_wrap),
          {:ok, %{wrapped_dek: wrapped, data_key: key}} <-
            keyring.generate_subject_key(scope, wrapping_key_id, id, :recipient_profile),
-         {:ok, party_ct} <- keyring.encrypt_field(field(scope, id), party, data_key: key) do
+         {:ok, party_ct} <- keyring.encrypt_field(field(scope, id), party, data_key: key),
+         {:ok, sub_ct} <- keyring.encrypt_field(sub_field(scope, id), sub, data_key: key) do
       {:ok,
        %{
          id: id,
@@ -58,6 +63,8 @@ defmodule Relay.Agents.Registry do
          party_bidx: bidx,
          bidx_key_id: bidx_key_id,
          party_ct: party_ct,
+         sub_bidx: sub_bidx,
+         sub_ct: sub_ct,
          profile_dek_id: Relay.Id.generate(),
          wrapped_dek: wrapped,
          wrapping_key_id: wrapping_key_id,
@@ -75,12 +82,20 @@ defmodule Relay.Agents.Registry do
   # E-28
   # E-29
   # C-68
-  @doc "Creates a prepared agent inside the caller's scoped transaction, with its one mailbox and its topic subscriptions; returns `{:created, agent}` or the refusal: `:party_conflict` (the Access Party is bound to another record), `:endpoint_not_found`, `:topic_not_found`, `:topic_archived` or `:tenant_inactive`."
+  # E-106
+  @doc "Creates a prepared agent inside the caller's scoped transaction, with its one mailbox, its topic subscriptions and its pairwise Access `sub`; returns `{:created, agent}` or the refusal: `:party_conflict` (the Access Party or its `sub` is bound to another record), `:endpoint_not_found`, `:topic_not_found`, `:topic_archived` or `:tenant_inactive`. A refusal after the record is written leaves it to the caller's rollback."
   @spec create(plan(), <<_::256>>, Actor.t()) :: {:created, agent()} | {atom(), nil}
   def create(plan, digest, %Actor{} = actor) do
     case Store.create(plan, digest, actor) do
-      {:created, id, _mailbox_id} -> {:created, with_party(Store.get(id), plan.party)}
+      {:created, id, _mailbox_id} -> bound(id, plan)
       {refusal, _id, _mailbox_id} -> {refusal, nil}
+    end
+  end
+
+  defp bound(id, plan) do
+    case Store.bind_sub(id, nil, plan.sub_bidx, plan.sub_ct) do
+      {:bound, _id} -> {:created, with_party(Store.get(id), plan.party)}
+      {_conflict, _id} -> {:party_conflict, nil}
     end
   end
 
@@ -132,20 +147,50 @@ defmodule Relay.Agents.Registry do
   end
 
   # E-29
+  # E-106
   # AG-5
   # TN-25
-  @doc "The agent whose Access Party reference is `subject`, the `sub` of a verified Access token: its identifier and state, or `nil` when no record of `scope` is bound to it."
+  @doc "The agent whose pairwise Access `sub` is `subject`, the `sub` of a verified Access token: its identifier and state, or `nil` when no record of `scope` is bound to it."
   @spec credential(Scope.t(), String.t() | nil) ::
           {:ok, %{id: id(), state: String.t()} | nil} | {:error, term()}
   def credential(%Scope{} = scope, subject) when is_binary(subject) and subject != "" do
-    case digests(scope, subject) do
-      {:ok, bidxs} -> Store.in_scope(scope, fn _status -> Store.by_party(bidxs) end)
-      {:error, %Relay.Error{code: :blind_index_key_unavailable}} -> {:ok, nil}
-      {:error, error} -> {:error, error}
+    case keyring().blind_index_digests(sub_index(scope), subject) do
+      {:ok, entries} ->
+        bidxs = Enum.map(entries, &elem(&1, 1))
+        Store.in_scope(scope, fn _status -> Store.by_sub(bidxs) end)
+
+      {:error, %Relay.Error{code: :blind_index_key_unavailable}} ->
+        {:ok, nil}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
   def credential(%Scope{}, _subject), do: {:ok, nil}
+
+  # E-106
+  @doc "Returns true if an agent of `scope` that is not deleted has no pairwise Access `sub` yet, a record created before E-106."
+  @spec unbound?(Scope.t()) :: {:ok, boolean()} | {:error, term()}
+  def unbound?(%Scope{} = scope), do: Store.in_scope(scope, fn _status -> Store.unbound?() end)
+
+  # E-106
+  # AG-75
+  @doc "Binds the pairwise Access `sub` that Access's subject resolution gives for `party` to the agent of `scope` bound to that Party, when it has none yet (a record created before E-106). The value is encrypted and indexed outside the transaction. Returns `:bound`, `:unchanged`, `:sub_conflict`, `:deleted` or `:not_found`."
+  @spec bind_sub(Scope.t(), String.t(), String.t()) :: {:ok, atom()} | {:error, term()}
+  def bind_sub(%Scope{} = scope, party, sub) when is_binary(party) and is_binary(sub) do
+    with {:ok, bidxs} <- digests(scope, party),
+         {:ok, %{id: id}} <- Store.in_scope(scope, fn _status -> Store.by_party(bidxs) end),
+         {:ok, {_key_id, sub_bidx}} <- keyring().blind_index(sub_index(scope), sub),
+         {:ok, sub_ct} <- keyring().encrypt_field(sub_field(scope, id), sub),
+         {:ok, {result, _id}} <-
+           Store.in_scope(scope, fn _status -> Store.bind_sub(id, nil, sub_bidx, sub_ct) end) do
+      {:ok, result}
+    else
+      {:ok, nil} -> {:ok, :not_found}
+      {:error, error} -> {:error, error}
+    end
+  end
 
   # AG-5
   # E-29
@@ -216,6 +261,20 @@ defmodule Relay.Agents.Registry do
 
   defp index(scope),
     do: %{tenant_id: scope.tenant_id, environment: scope.environment, purpose: "external_id"}
+
+  defp sub_index(scope),
+    do: %{tenant_id: scope.tenant_id, environment: scope.environment, purpose: "access_sub"}
+
+  defp sub_field(scope, id) do
+    %{
+      tenant_id: scope.tenant_id,
+      environment: scope.environment,
+      subject_id: id,
+      retention_class: :recipient_profile,
+      table: "agents",
+      column: "access_sub_ct"
+    }
+  end
 
   defp field(scope, id) do
     %{

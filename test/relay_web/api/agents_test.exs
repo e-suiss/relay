@@ -80,7 +80,8 @@ defmodule RelayWeb.Api.AgentsTest do
   defp credential(ctx, party, scopes) do
     client = FakeAccess.client!(ctx.scope, scopes)
     access_tenant = ctx.tenant.attrs.access_tenant_id
-    FakeAccess.server_token(access_tenant, client, Enum.join(scopes, " "), %{"sub" => party})
+    claims = %{"sub" => FakeAccess.pairwise(party)}
+    FakeAccess.server_token(access_tenant, client, Enum.join(scopes, " "), claims)
   end
 
   defp event(extra \\ %{}) do
@@ -316,6 +317,102 @@ defmodule RelayWeb.Api.AgentsTest do
       F.body(F.request(:delete, "/v1/agents/" <> created["id"], ctx.token), 200)
       assert code(F.request(:post, "/v1/events", agent, event()), 403) == "auth_agent_inactive"
     end
+  end
+
+  describe "E-106 AG-75 Access identity" do
+    test "E-106, AG-75: the record keeps the Party and the sub Access resolves for it; a token authenticates by the sub",
+         ctx do
+      F.workflow!(ctx.scope, ctx.token, "order-shipped")
+      bound = party()
+      created = agent!(ctx, %{"access" => %{"party" => bound}})
+
+      assert_received {:fake_access, :resolve, %{"parties" => [^bound]} = asked}
+      assert asked["client_id"] == Relay.Access.client_id()
+      assert created["access"] == %{"party" => bound}
+      refute Jason.encode!(created) =~ FakeAccess.pairwise(bound)
+
+      {:ok, id} = Relay.ExternalId.decode(created["id"], ["agt"])
+      sql = "SELECT access_sub_bidx, access_sub_ct FROM relay.agents WHERE id = $1"
+      assert [[bidx, ct]] = rows(ctx.scope, sql, [id])
+      assert byte_size(bidx) == 32 and is_binary(ct)
+
+      by_sub = credential(ctx, bound, ["agent:send"])
+      F.body(F.request(:post, "/v1/events", by_sub, event()), 202)
+
+      client = FakeAccess.client!(ctx.scope, ["agent:send"])
+      access_tenant = ctx.tenant.attrs.access_tenant_id
+      by_party = FakeAccess.server_token(access_tenant, client, "agent:send", %{"sub" => bound})
+      assert code(F.request(:post, "/v1/events", by_party, event()), 403) == "auth_agent_inactive"
+
+      assert :ok = AccessAgentHandler.handle_agent_event(ctx.scope, :suspended, bound, "evt-1")
+      assert code(F.request(:post, "/v1/events", by_sub, event()), 403) == "auth_agent_inactive"
+    end
+
+    test "E-106: a Party Access does not resolve creates no agent", ctx do
+      unknown = %{"access" => %{"party" => "unknown-" <> TenantFixture.random()}}
+      body = Map.merge(%{"name" => "A", "owner_ref" => "o"}, unknown)
+      problem = F.body(F.request(:post, "/v1/agents", ctx.token, body), 422)
+      assert [%{"pointer" => "/access/party", "code" => "not_found"}] = problem["errors"]
+
+      down = put_in(body, ["access", "party"], "unreachable-" <> TenantFixture.random())
+      assert code(F.request(:post, "/v1/agents", ctx.token, down), 503) == "service_unavailable"
+      assert get(ctx, "/v1/agents")["data"] == []
+    end
+
+    test "E-106, AG-75: deleting a record frees its sub, so the Party is bound to a new record",
+         ctx do
+      F.workflow!(ctx.scope, ctx.token, "order-shipped")
+      bound = party()
+      created = agent!(ctx, %{"access" => %{"party" => bound}})
+      F.body(F.request(:delete, "/v1/agents/" <> created["id"], ctx.token), 200)
+
+      {:ok, id} = Relay.ExternalId.decode(created["id"], ["agt"])
+      sql = "SELECT access_sub_bidx IS NULL FROM relay.agents WHERE id = $1"
+      assert rows(ctx.scope, sql, [id]) == [[true]]
+
+      again = agent!(ctx, %{"access" => %{"party" => bound}})
+      assert again["id"] != created["id"]
+      agent = credential(ctx, bound, ["agent:send"])
+      F.body(F.request(:post, "/v1/events", agent, event()), 202)
+    end
+
+    test "E-106, AG-75: a record created before E-106 is bound to its sub on its first request",
+         ctx do
+      F.workflow!(ctx.scope, ctx.token, "order-shipped")
+      bound = party()
+      id = legacy!(ctx.scope, bound)
+      sql = "SELECT access_sub_bidx IS NULL FROM relay.agents WHERE id = $1"
+      assert rows(ctx.scope, sql, [id]) == [[true]]
+
+      agent = credential(ctx, bound, ["agent:send"])
+      F.body(F.request(:post, "/v1/events", agent, event()), 202)
+      sub = FakeAccess.pairwise(bound)
+      assert_received {:fake_access, :resolve, %{"subs" => [^sub]}}
+      assert rows(ctx.scope, sql, [id]) == [[false]]
+
+      stranger = credential(ctx, "unknown-" <> TenantFixture.random(), ["agent:send"])
+      assert code(F.request(:post, "/v1/events", stranger, event()), 403) == "auth_agent_inactive"
+    end
+  end
+
+  defp legacy!(scope, party) do
+    input = %{
+      party: party,
+      sub: FakeAccess.pairwise(party),
+      name: "Legacy agent",
+      owner_ref: "work:legacy",
+      webhook_endpoint_id: nil,
+      a2a_push_endpoint_id: nil,
+      realtime: false,
+      topics: []
+    }
+
+    {:ok, plan} = Relay.Agents.prepare_agent(scope, input)
+    digest = Relay.Agents.agent_digest(scope, "agent.created", Relay.Id.to_string(plan.id))
+    {:ok, actor} = Relay.Actor.new(:api_client, "cli_legacy", "cli_legacy")
+    work = fn _status -> Relay.Agents.RegistryStore.create(plan, digest, actor) end
+    {:ok, {:created, id, _mailbox}} = Repo.in_scope(scope, work)
+    id
   end
 
   describe "AG-6 agent scopes" do

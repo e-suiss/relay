@@ -107,6 +107,23 @@ defmodule Relay.Access.DiscoveryTest do
 
       assert Discovery.suiss_url(issuer <> "/") == issuer <> "/.well-known/suiss-configuration"
     end
+
+    test "E-106: the subject resolution is an HTTPS address template that holds {tenant}" do
+      issuer = FakeAccess.issuer()
+      document = FakeAccess.suiss("tr")
+
+      assert {:ok, suiss} = Discovery.parse_suiss(document, issuer)
+      assert suiss.subject_resolution == issuer <> "/access/v1/tenants/{tenant}/subjects:resolve"
+
+      for bad <- [issuer <> "/subjects:resolve", "http://access.test/{tenant}/subjects:resolve"] do
+        endpoints = %{"subject_resolution" => bad}
+
+        assert {:error, %Relay.Error{code: :access_discovery_invalid}} =
+                 Discovery.parse_suiss(Map.put(document, "endpoints", endpoints), issuer)
+      end
+
+      assert {:ok, %{subject_resolution: nil}} = Discovery.parse_suiss(%{"issuer" => issuer}, issuer)
+    end
   end
 
   describe "INV-41 E-39 TN-57 same region" do

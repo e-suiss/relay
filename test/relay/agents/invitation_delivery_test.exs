@@ -16,7 +16,7 @@ defmodule Relay.Agents.InvitationDeliveryTest do
 
   @token "tok-3f9a1c7e5b2d4a60"
   @prefix "https://respond.example/r#"
-  @access "https://access.example/approve/7f3a"
+  @access "https://access.test/v1/approve?request=7f3a"
   @hex String.duplicate("ab", 32)
   @digest "sha256:" <> @hex
   @schema %{
@@ -45,6 +45,7 @@ defmodule Relay.Agents.InvitationDeliveryTest do
     {:ok, %{"_id" => responder}} = Relay.Subscribers.fetch(scope, external_id)
 
     %{
+      tenant: tenant,
       scope: scope,
       token: token,
       manage: manage,
@@ -411,7 +412,7 @@ defmodule Relay.Agents.InvitationDeliveryTest do
     end
 
     test "AG-32: the Access link is https and an event waitpoint takes none", ctx do
-      insecure = question(ctx, %{"access_link" => "http://access.example/approve"})
+      insecure = question(ctx, %{"access_link" => "http://access.test/v1/approve"})
       F.body(F.request(:post, "/v1/waitpoints", ctx.token, insecure), 422)
 
       event = %{
@@ -422,6 +423,44 @@ defmodule Relay.Agents.InvitationDeliveryTest do
       }
 
       F.body(F.request(:post, "/v1/waitpoints", ctx.token, event), 422)
+    end
+  end
+
+  describe "E-107 AG-80 the origin of the Access link" do
+    test "E-107, AG-80: the Access link is on the origin of an issuer of the tenant's Access environments",
+         ctx do
+      issuer = RelayTest.FakeAccess.realm_issuer(ctx.tenant.attrs.access_tenant_id, "b")
+      link = issuer <> "/v1/approve?request=7f3a"
+      waitpoint = create!(ctx, question(ctx, %{"access_link" => link}))
+      assert waitpoint.view["access_link"] == link
+    end
+
+    test "AG-80: a link on any other origin is refused at /access_link and nothing is created",
+         ctx do
+      for link <- [
+            "https://access.example/v1/approve",
+            "https://access.test:8443/v1/approve",
+            "https://user@access.test/v1/approve",
+            "https://approve.access.test/v1/approve"
+          ] do
+        body = question(ctx, %{"access_link" => link})
+        problem = F.body(F.request(:post, "/v1/waitpoints", ctx.token, body), 422)
+        assert [%{"pointer" => "/access_link", "code" => "not_allowed"}] = problem["errors"]
+      end
+
+      assert F.body(F.request(:get, "/v1/waitpoints", ctx.token), 200)["data"] == []
+    end
+
+    test "E-107: the origin check compares scheme, host and port" do
+      issuers = ["https://access.test/env/a", "https://ACCESS.example:9443"]
+
+      assert Relay.Api.Waitpoints.access_origin?("https://access.test/v1/approve", issuers)
+      assert Relay.Api.Waitpoints.access_origin?("https://access.test:443/x", issuers)
+      assert Relay.Api.Waitpoints.access_origin?("https://access.example:9443/x", issuers)
+      refute Relay.Api.Waitpoints.access_origin?("https://access.example/x", issuers)
+      refute Relay.Api.Waitpoints.access_origin?("http://access.test/v1/approve", issuers)
+      refute Relay.Api.Waitpoints.access_origin?("https://access.test/x", [])
+      refute Relay.Api.Waitpoints.access_origin?(nil, issuers)
     end
   end
 

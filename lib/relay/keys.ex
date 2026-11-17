@@ -23,7 +23,7 @@ defmodule Relay.Keys do
   @typedoc "One Exercise of an Access pairing challenge: its nonce and the intent digest Access computed."
   @type pairing_exercise :: %{nonce: binary(), intent: <<_::256>>}
 
-  @typedoc "An Access pairing challenge of one realm as Access sent it, with the Unix millisecond of signing; every time is a non-negative 64-bit number of milliseconds."
+  @typedoc "An Access pairing challenge of one Access environment as Access sent it, with the Unix millisecond of signing; every time is a non-negative 64-bit number of milliseconds."
   @type pairing :: %{
           domain: <<_::256>>,
           basis: <<_::128>>,

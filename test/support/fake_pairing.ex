@@ -2,7 +2,7 @@ defmodule RelayTest.FakePairing do
   @moduledoc """
   The pairing side of the fake Access (E-101), served as a `Req` plug in front of `RelayTest.FakeAccess` (`Relay.Access.Pairing.run/2` with `http: [plug: {RelayTest.FakePairing, agent}]`): it publishes the Suiss configuration with the pairing routes and answers `pairing_challenges`, `pairing` and `platform_streams`; every other path goes to `RelayTest.FakeAccess`. Each route takes only `Authorization: Bearer` with Relay's RFC 7523 client assertion, as Access checks it.
 
-  Every realm of the tenant snapshot gets a fresh challenge for the service key `access-service` (its RFC 7638 thumbprint as `kid`, the challenge as `instance_create` nonce, the challenge followed by `0x01` as `party_register` nonce, ten minutes of validity) until a pairing answers it with `ais` `placeholder-ais` (and `register_ais` `placeholder-register-ais`); from then on the realm is `paired`. The state (`start!/1`) can refuse realms, break a challenge (`tamper:` `:kid`, `:nonce`, `:register_nonce` or `:validity`), queue failed answers of the challenge route (`challenge_failures:`, a list of `{status, code}`) and hold the streams. The calling test process receives `{:fake_pairing, :challenges, tenant}`, `{:fake_pairing, :pairing, tenant, body}`, `{:fake_pairing, :streams}`, `{:fake_pairing, :stream, id}` and `{:fake_pairing, :open_stream, body}`.
+  Every Access environment of the tenant snapshot gets a fresh challenge for the service key `access-service` (its RFC 7638 thumbprint as `kid`, the challenge as `instance_create` nonce, the challenge followed by `0x01` as `party_register` nonce, ten minutes of validity) until a pairing answers it with `ais` `placeholder-ais` (and `register_ais` `placeholder-register-ais`); from then on the Access environment is `paired`. Targets and answers name the Access environment in `environment` (E-103), or in `realm` with `field: "realm"`, as an Access release before the rename did; a pairing answer with any other member is refused with `400 unknown-member`, as Access refuses it. The state (`start!/1`) can refuse Access environments, break a challenge (`tamper:` `:kid`, `:nonce`, `:register_nonce` or `:validity`), queue failed answers of the challenge route (`challenge_failures:`, a list of `{status, code}`) and hold the streams. The calling test process receives `{:fake_pairing, :challenges, tenant}`, `{:fake_pairing, :pairing, tenant, body}`, `{:fake_pairing, :streams}`, `{:fake_pairing, :stream, id}` and `{:fake_pairing, :open_stream, body}`.
   """
 
   use Boundary,
@@ -24,10 +24,11 @@ defmodule RelayTest.FakePairing do
   @spec receiver() :: String.t()
   def receiver, do: @receiver
 
-  @doc "Starts the state: `refused:` realms, `tamper:`, `challenge_failures:` and `streams:`."
+  @doc "Starts the state: `refused:` Access environments, `tamper:`, `challenge_failures:`, `streams:` and `field:`."
   @spec start!(keyword()) :: pid()
   def start!(opts \\ []) do
     state = %{
+      field: Keyword.get(opts, :field, "environment"),
       paired: %{},
       refused: MapSet.new(Keyword.get(opts, :refused, [])),
       tamper: Keyword.get(opts, :tamper),
@@ -110,10 +111,17 @@ defmodule RelayTest.FakePairing do
     {:ok, raw, conn} = read_body(conn)
     body = Jason.decode!(raw)
     send(self(), {:fake_pairing, :pairing, tenant, body})
-    targets = Enum.map(body["targets"], &pair(tenant, &1, agent))
-    stream = if Enum.any?(targets, &(&1["status"] == "paired")), do: stream_id(agent)
-    result = %{"tenant" => tenant, "targets" => targets}
-    json(conn, 200, if(stream, do: Map.put(result, "event_stream", stream), else: result))
+    field = state(agent).field
+    members = [field, "challenge", "ais", "register_ais"]
+
+    if Enum.all?(body["targets"], &(Map.keys(&1) -- members == [])) do
+      targets = Enum.map(body["targets"], &pair(tenant, &1, agent))
+      stream = if Enum.any?(targets, &(&1["status"] == "paired")), do: stream_id(agent)
+      result = %{"tenant" => tenant, "targets" => targets}
+      json(conn, 200, if(stream, do: Map.put(result, "event_stream", stream), else: result))
+    else
+      problem(conn, 400, "unknown-member")
+    end
   end
 
   defp route(conn, "GET", ["platform", "streams"], agent) do
@@ -153,18 +161,24 @@ defmodule RelayTest.FakePairing do
   defp pop_failure(state), do: {nil, state}
 
   defp challenges(tenant, agent) do
-    for %{"id" => realm} <- FakeAccess.snapshot(tenant)["realms"] do
-      %{paired: paired, refused: refused} = state(agent)
+    for %{"id" => id} <- FakeAccess.snapshot(tenant)["environments"] do
+      %{paired: paired, refused: refused, field: field} = state(agent)
 
-      cond do
-        Map.has_key?(paired, {tenant, realm}) -> paired_target(realm, paired[{tenant, realm}])
-        MapSet.member?(refused, realm) -> refused_target(realm, "realm-closed")
-        true -> challenge(tenant, realm, agent)
-      end
+      target =
+        cond do
+          Map.has_key?(paired, {tenant, id}) -> paired_target(id, paired[{tenant, id}])
+          MapSet.member?(refused, id) -> refused_target(id, "environment-closed")
+          true -> challenge(tenant, id, agent)
+        end
+
+      named(target, field)
     end
   end
 
-  defp challenge(tenant, realm, agent) do
+  defp named(%{"environment" => id} = target, field),
+    do: target |> Map.delete("environment") |> Map.put(field, id)
+
+  defp challenge(tenant, id, agent) do
     challenge = :crypto.strong_rand_bytes(32)
     tamper = state(agent).tamper
     now = System.system_time(:millisecond)
@@ -172,15 +186,15 @@ defmodule RelayTest.FakePairing do
     kid = if tamper == :kid, do: :crypto.strong_rand_bytes(32), else: kid()
     nonce = if tamper == :nonce, do: :crypto.strong_rand_bytes(32), else: challenge
     suffix = if tamper == :register_nonce, do: <<2>>, else: <<1>>
-    update(agent, &%{&1 | issued: Map.put(&1.issued, b64(challenge), {tenant, realm})})
+    update(agent, &%{&1 | issued: Map.put(&1.issued, b64(challenge), {tenant, id})})
 
     %{
-      "realm" => realm,
+      "environment" => id,
       "status" => "unpaired",
-      "domain" => b64(:crypto.hash(:sha256, realm)),
-      "basis" => b64(binary_part(:crypto.hash(:sha256, "basis" <> realm), 0, 16)),
+      "domain" => b64(:crypto.hash(:sha256, id)),
+      "basis" => b64(binary_part(:crypto.hash(:sha256, "basis" <> id), 0, 16)),
       "pep" => "access-identity",
-      "party" => b64(party(realm)),
+      "party" => b64(party(id)),
       "kid" => b64(kid),
       "challenge" => b64(challenge),
       "valid_from" => time(now - 1_000),
@@ -193,27 +207,31 @@ defmodule RelayTest.FakePairing do
     }
   end
 
-  defp pair(tenant, %{"realm" => realm, "challenge" => challenge} = answer, agent) do
-    issued = state(agent).issued[challenge]
+  defp pair(tenant, %{"challenge" => challenge} = answer, agent) do
+    %{issued: issued, field: field} = state(agent)
+    id = answer[field]
     signed = answer["ais"] == b64("placeholder-ais")
     registered = answer["register_ais"] == b64("placeholder-register-ais")
 
-    if issued == {tenant, realm} and signed and registered do
-      instance = binary_part(:crypto.hash(:sha256, "instance" <> realm), 0, 16)
-      update(agent, &%{&1 | paired: Map.put(&1.paired, {tenant, realm}, instance)})
-      paired_target(realm, instance)
-    else
-      refused_target(realm, "invalid-ais")
-    end
+    target =
+      if issued[challenge] == {tenant, id} and signed and registered do
+        instance = binary_part(:crypto.hash(:sha256, "instance" <> id), 0, 16)
+        update(agent, &%{&1 | paired: Map.put(&1.paired, {tenant, id}, instance)})
+        paired_target(id, instance)
+      else
+        refused_target(id, "invalid-ais")
+      end
+
+    named(target, field)
   end
 
-  defp refused_target(realm, code), do: %{"realm" => realm, "status" => "refused", "code" => code}
+  defp refused_target(id, code), do: %{"environment" => id, "status" => "refused", "code" => code}
 
-  defp paired_target(realm, instance) do
+  defp paired_target(id, instance) do
     %{
-      "realm" => realm,
+      "environment" => id,
       "status" => "paired",
-      "party" => b64(party(realm)),
+      "party" => b64(party(id)),
       "instance" => b64(instance),
       "kid" => b64(kid())
     }
@@ -231,7 +249,7 @@ defmodule RelayTest.FakePairing do
     end
   end
 
-  defp party(realm), do: binary_part(:crypto.hash(:sha256, "party" <> realm), 0, 16)
+  defp party(id), do: binary_part(:crypto.hash(:sha256, "party" <> id), 0, 16)
 
   defp asserted?(conn) do
     with ["Bearer " <> assertion] <- get_req_header(conn, "authorization"),

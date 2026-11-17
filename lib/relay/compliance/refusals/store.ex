@@ -1,6 +1,6 @@
 defmodule Relay.Compliance.Refusals.Store do
   @moduledoc """
-  Data access of refusals and unsubscribe links. Writes call `relay_fn.refusal_apply` and `relay_fn.unsubscribe_token_revoke`; reads select the rows of the established scope.
+  Data access of refusals and unsubscribe links. Writes call `relay_fn.refusal_apply`, `relay_fn.unsubscribe_token_revoke` and, for the `sms.opted_out` event, `relay_fn.outbox_append`; reads select the rows of the established scope.
   """
 
   alias Relay.Compliance.Refusal
@@ -27,6 +27,8 @@ defmodule Relay.Compliance.Refusals.Store do
   WHERE f.id = $1
   """
 
+  @kind "SELECT r.kind::text AS kind FROM relay.recipients r WHERE r.id = $1"
+
   @address """
   SELECT a.address_ct FROM relay.recipient_addresses a
   WHERE a.recipient_id = $1 AND a.kind = $2 AND a.state = 'active'
@@ -40,12 +42,9 @@ defmodule Relay.Compliance.Refusals.Store do
   # PC-38
   # PC-39
   # INV-18
-  @doc "Applies a refusal; see `relay_fn.refusal_apply`. `sealed` carries the refusal's `:evidence_ct` and `:evidence_key_id` and the consent copy's `:consent_ct`, `digests` the address blind indexes of an `all_channel` refusal, the current key first."
-  @spec apply_refusal(Relay.Id.t(), Refusal.t(), map(), [{Relay.Id.t(), binary()}]) ::
-          {atom(), Relay.Id.t() | nil}
-  def apply_refusal(id, refusal, sealed, digests) do
-    {key_id, digest, next} = target(digests)
-
+  @doc "Applies a refusal; see `relay_fn.refusal_apply`. `sealed` carries the refusal's `:evidence_ct` and `:evidence_key_id` and the consent copy's `:consent_ct`."
+  @spec apply_refusal(Relay.Id.t(), Refusal.t(), map()) :: {atom(), Relay.Id.t() | nil}
+  def apply_refusal(id, refusal, sealed) do
     [row] =
       Repo.call!("relay_fn.refusal_apply", [
         id,
@@ -60,9 +59,6 @@ defmodule Relay.Compliance.Refusals.Store do
         sealed.evidence_ct,
         sealed.evidence_key_id,
         sealed.consent_ct,
-        digest,
-        key_id,
-        next,
         refusal.actor_ref
       ])
 
@@ -73,17 +69,35 @@ defmodule Relay.Compliance.Refusals.Store do
        :recipient_not_found,
        :subtenant_not_found,
        :evidence_key_invalid,
-       :key_not_found,
        :category_not_found,
        :not_allowed
      ]), row["refusal_id"]}
   end
 
-  defp target([{key_id, digest} | rest]), do: {key_id, digest, next(rest)}
-  defp target([]), do: {nil, nil, nil}
+  # PC-37
+  # WH-15
+  # WH-53
+  @doc "Appends the `sms.opted_out` event of a refusal on SMS that came from a keyword, with the provider account it arrived through, inside the current transaction."
+  @spec opted_out(Refusal.t()) :: :appended
+  def opted_out(%Refusal{} = refusal) do
+    id = Relay.Id.to_string(refusal.recipient_id)
+    kind = one(@kind, [refusal.recipient_id])
 
-  defp next([{_key_id, digest} | _rest]), do: digest
-  defp next([]), do: nil
+    data = %{
+      "recipient_id" => id,
+      "recipient_kind" => kind && kind["kind"],
+      "provider_account_id" => account(refusal.provider_account_id),
+      "rule_id" => "consent.revoked",
+      "opted_out_at" => DateTime.to_iso8601(refusal.occurred_at)
+    }
+
+    params = [Relay.Id.generate(), "sms.opted_out", "recipient:" <> id, data, nil]
+    [row] = Repo.call!("relay_fn.outbox_append", params)
+    Repo.code!(row["result"], [:appended])
+  end
+
+  defp account(nil), do: nil
+  defp account(id), do: Relay.ExternalId.encode("pva", id)
 
   # T-15
   @doc "Queues a job inside the current transaction; rolls the transaction back when it is not queued."

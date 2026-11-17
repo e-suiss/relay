@@ -25503,6 +25503,12 @@ x-relay-limits:
     max_allowed_countries: 250
     x-relay-choice: true
     x-relay-choice-note: "CH-54 and TN-52 name the protections of security SMS destinations (rate limit per number and per number block, country allow-list, pumping detection with an automatic stop) without values; every value here is a POLICY DEFAULT chosen by the contract. A number block is the number without its last block_digits digits. Pumping trips when the sends counted to a block or a country in window reach min_volume and multiplier times the share of that window in the count of baseline_window; escalation stops the country when prefix_stops of its blocks were stopped within its window."
+  sms_keyword:
+    reply_rate:
+      limit: 3
+      window: PT24H
+    x-relay-choice: true
+    x-relay-choice-note: "PC-37 asks for one reply to a keyword without a limit; the limit of replies to one number in a window is a POLICY DEFAULT chosen by the contract so that two automatic senders never answer each other without end. Past the limit the keyword still takes effect and only the reply is withheld."
   topic:
     max_subscribers_per_request: 1000
   route:

@@ -6,6 +6,7 @@ defmodule Relay.Channels.Verimor do
     * Voice (`otp_oob`, CH-56): one call campaign per delivery, declared commercial or not like an SMS since a commercial call is subject to İYS `ARAMA`, `POST /ivr_campaigns.json` with the credential as the API key, the sender identity's number as the caller id (`cli`) and the text read in the content's language (`tr-TR` by default). The billing unit is the answered call.
     * A failure answers with its error name or status: `send:<NAME>`, `voice:<status>` or `http:<status>`. A delivery report is `dlr:<STATUS>` and a call report `call:<status>`.
     * Neither webhook is signed: the callback URL carries a secret token checked in constant time, a compensating control whose authenticity is declared unverifiable (`reports/3`).
+    * A message one of the account's numbers receives is pushed to the same kind of URL as a JSON array of `type: inbound` rows, checked with the same token, and is read as an inbound message (`inbound/1`, PC-37).
     * The settings check asks the balance: an SMS account with `GET /v2/balance` under its user name and password, a voice account with Bulutsantralim's `GET /balance` under its API key; `401` or `403` is a credential mismatch (CH-14, CH-52).
   """
 
@@ -23,6 +24,7 @@ defmodule Relay.Channels.Verimor do
   @languages ~w(tr-TR en-US ar-XA)
   @pending ~w(SENDING WAITING SENT)
   @max_valid_s 48 * 3600
+  @istanbul_s 3 * 3600
 
   @impl Relay.Channels.Adapter
   def provider, do: "verimor"
@@ -253,12 +255,42 @@ defmodule Relay.Channels.Verimor do
 
   defp parse("[" <> _rest = body) do
     case Jason.decode(body) do
-      {:ok, rows} when is_list(rows) -> {:ok, Enum.map(rows, &sms_report/1)}
+      {:ok, rows} when is_list(rows) -> {:ok, Enum.map(rows, &read/1)}
       _invalid -> {:error, :invalid_body}
     end
   end
 
   defp parse(body), do: {:ok, [call_report(URI.decode_query(body))]}
+
+  defp read(%{"type" => "inbound"} = row), do: inbound(row)
+  defp read(row), do: sms_report(row)
+
+  # PC-37
+  @doc "Reads one Verimor received message (`type: inbound`): `message_id`, `source_addr`, `destination_addr`, `content` and `received_at`, which Verimor writes in Turkish time."
+  @spec inbound(map()) :: Adapter.inbound_sms()
+  def inbound(%{} = row) do
+    %{
+      kind: :inbound_sms,
+      provider_message_id: to_string(row["message_id"]),
+      from: Relay.Redacted.wrap(e164(to_string(row["source_addr"]))),
+      to: string(row["destination_addr"]),
+      text: Relay.Redacted.wrap(to_string(row["content"])),
+      received_at: received_at(row["received_at"]),
+      replied?: false
+    }
+  end
+
+  defp e164("+" <> _digits = number), do: number
+  defp e164(digits), do: "+" <> digits
+
+  defp received_at(text) when is_binary(text) do
+    case NaiveDateTime.from_iso8601(text) do
+      {:ok, local} -> DateTime.from_naive!(NaiveDateTime.add(local, -@istanbul_s), "Etc/UTC")
+      {:error, _reason} -> nil
+    end
+  end
+
+  defp received_at(_none), do: nil
 
   # CH-10
   @doc "Reads one Verimor SMS delivery report: `DELIVERED` is delivered, `SENDING`, `WAITING` and `SENT` (sent without an operator report) pending, and any other status a failure `dlr:<STATUS>`."

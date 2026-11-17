@@ -13,7 +13,7 @@ defmodule Relay.Channels.Adapter do
 
   `c:query/1` is required when the declared policy is `wait_and_query`: it asks the provider's status endpoint about the request's idempotency key and returns the outcome, `:not_received` when the provider has no such request, or `:unavailable`. `c:decode/1` turns the `response` of a test vector into the raw code the adapter would report, so the activation gate can check the adapter's own parsing against its vectors.
 
-  `c:reports/3` reads a provider's delivery report webhook: it verifies the raw body first with the adapter's declared inbound verification (`Relay.Channels.Inbound`, T-40), then turns each report into a `t:report/0`, whose result is `{:delivered, info}`, `{:rejected, raw}` with the provider code of the adapter's `errors.json`, or `:pending` for an intermediate state. The core normalizes a report with `Relay.Channels.normalize_report/4`; the adapter decides nothing about it.
+  `c:reports/3` reads a provider's delivery report webhook: it verifies the raw body first with the adapter's declared inbound verification (`Relay.Channels.Inbound`, T-40), then turns each report into a `t:report/0`, whose result is `{:delivered, info}`, `{:rejected, raw}` with the provider code of the adapter's `errors.json`, or `:pending` for an intermediate state. The core normalizes a report with `Relay.Channels.normalize_report/4`; the adapter decides nothing about it. A provider that forwards the messages its numbers receive to the same webhook has them read here too, each as a `t:inbound_sms/0`: the provider's message identifier, the sender's number in E.164 form, the number or header the message was addressed to, the text as it came and, when the provider handled the message as an opt-out keyword itself and answered it, `replied?` (PC-37). The adapter reads no keyword.
 
   `c:delivery_status/1` and `c:report_events/1` serve the periodic channel reconciliation (DS-22, DS-48). `c:delivery_status/1` asks the provider's status or report endpoint about one sent message, by the request's idempotency key or its `provider_message_id`, and returns the message's reports as `c:reports/3` reads them (a pending one included), `:not_received` when the provider has no such message, or `:unavailable`. `c:report_events/1` reads the e-mail events of an account between `from` and `to` from the provider's event list API, or `:unavailable`. Neither decides anything: a "not delivered" answer is recorded as evidence and never resends (INV-9, OP-41).
 
@@ -57,6 +57,16 @@ defmodule Relay.Channels.Adapter do
           optional(:detail) => map()
         }
 
+  @type inbound_sms :: %{
+          required(:kind) => :inbound_sms,
+          required(:provider_message_id) => String.t(),
+          required(:from) => Relay.Redacted.t(),
+          required(:to) => String.t() | nil,
+          required(:text) => Relay.Redacted.t(),
+          required(:received_at) => DateTime.t() | nil,
+          required(:replied?) => boolean()
+        }
+
   @type query_result ::
           {:accepted, accepted()} | {:rejected, raw()} | :not_received | :unavailable
 
@@ -92,9 +102,9 @@ defmodule Relay.Channels.Adapter do
   @doc "Decodes the `response` of a test vector into the raw code the adapter reports."
   @callback decode(map()) :: raw()
 
-  @doc "Verifies a delivery report webhook on its raw body and reads its reports. Options: `:key` (the verification secret), `:url` (the callback URL as configured), `:token` (a token carried in the URL) and `:now`."
+  @doc "Verifies a delivery report webhook on its raw body and reads its reports and the inbound messages it carries. Options: `:key` (the verification secret), `:url` (the callback URL as configured), `:token` (a token carried in the URL) and `:now`."
   @callback reports(binary(), [{String.t(), String.t()}], keyword()) ::
-              {:ok, [report()]} | {:error, atom()}
+              {:ok, [report() | inbound_sms()]} | {:error, atom()}
 
   @doc "Asks the provider's status endpoint about a sent message for reconciliation and reads its reports."
   @callback delivery_status(Relay.Channels.Request.t()) ::

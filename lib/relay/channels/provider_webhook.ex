@@ -7,7 +7,7 @@ defmodule Relay.Channels.ProviderWebhook do
     * `sendgrid`: the ECDSA P-256 signature of the signed Event Webhook over the timestamp and the body.
     * `mailgun`: the HMAC-SHA256 of the body's own timestamp and token with the webhook signing key (declared unverifiable).
 
-  A verified body becomes its items: `{:report, report}` for an SMS or voice delivery report that is not pending, `{:email, event}` for an e-mail event that names a delivery and is not ignored. Nothing here reads a clock or the database.
+  A verified body becomes its items: `{:report, report}` for an SMS or voice delivery report that is not pending, `{:inbound_sms, message}` for a message one of the account's numbers received (PC-37), `{:email, event}` for an e-mail event that names a delivery and is not ignored. Nothing here reads a clock or the database.
   """
 
   alias Relay.Channels.Email.Event
@@ -22,7 +22,10 @@ defmodule Relay.Channels.ProviderWebhook do
   @sendgrid_signature "x-twilio-email-event-webhook-signature"
   @sendgrid_timestamp "x-twilio-email-event-webhook-timestamp"
 
-  @type item :: {:report, Relay.Channels.Adapter.report()} | {:email, Event.t()}
+  @type item ::
+          {:report, Relay.Channels.Adapter.report()}
+          | {:inbound_sms, Relay.Channels.Adapter.inbound_sms()}
+          | {:email, Event.t()}
   @type request :: %{
           required(:body) => binary(),
           required(:headers) => Inbound.headers(),
@@ -40,6 +43,7 @@ defmodule Relay.Channels.ProviderWebhook do
   # WH-49
   # T-40
   # CH-47
+  # PC-37
   @doc "Verifies a webhook request of `provider` with its verification secret `key` and reads its items; see the module documentation."
   @spec read(String.t(), Relay.Redacted.t(), request()) :: {:ok, [item()]} | {:error, reason()}
   def read(provider, key, %{body: body} = request) when is_map_key(@reports, provider) do
@@ -48,7 +52,7 @@ defmodule Relay.Channels.ProviderWebhook do
 
     case adapter.reports(body, request.headers, opts) do
       {:ok, reports} ->
-        {:ok, for(%{result: result} = r <- reports, result != :pending, do: {:report, r})}
+        {:ok, Enum.flat_map(reports, &item/1)}
 
       {:error, reason} ->
         {:error, reason(reason)}
@@ -78,6 +82,10 @@ defmodule Relay.Channels.ProviderWebhook do
       _invalid -> {:error, :invalid_body}
     end
   end
+
+  defp item(%{kind: :inbound_sms} = message), do: [{:inbound_sms, message}]
+  defp item(%{result: :pending}), do: []
+  defp item(%{result: _result} = report), do: [{:report, report}]
 
   defp email(provider, body) do
     for %Event{type: type, delivery_id: <<_::128>>} = event <-

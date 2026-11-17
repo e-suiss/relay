@@ -167,7 +167,8 @@
     {
       "table": "mailbox_records",
       "personal_columns": [
-        "payload_ct"
+        "payload_ct",
+        "content_ref_ct"
       ],
       "tenant_close": "tenant data key destroyed; an api client payload becomes unreadable",
       "subject_erasure": "payload unreadable once the owner's notification_content data key is destroyed; a single tenant-key payload is set to null with payload_erased_at"

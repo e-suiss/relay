@@ -208,15 +208,7 @@ defmodule Relay.Agents.FirstContact do
           optional(:over_first_contact_rate) => boolean(),
           optional(:authenticated) => boolean()
         }) :: label()
-  def trust_label(facts) do
-    cond do
-      Map.get(facts, :blocked, false) or Map.get(facts, :suspended, false) -> :blocked
-      Map.get(facts, :marked_spam, false) -> :spam
-      Map.get(facts, :over_first_contact_rate, false) -> :spam
-      Map.get(facts, :authenticated, false) -> :authenticated
-      true -> :unauthenticated
-    end
-  end
+  def trust_label(facts), do: Relay.Agents.TrustLabel.assign(facts)
 
   # AG-59
   # AG-73

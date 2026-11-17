@@ -11,11 +11,14 @@ defmodule Relay.Agents do
   alias Relay.Agents.Escalation
   alias Relay.Agents.FirstContact
   alias Relay.Agents.Mailbox
+  alias Relay.Agents.Message
+  alias Relay.Agents.Messages
   alias Relay.Agents.Registry
   alias Relay.Agents.Response
   alias Relay.Agents.ResponseToken
   alias Relay.Agents.ResponseValue
   alias Relay.Agents.TaskNotifications
+  alias Relay.Agents.TrustLabel
   alias Relay.Agents.Waitpoint
   alias Relay.Agents.WakeHint
 
@@ -242,6 +245,36 @@ defmodule Relay.Agents do
 
   # AG-53
   # AG-70
+  @doc "The published limits of the structured message of a mailbox record; see `Relay.Agents.Message.limits/0`."
+  @spec mailbox_message_limits() :: map()
+  defdelegate mailbox_message_limits(), to: Message, as: :limits
+
+  # C-76
+  # C-77
+  # INV-30
+  # AG-38
+  # AG-39
+  # AG-69
+  @doc "Delivers an incoming message to the mailbox of an agent or an API client as untrusted parts with its trust label; see `Relay.Agents.Messages.deliver/3`. Every sender of a message to an agent goes through here."
+  @spec deliver_message(Relay.Scope.t(), Mailbox.owner(), map()) ::
+          {:ok, Messages.delivered()} | {:error, Messages.refusal() | term()}
+  defdelegate deliver_message(scope, owner, message), to: Messages, as: :deliver
+
+  # C-76
+  # AG-39
+  # AG-40
+  @doc "The signed structured message and the trust label of each mailbox record, by record identifier; see `Relay.Agents.Messages.views/3`. Runs outside any transaction."
+  @spec mailbox_messages(Relay.Scope.t(), [map()], Message.include()) ::
+          {:ok, %{Relay.Id.t() => map()}} | {:error, Relay.Error.t() | term()}
+  defdelegate mailbox_messages(scope, records, include), to: Messages, as: :views
+
+  # AG-40
+  @doc "The public key that verifies the messages of the scope's mailboxes; see `Relay.Agents.Messages.key/1`."
+  @spec mailbox_message_key(Relay.Scope.t()) :: {:ok, String.t()} | {:error, Relay.Error.t()}
+  defdelegate mailbox_message_key(scope), to: Messages, as: :key
+
+  # AG-53
+  # AG-70
   @doc "The published limits of messages between agents; see `Relay.Agents.FirstContact.limits/0`."
   @spec message_limits() :: map()
   defdelegate message_limits(), to: FirstContact, as: :limits
@@ -288,9 +321,9 @@ defmodule Relay.Agents do
 
   # AG-38
   # AG-69
-  @doc "The trust label of a message by the order of AG-69; see `Relay.Agents.FirstContact.trust_label/1`."
-  @spec trust_label(map()) :: FirstContact.label()
-  defdelegate trust_label(facts), to: FirstContact
+  @doc "The trust label of a message by the order of AG-69; see `Relay.Agents.TrustLabel.assign/1`, the one place the label is assigned."
+  @spec trust_label(TrustLabel.facts()) :: TrustLabel.t()
+  defdelegate trust_label(facts), to: TrustLabel, as: :assign
 
   # AG-59
   # AG-73

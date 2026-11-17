@@ -242,8 +242,8 @@ defmodule Relay.Webhooks.AuditStreamTest do
     end
 
     test "WH-67: the catalog marks the type explicit-only and no other type" do
-      assert Relay.EventCatalog.explicit_only() ==
-               ["a2a.push_notification", @type_name, "mailbox.request_received"]
+      names = ["a2a.push_notification", @type_name, "mailbox.record_flagged"]
+      assert Relay.EventCatalog.explicit_only() == names ++ ["mailbox.request_received"]
 
       assert Relay.EventCatalog.explicit_only?(@type_name)
       refute Relay.EventCatalog.explicit_only?("notification.delivered")

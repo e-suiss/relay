@@ -17,9 +17,9 @@ defmodule RelayWeb.Api.MailboxController do
   # AG-53
   @spec lease(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def lease(conn, _params) do
+    %{scope: scope, body: body} = conn.assigns
     caller = caller(conn)
-    body = conn.assigns.body
-    Work.idempotent(conn, fn _status -> Mailbox.lease(caller, body) end)
+    Work.spanning(conn, fn -> Mailbox.lease(scope, caller, body) end)
   end
 
   # AG-20
@@ -39,11 +39,16 @@ defmodule RelayWeb.Api.MailboxController do
   end
 
   # AG-21
+  # AG-40
   @spec record(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def record(conn, %{"record_id" => id}) do
     case Work.path_id(id, "mbr", :mailbox_record_not_found) do
-      {:ok, id} -> Work.answer(conn, Mailbox.record(conn.assigns.scope, caller(conn), id))
-      {:error, error} -> Response.problem(conn, error)
+      {:ok, id} ->
+        answer = Mailbox.record(conn.assigns.scope, caller(conn), id, conn.query_params)
+        Work.answer(conn, answer)
+
+      {:error, error} ->
+        Response.problem(conn, error)
     end
   end
 

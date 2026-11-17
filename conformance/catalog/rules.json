@@ -8219,7 +8219,7 @@
     "id": "AG-68",
     "section": "§17",
     "status": "frozen_technical",
-    "title": "Untrusted content is wrapped in numbered markers after escaping, HTML stripping, NFC and removal of invisible characters",
+    "title": "Untrusted text stands between marks with a random value of its part, a mark inside it is escaped, and it is normalised to visible text by fixed rules",
     "verify_stage": 12
   },
   {
@@ -8340,6 +8340,14 @@
     "section": "§17",
     "status": "frozen_technical",
     "title": "Encrypted envelopes travel between agents of one tenant environment; a request box event reaches only an endpoint that names it",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-84",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "Signed agent message envelope, flagged-record event and link origin allow-list",
     "verify_stage": 12
   },
   {

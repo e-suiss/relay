@@ -285,6 +285,8 @@
   {"file": "20270101000100_allow_evidence_level_rejections.exs", "sha256": "f2c44ae45d1b9ab135b71ab4aee41e3b70ed47831de7a423cf3dffd7455293c8"},
   {"file": "20270101000200_create_response_collection_functions.exs", "sha256": "b45f622e9e9ff5900cab1039240cdb10d1712adb97b87b2b392ddbcd471c243c"},
   {"file": "20270101000300_validate_evidence_level_rejections.exs", "sha256": "a4ad9a43d7ff64ed8293d0573186e5bbd5931c1d5a27d7dc2f1ee455a3543a56"},
+  {"file": "20270102000000_add_mailbox_message_fields.exs", "sha256": "60b14c5c82fbf33e57ddfd1c954ad8ea5f344035eb5dd81991f46bd5fd26a7c6"},
+  {"file": "20270102000100_validate_mailbox_message_checks.exs", "sha256": "48983b39ec39389d8220f800e18a0dc6c40eef98376e6ea76a5315753f07ee2a"},
   {"file": "20270103000000_register_agent_protocols.exs", "sha256": "5e54d56fa035f9d29158616a5417e73a6da41586612470ab15bc99eebd03a8d6"},
   {"file": "20270103000100_create_agent_task_notifications.exs", "sha256": "ba574f9d7ad09ebc742d275dc65e03c9c3c8d27da3187a529c2750c9a68a9f61"},
   {"file": "20270103000200_create_agent_task_notification_function.exs", "sha256": "aa30436ed1110a47c088656d55d8bb23b4bf4ca7576929abb1261007f6459694"},

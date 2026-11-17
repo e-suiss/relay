@@ -15099,11 +15099,21 @@ paths:
       tags:
         - agents
       summary: "Get a mailbox record by its handle"
-      description: "Reads one record by its durable handle, the record id every wake hint and every mailbox event carries (AG-21): its position, its delivery state and how often it was handed out. With scope agents the record is one of the caller's mailbox; with scope read it is any record of this environment."
+      description: "Reads one record by its durable handle, the record id every wake hint and every mailbox event carries (AG-21): its position, its delivery state, how often it was handed out and, for the owner of the mailbox, its signed message. With scope agents the record is one of the caller's mailbox; with scope read it is any record of this environment, without its message unless the caller owns the mailbox. content=referenced resolves the references of the message: a text over the message limit and the raw form of a text are given in full, between the same untrusted content marks (AG-68)."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/MailboxRecordId"
+        - name: content
+          in: query
+          description: "inline (the default): content kept by reference appears as a reference. referenced: it is given in full."
+          required: false
+          schema:
+            type: string
+            enum:
+              - inline
+              - referenced
+            default: inline
       security:
         - access_bearer:
             - agents
@@ -27612,6 +27622,14 @@ x-relay-limits:
       min: 1
       max: 20
     lease_max_records: 100
+    message:
+      max_bytes: 262144
+      referenced_max_bytes: 1048576
+      max_parts: 32
+      max_links: 16
+      link_origins_max: 20
+      x-relay-choice: true
+      x-relay-choice-note: "AG-70 sets the message payload at 256 KiB and carries untrusted content over it by reference. The bound of the referenced content of one message (the texts moved out of the payload and the raw forms of normalised texts), the parts and links of a message and the size of the tenant's link allow list are contract choices."
   first_contact:
     messages_per_hour: 20
     recipients_per_day: 10

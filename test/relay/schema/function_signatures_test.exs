@@ -103,6 +103,7 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.virtual_clock_get" => ~w(ok not_test_environment),
     "relay_fn.mailbox_ensure" => ~w(created exists owner_not_found tenant_inactive),
     "relay_fn.mailbox_append" => ~w(appended mailbox_not_found mailbox_inactive),
+    "relay_fn.mailbox_message_append" => ~w(appended mailbox_not_found mailbox_inactive),
     "relay_fn.mailbox_cursor_check" => ~w(ok resync_required not_found),
     "relay_fn.mailbox_ack" => ~w(acked already_acked lease_lost not_found),
     "relay_fn.mailbox_cursor_advance" => ~w(advanced stale epoch_mismatch not_found),

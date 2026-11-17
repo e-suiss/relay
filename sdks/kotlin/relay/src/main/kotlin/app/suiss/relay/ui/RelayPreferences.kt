@@ -129,11 +129,17 @@ public class RelayPreferencesModel(
         mutablePending.value = null
         val current = mutablePreferences.value
         when (choice) {
-            RelayTurnOffChoice.INSTANT ->
+            RelayTurnOffChoice.INSTANT -> {
                 current?.let { write { api.setDigest(cell.category, RelayDigestChoice.INSTANT, it) } }
-            RelayTurnOffChoice.DIGEST ->
+            }
+
+            RelayTurnOffChoice.DIGEST -> {
                 current?.let { write { api.setDigest(cell.category, RelayDigestChoice.DIGEST, it) } }
-            RelayTurnOffChoice.NEVER -> write { api.set(cell.category, cell.channel, RelayPreferenceValue.OPT_OUT) }
+            }
+
+            RelayTurnOffChoice.NEVER -> {
+                write { api.set(cell.category, cell.channel, RelayPreferenceValue.OPT_OUT) }
+            }
         }
     }
 
@@ -280,21 +286,29 @@ public fun RelayPreferenceRow(
             if (!state.isEditable) Text(stateText, color = theme.secondaryText)
         }
         when (state) {
-            RelayPreferenceRowState.ON, RelayPreferenceRowState.OFF ->
+            RelayPreferenceRowState.ON, RelayPreferenceRowState.OFF -> {
                 Switch(
                     checked = state == RelayPreferenceRowState.ON,
                     onCheckedChange = onChange,
                     colors = SwitchDefaults.colors(checkedTrackColor = theme.accent),
                 )
-            RelayPreferenceRowState.DEVICE_DISABLED ->
+            }
+
+            RelayPreferenceRowState.DEVICE_DISABLED -> {
                 onOpenSettings?.let {
                     TextButton(onClick = it) { Text(stringResource(R.string.relay_prefs_open_settings), color = theme.accent) }
                 }
-            RelayPreferenceRowState.PERMISSION_PENDING ->
+            }
+
+            RelayPreferenceRowState.PERMISSION_PENDING -> {
                 onRequestPermission?.let {
                     TextButton(onClick = it) { Text(stringResource(R.string.relay_prefs_allow), color = theme.accent) }
                 }
-            RelayPreferenceRowState.LOCKED_ON, RelayPreferenceRowState.ADMIN_DISABLED -> Spacer(Modifier)
+            }
+
+            RelayPreferenceRowState.LOCKED_ON, RelayPreferenceRowState.ADMIN_DISABLED -> {
+                Spacer(Modifier)
+            }
         }
     }
 }

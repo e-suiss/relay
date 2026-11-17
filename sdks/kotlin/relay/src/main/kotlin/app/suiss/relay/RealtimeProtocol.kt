@@ -44,6 +44,7 @@ public class RelayRealtimeEnvelope(
             val id = payload.string("item_id") ?: return null
             val version = payload.get("state_version")?.takeIf { it.isJsonPrimitive }?.asInt ?: return null
             val changes = payload.get("changes")?.takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
+
             fun flag(name: String): Boolean? = changes.get(name)?.takeIf { it.isJsonPrimitive }?.asBoolean
             return RelayItemPatch(id, version, flag("seen"), flag("read"), flag("archived"), flag("hidden"), flag("expired"))
         }

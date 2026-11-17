@@ -10,6 +10,8 @@ style:
     maxLineLength: 140
   ReturnCount:
     active: false
+  ThrowsCount:
+    active: false
   LoopWithTooManyJumpStatements:
     active: false
 
@@ -39,8 +41,6 @@ exceptions:
   TooGenericExceptionCaught:
     active: false
   SwallowedException:
-    active: false
-  ThrowsCount:
     active: false
   InstanceOfCheckForException:
     active: false

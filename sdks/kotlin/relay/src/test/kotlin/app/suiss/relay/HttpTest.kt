@@ -71,7 +71,11 @@ class HttpTest {
         val defaults = ErrorCatalog.retryableDefaults(text)
         assertTrue(defaults.isNotEmpty())
         defaults.forEach { entry ->
-            assertEquals("status ${entry.status} ${entry.code}", entry.retryable, RetryClassifier.defaultRetryable(entry.status, entry.code))
+            assertEquals(
+                "status ${entry.status} ${entry.code}",
+                entry.retryable,
+                RetryClassifier.defaultRetryable(entry.status, entry.code),
+            )
         }
         ErrorCatalog.codes(text).forEach { entry ->
             assertEquals(entry.code, entry.retryable, RetryClassifier.isRetryable(entry.status, entry.code, entry.retryable))
@@ -127,8 +131,14 @@ object ErrorCatalog {
                     status = line.removePrefix("  - status:").trim().toIntOrNull()
                     code = null
                 }
-                line.startsWith("    code: ") -> code = line.removePrefix("    code: ")
-                line.startsWith("    retryable: ") -> status?.let { result += Entry(it, code, line.endsWith("true")) }
+
+                line.startsWith("    code: ") -> {
+                    code = line.removePrefix("    code: ")
+                }
+
+                line.startsWith("    retryable: ") -> {
+                    status?.let { result += Entry(it, code, line.endsWith("true")) }
+                }
             }
         }
         return result
@@ -145,7 +155,11 @@ object ErrorCatalog {
                     code = line.removePrefix("  - code: ")
                     status = null
                 }
-                line.startsWith("    status: ") -> status = line.removePrefix("    status: ").toIntOrNull()
+
+                line.startsWith("    status: ") -> {
+                    status = line.removePrefix("    status: ").toIntOrNull()
+                }
+
                 line.startsWith("    retryable: ") -> {
                     val currentCode = code
                     val currentStatus = status

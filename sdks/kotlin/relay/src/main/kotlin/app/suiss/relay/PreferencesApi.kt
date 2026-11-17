@@ -69,7 +69,10 @@ public data class RelayPreferences(
                         RelayPreferenceCell(
                             category = cell.category,
                             channel = cell.channel.value,
-                            value = RelayPreferenceValue.entries.firstOrNull { it.wire == cell.`value`.value } ?: RelayPreferenceValue.UNSET,
+                            value =
+                                RelayPreferenceValue.entries.firstOrNull {
+                                    it.wire == cell.`value`.value
+                                } ?: RelayPreferenceValue.UNSET,
                             effective = cell.effective,
                             source =
                                 RelayPreferenceSource.entries.firstOrNull { it.wire == cell.source.value }

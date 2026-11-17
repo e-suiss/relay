@@ -59,7 +59,10 @@ class UiTest {
             RelayPreferenceRowState.PERMISSION_PENDING,
             RelayPreferenceRowState.of(cell("push", RelayPreferenceSource.CLASS_DEFAULT, true), RelayPermission.NOT_DETERMINED),
         )
-        assertEquals(RelayPreferenceRowState.OFF, RelayPreferenceRowState.of(cell("sms", RelayPreferenceSource.USER, false), RelayPermission.DENIED))
+        assertEquals(
+            RelayPreferenceRowState.OFF,
+            RelayPreferenceRowState.of(cell("sms", RelayPreferenceSource.USER, false), RelayPermission.DENIED),
+        )
         assertTrue(RelayPreferenceRowState.ON.isEditable)
         assertFalse(RelayPreferenceRowState.LOCKED_ON.isEditable)
     }
@@ -106,7 +109,10 @@ class UiTest {
         return context.createConfigurationContext(configuration)
     }
 
-    private fun keys(file: File): Set<String> = Regex("<string name=\"([a-z_]+)\"").findAll(file.readText()).map { it.groupValues[1] }.toSet()
+    private fun keys(file: File): Set<String> =
+        Regex("<string name=\"([a-z_]+)\"").findAll(file.readText()).map {
+            it.groupValues[1]
+        }.toSet()
 
     private fun preferences(digest: String): String =
         """{"object":"subscriber_preferences","subscriber_id":"sub_01j9zq3k4m5n6p7q8r9s0t1v2w",""" +

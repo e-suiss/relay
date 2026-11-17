@@ -146,21 +146,30 @@ public class RelayRealtimeConnection internal constructor(
                 throw cancelled
             } catch (stop: RelayRealtimeStop) {
                 when (stop) {
-                    RelayRealtimeStop.Unavailable ->
+                    RelayRealtimeStop.Unavailable -> {
                         if (index + 1 < transports.size) {
                             index += 1
                             continue
                         }
-                    is RelayRealtimeStop.RetryAfter -> wait = stop.seconds * 1_000
+                    }
+
+                    is RelayRealtimeStop.RetryAfter -> {
+                        wait = stop.seconds * 1_000
+                    }
+
                     RelayRealtimeStop.AuthExpired -> {
                         runCatching { tokens.refresh() }
                         continue
                     }
+
                     is RelayRealtimeStop.Refused -> {
                         mutableState.value = RelayRealtimeState.Stopped(stop.reason)
                         return
                     }
-                    RelayRealtimeStop.Closed -> Unit
+
+                    RelayRealtimeStop.Closed -> {
+                        Unit
+                    }
                 }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
@@ -180,12 +189,25 @@ public class RelayRealtimeConnection internal constructor(
             joined: Boolean,
         ): RelayRealtimeStop =
             when {
-                reason.isNullOrEmpty() -> if (joined) RelayRealtimeStop.Closed else RelayRealtimeStop.Unavailable
-                reason.startsWith("retry-after=") ->
+                reason.isNullOrEmpty() -> {
+                    if (joined) RelayRealtimeStop.Closed else RelayRealtimeStop.Unavailable
+                }
+
+                reason.startsWith("retry-after=") -> {
                     RelayRealtimeStop.RetryAfter(reason.removePrefix("retry-after=").toLongOrNull() ?: 1)
-                reason == "auth_expired_token" || reason == "auth_invalid_token" -> RelayRealtimeStop.AuthExpired
-                reason == "connection_limit" -> RelayRealtimeStop.Closed
-                else -> RelayRealtimeStop.Refused(reason)
+                }
+
+                reason == "auth_expired_token" || reason == "auth_invalid_token" -> {
+                    RelayRealtimeStop.AuthExpired
+                }
+
+                reason == "connection_limit" -> {
+                    RelayRealtimeStop.Closed
+                }
+
+                else -> {
+                    RelayRealtimeStop.Refused(reason)
+                }
             }
 
         fun stopForStatus(
@@ -278,6 +300,7 @@ internal class WebSocketRealtimeTransport(
                         val payload = JsonObject().apply { cursor?.let { addProperty("cursor", it) } }
                         socket.send(PhoenixFrame("1", "1", "inbox", "phx_join", payload).encoded())
                     }
+
                     is SocketEvent.Text -> {
                         val frame = PhoenixFrame.decode(event.text) ?: continue
                         if (frame.event == "phx_reply" && frame.ref == "1") {
@@ -293,9 +316,14 @@ internal class WebSocketRealtimeTransport(
                         if (frame.topic != "inbox") continue
                         RelayRealtimeEnvelope.from(frame.payload)?.let { onEnvelope(it) }
                     }
-                    is SocketEvent.Closed -> throw RelayRealtimeConnection.stopForCloseReason(event.reason, joined)
-                    is SocketEvent.Failed ->
+
+                    is SocketEvent.Closed -> {
+                        throw RelayRealtimeConnection.stopForCloseReason(event.reason, joined)
+                    }
+
+                    is SocketEvent.Failed -> {
                         throw if (!opened) RelayRealtimeStop.Unavailable else RelayRealtimeStop.Closed
+                    }
                 }
             }
         } finally {

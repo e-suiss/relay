@@ -66,7 +66,12 @@ class InboxTest {
             val item = client.store.items.value.single()
             harness.server.enqueue(
                 "POST /v1/subscriber/inbox/items/${Fixtures.ITEM_ID}/intents",
-                Reply.problem(409, "inbox_item_conflict", retryable = false, extra = ",\"current\":${Fixtures.state(version = 5, read = true)}"),
+                Reply.problem(
+                    409,
+                    "inbox_item_conflict",
+                    retryable = false,
+                    extra = ",\"current\":${Fixtures.state(version = 5, read = true)}",
+                ),
             )
             client.store.perform(RelayInboxOperation.UNREAD, item)
             assertEquals(RelayInboxNotice.UpdatedOnAnotherDevice(Fixtures.ITEM_ID), client.store.notice.value)
@@ -98,13 +103,19 @@ class InboxTest {
                 Reply.json(
                     200,
                     """{"object":"inbox_intent_result","item_id":"${Fixtures.ITEM_ID}","op":"read","client_seq":0,""" +
-                        """"result":"applied","state":${Fixtures.state(version = 3, read = true)},"counters":${Fixtures.counters(0, 0, 5)}}""",
+                        """"result":"applied","state":${Fixtures.state(
+                            version = 3,
+                            read = true,
+                        )},"counters":${Fixtures.counters(0, 0, 5)}}""",
                 ),
             )
             client.store.drainQueue()
             assertTrue(client.store.queue.isEmpty())
             assertEquals(5, client.store.counters.value.version)
-            val keys = harness.server.requests("POST /v1/subscriber/inbox/items/${Fixtures.ITEM_ID}/intents").map { it.header("Idempotency-Key") }
+            val keys =
+                harness.server.requests("POST /v1/subscriber/inbox/items/${Fixtures.ITEM_ID}/intents").map {
+                    it.header("Idempotency-Key")
+                }
             assertEquals(1, keys.toSet().size)
         }
 

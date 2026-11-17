@@ -98,7 +98,14 @@ class RealtimeTest {
             val log = mutableListOf<String>()
             val connection =
                 RelayRealtimeConnection(
-                    transports = listOf(Scripted(RelayRealtimeTransportKind.WEB_SOCKET, log, listOf(RelayRealtimeStop.Refused("auth_tenant_suspended")))),
+                    transports =
+                        listOf(
+                            Scripted(
+                                RelayRealtimeTransportKind.WEB_SOCKET,
+                                log,
+                                listOf(RelayRealtimeStop.Refused("auth_tenant_suspended")),
+                            ),
+                        ),
                     tokens = TokenStore(harness.tokens, harness.clock),
                     clock = harness.clock,
                     random = FixedRandom(),

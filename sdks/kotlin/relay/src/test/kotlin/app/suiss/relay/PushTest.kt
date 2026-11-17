@@ -39,7 +39,11 @@ class PushTest {
             assertEquals("denied", body.get("permission").asString)
             assertEquals("app.suiss.example", body.get("app").asString)
             assertEquals("old-token", body.get("previous_token").asString)
-            val channels = body.getAsJsonArray("android_channels").map { it.asJsonObject.get("id").asString to it.asJsonObject.get("importance").asString }
+            val channels =
+                body.getAsJsonArray("android_channels").map {
+                    it.asJsonObject.get("id").asString to
+                        it.asJsonObject.get("importance").asString
+                }
             assertEquals(setOf("relay.orders.active" to "default", "relay.orders.passive" to "low"), channels.toSet())
             assertNull(body.get("apns_environment"))
             assertEquals(RelayDeviceRecord(Fixtures.DEVICE_ID, "new-token"), storage.load())
@@ -75,7 +79,8 @@ class PushTest {
     fun `CH-32 a receipt names the delivery`() =
         runBlocking<Unit> {
             val harness = Harness()
-            val push = RelayPushApi(harness.http, MemoryDeviceStorage(), { RelayNotificationSettings(RelayPermission.GRANTED) }) { emptyList() }
+            val push =
+                RelayPushApi(harness.http, MemoryDeviceStorage(), { RelayNotificationSettings(RelayPermission.GRANTED) }) { emptyList() }
             harness.server.enqueue(
                 "POST /v1/subscriber/push_receipts",
                 Reply.json(202, """{"object":"push_receipt","delivery_id":"${Fixtures.DELIVERY_ID}","receipt":"clicked"}"""),
@@ -133,7 +138,12 @@ class PushTest {
             security.map { it.id },
         )
         assertEquals(
-            listOf(NotificationManager.IMPORTANCE_LOW, NotificationManager.IMPORTANCE_DEFAULT, NotificationManager.IMPORTANCE_HIGH, NotificationManager.IMPORTANCE_HIGH),
+            listOf(
+                NotificationManager.IMPORTANCE_LOW,
+                NotificationManager.IMPORTANCE_DEFAULT,
+                NotificationManager.IMPORTANCE_HIGH,
+                NotificationManager.IMPORTANCE_HIGH,
+            ),
             security.map { it.importance },
         )
         val marketing = RelayNotificationChannels.specs(RelayCategoryInfo("deals", "Deals", RelayMessageClass.MARKETING))
@@ -172,7 +182,9 @@ class PushTest {
         runBlocking<Unit> {
             val harness = Harness()
             val client = harness.client()
-            RelayNotificationChannels.create(context, listOf(RelayCategoryInfo("orders", "Orders", RelayMessageClass.TRANSACTIONAL)), { it.wire })
+            RelayNotificationChannels.create(context, listOf(RelayCategoryInfo("orders", "Orders", RelayMessageClass.TRANSACTIONAL)), {
+                it.wire
+            })
             harness.server.enqueue("GET /v1/subscriber/inbox/items/${Fixtures.ITEM_ID}", Reply.json(200, Fixtures.item()))
             val shown = client.messaging.handle(mapOf("relay_id" to Fixtures.ITEM_ID))
             assertNotNull(shown)

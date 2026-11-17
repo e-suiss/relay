@@ -1,10 +1,5 @@
 package app.suiss.relay.ui
 
-import app.suiss.relay.R
-import app.suiss.relay.RelayInboxItem
-import app.suiss.relay.RelayInboxNotice
-import app.suiss.relay.RelayInboxOperation
-import app.suiss.relay.RelayInboxStore
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +33,11 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import app.suiss.relay.R
+import app.suiss.relay.RelayInboxItem
+import app.suiss.relay.RelayInboxNotice
+import app.suiss.relay.RelayInboxOperation
+import app.suiss.relay.RelayInboxStore
 import kotlinx.coroutines.launch
 
 // X-32

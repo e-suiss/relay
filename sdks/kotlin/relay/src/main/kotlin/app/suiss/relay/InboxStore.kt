@@ -126,13 +126,17 @@ public class RelayInboxStore internal constructor(
                 apply(patch)
                 queue.observe(patch.id, patch.stateVersion)
             }
+
             "inbox.item_created" -> {
                 val (json, thin) = envelope.createdItem ?: return
                 val item = if (thin) null else decodeItem(json)
                 val id = json.string("id") ?: return
                 insert(item ?: runCatching { api.item(id) }.getOrNull() ?: return)
             }
-            "inbox.items_bulk_updated", "stream.resync_required" -> coldSync()
+
+            "inbox.items_bulk_updated", "stream.resync_required" -> {
+                coldSync()
+            }
         }
     }
 
@@ -249,20 +253,37 @@ public class RelayInboxStore internal constructor(
                     if (!item.seen) counters = counters.copy(unseen = maxOf(0, counters.unseen - 1))
                     item.copy(seen = true)
                 }
+
                 RelayInboxOperation.READ, RelayInboxOperation.CLICK -> {
                     if (!item.seen) counters = counters.copy(unseen = maxOf(0, counters.unseen - 1))
                     if (!item.read) counters = counters.copy(unread = maxOf(0, counters.unread - 1))
                     item.copy(seen = true, read = true)
                 }
+
                 RelayInboxOperation.UNREAD -> {
                     if (item.read) counters = counters.copy(unread = counters.unread + 1)
                     item.copy(read = false)
                 }
-                RelayInboxOperation.ARCHIVE -> item.copy(archived = true)
-                RelayInboxOperation.UNARCHIVE -> item.copy(archived = false)
-                RelayInboxOperation.HIDE -> item.copy(hidden = true)
-                RelayInboxOperation.SNOOZE -> item.copy(snoozedUntil = "snoozed")
-                RelayInboxOperation.UNSNOOZE -> item.copy(snoozedUntil = null)
+
+                RelayInboxOperation.ARCHIVE -> {
+                    item.copy(archived = true)
+                }
+
+                RelayInboxOperation.UNARCHIVE -> {
+                    item.copy(archived = false)
+                }
+
+                RelayInboxOperation.HIDE -> {
+                    item.copy(hidden = true)
+                }
+
+                RelayInboxOperation.SNOOZE -> {
+                    item.copy(snoozedUntil = "snoozed")
+                }
+
+                RelayInboxOperation.UNSNOOZE -> {
+                    item.copy(snoozedUntil = null)
+                }
             }
         mutableCounters.value = counters
         replace(index, updated, wasRead = item.read)
@@ -274,6 +295,7 @@ public class RelayInboxStore internal constructor(
                 queue.observe(change.item.id, change.item.stateVersion)
                 insert(change.item)
             }
+
             is RelayInboxChange.Removed -> {
                 queue.observe(change.state.id, change.state.stateVersion)
                 val removed = mutableItems.value.firstOrNull { it.id == change.state.id } ?: return

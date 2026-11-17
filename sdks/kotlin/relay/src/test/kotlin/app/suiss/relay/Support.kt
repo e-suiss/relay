@@ -129,10 +129,13 @@ class StaticTokens(
 ) : RelayTokenProvider {
     val calls = mutableListOf<Boolean>()
 
-    @Synchronized
     override suspend fun subscriberToken(forceRefresh: Boolean): RelaySubscriberToken {
-        calls += forceRefresh
-        return RelaySubscriberToken("subscriber-token-${calls.size}", 1_900_000_000_000L, scopes)
+        val count =
+            synchronized(calls) {
+                calls += forceRefresh
+                calls.size
+            }
+        return RelaySubscriberToken("subscriber-token-$count", 1_900_000_000_000L, scopes)
     }
 }
 
@@ -164,7 +167,7 @@ class Harness(
             logger = logger,
         )
     val okHttp: OkHttpClient = OkHttpClient.Builder().addInterceptor(server).build()
-    val http = RelayHttp(configuration, okHttp)
+    internal val http = RelayHttp(configuration, okHttp)
 
     fun client(
         context: Context = ApplicationProvider.getApplicationContext(),

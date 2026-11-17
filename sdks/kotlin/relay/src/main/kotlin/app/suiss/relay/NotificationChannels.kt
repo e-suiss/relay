@@ -191,9 +191,11 @@ public class SystemNotificationSettingsReader(
         val permission =
             when {
                 enabled -> RelayPermission.GRANTED
+
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                     context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED &&
                     !wasRequested(context) -> RelayPermission.NOT_DETERMINED
+
                 else -> RelayPermission.DENIED
             }
         return RelayNotificationSettings(permission, manager?.isNotificationPolicyAccessGranted ?: false)

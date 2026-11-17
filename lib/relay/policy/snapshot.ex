@@ -10,7 +10,9 @@ defmodule Relay.Policy.Snapshot do
   * `category`: the category with the sub-tenant settings already applied (PC-57 (2)): `key`, `locked`, `enabled`, `channel_defaults` (channel → `:on | :off`), `frequency` (`nil` or `limit`, `window_ms` and `fate`, each may be `nil`), `digest_allowed` and `subtenant_override` (true when a sub-tenant setting was applied).
   * `preferences`: the recipient's values for this delivery at each level: `category_channel`, `channel`, `workflow` and `scope_key`, each `:opt_in`, `:opt_out` or `:unset`.
   * `profile`: the recipient's preference profile: `time_zone` (`nil` for none), `quiet_hours` (ranges), `schedule` (ranges of availability, `nil` for none), `dnd_until` (`nil` for none), `email_in_quiet_hours` and `digest`.
-  * `consent`: the current consent state for the delivery's brand and channel (PC-59 (1)): `state` and `ref`.
+  * `consent`: the current consent state for the delivery's brand and channel (PC-59 (1)): `state`, `ref` and the consent `kind` of the record (`nil` without one). A revocation on another channel that covers this one (the row's revocation scope) is given as the state `:revoked`.
+  * `compliance`: what the compliance table asks of this delivery (PC-40, `Relay.Compliance`): `required`, the consent kind needed (`:none` for no prior consent), `accepted`, the kinds that satisfy it, `recipient_type` (`:individual` or `:merchant`), `default`, the derived state of the cell's default (`:locked_off` or `:tenant`, PC-14), `legal_windows`, the legal send windows that apply (each with `row`, `from`, `to` and the `zones` the recipient may be in), and `detail`, the row that decided, written into the decision's detail.
+  * `iys`: the İYS input of a marketing delivery on e-mail, SMS or voice (`Relay.Policy.IysGate`): `:out_of_scope`, `:not_configured` or `{:cached, state, last_sync_ms}`; `:not_applicable` for every other delivery. `iys_stale_after_ms` is the age of the İYS copy at which sending stops (PC-33).
   * `suppression`: `nil`, or the suppression hit with its `reason` and `ref`.
   * `kill_switch`: the kill switch decision: `:allow`, `{:pause, kill_switch_id, rule_id}` or `{:hold, rule_id}` (state unknown).
   * `tenant_suspended`: whether the tenant or sub-tenant is suspended.
@@ -37,6 +39,9 @@ defmodule Relay.Policy.Snapshot do
     :preferences,
     :profile,
     :consent,
+    :compliance,
+    :iys,
+    :iys_stale_after_ms,
     :suppression,
     :kill_switch,
     :tenant_suspended,
@@ -123,10 +128,26 @@ defmodule Relay.Policy.Snapshot do
           email_in_quiet_hours: boolean(),
           digest: :instant | :digest | nil
         }
+  @type consent_kind :: :none | :legitimate_interest | :soft_opt_in | :explicit_opt_in
   @type consent :: %{
+          optional(:kind) => consent_kind() | nil,
           state: :none | :pending | :active | :revoked | :expired,
           ref: term()
         }
+  @type legal_window :: %{row: String.t(), from: Time.t(), to: Time.t(), zones: [String.t()]}
+  @type compliance :: %{
+          required: consent_kind(),
+          accepted: [consent_kind()],
+          recipient_type: :individual | :merchant,
+          default: :locked_off | :tenant,
+          legal_windows: [legal_window()],
+          detail: %{optional(atom()) => term()}
+        }
+  @type iys ::
+          :not_applicable
+          | :out_of_scope
+          | :not_configured
+          | {:cached, :approved | :rejected | :none, integer() | nil}
   @type suppression :: %{reason: atom(), ref: term()}
   @type kill_switch :: :allow | {:pause, Relay.Id.t(), String.t()} | {:hold, String.t()}
   @type reading :: %{count: non_neg_integer(), free_at: DateTime.t() | nil}
@@ -145,6 +166,9 @@ defmodule Relay.Policy.Snapshot do
           preferences: preferences() | unreadable(),
           profile: profile() | unreadable(),
           consent: consent() | unreadable(),
+          compliance: compliance() | unreadable(),
+          iys: iys() | unreadable(),
+          iys_stale_after_ms: pos_integer(),
           suppression: suppression() | nil | unreadable(),
           kill_switch: kill_switch() | unreadable(),
           tenant_suspended: boolean() | unreadable(),

@@ -236,5 +236,8 @@
   {"file": "20261217900200_rebuild_reference_check_for_webhook_sources.exs", "sha256": "b45f2020bfba794e4fc7b556b280c8dfdee3e4e0e270fea05a6ab8a16d4661df"},
   {"file": "20261218000000_create_waitpoint_completions.exs", "sha256": "6ef18cce2cdacf450457c9f93dcd38c96d8bc6deb57373d2ed54c5676853ac20"},
   {"file": "20261218000100_create_waitpoint_completion_function.exs", "sha256": "604701a479c25e8a2cc1098047d1756f0bb50249a5b9498ebf3b825b7b64c34f"},
-  {"file": "20261218000200_rebuild_reference_check_for_waitpoint_completions.exs", "sha256": "70dfe6a6d5ec92ad3f14b3043dcb6b384ec51dc8aa3ebd3c63b3dc5141c686f8"}
+  {"file": "20261218000200_rebuild_reference_check_for_waitpoint_completions.exs", "sha256": "70dfe6a6d5ec92ad3f14b3043dcb6b384ec51dc8aa3ebd3c63b3dc5141c686f8"},
+  {"file": "20261219000000_register_compliance_datasets.exs", "sha256": "88ee08f2a149a761816191947331fa7c18df2e6c34198d92e448516b3d870234"},
+  {"file": "20261219000100_add_compliance_inputs.exs", "sha256": "626bbbc2907b1c89a02fa6cd6d20a09526b16c1e493d89cf1dcbf73e55196a90"},
+  {"file": "20261219000200_validate_compliance_input_checks.exs", "sha256": "7698d3f257d54a245bf0cd0f40dc2f0eb7be7835a8a2a3822b8c7f2309f4efaf"}
 ]

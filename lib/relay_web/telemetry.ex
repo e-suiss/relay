@@ -440,7 +440,7 @@ defmodule RelayWeb.Telemetry do
 
   # DS-24
   # T-63
-  @doc "The policy lattice's decision counter by decision kind and reason family, both from bounded sets; exported on `/metrics` beside the alarms."
+  @doc "The policy lattice's decision counter by decision kind and reason family and its counter of deliveries sent with an inferred time zone by the zone's source (WF-46), all from bounded sets; exported on `/metrics` beside the alarms."
   @spec policy_metrics() :: [Telemetry.Metrics.t()]
   def policy_metrics do
     [
@@ -448,6 +448,11 @@ defmodule RelayWeb.Telemetry do
         event_name: [:relay, :policy, :decision],
         tags: [:decision, :reason],
         description: "Policy lattice decisions recorded on deliveries"
+      ),
+      counter("relay.policy.fallback_zone.total",
+        event_name: [:relay, :policy, :fallback_zone],
+        tags: [:source],
+        description: "Deliveries sent with an inferred time zone, by the zone's source"
       )
     ]
   end

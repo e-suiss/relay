@@ -8,7 +8,7 @@ defmodule Relay.Subscribers.Store do
 
   @row """
   SELECT r.id, r.kind, r.state, r.version, r.inbox_only, r.external_id_ct, r.name_ct,
-    r.locale, r.timezone, r.legal_type, r.suspended_at, r.created_at, r.updated_at,
+    r.locale, r.timezone, r.legal_type, r.country, r.suspended_at, r.created_at, r.updated_at,
     (SELECT a.address_ct FROM relay.recipient_addresses a
       WHERE a.tenant_id = r.tenant_id AND a.environment = r.environment
         AND a.recipient_id = r.id AND a.kind = 'email' AND a.state = 'active') AS email_ct,
@@ -125,6 +125,18 @@ defmodule Relay.Subscribers.Store do
        :version_conflict,
        :tenant_inactive
      ]), row["recipient_id"], row["version"]}
+  end
+
+  # PC-40
+  # PC-47
+  @doc "Writes the profile country and the country calling code of the active phone address of a subscriber through `relay_fn.recipient_locality_set`, for the fields `fields` names (`country`, `phone`); returns the result and the subscriber's version."
+  @spec locality(Relay.Id.t(), [String.t()], String.t() | nil, String.t() | nil) ::
+          {:set | :unchanged | :not_found, pos_integer() | nil}
+  def locality(recipient_id, fields, country, calling_code) do
+    [row] =
+      Repo.call!("relay_fn.recipient_locality_set", [recipient_id, fields, country, calling_code])
+
+    {Repo.code!(row["result"], [:set, :unchanged, :not_found]), row["version"]}
   end
 
   # X-5

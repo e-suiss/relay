@@ -347,7 +347,9 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.webhook_attempt_settle" => ~w(settled lock_lost not_found),
     "relay_fn.webhook_endpoint_set_state" =>
       ~w(changed unchanged not_found archived managed invalid_state),
-    "relay_fn.webhook_destination_event_record" => ~w(recorded exists)
+    "relay_fn.webhook_destination_event_record" => ~w(recorded exists),
+    "relay_fn.recipient_locality_set" => ~w(set unchanged not_found),
+    "relay_fn.device_time_zone_set" => ~w(set unchanged not_found)
   }
 
   defp functions do

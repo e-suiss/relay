@@ -5,7 +5,7 @@ export const subscriber = {
   id: "sub_01hzx3k5v7m9p2q4r6s8t0w2y4",
   external_id: "seed_no_consent",
   email: "seed_no_consent@seed.relay.test",
-  phone: "+905321234567",
+  phone: "+905551112233",
   name: "Seed No Consent",
   locale: "tr-TR",
   timezone: "Europe/Istanbul",

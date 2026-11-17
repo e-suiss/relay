@@ -157,6 +157,7 @@ defmodule Relay.Access.Pairing.KernelSignerTest do
                {:ok, %{ais: "ais", register_ais: "register-ais"}}
 
       assert_received {:sign_pairing, "access-service", pairing}
+
       assert pairing ==
                target |> Map.drop([:status, :access_environment]) |> Map.put(:now_ms, @now)
     end

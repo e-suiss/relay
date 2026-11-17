@@ -126,6 +126,7 @@ defmodule RelayWeb.Api.MailboxMessagesTest do
 
       assert {:ok, [%{token_keys: []}, %{token_keys: []}]} =
                Relay.Access.first_contact_issuers(ctx.scope)
+
       assert rows(ctx.scope, "SELECT count(*) FROM relay.agent_messages") == [[0]]
     end
 

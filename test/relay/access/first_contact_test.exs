@@ -55,6 +55,7 @@ defmodule Relay.Access.FirstContactTest do
       assert {:ok, [%{token_keys: []}, %{token_keys: []}]} = FirstContact.issuers(ctx.scope)
 
       :ok = FakeAccess.publish_first_contact!([{key, now_s() - 60}])
+
       assert {:ok, [%{token_keys: [^key]}, %{token_keys: [^key]}]} =
                FirstContact.issuers(ctx.scope)
 

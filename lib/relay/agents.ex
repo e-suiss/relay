@@ -1,12 +1,78 @@
 defmodule Relay.Agents do
   @moduledoc """
-  Waitpoints, agent mailboxes and agent protocols. Other contexts use only the functions of this module.
+  Agent recipient records, waitpoints, agent mailboxes and agent protocols. Other contexts use only the functions of this module.
   """
 
-  use Boundary, top_level?: true, deps: [Relay], exports: []
+  use Boundary, top_level?: true, deps: [Relay, Relay.Access, Relay.Tenancy], exports: []
 
   alias Relay.Agents.Correlation
+  alias Relay.Agents.Registry
   alias Relay.Agents.Waitpoint
+
+  # C-21
+  # E-29
+  @doc "Prepares the creation of an agent recipient outside any transaction; see `Relay.Agents.Registry.prepare/2`."
+  @spec prepare_agent(Relay.Scope.t(), Registry.input()) ::
+          {:ok, Registry.plan()} | {:error, Relay.Error.t()}
+  defdelegate prepare_agent(scope, input), to: Registry, as: :prepare
+
+  # C-21
+  # E-28
+  # C-68
+  @doc "Creates a prepared agent recipient inside the caller's scoped transaction; see `Relay.Agents.Registry.create/3`."
+  @spec create_agent(Registry.plan(), <<_::256>>, Relay.Actor.t()) ::
+          {:created, Registry.agent()} | {atom(), nil}
+  defdelegate create_agent(plan, digest, actor), to: Registry, as: :create
+
+  # C-21
+  # E-28
+  @doc "Changes an agent recipient inside the caller's scoped transaction; see `Relay.Agents.Registry.update/5`."
+  @spec update_agent(Relay.Id.t(), map(), pos_integer() | nil, binary(), Relay.Actor.t()) ::
+          {:updated, map()} | {atom(), pos_integer() | nil}
+  defdelegate update_agent(id, change, expected_version, digest, actor),
+    to: Registry,
+    as: :update
+
+  # AG-5
+  # AG-23
+  # INV-47
+  @doc "Soft-deletes an agent recipient inside the caller's scoped transaction, keeping its mailbox; see `Relay.Agents.Registry.delete/3`."
+  @spec delete_agent(Relay.Id.t(), <<_::256>>, Relay.Actor.t()) ::
+          {:deleted | :unchanged, Registry.agent()} | {:not_found, nil}
+  defdelegate delete_agent(id, digest, actor), to: Registry, as: :delete
+
+  # C-21
+  # E-28
+  @doc "Reads an agent recipient, or `nil`; see `Relay.Agents.Registry.get/2`."
+  @spec get_agent(Relay.Scope.t(), Relay.Id.t()) ::
+          {:ok, Registry.agent() | nil} | {:error, term()}
+  defdelegate get_agent(scope, id), to: Registry, as: :get
+
+  # C-21
+  # API-56
+  @doc "Lists agent recipients; see `Relay.Agents.Registry.list/3`."
+  @spec list_agents(Relay.Scope.t(), map() | nil, pos_integer()) ::
+          {:ok, [Registry.agent()]} | {:error, term()}
+  defdelegate list_agents(scope, cursor, limit), to: Registry, as: :list
+
+  # E-29
+  # AG-5
+  # TN-25
+  @doc "The agent bound to the Access Party `subject` of a verified token, with its state, or `nil`; see `Relay.Agents.Registry.credential/2`."
+  @spec agent_credential(Relay.Scope.t(), String.t() | nil) ::
+          {:ok, %{id: Relay.Id.t(), state: String.t()} | nil} | {:error, term()}
+  defdelegate agent_credential(scope, subject), to: Registry, as: :credential
+
+  # AG-5
+  # E-29
+  @doc "The state of an agent recipient, or `nil`; see `Relay.Agents.Registry.state/2`. Whoever delivers to an agent or serves it reads this first: only an `active` agent is delivered to."
+  @spec agent_state(Relay.Scope.t(), Relay.Id.t()) :: {:ok, String.t() | nil} | {:error, term()}
+  defdelegate agent_state(scope, id), to: Registry, as: :state
+
+  # TN-48
+  @doc "A record digest over an action, the scope and a reference; see `Relay.Agents.Registry.digest/3`."
+  @spec agent_digest(Relay.Scope.t(), String.t(), String.t()) :: <<_::256>>
+  defdelegate agent_digest(scope, action, ref), to: Registry, as: :digest
 
   # AG-65
   @doc "The digests of an event type and a correlation key under every readable lookup key; see `Relay.Agents.Correlation.digests/3`."

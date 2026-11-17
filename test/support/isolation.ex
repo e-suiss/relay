@@ -84,7 +84,8 @@ defmodule RelayTest.Isolation do
     {"recoverWebhookEndpoint", %{"since" => "2026-01-01T00:00:00Z"}},
     {"retryWebhookEndpointMessages", %{"states" => ["exhausted"]}},
     {"replayWebhookEndpointEvents", %{"since" => "2026-01-01T00:00:00Z"}},
-    {"cancelWebhookEndpointRetries", %{}}
+    {"cancelWebhookEndpointRetries", %{}},
+    {"updateAgent", %{"name" => "Isolation"}}
   ]
   @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
   @sms %{
@@ -149,7 +150,8 @@ defmodule RelayTest.Isolation do
       "webhook_event_type_id" => &webhook_event_type!/1,
       "webhook_endpoint_id" => &webhook_endpoint!/1,
       "webhook_message_id" => &webhook_message!/1,
-      "webhook_attempt_id" => &webhook_attempt!/1
+      "webhook_attempt_id" => &webhook_attempt!/1,
+      "agent_id" => &agent!/1
     }
   end
 
@@ -562,6 +564,18 @@ defmodule RelayTest.Isolation do
     }
 
     F.body(F.request(:post, "/v1/webhook_endpoints", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Registers an agent recipient in `scope` and returns its identifier."
+  @spec agent!(Relay.Scope.t()) :: String.t()
+  def agent!(scope) do
+    body = %{
+      "name" => "Isolation",
+      "owner_ref" => "isolation",
+      "access" => %{"party" => "iso-agent-" <> random()}
+    }
+
+    F.body(F.request(:post, "/v1/agents", owner(scope), body), 201)["id"]
   end
 
   @doc "Sends a test event to a new webhook endpoint in `scope` and returns the identifier of its message."

@@ -147,10 +147,10 @@ defmodule Relay.Access.ApiClientTest do
       Api.assert_contract(conn)
     end
 
-    test "API-75: the api_scope domain is the OpenAPI ScopeName set" do
+    test "API-75, AG-6: the api_scope domain is the OpenAPI ApiClientScope set" do
       [[definition]] = Relay.Repo.query!(@domain, []).rows
-      names = ~r/'([a-z_]+)'/ |> Regex.scan(definition) |> Enum.map(&List.last/1)
-      contract = Relay.Api.Contract.documents()["schemas"]["ScopeName"]["enum"]
+      names = ~r/'([a-z_:]+)'/ |> Regex.scan(definition) |> Enum.map(&List.last/1)
+      contract = Relay.Api.Contract.documents()["schemas"]["ApiClientScope"]["enum"]
       assert Enum.sort(names) == Enum.sort(contract)
     end
   end

@@ -16,7 +16,7 @@ defmodule Relay.Schema.ContractDriftTest do
     {"relay.message_class", {"schemas", ["MessageClass"]}},
     {"relay.channel", {"schemas", ["Channel"]}},
     {"relay.send_mode", {"schemas", ["SendMode"]}},
-    {"relay.api_scope", {"schemas", ["ScopeName"]}},
+    {"relay.api_scope", {"schemas", ["ApiClientScope"]}},
     {"relay.failure_class", {"schemas", ["Failure", "properties", "class"]}},
     {"relay.actor_kind",
      {"operator", @operator_schemas ++ ["AuditRecord", "properties", "actor_kind"]}}
@@ -117,7 +117,8 @@ defmodule Relay.Schema.ContractDriftTest do
      {"schemas", ["WhatsappTemplateCategory"]}},
     {"relay.whatsapp_templates", "whatsapp_templates_meta_category_check",
      {"schemas", ["WhatsappTemplateCategory"]}},
-    {"relay.campaigns", "campaigns_state_check", {"schemas", ["CampaignState"]}}
+    {"relay.campaigns", "campaigns_state_check", {"schemas", ["CampaignState"]}},
+    {"relay.agents", "agents_state_check", {"schemas", ["AgentRecordState"]}}
   ]
 
   defp values(definition), do: ~r/'([^']*)'/ |> Regex.scan(definition) |> Enum.map(&List.last/1)

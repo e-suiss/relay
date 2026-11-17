@@ -14627,7 +14627,7 @@ paths:
       tags:
         - agents
       summary: "Write an escalation policy version"
-      description: "Every call opens a new immutable version. The first call creates the policy without If-Match; a later call carries the ETag of the latest version in If-Match. A policy has 1 to 10 tiers. Waitpoints keep the version they pinned. An archived policy takes no new version."
+      description: "Every call opens a new immutable version. The first call creates the policy without If-Match; a later call carries the ETag of the latest version in If-Match. A policy has at least one tier and at most x-relay-limits waitpoint.max_escalation_tiers; more are 422 validation_failed with too_long at /tiers, the limit and the count sent. A responder a tier names must exist: an unknown one is 422 validation_failed with not_found at its pointer. Waitpoints keep the version they pinned. An archived policy takes no new version."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -25514,6 +25514,8 @@ x-relay-limits:
   route:
     max_depth: 4
     max_leaves: 10
+  waitpoint:
+    max_escalation_tiers: 10
   workflow:
     max_steps: 50
     max_branch_depth: 4

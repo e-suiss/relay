@@ -31,6 +31,7 @@ defmodule Relay.Api do
       Relay.Rules,
       Relay.Topics,
       Relay.Inbox,
+      Relay.Agents,
       Relay.Webhooks,
       Relay.Iys
     ],
@@ -58,6 +59,8 @@ defmodule Relay.Api do
       Messaging,
       Workflows,
       Routes,
+      EscalationPolicies,
+      WaitpointPlans,
       Mappings,
       Cancels,
       Queries,

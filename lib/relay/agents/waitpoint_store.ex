@@ -313,6 +313,8 @@ defmodule Relay.Agents.WaitpointStore do
       expires_at: row["expires_at"],
       heartbeat_due_at: row["heartbeat_due_at"],
       next_escalation_at: row["next_escalation_at"],
+      escalation_policy_ref: row["escalation_policy_ref"],
+      surface_policy: row["surface_policy"],
       resolved_at: row["resolved_at"],
       resolution_response_id: row["resolution_response_id"],
       resolved_by_record_id: row["resolved_by_record_id"],

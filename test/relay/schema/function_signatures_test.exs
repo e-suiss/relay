@@ -365,6 +365,14 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.iys_permission_mark" => ~w(marked not_found),
     "relay_fn.iys_sync_record" => ~w(recorded brand_not_found),
     "relay_fn.iys_upload_retry" => ~w(retried not_found not_failed not_retryable),
+    "relay_fn.escalation_policy_put" =>
+      ~w(created versioned version_conflict precondition_required archived tier_limit responder_not_found tenant_inactive),
+    "relay_fn.escalation_policy_archive" => ~w(archived already_archived not_found),
+    "relay_fn.waitpoint_plan_check" =>
+      ~w(ok policy_not_found policy_archived responder_outside_set tier_limit surface_recipient_outside_set),
+    "relay_fn.waitpoint_plan_pin" => ~w(pinned already_pinned not_open not_found),
+    "relay_fn.waitpoint_steps_fire" => ~w(fired not_due not_open not_found),
+    "relay_fn.waitpoint_invitation_settle" => ~w(settled already_settled not_found),
     "relay_fn.recipient_locality_set" => ~w(set unchanged not_found),
     "relay_fn.device_time_zone_set" => ~w(set unchanged not_found),
     "relay_fn.refusal_apply" =>

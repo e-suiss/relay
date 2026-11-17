@@ -414,6 +414,21 @@ defmodule RelayWeb.Router do
     post "/routes/:route_key/archive", RouteController, :archive,
       private: %{relay_operation: "archiveRoute"}
 
+    get "/escalation_policies", EscalationPolicyController, :index,
+      private: %{relay_operation: "listEscalationPolicies"}
+
+    get "/escalation_policies/:policy_key", EscalationPolicyController, :show,
+      private: %{relay_operation: "getEscalationPolicy"}
+
+    put "/escalation_policies/:policy_key", EscalationPolicyController, :write,
+      private: %{relay_operation: "putEscalationPolicy"}
+
+    get "/escalation_policies/:policy_key/versions", EscalationPolicyController, :versions,
+      private: %{relay_operation: "listEscalationPolicyVersions"}
+
+    post "/escalation_policies/:policy_key/archive", EscalationPolicyController, :archive,
+      private: %{relay_operation: "archiveEscalationPolicy"}
+
     get "/workflows", WorkflowController, :index, private: %{relay_operation: "listWorkflows"}
     post "/workflows", WorkflowController, :create, private: %{relay_operation: "createWorkflow"}
 

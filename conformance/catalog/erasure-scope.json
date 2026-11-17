@@ -229,6 +229,30 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "escalation_policies",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "escalation_policy_versions",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "a tier names its responders by recipient identifier only, never by an external identifier; the recipient row is soft deleted and the version is kept"
+    },
+    {
+      "table": "waitpoint_steps",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "no personal fields: recipient and device identifiers only; the erasure cancels the open waitpoint and with it the pending steps"
+    },
+    {
+      "table": "waitpoint_invitations",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "no personal fields: recipient and device identifiers only; the erasure cancels the open waitpoint and with it the invitations not yet delivered"
+    },
+    {
       "table": "fanouts",
       "personal_columns": [],
       "tenant_close": "row kept",

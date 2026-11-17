@@ -6,10 +6,11 @@ defmodule Relay.Agents.Waitpoint do
 
   The invariants are database constraints (AG-11): a responder is never the waiter, an expired waitpoint cannot be resolved, a closed waitpoint does not change, and a waitpoint takes one response. Every state change writes a `waitpoint_event` record to the waiter's mailbox and an outbox event in the same transaction (AG-16, INV-35).
 
-  Two timers, the total deadline and the waiter's heartbeat, are evaluated by one job per waitpoint, `Relay.Agents.WaitpointTimer`, scheduled for the nearest of them; an early wake-up finds nothing due and reschedules itself (AG-15). In `test` a timer is scheduled at its wall-clock time and a virtual clock step runs what fell due (TN-8).
+  Two timers, the total deadline and the waiter's heartbeat, are evaluated by one job per waitpoint, `Relay.Agents.WaitpointTimer`, scheduled for the nearest of them; an early wake-up finds nothing due and reschedules itself (AG-15). The same job runs the waitpoint's escalation tiers and surface steps when the nearest of them is due (AG-19, `Relay.Agents.Escalation`). In `test` a timer is scheduled at its wall-clock time and a virtual clock step runs what fell due (TN-8).
   """
 
   alias Relay.Agents.Correlation
+  alias Relay.Agents.Escalation
   alias Relay.Agents.WaitpointStore
   alias Relay.Agents.WaitpointTimer
 
@@ -44,6 +45,8 @@ defmodule Relay.Agents.Waitpoint do
   Opens a waitpoint and schedules its timer in one transaction. `attrs` carries `:id`, `:kind`, `:waiter_kind`, `:waiter_ref`, `:match_event_type`, `:correlation_key`, `:expires_at` and the optional fields of `relay_fn.waitpoint_open`. The correlation key is turned into its digests (`Relay.Agents.Correlation`, AG-65) before the transaction and is never stored or returned; `:correlation_digests` given instead are used as they are.
 
   An early record waiting in the buffer resolves an `:event` waitpoint at once. For a question or review the caller decodes the early record: `:on_early` receives `%{waitpoint_id, record_id}` and returns the response attributes for `respond/3` (with `:source_record_id`), or `nil` to leave the record in the buffer.
+
+  `:escalation` (a stored policy by `:key` and optional `:version`, or inline `:tiers`) and `:surface_policy` are the waitpoint's plan (`Relay.Agents.Escalation`): it is checked against `:responder_ids` before anything is written and pinned in the same transaction. A plan that does not fit opens nothing and is the result: `:escalation_policy_not_found`, `:escalation_policy_archived`, `:escalation_responder_outside_set`, `:escalation_tier_limit` or `:surface_recipient_outside_set`. Without a plan nothing changes.
 
   Options: `:tenant_open_cap`, `:waiter_open_cap`, `:on_early`.
   """
@@ -86,8 +89,30 @@ defmodule Relay.Agents.Waitpoint do
         attrs
       )
 
+    case planned(wp) do
+      {:ok, wp, plan} -> opened(scope, wp, plan, opts)
+      refusal -> %{result: refusal, waitpoint_id: nil, expires_at: nil, early: nil}
+    end
+  end
+
+  # AG-12
+  # AG-17
+  # AG-63
+  defp planned(wp) do
+    case Escalation.plan(wp) do
+      nil ->
+        {:ok, wp, nil}
+
+      plan ->
+        with {:ok, ref} <- Escalation.check(Map.get(wp, :responder_ids, []), plan),
+             do: {:ok, Map.put(wp, :escalation_policy_ref, ref), plan}
+    end
+  end
+
+  defp opened(scope, wp, plan, opts) do
     case WaitpointStore.open(wp) do
       {:opened, id, expires_at, early} ->
+        if plan, do: :ok = Escalation.pin(scope, id, plan)
         :ok = schedule(scope, id)
         resolution = early(scope, wp, id, early, Keyword.get(opts, :on_early))
         %{result: :opened, waitpoint_id: id, expires_at: expires_at, early: resolution}
@@ -245,14 +270,27 @@ defmodule Relay.Agents.Waitpoint do
 
   # AG-10
   # AG-15
-  @doc "Renews the waiter's heartbeat; a stalled waitpoint opens again."
+  @doc "Renews the waiter's heartbeat; a stalled waitpoint opens again, and its suspended escalation tier or surface step goes on from where it stopped with a timer of its own."
   @spec heartbeat(Relay.Scope.t(), Relay.Id.t(), waiter_kind(), Relay.Id.t()) ::
           {:ok, {atom(), DateTime.t() | nil}} | {:error, term()}
-  def heartbeat(%Relay.Scope{} = scope, waitpoint_id, waiter_kind, waiter_ref),
-    do:
-      WaitpointStore.in_scope(scope, fn _status ->
-        WaitpointStore.heartbeat(waitpoint_id, waiter_kind, waiter_ref)
-      end)
+  def heartbeat(%Relay.Scope{} = scope, waitpoint_id, waiter_kind, waiter_ref) do
+    WaitpointStore.in_scope(scope, fn _status ->
+      renewed = WaitpointStore.heartbeat(waitpoint_id, waiter_kind, waiter_ref)
+      :ok = resumed(scope, waitpoint_id, renewed)
+      renewed
+    end)
+  end
+
+  # AG-10
+  # AG-19
+  defp resumed(scope, waitpoint_id, {:reopened, _due}) do
+    case WaitpointStore.get(waitpoint_id) do
+      %{next_escalation_at: %DateTime{}} -> schedule(scope, waitpoint_id)
+      _no_steps -> :ok
+    end
+  end
+
+  defp resumed(_scope, _waitpoint_id, _renewed), do: :ok
 
   # C-72
   @doc "Cancels an open waitpoint; an operator's cancellation is audited with the caller's record digest."
@@ -284,7 +322,12 @@ defmodule Relay.Agents.Waitpoint do
   def fire(%Relay.Scope{} = scope, waitpoint_id) do
     WaitpointStore.in_scope(scope, fn _status ->
       case WaitpointStore.timer_fire(waitpoint_id) do
-        {result, %DateTime{} = next_at} when result in [:stalled, :escalation_due, :not_due] ->
+        {:escalation_due, %DateTime{} = next_at} ->
+          step_at = Escalation.fire(scope, waitpoint_id)
+          :ok = insert_timer(scope, waitpoint_id, earliest(next_at, step_at))
+          :escalation_due
+
+        {result, %DateTime{} = next_at} when result in [:stalled, :not_due] ->
           :ok = insert_timer(scope, waitpoint_id, next_at)
           result
 
@@ -331,8 +374,9 @@ defmodule Relay.Agents.Waitpoint do
 
   defp schedule(scope, waitpoint_id) do
     case WaitpointStore.get(waitpoint_id) do
-      %{expires_at: expires_at, heartbeat_due_at: heartbeat} ->
-        insert_timer(scope, waitpoint_id, earliest(expires_at, heartbeat))
+      %{expires_at: expires_at, heartbeat_due_at: heartbeat, next_escalation_at: step_at} ->
+        nearest = expires_at |> earliest(heartbeat) |> earliest(step_at)
+        insert_timer(scope, waitpoint_id, nearest)
     end
   end
 

@@ -223,7 +223,9 @@ function Holds({
   return (
     <Loadable state={holds.state} onRetry={holds.reload}>
       {(page) => {
-        const events = [...new Set(page.data.map((row) => row.ceiling_event_id))];
+        const events = [
+          ...new Set(page.data.map((row) => row.ceiling_event_id)),
+        ];
         return (
           <div className="stack">
             <DataTable
@@ -311,7 +313,11 @@ export function Topics() {
   const { t } = useI18n();
   const paged = usePaged<Topic>("/v1/topics");
   const columns: Column<Topic>[] = [
-    { key: "key", header: t("topics.key"), render: (row) => <Mono>{row.key}</Mono> },
+    {
+      key: "key",
+      header: t("topics.key"),
+      render: (row) => <Mono>{row.key}</Mono>,
+    },
     {
       key: "parent",
       header: t("topics.parent"),

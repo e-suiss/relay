@@ -77,7 +77,13 @@ function handlers(extra: Handler[] = []): Handler[] {
       to: "2026-11-18",
       rows: [
         { ...day, channel: "push", provider: "fcm" },
-        { ...day, channel: "email", provider: "ses", opens: 12, machine_opens: 9 },
+        {
+          ...day,
+          channel: "email",
+          provider: "ses",
+          opens: 12,
+          machine_opens: 9,
+        },
       ],
     },
     "/v1/reports/skips": {
@@ -151,11 +157,17 @@ test.describe("TN-41 kill switches", () => {
     page,
   }) => {
     await mockApi(page, { handlers: handlers() });
-    for (const path of ["/console/activity", "/console/workflows", "/console/audit"]) {
+    for (const path of [
+      "/console/activity",
+      "/console/workflows",
+      "/console/audit",
+    ]) {
       await page.goto(path);
       const bar = page.getByRole("complementary", { name: "Kill switches" });
       await expect(bar.getByText("Stopped")).toBeVisible();
-      await expect(bar).toContainText("workflow spring_sale × sms · all × marketing");
+      await expect(bar).toContainText(
+        "workflow spring_sale × sms · all × marketing",
+      );
     }
     await expectAccessible(page);
   });
@@ -181,7 +193,8 @@ test.describe("TN-41 kill switches", () => {
             stepUp = true;
             await json(route, 200, {
               object: "step_up_challenge",
-              authorization_url: "http://localhost:4173/console/activity?stepped=1",
+              authorization_url:
+                "http://localhost:4173/console/activity?stepped=1",
               expires_at: "2026-11-18T10:10:00Z",
             });
             return true;
@@ -206,7 +219,9 @@ test.describe("X-6 reports", () => {
   }) => {
     await mockApi(page, { handlers: handlers() });
     await page.goto("/console/reports");
-    await expect(page.getByText(/Push: accepted by the push service/)).toBeVisible();
+    await expect(
+      page.getByText(/Push: accepted by the push service/),
+    ).toBeVisible();
     await expect(page.getByText("Human: 6").first()).toBeVisible();
     await expect(page.getByText("Likely bot: 14").first()).toBeVisible();
     await expect(page.getByText(/Open tracking is unreliable/)).toBeVisible();
@@ -259,7 +274,11 @@ test.describe("AG-54 agent ceiling", () => {
     await mockApi(page, { handlers: handlers() });
     await page.goto("/console/audit");
     await expect(page.getByText("pii.revealed")).toBeVisible();
-    for (const path of ["/console/waitpoints", "/console/agents", "/console/topics"]) {
+    for (const path of [
+      "/console/waitpoints",
+      "/console/agents",
+      "/console/topics",
+    ]) {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expectAccessible(page);

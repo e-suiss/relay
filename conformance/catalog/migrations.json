@@ -306,5 +306,6 @@
   {"file": "20270109000200_add_iys_upload_access_record.exs", "sha256": "fad546bca1e16bd518116fc3dfbc97e4442413368ef8de2fb2a0ec50a90e7173"},
   {"file": "20270109000300_validate_iys_upload_access_record_check.exs", "sha256": "7018225fdb851c74edd47059c299b95f92fecb0ad08c51d0ddf972deb9201d04"},
   {"file": "20270109000400_index_iys_upload_access_record.exs", "sha256": "1b48506bc7a5914e4cdba26f17eafd5172b92dce273c6268b084e66b9cbc8886"},
-  {"file": "20270109000500_seed_platform_action_required_category.exs", "sha256": "8cf8c4e48b59ae888e52f866ad2d3d7af178e8822d1e4782e5691f3711d752b1"}
+  {"file": "20270109000500_seed_platform_action_required_category.exs", "sha256": "8cf8c4e48b59ae888e52f866ad2d3d7af178e8822d1e4782e5691f3711d752b1"},
+  {"file": "20270111000000_wait_runs_before_payload_erase.exs", "sha256": "1a9004bc5d1a708f5620139a233bb8ea888006d7716d3a37b6e0fcb8d49713a5"}
 ]

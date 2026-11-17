@@ -1,6 +1,6 @@
 defmodule Relay.Access.Cache do
   @moduledoc """
-  The node's short-lived memory of Relay's own calls to Access and of the tenant realms (E-96, E-98, E-100): the realm issuers of a tenant, the keys of a realm, the tenant snapshot address, Relay's Access access token, the public key of its Access client key and the last `DPoP-Nonce` of an Access origin. Entries expire by the monotonic clock; nothing here is durable, and a node that lost the table asks Access again. The table is protected: every read is direct, every write goes through the owning process. While that process is not running every read misses and every write is dropped.
+  The node's short-lived memory of Relay's own calls to Access and of the Access environments of the tenants (E-96, E-98, E-100, E-103): the Access environment issuers of a tenant, the keys of an Access environment, the first-contact token keys of an Access environment, the tenant snapshot address, Relay's Access access token, the public key of its Access client key and the last `DPoP-Nonce` of an Access origin. Entries expire by the monotonic clock; nothing here is durable, and a node that lost the table asks Access again. The table is protected: every read is direct, every write goes through the owning process. While that process is not running every read misses and every write is dropped.
   """
 
   use GenServer

@@ -121,7 +121,7 @@ defmodule Relay.Access.PairingSoftHSMTest do
     target = AccessKernel.target(other, @now)
     assert KernelSigner.sign(target, key, @now) == {:error, {:unsignable, "pairing-kid"}}
 
-    request = target |> Map.drop([:status, :realm]) |> Map.put(:now_ms, @now)
+    request = target |> Map.drop([:status, :access_environment]) |> Map.put(:now_ms, @now)
     assert {:ok, [_ais, _register_ais]} = KeyPort.sign_pairing("other-service", request)
 
     assert {:error, %Relay.Error{code: :key_not_found}} =

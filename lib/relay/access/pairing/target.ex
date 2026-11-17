@@ -1,8 +1,10 @@
 defmodule Relay.Access.Pairing.Target do
   @moduledoc """
-  The pure rules of the pairing answers (E-101, Access OP-149 m.16–19): an answer of either pairing route (`PairingChallenges` or `PairingResult`) and its targets, the checks of an `unpaired` target that need no Access kernel, and the body of the pairing request.
+  The pure rules of the pairing answers (E-101, E-103, Access OP-149 m.16–19): an answer of either pairing route (`PairingChallenges` or `PairingResult`) and its targets, the checks of an `unpaired` target that need no Access kernel, and the body of the pairing request.
 
-  A target names one realm (a canonical lower-case UUID) and is `paired` (the Instance an earlier pairing with the current service key opened: `party`, `instance` and `kid`), `refused` (with Access's `code`) or `unpaired` (a challenge: the realm's governing `domain`, the Genesis bootstrap Grant `basis`, the `pep`, Relay's service `party`, the registered `kid`, the 32-byte `challenge`, the validity window and the `instance_create` and, while the Party is new, `party_register` Exercises with their nonces and Access's intent digests). Every binary member is base64url without padding; an answer for another tenant, a target that does not read and two targets of one realm make the whole answer invalid.
+  A target names one Access environment in `environment` (a canonical lower-case UUID; `access_environment` inside Relay) and is `paired` (the Instance an earlier pairing with the current service key opened: `party`, `instance` and `kid`), `refused` (with Access's `code`) or `unpaired` (a challenge: the Access environment's governing `domain`, the Genesis bootstrap Grant `basis`, the `pep`, Relay's service `party`, the registered `kid`, the 32-byte `challenge`, the validity window and the `instance_create` and, while the Party is new, `party_register` Exercises with their nonces and Access's intent digests). Every binary member is base64url without padding; an answer for another tenant, a target that does not read and two targets of one Access environment make the whole answer invalid.
+
+  An Access release before the rename names the Access environment `realm`. An answer whose targets all name it so is read the same way and its `field` is `"realm"`; the pairing request that answers it names the Access environment the same way, because Access refuses a member it does not know. Targets that mix both names make the answer invalid.
 
   Before anything of an `unpaired` target is signed, `check/3` asks that its `kid` is the thumbprint of the service key, that the `instance_create` nonce is the challenge and the `party_register` nonce the challenge followed by `0x01`, that the window is not reversed and at least 60 seconds of it are left, and that the PEP name holds 1 to 255 bytes. The kernel checks (the basis and the recomputed intent digests) belong to the signer (`Relay.Access.Pairing.Signer`).
   """
@@ -12,13 +14,15 @@ defmodule Relay.Access.Pairing.Target do
   @min_validity_ms 60_000
   @max_targets 64
   @register_suffix 0x01
+  @field "environment"
+  @former_field "realm"
   @uuid ~r/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/
   @time ~r/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z\z/
 
   @type exercise :: %{nonce: binary(), intent: <<_::256>>}
   @type unpaired :: %{
           status: :unpaired,
-          realm: String.t(),
+          access_environment: String.t(),
           domain: <<_::256>>,
           basis: <<_::128>>,
           pep: String.t(),
@@ -32,16 +36,22 @@ defmodule Relay.Access.Pairing.Target do
         }
   @type paired :: %{
           status: :paired,
-          realm: String.t(),
+          access_environment: String.t(),
           party: <<_::128>>,
           instance: <<_::128>>,
           kid: <<_::256>>
         }
-  @type refused :: %{status: :refused, realm: String.t(), code: String.t()}
+  @type refused :: %{status: :refused, access_environment: String.t(), code: String.t()}
   @type t :: unpaired() | paired() | refused()
-  @type answer :: %{tenant: String.t(), targets: [t()], event_stream: String.t() | nil}
+  @type field :: String.t()
+  @type answer :: %{
+          tenant: String.t(),
+          targets: [t()],
+          event_stream: String.t() | nil,
+          field: field()
+        }
   @type signed :: %{
-          realm: String.t(),
+          access_environment: String.t(),
           challenge: <<_::256>>,
           ais: binary(),
           register_ais: binary() | nil
@@ -56,7 +66,7 @@ defmodule Relay.Access.Pairing.Target do
   @spec max_targets() :: pos_integer()
   def max_targets, do: @max_targets
 
-  @doc "Whether `text` is a canonical lower-case UUID, the spelling of Access's realm and stream ids."
+  @doc "Whether `text` is a canonical lower-case UUID, the spelling of Access's environment and stream ids."
   @spec uuid?(term()) :: boolean()
   def uuid?(text) when is_binary(text), do: Regex.match?(@uuid, text)
   def uuid?(_text), do: false
@@ -67,14 +77,18 @@ defmodule Relay.Access.Pairing.Target do
   def register_nonce(challenge) when is_binary(challenge), do: challenge <> <<@register_suffix>>
 
   # E-101
+  # E-103
   @doc "Reads an answer of either pairing route for `tenant`."
   @spec parse(term(), String.t()) :: {:ok, answer()} | :error
   def parse(%{"tenant" => tenant, "targets" => targets} = document, tenant)
       when is_list(targets) do
-    with true <- stream?(document["event_stream"]),
-         {:ok, parsed} <- all(targets),
+    stream = document["event_stream"]
+
+    with true <- stream?(stream),
+         {:ok, field} <- field(targets),
+         {:ok, parsed} <- all(targets, field),
          true <- distinct?(parsed) do
-      {:ok, %{tenant: tenant, targets: parsed, event_stream: document["event_stream"]}}
+      {:ok, %{tenant: tenant, targets: parsed, event_stream: stream, field: field}}
     else
       _invalid -> :error
     end
@@ -85,8 +99,19 @@ defmodule Relay.Access.Pairing.Target do
   defp stream?(nil), do: true
   defp stream?(stream), do: uuid?(stream)
 
-  defp all(targets) do
-    parsed = Enum.map(targets, &target/1)
+  defp field(targets) do
+    cond do
+      Enum.all?(targets, &named?(&1, @field)) -> {:ok, @field}
+      Enum.all?(targets, &named?(&1, @former_field)) -> {:ok, @former_field}
+      true -> :error
+    end
+  end
+
+  defp named?(%{} = wire, field), do: Map.has_key?(wire, field)
+  defp named?(_wire, _field), do: false
+
+  defp all(targets, field) do
+    parsed = Enum.map(targets, &target(&1, field))
 
     if Enum.all?(parsed, &match?({:ok, _target}, &1)),
       do: {:ok, Enum.map(parsed, &elem(&1, 1))},
@@ -94,42 +119,59 @@ defmodule Relay.Access.Pairing.Target do
   end
 
   defp distinct?(targets) do
-    realms = Enum.map(targets, & &1.realm)
-    length(Enum.uniq(realms)) == length(realms)
+    named = Enum.map(targets, & &1.access_environment)
+    length(Enum.uniq(named)) == length(named)
   end
 
-  defp target(%{"realm" => realm, "status" => status} = wire) do
-    if uuid?(realm), do: target(status, realm, wire), else: :error
+  defp target(%{"status" => status} = wire, field) do
+    access_environment = wire[field]
+
+    if uuid?(access_environment),
+      do: target(status, access_environment, wire),
+      else: :error
   end
 
-  defp target(_wire), do: :error
+  defp target(_wire, _field), do: :error
 
-  defp target("paired", realm, wire) do
+  defp target("paired", access_environment, wire) do
     with {:ok, party} <- fixed(wire["party"], 16),
          {:ok, instance} <- fixed(wire["instance"], 16),
          {:ok, kid} <- fixed(wire["kid"], 32) do
-      {:ok, %{status: :paired, realm: realm, party: party, instance: instance, kid: kid}}
+      {:ok,
+       %{
+         status: :paired,
+         access_environment: access_environment,
+         party: party,
+         instance: instance,
+         kid: kid
+       }}
     end
   end
 
-  defp target("refused", realm, %{"code" => code})
+  defp target("refused", access_environment, %{"code" => code})
        when is_binary(code) and byte_size(code) in 1..128,
-       do: {:ok, %{status: :refused, realm: realm, code: code}}
+       do: {:ok, %{status: :refused, access_environment: access_environment, code: code}}
 
-  defp target("unpaired", realm, wire) do
+  defp target("unpaired", access_environment, wire) do
     with {:ok, keys} <- keys(wire),
          {:ok, window} <- window(wire),
          {:ok, create} <- exercise(wire["instance_create"]),
          {:ok, register} <- optional_exercise(wire["party_register"]),
          pep when is_binary(pep) <- wire["pep"] do
-      fields = %{status: :unpaired, realm: realm, pep: pep, instance_create: create}
+      fields = %{
+        status: :unpaired,
+        access_environment: access_environment,
+        pep: pep,
+        instance_create: create
+      }
+
       {:ok, fields |> Map.merge(keys) |> Map.merge(window) |> Map.put(:party_register, register)}
     else
       _invalid -> :error
     end
   end
 
-  defp target(_status, _realm, _wire), do: :error
+  defp target(_status, _access_environment, _wire), do: :error
 
   defp keys(wire) do
     with {:ok, domain} <- fixed(wire["domain"], 32),
@@ -217,17 +259,21 @@ defmodule Relay.Access.Pairing.Target do
   end
 
   # E-101
-  @doc "The body of `POST <pairing>` for 1 to 64 signed targets."
-  @spec pairing_body([signed()]) :: {:ok, map()} | :error
-  def pairing_body(signed)
-      when is_list(signed) and signed != [] and length(signed) <= @max_targets,
-      do: {:ok, %{"targets" => Enum.map(signed, &answer/1)}}
+  # E-103
+  @doc "The body of `POST <pairing>` for 1 to 64 signed targets, each naming its Access environment by `field`: `environment`, or `realm` towards an Access release before the rename."
+  @spec pairing_body([signed()], field()) :: {:ok, map()} | :error
+  def pairing_body(signed, field \\ @field)
 
-  def pairing_body(_signed), do: :error
+  def pairing_body(signed, field)
+      when is_list(signed) and signed != [] and length(signed) <= @max_targets and
+             field in [@field, @former_field],
+      do: {:ok, %{"targets" => Enum.map(signed, &answer(&1, field))}}
 
-  defp answer(signed) do
+  def pairing_body(_signed, _field), do: :error
+
+  defp answer(signed, field) do
     base = %{
-      "realm" => signed.realm,
+      field => signed.access_environment,
       "challenge" => Jose.encode(signed.challenge),
       "ais" => Jose.encode(signed.ais)
     }

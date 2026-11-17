@@ -2,9 +2,9 @@ defmodule RelayTest.FakeAccess do
   @moduledoc """
   A fake Access for tests, served to the link's HTTP client as a `Req` plug (`config :relay, Relay.Access, http: [plug: {RelayTest.FakeAccess, []}]`); nothing reaches the network. It publishes an OpenID discovery document, a Suiss configuration, an AuthZEN configuration and a key set with one ES256 key (`fake-es256`, tokens) and one Ed25519 key (`fake-ed25519`, Security Event Tokens), issues tokens and pushes events as Security Event Tokens (E-94).
 
-  Every known tenant has two realms, `a` and `b` (`realm_issuer/2`), each with its own discovery document and ES256 key; the tenant snapshot names them and the tenant's region (the installation region), and a tenant whose id starts with `tnt_unknown` is not known (E-96); the snapshot of a tenant whose id starts with `tnt_down` answers 503, and that of one whose id starts with `tnt_elsewhere` names a region other than the installation's (E-95). Relay's own calls are checked as Access checks them (E-98, E-100): the tenant snapshot takes only `Authorization: Bearer` with Relay's RFC 7523 client assertion (ES256 under the key-store key `access-client`, `iss` and `sub` Relay's `client_id`, `aud` the fake issuer, a `jti` and an `exp` at most five minutes ahead); the token endpoint takes only the same assertion as `private_key_jwt` and a DPoP proof carrying the fake's nonce, answering `use_dpop_nonce` with a `DPoP-Nonce` otherwise. AuthZEN decisions are not served here: they need mutual TLS (`RelayTest.FakeAdp`, E-102). The calling test process receives `{:fake_access, :token, jkt, form}`, `{:fake_access, :nonce, :token}`, `{:fake_access, :snapshot, tenant}` and `{:fake_access, :realm_keys, slug}`.
+  Every known tenant has two Access environments, `a` and `b` (`environment_issuer/2`), path issuers `<issuer>/env/<slug>` as Access serves them, each with its own discovery document at `<issuer>/.well-known/openid-configuration`, its key set at `<issuer>/jwks.json` and its ES256 key; the tenant snapshot names them in `environments` with the tenant's region (the installation region), and a tenant whose id starts with `tnt_unknown` is not known (E-96, E-103); the snapshot of a tenant whose id starts with `tnt_former` names them in `realms`, as an Access release before the rename did; the snapshot of a tenant whose id starts with `tnt_down` answers 503, and that of one whose id starts with `tnt_elsewhere` names a region other than the installation's (E-95). Relay's own calls are checked as Access checks them (E-98, E-100): the tenant snapshot takes only `Authorization: Bearer` with Relay's RFC 7523 client assertion (ES256 under the key-store key `access-client`, `iss` and `sub` Relay's `client_id`, `aud` the fake issuer, a `jti` and an `exp` at most five minutes ahead); the token endpoint takes only the same assertion as `private_key_jwt` and a DPoP proof carrying the fake's nonce, answering `use_dpop_nonce` with a `DPoP-Nonce` otherwise. AuthZEN decisions are not served here: they need mutual TLS (`RelayTest.FakeAdp`, E-102). The calling test process receives `{:fake_access, :token, jkt, form}`, `{:fake_access, :nonce, :token}`, `{:fake_access, :snapshot, tenant}`, `{:fake_access, :environment_keys, slug}` and `{:fake_access, :first_contact_keys, slug}`.
 
-  The issuer directory of first-contact tokens (`/v1/first-contact/keys`, AG-73) answers 404 until the test process publishes keys with `publish_first_contact!/1`; `first_contact_token/1` makes a token of type `0x0002` signed by the fake's RSA key.
+  The issuer directory of first-contact tokens of every Access environment (`<environment issuer>/v1/first-contact/keys`, AG-73, E-103) answers 404 until the test process publishes keys with `publish_first_contact!/1`, each with its `not-before`; `first_contact_token/1` makes a token of type `0x0002` signed by the fake's RSA key.
 
   Plug options: `region:` overrides `suiss_region` of the Suiss configuration (the installation region by default), `openid:` merges members into the OpenID document, `suiss: :missing` answers the Suiss configuration with 404, `down: true` answers every request with 503, `keys: :private` publishes a key set with private members.
   """
@@ -22,8 +22,8 @@ defmodule RelayTest.FakeAccess do
   @jobs "SELECT args->>'receipt_id' FROM relay_queue.oban_jobs WHERE worker = 'Relay.Access.EventConsumer' ORDER BY id"
   @es256 :crypto.generate_key(:ecdh, :secp256r1)
   @ed25519 :crypto.generate_key(:eddsa, :ed25519)
-  @realms ["a", "b"]
-  @realm_keys %{
+  @environments ["a", "b"]
+  @environment_keys %{
     "a" => :crypto.generate_key(:ecdh, :secp256r1),
     "b" => :crypto.generate_key(:ecdh, :secp256r1)
   }
@@ -68,28 +68,30 @@ defmodule RelayTest.FakeAccess do
   end
 
   # E-96
-  @doc "The issuer of one of the two realms, `a` or `b`, every known tenant has: a path issuer under the fake issuer."
-  @spec realm_issuer(String.t(), String.t()) :: String.t()
-  def realm_issuer(access_tenant_id, realm) when realm in @realms,
-    do: @issuer <> "/realms/" <> access_tenant_id <> "-" <> realm
+  # E-103
+  @doc "The issuer of one of the two Access environments, `a` or `b`, every known tenant has: a path issuer `<issuer>/env/<slug>` under the fake issuer."
+  @spec environment_issuer(String.t(), String.t()) :: String.t()
+  def environment_issuer(access_tenant_id, name) when name in @environments,
+    do: @issuer <> "/env/" <> access_tenant_id <> "-" <> name
 
   # E-96
-  @doc "The snapshot of a known tenant, in the shape of Access OP-149 item 4: its two realms."
+  # E-103
+  @doc "The snapshot of a known tenant, in the shape of Access OP-149 item 4: its two Access environments."
   @spec snapshot(String.t()) :: map()
   def snapshot(access_tenant_id) do
-    realms =
-      for realm <- @realms do
+    environments =
+      for name <- @environments do
         %{
-          "id" => "00000000-0000-4000-8000-00000000000" <> realm,
-          "issuer" => realm_issuer(access_tenant_id, realm),
-          "slug" => access_tenant_id <> "-" <> realm
+          "id" => "00000000-0000-4000-8000-00000000000" <> name,
+          "issuer" => environment_issuer(access_tenant_id, name),
+          "slug" => access_tenant_id <> "-" <> name
         }
       end
 
     %{
       "tenant" => access_tenant_id,
       "organizations" => [],
-      "realms" => realms,
+      "environments" => environments,
       "region" => installation_region(),
       "status" => "active",
       "version" => "1",
@@ -98,19 +100,21 @@ defmodule RelayTest.FakeAccess do
   end
 
   # E-96
-  @doc "A DPoP-bound service token of a tenant API client issued by realm `realm` of its tenant (`iss` the realm, a pairwise `sub`), signed by the key of realm `signer` (the same realm by default); `claims` override the defaults."
-  @spec realm_token(String.t(), String.t(), String.t(), map(), String.t() | nil) :: String.t()
-  def realm_token(access_tenant_id, client_id, realm, claims \\ %{}, signer \\ nil) do
-    signer = signer || realm
+  # E-103
+  @doc "A DPoP-bound service token of a tenant API client issued by Access environment `name` of its tenant (`iss` its issuer, a pairwise `sub`), signed by the key of Access environment `signer` (the same one by default); `claims` override the defaults."
+  @spec environment_token(String.t(), String.t(), String.t(), map(), String.t() | nil) ::
+          String.t()
+  def environment_token(access_tenant_id, client_id, name, claims \\ %{}, signer \\ nil) do
+    signer = signer || name
 
     %{
-      "iss" => realm_issuer(access_tenant_id, realm),
+      "iss" => environment_issuer(access_tenant_id, name),
       "sub" => "pairwise-" <> random(),
       "client_id" => client_id,
       "access_tenant" => access_tenant_id
     }
     |> Map.merge(claims)
-    |> token(%{"kid" => "realm-" <> signer}, Map.fetch!(@realm_keys, signer))
+    |> token(%{"kid" => "environment-" <> signer}, Map.fetch!(@environment_keys, signer))
   end
 
   # E-98
@@ -184,22 +188,12 @@ defmodule RelayTest.FakeAccess do
     end
   end
 
-  defp serve(conn, "/realms/" <> rest, _opts) do
+  defp serve(conn, "/env/" <> rest, _opts) do
     case String.split(rest, "/") do
-      [slug, ".well-known", "openid-configuration"] -> json(conn, realm_discovery(slug))
-      [slug, "jwks"] -> realm_jwks(conn, slug)
+      [slug, ".well-known", "openid-configuration"] -> json(conn, environment_discovery(slug))
+      [slug, "jwks.json"] -> environment_jwks(conn, slug)
+      [slug, "v1", "first-contact", "keys"] -> first_contact_keys(conn, slug)
       _other -> send_resp(conn, 404, "")
-    end
-  end
-
-  defp serve(conn, "/v1/first-contact/keys", _opts) do
-    case Process.get({__MODULE__, :first_contact}) do
-      nil ->
-        send_resp(conn, 404, "")
-
-      keys ->
-        listed = Enum.map(keys, &%{"token-type" => 2, "token-key" => b64(&1), "not-before" => 0})
-        json(conn, %{"issuer-request-uri" => "tokens", "token-keys" => listed})
     end
   end
 
@@ -287,23 +281,51 @@ defmodule RelayTest.FakeAccess do
     json(conn, Map.put(snapshot(tenant), "region", elsewhere))
   end
 
+  defp tenant_snapshot(conn, "tnt_former" <> _rest = tenant) do
+    send(self(), {:fake_access, :snapshot, tenant})
+    {environments, snapshot} = Map.pop!(snapshot(tenant), "environments")
+    json(conn, Map.put(snapshot, "realms", environments))
+  end
+
   defp tenant_snapshot(conn, tenant) do
     send(self(), {:fake_access, :snapshot, tenant})
     json(conn, snapshot(tenant))
   end
 
-  defp realm_discovery(slug) do
-    issuer = @issuer <> "/realms/" <> slug
-    %{"issuer" => issuer, "jwks_uri" => issuer <> "/jwks"}
+  defp environment_discovery(slug) do
+    issuer = @issuer <> "/env/" <> slug
+    %{"issuer" => issuer, "jwks_uri" => issuer <> "/jwks.json"}
   end
 
-  defp realm_jwks(conn, slug) do
-    realm = String.last(slug)
-    send(self(), {:fake_access, :realm_keys, slug})
-    {<<4, x::binary-32, y::binary-32>>, _private} = Map.fetch!(@realm_keys, realm)
+  defp environment_jwks(conn, slug) do
+    name = String.last(slug)
+    send(self(), {:fake_access, :environment_keys, slug})
+    {<<4, x::binary-32, y::binary-32>>, _private} = Map.fetch!(@environment_keys, name)
     jwk = %{"kty" => "EC", "crv" => "P-256", "x" => b64(x), "y" => b64(y), "use" => "sig"}
-    json(conn, %{"keys" => [Map.merge(jwk, %{"kid" => "realm-" <> realm, "alg" => "ES256"})]})
+    kid = %{"kid" => "environment-" <> name, "alg" => "ES256"}
+    json(conn, %{"keys" => [Map.merge(jwk, kid)]})
   end
+
+  # AG-73
+  # E-103
+  defp first_contact_keys(conn, slug) do
+    send(self(), {:fake_access, :first_contact_keys, slug})
+
+    case Process.get({__MODULE__, :first_contact}) do
+      nil ->
+        send_resp(conn, 404, "")
+
+      keys ->
+        listed = Enum.map(keys, &directory_entry/1)
+        body = %{"issuer-request-uri" => "tokens", "token-keys" => listed, "daily-limit" => 20}
+        json(conn, body)
+    end
+  end
+
+  defp directory_entry({key, not_before}),
+    do: %{"token-type" => 2, "token-key" => b64(key), "not-before" => not_before}
+
+  defp directory_entry(key), do: directory_entry({key, 0})
 
   defp parts(jws) do
     with [encoded_header, encoded_claims, encoded_sig] <- String.split(jws, "."),
@@ -372,11 +394,11 @@ defmodule RelayTest.FakeAccess do
   defp positive(<<1::1, _rest::bitstring>> = number), do: <<0>> <> number
   defp positive(number), do: number
 
-  @doc "Publishes `keys` in the fake's issuer directory for the calling test process and makes Relay forget the keys it kept; `nil` takes the directory away again."
-  @spec publish_first_contact!([binary()] | nil) :: :ok
+  @doc "Publishes `keys` in the issuer directory of every Access environment of the fake for the calling test process and makes Relay forget the keys it kept; a key is a token key (usable from the Unix epoch on) or `{token_key, not_before}` with its `not-before` in Unix seconds; `nil` takes the directories away again."
+  @spec publish_first_contact!([binary() | {binary(), non_neg_integer()}] | nil) :: :ok
   def publish_first_contact!(keys \\ [first_contact_key()]) do
     Process.put({__MODULE__, :first_contact}, keys)
-    Relay.Access.forget_first_contact_issuer()
+    Relay.Access.forget_first_contact_issuers()
   end
 
   @doc "A first-contact token of type `0x0002` in unpadded base64url, signed by the fake's key for the challenge of `:issuer` (the fake issuer's host) and `:origin` (`localhost`)."

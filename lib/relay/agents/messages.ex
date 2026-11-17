@@ -4,7 +4,7 @@ defmodule Relay.Agents.Messages do
 
   `deliver/3` is the one way a message of a sender enters a mailbox. It assigns the trust label from facts about the sender and the carrier (`Relay.Agents.TrustLabel`), asking the configured `Relay.Agents.SenderStanding` for the block list and the first contact rate, by default those of registered agents; prepares the content as untrusted parts and filters its links against the tenant's allow list (`Relay.Agents.Message`); seals the content under the tenant's data key; and appends the record with its label and its event in one transaction. A message of a blocked sender is recorded as any other; its label and its event say what it is. The label is an outcome that is returned, never an error.
 
-  `views/3` gives each record its message: the CloudEvents envelope around the typed data of the record, signed with the tenant's message key (`Relay.Agents.MessageSigner`). The content is opened and the envelope signed outside any transaction. A message whose content can no longer be opened has no envelope. A message that carries an end-to-end encrypted envelope (`Relay.Agents.FirstContact`) gets the typed fields Relay recorded of it and no part: Relay cannot read its content, marks it `encrypted_untrusted_content` and applies none of the content rules to it; the recipient applies them after it decrypts (AG-57).
+  `views/3` gives each record its message: the CloudEvents envelope around the typed data of the record, signed with the tenant's message key (`Relay.Agents.MessageSigner`). The content is opened and the envelope signed outside any transaction. The message of a `waitpoint.resolved` record carries the response value as one untrusted data part, opened under the responder's key (`Relay.Agents.ResponseValue`); a value that can no longer be opened, as after the responder's erasure, leaves the typed fields without the part. A message whose content can no longer be opened has no envelope. A message that carries an end-to-end encrypted envelope (`Relay.Agents.FirstContact`) gets the typed fields Relay recorded of it and no part: Relay cannot read its content, marks it `encrypted_untrusted_content` and applies none of the content rules to it; the recipient applies them after it decrypts (AG-57).
 
   The field cipher is configured as `config :relay, Relay.Agents, field_cipher: Module`, by default `Relay.Tenancy`.
   """
@@ -15,6 +15,7 @@ defmodule Relay.Agents.Messages do
   alias Relay.Agents.Message
   alias Relay.Agents.MessageSigner
   alias Relay.Agents.MessageStore
+  alias Relay.Agents.ResponseValue
   alias Relay.Agents.SenderStanding
   alias Relay.Agents.TrustLabel
   alias Relay.Agents.Waitpoint
@@ -199,7 +200,8 @@ defmodule Relay.Agents.Messages do
 
   defp view(scope, %{"kind" => "waitpoint_event"} = record, read, _include, key) do
     waitpoint = Map.get(read.waitpoints, record["waitpoint_id"])
-    signed(scope, record, Message.waitpoint_data(record, waitpoint), key, nil)
+    value = response_value(scope, record, waitpoint, Map.get(read.contents, record["id"]))
+    signed(scope, record, Message.waitpoint_data(record, waitpoint, value), key, nil)
   end
 
   # AG-57
@@ -221,6 +223,22 @@ defmodule Relay.Agents.Messages do
       :unreadable -> {:ok, %{"message" => nil, "trust_label" => record["trust_label"]}}
     end
   end
+
+  # AG-25
+  defp response_value(
+         scope,
+         %{"event_type" => "waitpoint.resolved"},
+         %{response: %{responder_recipient_id: responder}},
+         %{"payload_ct" => ct}
+       )
+       when is_binary(ct) do
+    case ResponseValue.open(scope, responder, ct) do
+      {:ok, value} -> {:ok, value}
+      :error -> :none
+    end
+  end
+
+  defp response_value(_scope, _record, _waitpoint, _content), do: :none
 
   defp open(scope, content, column) do
     case content[column] do

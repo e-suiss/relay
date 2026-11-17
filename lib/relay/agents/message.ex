@@ -462,12 +462,18 @@ defmodule Relay.Agents.Message do
   # AG-26
   # AG-30
   # AG-39
-  @doc "The typed data of a waitpoint event record: the result the event names, the waitpoint and, for the event of a resolution, who answered, on which channel, at which evidence level and the digests of the subject and of the response. `waitpoint` is the waitpoint as `Relay.Agents.Waitpoint.read/2` returns it, or `nil`. The message has no parts: Relay writes no text of its own to an agent."
-  @spec waitpoint_data(map(), map() | nil) :: Jason.OrderedObject.t()
-  def waitpoint_data(record, waitpoint) do
+  @doc "The typed data of a waitpoint event record: the result the event names, the waitpoint and, for the event of a resolution, who answered, on which channel, at which evidence level and the digests of the subject and of the response. `waitpoint` is the waitpoint as `Relay.Agents.Waitpoint.read/2` returns it, or `nil`. `value` is `{:ok, value}` with the response value of a resolution, which becomes the one part of the message: untrusted data under the member `response`, its strings normalised and escaped like any untrusted content, its source the responder, verified unless the evidence is only the channel's claim. Without a value the message has no parts: Relay writes no text of its own to an agent."
+  @spec waitpoint_data(
+          map(),
+          map() | nil,
+          {:ok, term()} | :none,
+          (-> UntrustedContent.nonce())
+        ) :: Jason.OrderedObject.t()
+  def waitpoint_data(record, waitpoint, value \\ :none, nonce \\ &UntrustedContent.nonce/0) do
     response = resolved(record["event_type"], waitpoint)
 
     typed(record, %{
+      "parts" => response_parts(response, value, nonce),
       "message_type" => "waitpoint_event",
       "result" => result(record["event_type"]),
       "responder" => responder(response),
@@ -477,6 +483,37 @@ defmodule Relay.Agents.Message do
       "response_digest" => response && digest_text(response.value_digest)
     })
   end
+
+  # AG-25
+  # AG-40
+  defp response_parts(%{} = response, {:ok, value}, nonce) do
+    case plain(%{"response" => value}) do
+      {:ok, visible} ->
+        source = %{
+          "author" => %{
+            "kind" => if(response.responder_kind == "agent", do: "agent", else: "human"),
+            "id" => responder(response)["recipient_id"]
+          },
+          "verified" => response.evidence_level in ["relay_session", "access_aas_ref"],
+          "channel" => channel_name(response.via)
+        }
+
+        [
+          Jason.OrderedObject.new([
+            {"kind", "data"},
+            {"mediaType", "application/json"},
+            {"audience", ["user", "assistant"]},
+            {"data", escaped(visible)},
+            {"untrusted", untrusted(nonce.(), source)}
+          ])
+        ]
+
+      :error ->
+        []
+    end
+  end
+
+  defp response_parts(_response, _value, _nonce), do: []
 
   defp resolved("waitpoint.resolved", %{response: %{} = response}), do: response
   defp resolved(_event_type, _waitpoint), do: nil

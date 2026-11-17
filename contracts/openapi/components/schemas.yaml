@@ -5984,7 +5984,7 @@ AgentMessageEnvelope:
   additionalProperties: false
 AgentMessageData:
   type: object
-  description: "The typed fields and the content parts of an agent message (MD-11, INV-30, AG-39). Every field but parts is a control field that Relay produces: an identifier, an enumeration, a number or a digest, never free text. Content travels in parts only, as data. content_encryption is null for content Relay can read; a message whose content is encrypted end to end names its scheme there, carries the content as it is and is untrusted as a whole."
+  description: "The typed fields and the content parts of an agent message (MD-11, INV-30, AG-39). Every field but parts is a control field that Relay produces: an identifier, an enumeration, a number or a digest, never free text. Content travels in parts only, as data. The message of a waitpoint.resolved record has one data part with the response value under the member response, untrusted like every other part. content_encryption is null for content Relay can read; a message whose content is encrypted end to end names its scheme there, carries the content as it is and is untrusted as a whole."
   required:
     - message_type
     - mailbox_id
@@ -7307,10 +7307,14 @@ WaitpointResponse:
     responded_at:
       "$ref": "#/Timestamp"
     value:
-      description: "The response value."
+      description: "The response value the responder gave, as it was collected; present on a single waitpoint read while it can be read. Relay carries the response, not its validity: it is never an approval (AG-25, E-49)."
     response_digest:
       "$ref": "#/Sha256Digest"
       description: "sha256 of the RFC 8785 (JCS) form of the value."
+    access_decision_ref:
+      type: string
+      description: "The reference of the decision given on the Access approval surface, on a response of evidence level access_aas_ref (AG-27); the waiter verifies the approval at Access."
+      maxLength: 512
   additionalProperties: false
 Waitpoint:
   type: object

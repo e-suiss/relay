@@ -48,7 +48,7 @@ defmodule Relay.Agents.MessageStore do
 
   # C-76
   # AG-40
-  @doc "The trust label and the sealed content of the message records among `records` (rows with `id` and `created_at`), by record identifier; the referenced content only with `referenced?`."
+  @doc "The trust label and the sealed content of `records` (rows with `id` and `created_at`), by record identifier; the referenced content only with `referenced?`."
   @spec contents([map()], boolean()) :: %{id() => map()}
   def contents([], _referenced?), do: %{}
 
@@ -60,7 +60,8 @@ defmodule Relay.Agents.MessageStore do
     SELECT r.id, r.trust_label, r.payload_ct, r.payload_tenant_key_id,
       CASE WHEN $4 THEN r.content_ref_ct END AS content_ref_ct
     FROM relay.mailbox_records r
-    WHERE r.id = ANY ($1) AND r.kind = 'message' AND r.created_at BETWEEN $2 AND $3
+    WHERE r.id = ANY ($1) AND r.kind IN ('message', 'waitpoint_event')
+      AND r.created_at BETWEEN $2 AND $3
     """
 
     params = [ids, Enum.min(times, DateTime), Enum.max(times, DateTime), referenced?]

@@ -2,6 +2,7 @@ defmodule RelayWeb.Api.AgentsTest do
   use Relay.DataCase, async: false
 
   alias Relay.Agents.AccessHandler
+  alias Relay.Api.Contract
   alias Relay.Repo
   alias RelayTest.Api
   alias RelayTest.FakeAccess
@@ -322,10 +323,10 @@ defmodule RelayWeb.Api.AgentsTest do
       assert Relay.Access.server_scopes() == @server_scopes
       assert Enum.all?(@agent_scopes, &(&1 not in @server_scopes))
 
-      enum = Relay.Api.Contract.documents()["schemas"]["ApiClientScope"]["enum"]
+      enum = Contract.documents()["schemas"]["ApiClientScope"]["enum"]
       assert Enum.sort(enum) == Enum.sort(@agent_scopes ++ @server_scopes)
 
-      for operation <- Relay.Api.Contract.operations(), scopes = operation.scopes do
+      for operation <- Contract.operations(), scopes = operation.scopes do
         assert Enum.count(@agent_scopes, &(&1 in scopes)) <= 1, operation.id
       end
     end

@@ -9,9 +9,9 @@ defmodule Relay.Repo.Migrations.AddAgentScopes do
     execute("ALTER DOMAIN relay.api_scope DROP CONSTRAINT api_scope_check")
 
     execute("""
-    ALTER DOMAIN relay.api_scope ADD CONSTRAINT api_scope_check
-      CHECK (VALUE IN ('publish', 'read', 'subscribers', 'config', 'kill_switch', 'agents',
-        'agent:send', 'agent:waitpoint', 'agent:mailbox', 'presence:read'))
+    ALTER TABLE relay.api_clients ADD CONSTRAINT api_clients_scope_names_check
+      CHECK (scopes::text[] <@ ARRAY['publish', 'read', 'subscribers', 'config', 'kill_switch',
+        'agents', 'agent:send', 'agent:waitpoint', 'agent:mailbox', 'presence:read'])
       NOT VALID
     """)
 

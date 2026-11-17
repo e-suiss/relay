@@ -49,6 +49,11 @@ defmodule Relay.Agents.EscalationStore do
   @spec in_scope(Relay.Scope.t(), (atom() -> term())) :: {:ok, term()} | {:error, term()}
   def in_scope(scope, fun), do: Repo.in_scope(scope, fun)
 
+  # TN-13 (2)
+  @doc "The scope of the transaction this process is in, or `nil` outside a scoped transaction."
+  @spec current_scope() :: Relay.Scope.t() | nil
+  def current_scope, do: Repo.current_scope()
+
   # AG-17
   # AG-53
   @doc "Writes a version of an escalation policy: the first one creates the policy, a later one needs the latest version as `expected_version`. `attrs` carries `:id`, `:version_id`, `:key`, `:description` and the `:tiers`."
@@ -212,6 +217,25 @@ defmodule Relay.Agents.EscalationStore do
     """
 
     maps(Repo.scoped_query!(sql, [waitpoint_id, states]))
+  end
+
+  # AG-63
+  @doc "An invitation with the kind of its responder, or `nil`."
+  @spec invitation(Relay.Id.t()) :: map() | nil
+  def invitation(invitation_id) do
+    sql = """
+    SELECT i.id, i.waitpoint_id, i.recipient_id, i.step_id, i.source, i.surfaces, i.inbox,
+      i.state, i.rule_id, i.invited_at, i.settled_at, r.kind::text AS recipient_kind
+    FROM relay.waitpoint_invitations i
+    JOIN relay.recipients r ON r.tenant_id = i.tenant_id AND r.environment = i.environment
+      AND r.id = i.recipient_id
+    WHERE i.id = $1
+    """
+
+    case maps(Repo.scoped_query!(sql, [invitation_id])) do
+      [row] -> row
+      [] -> nil
+    end
   end
 
   # AG-63

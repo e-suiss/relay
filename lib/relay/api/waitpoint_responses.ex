@@ -92,6 +92,62 @@ defmodule Relay.Api.WaitpointResponses do
     end
   end
 
+  # AG-31
+  # AG-35
+  # AG-29
+  @doc "Describes the response link of a token without consuming anything: `:open` with the structured actions the responder may choose from, or what became of the response the token was used with (`:processing`, `:responded`, `:not_awaited`). A forged, rotated or expired token is `:invalid`."
+  @spec link(term()) ::
+          {:ok, %{state: atom(), actions: [map()]}} | {:error, :invalid | :unavailable}
+  def link(token) do
+    case Relay.Agents.response_token(token) do
+      {:ok, %{state: "issued"} = held} -> open_link(held)
+      {:ok, %{state: state} = held} when state in ["processing", "settled"] -> used_link(held)
+      {:ok, _rotated} -> {:error, :invalid}
+      {:error, :invalid} -> {:error, :invalid}
+      {:error, _reason} -> {:error, :unavailable}
+    end
+  end
+
+  defp open_link(held) do
+    now = Relay.Clock.business_now(held.scope)
+
+    with :gt <- DateTime.compare(held.expires_at, now),
+         {:ok, %{row: %{state: state}, opened: opened}} when state in ["open", "stalled"] <-
+           Waitpoints.load(held.scope, held.waitpoint_id) do
+      {:ok, %{state: :open, actions: Map.get(opened, "actions", [])}}
+    else
+      {:error, %Relay.Error{code: :service_unavailable}} -> {:error, :unavailable}
+      {:ok, _closed} -> {:ok, %{state: :not_awaited, actions: []}}
+      _expired_or_missing -> {:error, :invalid}
+    end
+  end
+
+  defp used_link(held) do
+    case Relay.Agents.channel_response_status(held.scope, held.id) do
+      {:ok, %{state: state}} -> {:ok, %{state: state, actions: []}}
+      {:error, _reason} -> {:error, :unavailable}
+    end
+  end
+
+  # AG-35
+  # INV-31
+  @doc "Takes the action a responder chose on the page of a response link: the response value is `{\"action\": id}`. Answers what became of it, `:invalid` for a token that cannot be used and `:refused` when the waitpoint's response schema takes no such value."
+  @spec choose(term(), term()) ::
+          {:ok, :processing | :responded | :not_awaited}
+          | {:error, :invalid | :refused | :unavailable}
+  def choose(token, action) when is_binary(action) do
+    check = &Waitpoints.check_response/2
+
+    case Relay.Agents.submit_channel_response(token, %{"action" => action}, @link, check) do
+      {:ok, %{state: state}} -> {:ok, state}
+      {:invalid, _errors} -> {:error, :refused}
+      {:error, :token_invalid} -> {:error, :invalid}
+      {:error, _reason} -> {:error, :unavailable}
+    end
+  end
+
+  def choose(_token, _action), do: {:error, :refused}
+
   defp status_view(%{state: :processing, waitpoint_id: id}),
     do: receipt_base(id, :processing)
 

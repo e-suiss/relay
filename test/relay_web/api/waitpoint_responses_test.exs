@@ -25,6 +25,11 @@ defmodule RelayWeb.Api.WaitpointResponsesTest do
   }
   @receipt ~w(object waitpoint_id status response_id responder evidence_level responded_at
               response_digest)
+  @action_schema %{
+    "type" => "object",
+    "required" => ["action"],
+    "properties" => %{"action" => %{"enum" => ["accept", "refuse"]}}
+  }
   @accept %{"decision" => "accept"}
   @refuse %{"decision" => "refuse"}
 
@@ -102,6 +107,11 @@ defmodule RelayWeb.Api.WaitpointResponsesTest do
     body = %{"token" => token, "response" => value, "channel" => "sms"}
     conn = RelayTest.Api.json(:post, "/v1/channel_responses", nil, body, [])
     F.body(RelayTest.Api.call(conn, RelayWeb.Router), status)
+  end
+
+  defp page(method, path, body \\ nil) do
+    headers = [{"content-type", "application/x-www-form-urlencoded"}]
+    RelayTest.Api.call(RelayTest.Api.conn(method, path, body, headers), RelayWeb.Router)
   end
 
   defp process!(ctx, id) do
@@ -234,7 +244,7 @@ defmodule RelayWeb.Api.WaitpointResponsesTest do
     test "AG-35: the channel is acknowledged at once and the response processed afterwards",
          ctx do
       id = question(ctx)
-      assert {:ok, %{token: token, expires_at: %DateTime{}}} = mint(ctx, id)
+      assert {:ok, token} = mint(ctx, id)
 
       assert %{"status" => "processing", "waitpoint_id" => ^id} = channel(token, @refuse, 202)
       assert get(ctx, id)["state"] == "open"
@@ -254,8 +264,8 @@ defmodule RelayWeb.Api.WaitpointResponsesTest do
 
     test "AG-31: a token is used once, with one response, and a resend rotates it", ctx do
       id = question(ctx)
-      assert {:ok, %{token: first}} = mint(ctx, id)
-      assert {:ok, %{token: second}} = mint(ctx, id)
+      assert {:ok, first} = mint(ctx, id)
+      assert {:ok, second} = mint(ctx, id)
 
       assert channel(first, @accept, 403)["code"] == "response_token_invalid"
       assert channel(second <> "x", @accept, 403)["code"] == "response_token_invalid"
@@ -269,7 +279,7 @@ defmodule RelayWeb.Api.WaitpointResponsesTest do
 
     test "INV-31: an invalid value leaves the token unused", ctx do
       id = question(ctx)
-      assert {:ok, %{token: token}} = mint(ctx, id)
+      assert {:ok, token} = mint(ctx, id)
 
       assert channel(token, %{"decision" => "maybe"}, 422)["code"] == "validation_failed"
       assert %{"status" => "processing"} = channel(token, @accept, 202)
@@ -277,7 +287,7 @@ defmodule RelayWeb.Api.WaitpointResponsesTest do
 
     test "AG-28: a token used after the waitpoint was resolved is not awaited any more", ctx do
       id = question(ctx)
-      assert {:ok, %{token: token}} = mint(ctx, id)
+      assert {:ok, token} = mint(ctx, id)
       assert {:ok, {200, [], _receipt}} = session(ctx, id, @accept)
 
       assert %{"status" => "processing"} = channel(token, @refuse, 202)
@@ -291,7 +301,7 @@ defmodule RelayWeb.Api.WaitpointResponsesTest do
 
     test "AG-30: what the waiter reads never carries the token", ctx do
       id = question(ctx)
-      assert {:ok, %{token: token}} = mint(ctx, id)
+      assert {:ok, token} = mint(ctx, id)
       assert %{"status" => "processing"} = channel(token, @accept, 202)
       assert process!(ctx, id) == ["resolved"]
       [_rt, payload, _mac] = String.split(token, ".")
@@ -306,6 +316,38 @@ defmodule RelayWeb.Api.WaitpointResponsesTest do
         refute text =~ payload
         refute text =~ "token"
       end
+    end
+  end
+
+  describe "AG-31 AG-35 the page of a response link" do
+    test "AG-35: the page shows the actions and takes the chosen one", ctx do
+      id = question(ctx, %{"response_schema" => @action_schema})
+      assert {:ok, token} = mint(ctx, id)
+      path = "/respond/" <> URI.encode_www_form(token)
+
+      shown = page(:get, path)
+      assert shown.status == 200
+      assert shown.resp_body =~ ~s(value="accept")
+      assert shown.resp_body =~ "Refuse"
+      assert get(ctx, id)["state"] == "open"
+
+      assert page(:post, path, "action=accept").status == 200
+      assert get(ctx, id)["state"] == "open"
+      assert process!(ctx, id) == ["resolved"]
+      assert get(ctx, id)["response"]["value"] == %{"action" => "accept"}
+      assert page(:get, path).resp_body =~ "recorded"
+      assert page(:get, "/respond/rt1.AAAA.BBBB").status == 404
+    end
+
+    test "INV-31: an action the response schema does not take is refused and the token kept",
+         ctx do
+      id = question(ctx)
+      assert {:ok, token} = mint(ctx, id)
+      path = "/respond/" <> URI.encode_www_form(token)
+
+      assert page(:post, path, "action=accept").status == 400
+      assert page(:get, path).resp_body =~ ~s(value="accept")
+      assert get(ctx, id)["state"] == "open"
     end
   end
 

@@ -14,6 +14,7 @@ defmodule Relay.Agents.ResponseToken do
   @by_byte %{1 => :live, 2 => :test}
   @ttl_ms Relay.Limits.seconds!(["waitpoint", "response_token_ttl"]) * 1000
 
+  @type token :: String.t()
   @type claims :: %{scope: Relay.Scope.t(), id: Relay.Id.t()}
   @type consumption :: %{
           via: String.t(),
@@ -26,18 +27,17 @@ defmodule Relay.Agents.ResponseToken do
   # AG-31
   # INV-33
   # AG-62
-  @doc "Mints the response token of a responder of an open question or review and rotates the responder's earlier unused token; called outside any transaction. A refusal is `:not_found`, `:not_open`, `:not_responder` or `:profile_refused`."
-  @spec mint(Relay.Scope.t(), Relay.Id.t(), Relay.Id.t()) ::
-          {:ok, %{token: String.t(), expires_at: DateTime.t()}} | {:error, term()}
+  @doc "Mints the response token of a responder of an open question or review and rotates the responder's earlier unused token; called outside any transaction. A refusal is `:not_found`, `:not_open`, `:not_responder` or `:profile_refused`, and `:response_token_unavailable` when the token cannot be signed or recorded now."
+  @spec mint(Relay.Scope.t(), Relay.Id.t(), Relay.Id.t()) :: {:ok, token()} | {:error, atom()}
   def mint(%Relay.Scope{} = scope, <<_::128>> = waitpoint_id, <<_::128>> = recipient_id) do
     id = Relay.Id.generate()
 
     with {:ok, token} <- sign(scope, id),
-         {:ok, minted} <- record(scope, id, waitpoint_id, recipient_id) do
-      case minted do
-        {:minted, expires_at} -> {:ok, %{token: token, expires_at: expires_at}}
-        {refusal, _expires_at} -> {:error, refusal}
-      end
+         {:ok, {:minted, _expires_at}} <- record(scope, id, waitpoint_id, recipient_id) do
+      {:ok, token}
+    else
+      {:ok, {refusal, _expires_at}} -> {:error, refusal}
+      {:error, _reason} -> {:error, :response_token_unavailable}
     end
   end
 

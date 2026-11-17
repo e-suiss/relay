@@ -8,6 +8,8 @@ defmodule Relay.Api.Waitpoints do
 
   The limits are the contract's `x-relay-limits.waitpoint` (AG-53, AG-70) and every refusal names its limit: the longest wait, the messages a waitpoint may produce (its responders and its topics), the size of a response value, and the open waitpoints of the tenant environment and of the waiter.
 
+  A waitpoint that carries `access_link`, the deep link to the Access approval surface, is an approval-type request: the link is the only action of its inbox and notification items and no channel takes a response to it (AG-32, IN-6, E-16); it is sealed with the content.
+
   The profile `guardian_approval` is a review that takes no default response; its deadline comes from the creator and is never moved, and expiry produces `waitpoint.expired` alone (AG-62, AG-18).
 
   Every credential with the operation's scope reads, lists and cancels the waitpoints of its tenant environment (AG-46); an API client's own waitpoint takes a heartbeat only from that client. An agent's narrow scope is checked in `caller/1` once agent credentials carry one (AG-6).
@@ -48,7 +50,7 @@ defmodule Relay.Api.Waitpoints do
   @channels Relay.Api.Contract.documents()["schemas"]["Channel"]["enum"]
   @asking ~w(response_schema responders subject_digest content actions)
   @asking_only ~w(response_schema responders subject_digest content claim_text default_response
-                  actions evidence labels profile escalation_policy surface_policy)
+                  actions evidence labels profile escalation_policy surface_policy access_link)
   @unserved ~w(condition)
   @plan_refusals [
     :escalation_policy_not_found,
@@ -57,7 +59,7 @@ defmodule Relay.Api.Waitpoints do
     :escalation_tier_limit,
     :surface_recipient_outside_set
   ]
-  @sealed ~w(content actions evidence)
+  @sealed ~w(content actions evidence access_link)
 
   # AG-6
   # AG-46

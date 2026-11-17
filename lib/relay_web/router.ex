@@ -78,6 +78,16 @@ defmodule RelayWeb.Router do
     post "/:token", LinkController, :create
   end
 
+  # AG-31
+  # AG-35
+  # CH-44
+  scope "/respond", RelayWeb do
+    pipe_through :links
+
+    get "/:token", ResponseLinkController, :show
+    post "/:token", ResponseLinkController, :create
+  end
+
   # PC-35
   # PC-36
   # X-22

@@ -8,6 +8,8 @@ defmodule Relay.Templates.Live do
 
   `unsubscribe_url` is a stable placeholder until the preference links are issued; the channel adapter replaces it.
 
+  A delivery without a pinned plan is no template's: the step configured as `config :relay, Relay.Templates.Live, planless: Module` produces its content on the server (`Module.content(scope, delivery_id, mode)`, AG-29), and a delivery that step does not know fails with `schema_violation`.
+
   The event's links are decrypted with its data and read as `links.<rel>`; the `primary` link is the push tap target and the inbox item's target (E-83).
   """
 
@@ -202,7 +204,7 @@ defmodule Relay.Templates.Live do
         :done
 
       {:ok, {:no_plan, channel}} ->
-        failed(scope, delivery_id, channel, started, {:schema_violation, cause("plan_missing")})
+        planless(scope, delivery_id, channel, mode, started)
 
       {:ok, %{plan: %{"render_digest" => digest}}} when is_binary(digest) and mode == :once ->
         :rendered
@@ -212,6 +214,23 @@ defmodule Relay.Templates.Live do
 
       {:error, _reason} ->
         {:error, {:input_unavailable, :template}}
+    end
+  end
+
+  # AG-29
+  defp planless(scope, delivery_id, channel, mode, started) do
+    missing = {:schema_violation, cause("plan_missing")}
+
+    case :relay |> Application.get_env(__MODULE__, []) |> Keyword.get(:planless) do
+      nil ->
+        failed(scope, delivery_id, channel, started, missing)
+
+      module ->
+        case module.content(scope, delivery_id, mode) do
+          :foreign -> failed(scope, delivery_id, channel, started, missing)
+          {:failed, failure} -> failed(scope, delivery_id, channel, started, failure)
+          result -> result
+        end
     end
   end
 

@@ -44,7 +44,7 @@ public class RelayApiException : RelayException
 {
     /// <summary>Creates the error from the problem Relay returned.</summary>
     public RelayApiException(RelayError error)
-        : base(Message(error))
+        : base(Describe(error))
     {
         Error = error;
     }
@@ -64,7 +64,7 @@ public class RelayApiException : RelayException
     /// <summary>The Request-Id of the response.</summary>
     public string? RequestId => Error.RequestId;
 
-    private static string Message(RelayError error) =>
+    private static string Describe(RelayError error) =>
         error.Detail is null
             ? $"{error.Status} {error.Code}: {error.Title}"
             : $"{error.Status} {error.Code}: {error.Title} ({error.Detail})";

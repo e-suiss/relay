@@ -1,0 +1,122 @@
+{
+  "track": "sdk",
+  "version": "1",
+  "operation": "sdk.paginate",
+  "rule": ["X-29", "API-56", "IN-30"],
+  "description": "Lazy pagination over a cursor list: query parameters limit, starting_after and ending_before (never both cursors), envelope {object: list, data, has_more, next_cursor, previous_cursor}. Pages are fetched only when the caller asks for an item beyond the current page. Forward iteration (no cursor or starting_after) yields data in page order and asks for starting_after=next_cursor until next_cursor is null. Backward iteration (ending_before) yields each page's data in reverse order and asks for ending_before=previous_cursor until previous_cursor is null. Each exchange lists the exact query the SDK sends (absent parameters are not sent) and the page the server returns; take, when present, stops after that many items.",
+  "cases": [
+    {
+      "name": "forward-three-pages",
+      "params": { "limit": 2 },
+      "exchanges": [
+        {
+          "query": { "limit": "2" },
+          "page": { "object": "list", "data": [{ "id": "ntf_5" }, { "id": "ntf_4" }], "has_more": true, "next_cursor": "cur_4", "previous_cursor": null }
+        },
+        {
+          "query": { "limit": "2", "starting_after": "cur_4" },
+          "page": { "object": "list", "data": [{ "id": "ntf_3" }, { "id": "ntf_2" }], "has_more": true, "next_cursor": "cur_2", "previous_cursor": "cur_3" }
+        },
+        {
+          "query": { "limit": "2", "starting_after": "cur_2" },
+          "page": { "object": "list", "data": [{ "id": "ntf_1" }], "has_more": false, "next_cursor": null, "previous_cursor": "cur_1" }
+        }
+      ],
+      "expect": { "items": ["ntf_5", "ntf_4", "ntf_3", "ntf_2", "ntf_1"], "requests": 3 }
+    },
+    {
+      "name": "default-limit-not-sent",
+      "params": {},
+      "exchanges": [
+        {
+          "query": {},
+          "page": { "object": "list", "data": [{ "id": "ntf_1" }], "has_more": false, "next_cursor": null, "previous_cursor": null }
+        }
+      ],
+      "expect": { "items": ["ntf_1"], "requests": 1 }
+    },
+    {
+      "name": "empty-list",
+      "params": { "limit": 10 },
+      "exchanges": [
+        {
+          "query": { "limit": "10" },
+          "page": { "object": "list", "data": [], "has_more": false, "next_cursor": null, "previous_cursor": null }
+        }
+      ],
+      "expect": { "items": [], "requests": 1 }
+    },
+    {
+      "name": "take-is-lazy",
+      "params": { "limit": 2 },
+      "take": 3,
+      "exchanges": [
+        {
+          "query": { "limit": "2" },
+          "page": { "object": "list", "data": [{ "id": "ntf_5" }, { "id": "ntf_4" }], "has_more": true, "next_cursor": "cur_4", "previous_cursor": null }
+        },
+        {
+          "query": { "limit": "2", "starting_after": "cur_4" },
+          "page": { "object": "list", "data": [{ "id": "ntf_3" }, { "id": "ntf_2" }], "has_more": true, "next_cursor": "cur_2", "previous_cursor": "cur_3" }
+        }
+      ],
+      "expect": { "items": ["ntf_5", "ntf_4", "ntf_3"], "requests": 2 }
+    },
+    {
+      "name": "take-within-first-page",
+      "params": { "limit": 2 },
+      "take": 2,
+      "exchanges": [
+        {
+          "query": { "limit": "2" },
+          "page": { "object": "list", "data": [{ "id": "ntf_5" }, { "id": "ntf_4" }], "has_more": true, "next_cursor": "cur_4", "previous_cursor": null }
+        }
+      ],
+      "expect": { "items": ["ntf_5", "ntf_4"], "requests": 1 }
+    },
+    {
+      "name": "forward-from-caller-cursor",
+      "params": { "limit": 2, "starting_after": "cur_4" },
+      "exchanges": [
+        {
+          "query": { "limit": "2", "starting_after": "cur_4" },
+          "page": { "object": "list", "data": [{ "id": "ntf_3" }, { "id": "ntf_2" }], "has_more": false, "next_cursor": null, "previous_cursor": "cur_3" }
+        }
+      ],
+      "expect": { "items": ["ntf_3", "ntf_2"], "requests": 1 }
+    },
+    {
+      "name": "backward-from-caller-cursor",
+      "params": { "limit": 2, "ending_before": "cur_2" },
+      "exchanges": [
+        {
+          "query": { "limit": "2", "ending_before": "cur_2" },
+          "page": { "object": "list", "data": [{ "id": "ntf_4" }, { "id": "ntf_3" }], "has_more": true, "next_cursor": "cur_3", "previous_cursor": "cur_4" }
+        },
+        {
+          "query": { "limit": "2", "ending_before": "cur_4" },
+          "page": { "object": "list", "data": [{ "id": "ntf_5" }], "has_more": true, "next_cursor": "cur_5", "previous_cursor": null }
+        }
+      ],
+      "expect": { "items": ["ntf_3", "ntf_4", "ntf_5"], "requests": 2 }
+    },
+    {
+      "name": "next-cursor-null-stops-even-if-has-more",
+      "params": { "limit": 1 },
+      "exchanges": [
+        {
+          "query": { "limit": "1" },
+          "page": { "object": "list", "data": [{ "id": "ntf_1" }], "has_more": true, "next_cursor": null, "previous_cursor": null }
+        }
+      ],
+      "expect": { "items": ["ntf_1"], "requests": 1 }
+    }
+  ],
+  "rejections": [
+    {
+      "name": "both-cursors",
+      "params": { "starting_after": "cur_4", "ending_before": "cur_2" },
+      "expect": { "requests": 0, "error": "both_cursors" }
+    }
+  ]
+}

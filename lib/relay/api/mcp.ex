@@ -179,6 +179,9 @@ defmodule Relay.Api.Mcp do
          do: {:ok, %{id: id, method: method, params: params}}
   end
 
+  def request(body, _headers) when is_map(body),
+    do: {:error, refusal(400, Map.get(body, "id"), -32_600, "Invalid Request", nil)}
+
   defp versioned(id, version, headers) do
     case header(headers, "mcp-protocol-version") do
       nil ->
@@ -207,9 +210,6 @@ defmodule Relay.Api.Mcp do
         :ok
     end
   end
-
-  def request(body, _headers) when is_map(body),
-    do: {:error, refusal(400, Map.get(body, "id"), -32_600, "Invalid Request", nil)}
 
   defp unsupported(id, version) do
     data = %{"supported" => @versions, "requested" => version}

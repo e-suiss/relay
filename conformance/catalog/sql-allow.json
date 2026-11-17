@@ -312,6 +312,24 @@
     "reason": "WH-68, OP-9: the no-delete trigger rejects TRUNCATE on the waitpoint completions"
   },
   {
+    "path": "priv/repo/migrations/20261220000000_allow_pending_iys_consents.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "PC-30: a committed relay_fn function is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261220000100_allow_iys_credential_secrets.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "PC-29, TN-26: a committed relay_fn function is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261220000200_create_iys_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "PC-30, OP-9: the no-delete triggers reject TRUNCATE on the İYS configuration, brands and uploads"
+  },
+  {
     "path": "priv/repo/migrations/20261221000000_create_refusal_tables.exs",
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",

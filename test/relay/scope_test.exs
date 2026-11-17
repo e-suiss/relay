@@ -71,7 +71,8 @@ defmodule Relay.ScopeTest do
                :workflow_run_due_discovery,
                :subscriber_token_keys,
                :webhook_due_discovery,
-               :access_pairing
+               :access_pairing,
+               :iys_scope_discovery
              ]
     end
 

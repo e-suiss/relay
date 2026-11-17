@@ -1,6 +1,8 @@
 defmodule Relay.Preferences.AccessConsentHandler do
   @moduledoc """
   The consent copy's handler of the Access `consent.updated` event (E-80, PC-59 (1)): in one tenant environment it finds the subscriber whose `external_id` is the event's pairwise `sub` and records the consent; an older or repeated sequence changes nothing. A `sub` with no subscriber in the environment creates nothing. A consent the copy refuses (an `active` one without its evidence) rejects the event. The evidence is sealed when the event is received (`seal_evidence/3`), so the receipt never holds it in clear; the consent copy keeps that ciphertext. Registered as `config :relay, Relay.Access, consent_handler: Relay.Preferences.AccessConsentHandler`.
+
+  A consent that belongs in a national consent registry (`Relay.Preferences.ConsentSink`) is written to the registry by Relay (E-21, PC-28): an `active` one is recorded as `pending_iys`, because it is valid only once the registry holds it (PC-30, PC-21), and it and a `revoked` one are handed to the sink after they are recorded. A repeated event hands its consent over again, which the sink takes once; when the sink fails the event comes again.
   """
 
   @behaviour Relay.Access.ConsentHandler
@@ -64,12 +66,21 @@ defmodule Relay.Preferences.AccessConsentHandler do
 
   defp sealed(_sealed, _recipient_id), do: nil
 
+  # E-21
+  # PC-30
   defp record(scope, consent) do
-    case Relay.Preferences.record_consent(scope, consent) do
-      {:ok, result} when result in [:recorded, :duplicate, :stale] ->
+    sink = :relay |> Application.get_env(Relay.Preferences, []) |> Keyword.get(:consent_sink)
+    registry? = sink != nil and sink.registry?(scope, consent.channel)
+    consent = pending(consent, registry?)
+
+    case Relay.Preferences.record_consent_entry(scope, consent) do
+      {:ok, {result, id}} when result in [:recorded, :duplicate] ->
+        handed(sink, registry?, scope, consent, id)
+
+      {:ok, {:stale, _id}} ->
         :ok
 
-      {:ok, refused} ->
+      {:ok, {refused, _id}} ->
         Logger.warning("an Access consent was not recorded", result: refused)
         {:rejected, Atom.to_string(refused)}
 
@@ -77,4 +88,19 @@ defmodule Relay.Preferences.AccessConsentHandler do
         {:error, error}
     end
   end
+
+  defp pending(%{status: "active"} = consent, true), do: %{consent | status: "pending_iys"}
+  defp pending(consent, _registry?), do: consent
+
+  defp handed(sink, true, scope, %{status: status} = consent, <<_::128>> = id)
+       when status in ["pending_iys", "revoked"] do
+    recorded =
+      consent
+      |> Map.take([:recipient_id, :brand_subtenant_id, :channel, :status, :recipient_type])
+      |> Map.merge(%{consent_id: id, source: consent.source, occurred_at: consent.occurred_at})
+
+    sink.recorded(scope, recorded)
+  end
+
+  defp handed(_sink, _registry?, _scope, _consent, _id), do: :ok
 end

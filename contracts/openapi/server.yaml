@@ -67,6 +67,8 @@ tags:
     description: "Management family: DMARC aggregate and TLS report intake and summaries (scope config)."
   - name: realtime
     description: "Management family: the browser origins allowed to open realtime connections (scope config)."
+  - name: iys
+    description: "Management family: the İYS connection of the tenant environment, its brands and the uploads of the consent write path (scope config)."
 paths:
   "/v1/events":
     post:
@@ -19498,6 +19500,445 @@ paths:
       x-relay-stage: 10
       x-relay-choice: true
       x-relay-choice-note: "Path and shapes are chosen by the contract within the named decisions."
+  "/v1/iys/config":
+    get:
+      operationId: getIysConfig
+      tags:
+        - iys
+      summary: "Get the İYS configuration"
+      description: "The İYS connection of this environment (PC-29, E-22): the connection mode, the codes, the API user, the identifier of the password's secret reference, the brands with their bindings and what İYS authorises for them, the consent quota as it was last read (PC-34) and the mark of a connection İYS refused. The password is never shown (TN-26). An environment without a configuration answers 404 iys_not_configured."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+      responses:
+        "200":
+          description: "The İYS configuration."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/IysConfig"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - iys_not_configured
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "PC-29 and PC-30 decide the İYS connection, its brands and the write path; the paths and the shapes are chosen by the contract."
+    put:
+      operationId: replaceIysConfig
+      tags:
+        - iys
+      summary: "Replace the İYS configuration"
+      description: "Writes the İYS connection of this environment and replaces its brand set (PC-29, E-22). mode is own (the tenant's own İYS access) or integrator (through the tenant's authorised integrator, with integrator_code); both are served alike. credential_ref_id names the registered secret reference of the API user's password, which an operator registers and which is never sent here (TN-26). A brand is bound to the tenant, to a sub-tenant or to an SMS sender identity whose registration names the same brand code; a brand code and a binding appear once. A brand left out is archived, never deleted. In integrator mode the access of a brand is unknown until it is read from the integrator's authorisation list, and nothing is written for the brand until then. A test environment uses the sandbox API. expected_version guards the write: 409 resource_conflict when the configuration changed. Audited as iys_config.replaced."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/IysConfigReplace"
+      security:
+        - access_bearer:
+            - config
+      responses:
+        "200":
+          description: "The İYS configuration."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/IysConfig"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - resource_conflict
+      x-relay-scopes:
+        - config
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "PC-29 and PC-30 decide the İYS connection, its brands and the write path; the paths and the shapes are chosen by the contract."
+  "/v1/iys/brands":
+    get:
+      operationId: listIysBrands
+      tags:
+        - iys
+      summary: "List the İYS brands"
+      description: "The active İYS brands of this environment (PC-29): the brand code, its binding and the access İYS gives by channel (sms is MESAJ, voice is ARAMA, email is EPOSTA) with the time it was last read. In own mode the access is write; in integrator mode it is read from the integrator's authorisation list on a schedule and is unknown until then (E-22)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+      responses:
+        "200":
+          description: "The brands."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/IysBrandList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "PC-29 and PC-30 decide the İYS connection, its brands and the write path; the paths and the shapes are chosen by the contract."
+  "/v1/iys/connection_test":
+    get:
+      operationId: testIysConnection
+      tags:
+        - iys
+      summary: "Test the İYS connection"
+      description: "Tries the İYS connection of this environment and answers what İYS said (PC-29, PC-34): whether a token was issued, which configured brands İYS knows (in integrator mode, which the integrator is authorised for) and the subscription with its consent quota. Nothing is written to İYS or to Relay. İYS limits token requests by the hour, so a token Relay already holds is used. An environment without a configuration answers 404 iys_not_configured."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+      responses:
+        "200":
+          description: "The result of the test."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/IysConnectionTest"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - iys_not_configured
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-weight: 5
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "PC-29 and PC-30 decide the İYS connection, its brands and the write path; the paths and the shapes are chosen by the contract."
+  "/v1/iys/uploads":
+    get:
+      operationId: listIysUploads
+      tags:
+        - iys
+      summary: "List İYS uploads"
+      description: "Pages through the uploads of the İYS write path of this environment, newest first (PC-30). An upload is one consent movement on its way to İYS: pending until it is sent, uploaded until its status is read back, then confirmed. state failed is the operator's queue: the movements İYS refused for good, with the İYS error code and trace identifier. expired is an approval İYS did not record within three business days, skipped a refusal for a recipient İYS holds no record of or an approval a later refusal withdrew. An upload never shows an address."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+        - name: state
+          in: query
+          description: "Upload state."
+          required: false
+          schema:
+            type: string
+            enum:
+              - pending
+              - uploaded
+              - confirmed
+              - failed
+              - expired
+              - skipped
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+      responses:
+        "200":
+          description: "A page of uploads."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/IysUploadList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "PC-29 and PC-30 decide the İYS connection, its brands and the write path; the paths and the shapes are chosen by the contract."
   "/v1/subscribers/{subscriber_id}/messaging_targets/{channel}":
     put:
       operationId: replaceSubscriberMessagingTarget
@@ -24951,6 +25392,12 @@ x-relay-id-prefixes:
     stage: 9
     x-relay-choice: true
     x-relay-choice-note: Prefix chosen by the contract.
+  - prefix: iyu_
+    concept: İYS upload
+    table: iys_uploads
+    stage: 11
+    x-relay-choice: true
+    x-relay-choice-note: Prefix chosen by the contract.
   - prefix: tkd_
     concept: Takedown
     table: takedowns
@@ -25028,9 +25475,6 @@ x-relay-limits:
     max_partials: 50
     preview_masked_samples: 20
     preview_masked_window: P7D
-  iys:
-    stale_warning: PT6H
-    stale_stop: PT24H
   test_send:
     max_test_recipients: 5
     verification_window: P7D
@@ -25224,4 +25668,20 @@ x-relay-limits:
     completion_result_max_bytes: 4096
     x-relay-choice: true
     x-relay-choice-note: "WH-16 and WH-52 set 20 endpoints per tenant and 5 per consumer, WH-6 the key overlap, WH-7 the timestamp tolerance and the webhook-id retention, WH-52 the 256 KiB payload limit, the delivery log retention, the object batch thresholds and the bounds of a tenant's retry schedule, WH-22 the default schedule and its jitter, WH-24 the timeouts and the 8 kB of an answer, WH-25 the three Retry-After deferrals, WH-36 the automatic disable, WH-55 the circuit breaker and WH-56 the five operations contacts. The 20 per tenant count the tenant's own relay_events endpoints and the 5 per consumer the endpoints of one consumer; archived endpoints and endpoints managed by a product are not counted. The 20 completion sources of an environment and the 4096 bytes of a completion result (WH-68) are contract choices; a completion notification is held to payload_max_bytes and its webhook-id to id_retention. The per-endpoint concurrency and rate (WH-38), the limits of the broker and cloud destinations (destination: the largest frame, the acknowledgement wait, the SCRAM iteration ceiling and the lifetimes of an assertion and of a derived credential), the health window, the portal token lifetime, the schema size and the per-endpoint list sizes are contract choices. allowed_ports is the default; an installation adds ports in its configuration (WH-40)."
+  iys:
+    stale_warning: PT6H
+    stale_stop: PT24H
+    requests_per_second: 10
+    token_requests_per_hour: 100
+    consent_status_requests_per_hour: 1000
+    batch_max_consents: 1000
+    brands_per_environment: 100
+    direct_access_threshold: 250000
+    direct_access_warning_percent: 80
+    quota_warning_percent: 80
+    authorisation_refresh: PT1H
+    authorisation_max_age: PT24H
+    read_back_attempts: 3
+    x-relay-choice: true
+    x-relay-choice-note: "The request rates, the 1000 consents of a batch and the hourly token and status limits are İYS's published limits (PC-34), transcribed in conformance/iys/openapi.yaml. PC-62 sets the direct access threshold of 250000 addresses with its warning at 80 percent. The quota warning at 80 percent of the consent limit, the hourly refresh of an integrator's authorisations, the 24 hours after which an authorisation that was not read again stops the brand's writes, the three read-backs after which a status that still disagrees fails the upload and the 100 brands of an environment are contract choices."
 x-relay-error-catalog: "../errors.yaml"

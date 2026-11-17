@@ -809,6 +809,26 @@
       "subject_erasure": "the tenant's own operations contact addresses, not a subscriber's; a removed address is set to null"
     },
     {
+      "table": "iys_configs",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "iys_brands",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "iys_uploads",
+      "personal_columns": [
+        "address_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; rows kept",
+      "subject_erasure": "the address is sealed under the tenant data key in the commercial_consent class only while the upload is open and is set to null when it settles; a failed upload keeps it until the tenant data key is destroyed; the row and the keyed address digest are kept as the record of the registry write"
+    },
+    {
       "table": "dsr_log",
       "personal_columns": [],
       "tenant_close": "row kept under the dsr_log retention",

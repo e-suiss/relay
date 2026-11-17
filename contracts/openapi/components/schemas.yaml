@@ -6867,6 +6867,14 @@ WaitpointProfile:
   description: "A profile narrows a waitpoint. guardian_approval is the request of a child that a guardian decides (AG-62): a review whose responders the creator takes from the guardianship and household records, whose expires_at comes from the creator and is never moved, and which takes no default_response, because silence is no response; when it expires only waitpoint.expired is produced."
   enum:
     - guardian_approval
+WaitpointAccessLink:
+  type: string
+  format: uri
+  pattern: "^https://"
+  maxLength: 2048
+  description: "The deep link to the Access approval surface where the decision of this request is given (E-16, AG-32, IN-6). A question or a review that carries it is an approval-type request: the link is the only action of its inbox and notification items, no response link is delivered and a response on a channel is never the decision. Kept encrypted at rest with the content."
+  x-relay-choice: true
+  x-relay-choice-note: "E-16, IN-6 and AG-32 have the approval-type item carry only the deep link to the Access approval surface; that the creator hands the link in with the waitpoint, and the member name, are chosen by the contract."
 WaitpointLabel:
   type: string
   description: "A label of the owner: lowercase letters, digits, underscore, dot, colon and hyphen, 1 to 64 characters."
@@ -7027,6 +7035,8 @@ WaitpointCreate:
       "$ref": "#/WaitpointLabels"
     profile:
       "$ref": "#/WaitpointProfile"
+    access_link:
+      "$ref": "#/WaitpointAccessLink"
   additionalProperties: false
 WaitpointResponder:
   type: object
@@ -7190,6 +7200,8 @@ Waitpoint:
       "$ref": "#/WaitpointLabels"
     profile:
       "$ref": "#/WaitpointProfile"
+    access_link:
+      "$ref": "#/WaitpointAccessLink"
   additionalProperties: false
 WaitpointCompletion:
   type: object

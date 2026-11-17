@@ -47,7 +47,7 @@ defmodule Relay.Agents.Waitpoint do
 
   An early record waiting in the buffer resolves an `:event` waitpoint at once. For a question or review the caller decodes the early record: `:on_early` receives `%{waitpoint_id, record_id}` and returns the response attributes for `respond/3` (with `:source_record_id`), or `nil` to leave the record in the buffer.
 
-  `:escalation` (a stored policy by `:key` and optional `:version`, or inline `:tiers`) and `:surface_policy` are the waitpoint's plan (`Relay.Agents.Escalation`): it is checked against `:responder_ids` before anything is written and pinned in the same transaction. A plan that does not fit opens nothing and is the result: `:escalation_policy_not_found`, `:escalation_policy_archived`, `:escalation_responder_outside_set`, `:escalation_tier_limit` or `:surface_recipient_outside_set`. Without a plan nothing changes.
+  `:escalation` (a stored policy by `:key` and optional `:version`, or inline `:tiers`) and `:surface_policy` are the waitpoint's plan (`Relay.Agents.Escalation`): it is checked against `:responder_ids` before anything is written and pinned in the same transaction. A plan that does not fit opens nothing and is the result: `:escalation_policy_not_found`, `:escalation_policy_archived`, `:escalation_responder_outside_set`, `:escalation_tier_limit` or `:surface_recipient_outside_set`. A question or a review without a plan invites every responder once, on all its surfaces at the same time (AG-28, AG-63).
 
   Options: `:tenant_open_cap`, `:waiter_open_cap`, `:on_early`.
   """
@@ -102,13 +102,20 @@ defmodule Relay.Agents.Waitpoint do
   defp planned(wp) do
     case Escalation.plan(wp) do
       nil ->
-        {:ok, wp, nil}
+        {:ok, wp, direct(wp)}
 
       plan ->
         with {:ok, ref} <- Escalation.check(Map.get(wp, :responder_ids, []), plan),
              do: {:ok, Map.put(wp, :escalation_policy_ref, ref), plan}
     end
   end
+
+  # AG-28
+  # AG-63
+  defp direct(%{kind: kind, responder_ids: [_ | _]}) when kind in [:question, :review],
+    do: Escalation.direct_plan()
+
+  defp direct(_wp), do: nil
 
   defp opened(scope, wp, plan, opts) do
     case WaitpointStore.open(wp) do

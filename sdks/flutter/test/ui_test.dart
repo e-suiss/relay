@@ -206,7 +206,8 @@ void main() {
       await tester.tap(find.byTooltip('Arşivle'));
       await tester.pump(const Duration(seconds: 1));
       expect(find.text('Kargonuz yolda'), findsNothing);
-      await tester.tap(find.text('Geri al'));
+      expect(find.text('Geri al'), findsOneWidget);
+      tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed();
       await tester.pump();
       expect(find.text('Kargonuz yolda'), findsOneWidget);
       await tester.pump(const Duration(seconds: 6));

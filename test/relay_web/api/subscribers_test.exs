@@ -136,5 +136,78 @@ defmodule RelayWeb.Api.SubscribersTest do
 
       assert rows == [["deleted"]]
     end
+
+    defp scoped(ctx, sql, params \\ []) do
+      {:ok, rows} =
+        Relay.Repo.in_scope(ctx.scope, fn _status ->
+          Relay.Repo.scoped_query!(sql, params).rows
+        end)
+
+      rows
+    end
+
+    defp deletion!(ctx, id) do
+      F.body(F.request(:delete, "/v1/subscribers/" <> id, ctx.token), 202)
+      [[request]] = F.jobs("Relay.Subscribers.Erasure", ctx.scope, "request_id")
+      [[recipient]] = F.jobs("Relay.Subscribers.Erasure", ctx.scope, "recipient_id")
+      {:ok, request_id} = Relay.Id.parse(request)
+      {:ok, recipient_id} = Relay.Id.parse(recipient)
+      {request_id, recipient_id}
+    end
+
+    @dsr "SELECT entry, outcome, request_kind, retention_class, request_id, recipient_id FROM relay.dsr_log ORDER BY created_at, entry DESC"
+
+    test "OP-24: the request and its answer are recorded in dsr_log and the erasure in erasure_log",
+         ctx do
+      :ok = TenantFixture.retention_periods!()
+      F.workflow!(ctx.scope, ctx.token, "order-shipped")
+      id = external_id()
+      F.body(create(ctx.token, %{"external_id" => id, "email" => "e@example.com"}), 201)
+      event = %{"workflow" => "order-shipped", "to" => [id], "data" => %{"order" => "A-1"}}
+      F.body(F.request(:post, "/v1/events", ctx.token, event), 202)
+
+      {request_id, recipient_id} = deletion!(ctx, id)
+
+      assert scoped(ctx, @dsr) == [
+               ["request", nil, "erasure", "dsr_log", request_id, recipient_id]
+             ]
+
+      assert {:ok, :completed} = Relay.Subscribers.erase(ctx.scope, request_id, recipient_id)
+
+      assert scoped(ctx, @dsr) == [
+               ["request", nil, "erasure", "dsr_log", request_id, recipient_id],
+               ["answer", "completed", "erasure", "dsr_log", request_id, recipient_id]
+             ]
+
+      assert [[1, ref]] =
+               scoped(ctx, "SELECT cancelled_deliveries, request_ref FROM relay.erasure_log")
+
+      assert ref == Relay.ExternalId.encode("sdr", request_id)
+
+      assert scoped(ctx, "SELECT failure_kind, failure_rule_id FROM relay.deliveries") == [
+               ["cancelled", "erasure.subject"]
+             ]
+    end
+
+    test "OP-24, OP-17: a request stopped by a legal hold is answered held in dsr_log", ctx do
+      :ok = TenantFixture.retention_periods!()
+      id = external_id()
+      F.body(create(ctx.token, %{"external_id" => id, "email" => "e@example.com"}), 201)
+      {request_id, recipient_id} = deletion!(ctx, id)
+
+      {:ok, [%{"legal_hold_place" => "placed"}]} =
+        Relay.Repo.in_scope(ctx.scope, fn _status ->
+          Relay.Repo.call!(
+            "relay_fn.legal_hold_place",
+            [Relay.Id.generate(), "recipient", recipient_id, "regulator request"] ++
+              [TenantFixture.digest() | Relay.Actor.params(TenantFixture.actor())]
+          )
+        end)
+
+      assert {:ok, :held} = Relay.Subscribers.erase(ctx.scope, request_id, recipient_id)
+
+      assert [["request", nil | _], ["answer", "held" | _]] = scoped(ctx, @dsr)
+      assert scoped(ctx, "SELECT count(*)::integer FROM relay.erasure_log") == [[0]]
+    end
   end
 end

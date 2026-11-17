@@ -1,6 +1,7 @@
 defmodule RelayWeb.Api.WorkflowRunsTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Keys.Erasure
   alias Relay.Platform.VirtualClock
   alias Relay.Repo
   alias RelayTest.IngestFixture, as: F
@@ -359,9 +360,45 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
       }
 
       assert {:ok, :erased, _cancelled} =
-               Relay.Keys.Erasure.erase_subject(ctx.scope, run["recipient_id"], "dsr-wait", actor)
+               Erasure.erase_subject(ctx.scope, run["recipient_id"], "dsr-wait", actor)
 
       assert {:ok, %{state: "cancelled"}} = Relay.Agents.get_waitpoint(ctx.scope, waitpoint_id)
+    end
+
+    test "OP-24: erasing the subscriber cancels its waiting run and its pending delivery with the erasure rule",
+         ctx do
+      RelayTest.TenantFixture.retention_periods!()
+
+      workflow!(ctx, "erased-later", [
+        mail("first"),
+        %{"type" => "delay", "key" => "wait", "duration" => "PT1H"},
+        mail("second")
+      ])
+
+      {_notification, id} = send!(ctx, "erased-later")
+      run = run!(ctx, id)
+      assert run["state"] == "waiting"
+
+      actor = %Relay.Actor{
+        kind: :operator,
+        ref: "op-1",
+        on_behalf_of_ref: "op-1",
+        access_record_ref: "acc-rec-1"
+      }
+
+      assert {:ok, :erased, 1} =
+               Erasure.erase_subject(ctx.scope, run["recipient_id"], "dsr-run", actor)
+
+      runs = "SELECT state, rule_id FROM relay.workflow_runs"
+      deliveries = "SELECT failure_kind, failure_rule_id FROM relay.deliveries"
+
+      {:ok, rows} =
+        Repo.in_scope(ctx.scope, fn _status ->
+          {Repo.scoped_query!(runs, []).rows, Repo.scoped_query!(deliveries, []).rows}
+        end)
+
+      assert rows == {[["cancelled", "erasure.subject"]], [["cancelled", "erasure.subject"]]}
+      assert {:ok, "subject_erased"} = Relay.Rules.reason("erasure.subject")
     end
 
     test "WF-12: a wait that times out runs on_timeout and goes on", ctx do

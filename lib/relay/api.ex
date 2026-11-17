@@ -74,6 +74,7 @@ defmodule Relay.Api do
       ProviderWebhooks,
       ChannelManagement,
       ChannelOperations,
+      Takedowns,
       TestSends,
       ProviderInvoices,
       Reports,

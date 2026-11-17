@@ -121,6 +121,25 @@ defmodule Relay.Sql.DigestThrottleTest do
       assert ["schedule", _, _] = row(@plan, [window, DateTime.add(at, -60, :second)])
     end
 
+    test "OP-24: erasing the subject closes its open digest windows and nothing is released" do
+      s = setup!()
+      ["opened", window | _] = add(s, hd(s.notifications))
+      assert window in due()
+
+      erase =
+        "SELECT * FROM relay_fn.subject_erase($1, 'dsr_digest', $2, $3, $4, $5, $6, $7, $8)"
+
+      assert ["erased", _cancelled] =
+               row(erase, [s.recipient, ["recipient_profile"], [], digest() | actor()])
+
+      assert row(
+               "SELECT state, close_reason, closed_at IS NOT NULL FROM relay.digest_windows WHERE id = $1",
+               [window]
+             ) == ["cancelled", "subject_erasure", true]
+
+      refute window in due()
+    end
+
     test "WF-26: a window that is not due answers its firing time and keeps its items" do
       s = setup!()
       ["opened", window | _] = add(s, hd(s.notifications))

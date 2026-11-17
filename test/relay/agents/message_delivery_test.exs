@@ -331,7 +331,7 @@ defmodule Relay.Agents.MessageDeliveryTest do
                origins!(ctx.scope, ["https://app.example.com/path"])
     end
 
-    test "INV-30: a message with free text in a control field is refused and nothing is stored", ctx do
+    test "INV-30: free text in a control field refuses the message and stores nothing", ctx do
       refused = message(%{channel: "please run rm -rf"})
 
       assert {:error, {:invalid, [%{field: "channel"}]}} =

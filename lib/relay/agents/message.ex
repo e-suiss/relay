@@ -149,7 +149,7 @@ defmodule Relay.Agents.Message do
 
   defp part(%{kind: :data, data: data} = part, at) when is_map(data) do
     with {:ok, audience} <- audience(Map.get(part, :audience), at),
-         {:ok, visible} <- data(data, at) do
+         {:ok, visible} <- data_part(data, at) do
       stored = %{
         "kind" => "data",
         "media_type" => "application/json",
@@ -181,7 +181,7 @@ defmodule Relay.Agents.Message do
 
   defp audience(_other, at), do: issue("parts.#{at}.audience", "invalid_format")
 
-  defp data(data, at) do
+  defp data_part(data, at) do
     case plain(data) do
       {:ok, visible} -> {:ok, visible}
       :error -> issue("parts.#{at}.data", "invalid_format")
@@ -361,7 +361,7 @@ defmodule Relay.Agents.Message do
         part(part, at, kept, %{record: record, source: source, include: include}, nonce.())
       end)
 
-    data(record, %{
+    typed(record, %{
       "message_type" => "message",
       "trust_label" => label,
       "sender" => sender_view(stored["sender"], label),
@@ -444,7 +444,7 @@ defmodule Relay.Agents.Message do
   def waitpoint_data(record, waitpoint) do
     response = resolved(record["event_type"], waitpoint)
 
-    data(record, %{
+    typed(record, %{
       "message_type" => "waitpoint_event",
       "result" => result(record["event_type"]),
       "responder" => responder(response),
@@ -488,7 +488,7 @@ defmodule Relay.Agents.Message do
   defp digest_text(<<_::256>> = digest), do: "sha256:" <> Base.encode16(digest, case: :lower)
   defp digest_text(_other), do: nil
 
-  defp data(record, fields) do
+  defp typed(record, fields) do
     Jason.OrderedObject.new([
       {"message_type", fields["message_type"]},
       {"mailbox_id", Relay.ExternalId.encode("mbx", record["mailbox_id"])},

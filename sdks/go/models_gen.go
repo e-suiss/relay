@@ -2,8 +2,8 @@
 
 package relay
 
-// APIVersion: Dated API version.
-type APIVersion = string
+// APIVersionValue: Dated API version.
+type APIVersionValue = string
 
 // AcceptedNotification is generated from the Relay API contract.
 type AcceptedNotification struct {
@@ -2284,30 +2284,30 @@ type Priority = string
 
 // Problem: RFC 9457 problem details.
 type Problem struct {
-	Type              string         `json:"type"`
-	Title             string         `json:"title"`
-	Status            int64          `json:"status"`
-	Code              string         `json:"code"`
-	Detail            *string        `json:"detail,omitempty"`
-	Instance          *string        `json:"instance,omitempty"`
-	Retryable         bool           `json:"retryable"`
-	RequestID         *string        `json:"request_id,omitempty"`
-	RetryAfter        *int64         `json:"retry_after,omitempty"`
-	Errors            []FieldError   `json:"errors,omitempty"`
-	Limit             *int64         `json:"limit,omitempty"`
-	Actual            *int64         `json:"actual,omitempty"`
-	LimitName         *string        `json:"limit_name,omitempty"`
-	RequiredScope     *ScopeName     `json:"required_scope,omitempty"`
-	GrantedScopes     []ScopeName    `json:"granted_scopes,omitempty"`
-	Policy            *string        `json:"policy,omitempty"`
-	Quota             *ProblemQuota  `json:"quota,omitempty"`
-	SupportedVersions []APIVersion   `json:"supported_versions,omitempty"`
-	RequiredRole      *string        `json:"required_role,omitempty"`
-	GrantedRoles      []string       `json:"granted_roles,omitempty"`
-	StepUp            *ProblemStepUp `json:"step_up,omitempty"`
-	Error             *string        `json:"error,omitempty"`
-	Findings          []GateFinding  `json:"findings,omitempty"`
-	Current           map[string]any `json:"current,omitempty"`
+	Type              string            `json:"type"`
+	Title             string            `json:"title"`
+	Status            int64             `json:"status"`
+	Code              string            `json:"code"`
+	Detail            *string           `json:"detail,omitempty"`
+	Instance          *string           `json:"instance,omitempty"`
+	Retryable         bool              `json:"retryable"`
+	RequestID         *string           `json:"request_id,omitempty"`
+	RetryAfter        *int64            `json:"retry_after,omitempty"`
+	Errors            []FieldError      `json:"errors,omitempty"`
+	Limit             *int64            `json:"limit,omitempty"`
+	Actual            *int64            `json:"actual,omitempty"`
+	LimitName         *string           `json:"limit_name,omitempty"`
+	RequiredScope     *ScopeName        `json:"required_scope,omitempty"`
+	GrantedScopes     []ScopeName       `json:"granted_scopes,omitempty"`
+	Policy            *string           `json:"policy,omitempty"`
+	Quota             *ProblemQuota     `json:"quota,omitempty"`
+	SupportedVersions []APIVersionValue `json:"supported_versions,omitempty"`
+	RequiredRole      *string           `json:"required_role,omitempty"`
+	GrantedRoles      []string          `json:"granted_roles,omitempty"`
+	StepUp            *ProblemStepUp    `json:"step_up,omitempty"`
+	Error             *string           `json:"error,omitempty"`
+	Findings          []GateFinding     `json:"findings,omitempty"`
+	Current           map[string]any    `json:"current,omitempty"`
 }
 
 // ProblemQuota is generated from the Relay API contract.
@@ -2542,20 +2542,20 @@ type RelationshipLevel = string
 
 // RelayConfiguration: Relay discovery document of the installation.
 type RelayConfiguration struct {
-	Issuer                     string       `json:"issuer"`
-	APIBase                    string       `json:"api_base"`
-	Region                     Region       `json:"region"`
-	AccessIssuer               string       `json:"access_issuer"`
-	AccessClientID             string       `json:"access_client_id"`
-	ContractVersion            APIVersion   `json:"contract_version"`
-	ContractVersionsSupported  []APIVersion `json:"contract_versions_supported"`
-	JWKSURI                    string       `json:"jwks_uri"`
-	Capabilities               []Capability `json:"capabilities"`
-	EventsEndpoint             *string      `json:"events_endpoint,omitempty"`
-	WaitpointsEndpoint         *string      `json:"waitpoints_endpoint,omitempty"`
-	EscalationPoliciesEndpoint *string      `json:"escalation_policies_endpoint,omitempty"`
-	AgentsEndpoint             *string      `json:"agents_endpoint,omitempty"`
-	WebhookEndpointsEndpoint   *string      `json:"webhook_endpoints_endpoint,omitempty"`
+	Issuer                     string            `json:"issuer"`
+	APIBase                    string            `json:"api_base"`
+	Region                     Region            `json:"region"`
+	AccessIssuer               string            `json:"access_issuer"`
+	AccessClientID             string            `json:"access_client_id"`
+	ContractVersion            APIVersionValue   `json:"contract_version"`
+	ContractVersionsSupported  []APIVersionValue `json:"contract_versions_supported"`
+	JWKSURI                    string            `json:"jwks_uri"`
+	Capabilities               []Capability      `json:"capabilities"`
+	EventsEndpoint             *string           `json:"events_endpoint,omitempty"`
+	WaitpointsEndpoint         *string           `json:"waitpoints_endpoint,omitempty"`
+	EscalationPoliciesEndpoint *string           `json:"escalation_policies_endpoint,omitempty"`
+	AgentsEndpoint             *string           `json:"agents_endpoint,omitempty"`
+	WebhookEndpointsEndpoint   *string           `json:"webhook_endpoints_endpoint,omitempty"`
 }
 
 // Responder: A responder of a waitpoint or an escalation tier.
@@ -3554,7 +3554,7 @@ type WebhookEndpoint struct {
 	SignatureScheme    *SignatureScheme               `json:"signature_scheme"`
 	SigningKeys        []WebhookSigningKey            `json:"signing_keys"`
 	Snapshot           WebhookSnapshot                `json:"snapshot"`
-	PayloadVersion     APIVersion                     `json:"payload_version"`
+	PayloadVersion     APIVersionValue                `json:"payload_version"`
 	Description        *string                        `json:"description"`
 	State              WebhookEndpointState           `json:"state"`
 	DisabledReason     *WebhookEndpointDisabledReason `json:"disabled_reason"`
@@ -3668,7 +3668,7 @@ type WebhookEndpointSecret struct {
 	SignatureScheme      *SignatureScheme               `json:"signature_scheme"`
 	SigningKeys          []WebhookSigningKey            `json:"signing_keys"`
 	Snapshot             WebhookSnapshot                `json:"snapshot"`
-	PayloadVersion       APIVersion                     `json:"payload_version"`
+	PayloadVersion       APIVersionValue                `json:"payload_version"`
 	Description          *string                        `json:"description"`
 	State                WebhookEndpointState           `json:"state"`
 	DisabledReason       *WebhookEndpointDisabledReason `json:"disabled_reason"`
@@ -3698,7 +3698,7 @@ type WebhookEndpointVersion struct {
 	EndpointID     IDWhe           `json:"endpoint_id"`
 	Version        int64           `json:"version"`
 	Snapshot       WebhookSnapshot `json:"snapshot"`
-	PayloadVersion APIVersion      `json:"payload_version"`
+	PayloadVersion APIVersionValue `json:"payload_version"`
 	CreatedAt      Timestamp       `json:"created_at"`
 }
 

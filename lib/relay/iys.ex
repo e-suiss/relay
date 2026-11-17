@@ -4,6 +4,7 @@ defmodule Relay.Iys do
 
   * **Configuration (PC-29, E-22).** A tenant environment connects with its own İYS access (`own`) or through its authorised integrator (`integrator`); both are served alike. The model is `iysCode → (brandCode, type) → consent`: a tenant carries one or more brands, each bound to the tenant, to a sub-tenant or to an SMS sender identity whose registration names the same `brandCode`. The password is only a secret reference of kind `iys_credential`. An integrator's access by type is read from its authorisation list on a schedule and never assumed: until it was read, and when it is older than the published maximum age, nothing is written for the brand.
   * **Write path (PC-30).** A consent movement becomes an upload row with its job in one transaction; the address is sealed under the tenant's data key and cleared when the upload settles. The job sends the movement with the idempotent v2 operation, one at a time for a recipient, brand and type, reads the status back and only then appends `active` (or `revoked`) with the İYS transaction identifier to the consent copy. A refusal takes the same path ahead of the approvals and withdraws an approval of the same recipient that was not sent yet. An approval that İYS did not record within three business days (`Relay.Iys.Calendar`) becomes `expired`; a movement İYS refuses for good stays `failed` for the operator and is announced to the tenant.
+  * **Read path (PC-32, PC-33).** What İYS holds is kept in a local permission cache by pulling its consent movements on a schedule (`Relay.Iys.Sync`); the lattice reads only that cache (`permission/4`), a rejection that came from İYS is applied in Relay, and the uploads, the cache and İYS are reconciled. A copy that was not synchronised for too long stops the brand's marketing.
   * **Operation (PC-34).** The token is cached for its lifetime, a request İYS would refuse is checked before it is sent (`Relay.Iys.Consent`), İYS's limits are the published limits `iys`, and the consent quota is watched.
 
   The node reaches the other contexts through its runtime (`config :relay, Relay.Iys, runtime: Module`), `Relay.Iys.Live` on a running node.
@@ -12,14 +13,16 @@ defmodule Relay.Iys do
   use Boundary,
     top_level?: true,
     deps: [Relay],
-    exports: [Calendar, Client, Consent, Sweep, TokenCache, UploadWorker]
+    exports: [Calendar, Client, Consent, Sweep, SyncSweep, SyncWorker, TokenCache, UploadWorker]
 
   alias Relay.Actor
   alias Relay.Iys.Calendar
   alias Relay.Iys.Client
   alias Relay.Iys.Connection
   alias Relay.Iys.Consent
+  alias Relay.Iys.Permissions
   alias Relay.Iys.Store
+  alias Relay.Iys.Sync
   alias Relay.Iys.Uploads
   alias Relay.Scope
 
@@ -64,6 +67,13 @@ defmodule Relay.Iys do
 
   @doc "The business calendar of Turkey from the active `business_calendar` version."
   @callback calendar() :: {:ok, Calendar.t()} | {:error, term()}
+
+  @doc "Applies a rejection that came from İYS in Relay as a refusal notice with source `iys`; `attrs` are those of `Relay.Compliance.refuse/2`. Runs outside any transaction; a recipient that is gone is `:ok`."
+  @callback refuse(Scope.t(), map()) :: :ok | {:error, term()}
+
+  @doc "The address of a recipient on a channel in clear, for one request to İYS; runs outside any transaction."
+  @callback recipient_address(Scope.t(), Relay.Id.t(), String.t()) ::
+              {:ok, String.t()} | :none | {:error, term()}
 
   @doc "Supervised children: the token cache."
   @spec children() :: [module()]
@@ -182,6 +192,42 @@ defmodule Relay.Iys do
   @doc "Expires the approvals of the scope whose three business days ended at `now` and queues again the open uploads no attempt touched for a while; answers how many it expired and queued."
   @spec sweep(Scope.t(), DateTime.t()) :: result(swept())
   defdelegate sweep(scope, now), to: Uploads
+
+  # PC-34
+  @doc "Opens a failed upload again for the operator with the operator's `reason` and queues its job in the same transaction; audited as `iys_upload.retried`. Answers the upload as it is now with `:retried`, or `:not_found`, `:not_failed` for an upload in another state and `:not_retryable` for one that has no brand or whose address is gone."
+  @spec retry_upload(Scope.t(), Relay.Id.t(), String.t(), binary(), Actor.t()) ::
+          result({:retried, map()} | :not_found | :not_failed | :not_retryable)
+  defdelegate retry_upload(scope, upload_id, reason, digest, actor), to: Uploads, as: :retry
+
+  # PC-32
+  # OP-42
+  @doc "Runs the read path of the scope once: pull, verification, the rejections that came from İYS and the reconciliation; see `Relay.Iys.Sync`."
+  @spec sync(Scope.t(), DateTime.t()) :: result([Sync.report()])
+  defdelegate sync(scope, now), to: Sync, as: :run
+
+  # PC-33
+  @doc "Announces the brands of the scope whose copy became stale or fresh again at `now`; see `Relay.Iys.Sync.stale_check/2`."
+  @spec stale_check(Scope.t(), DateTime.t()) :: result(non_neg_integer())
+  defdelegate stale_check(scope, now), to: Sync
+
+  # PC-32
+  # OP-42
+  @doc "The synchronisation state of each active brand of the scope, for the operator; see `Relay.Iys.Sync.status/2`."
+  @spec sync_status(Scope.t(), DateTime.t()) :: result([map()])
+  defdelegate sync_status(scope, now), to: Sync, as: :status
+
+  # PC-27
+  # PC-33
+  # INV-19
+  @doc "What the local copy holds for a marketing delivery, read inside the caller's scoped transaction and never from İYS; see `Relay.Iys.Permissions.status/4`."
+  @spec permission(Scope.t(), Relay.Id.t() | nil, String.t(), binary()) :: Permissions.status()
+  defdelegate permission(scope, subtenant_id, channel, digest), to: Permissions, as: :status
+
+  # PC-32
+  @doc "Verifies one address against İYS and writes the answer into the cache: the one live consent query, an explicit operation; see `Relay.Iys.Permissions.verify/2`."
+  @spec verify(Scope.t(), map()) ::
+          result(Permissions.state() | :not_configured | :out_of_scope)
+  defdelegate verify(scope, query), to: Permissions
 
   # PC-29
   # PC-34

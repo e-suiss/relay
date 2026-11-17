@@ -5021,6 +5021,202 @@ paths:
       x-relay-stage: 11
       x-relay-choice: true
       x-relay-choice-note: "PC-29 keeps the İYS password as a secret reference only; registering one is an operator action like every other secret (TN-26). The path and shapes are chosen by the contract."
+  "/v1/operator/iys/sync":
+    get:
+      operationId: getIysSync
+      tags:
+        - channels
+      summary: Read the İYS synchronisation state
+      description: "The state of the İYS read path of the selected tenant environment, brand by brand (PC-32, PC-33, PC-62, OP-42): the last pull that reached the end of İYS's movements and its age, the last attempt and its error code, the state of the copy against the warning and the stop age, the full synchronisations, the drift the last reconciliation counted and the distinct addresses the copy holds against the direct access threshold. İYS's pull never reports the last hour (blind_spot_seconds), so the copy covers İYS only up to covered_until; a rejection a recipient made at İYS after that instant is not in the copy yet. 404 iys_not_configured when the tenant entered no İYS configuration."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The synchronisation state.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/IysSync"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+        - iys_not_configured
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "PC-32 shows the operator the state of the İYS read path and PC-34 keeps a permanently failed upload for the operator; the paths, the retry action and the response shapes are chosen by the contract."
+  "/v1/operator/iys/uploads/{upload_id}/retry":
+    post:
+      operationId: retryIysUpload
+      tags:
+        - channels
+      summary: Retry a failed İYS upload
+      description: "Opens a failed upload of the İYS write path again (PC-34, PC-30): a consent or a refusal İYS refused for good, or one that could not be sent, stays failed for the operator, and once the cause is fixed the operator sends it again. The upload becomes pending with its attempts reset and its job is queued in the same transaction. An approval whose three business days ended expires on its next attempt. 409 resource_conflict for an upload that is not failed, that has no brand or whose address is gone. Audited as iys_upload.retried."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - name: upload_id
+          in: path
+          description: İYS upload identifier.
+          required: true
+          schema:
+            "$ref": "./components/schemas.yaml#/Id_iyu"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/IysUploadRetry"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The upload, pending again.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/IysUpload"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - iys_upload_not_found
+        - resource_conflict
+        - auth_delegation_required
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "PC-32 shows the operator the state of the İYS read path and PC-34 keeps a permanently failed upload for the operator; the paths, the retry action and the response shapes are chosen by the contract."
   "/v1/operator/webhook_endpoints/{webhook_endpoint_id}/subscribe":
     post:
       operationId: subscribeWebhookEndpointExplicitType
@@ -6844,6 +7040,125 @@ components:
           "$ref": "./components/schemas.yaml#/Timestamp"
         updated_at:
           "$ref": "./components/schemas.yaml#/Timestamp"
+      additionalProperties: false
+    IysUploadRetry:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          description: Why the upload is sent again; kept with its audit record.
+          minLength: 1
+          maxLength: 500
+      additionalProperties: false
+    IysSync:
+      type: object
+      description: "The state of the İYS read path of a tenant environment (PC-32, PC-33, PC-62, OP-42)."
+      required:
+        - object
+        - blind_spot_seconds
+        - brands
+      properties:
+        object:
+          type: string
+          const: iys_sync
+        blind_spot_seconds:
+          type: integer
+          description: "The last seconds İYS's pull never reports (PC-32)."
+          minimum: 0
+        brands:
+          type: array
+          maxItems: 100
+          items:
+            "$ref": "#/components/schemas/IysBrandSync"
+      additionalProperties: false
+    IysBrandSync:
+      type: object
+      description: "The read path state of one brand. stale_state is fresh, warning from the warning age of the copy (x-relay-limits iys.stale_warning) and stopped from the stop age (iys.stale_stop), from which the brand's marketing is held. address_state is measured only for a brand that connects through an integrator (PC-62)."
+      required:
+        - object
+        - brand_code
+        - last_pull_at
+        - cursor_age_seconds
+        - covered_until
+        - last_attempt_at
+        - last_error_code
+        - stale_state
+        - full_sync_running
+        - full_sync_floor_at
+        - last_full_sync_at
+        - reconciled_at
+        - drift_count
+        - address_count
+        - address_state
+      properties:
+        object:
+          type: string
+          const: iys_brand_sync
+        brand_code:
+          "$ref": "./components/schemas.yaml#/IysCode"
+        last_pull_at:
+          description: "The last pull that reached the end of İYS's movements; null when the brand never synchronised."
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        cursor_age_seconds:
+          description: "Seconds since last_pull_at."
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: "null"
+        covered_until:
+          description: "The instant up to which the copy covers İYS: last_pull_at less the blind spot."
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        last_attempt_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        last_error_code:
+          description: "Why the last attempt did not finish: an İYS error code, http_<status>, unavailable, blocked, credential_unavailable, page_budget, apply_failed or cursor_rejected."
+          oneOf:
+            - type: string
+              maxLength: 64
+            - type: "null"
+        stale_state:
+          type: string
+          enum:
+            - fresh
+            - warning
+            - stopped
+        full_sync_running:
+          type: boolean
+        full_sync_floor_at:
+          description: "The start of the last full synchronisation after a gap; an approval verified before it counts again only once it was verified against İYS."
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        last_full_sync_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        reconciled_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        drift_count:
+          type: integer
+          description: "Confirmed uploads the copy does not hold and permissions no pull reported, at the last reconciliation."
+          minimum: 0
+        address_count:
+          type: integer
+          description: "Distinct addresses the copy holds for the brand, at the last reconciliation."
+          minimum: 0
+        address_state:
+          type: string
+          enum:
+            - ok
+            - warning
+            - reached
       additionalProperties: false
     TakedownList:
       allOf:

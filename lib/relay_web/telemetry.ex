@@ -77,6 +77,7 @@ defmodule RelayWeb.Telemetry do
       reconciliation_metrics() ++
       inbox_metrics() ++
       webhook_metrics() ++
+      iys_metrics() ++
       vm_metrics()
   end
 
@@ -628,6 +629,58 @@ defmodule RelayWeb.Telemetry do
       counter("relay.push.signing_unavailable.total",
         event_name: [:relay, :push, :signing_unavailable],
         description: "Push provider tokens the key store could not sign"
+      )
+    ]
+  end
+
+  # PC-32
+  # PC-33
+  # PC-62
+  # OP-42
+  @doc "The İYS read path metrics: the brands whose local copy of İYS is past the warning and the stop age, the brands at the warning and at the limit of the direct access threshold and the drift the reconciliations found, all measured across tenants by the synchronisation sweep; the pulls by result, the rejections that came from İYS by what became of them, and the marketing deliveries the lattice evaluated against a copy past the warning age."
+  @spec iys_metrics() :: [Telemetry.Metrics.t()]
+  def iys_metrics do
+    overview = [:relay, :iys, :sync, :overview]
+
+    [
+      last_value("relay.iys.copy.warning_brands",
+        event_name: overview,
+        measurement: :stale_warning,
+        description: "İYS brands whose local copy is past the warning age"
+      ),
+      last_value("relay.iys.copy.stopped_brands",
+        event_name: overview,
+        measurement: :stale_stopped,
+        description: "İYS brands whose local copy is past the stop age; their marketing is held"
+      ),
+      last_value("relay.iys.direct_access.warning_brands",
+        event_name: overview,
+        measurement: :address_warning,
+        description: "Integrator brands past the warning share of the direct access threshold"
+      ),
+      last_value("relay.iys.direct_access.reached_brands",
+        event_name: overview,
+        measurement: :address_reached,
+        description: "Integrator brands at or over the direct access threshold"
+      ),
+      last_value("relay.iys.reconciliation.drift",
+        event_name: overview,
+        measurement: :drift,
+        description: "Movements the last İYS reconciliations found missing from the local copy"
+      ),
+      counter("relay.iys.pull.total",
+        event_name: [:relay, :iys, :sync, :pull],
+        tags: [:result],
+        description: "İYS pulls of a brand's consent movements, by result"
+      ),
+      counter("relay.iys.rejection.total",
+        event_name: [:relay, :iys, :sync, :rejection],
+        tags: [:result],
+        description: "Rejections that came from İYS, by whether a recipient had the address"
+      ),
+      counter("relay.policy.iys_copy_stale.total",
+        event_name: [:relay, :policy, :iys_copy_stale],
+        description: "Marketing deliveries evaluated against an İYS copy past the warning age"
       )
     ]
   end

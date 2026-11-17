@@ -286,6 +286,59 @@ defmodule Relay.Api.Iys do
     }
   end
 
+  # PC-32
+  # PC-33
+  # PC-62
+  # OP-42
+  @doc "The state of the İYS read path of the scope, brand by brand, for the operator; `404 iys_not_configured` when the tenant entered no configuration."
+  @spec sync(Scope.t()) :: {:ok, map()} | {:error, Relay.Error.t()}
+  def sync(%Scope{} = scope) do
+    if Relay.Iys.configured?(scope),
+      do: synced(Relay.Iys.sync_status(scope, Relay.Clock.utc_now())),
+      else: {:error, not_configured()}
+  end
+
+  defp synced({:ok, brands}) do
+    {:ok,
+     %{
+       "object" => "iys_sync",
+       "blind_spot_seconds" => Relay.Limits.seconds!(["iys", "changes_blind_spot"]),
+       "brands" => Enum.map(brands, &sync_view/1)
+     }}
+  end
+
+  defp synced({:error, _reason}), do: {:error, unavailable()}
+
+  defp sync_view(brand) do
+    brand
+    |> Map.new(fn {name, value} -> {Atom.to_string(name), value} end)
+    |> Map.put("object", "iys_brand_sync")
+    |> Map.delete("blind_spot_seconds")
+  end
+
+  # PC-34
+  # TN-47
+  @doc "Opens a failed upload again for the operator; `404 iys_upload_not_found` for an unknown upload and `409 resource_conflict` for one that is not failed or cannot be sent again. Audited as `iys_upload.retried`."
+  @spec retry(Scope.t(), Relay.Id.t(), String.t(), Relay.Actor.t()) ::
+          {:ok, {200, map()}} | {:error, Relay.Error.t()}
+  def retry(%Scope{} = scope, <<_::128>> = id, reason, actor) do
+    digest = Gate.digest(scope, "iys_upload.retried", Relay.Id.to_string(id))
+
+    case Relay.Iys.retry_upload(scope, id, reason, digest, actor) do
+      {:ok, {:retried, upload}} -> {:ok, {200, upload_view(upload)}}
+      {:ok, :not_found} -> {:error, upload_not_found()}
+      {:ok, :not_failed} -> {:error, conflict("only a failed upload is sent again")}
+      {:ok, :not_retryable} -> {:error, conflict("the upload has no brand or no address")}
+      {:error, _reason} -> {:error, unavailable()}
+    end
+  end
+
+  @doc "The error of an unknown upload."
+  @spec upload_not_found() :: Relay.Error.t()
+  def upload_not_found, do: Relay.Error.new(:iys_upload_not_found, "no such İYS upload")
+
+  defp conflict(detail), do: Relay.Error.new(:resource_conflict, detail)
+
   defp not_configured,
     do: Relay.Error.new(:iys_not_configured, "this environment has no İYS configuration")
 

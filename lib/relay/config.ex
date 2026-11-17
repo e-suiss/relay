@@ -58,6 +58,7 @@ defmodule Relay.Config do
     Relay.Realtime.InboxSource,
     Relay.Compliance,
     Relay.Iys,
+    Relay.Policy.IysGate,
     Relay.Preferences,
     RelayWeb.Links,
     Oban

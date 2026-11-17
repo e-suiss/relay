@@ -157,6 +157,8 @@ channels:
         "$ref": "#/components/messages/webhook.sms.opted_out"
       webhook.iys.consent_expired:
         "$ref": "#/components/messages/webhook.iys.consent_expired"
+      webhook.iys.copy_stale:
+        "$ref": "#/components/messages/webhook.iys.copy_stale"
       webhook.iys.quota_warning:
         "$ref": "#/components/messages/webhook.iys.quota_warning"
       webhook.iys.upload_failed:
@@ -438,6 +440,8 @@ channels:
         "$ref": "#/components/messages/audit.operations_contacts.replaced"
       audit.iys_config.replaced:
         "$ref": "#/components/messages/audit.iys_config.replaced"
+      audit.iys_upload.retried:
+        "$ref": "#/components/messages/audit.iys_upload.retried"
       audit.topic.created:
         "$ref": "#/components/messages/audit.topic.created"
       audit.topic.archived:
@@ -641,6 +645,7 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.subscription.unsubscribed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.sms.opted_out"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.iys.consent_expired"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.iys.copy_stale"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.iys.quota_warning"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.iys.upload_failed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.preference.changed"
@@ -786,6 +791,7 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.webhook_message.cancelled"
       - "$ref": "#/channels/auditLog/messages/audit.operations_contacts.replaced"
       - "$ref": "#/channels/auditLog/messages/audit.iys_config.replaced"
+      - "$ref": "#/channels/auditLog/messages/audit.iys_upload.retried"
       - "$ref": "#/channels/auditLog/messages/audit.topic.created"
       - "$ref": "#/channels/auditLog/messages/audit.topic.archived"
       - "$ref": "#/channels/auditLog/messages/audit.topic.subscribed"
@@ -1394,6 +1400,46 @@ components:
       x-relay-stage: 11
       x-relay-choice: true
       x-relay-choice-note: "PC-34 sends the İYS events of the write path to the tenant; the event name and the fields of its thin payload are chosen by the contract."
+    webhook.iys.copy_stale:
+      name: iys.copy_stale
+      title: iys.copy_stale
+      summary: "Relay's local copy of İYS for a brand was not synchronised for too long (PC-33): warning from six hours, stopped from 24 hours, when the brand's marketing on SMS, voice and e-mail is held until a pull completes."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: iys.copy_stale
+                data:
+                  type: object
+                  required:
+                    - brand_code
+                    - state
+                    - observed_at
+                  properties:
+                    brand_code:
+                      "$ref": "../openapi/components/schemas.yaml#/IysCode"
+                    state:
+                      type: string
+                      enum:
+                        - warning
+                        - stopped
+                    last_synced_at:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                        - type: "null"
+                    observed_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "PC-33 warns the tenant when the İYS copy is stale; the event name and the fields of its thin payload are chosen by the contract."
     webhook.iys.quota_warning:
       name: iys.quota_warning
       title: iys.quota_warning
@@ -6778,6 +6824,24 @@ components:
       x-relay-stage: 11
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.iys_upload.retried:
+      name: iys_upload.retried
+      title: iys_upload.retried
+      summary: "The operator opened a failed İYS upload again (PC-34)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: iys_upload
+      x-relay-surface: audit
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.topic.created:
       name: topic.created
       title: topic.created
@@ -8166,9 +8230,11 @@ x-relay-event-names:
   - inbox_announcement.published
   - inbox_announcement.retracted
   - iys.consent_expired
+  - iys.copy_stale
   - iys.quota_warning
   - iys.upload_failed
   - iys_config.replaced
+  - iys_upload.retried
   - killswitch.auto_paused
   - killswitch.bulk_cancelled
   - killswitch.engaged

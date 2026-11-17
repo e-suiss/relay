@@ -331,3 +331,33 @@ Every alert rule in `alerts.yaml` links here with its `runbook_url`. Each entry 
 - **Meaning:** The nightly reconciliation found inbox counters that differed from the recipients' items and fixed them; badges were wrong until then.
 - **Check:** Compare `relay_inbox_counter_drift_total` by source with recent deploys and with `relay_inbox_inconsistency_reports_total{result="repaired"}`.
 - **Action:** Find the write path that changed items without its counters; the reconciliation keeps fixing drifted counters meanwhile.
+
+## RelayIysCopyStale
+
+- **Meaning:** A brand's local copy of İYS has not completed a pull for six hours; the tenant was told with `iys.copy_stale`. Marketing still sends, from the copy.
+- **Check:** Read the brand's synchronisation state with `GET /v1/operator/iys/sync`: the last attempt, its error code and the cursor age. Check `relay_iys_pull_total{result="failed"}` and whether İYS answers.
+- **Action:** Fix what the error code names (credential, authorisation of the integrator, İYS availability). The next sweep pulls again; nothing has to be replayed.
+
+## RelayIysCopyStopped
+
+- **Meaning:** A brand's local copy of İYS is a day old. Its marketing on SMS, voice and e-mail is skipped with `iys.stale` until a pull completes; refusals are still applied in Relay at once and their İYS writes wait in the queue.
+- **Check:** As for RelayIysCopyStale; also check that the `maintenance` queue runs `Relay.Iys.SyncSweep` and `Relay.Iys.SyncWorker`.
+- **Action:** Restore the pull. After a gap longer than seven days the brand runs a full synchronisation and approvals held before the gap count again only once they were verified against İYS, which is limited by İYS's hourly status limit.
+
+## RelayIysReconciliationDrift
+
+- **Meaning:** For two hours the hourly reconciliation has found confirmed uploads the local copy does not hold or permissions no pull reported.
+- **Check:** Read `drift_count` per brand with `GET /v1/operator/iys/sync` and the failed uploads with `GET /v1/iys/uploads?state=failed`.
+- **Action:** The read path verifies drifted permissions against İYS by itself, a bounded number per run. Drift that stays means İYS's pull does not report the service provider's movements; raise it with İYS.
+
+## RelayIysDirectAccessWarning
+
+- **Meaning:** A brand that connects through an integrator holds more than 80% of the 250 000 distinct addresses above which İYS expects a direct connection.
+- **Check:** Read `address_count` per brand with `GET /v1/operator/iys/sync`.
+- **Action:** Tell the tenant to prepare its own İYS API access.
+
+## RelayIysDirectAccessReached
+
+- **Meaning:** A brand that connects through an integrator reached the direct access threshold.
+- **Check:** As for RelayIysDirectAccessWarning.
+- **Action:** Have the tenant move the brand to its own İYS access and replace the İYS configuration with mode `own`.

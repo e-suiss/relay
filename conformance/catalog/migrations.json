@@ -261,5 +261,8 @@
   {"file": "20261223000200_validate_record_checks.exs", "sha256": "86d4ae8693c984541fd1728e74f2fd850a97772bfd5100e3c6457cdc99cc60a0"},
   {"file": "20261223000300_rebuild_reference_check_for_records.exs", "sha256": "53dfbf49c34f5155d3928d3829617c8d33f3f5ee0fb01bb0d957f9cf07cccb0b"},
   {"file": "20261223900000_rebuild_reference_check_for_iys.exs", "sha256": "03f52f9e20c1dabcf604c6719ce302c7373b1e4ef00cdd50f5cb869c04d73c86"},
-  {"file": "20261224000000_rescope_refusal_apply.exs", "sha256": "b2c765744b739c43388392f461bfa39986ade84b47f787bd0627f355df170726"}
+  {"file": "20261224000000_rescope_refusal_apply.exs", "sha256": "b2c765744b739c43388392f461bfa39986ade84b47f787bd0627f355df170726"},
+  {"file": "20261225000000_create_iys_permission_tables.exs", "sha256": "25e425c34f77cc95b022ecba95ecfc2bbb61f39bb1dc1781be594b53c1ecc0b4"},
+  {"file": "20261225000100_create_iys_permission_functions.exs", "sha256": "990dc0ab9dd47fc936e304c882bf9b85e1f6555152ba88d7c0078d6f31a91db0"},
+  {"file": "20261225000200_rebuild_reference_check_for_iys_permissions.exs", "sha256": "f3429868e340db1af454e569344a0033fd4a82af5bc087d2e063997b76f1f00a"}
 ]

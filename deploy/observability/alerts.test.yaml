@@ -411,3 +411,72 @@ tests:
       - eval_time: 8m
         alertname: RelayAccessRealmsUnpaired
         exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'relay_iys_copy_warning_brands'
+        values: "0 0 1 1 1 0 0"
+      - series: 'relay_iys_copy_stopped_brands'
+        values: "0 0 0 0 2 2 0"
+      - series: 'relay_iys_direct_access_warning_brands'
+        values: "0 1 1 0 0 0 0"
+      - series: 'relay_iys_direct_access_reached_brands'
+        values: "0 0 0 1 1 1 1"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: RelayIysCopyStale
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: RelayIysCopyStale
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: PC-33}
+            exp_annotations:
+              summary: "The local copy of İYS of a brand has not synchronised for six hours"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiyscopystale
+      - eval_time: 3m
+        alertname: RelayIysCopyStopped
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: RelayIysCopyStopped
+        exp_alerts:
+          - exp_labels: {severity: page, decision: PC-33}
+            exp_annotations:
+              summary: "The local copy of İYS of a brand is a day old and its marketing is held"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiyscopystopped
+      - eval_time: 6m
+        alertname: RelayIysCopyStopped
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: RelayIysDirectAccessWarning
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: PC-62}
+            exp_annotations:
+              summary: "An integrator brand holds more than 80% of the İYS direct access threshold"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiysdirectaccesswarning
+      - eval_time: 2m
+        alertname: RelayIysDirectAccessReached
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: RelayIysDirectAccessReached
+        exp_alerts:
+          - exp_labels: {severity: ticket, decision: PC-62}
+            exp_annotations:
+              summary: "An integrator brand reached the İYS direct access threshold"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiysdirectaccessreached
+  - interval: 30m
+    input_series:
+      - series: 'relay_iys_reconciliation_drift'
+        values: "0 3 3 3 3 3 3 0 0"
+    alert_rule_test:
+      - eval_time: 1h
+        alertname: RelayIysReconciliationDrift
+        exp_alerts: []
+      - eval_time: 3h
+        alertname: RelayIysReconciliationDrift
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-42}
+            exp_annotations:
+              summary: "The İYS reconciliation keeps finding movements the local copy does not hold"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiysreconciliationdrift
+      - eval_time: 4h
+        alertname: RelayIysReconciliationDrift
+        exp_alerts: []

@@ -25688,6 +25688,13 @@ x-relay-limits:
     authorisation_refresh: PT1H
     authorisation_max_age: PT24H
     read_back_attempts: 3
+    pull_interval: PT15M
+    reconcile_interval: PT1H
+    changes_window: P7D
+    changes_blind_spot: PT1H
+    changes_page_size: 1000
+    pull_pages_per_run: 50
+    verifications_per_run: 100
     x-relay-choice: true
-    x-relay-choice-note: "The request rates, the 1000 consents of a batch and the hourly token and status limits are İYS's published limits (PC-34), transcribed in conformance/iys/openapi.yaml. PC-62 sets the direct access threshold of 250000 addresses with its warning at 80 percent. The quota warning at 80 percent of the consent limit, the hourly refresh of an integrator's authorisations, the 24 hours after which an authorisation that was not read again stops the brand's writes, the three read-backs after which a status that still disagrees fails the upload and the 100 brands of an environment are contract choices."
+    x-relay-choice-note: "The request rates, the 1000 consents of a batch and the hourly token and status limits are İYS's published limits (PC-34), transcribed in conformance/iys/openapi.yaml. PC-62 sets the direct access threshold of 250000 addresses with its warning at 80 percent. The quota warning at 80 percent of the consent limit, the hourly refresh of an integrator's authorisations, the 24 hours after which an authorisation that was not read again stops the brand's writes, the three read-backs after which a status that still disagrees fails the upload and the 100 brands of an environment are contract choices. PC-32 sets the pull every 15 minutes and OP-42 the hourly reconciliation; the seven days of İYS's window of movements, its blind spot of the last hour and the 1000 movements of a page are İYS's published values. The 50 pages a run reads for a brand and the 100 single verifications a run asks for a brand, under the hourly status limit, are contract choices."
 x-relay-error-catalog: "../errors.yaml"

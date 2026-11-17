@@ -1,6 +1,6 @@
 defmodule Relay.Iys.Store do
   @moduledoc """
-  The database access of the İYS context (PC-28, PC-29, PC-30): the configuration and brands of a tenant environment, the upload rows of the write path and their settlement, through the `relay_fn.iys_*` functions. Every function but `in_scope/2` and `scopes/1` runs inside the caller's scoped transaction.
+  The database access of the İYS context (PC-28, PC-29, PC-30, PC-32): the configuration and brands of a tenant environment, the upload rows of the write path and their settlement, the permission cache and the synchronisation state of each brand, through the `relay_fn.iys_*` functions. Every function but `in_scope/2`, `scopes/1` and `overview/1` runs inside the caller's scoped transaction.
   """
 
   alias Relay.Actor
@@ -22,7 +22,7 @@ defmodule Relay.Iys.Store do
   u.address_ct, u.address_key_id, u.address_digest, u.state, u.deadline_at, u.attempts,
   u.error_code, u.error_at, u.transaction_ref, u.registered_at, u.trace_ref, u.created_at,
   u.updated_at, u.settled_at, b.brand_code, b.message_access, b.call_access, b.email_access,
-  b.authorised_at
+  b.authorised_at, u.address_digest_key_id
   """
 
   # TN-13 (2)
@@ -196,12 +196,210 @@ defmodule Relay.Iys.Store do
     Repo.code!(row["result"], [:appended])
   end
 
+  # PC-32
+  @doc "The active brands of the scope with their synchronisation state, by brand code; a brand that never synchronised has `nil` state columns."
+  @spec sync_states() :: [map()]
+  def sync_states do
+    sql = """
+    SELECT b.id, b.brand_code, b.name, b.subtenant_id, b.sender_identity_id, b.message_access,
+      b.call_access, b.email_access, b.authorised_at, b.created_at, s.cursor_iys, s.cursor_hs,
+      s.last_attempt_at, s.last_pull_at, s.last_error_code, s.last_error_at,
+      s.full_sync_started_at, s.full_sync_floor_at, s.last_full_sync_at, s.stale_state,
+      s.reconciled_at, s.drift_count, s.address_count, s.address_state
+    FROM relay.iys_brands b
+    LEFT JOIN relay.iys_sync_states s ON s.tenant_id = b.tenant_id
+      AND s.environment = b.environment AND s.brand_id = b.id
+    WHERE b.state = 'active'
+    ORDER BY b.brand_code
+    """
+
+    all(sql, [])
+  end
+
+  # PC-32
+  @doc "Applies consent movements of a brand to the permission cache; `origin` is `pull`, `upload` or `verify`, and a pull names its `feed` (`IYS` or `HS`) and the cursor after the movements. Answers how many movements changed the cache."
+  @spec permissions_apply(
+          id(),
+          String.t(),
+          String.t() | nil,
+          String.t() | nil,
+          [map()],
+          DateTime.t()
+        ) :: {:applied | :brand_not_found, non_neg_integer()}
+  def permissions_apply(brand_id, origin, feed, cursor, movements, %DateTime{} = now) do
+    params = [brand_id, origin, feed, cursor, movements, now]
+    [row] = Repo.call!("relay_fn.iys_permissions_apply", params)
+    {Repo.code!(row["result"], [:applied, :brand_not_found]), row["applied"]}
+  end
+
+  # PC-32
+  @doc "Marks a cached permission: `refusal_applied` or `refusal_unmatched` for a rejection that came from İYS, `withdrawn` for a permission İYS no longer holds."
+  @spec permission_mark(id(), String.t(), DateTime.t()) :: :marked | :not_found
+  def permission_mark(id, mark, %DateTime{} = now) do
+    [row] = Repo.call!("relay_fn.iys_permission_mark", [id, mark, now])
+    Repo.code!(row["iys_permission_mark"], [:marked, :not_found])
+  end
+
+  # PC-32
+  # PC-33
+  # OP-42
+  @doc "Records what a synchronisation run observed about a brand; see `relay_fn.iys_sync_record`."
+  @spec sync_record(id(), map(), DateTime.t()) :: :recorded | :brand_not_found
+  def sync_record(brand_id, observation, %DateTime{} = now) do
+    [row] = Repo.call!("relay_fn.iys_sync_record", [brand_id, observation, now])
+    Repo.code!(row["iys_sync_record"], [:recorded, :brand_not_found])
+  end
+
+  # PC-34
+  @doc "Opens a failed upload again for the operator."
+  @spec upload_retry(id(), String.t(), binary(), Actor.t(), DateTime.t()) ::
+          :retried | :not_found | :not_failed | :not_retryable
+  def upload_retry(id, reason, digest, %Actor{} = actor, %DateTime{} = now) do
+    params = [id, reason, digest] ++ Actor.params(actor) ++ [now]
+    [row] = Repo.call!("relay_fn.iys_upload_retry", params)
+    Repo.code!(row["iys_upload_retry"], [:retried, :not_found, :not_failed, :not_retryable])
+  end
+
+  # PC-32
+  # PC-38
+  @doc "The rejections of a brand that came from İYS and were not applied in Relay yet, oldest first, each with the active recipients that have the address."
+  @spec pending_refusals(id(), pos_integer()) :: [map()]
+  def pending_refusals(brand_id, limit) do
+    sql = """
+    SELECT p.id, p.consent_type, p.consent_at, p.registered_at, p.transaction_ref,
+      ARRAY(SELECT DISTINCT a.recipient_id FROM relay.recipient_addresses a
+        JOIN relay.recipients r ON r.tenant_id = a.tenant_id AND r.environment = a.environment
+          AND r.id = a.recipient_id AND r.state = 'active'
+        WHERE a.tenant_id = p.tenant_id AND a.environment = p.environment
+          AND a.kind = CASE p.consent_type WHEN 'EPOSTA' THEN 'email' ELSE 'phone' END
+          AND a.state IN ('active', 'disabled')
+          AND (a.address_bidx = p.address_digest
+            OR a.address_bidx = p.address_digest_alt)) AS recipient_ids
+    FROM relay.iys_permissions p
+    WHERE p.brand_id = $1 AND p.refusal_state = 'pending'
+    ORDER BY p.id
+    LIMIT #{limit}
+    """
+
+    all(sql, [brand_id])
+  end
+
+  # PC-32
+  @doc "The current cached permissions of a brand, type and recipient type whose address has one of `digests`."
+  @spec current_permissions(id(), String.t(), String.t(), [binary()]) :: [map()]
+  def current_permissions(brand_id, consent_type, recipient_type, digests) do
+    sql = """
+    SELECT p.id, p.consent_status, p.verified_at
+    FROM relay.iys_permissions p
+    WHERE p.brand_id = $1 AND p.consent_type = $2 AND p.recipient_type = $3
+      AND p.superseded_at IS NULL
+      AND (p.address_digest = ANY($4::bytea[]) OR p.address_digest_alt = ANY($4::bytea[]))
+    """
+
+    all(sql, [brand_id, consent_type, recipient_type, digests])
+  end
+
+  # PC-32
+  # OP-42
+  @doc "The cached permissions of a brand that have to be read again from İYS, oldest first: approvals last verified before `floor` (`nil` for none) and permissions written from an upload before `unpulled_before` that no pull reported. Only permissions whose address an active recipient has are listed, each with that recipient."
+  @spec unverified(id(), DateTime.t() | nil, DateTime.t(), pos_integer()) :: [map()]
+  def unverified(brand_id, floor, %DateTime{} = unpulled_before, limit) do
+    sql = """
+    SELECT p.id, p.consent_type, p.recipient_type, p.consent_status, r.recipient_id
+    FROM relay.iys_permissions p
+    JOIN LATERAL (SELECT a.recipient_id FROM relay.recipient_addresses a
+      WHERE a.tenant_id = p.tenant_id AND a.environment = p.environment
+        AND a.kind = CASE p.consent_type WHEN 'EPOSTA' THEN 'email' ELSE 'phone' END
+        AND a.state = 'active'
+        AND (a.address_bidx = p.address_digest OR a.address_bidx = p.address_digest_alt)
+      ORDER BY a.recipient_id
+      LIMIT 1) r ON true
+    WHERE p.brand_id = $1 AND p.superseded_at IS NULL
+      AND ((p.consent_status = 'ONAY' AND p.verified_at < $2::timestamptz)
+        OR (p.origin = 'upload' AND p.pulled_at IS NULL AND p.created_at < $3))
+    ORDER BY p.verified_at, p.id
+    LIMIT #{limit}
+    """
+
+    all(sql, [brand_id, floor, unpulled_before])
+  end
+
+  # OP-42
+  # PC-62
+  @doc "What the reconciliation counts for a brand: `drift`, the confirmed uploads settled before `settled_before` whose movement the cache does not hold and the cached permissions written from an upload before it that no pull reported; `unverified`, the approvals last verified before `floor`; and `addresses`, the distinct addresses the cache holds."
+  @spec reconciliation(id(), DateTime.t() | nil, DateTime.t()) :: map()
+  def reconciliation(brand_id, floor, %DateTime{} = settled_before) do
+    sql = """
+    SELECT
+      (SELECT count(*) FROM relay.iys_uploads u
+        WHERE u.brand_id = $1 AND u.state = 'confirmed' AND u.settled_at < $3
+          AND u.settled_at >= $3 - interval '7 days'
+          AND NOT EXISTS (SELECT 1 FROM relay.iys_permissions p
+            WHERE p.tenant_id = u.tenant_id AND p.environment = u.environment
+              AND p.brand_id = u.brand_id AND p.consent_type = u.consent_type
+              AND p.superseded_at IS NULL
+              AND (p.address_digest = u.address_digest
+                OR p.address_digest_alt = u.address_digest)
+              AND (p.consent_status = u.consent_status
+                OR p.registered_at > u.registered_at)))
+      + (SELECT count(*) FROM relay.iys_permissions p
+        WHERE p.brand_id = $1 AND p.superseded_at IS NULL AND p.origin = 'upload'
+          AND p.pulled_at IS NULL AND p.created_at < $3) AS drift,
+      (SELECT count(*) FROM relay.iys_permissions p
+        WHERE p.brand_id = $1 AND p.superseded_at IS NULL AND p.consent_status = 'ONAY'
+          AND p.verified_at < $2::timestamptz) AS unverified,
+      (SELECT count(DISTINCT p.address_digest) FROM relay.iys_permissions p
+        WHERE p.brand_id = $1 AND p.superseded_at IS NULL) AS addresses
+    """
+
+    one(sql, [brand_id, floor, settled_before])
+  end
+
+  # PC-33
+  # PC-27
+  # INV-19
+  @doc "The rows the İYS gate reads for a marketing delivery, in one statement: the tenant's region, whether it has a configuration, the brand bound to `subtenant_id` (`nil` for the tenant), the brand's synchronisation state and the current permissions of the address digest for `consent_type`."
+  @spec gate(id(), id() | nil, String.t(), binary()) :: [map()]
+  def gate(tenant_id, subtenant_id, consent_type, digest) do
+    sql = """
+    SELECT t.region::text AS region, c.id AS config_id, b.id AS brand_id, s.last_pull_at,
+      s.full_sync_floor_at, p.consent_status, p.verified_at
+    FROM relay.tenants t
+    LEFT JOIN relay.iys_configs c ON c.tenant_id = t.id
+    LEFT JOIN relay.iys_brands b ON b.tenant_id = c.tenant_id AND b.environment = c.environment
+      AND b.state = 'active' AND b.sender_identity_id IS NULL
+      AND b.subtenant_id IS NOT DISTINCT FROM $2::uuid
+    LEFT JOIN relay.iys_sync_states s ON s.tenant_id = b.tenant_id
+      AND s.environment = b.environment AND s.brand_id = b.id
+    LEFT JOIN relay.iys_permissions p ON p.tenant_id = b.tenant_id
+      AND p.environment = b.environment AND p.brand_id = b.id AND p.consent_type = $3
+      AND p.superseded_at IS NULL
+      AND (p.address_digest = $4 OR p.address_digest_alt = $4)
+    WHERE t.id = $1
+    """
+
+    all(sql, [tenant_id, subtenant_id, consent_type, digest])
+  end
+
   # TN-13 (4)
   @doc "Lists the scopes that have an İYS configuration, through the İYS discovery escape hatch; scopes only, no content."
   @spec scopes(pos_integer()) :: [{Relay.Id.t(), String.t()}]
   def scopes(limit) do
     rows = Repo.call_unscoped!(:iys_scope_discovery, "relay_ops.iys_scopes", [limit])
     for row <- rows, do: {row["tenant_id"], row["environment"]}
+  end
+
+  # PC-33
+  # PC-62
+  # OP-42
+  @doc "Counts, across every tenant and by count only, the active brands whose copy is past the warning and the stop age at `now`, the brands at the warning and at the limit of the direct access threshold, and the drift the reconciliations found."
+  @spec overview(DateTime.t()) :: map()
+  def overview(%DateTime{} = now) do
+    warning = Relay.Limits.seconds!(["iys", "stale_warning"])
+    stop = Relay.Limits.seconds!(["iys", "stale_stop"])
+    params = [now, warning, stop]
+    [row] = Repo.call_unscoped!(:iys_sync_overview, "relay_ops.iys_sync_overview", params)
+    row
   end
 
   defp one(sql, params) do

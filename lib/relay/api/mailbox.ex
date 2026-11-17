@@ -4,7 +4,9 @@ defmodule Relay.Api.Mailbox do
 
   The owner is the credential's: an API client owns the mailbox `(tenant, environment, api_client)`, opened lazily by its first call (AG-64). An agent credential owns the mailbox of its agent record; until a credential names its agent record, such a credential is answered `agent_not_found` and never falls back to an API client's mailbox. A caller reads and acknowledges only its own mailbox; a credential with the `read` scope also reads a record and the dead letters of any agent or API client mailbox of its environment, which is how the owner of an agent follows `mailbox.record_dead_lettered`.
 
-  A lease request above the contract's `mailbox.lease_max_records` is refused with the limit, its name and the value in the error (AG-53). The outcome of an acknowledgement is a result for each record, never an error. A record's payload is not part of these answers.
+  A lease request above the contract's `mailbox.lease_max_records` is refused with the limit, its name and the value in the error (AG-53). The outcome of an acknowledgement is a result for each record, never an error.
+
+  A record carries its structured message for the owner of its mailbox (C-76, AG-39, AG-40; `Relay.Agents.mailbox_messages/3`): the signed CloudEvents envelope with the typed fields and the content parts of the record, and the trust label of a message (AG-38). The content is opened and the envelope signed outside any transaction, so a lease commits first and its messages are built after it. A reader that is not the owner gets the record without its message, and the dead letter view lists records without their messages: the message of a dead letter is read by its handle.
   """
 
   alias Relay.Agents
@@ -33,24 +35,53 @@ defmodule Relay.Api.Mailbox do
   def get(%Scope{} = scope, caller) do
     with {:ok, owner} <- owner(caller) do
       case Agents.mailbox(scope, owner) do
-        {:ok, mailbox} -> {:ok, {200, [], view(mailbox)}}
+        {:ok, mailbox} -> {:ok, {200, [], view(mailbox, message_key(scope))}}
         {:error, reason} -> {:error, refused(reason)}
       end
+    end
+  end
+
+  # AG-40
+  defp message_key(scope) do
+    case Agents.mailbox_message_key(scope) do
+      {:ok, key} -> key
+      {:error, _error} -> nil
     end
   end
 
   # AG-20
   # AG-22
   # AG-53
-  @doc "Leases records of the caller's mailbox inside the request's transaction."
-  @spec lease(caller(), map() | nil) :: answer()
-  def lease(caller, body) do
+  # AG-40
+  @doc "Leases records of the caller's mailbox in a transaction of its own and builds their messages after it. The message key is read first, so a key store that cannot sign refuses the request before a record is taken."
+  @spec lease(Scope.t(), caller(), map() | nil) :: answer()
+  def lease(%Scope{} = scope, caller, body) do
     with {:ok, owner} <- owner(caller),
-         {:ok, max} <- lease_max(body) do
-      case Agents.lease_mailbox_in(owner, max) do
-        {:ok, lease} -> {:ok, {200, [], lease_view(lease)}}
-        {:error, reason} -> {:error, refused(reason)}
-      end
+         {:ok, max} <- lease_max(body),
+         {:ok, _key} <- signing(scope),
+         {:ok, lease} <- leased(scope, owner, max),
+         {:ok, messages} <- messages(scope, lease.records, :inline) do
+      {:ok, {200, [], lease_view(lease, messages)}}
+    end
+  end
+
+  defp signing(scope) do
+    with {:error, _error} <- Agents.mailbox_message_key(scope), do: {:error, unavailable()}
+  end
+
+  defp leased(scope, owner, max) do
+    case Agents.lease_mailbox(scope, owner, max) do
+      {:ok, lease} -> {:ok, lease}
+      {:error, reason} -> {:error, refused(reason)}
+    end
+  end
+
+  # C-76
+  # AG-40
+  defp messages(scope, records, include) do
+    case Agents.mailbox_messages(scope, records, include) do
+      {:ok, messages} -> {:ok, messages}
+      {:error, _reason} -> {:error, unavailable()}
     end
   end
 
@@ -118,17 +149,21 @@ defmodule Relay.Api.Mailbox do
          {:ok, since} <- since(query["since"]),
          {:ok, limit} <- limit(query["limit"]) do
       case Agents.read_mailbox(scope, owner, since, limit) do
-        {:ok, page} ->
-          {:ok, {200, [], records_view(page.records, page.position, page.has_more, false)}}
-
-        {:resync_required, position} ->
-          {:ok, {200, [], records_view([], position, false, true)}}
-
-        {:error, reason} ->
-          {:error, refused(reason)}
+        {:ok, page} -> page_view(scope, page)
+        {:resync_required, position} -> {:ok, {200, [], resync_view(position)}}
+        {:error, reason} -> {:error, refused(reason)}
       end
     end
   end
+
+  defp page_view(scope, page) do
+    with {:ok, messages} <- messages(scope, page.records, :inline) do
+      view = records_view(page.records, messages, page.position, page.has_more, false)
+      {:ok, {200, [], view}}
+    end
+  end
+
+  defp resync_view(position), do: records_view([], %{}, position, false, true)
 
   defp since(nil), do: {:ok, nil}
 
@@ -154,26 +189,46 @@ defmodule Relay.Api.Mailbox do
     do: Gate.field_error("/limit", "invalid_format", "an integer, 1 to #{@read_max}")
 
   # AG-21
-  @doc "Reads one record by its durable handle: one of the caller's mailbox, or any of the environment for a credential with the `read` scope."
-  @spec record(Scope.t(), caller(), Relay.Id.t()) :: answer()
-  def record(%Scope{} = scope, caller, record_id) do
-    with {:ok, whose} <- reach(caller) do
-      case Agents.mailbox_record(scope, record_id, whose) do
-        {:ok, %{} = record} -> {:ok, {200, [], record_view(record)}}
-        {:ok, nil} -> {:error, record_not_found()}
+  # AG-40
+  # AG-68
+  @doc "Reads one record by its durable handle: one of the caller's mailbox with its message, or any of the environment, without a message, for a credential with the `read` scope. `content=referenced` resolves the references of the message."
+  @spec record(Scope.t(), caller(), Relay.Id.t(), map()) :: answer()
+  def record(%Scope{} = scope, caller, record_id, query \\ %{}) do
+    with {:ok, include} <- include(query["content"]) do
+      case own_record(scope, caller, record_id) do
+        {:ok, %{} = record} -> owned_view(scope, record, include)
+        {:ok, nil} -> any_record(scope, caller, record_id)
         {:error, _reason} -> {:error, unavailable()}
       end
     end
   end
 
-  defp reach(%{scopes: scopes} = caller) do
-    if "read" in scopes do
-      {:ok, :any}
+  defp owned_view(scope, record, include) do
+    with {:ok, messages} <- messages(scope, [record], include),
+         do: {:ok, {200, [], record_view(record, messages)}}
+  end
+
+  defp include(nil), do: {:ok, :inline}
+  defp include("inline"), do: {:ok, :inline}
+  defp include("referenced"), do: {:ok, :referenced}
+
+  defp include(_other),
+    do: {:error, Gate.field_error("/content", "invalid_format", "inline or referenced")}
+
+  defp own_record(scope, caller, record_id) do
+    case owner(caller) do
+      {:ok, owner} -> Agents.mailbox_record(scope, record_id, owner)
+      {:error, _error} -> {:ok, nil}
+    end
+  end
+
+  defp any_record(scope, %{scopes: scopes}, record_id) do
+    with true <- "read" in scopes,
+         {:ok, %{} = record} <- Agents.mailbox_record(scope, record_id, :any) do
+      {:ok, {200, [], record_view(record, %{})}}
     else
-      case owner(caller) do
-        {:ok, owner} -> {:ok, owner}
-        {:error, _error} -> {:error, record_not_found()}
-      end
+      {:error, _reason} -> {:error, unavailable()}
+      _none -> {:error, record_not_found()}
     end
   end
 
@@ -193,8 +248,9 @@ defmodule Relay.Api.Mailbox do
 
   defp listed(rows, page, scope, endpoint) do
     position = &{&1["created_at"], &1["id"]}
+    view = &record_view(&1, %{})
 
-    with {:ok, body} <- Page.envelope(rows, page, scope, endpoint, &record_view/1, position),
+    with {:ok, body} <- Page.envelope(rows, page, scope, endpoint, view, position),
          do: {:ok, {200, [], body}}
   end
 
@@ -237,9 +293,9 @@ defmodule Relay.Api.Mailbox do
   end
 
   # AG-20
-  @doc "The API view of a mailbox."
-  @spec view(map()) :: map()
-  def view(mailbox) do
+  @doc "The API view of a mailbox with the public key of its messages."
+  @spec view(map(), String.t() | nil) :: map()
+  def view(mailbox, message_key) do
     {kind, ref} = mailbox.owner
     prefix = if kind == :agent, do: "agt", else: "cli"
 
@@ -252,15 +308,20 @@ defmodule Relay.Api.Mailbox do
       "acked_cursor" => cursor(mailbox.acked),
       "lease_duration" => "PT#{div(mailbox.settings.lease_ms, 1000)}S",
       "max_redeliveries" => mailbox.settings.max_redeliveries,
+      "message_key" => message_key,
       "created_at" => mailbox.created_at
     }
   end
 
   # AG-21
   # AG-24
-  @doc "The API view of a mailbox record: its handle, its position and its delivery state."
-  @spec record_view(map()) :: map()
-  def record_view(record) do
+  # AG-38
+  # C-76
+  @doc "The API view of a mailbox record: its handle, its position, its delivery state, the trust label of a message and its message out of `messages`, or none."
+  @spec record_view(map(), map()) :: map()
+  def record_view(record, messages) do
+    message = Map.get(messages, record["id"], %{})
+
     %{
       "object" => "mailbox_record",
       "id" => Views.id("mbr", record["id"]),
@@ -270,6 +331,8 @@ defmodule Relay.Api.Mailbox do
       "kind" => record["kind"],
       "event_type" => record["event_type"],
       "waitpoint_id" => Views.id("wp", record["waitpoint_id"]),
+      "trust_label" => record["trust_label"] || message["trust_label"],
+      "message" => message["message"],
       "payload_digest" => "sha256:" <> Gate.hex(record["payload_digest"]),
       "state" => record["delivery_state"],
       "delivery_count" => record["delivery_count"],
@@ -280,19 +343,19 @@ defmodule Relay.Api.Mailbox do
     }
   end
 
-  defp lease_view(lease) do
+  defp lease_view(lease, messages) do
     %{
       "object" => "mailbox_lease",
       "lease_id" => lease.lease_id,
       "lease_expires_at" => lease.lease_until,
-      "records" => Enum.map(lease.records, &record_view/1)
+      "records" => Enum.map(lease.records, &record_view(&1, messages))
     }
   end
 
-  defp records_view(records, position, has_more, resync) do
+  defp records_view(records, messages, position, has_more, resync) do
     %{
       "object" => "mailbox_records",
-      "records" => Enum.map(records, &record_view/1),
+      "records" => Enum.map(records, &record_view(&1, messages)),
       "cursor" => cursor(position),
       "has_more" => has_more,
       "resync_required" => resync

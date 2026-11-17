@@ -280,5 +280,7 @@
   {"file": "20261230000000_create_agent_ceiling_tables.exs", "sha256": "7c5c70304be70e2d9427263f530b24434afcb5a4da22ce9489045d6c5845d160"},
   {"file": "20261230000100_create_agent_ceiling_functions.exs", "sha256": "5b68b73cf565f7d28801f68727a4af43c977517cc00c1561eb35ba075a8cee12"},
   {"file": "20261230000200_create_agent_operations_overview.exs", "sha256": "061b0f460ea253580b8baf5f3a6427068e0e38258987884924b723e80b66d803"},
-  {"file": "20261230000300_rebuild_reference_check_for_agent_ceiling.exs", "sha256": "133ad77a22b204e880155a4fc6d225b1b1c3b5a963c1f359e6e9e2e73daa8b04"}
+  {"file": "20261230000300_rebuild_reference_check_for_agent_ceiling.exs", "sha256": "133ad77a22b204e880155a4fc6d225b1b1c3b5a963c1f359e6e9e2e73daa8b04"},
+  {"file": "20270102000000_add_mailbox_message_fields.exs", "sha256": "60b14c5c82fbf33e57ddfd1c954ad8ea5f344035eb5dd81991f46bd5fd26a7c6"},
+  {"file": "20270102000100_validate_mailbox_message_checks.exs", "sha256": "48983b39ec39389d8220f800e18a0dc6c40eef98376e6ea76a5315753f07ee2a"}
 ]

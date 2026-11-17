@@ -117,6 +117,8 @@ channels:
         "$ref": "#/components/messages/webhook.agent.ceiling_exceeded"
       webhook.mailbox.record_appended:
         "$ref": "#/components/messages/webhook.mailbox.record_appended"
+      webhook.mailbox.record_flagged:
+        "$ref": "#/components/messages/webhook.mailbox.record_flagged"
       webhook.mailbox.record_dead_lettered:
         "$ref": "#/components/messages/webhook.mailbox.record_dead_lettered"
       webhook.killswitch.engaged:
@@ -651,6 +653,7 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.waitpoint.response_rejected"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.agent.ceiling_exceeded"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.mailbox.record_appended"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.mailbox.record_flagged"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.mailbox.record_dead_lettered"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.killswitch.engaged"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.killswitch.released"
@@ -3372,10 +3375,64 @@ components:
                     record_id:
                       type: string
                       pattern: "^mbr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    trust_label:
+                      type: string
+                      enum:
+                        - authenticated
+                        - unauthenticated
                   additionalProperties: false
       x-relay-surface: webhook
       x-relay-schema-version: 1
       x-relay-stage: 2
+    webhook.mailbox.record_flagged:
+      name: mailbox.record_flagged
+      title: mailbox.record_flagged
+      summary: "A message with the trust label spam or blocked was appended to a mailbox."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: mailbox.record_flagged
+                data:
+                  type: object
+                  required:
+                    - mailbox_id
+                    - record_id
+                    - epoch
+                    - seq
+                    - kind
+                    - trust_label
+                  properties:
+                    mailbox_id:
+                      type: string
+                      pattern: "^mbx_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    record_id:
+                      type: string
+                      pattern: "^mbr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    epoch:
+                      type: integer
+                    seq:
+                      type: integer
+                    kind:
+                      type: string
+                      maxLength: 32
+                    trust_label:
+                      type: string
+                      enum:
+                        - spam
+                        - blocked
+                  additionalProperties: false
+      x-relay-explicit-only: true
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: "AG-38 asks for an explicit subscription before a spam or blocked message wakes an agent. The contract gives such a record an event type of its own that * does not cover (x-relay-explicit-only), so mailbox.record_appended, the hint that wakes an agent, is never produced for it; the name and the fields are chosen by the contract. The data of both events carries trust_label, so the label is known before the record is read."
     webhook.mailbox.record_dead_lettered:
       name: mailbox.record_dead_lettered
       title: mailbox.record_dead_lettered
@@ -8593,6 +8650,7 @@ x-relay-event-names:
   - mailbox.epoch_bumped
   - mailbox.record_appended
   - mailbox.record_dead_lettered
+  - mailbox.record_flagged
   - messaging_installation.completed
   - messaging_interaction.received
   - messaging_target.disabled

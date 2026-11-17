@@ -8208,6 +8208,22 @@
   },
   {
     "acceptance": "pending",
+    "id": "AG-68",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "Untrusted text stands between marks with a random value of its part, a mark inside it is escaped, and it is normalised to visible text by fixed rules",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-69",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "The trust label is blocked before spam before authenticated before unauthenticated, from facts about the sender and never from content",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
     "id": "AG-70",
     "section": "§17",
     "status": "policy_default",

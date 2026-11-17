@@ -34,6 +34,9 @@ defmodule RelayTest.Keys do
       else: {:ok, :crypto.sign(:eddsa, :none, message, [ed25519(label), :ed25519])}
   end
 
+  def sign(:ed25519, "relay-agent-message-" <> _rest = label, message),
+    do: {:ok, :crypto.sign(:eddsa, :none, message, [ed25519(label), :ed25519])}
+
   def sign(_alg, _label, _message), do: not_found()
 
   @impl Relay.Keys

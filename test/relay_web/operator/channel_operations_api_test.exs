@@ -352,4 +352,24 @@ defmodule RelayWeb.Operator.ChannelOperationsApiTest do
       assert [%{"pointer" => "/secret_ref"}] = problem["errors"]
     end
   end
+
+  describe "PC-29 TN-26 İYS credentials on the operator surface" do
+    test "PC-29, TN-21: an İYS credential is registered by reference with a step-up", ctx do
+      admin = admin(ctx)
+      secret = "iys-password-" <> random()
+      body = %{"secret_ref" => secret_var(secret)}
+      refused = json(post(ctx, "/v1/operator/iys_credentials", body, admin), 401)
+      assert refused["code"] == "auth_step_up_required"
+
+      step_up(admin)
+      conn = post(ctx, "/v1/operator/iys_credentials", body, admin)
+      created = json(conn, 201)
+      assert %{"object" => "iys_credential", "version" => 1, "state" => "active"} = created
+      assert created["fingerprint"] =~ ~r/^[0-9a-f]{64}$/
+      refute conn.resp_body =~ secret
+
+      {:ok, id} = Relay.ExternalId.decode(created["id"], ["sec"])
+      assert {:ok, %{kind: :iys_credential, state: :active}} = Relay.Secrets.get(ctx.scope, id)
+    end
+  end
 end

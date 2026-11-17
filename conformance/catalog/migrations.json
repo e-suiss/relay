@@ -240,6 +240,12 @@
   {"file": "20261219000000_register_compliance_datasets.exs", "sha256": "88ee08f2a149a761816191947331fa7c18df2e6c34198d92e448516b3d870234"},
   {"file": "20261219000100_add_compliance_inputs.exs", "sha256": "626bbbc2907b1c89a02fa6cd6d20a09526b16c1e493d89cf1dcbf73e55196a90"},
   {"file": "20261219000200_validate_compliance_input_checks.exs", "sha256": "7698d3f257d54a245bf0cd0f40dc2f0eb7be7835a8a2a3822b8c7f2309f4efaf"},
+  {"file": "20261220000000_allow_pending_iys_consents.exs", "sha256": "25c6cfc61fd8eb741a5b869fe79c39539b6b12c66e18164decc070cb0a1f2a75"},
+  {"file": "20261220000100_allow_iys_credential_secrets.exs", "sha256": "acdd3d4035909fda1e50130bb0c45b7948bee833e5031b3602002cd49ab55f74"},
+  {"file": "20261220000200_create_iys_tables.exs", "sha256": "ad0e8018f2dc8245e6fa84e552a4c9714d31cd2a49950e13846b429d61d6dffa"},
+  {"file": "20261220000300_create_iys_functions.exs", "sha256": "8bf06fecb8136d593ccf6c0bad26d2e5f2bd34dbcba19aca9151dee95071cabd"},
+  {"file": "20261220000400_register_business_calendar.exs", "sha256": "bbf387adc93ea132ed74c2caa48a9f6158a1dba987ec8a1e7f91367b733339e2"},
+  {"file": "20261220000500_validate_iys_checks.exs", "sha256": "d0c4ad06480e8626f8cb391fffed43bb1102452d5c97ec44e2796f85c9f55e90"},
   {"file": "20261221000000_create_refusal_tables.exs", "sha256": "095499bdf7a30417f9a1dd5fa2097aaeefdc667bd79bfb82c1594054088d6d2a"},
   {"file": "20261221000100_allow_refusal_suppressions.exs", "sha256": "230e5d0c266d4a5c4e822fc0b2419afe770ee309347c8618ece42db3a603eee7"},
   {"file": "20261221000200_create_refusal_functions.exs", "sha256": "7207e8da54b9876782c2cec291bd2788c1e6d9eec093e0ef83ef4de761eb583a"},
@@ -253,5 +259,6 @@
   {"file": "20261223000000_create_dsr_log_and_takedowns.exs", "sha256": "4cdd5b6fc92daef70894dd92787d85a2fba8c4a5bc25b68ef78635489f148652"},
   {"file": "20261223000100_create_record_functions.exs", "sha256": "5fbcc9b21e536f89ec2ea55cf55bd1daf87acadf64b84bee669aff98112d0b9f"},
   {"file": "20261223000200_validate_record_checks.exs", "sha256": "86d4ae8693c984541fd1728e74f2fd850a97772bfd5100e3c6457cdc99cc60a0"},
-  {"file": "20261223000300_rebuild_reference_check_for_records.exs", "sha256": "53dfbf49c34f5155d3928d3829617c8d33f3f5ee0fb01bb0d957f9cf07cccb0b"}
+  {"file": "20261223000300_rebuild_reference_check_for_records.exs", "sha256": "53dfbf49c34f5155d3928d3829617c8d33f3f5ee0fb01bb0d957f9cf07cccb0b"},
+  {"file": "20261223900000_rebuild_reference_check_for_iys.exs", "sha256": "03f52f9e20c1dabcf604c6719ce302c7373b1e4ef00cdd50f5cb869c04d73c86"}
 ]

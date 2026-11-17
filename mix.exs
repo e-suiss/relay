@@ -36,7 +36,7 @@ defmodule Relay.MixProject do
     [preferred_envs: [check: :test, "relay.catalog.check": :test]]
   end
 
-  defp elixirc_paths(:test), do: ["lib", "lib_dev", "test/support"]
+  defp elixirc_paths(:test), do: ["lib", "lib_dev", "test/support", "conformance/iys"]
   defp elixirc_paths(:dev), do: ["lib", "lib_dev"]
   defp elixirc_paths(_), do: ["lib"]
 

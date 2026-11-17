@@ -74,6 +74,7 @@ config :relay, Oban,
        {"*/5 * * * *", Relay.Channels.Live.ReconcileSweep},
        {"* * * * *", Relay.Channels.Live.SesQueue},
        {"* * * * *", Relay.Webhooks.Sweep},
+       {"*/15 * * * *", Relay.Iys.Sweep},
        {"53 * * * *", Relay.Access.Pairing.Job}
      ]}
   ]
@@ -109,6 +110,10 @@ config :relay, Relay.Access,
   autoload: true,
   user_handlers: [Relay.Operators.AccessUserHandler, Relay.Operators.AccessSubscriberHandler],
   consent_handler: Relay.Preferences.AccessConsentHandler
+
+config :relay, Relay.Iys, runtime: Relay.Iys.Live
+
+config :relay, Relay.Preferences, consent_sink: Relay.Iys.Live
 
 config :relay, Relay.Compliance,
   refusals: Relay.Compliance.Refusals,

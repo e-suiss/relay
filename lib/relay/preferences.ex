@@ -13,7 +13,7 @@ defmodule Relay.Preferences do
   use Boundary,
     top_level?: true,
     deps: [Relay, Relay.Access, Relay.Subscribers, Relay.Tenancy],
-    exports: [AccessConsentHandler]
+    exports: [AccessConsentHandler, ConsentSink]
 
   alias Relay.Actor
   alias Relay.Preferences.Store
@@ -190,6 +190,14 @@ defmodule Relay.Preferences do
   """
   @spec record_consent(Scope.t(), map()) :: result(atom())
   def record_consent(%Scope{} = scope, attrs) do
+    with {:ok, {result, _id}} <- record_consent_entry(scope, attrs), do: {:ok, result}
+  end
+
+  # PC-59 (1)
+  # PC-30
+  @doc "Records a consent as `record_consent/2` does and also answers the identifier of the consent copy row: the new row, or the row an equal or newer sequence already wrote."
+  @spec record_consent_entry(Scope.t(), map()) :: result({atom(), Relay.Id.t() | nil})
+  def record_consent_entry(%Scope{} = scope, attrs) do
     sealing =
       case attrs do
         %{sealed: %{evidence_ct: _, evidence_key_id: _} = sealed} -> {:ok, sealed}
@@ -198,11 +206,7 @@ defmodule Relay.Preferences do
 
     with {:ok, sealed} <- sealing do
       row = Map.merge(attrs, sealed)
-
-      Store.in_scope(scope, fn _status ->
-        {result, _id} = Store.consent_record(row)
-        result
-      end)
+      Store.in_scope(scope, fn _status -> Store.consent_record(row) end)
     end
   end
 

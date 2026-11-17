@@ -1869,6 +1869,20 @@ codes:
     description: "The environment already has 20 completion sources. Archived sources are not counted."
     type: "{base_url}/v1/errors/webhook_source_limit_reached"
     choice_note: "Code name and status chosen by the contract."
+  - code: iys_not_configured
+    family: resource
+    status: 404
+    title: "No İYS configuration"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "This tenant environment has no İYS configuration. Enter one with PUT /v1/iys/config."
+    type: "{base_url}/v1/errors/iys_not_configured"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
   - code: webhook_message_in_flight
     family: webhook
     status: 409

@@ -3388,10 +3388,11 @@ ConsentStatus:
   enum:
     - none
     - pending
+    - pending_iys
     - active
     - revoked
     - expired
-  description: "Status of a commercial consent as Access records it. none means never asked and is not revoked; a revoked record of any source wins."
+  description: "Status of a commercial consent as Access records it. none means never asked and is not revoked; a revoked record of any source wins. pending_iys is an approval that belongs in İYS and is not valid until İYS holds it (PC-30): it becomes active once Relay has written it and read it back, and expired when that did not happen within three business days."
 ConsentKind:
   type: string
   enum:
@@ -11999,3 +12000,421 @@ CampaignReason:
       minLength: 1
       maxLength: 500
   additionalProperties: false
+Id_iyu:
+  type: string
+  description: "İYS upload identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^iyu_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - iyu_01j9zq3k4m5n6p7q8r9s0t1v2w
+IysCode:
+  type: integer
+  description: "A number İYS assigns: to a service provider (iysCode), to a brand (brandCode) or to an integrator."
+  minimum: 1
+  maximum: 9007199254740991
+IysAccess:
+  type: string
+  description: "What İYS lets this connection do with the consents of a brand and channel: write, read, none, or unknown while it was not read yet (PC-29)."
+  enum:
+    - unknown
+    - none
+    - read
+    - write
+IysBrandInput:
+  type: object
+  description: "A brand of the İYS configuration (PC-29). Without subtenant_id and sender_identity_id it is the tenant's own brand; with subtenant_id it is the brand of that sub-tenant; with sender_identity_id it is the brand of that SMS sender identity, whose registration names the same brand code."
+  required:
+    - brand_code
+  properties:
+    brand_code:
+      "$ref": "#/IysCode"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 256
+    subtenant_id:
+      "$ref": "#/Id_stn"
+    sender_identity_id:
+      "$ref": "#/Id_snd"
+  additionalProperties: false
+IysConfigReplace:
+  type: object
+  description: "The İYS connection of a tenant environment (PC-29, E-22). The whole configuration and its brand set are replaced."
+  required:
+    - mode
+    - api
+    - iys_code
+    - username
+    - credential_ref_id
+    - brands
+  properties:
+    mode:
+      type: string
+      description: "own is the tenant's own İYS access; integrator is the tenant's authorised integrator (E-22)."
+      enum:
+        - own
+        - integrator
+    api:
+      type: string
+      description: "The İYS API the connection talks to. A test environment uses sandbox."
+      enum:
+        - production
+        - sandbox
+    iys_code:
+      "$ref": "#/IysCode"
+    integrator_code:
+      "$ref": "#/IysCode"
+    username:
+      type: string
+      description: "The API user name İYS assigned."
+      minLength: 1
+      maxLength: 256
+    credential_ref_id:
+      "$ref": "#/Id_sec"
+    brands:
+      type: array
+      items:
+        "$ref": "#/IysBrandInput"
+      maxItems: 100
+    expected_version:
+      type: integer
+      description: "The version the caller read; 0 when it expects no configuration yet."
+      minimum: 0
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "PC-29 names the two connection modes, the iysCode, the brands and their bindings; the resource and its fields are chosen by the contract."
+IysBrand:
+  type: object
+  description: "An İYS brand of the environment (PC-29) with the access İYS gives by channel: sms is the İYS type MESAJ, voice ARAMA and email EPOSTA."
+  required:
+    - object
+    - brand_code
+    - name
+    - subtenant_id
+    - sender_identity_id
+    - access
+    - authorised_at
+  properties:
+    object:
+      type: string
+      const: iys_brand
+    brand_code:
+      "$ref": "#/IysCode"
+    name:
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+    subtenant_id:
+      oneOf:
+        - "$ref": "#/Id_stn"
+        - type: "null"
+    sender_identity_id:
+      oneOf:
+        - "$ref": "#/Id_snd"
+        - type: "null"
+    access:
+      type: object
+      required:
+        - sms
+        - voice
+        - email
+      properties:
+        sms:
+          "$ref": "#/IysAccess"
+        voice:
+          "$ref": "#/IysAccess"
+        email:
+          "$ref": "#/IysAccess"
+      additionalProperties: false
+    authorised_at:
+      description: "When the access was last read from İYS; null while it was never read."
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "The resource and its fields are chosen by the contract within PC-29."
+IysBrandList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/IysBrand"
+  description: "The active brands; the list is not paged."
+IysConfig:
+  type: object
+  description: "The İYS connection of a tenant environment (PC-29, E-22) with its brands, the consent quota as it was last read (PC-34) and the mark of a connection İYS refused. The password is never shown."
+  required:
+    - object
+    - mode
+    - api
+    - iys_code
+    - integrator_code
+    - username
+    - credential_ref_id
+    - brands
+    - quota
+    - blocked_code
+    - blocked_at
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: iys_config
+    mode:
+      type: string
+      enum:
+        - own
+        - integrator
+    api:
+      type: string
+      enum:
+        - production
+        - sandbox
+    iys_code:
+      "$ref": "#/IysCode"
+    integrator_code:
+      oneOf:
+        - "$ref": "#/IysCode"
+        - type: "null"
+    username:
+      type: string
+      maxLength: 256
+    credential_ref_id:
+      "$ref": "#/Id_sec"
+    brands:
+      type: array
+      items:
+        "$ref": "#/IysBrand"
+    quota:
+      type: object
+      description: "The consent quota of the İYS subscription (consentLimit, usedConsentLimit): full when the limit is reached and may not be exceeded, warning from 80 percent of it, unknown while it was not read."
+      required:
+        - state
+        - consent_limit
+        - used_consent_limit
+        - checked_at
+      properties:
+        state:
+          type: string
+          enum:
+            - unknown
+            - ok
+            - warning
+            - full
+        consent_limit:
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: "null"
+        used_consent_limit:
+          oneOf:
+            - type: integer
+              minimum: 0
+            - type: "null"
+        checked_at:
+          oneOf:
+            - "$ref": "#/Timestamp"
+            - type: "null"
+      additionalProperties: false
+    blocked_code:
+      description: "The İYS error code of the last request İYS refused for the connection itself (no access, a closed subscription); null once İYS answered again. While it is recent nothing is sent."
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    blocked_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "PC-29 names the two connection modes, the iysCode, the brands and their bindings and PC-34 the quota; the resource and its fields are chosen by the contract."
+IysConnectionTest:
+  type: object
+  description: "What İYS answered to a test of the connection (PC-29, PC-34). token is ok or the reason no token was issued (an İYS error code, http_ and a status, credential_unavailable or unavailable); brands and subscription are present when a token was issued."
+  required:
+    - object
+    - token
+    - tested_at
+  properties:
+    object:
+      type: string
+      const: iys_connection_test
+    token:
+      type: string
+      maxLength: 64
+    brands:
+      type: object
+      required:
+        - result
+        - found
+        - missing
+      properties:
+        result:
+          type: string
+          maxLength: 64
+        found:
+          type: array
+          description: "The brand codes İYS lists for the connection."
+          items:
+            "$ref": "#/IysCode"
+        missing:
+          type: array
+          description: "The configured brand codes İYS does not list."
+          items:
+            "$ref": "#/IysCode"
+      additionalProperties: false
+    subscription:
+      type: object
+      required:
+        - result
+      properties:
+        result:
+          type: string
+          maxLength: 64
+        status:
+          oneOf:
+            - type: string
+              maxLength: 64
+            - type: "null"
+        consent_limit:
+          oneOf:
+            - type: integer
+            - type: "null"
+        used_consent_limit:
+          oneOf:
+            - type: integer
+            - type: "null"
+      additionalProperties: false
+    tested_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "The connection test and its shape are chosen by the contract within PC-29 and PC-34."
+IysUpload:
+  type: object
+  description: "One consent movement on its way to İYS (PC-30). status is approval (ONAY) or rejection (RET). state: pending until it is sent, uploaded until İYS's status is read back, confirmed once it agrees, failed when İYS refused it for good, expired when an approval was not recorded within three business days, skipped when there was nothing to write. An upload never shows an address."
+  required:
+    - object
+    - id
+    - brand_code
+    - channel
+    - status
+    - recipient_id
+    - origin
+    - state
+    - consent_at
+    - deadline_at
+    - attempts
+    - error_code
+    - error_at
+    - transaction_ref
+    - registered_at
+    - trace_ref
+    - created_at
+    - settled_at
+  properties:
+    object:
+      type: string
+      const: iys_upload
+    id:
+      "$ref": "#/Id_iyu"
+    brand_code:
+      oneOf:
+        - "$ref": "#/IysCode"
+        - type: "null"
+    channel:
+      "$ref": "#/Channel"
+    status:
+      type: string
+      enum:
+        - approval
+        - rejection
+    recipient_id:
+      oneOf:
+        - "$ref": "#/Id_sub"
+        - type: "null"
+    origin:
+      type: string
+      description: "access is a consent Access announced; refusal a refusal notice applied in Relay."
+      enum:
+        - access
+        - refusal
+    state:
+      type: string
+      enum:
+        - pending
+        - uploaded
+        - confirmed
+        - failed
+        - expired
+        - skipped
+    consent_at:
+      "$ref": "#/Timestamp"
+    deadline_at:
+      description: "The end of the three business days of an approval; null for a rejection."
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    attempts:
+      type: integer
+      minimum: 0
+    error_code:
+      description: "The İYS error code (H followed by digits), http_ and a status, or Relay's own reason: brand_not_mapped, invalid_ and a field, readback_mismatch, deadline_passed, superseded."
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    error_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    transaction_ref:
+      description: "The İYS transaction identifier of the movement."
+      oneOf:
+        - type: string
+          maxLength: 128
+        - type: "null"
+    registered_at:
+      description: "When İYS recorded the movement."
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    trace_ref:
+      description: "The X-Trace-Id of the İYS answer, for a support request to İYS."
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+    settled_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "PC-30 decides the states of the write path and that a permanent failure is kept for the operator; the resource and its fields are chosen by the contract."
+IysUploadList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/IysUpload"
+  description: "A page of uploads."

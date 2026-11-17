@@ -1,0 +1,803 @@
+openapi: 3.0.2
+info:
+  title: "İYS API (the operations Relay calls)"
+  version: "3.2.4 - 09/11/2026"
+  description: "Transcribed from the official İYS API document. Only the operations the Relay client calls are kept: token, brand list, single and batch consent add (v2), batch request status, single consent status, consent changes (pull), integrator authorisations and subscription. Field names, enumerations, limits and error codes are those of the source; descriptions are shortened and translated."
+  x-source-url: "https://apidocs.iys.org.tr/openapi-v1.json"
+  x-source-page: "https://apidocs.iys.org.tr/"
+  x-source-version: "3.2.4 - 09/11/2026"
+  x-retrieved-at: "2026-11-17"
+servers:
+  - url: "https://api.sandbox.iys.org.tr"
+    description: "Test environment. iysCode and brandCode are assigned automatically; no real data and no load tests."
+  - url: "https://api.iys.org.tr"
+    description: "Production. Only service providers and partners that completed the contract."
+x-limits:
+  requests_per_second_per_ip: 10
+  token_requests_per_hour_per_ip: 100
+  consent_status_requests_per_hour_per_ip: 1000
+  consent_history_requests_per_hour_per_ip: 100
+  access_token_lifetime_s: 7200
+  refresh_token_lifetime_s: 14400
+  batch_consents_max: 1000
+  batch_status_min_wait_s: 300
+  batch_status_window_days: 60
+  changes_limit_max: 1000
+  changes_window_days: 7
+  changes_blind_spot_s: 3600
+  phone_max_length: 15
+  email_min_length: 6
+  email_max_length: 265
+  consent_max_age_business_days: 3
+  earliest_consent_date: "2015-05-01 00:00:00"
+  traffic_quality:
+    window_h: 24
+    requests_min: 20000
+    success_ratio_min: 0.7
+    grace_h: 96
+    counted_statuses: [400, 401, 403, 404, 422]
+x-date-format: "YYYY-MM-DD HH:mm:ss, Turkey time"
+security:
+  - IYSAPISecurity: []
+paths:
+  "/oauth2/token":
+    post:
+      operationId: createToken2
+      summary: "Get or refresh a token"
+      description: "Accepts a form body or a JSON body. At most 100 requests an hour from one IP address; over the limit the answer is 429 with H084, and a request before the hour ends starts the hour again. A refresh answers with a new refresh token as well."
+      security: []
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/TokenRequest"
+          "application/x-www-form-urlencoded":
+            schema:
+              "$ref": "#/components/schemas/TokenRequest"
+      responses:
+        "200":
+          description: "The token."
+          headers:
+            X-Trace-Id:
+              "$ref": "#/components/headers/XTraceId"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Token"
+        "400":
+          description: "A missing or unexpected parameter."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/TokenError"
+        "401":
+          description: "Invalid credentials (H251). Listed in the error code table, not among the documented responses of the operation."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        "429":
+          description: "The hourly token limit was reached (H084). Listed in the authentication section, not among the documented responses of the operation."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        "500":
+          "$ref": "#/components/responses/Errors"
+  "/sps/{iysCode}/brands":
+    get:
+      operationId: getBrandsDetails
+      summary: "List the brands of a service provider"
+      parameters:
+        - "$ref": "#/components/parameters/iysCode"
+      responses:
+        "200":
+          description: "The brands. The source documents one brand object; the client reads a list of them or one object."
+          headers:
+            X-Trace-Id:
+              "$ref": "#/components/headers/XTraceId"
+          content:
+            "application/json":
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/Brand"
+        "401":
+          "$ref": "#/components/responses/Errors"
+        "403":
+          "$ref": "#/components/responses/Errors"
+        "404":
+          "$ref": "#/components/responses/Errors"
+        "429":
+          "$ref": "#/components/responses/Errors"
+        "500":
+          "$ref": "#/components/responses/Errors"
+  "/v2/sps/{iysCode}/brands/{brandCode}/consents":
+    post:
+      operationId: addConsentV2
+      summary: "Add one consent (v2)"
+      description: "Records one consent. A request repeated with the same body and parameters answers with the same transactionId. Two movements of one address and type in the same second produce one transactionId, so two movements are not sent one after the other. A first record cannot be RET (H175); a record is not updated to the status it already has (H174) or with an earlier date (H178); a consent older than three business days is refused (H467)."
+      parameters:
+        - "$ref": "#/components/parameters/iysCode"
+        - "$ref": "#/components/parameters/brandCode"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/Consent"
+      responses:
+        "200":
+          description: "The consent was accepted."
+          headers:
+            X-Trace-Id:
+              "$ref": "#/components/headers/XTraceId"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/AddConsentResponse"
+        "400":
+          "$ref": "#/components/responses/Errors"
+        "401":
+          "$ref": "#/components/responses/Errors"
+        "403":
+          "$ref": "#/components/responses/Errors"
+        "422":
+          "$ref": "#/components/responses/FieldErrors"
+        "429":
+          "$ref": "#/components/responses/Errors"
+        "500":
+          "$ref": "#/components/responses/Errors"
+  "/v2/sps/{iysCode}/brands/{brandCode}/consents/request":
+    post:
+      operationId: addBatchConsentV2
+      summary: "Add consents asynchronously (v2)"
+      description: "Accepts at most 1000 consents. One address does not appear with two statuses in one list. A consent already recorded with the same data answers under a new requestId whose status names the original request."
+      parameters:
+        - "$ref": "#/components/parameters/iysCode"
+        - "$ref": "#/components/parameters/brandCode"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: array
+              maxItems: 1000
+              items:
+                "$ref": "#/components/schemas/Consent"
+      responses:
+        "202":
+          description: "The list was accepted for processing."
+          headers:
+            X-Trace-Id:
+              "$ref": "#/components/headers/XTraceId"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/BatchAccepted"
+        "400":
+          "$ref": "#/components/responses/Errors"
+        "401":
+          "$ref": "#/components/responses/Errors"
+        "403":
+          "$ref": "#/components/responses/Errors"
+        "422":
+          "$ref": "#/components/responses/FieldErrors"
+        "429":
+          "$ref": "#/components/responses/Errors"
+        "500":
+          "$ref": "#/components/responses/Errors"
+  "/v2/sps/{iysCode}/brands/{brandCode}/consents/request/{requestId}":
+    get:
+      operationId: searchRequestDetailsV2
+      summary: "Read the status of a batch request (v2)"
+      description: "Asked at least 300 seconds after the batch; an earlier or still running request may answer with an empty list. Requests of the last 60 days are kept."
+      parameters:
+        - "$ref": "#/components/parameters/iysCode"
+        - "$ref": "#/components/parameters/brandCode"
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 36
+      responses:
+        "200":
+          description: "One entry for each consent of the batch."
+          headers:
+            X-Trace-Id:
+              "$ref": "#/components/headers/XTraceId"
+          content:
+            "application/json":
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/BatchItemStatus"
+        "401":
+          "$ref": "#/components/responses/Errors"
+        "403":
+          "$ref": "#/components/responses/Errors"
+        "422":
+          "$ref": "#/components/responses/FieldErrors"
+        "429":
+          "$ref": "#/components/responses/Errors"
+        "500":
+          "$ref": "#/components/responses/Errors"
+  "/sps/{iysCode}/brands/{brandCode}/consents/status":
+    post:
+      operationId: consentDetail
+      summary: "Read the status of one consent"
+      description: "At most 1000 requests an hour from one IP address (H086)."
+      parameters:
+        - "$ref": "#/components/parameters/iysCode"
+        - "$ref": "#/components/parameters/brandCode"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              type: object
+              required: [recipient, recipientType, type]
+              properties:
+                recipient:
+                  type: string
+                recipientType:
+                  "$ref": "#/components/schemas/RecipientType"
+                type:
+                  "$ref": "#/components/schemas/ConsentType"
+      responses:
+        "200":
+          description: "The consent as İYS holds it."
+          headers:
+            X-Trace-Id:
+              "$ref": "#/components/headers/XTraceId"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ConsentDetail"
+        "400":
+          "$ref": "#/components/responses/Errors"
+        "401":
+          "$ref": "#/components/responses/Errors"
+        "403":
+          "$ref": "#/components/responses/Errors"
+        "422":
+          "$ref": "#/components/responses/FieldErrors"
+        "429":
+          "$ref": "#/components/responses/Errors"
+        "500":
+          "$ref": "#/components/responses/Errors"
+  "/sps/{iysCode}/brands/{brandCode}/consents/changes":
+    get:
+      operationId: PullPerBrandCode
+      summary: "Read consent movements (pull)"
+      description: "The movements of the last seven calendar days in the order İYS recorded them, oldest first, without the last hour. `after` is the reference of the last movement of the previous answer (its creationDate and transactionId)."
+      parameters:
+        - "$ref": "#/components/parameters/iysCode"
+        - "$ref": "#/components/parameters/brandCode"
+        - name: after
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            maximum: 1000
+            default: 1000
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum: [HS, IYS]
+            default: IYS
+      responses:
+        "200":
+          description: "The movements."
+          headers:
+            X-Trace-Id:
+              "$ref": "#/components/headers/XTraceId"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Changes"
+        "204":
+          description: "No movement."
+        "401":
+          "$ref": "#/components/responses/Errors"
+        "403":
+          "$ref": "#/components/responses/Errors"
+        "422":
+          "$ref": "#/components/responses/FieldErrors"
+        "429":
+          "$ref": "#/components/responses/Errors"
+        "500":
+          "$ref": "#/components/responses/Errors"
+  "/integrator/{integratorCode}/sps":
+    get:
+      operationId: integratorList
+      summary: "List the brands a partner is authorised for"
+      description: "Production only. For each brand the partner's access by consent type and whether it may reconcile."
+      parameters:
+        - "$ref": "#/components/parameters/integratorCode"
+        - name: offset
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            maximum: 100
+      responses:
+        "200":
+          description: "The authorised brands."
+          headers:
+            X-Trace-Id:
+              "$ref": "#/components/headers/XTraceId"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/IntegratorBrands"
+        "400":
+          "$ref": "#/components/responses/Errors"
+        "401":
+          "$ref": "#/components/responses/Errors"
+        "403":
+          "$ref": "#/components/responses/Errors"
+        "404":
+          "$ref": "#/components/responses/Errors"
+        "422":
+          "$ref": "#/components/responses/FieldErrors"
+        "429":
+          "$ref": "#/components/responses/Errors"
+        "500":
+          "$ref": "#/components/responses/Errors"
+  "/integrator/{integratorCode}/sps/{iysCode}":
+    get:
+      operationId: integratorListByiysCode
+      summary: "List the brands of one service provider a partner is authorised for"
+      description: "Production only."
+      parameters:
+        - "$ref": "#/components/parameters/integratorCode"
+        - "$ref": "#/components/parameters/iysCode"
+      responses:
+        "200":
+          description: "The authorised brands of the service provider."
+          headers:
+            X-Trace-Id:
+              "$ref": "#/components/headers/XTraceId"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/IntegratorBrands"
+        "400":
+          "$ref": "#/components/responses/Errors"
+        "401":
+          "$ref": "#/components/responses/Errors"
+        "403":
+          "$ref": "#/components/responses/Errors"
+        "404":
+          "$ref": "#/components/responses/Errors"
+        "422":
+          "$ref": "#/components/responses/FieldErrors"
+        "429":
+          "$ref": "#/components/responses/Errors"
+        "500":
+          "$ref": "#/components/responses/Errors"
+  "/sps/{iysCode}/subscription":
+    get:
+      operationId: get-subscription
+      summary: "Read the subscription of a service provider"
+      description: "Callable by the service provider and by a partner authorised for one of its brands. When usedConsentLimit equals consentLimit and consentLimitExceed is false, adding a consent is refused (H525)."
+      parameters:
+        - "$ref": "#/components/parameters/iysCode"
+      responses:
+        "200":
+          description: "The subscription."
+          headers:
+            X-Trace-Id:
+              "$ref": "#/components/headers/XTraceId"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Subscription"
+        "401":
+          "$ref": "#/components/responses/Errors"
+        "403":
+          "$ref": "#/components/responses/Errors"
+        "404":
+          "$ref": "#/components/responses/Errors"
+        "429":
+          "$ref": "#/components/responses/Errors"
+        "500":
+          "$ref": "#/components/responses/Errors"
+components:
+  securitySchemes:
+    IYSAPISecurity:
+      type: http
+      scheme: bearer
+  headers:
+    XTraceId:
+      description: "Trace identifier of the request, on every answer İYS produced."
+      schema:
+        type: string
+        pattern: "^[0-9a-f]{32}$"
+  parameters:
+    iysCode:
+      name: iysCode
+      in: path
+      required: true
+      schema:
+        type: integer
+    brandCode:
+      name: brandCode
+      in: path
+      required: true
+      schema:
+        type: integer
+    integratorCode:
+      name: integratorCode
+      in: path
+      required: true
+      schema:
+        type: integer
+  responses:
+    Errors:
+      description: "An error list."
+      headers:
+        X-Trace-Id:
+          "$ref": "#/components/headers/XTraceId"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Errors"
+    FieldErrors:
+      description: "An error list that names the refused fields."
+      headers:
+        X-Trace-Id:
+          "$ref": "#/components/headers/XTraceId"
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/FieldErrors"
+  schemas:
+    TokenRequest:
+      oneOf:
+        - type: object
+          required: [username, password, grant_type]
+          properties:
+            username:
+              type: string
+            password:
+              type: string
+              format: password
+            grant_type:
+              type: string
+              enum: [password]
+        - type: object
+          required: [grant_type, refresh_token]
+          properties:
+            grant_type:
+              type: string
+              enum: [refresh_token]
+            refresh_token:
+              type: string
+    Token:
+      type: object
+      properties:
+        access_token:
+          type: string
+        expires_in:
+          type: integer
+        refresh_token:
+          type: string
+        refresh_expires_in:
+          type: integer
+        token_type:
+          type: string
+    TokenError:
+      type: object
+      required: [error, error_description]
+      properties:
+        error:
+          type: string
+        error_description:
+          type: string
+    Errors:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+              message:
+                type: string
+    FieldErrors:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              location:
+                type: array
+                items:
+                  type: string
+              code:
+                type: string
+              message:
+                type: string
+              value:
+                type: string
+    ConsentType:
+      type: string
+      enum: [ARAMA, MESAJ, EPOSTA]
+    ConsentStatus:
+      type: string
+      enum: [ONAY, RET]
+    RecipientType:
+      type: string
+      enum: [BIREYSEL, TACIR]
+    WritableSource:
+      type: string
+      enum: [HS_FIZIKSEL_ORTAM, HS_ISLAK_IMZA, HS_WEB, HS_CAGRI_MERKEZI, HS_SOSYAL_MEDYA, HS_EPOSTA, HS_MESAJ, HS_MOBIL, HS_EORTAM, HS_ETKINLIK, HS_2015, HS_ATM, HS_KARAR]
+    Consent:
+      type: object
+      description: "Optional fields are left out, never sent empty or null. source and consentDate may be left out only for a first TACIR record."
+      required: [recipient, type, source, status, consentDate]
+      properties:
+        recipient:
+          type: string
+          description: "An E.164 phone number of at most 15 characters or an e-mail address of 6 to 265 characters; İYS stores an e-mail address in lower case."
+        type:
+          "$ref": "#/components/schemas/ConsentType"
+        source:
+          "$ref": "#/components/schemas/WritableSource"
+        status:
+          "$ref": "#/components/schemas/ConsentStatus"
+        consentDate:
+          type: string
+          description: "YYYY-MM-DD HH:mm:ss, Turkey time; not in the future, not before 2015-05-01."
+        recipientType:
+          "$ref": "#/components/schemas/RecipientType"
+        retailerCode:
+          type: integer
+        retailerAccess:
+          type: array
+          maxItems: 3000
+          items:
+            type: integer
+    AddConsentResponse:
+      type: object
+      required: [transactionId, creationDate]
+      properties:
+        transactionId:
+          type: string
+          description: "64 characters."
+        creationDate:
+          type: string
+    BatchAccepted:
+      type: object
+      properties:
+        requestId:
+          type: string
+        subRequests:
+          type: array
+          items:
+            type: object
+            properties:
+              subrequestId:
+                type: string
+              recipient:
+                type: string
+              type:
+                type: string
+              status:
+                type: string
+              source:
+                type: string
+              recipientType:
+                type: string
+              consentDate:
+                type: string
+    BatchItemStatus:
+      type: object
+      properties:
+        index:
+          type: integer
+        status:
+          type: string
+          enum: [success, failure, enqueue]
+        subRequestId:
+          type: string
+        transactionId:
+          type: string
+        requestId:
+          type: string
+        creationDate:
+          type: string
+        isAddConsentV2Service:
+          type: boolean
+        originalRequestInformation:
+          type: object
+          properties:
+            requestId:
+              type: string
+            subRequestId:
+              type: string
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+    ConsentDetail:
+      type: object
+      properties:
+        consentDate:
+          type: string
+        creationDate:
+          type: string
+        source:
+          type: string
+        recipient:
+          type: string
+        recipientType:
+          type: string
+        status:
+          type: string
+        type:
+          type: string
+        retailerAccessCount:
+          type: integer
+        retailerTitle:
+          type: string
+        retailerCode:
+          type: integer
+        transactionId:
+          type: string
+    Changes:
+      type: object
+      properties:
+        after:
+          type: string
+        list:
+          type: array
+          items:
+            type: object
+            properties:
+              consentDate:
+                type: string
+              creationDate:
+                type: string
+              source:
+                type: string
+              recipient:
+                type: string
+              recipientType:
+                type: string
+              status:
+                type: string
+              type:
+                type: string
+              transactionId:
+                type: string
+              citizenName:
+                type: string
+    Brand:
+      type: object
+      properties:
+        brandCode:
+          type: integer
+        name:
+          type: string
+        master:
+          type: boolean
+        stats:
+          type: object
+    IntegratorBrands:
+      type: object
+      properties:
+        pagination:
+          type: object
+          properties:
+            offset:
+              type: integer
+            pageSize:
+              type: integer
+            totalCount:
+              type: integer
+        list:
+          type: array
+          items:
+            type: object
+            description: "The source declares integer codes and its example carries them as strings; both are read. The example access value is `write`; any other value is read as `read` when it is `read` and as no access otherwise."
+            properties:
+              brandCode:
+                type: integer
+              name:
+                type: string
+              master:
+                type: boolean
+              title:
+                type: string
+              iysCode:
+                type: integer
+              agreementControl:
+                type: boolean
+              MESAJ:
+                type: string
+              ARAMA:
+                type: string
+              EPOSTA:
+                type: string
+              viaControl:
+                type: boolean
+    Subscription:
+      type: object
+      required: [startDate, expirationDate, subscriptionPackageName, status, consentLimit, usedConsentLimit, consentLimitExceed]
+      properties:
+        startDate:
+          type: string
+        expirationDate:
+          type: string
+        subscriptionPackageName:
+          type: string
+        subscriptionId:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, PAUSED, EXPIRED, CLOSED]
+        consentLimit:
+          type: integer
+        usedConsentLimit:
+          type: integer
+        consentLimitExceed:
+          type: boolean
+x-error-codes:
+  H083: {status: 429, meaning: "requests per second limit"}
+  H084: {status: 429, meaning: "token requests per hour limit"}
+  H086: {status: 429, meaning: "consent status requests per hour limit"}
+  H091: {status: 422, meaning: "more than 1000 consents"}
+  H110: {status: 422, meaning: "status missing"}
+  H111: {status: 422, meaning: "type missing"}
+  H112: {status: 422, meaning: "consentDate missing"}
+  H113: {status: 422, meaning: "source missing"}
+  H114: {status: 422, meaning: "recipient missing"}
+  H115: {status: 422, meaning: "status is not ONAY or RET"}
+  H116: {status: 422, meaning: "recipientType is not BIREYSEL or TACIR"}
+  H117: {status: 422, meaning: "type is not ARAMA, MESAJ or EPOSTA"}
+  H119: {status: 422, meaning: "source is not a writable source"}
+  H120: {status: 422, meaning: "recipient is not an e-mail address"}
+  H121: {status: 422, meaning: "recipient is not an E.164 phone number"}
+  H123: {status: 400, meaning: "the service is busy; try again later"}
+  H124: {status: 429, meaning: "requests per second limit"}
+  H125: {status: 422, meaning: "more than 1000 consents in one request"}
+  H155: {status: 422, meaning: "an HS_2015 consent is dated 2015-05-01 00:00:00 only"}
+  H156: {status: 422, meaning: "a date before 1 May 2015"}
+  H157: {status: 422, meaning: "not a valid date"}
+  H158: {status: 422, meaning: "consentDate is not yyyy-mm-dd hh:mm:ss"}
+  H160: {status: 422, meaning: "a phone number longer than 15 characters"}
+  H162: {status: 422, meaning: "a date in the future"}
+  H174: {status: 400, meaning: "the consent already has this status"}
+  H175: {status: 400, meaning: "a first record cannot be RET"}
+  H178: {status: 400, meaning: "the date is earlier than the recorded consent's"}
+  H192: {status: 503, meaning: "the request timed out"}
+  H194: {status: 422, meaning: "a consent repeated in the list"}
+  H251: {status: 401, meaning: "invalid credentials"}
+  H351: {status: 401, meaning: "missing or invalid token"}
+  H353: {status: 403, meaning: "the code does not match the user's authorisations"}
+  H408: {status: 422, meaning: "an HS_KARAR consent must be RET"}
+  H453: {status: 422, meaning: "more than two movements of the recipient in one day"}
+  H467: {status: 422, meaning: "a consent taken more than three business days ago"}
+  H521: {status: 403, meaning: "the subscription is CLOSED"}
+  H524: {status: 403, meaning: "no subscription of the iysCode"}
+  H525: {status: 422, meaning: "the consent limit is reached"}
+  H586: {status: 403, meaning: "the subscription does not include the API"}

@@ -51,6 +51,12 @@ config :relay, keys: RelayTest.Keys
 
 config :relay, Relay.Webhooks, resolver: RelayTest.WebhookResolver
 
+config :relay, Relay.Iys,
+  runtime: Relay.Iys.Live,
+  rate_limits: false,
+  http: [plug: {RelayTest.IysFake, []}],
+  base_urls: %{"production" => "http://iys.invalid", "sandbox" => "http://iys.invalid"}
+
 config :relay, Relay.Keys,
   kek_label: "kek-test",
   fingerprint_label: "fingerprint-test",

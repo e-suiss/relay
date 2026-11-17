@@ -125,6 +125,12 @@ defmodule Relay.Ingest do
   @spec event_notification_accept(map()) :: {atom(), Relay.Id.t() | nil, Relay.Id.t() | nil}
   defdelegate event_notification_accept(notification), to: EventStore, as: :notification_accept
 
+  # API-16
+  # C-29
+  @doc "Accepts a notification about a subject for one recipient inside the caller's scoped transaction, without an event; see `Relay.Ingest.Store.notification_accept/1`."
+  @spec notification_accept(map()) :: {atom(), Relay.Id.t() | nil}
+  defdelegate notification_accept(notification), to: Store
+
   # C-30
   @doc "Opens a delivery; see `Relay.Ingest.Store.delivery_open/2`."
   @spec delivery_open(Relay.Id.t(), map()) :: {atom(), Relay.Id.t() | nil}

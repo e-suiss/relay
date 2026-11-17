@@ -234,7 +234,7 @@ defmodule Relay.Agents.Live.Request do
       "html_kind" => "raw_html",
       "subject" => "{{ heading }}",
       "preheader" => "{{ neutral }}",
-      "html" => html(rows, claim?, link?),
+      "html" => markup(rows, claim?, link?),
       "text" => text(rows, claim?, link?)
     }
   end
@@ -249,7 +249,7 @@ defmodule Relay.Agents.Live.Request do
     Enum.join(lines, "\n")
   end
 
-  defp html(rows, claim?, link?) do
+  defp markup(rows, claim?, link?) do
     table =
       for index <- indexes(rows),
           do: "<tr><th>{{ label_#{index} }}</th><td>{{ value_#{index} }}</td></tr>"

@@ -284,8 +284,10 @@ defmodule Relay.Api.Previews do
   defp public(render), do: Map.delete(render, :html_digest)
 
   defp digests(preview, true), do: preview
-  defp digests(preview, false),
-    do: Map.update!(preview, "steps", fn steps -> Enum.map(steps, &public_step/1) end)
+
+  defp digests(preview, false) do
+    Map.update!(preview, "steps", fn steps -> Enum.map(steps, &public_step/1) end)
+  end
 
   defp public_step(%{"render" => %{} = render} = step), do: %{step | "render" => public(render)}
   defp public_step(step), do: step

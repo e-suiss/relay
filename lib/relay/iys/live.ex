@@ -196,6 +196,17 @@ defmodule Relay.Iys.Live do
     end
   end
 
+  # PC-28
+  # PC-38
+  @doc "Takes an applied refusal notice as the refusal sink does (`config :relay, Relay.Compliance, sink: Relay.Iys.Live`) and sends it through the write path; a notice of a channel İYS does not know or of a scope without an İYS configuration writes nothing."
+  @spec refused(Scope.t(), map()) :: :ok | {:error, term()}
+  def refused(%Scope{} = scope, %{channel: _channel, address: _address} = notice) do
+    case Relay.Iys.write_refusal(scope, notice) do
+      {:ok, _written} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   defp written(scope, movement) do
     case Relay.Iys.write(scope, movement) do
       {:ok, _written} -> :ok

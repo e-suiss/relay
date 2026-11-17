@@ -129,7 +129,7 @@ defmodule Relay.Iys.Calendar do
         {:gap, _before, later} -> later
       end
 
-    local |> DateTime.shift_zone!("Etc/UTC") |> DateTime.truncate(:second)
+    %{DateTime.shift_zone!(local, "Etc/UTC") | microsecond: {0, 0}}
   end
 
   # PC-60

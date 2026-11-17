@@ -140,15 +140,15 @@ defmodule Relay.Iys do
   # PC-30
   # PC-38
   @doc """
-  Writes a refusal of a recipient for a brand and channel to İYS (the refusal sink of the unsubscribe page, the SMS keyword and the complaint). The refusal was applied in Relay before this is called; here it only joins the write path, ahead of the approvals. `refusal` carries `:brand` (an İYS brand code, a sub-tenant identifier, or `nil` for the tenant's own brand), `:channel`, `:address`, `:recipient_type`, `:source` and `:occurred_at`, and optionally `:recipient_id`.
+  Writes a refusal of a recipient for a brand and channel to İYS (the refusal sink of the unsubscribe page, the SMS keyword and the complaint). The refusal was applied in Relay before this is called; here it only joins the write path, ahead of the approvals. `refusal` carries `:brand` (an İYS brand code, a sub-tenant identifier, or `nil` for the tenant's own brand), `:channel`, `:address` (in clear or redacted), `:recipient_type`, `:source` and `:occurred_at`, and optionally `:recipient_id`.
   """
   @spec write_refusal(Scope.t(), map()) :: result(written())
   def write_refusal(%Scope{} = scope, %{channel: channel, address: address} = refusal)
-      when is_binary(channel) and is_binary(address) do
+      when is_binary(channel) do
     movement = %{
       channel: channel,
       status: :rejection,
-      address: address,
+      address: exposed(address),
       source: Map.get(refusal, :source),
       occurred_at: Map.get(refusal, :occurred_at) || Relay.Clock.utc_now(),
       origin: :refusal,
@@ -158,6 +158,9 @@ defmodule Relay.Iys do
 
     Uploads.write(scope, Map.merge(movement, brand(Map.get(refusal, :brand))))
   end
+
+  defp exposed(%Relay.Redacted{} = address), do: Relay.Redacted.expose(address)
+  defp exposed(address) when is_binary(address), do: address
 
   defp brand(code) when is_integer(code), do: %{brand_code: code}
   defp brand(<<_::128>> = subtenant_id), do: %{brand_subtenant_id: subtenant_id}

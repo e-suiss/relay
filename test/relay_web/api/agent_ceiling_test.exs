@@ -23,7 +23,8 @@ defmodule RelayWeb.Api.AgentCeilingTest do
     {:ok, client} = Relay.ExternalId.decode(agent, ["agt"])
     credential = FakeAccess.client!(scope, ["agent:send"])
     access_tenant = tenant.attrs.access_tenant_id
-    sender = FakeAccess.server_token(access_tenant, credential, "agent:send", %{"sub" => party})
+    claims = %{"sub" => FakeAccess.pairwise(party)}
+    sender = FakeAccess.server_token(access_tenant, credential, "agent:send", claims)
     path = "/v1/agents/" <> agent
     %{scope: scope, token: token, sender: sender, workflow: key, client: client, agent: path}
   end

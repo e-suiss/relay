@@ -1,6 +1,6 @@
 defmodule Relay.Operators.AccessSubscriberHandler do
   @moduledoc """
-  The subscribers' handler of Access user lifecycle events (TN-73): `user.suspended` suspends the subscribers whose `external_id` is the user's pairwise `sub` and `user.reactivated` lifts their suspension (`Relay.Operators.SubscriberSuspension`); `user.deleted` leaves subscribers to their own erasure. Registered next to `Relay.Operators.AccessUserHandler` in `config :relay, Relay.Access, user_handlers: [...]`; both run for every event and an error of either retries it, so each is idempotent.
+  The subscribers' handler of Access account lifecycle events (TN-73, E-104): `account.suspended` suspends the subscribers whose `external_id` is the pairwise `sub` the event carries and `account.reactivated` lifts their suspension (`Relay.Operators.SubscriberSuspension`); `account.deleted` leaves subscribers to their own erasure. Registered next to `Relay.Operators.AccessUserHandler` in `config :relay, Relay.Access, user_handlers: [...]`; both run for every event and an error of either retries it, so each is idempotent.
   """
 
   @behaviour Relay.Access.UserHandler
@@ -8,6 +8,7 @@ defmodule Relay.Operators.AccessSubscriberHandler do
   alias Relay.Operators.SubscriberSuspension
 
   # TN-73
+  # E-104
   @impl Relay.Access.UserHandler
   def handle_user_event(kind, subject, event_ref) when kind in [:suspended, :reactivated],
     do: SubscriberSuspension.access_changed(kind, subject, event_ref)

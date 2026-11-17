@@ -69,12 +69,25 @@ defmodule Relay.Agents do
   defdelegate list_agents(scope, cursor, limit), to: Registry, as: :list
 
   # E-29
+  # E-106
   # AG-5
   # TN-25
-  @doc "The agent bound to the Access Party `subject` of a verified token, with its state, or `nil`; see `Relay.Agents.Registry.credential/2`."
+  @doc "The agent bound to the pairwise Access `sub` of a verified token, with its state, or `nil`; see `Relay.Agents.Registry.credential/2`."
   @spec agent_credential(Relay.Scope.t(), String.t() | nil) ::
           {:ok, %{id: Relay.Id.t(), state: String.t()} | nil} | {:error, term()}
   defdelegate agent_credential(scope, subject), to: Registry, as: :credential
+
+  # E-106
+  @doc "Returns true if an agent of the scope has no pairwise Access `sub` yet; see `Relay.Agents.Registry.unbound?/1`."
+  @spec agents_unbound?(Relay.Scope.t()) :: {:ok, boolean()} | {:error, term()}
+  defdelegate agents_unbound?(scope), to: Registry, as: :unbound?
+
+  # E-106
+  # AG-75
+  @doc "Binds a pairwise Access `sub` to the agent bound to an Access Party that has none yet; see `Relay.Agents.Registry.bind_sub/3`."
+  @spec bind_agent_sub(Relay.Scope.t(), String.t(), String.t()) ::
+          {:ok, atom()} | {:error, term()}
+  defdelegate bind_agent_sub(scope, party, sub), to: Registry, as: :bind_sub
 
   # AG-5
   # E-29

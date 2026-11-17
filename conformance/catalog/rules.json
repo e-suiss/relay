@@ -3081,10 +3081,42 @@
   },
   {
     "acceptance": "pending",
+    "id": "E-104",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "Access events by their emitted names: account.* with a usr_ account recorded not_applied until it maps to a pairwise sub, api_client.disabled revokes, party.disabled suspends the agent, session.revoked and preference.changed recorded only",
+    "verify_stage": 13
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-105",
+    "section": "§7",
+    "status": "policy_default",
+    "title": "Operator step-up compares Access AAL acr values by rank: at least AAL2, the installation may raise it to AAL3",
+    "verify_stage": 13
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-106",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "An agent record keeps its Access Party and the pairwise sub resolved through subjects:resolve; tokens match the sub, events the Party",
+    "verify_stage": 13
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-107",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "A waitpoint Access link is https on an issuer origin of the tenant's Access environments; the critical interrupt Grant is relay.interrupt critical, fail-closed",
+    "verify_stage": 13
+  },
+  {
+    "acceptance": "pending",
     "id": "E-108",
     "section": "§7",
     "status": "frozen_technical",
-    "title": "",
+    "title": "Access relay.message.*.v1 messages meet protected mappings, workflows and templates in the Access platform tenant, validated against Access's schema; inline addresses only there, as transient recipients; permanent 4xx only for permanent faults",
     "verify_stage": 13
   },
   {
@@ -3092,7 +3124,39 @@
     "id": "E-109",
     "section": "§7",
     "status": "frozen_technical",
-    "title": "",
+    "title": "Access iys_consent.v1 is the E-21 channel: Relay writes the consent to İYS and reports recorded or failed to /relay/v1/iys-status; the consent copy is not written",
+    "verify_stage": 13
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-110",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "Access environment transition: realm and realms are still read, the pairing table keeps its name, first-contact issuers come only from the tenant snapshot",
+    "verify_stage": 13
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-111",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "Access event intake: hyphenated types are stored with dots, retired types stay in the contract as x-relay-retired, party.disabled suspends the agent for every reason_class, the stream asks only for emitted types, RelayAccessAccountUnresolved alerts",
+    "verify_stage": 13
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-112",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "Access identity: the step-up AAL is an installation setting, the pairwise sub is bound on first request, encrypted and never exposed, a sub conflict is 409 party_conflict, a bad access_link origin 422 and an unreachable Access 503",
+    "verify_stage": 13
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-113",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "Access courier: approval, invite, consent and support types are action_required and the rest security, workflows are managed_by=code and never updated once created, a transient recipient is access-<hex blind index>, a device recipient is 422 recipient_not_found, İYS confirmed and skipped report as recorded",
     "verify_stage": 13
   },
   {

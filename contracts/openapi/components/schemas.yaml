@@ -7238,7 +7238,7 @@ WaitpointAccessLink:
   format: uri
   pattern: "^https://"
   maxLength: 2048
-  description: "The deep link to the Access approval surface where the decision of this request is given (E-16, AG-32, IN-6). A question or a review that carries it is an approval-type request: the link is the only action of its inbox and notification items, no response link is delivered and a response on a channel is never the decision. Kept encrypted at rest with the content."
+  description: "The deep link to the Access approval surface where the decision of this request is given (E-16, AG-32, IN-6). It is an https URL whose origin is the origin of one of the issuers of the tenant's Access environments; any other link is refused at /access_link (E-107, AG-80). A question or a review that carries it is an approval-type request: the link is the only action of its inbox and notification items, no response link is delivered and a response on a channel is never the decision. Kept encrypted at rest with the content."
   x-relay-choice: true
   x-relay-choice-note: "E-16, IN-6 and AG-32 have the approval-type item carry only the deep link to the Access approval surface; that the creator hands the link in with the waitpoint, and the member name, are chosen by the contract."
 WaitpointLabel:
@@ -7787,7 +7787,7 @@ AgentRecordState:
     - deleted
 AgentAccessBinding:
   type: object
-  description: "The agent's Access identity. party is the Access Party of the agent as Relay sees it: the sub of the agent's Access tokens (pairwise in Relay's sector). Every Instance of the Party authenticates as the agent."
+  description: "The agent's Access identity. party is the agent's Access Party identifier, the one Access events name (the binding is at the Party level, AG-75). At creation Relay asks Access's subject resolution for the pairwise sub of the agent's Access tokens in Relay's sector and keeps it with the record; a token authenticates as the agent by that sub. A Party Access does not resolve is refused at /access/party and no agent is created while Access cannot answer (E-106). Every Instance of the Party authenticates as the agent."
   required:
     - party
   properties:

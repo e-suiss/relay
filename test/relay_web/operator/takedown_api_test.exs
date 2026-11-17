@@ -92,7 +92,7 @@ defmodule RelayWeb.Operator.TakedownApiTest do
       FakeAccess.issue("code", %{
         "sub" => session.subject,
         "auth_time" => 0,
-        "acr" => "step_up",
+        "acr" => "http://idmanagement.gov/ns/assurance/aal/2",
         "step_up_ref" => "stepup-" <> session.subject
       })
 

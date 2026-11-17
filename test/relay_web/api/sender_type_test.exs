@@ -19,7 +19,8 @@ defmodule RelayWeb.Api.SenderTypeTest do
     F.body(F.request(:post, "/v1/agents", token, record), 201)
     client = FakeAccess.client!(tenant.live, ["agent:send"])
     access_tenant = tenant.attrs.access_tenant_id
-    agent = FakeAccess.server_token(access_tenant, client, "agent:send", %{"sub" => party})
+    claims = %{"sub" => FakeAccess.pairwise(party)}
+    agent = FakeAccess.server_token(access_tenant, client, "agent:send", claims)
     %{scope: tenant.live, token: token, agent: agent}
   end
 

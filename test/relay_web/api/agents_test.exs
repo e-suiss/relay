@@ -23,6 +23,8 @@ defmodule RelayWeb.Api.AgentsTest do
 
   defp party, do: "agent-" <> TenantFixture.random()
 
+  defp access_party, do: Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)
+
   defp agent!(ctx, fields \\ %{}) do
     body =
       Map.merge(
@@ -80,7 +82,8 @@ defmodule RelayWeb.Api.AgentsTest do
   defp credential(ctx, party, scopes) do
     client = FakeAccess.client!(ctx.scope, scopes)
     access_tenant = ctx.tenant.attrs.access_tenant_id
-    FakeAccess.server_token(access_tenant, client, Enum.join(scopes, " "), %{"sub" => party})
+    claims = %{"sub" => FakeAccess.pairwise(party)}
+    FakeAccess.server_token(access_tenant, client, Enum.join(scopes, " "), claims)
   end
 
   defp event(extra \\ %{}) do
@@ -94,8 +97,19 @@ defmodule RelayWeb.Api.AgentsTest do
   end
 
   defp deliver!(ctx, type, party) do
-    data = %{"tenant" => ctx.tenant.attrs.access_tenant_id, "subject" => party}
-    claims = FakeAccess.event(type, data)
+    data = %{
+      "environment" => "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b10",
+      "agent" => party,
+      "at" => 1_790_000_000_000,
+      "access_position" => %{"pos" => 3, "idx" => 0}
+    }
+
+    deliver_event!(ctx, type, data)
+  end
+
+  defp deliver_event!(ctx, type, data) do
+    access_tenant = ctx.tenant.attrs.access_tenant_id
+    claims = Map.put(FakeAccess.event(type, data), "access_tenant", access_tenant)
     assert FakeAccess.deliver(claims).status == 202
     receipts = Enum.map(FakeAccess.drain!(), &FakeAccess.receipt/1)
     Enum.find(receipts, &(&1["webhook_id"] == claims["jti"]))
@@ -237,7 +251,7 @@ defmodule RelayWeb.Api.AgentsTest do
   describe "E-29 AG-5 INV-47 Access binding" do
     test "E-29, AG-5, INV-47: an Access suspension stops delivery to the agent and keeps its mailbox",
          ctx do
-      bound = party()
+      bound = access_party()
       created = agent!(ctx, %{"access" => %{"party" => bound}})
       path = "/v1/agents/" <> created["id"]
       assert append(ctx.scope, created) == "appended"
@@ -261,7 +275,7 @@ defmodule RelayWeb.Api.AgentsTest do
 
     test "E-29, AG-5, AG-23, INV-47: an Access deletion deletes the record and never its mailbox",
          ctx do
-      bound = party()
+      bound = access_party()
       created = agent!(ctx, %{"access" => %{"party" => bound}})
       path = "/v1/agents/" <> created["id"]
       assert append(ctx.scope, created) == "appended"
@@ -276,9 +290,9 @@ defmodule RelayWeb.Api.AgentsTest do
       assert get(ctx, path)["state"] == "deleted"
     end
 
-    test "E-29, AG-5: an agent event reaches only the agent bound to its Access Party in its tenant",
+    test "E-29, AG-5, E-104: an agent event reaches only the agent bound to its Access Party in its tenant",
          ctx do
-      bound = party()
+      bound = access_party()
       created = agent!(ctx, %{"access" => %{"party" => bound}})
       other = agent!(ctx)
 
@@ -287,7 +301,8 @@ defmodule RelayWeb.Api.AgentsTest do
       same_party = agent!(foreign, %{"access" => %{"party" => bound}})
 
       assert :ok = AccessAgentHandler.handle_agent_event(ctx.scope, :suspended, bound, "evt-1")
-      assert :ok = AccessAgentHandler.handle_agent_event(ctx.scope, :suspended, party(), "evt-2")
+      unbound = access_party()
+      assert :ok = AccessAgentHandler.handle_agent_event(ctx.scope, :suspended, unbound, "evt-2")
       live = ctx.tenant.live
       assert :ok = AccessAgentHandler.handle_agent_event(live, :suspended, bound, "evt-3")
 
@@ -295,13 +310,15 @@ defmodule RelayWeb.Api.AgentsTest do
       assert get(ctx, "/v1/agents/" <> other["id"])["state"] == "active"
       assert get(foreign, "/v1/agents/" <> same_party["id"])["state"] == "active"
 
-      assert %{"state" => "rejected", "reason" => "subject_missing"} =
-               deliver!(ctx, "agent.suspended", "")
+      for invalid <- ["", "AAAAAAAAAAAAAAAAAAAAAB", bound <> "==", bound <> "A"] do
+        assert %{"state" => "rejected", "reason" => "party_invalid"} =
+                 deliver!(ctx, "agent.suspended", invalid)
+      end
     end
 
     test "E-29, AG-5: a suspended or deleted agent's own requests are refused", ctx do
       F.workflow!(ctx.scope, ctx.token, "order-shipped")
-      bound = party()
+      bound = access_party()
       created = agent!(ctx, %{"access" => %{"party" => bound}})
       agent = credential(ctx, bound, ["agent:send"])
 
@@ -316,6 +333,179 @@ defmodule RelayWeb.Api.AgentsTest do
       F.body(F.request(:delete, "/v1/agents/" <> created["id"], ctx.token), 200)
       assert code(F.request(:post, "/v1/events", agent, event()), 403) == "auth_agent_inactive"
     end
+
+    test "E-104, E-29, AG-5: agent.suspended reads the Party from its agent member and matches it exactly",
+         ctx do
+      bound = access_party()
+      created = agent!(ctx, %{"access" => %{"party" => bound}})
+      path = "/v1/agents/" <> created["id"]
+
+      data = %{"environment" => "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b10", "subject" => bound}
+
+      assert %{"state" => "rejected", "reason" => "party_invalid"} =
+               deliver_event!(ctx, "agent.suspended", data)
+
+      assert %{"state" => "processed"} = deliver!(ctx, "agent.suspended", access_party())
+      assert get(ctx, path)["state"] == "active"
+
+      assert %{"state" => "processed", "payload" => payload} =
+               deliver!(ctx, "agent.suspended", bound)
+
+      access_tenant = ctx.tenant.attrs.access_tenant_id
+      assert payload == %{"access_tenant_id" => access_tenant, "agent" => bound}
+      assert get(ctx, path)["state"] == "suspended"
+    end
+
+    test "E-104, AG-23, INV-47: party.disabled suspends the agent bound to the Party whatever its reason class and keeps its mailbox",
+         ctx do
+      for reason <- ["suspended", "departed", "other"] do
+        bound = access_party()
+        created = agent!(ctx, %{"access" => %{"party" => bound}})
+        path = "/v1/agents/" <> created["id"]
+        assert append(ctx.scope, created) == "appended"
+
+        member = %{
+          "party" => bound,
+          "at" => 1_790_000_000_000,
+          "reason_class" => reason,
+          "domain" => String.duplicate("A", 43),
+          "source" => %{"exercise" => String.duplicate("B", 43)}
+        }
+
+        assert %{"state" => "processed", "payload" => payload} =
+                 deliver_event!(ctx, "party.disabled", member)
+
+        assert payload["party"] == bound and payload["reason_class"] == reason
+        refute Map.has_key?(payload, "domain")
+        assert %{"state" => "suspended", "mailbox" => %{"state" => "suspended"}} = get(ctx, path)
+        assert ["suspended", nil, 1] = mailbox(ctx.scope, created)
+      end
+
+      other = agent!(ctx, %{"access" => %{"party" => access_party()}})
+      member = %{"party" => access_party(), "at" => 1, "reason_class" => "departed"}
+      assert %{"state" => "processed"} = deliver_event!(ctx, "party.disabled", member)
+      assert get(ctx, "/v1/agents/" <> other["id"])["state"] == "active"
+
+      invalid = %{"party" => "not-a-party", "at" => 1, "reason_class" => "suspended"}
+
+      assert %{"state" => "rejected", "reason" => "party_invalid"} =
+               deliver_event!(ctx, "party.disabled", invalid)
+    end
+
+    test "E-104, AG-75: instance-terminated is not applied to the agent of the Instance's Party",
+         ctx do
+      bound = access_party()
+      created = agent!(ctx, %{"access" => %{"party" => bound}})
+
+      member = %{
+        "domain" => String.duplicate("A", 43),
+        "source" => %{"exercise" => String.duplicate("B", 43)},
+        "subject" => %{"kind" => "instance", "id" => access_party()},
+        "party" => bound,
+        "at" => 1_790_000_000_000
+      }
+
+      assert %{"state" => "processed", "reason" => "not_applied"} =
+               deliver_event!(ctx, "instance-terminated", member)
+
+      assert get(ctx, "/v1/agents/" <> created["id"])["state"] == "active"
+    end
+  end
+
+  describe "E-106 AG-75 Access identity" do
+    test "E-106, AG-75: the record keeps the Party and the sub Access resolves for it; a token authenticates by the sub",
+         ctx do
+      F.workflow!(ctx.scope, ctx.token, "order-shipped")
+      bound = party()
+      created = agent!(ctx, %{"access" => %{"party" => bound}})
+
+      assert_received {:fake_access, :resolve, %{"parties" => [^bound]} = asked}
+      assert asked["client_id"] == Relay.Access.client_id()
+      assert created["access"] == %{"party" => bound}
+      refute Jason.encode!(created) =~ FakeAccess.pairwise(bound)
+
+      {:ok, id} = Relay.ExternalId.decode(created["id"], ["agt"])
+      sql = "SELECT access_sub_bidx, access_sub_ct FROM relay.agents WHERE id = $1"
+      assert [[bidx, ct]] = rows(ctx.scope, sql, [id])
+      assert byte_size(bidx) == 32 and is_binary(ct)
+
+      by_sub = credential(ctx, bound, ["agent:send"])
+      F.body(F.request(:post, "/v1/events", by_sub, event()), 202)
+
+      client = FakeAccess.client!(ctx.scope, ["agent:send"])
+      access_tenant = ctx.tenant.attrs.access_tenant_id
+      by_party = FakeAccess.server_token(access_tenant, client, "agent:send", %{"sub" => bound})
+      assert code(F.request(:post, "/v1/events", by_party, event()), 403) == "auth_agent_inactive"
+
+      assert :ok = AccessAgentHandler.handle_agent_event(ctx.scope, :suspended, bound, "evt-1")
+      assert code(F.request(:post, "/v1/events", by_sub, event()), 403) == "auth_agent_inactive"
+    end
+
+    test "E-106: a Party Access does not resolve creates no agent", ctx do
+      unknown = %{"access" => %{"party" => "unknown-" <> TenantFixture.random()}}
+      body = Map.merge(%{"name" => "A", "owner_ref" => "o"}, unknown)
+      problem = F.body(F.request(:post, "/v1/agents", ctx.token, body), 422)
+      assert [%{"pointer" => "/access/party", "code" => "not_found"}] = problem["errors"]
+
+      down = put_in(body, ["access", "party"], "unreachable-" <> TenantFixture.random())
+      assert code(F.request(:post, "/v1/agents", ctx.token, down), 503) == "service_unavailable"
+      assert get(ctx, "/v1/agents")["data"] == []
+    end
+
+    test "E-106, AG-75: deleting a record frees its sub, so the Party is bound to a new record",
+         ctx do
+      F.workflow!(ctx.scope, ctx.token, "order-shipped")
+      bound = party()
+      created = agent!(ctx, %{"access" => %{"party" => bound}})
+      F.body(F.request(:delete, "/v1/agents/" <> created["id"], ctx.token), 200)
+
+      {:ok, id} = Relay.ExternalId.decode(created["id"], ["agt"])
+      sql = "SELECT access_sub_bidx IS NULL FROM relay.agents WHERE id = $1"
+      assert rows(ctx.scope, sql, [id]) == [[true]]
+
+      again = agent!(ctx, %{"access" => %{"party" => bound}})
+      assert again["id"] != created["id"]
+      agent = credential(ctx, bound, ["agent:send"])
+      F.body(F.request(:post, "/v1/events", agent, event()), 202)
+    end
+
+    test "E-106, AG-75: a record created before E-106 is bound to its sub on its first request",
+         ctx do
+      F.workflow!(ctx.scope, ctx.token, "order-shipped")
+      bound = party()
+      id = legacy!(ctx.scope, bound)
+      sql = "SELECT access_sub_bidx IS NULL FROM relay.agents WHERE id = $1"
+      assert rows(ctx.scope, sql, [id]) == [[true]]
+
+      agent = credential(ctx, bound, ["agent:send"])
+      F.body(F.request(:post, "/v1/events", agent, event()), 202)
+      sub = FakeAccess.pairwise(bound)
+      assert_received {:fake_access, :resolve, %{"subs" => [^sub]}}
+      assert rows(ctx.scope, sql, [id]) == [[false]]
+
+      stranger = credential(ctx, "unknown-" <> TenantFixture.random(), ["agent:send"])
+      assert code(F.request(:post, "/v1/events", stranger, event()), 403) == "auth_agent_inactive"
+    end
+  end
+
+  defp legacy!(scope, party) do
+    input = %{
+      party: party,
+      sub: FakeAccess.pairwise(party),
+      name: "Legacy agent",
+      owner_ref: "work:legacy",
+      webhook_endpoint_id: nil,
+      a2a_push_endpoint_id: nil,
+      realtime: false,
+      topics: []
+    }
+
+    {:ok, plan} = Relay.Agents.prepare_agent(scope, input)
+    digest = Relay.Agents.agent_digest(scope, "agent.created", Relay.Id.to_string(plan.id))
+    {:ok, actor} = Relay.Actor.new(:api_client, "cli_legacy", "cli_legacy")
+    work = fn _status -> Relay.Agents.RegistryStore.create(plan, digest, actor) end
+    {:ok, {:created, id, _mailbox}} = Repo.in_scope(scope, work)
+    id
   end
 
   describe "AG-6 agent scopes" do

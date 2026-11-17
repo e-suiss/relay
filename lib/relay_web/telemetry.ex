@@ -543,6 +543,7 @@ defmodule RelayWeb.Telemetry do
   # T-86
   # PC-50
   # IN-51
+  # E-104
   @doc "The stage 1 alarm metrics."
   @spec alarm_metrics() :: [Telemetry.Metrics.t()]
   def alarm_metrics do
@@ -630,6 +631,11 @@ defmodule RelayWeb.Telemetry do
       counter("relay.push.signing_unavailable.total",
         event_name: [:relay, :push, :signing_unavailable],
         description: "Push provider tokens the key store could not sign"
+      ),
+      counter("relay.access.event_unresolved.total",
+        event_name: [:relay, :access, :event, :unresolved],
+        tags: [:kind],
+        description: "Access account events Relay could not map to a pairwise sub"
       )
     ]
   end

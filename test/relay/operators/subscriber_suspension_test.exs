@@ -277,8 +277,8 @@ defmodule Relay.Operators.SubscriberSuspensionTest do
     end
   end
 
-  describe "TN-73 TN-20 Access user events" do
-    test "TN-73: user.suspended suspends the subscriber whose external_id is the pairwise sub and user.reactivated lifts it",
+  describe "TN-73 TN-20 Access account events" do
+    test "TN-73, E-104: account.suspended suspends the subscriber whose external_id is the pairwise sub and account.reactivated lifts it",
          ctx do
       sub = "pairwise-" <> TenantFixture.random()
       {_delivery, delivery_id} = send!(ctx.token, sub)
@@ -297,7 +297,7 @@ defmodule Relay.Operators.SubscriberSuspensionTest do
       assert [["access", "evt-r"]] = audit(ctx.scope, "subscriber.resumed", id)
     end
 
-    test "TN-73: an unknown sub and user.deleted change no subscriber", ctx do
+    test "TN-73, E-104: an unknown sub and account.deleted change no subscriber", ctx do
       sub = "pairwise-" <> TenantFixture.random()
       send!(ctx.token, sub)
 

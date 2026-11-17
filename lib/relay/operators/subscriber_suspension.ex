@@ -1,6 +1,6 @@
 defmodule Relay.Operators.SubscriberSuspension do
   @moduledoc """
-  Suspension of a subscriber (TN-73). A tenant operator or administrator suspends a subscriber through the operator API, and Access does through its `user.suspended` event for the subscriber whose `external_id` is the user's pairwise `sub`; lifting needs a tenant administrator with step-up, or Access's `user.reactivated` (TN-22). Each change is audited as `subscriber.suspended` or `subscriber.resumed`.
+  Suspension of a subscriber (TN-73). A tenant operator or administrator suspends a subscriber through the operator API, and Access does through its `account.suspended` event for the subscriber whose `external_id` is the pairwise `sub` the event carries; lifting needs a tenant administrator with step-up, or Access's `account.reactivated` (TN-22, E-104). Each change is audited as `subscriber.suspended` or `subscriber.resumed`.
 
   While a subscriber is suspended a send to it is accepted and its deliveries are recorded as skipped with the rule `subscriber.suspended` (MD-12), its pending deliveries are `PAUSED` (`Relay.Operators.SuspensionWork`, TN-40), the subscriber token exchange and every subscriber endpoint answer `403 auth_subscriber_suspended`, and the signal `subscribers.suspended` of the tenant environment (`Relay.Platform.signal_topic/3`, carrying the subscriber's version) tells the realtime layer to close the subscriber's open connections (API-45). Lifting resumes the paused deliveries through the policy lattice.
   """

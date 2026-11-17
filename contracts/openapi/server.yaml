@@ -21965,6 +21965,107 @@ paths:
       x-relay-stage: 10
       x-relay-choice: true
       x-relay-choice-note: "WH-68 gives a source one endpoint of its own, the shared verifier, the 96 hour deduplication and the acceptance rules of provider webhooks, and has a notification complete the waitpoint it references; it names no path, body or event type. The path, the CloudEvents body, the job.completed and job.failed types, the answers, completing only an event waitpoint without a condition, and the limits of the body and of data.result are chosen by the contract."
+  "/inbound/v1/a2a/{tenant}/{environment}/sources/{webhook_source_id}":
+    post:
+      operationId: receiveA2aPushNotification
+      tags:
+        - webhooks
+      summary: Receive an A2A push notification
+      description: "The endpoint a registered source posts A2A push notifications to: the task life cycle events of an agent at that source (AG-42, AG-37, E-51). Not a tenant API and outside the /v1 request rules: the path names the tenant, the environment and the source. The request names its protocol version in A2A-Version, which must be one Relay serves; another version, or none, is 400 with the A2A VersionNotSupportedError problem. What A2A leaves open comes from the Suiss webhook profile: the request is verified on its raw body with the one verifier of the profile, against the source's whpk_ public key (v1a) or whsec_ secret (v1). A request that does not verify is 401 and has no effect. The body is an A2A StreamResponse with exactly one of task, statusUpdate, artifactUpdate and message. Its sequence number is metadata.seq when the sender gives one, otherwise the microsecond timestamp of the status. A verified notification is committed as a receipt, unique by source, task and sequence number, with its processing job before the 200; the same task and sequence number is acknowledged and counted, never processed again. From the queue the notification moves the recorded state of its task forward and produces agent.task_notification_received; a notification older than the recorded one changes nothing, and one that arrived out of order or names no state makes Relay read the task again at its source. A notification is a hint that the task changed and never an authorisation."
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            "$ref": "./components/schemas.yaml#/Id_ten"
+        - name: environment
+          in: path
+          required: true
+          schema:
+            "$ref": "./components/schemas.yaml#/Environment"
+        - "$ref": "./components/parameters.yaml#/WebhookSourceId"
+        - name: A2A-Version
+          in: header
+          required: true
+          description: "The A2A protocol version of the request, as Major.Minor."
+          schema:
+            type: string
+            pattern: "^[0-9]{1,3}[.][0-9]{1,3}$"
+        - name: webhook-id
+          in: header
+          required: true
+          description: "The identifier of the notification, the same on every attempt; Relay processes an identifier once."
+          schema:
+            type: string
+            pattern: "^[!-~]{1,256}$"
+        - name: webhook-timestamp
+          in: header
+          required: true
+          description: "Unix seconds of this attempt."
+          schema:
+            type: string
+            pattern: "^(0|[1-9][0-9]{0,14})$"
+        - name: webhook-signature
+          in: header
+          required: true
+          description: "A space separated list of v1a or v1 signatures over webhook-id, webhook-timestamp and the raw body."
+          schema:
+            type: string
+            maxLength: 4096
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/A2aStreamResponse"
+          "application/a2a+json":
+            schema:
+              "$ref": "./components/schemas.yaml#/A2aStreamResponse"
+      security: []
+      responses:
+        "200":
+          description: "Received: the notification is a committed receipt, or was one already."
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "400":
+          description: The request names an A2A version Relay does not serve, or the verified body is no task notification.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "401":
+          description: The request did not verify, or the source's secret is no longer active.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "404":
+          description: No active source has this tenant, environment and id.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "413":
+          description: The body is larger than 256 KiB.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "503":
+          description: The receipt could not be committed; the source sends the notification again.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+      x-relay-weight: 0
+      x-relay-weight-note: "Inbound channel of a registered source; not counted against tenant limits."
+      x-relay-idempotency: derived
+      x-relay-step-up: false
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-68 gives a source one endpoint of its own, the shared verifier, the 96 hour deduplication and the acceptance rules of provider webhooks, and has a notification complete the waitpoint it references; it names no path, body or event type. The path, the CloudEvents body, the job.completed and job.failed types, the answers, completing only an event waitpoint without a condition, and the limits of the body and of data.result are chosen by the contract."
   "/inbound/v1/providers/{provider_account_id}":
     post:
       operationId: receiveProviderWebhook

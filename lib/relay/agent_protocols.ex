@@ -1,11 +1,11 @@
-defmodule Relay.Agents.Protocols do
+defmodule Relay.AgentProtocols do
   @moduledoc """
   The protocol mapping layer (E-50, E-74, AG-46, AG-47, AG-72, L-28). Relay speaks A2A and MCP and carries AG-UI; its waitpoint model depends on none of them. What a protocol sees of a waitpoint is read from the `agent_protocols` data set: the versions Relay speaks and serves, and for each waitpoint state and interaction the task state of A2A, of the MCP tasks extension and of Anthropic Managed Agents. A protocol revision is a new version of that data set and changes nothing else.
 
   The translation loses nothing: a waitpoint state and its interaction always give one cell, and `waitpoints/3` gives back every waitpoint state and interaction a protocol state stands for. A cell is one of three rules. `:state` names the protocol state. `:unchanged` leaves the protocol's state as it is: a stalled waitpoint still waits. `:owner_decides` is the end of an expired or cancelled waitpoint, where Relay delivers the event and the owner of the task decides what the task becomes. The task itself belongs to the waiter; Relay never holds or advances it.
   """
 
-  dir = Path.join([__DIR__, "..", "..", "..", "priv", "datasets", "agent_protocols"])
+  dir = Path.join([__DIR__, "..", "..", "priv", "datasets", "agent_protocols"])
   paths = Path.wildcard(Path.join(dir, "v*.json"))
   for path <- paths, do: @external_resource(path)
 
@@ -39,7 +39,7 @@ defmodule Relay.Agents.Protocols do
 
   # E-50
   # E-74
-  @doc "The version of `protocol` (`\"a2a\"` or `\"mcp\"`) Relay speaks when it sends."
+  @doc "The version of `protocol` (`a2a` or `mcp`) Relay speaks when it sends."
   @spec current(table(), String.t()) :: String.t()
   def current(table \\ @bundled, protocol) when protocol in ["a2a", "mcp"],
     do: table["protocols"][protocol]["current"]

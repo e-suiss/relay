@@ -173,18 +173,27 @@ defmodule Relay.Api.Mcp do
   def request(%{"method" => method} = body, headers) when is_binary(method) do
     id = Map.get(body, "id")
     params = Map.get(body, "params") || %{}
-    version = get_in(params, ["_meta", @protocol_key])
 
-    cond do
-      header(headers, "mcp-protocol-version") == nil ->
+    with :ok <- versioned(id, get_in(params, ["_meta", @protocol_key]), headers),
+         :ok <- routed(id, method, params, headers),
+         do: {:ok, %{id: id, method: method, params: params}}
+  end
+
+  defp versioned(id, version, headers) do
+    case header(headers, "mcp-protocol-version") do
+      nil ->
         mismatch(id, "the MCP-Protocol-Version header is missing")
 
-      header(headers, "mcp-protocol-version") != version ->
+      ^version ->
+        if version in @versions, do: :ok, else: unsupported(id, version)
+
+      _other ->
         mismatch(id, "the MCP-Protocol-Version header does not match the body")
+    end
+  end
 
-      version not in @versions ->
-        {:error, refusal(400, id, -32_022, "Unsupported protocol version", unsupported(version))}
-
+  defp routed(id, method, params, headers) do
+    cond do
       header(headers, "mcp-method") != method ->
         mismatch(id, "the Mcp-Method header does not match the body")
 
@@ -195,17 +204,17 @@ defmodule Relay.Api.Mcp do
         mismatch(id, "the Mcp-Name header does not match the body")
 
       true ->
-        {:ok, %{id: id, method: method, params: params}}
+        :ok
     end
   end
 
   def request(body, _headers) when is_map(body),
     do: {:error, refusal(400, Map.get(body, "id"), -32_600, "Invalid Request", nil)}
 
-  defp unsupported(version) when is_binary(version),
-    do: %{"supported" => @versions, "requested" => version}
-
-  defp unsupported(_version), do: %{"supported" => @versions}
+  defp unsupported(id, version) do
+    data = %{"supported" => @versions, "requested" => version}
+    {:error, refusal(400, id, -32_022, "Unsupported protocol version", data)}
+  end
 
   defp mismatch(id, detail),
     do: {:error, refusal(400, id, -32_020, "Header mismatch: " <> detail, nil)}

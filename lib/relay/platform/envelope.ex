@@ -18,7 +18,8 @@ defmodule Relay.Platform.Envelope do
     "mailbox_id" => "mbx",
     "record_id" => "mbr",
     "waitpoint_id" => "wp",
-    "response_id" => "wpr"
+    "response_id" => "wpr",
+    "webhook_source_id" => "whs"
   }
   @record_appended "mailbox.record_appended"
 

@@ -19,6 +19,7 @@ defmodule RelayWeb.Api.McpController do
 
   # AG-43
   # E-52
+  @doc "Answers one JSON-RPC request of the Model Context Protocol; a notification is accepted with no body."
   @spec rpc(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def rpc(conn, _params) do
     case Mcp.request(conn.assigns.body, conn.req_headers) do

@@ -96,7 +96,9 @@ config :relay, Relay.Workflow,
 
 config :relay, Relay.Workflow.Digest, sink: Relay.Workflow, release: Relay.Policy.Live
 
-config :relay, Relay.Agents, waitpoint_sink: Relay.Workflow
+config :relay, Relay.Agents,
+  waitpoint_sink: Relay.Workflow,
+  wake_transports: [Relay.Webhooks.Live.A2aPush]
 
 config :relay, Relay.Platform.Outbox,
   dispatcher: true,

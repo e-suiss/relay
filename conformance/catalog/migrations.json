@@ -281,5 +281,8 @@
   {"file": "20261230000100_create_agent_ceiling_functions.exs", "sha256": "5b68b73cf565f7d28801f68727a4af43c977517cc00c1561eb35ba075a8cee12"},
   {"file": "20261230000200_create_agent_operations_overview.exs", "sha256": "061b0f460ea253580b8baf5f3a6427068e0e38258987884924b723e80b66d803"},
   {"file": "20261230000300_rebuild_reference_check_for_agent_ceiling.exs", "sha256": "133ad77a22b204e880155a4fc6d225b1b1c3b5a963c1f359e6e9e2e73daa8b04"},
-  {"file": "20270103000000_register_agent_protocols.exs", "sha256": "5e54d56fa035f9d29158616a5417e73a6da41586612470ab15bc99eebd03a8d6"}
+  {"file": "20270103000000_register_agent_protocols.exs", "sha256": "5e54d56fa035f9d29158616a5417e73a6da41586612470ab15bc99eebd03a8d6"},
+  {"file": "20270103000100_create_agent_task_notifications.exs", "sha256": "ba574f9d7ad09ebc742d275dc65e03c9c3c8d27da3187a529c2750c9a68a9f61"},
+  {"file": "20270103000200_create_agent_task_notification_function.exs", "sha256": "aa30436ed1110a47c088656d55d8bb23b4bf4ca7576929abb1261007f6459694"},
+  {"file": "20270103000300_rebuild_reference_check_for_agent_task_notifications.exs", "sha256": "0566a819075f84106ce7077cd5e75e0db729fdd6b03660fa44555d802ca857f6"}
 ]

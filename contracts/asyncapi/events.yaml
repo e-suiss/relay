@@ -115,6 +115,10 @@ channels:
         "$ref": "#/components/messages/webhook.waitpoint.response_rejected"
       webhook.agent.ceiling_exceeded:
         "$ref": "#/components/messages/webhook.agent.ceiling_exceeded"
+      webhook.a2a.push_notification:
+        "$ref": "#/components/messages/webhook.a2a.push_notification"
+      webhook.agent.task_notification_received:
+        "$ref": "#/components/messages/webhook.agent.task_notification_received"
       webhook.mailbox.record_appended:
         "$ref": "#/components/messages/webhook.mailbox.record_appended"
       webhook.mailbox.record_dead_lettered:
@@ -650,6 +654,8 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.waitpoint.stalled"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.waitpoint.response_rejected"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.agent.ceiling_exceeded"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.a2a.push_notification"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.agent.task_notification_received"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.mailbox.record_appended"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.mailbox.record_dead_lettered"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.killswitch.engaged"
@@ -3336,6 +3342,101 @@ components:
                       "$ref": "../openapi/components/schemas.yaml#/Timestamp"
                   additionalProperties: false
       x-relay-surface: operations
+      x-relay-stage: 12
+    webhook.a2a.push_notification:
+      name: a2a.push_notification
+      title: a2a.push_notification
+      summary: An A2A push notification for an agent's A2A push endpoint. It is sent to that endpoint alone; its body on the wire is the data, an A2A StreamResponse, with the A2A-Version header and the signed profile headers.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: a2a.push_notification
+                data:
+                  type: object
+                  required:
+                    - statusUpdate
+                  properties:
+                    statusUpdate:
+                      type: object
+                      required:
+                        - taskId
+                        - contextId
+                        - status
+                        - metadata
+                      properties:
+                        taskId:
+                          type: string
+                          maxLength: 256
+                        contextId:
+                          type: string
+                          pattern: "^mbx_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                        status:
+                          type: object
+                          required:
+                            - state
+                            - timestamp
+                          properties:
+                            state:
+                              type: string
+                              maxLength: 64
+                            timestamp:
+                              type: string
+                              format: date-time
+                          additionalProperties: false
+                        metadata:
+                          type: object
+                      additionalProperties: false
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-explicit-only: true
+      x-relay-stage: 12
+    webhook.agent.task_notification_received:
+      name: agent.task_notification_received
+      title: agent.task_notification_received
+      summary: A verified task notification of a registered source moved the recorded state of its task forward. It is a hint to read the task again at its source; a repeated or an older notification produces no event.
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: agent.task_notification_received
+                data:
+                  type: object
+                  required:
+                    - webhook_source_id
+                    - protocol
+                    - task
+                    - seq
+                  properties:
+                    webhook_source_id:
+                      type: string
+                      pattern: "^whs_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+                    protocol:
+                      type: string
+                      enum:
+                        - a2a
+                    task:
+                      type: string
+                      maxLength: 256
+                    seq:
+                      type: integer
+                    state:
+                      type: string
+                      maxLength: 64
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
       x-relay-stage: 12
     webhook.mailbox.record_appended:
       name: mailbox.record_appended
@@ -8498,6 +8599,7 @@ components:
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
 x-relay-event-names:
+  - a2a.push_notification
   - address.disabled
   - agent.ceiling_decided
   - agent.ceiling_exceeded
@@ -8506,6 +8608,7 @@ x-relay-event-names:
   - agent.reactivated
   - agent.resumed
   - agent.suspended
+  - agent.task_notification_received
   - agent.updated
   - api_client.assigned
   - api_client.created

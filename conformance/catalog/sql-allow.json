@@ -394,5 +394,11 @@
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",
     "reason": "AG-17, AG-19, OP-9: the no-delete and append-only triggers reject TRUNCATE on the escalation policies, their versions, the waitpoint steps and the invitations"
+  },
+  {
+    "path": "priv/repo/migrations/20270103000100_create_agent_task_notifications.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "AG-37, OP-9: the no-delete trigger rejects TRUNCATE on the agent task notifications"
   }
 ]

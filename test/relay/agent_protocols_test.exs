@@ -1,7 +1,7 @@
-defmodule Relay.Agents.ProtocolsTest do
+defmodule Relay.AgentProtocolsTest do
   use ExUnit.Case, async: true
 
-  alias Relay.Agents.Protocols
+  alias Relay.AgentProtocols, as: Protocols
 
   @states ~w(open stalled resolved expired cancelled)
   @interactions ~w(response access_invitation event)

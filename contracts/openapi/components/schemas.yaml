@@ -6000,6 +6000,21 @@ MailboxLease:
       items:
         "$ref": "#/MailboxRecord"
   additionalProperties: false
+A2aStreamResponse:
+  type: object
+  description: "An A2A StreamResponse as a push notification carries it: exactly one of task, statusUpdate, artifactUpdate and message. Relay reads the task the event names, the state of its status and its sequence number, and nothing else."
+  minProperties: 1
+  maxProperties: 1
+  properties:
+    task:
+      type: object
+    statusUpdate:
+      type: object
+    artifactUpdate:
+      type: object
+    message:
+      type: object
+  additionalProperties: false
 McpRequest:
   type: object
   description: "One JSON-RPC 2.0 request of the Model Context Protocol. A request without id is a notification and gets no response body."

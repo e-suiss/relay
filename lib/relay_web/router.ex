@@ -890,6 +890,15 @@ defmodule RelayWeb.Router do
     get "/test/simulated-results", SimulatedResultController, :index,
       private: %{relay_operation: "listSimulatedResults"}
 
+    get "/test/seed-recipients", TestPlaneController, :seeds,
+      private: %{relay_operation: "listSeedRecipients"}
+
+    post "/test/seed-recipients/reset", TestPlaneController, :reset,
+      private: %{relay_operation: "resetSeedRecipients"}
+
+    get "/test/inbox", TestPlaneController, :inbox,
+      private: %{relay_operation: "listTestInboxMessages"}
+
     get "/inbound/whatsapp/:provider_account_id", WhatsappWebhookController, :verify,
       private: %{relay_operation: "verifyWhatsappWebhook"}
 

@@ -6,7 +6,8 @@ defmodule Relay.Channels.Simulated do
 
     * email: `<result>@sim.relay.test` (`.test` is reserved by RFC 2606);
     * phone: `+9905550000NN`, in the `+99x` prefix the ITU has not assigned, where `NN` is the result's two-digit code, `01` to `15` in the order of the list;
-    * push and Web Push tokens, WhatsApp and messaging targets: `sim:<result>`.
+    * push and Web Push tokens, WhatsApp and messaging targets: `sim:<result>`;
+    * the seven seed recipients of every test plane (X-43, `seeds/0`): `<seed>@seed.relay.test` and `+9905551000NN`, `NN` from `01` to `07` in the order of the seeds. Their result is `delivered`, except the e-mail of `seed_bounced`, which is `hard_bounce`; each row of `table/0` names the seed addresses that give its result.
 
   Every other address is `delivered`. On the live plane these ranges are refused as `invalid_recipient` (`reserved?/2`); the fake adapter runs only on the test plane and in `shadow` mode.
   """
@@ -31,8 +32,21 @@ defmodule Relay.Channels.Simulated do
     {"unknown_code", "A provider code without a mapping: classified unknown with an alarm."}
   ]
 
+  @seeds [
+    {"seed_no_consent", "No marketing consent."},
+    {"seed_opted_out", "Consent revoked on e-mail and SMS: opted out of commercial messages."},
+    {"seed_quiet_hours", "Quiet hours cover the whole day, e-mail included."},
+    {"seed_capped", "The global frequency cap is full."},
+    {"seed_bounced", "The e-mail address is suppressed after a hard bounce."},
+    {"seed_no_device", "No push device."},
+    {"seed_fallback_timezone", "No time zone: sent in the fallback time zone."}
+  ]
+  @seed_results %{"seed_bounced" => "hard_bounce"}
+
   @names Enum.map(@results, &elem(&1, 0))
+  @seed_names Enum.map(@seeds, &elem(&1, 0))
   @domain "sim.relay.test"
+  @seed_domain "seed.relay.test"
   @phone ~r/\A\+9905550000(\d\d)\z/
   @delayed_ms 5 * 60_000
   @retry_after_ms 30_000
@@ -48,8 +62,8 @@ defmodule Relay.Channels.Simulated do
 
   # CH-72
   # X-26
-  @doc "The table: per result its email address, phone number, token or target, and description."
-  @spec table() :: [%{required(String.t()) => String.t()}, ...]
+  @doc "The table: per result its email address, phone number, token or target, description and the seed recipient addresses that give it."
+  @spec table() :: [%{required(String.t()) => String.t() | [String.t()]}, ...]
   def table do
     for {{name, description}, n} <- Enum.with_index(@results, 1) do
       %{
@@ -57,9 +71,33 @@ defmodule Relay.Channels.Simulated do
         "email" => name <> "@" <> @domain,
         "phone" => "+9905550000" <> String.pad_leading(Integer.to_string(n), 2, "0"),
         "token" => "sim:" <> name,
+        "description" => description,
+        "seed_recipients" => seed_addresses(name)
+      }
+    end
+  end
+
+  # X-43
+  # X-26
+  @doc "The seven seed recipients of a test plane in order: per seed its name (its external identifier), e-mail address, phone number, the simulated result of its e-mail address and description."
+  @spec seeds() :: [%{required(String.t()) => String.t()}, ...]
+  def seeds do
+    for {{name, description}, n} <- Enum.with_index(@seeds, 1) do
+      %{
+        "seed" => name,
+        "email" => name <> "@" <> @seed_domain,
+        "phone" => "+9905551000" <> String.pad_leading(Integer.to_string(n), 2, "0"),
+        "result" => Map.get(@seed_results, name, "delivered"),
         "description" => description
       }
     end
+  end
+
+  defp seed_addresses(result) do
+    for seed <- seeds(),
+        {address, given} <- [{seed["email"], seed["result"]}, {seed["phone"], "delivered"}],
+        given == result,
+        do: address
   end
 
   # CH-72
@@ -75,7 +113,11 @@ defmodule Relay.Channels.Simulated do
   def result(:email, address) do
     case String.split(String.downcase(address), "@", parts: 2) do
       [local, @domain] when local in @names -> local
-      _other -> "delivered"
+      [local, @seed_domain] when local in @seed_names ->
+        Map.get(@seed_results, local, "delivered")
+
+      _other ->
+        "delivered"
     end
   end
 
@@ -93,11 +135,14 @@ defmodule Relay.Channels.Simulated do
 
   # CH-72
   # X-25
-  @doc "Returns true when an address lies in a simulated range: the `sim.relay.test` domain, the `+99x` prefix or a `sim:` token. The live plane refuses such an address as `invalid_recipient`."
+  @doc "Returns true when an address lies in a simulated range: the `sim.relay.test` or `seed.relay.test` domain, the `+99x` prefix or a `sim:` token. The live plane refuses such an address as `invalid_recipient`, so no seed recipient address reaches it (X-43)."
   @spec reserved?(kind(), String.t()) :: boolean()
   def reserved?(:email, address) do
     domain = address |> String.downcase() |> String.split("@") |> List.last()
-    domain == @domain or String.ends_with?(domain, "." <> @domain)
+
+    Enum.any?([@domain, @seed_domain], fn reserved ->
+      domain == reserved or String.ends_with?(domain, "." <> reserved)
+    end)
   end
 
   def reserved?(:phone, number), do: String.starts_with?(number, "+99")

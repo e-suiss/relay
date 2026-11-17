@@ -13,8 +13,8 @@ defmodule Relay.Access.PairingTest do
   alias RelayTest.FakePairing
   alias RelayTest.TenantFixture
 
-  @realm_a "00000000-0000-4000-8000-00000000000a"
-  @realm_b "00000000-0000-4000-8000-00000000000b"
+  @env_a "00000000-0000-4000-8000-00000000000a"
+  @env_b "00000000-0000-4000-8000-00000000000b"
   @jobs "SELECT args FROM relay_queue.oban_jobs WHERE worker = 'Relay.Access.Pairing.Job' ORDER BY id"
 
   defmodule Signer do
@@ -47,7 +47,10 @@ defmodule Relay.Access.PairingTest do
     for {^kind, meta} <- report.signals, do: meta
   end
 
-  defp states(tenant), do: Enum.map(Store.realms(tenant), &{&1.realm, &1.state, &1.failed_runs})
+  defp states(tenant) do
+    for stored <- Store.access_environments(tenant),
+        do: {stored.access_environment, stored.state, stored.failed_runs}
+  end
 
   defp asked(tenant, count \\ 0) do
     receive do
@@ -134,7 +137,7 @@ defmodule Relay.Access.PairingTest do
 
       target = %{
         status: :unpaired,
-        realm: @realm_a,
+        access_environment: @env_a,
         domain: :crypto.strong_rand_bytes(32),
         basis: :crypto.strong_rand_bytes(16),
         pep: "access-identity",
@@ -176,28 +179,31 @@ defmodule Relay.Access.PairingTest do
       assert Target.check(%{target | valid_until_ms: now + 60_000}, kid, now) == :ok
     end
 
-    test "E-101: an answer is read only whole: its tenant, distinct realms and every member" do
+    test "E-101: an answer is read only whole: its tenant, distinct Access environments and every member" do
       wire = %{
-        "realm" => @realm_a,
+        "environment" => @env_a,
         "status" => "paired",
         "party" => b64(<<1::128>>),
         "instance" => b64(<<2::128>>),
         "kid" => b64(<<3::256>>)
       }
 
-      answer = %{"tenant" => "tnt_1", "targets" => [wire], "event_stream" => @realm_b}
+      answer = %{"tenant" => "tnt_1", "targets" => [wire], "event_stream" => @env_b}
 
-      assert {:ok, %{event_stream: @realm_b, targets: [%{status: :paired}]}} =
+      assert {:ok, %{event_stream: @env_b, targets: [paired], field: "environment"}} =
                Target.parse(answer, "tnt_1")
+
+      assert %{status: :paired, access_environment: @env_a} = paired
 
       for bad <- [
             %{answer | "tenant" => "tnt_2"},
             %{answer | "targets" => [wire, wire]},
             %{answer | "event_stream" => "stream"},
-            %{answer | "targets" => [%{wire | "realm" => String.upcase(@realm_a)}]},
+            %{answer | "targets" => [%{wire | "environment" => String.upcase(@env_a)}]},
             %{answer | "targets" => [%{wire | "party" => b64(<<1::120>>)}]},
             %{answer | "targets" => [%{wire | "status" => "gone"}]},
-            %{answer | "targets" => [%{"realm" => @realm_a, "status" => "refused"}]}
+            %{answer | "targets" => [%{"environment" => @env_a, "status" => "refused"}]},
+            %{answer | "targets" => [Map.delete(wire, "environment")]}
           ] do
         assert Target.parse(bad, "tnt_1") == :error
       end
@@ -207,12 +213,50 @@ defmodule Relay.Access.PairingTest do
       assert Target.time_ms("2026-11-05T09:00:00.0001Z") == :error
       assert Target.time_ms("2026-11-05T12:00:00+03:00") == :error
 
-      signed = %{realm: @realm_a, challenge: <<1::256>>, ais: "a", register_ais: nil}
+      signed = %{
+        access_environment: @env_a,
+        challenge: <<1::256>>,
+        ais: "a",
+        register_ais: nil
+      }
+
+      expected = %{"challenge" => b64(<<1::256>>), "ais" => b64("a")}
       assert {:ok, %{"targets" => [one]}} = Target.pairing_body([signed])
-      assert one == %{"realm" => @realm_a, "challenge" => b64(<<1::256>>), "ais" => b64("a")}
+      assert one == Map.put(expected, "environment", @env_a)
       assert {:ok, _body} = Target.pairing_body(List.duplicate(signed, 64))
       assert Target.pairing_body(List.duplicate(signed, 65)) == :error
       assert Target.pairing_body([]) == :error
+    end
+
+    test "E-103: an answer of an Access release before the rename names realm, and the pairing request answers it the same way" do
+      wire = %{
+        "realm" => @env_a,
+        "status" => "refused",
+        "code" => "environment-closed"
+      }
+
+      answer = %{"tenant" => "tnt_1", "targets" => [wire]}
+
+      assert {:ok, %{field: "realm", targets: [%{access_environment: @env_a}]}} =
+               Target.parse(answer, "tnt_1")
+
+      renamed = wire |> Map.delete("realm") |> Map.put("environment", @env_b)
+      assert Target.parse(%{answer | "targets" => [wire, renamed]}, "tnt_1") == :error
+
+      empty = %{answer | "targets" => []}
+      assert {:ok, %{field: "environment", targets: []}} = Target.parse(empty, "tnt_1")
+
+      signed = %{
+        access_environment: @env_a,
+        challenge: <<1::256>>,
+        ais: "a",
+        register_ais: "r"
+      }
+
+      assert {:ok, %{"targets" => [one]}} = Target.pairing_body([signed], "realm")
+      assert Map.keys(one) == ["ais", "challenge", "realm", "register_ais"]
+      assert one["realm"] == @env_a
+      assert Target.pairing_body([signed], "tenant") == :error
     end
   end
 
@@ -226,33 +270,33 @@ defmodule Relay.Access.PairingTest do
       assert report.tenants == 1
       assert report.paired == 0
 
-      assert Enum.map(signals(report, :unsignable), &{&1.realm, &1.code}) == [
-               {@realm_a, "pairing-basis"},
-               {@realm_b, "pairing-basis"}
+      assert Enum.map(signals(report, :unsignable), &{&1.access_environment, &1.code}) == [
+               {@env_a, "pairing-basis"},
+               {@env_b, "pairing-basis"}
              ]
 
-      assert states(ctx.tenant) == [{@realm_a, :unpaired, 1}, {@realm_b, :unpaired, 1}]
-      assert_received {:telemetry, %{unpaired_realms: 0}}
+      assert states(ctx.tenant) == [{@env_a, :unpaired, 1}, {@env_b, :unpaired, 1}]
+      assert_received {:telemetry, %{unpaired_access_environments: 0}}
 
       _second = run(:due, ctx.fake)
       third = run(:due, ctx.fake)
 
-      assert Enum.map(signals(third, :unpaired), &{&1.realm, &1.runs}) == [
-               {@realm_a, 3},
-               {@realm_b, 3}
+      assert Enum.map(signals(third, :unpaired), &{&1.access_environment, &1.runs}) == [
+               {@env_a, 3},
+               {@env_b, 3}
              ]
 
-      assert third.unpaired_realms == 2
-      assert_received {:telemetry, %{unpaired_realms: 2}}
+      assert third.unpaired_access_environments == 2
+      assert_received {:telemetry, %{unpaired_access_environments: 2}}
     end
 
-    test "E-101: signed challenges pair every realm, the stream is adopted and a due run then asks nothing",
+    test "E-101: signed challenges pair every Access environment, the stream is adopted and a due run then asks nothing",
          ctx do
       report = run({:tenant, ctx.tenant}, ctx.fake, signer: Signer)
       tenant = ctx.tenant
 
       assert_received {:fake_pairing, :pairing, ^tenant, %{"targets" => targets}}
-      assert Enum.sort(Enum.map(targets, & &1["realm"])) == [@realm_a, @realm_b]
+      assert Enum.sort(Enum.map(targets, & &1["environment"])) == [@env_a, @env_b]
 
       for target <- targets do
         assert target["ais"] == b64("placeholder-ais")
@@ -263,7 +307,7 @@ defmodule Relay.Access.PairingTest do
       assert report.paired == 2
       assert report.signals == []
       assert report.stream_up
-      assert states(ctx.tenant) == [{@realm_a, :paired, 0}, {@realm_b, :paired, 0}]
+      assert states(ctx.tenant) == [{@env_a, :paired, 0}, {@env_b, :paired, 0}]
       stream = report.event_stream
       assert_received {:fake_pairing, :stream, ^stream}
       refute_received {:fake_pairing, :open_stream, _body}
@@ -275,12 +319,26 @@ defmodule Relay.Access.PairingTest do
       assert due.tenants >= 1
       assert due.stream_up
       assert_received {:fake_pairing, :stream, ^stream}
-      assert_received {:telemetry, %{unpaired_realms: 0, stream_up: 1}}
+      assert_received {:telemetry, %{unpaired_access_environments: 0, stream_up: 1}}
 
       flush()
       _all = run(:all, ctx.fake, signer: Signer)
       assert asked(tenant) == 1
       refute_received {:fake_pairing, :pairing, ^tenant, _body}
+    end
+
+    test "E-103: targets and answers name the Access environment environment, or realm towards an Access release before the rename" do
+      for field <- ["environment", "realm"] do
+        fake = FakePairing.start!(field: field)
+        tenant = "tnt_former" <> FakeAccess.random()
+        report = run({:tenant, tenant}, fake, signer: Signer)
+
+        assert_received {:fake_pairing, :pairing, ^tenant, %{"targets" => targets}}
+        assert Enum.sort(Enum.map(targets, & &1[field])) == [@env_a, @env_b]
+        assert report.paired == 2
+        assert report.signals == []
+        assert states(tenant) == [{@env_a, :paired, 0}, {@env_b, :paired, 0}]
+      end
     end
 
     test "E-101: a challenge that fails a check is not signed and counts a failed run" do
@@ -296,7 +354,7 @@ defmodule Relay.Access.PairingTest do
 
         refute_received {:fake_pairing, :pairing, ^tenant, _body}
         assert Enum.map(signals(report, :unsignable), & &1.code) == [code, code]
-        assert states(tenant) == [{@realm_a, :unpaired, 1}, {@realm_b, :unpaired, 1}]
+        assert states(tenant) == [{@env_a, :unpaired, 1}, {@env_b, :unpaired, 1}]
       end
     end
 
@@ -317,7 +375,7 @@ defmodule Relay.Access.PairingTest do
       assert asked(ctx.tenant) == 2
       assert [%{tenant: tenant, error: {:refused, 503, nil}}] = signals(report, :failed)
       assert tenant == ctx.tenant
-      assert states(ctx.tenant) == [{@realm_a, :unpaired, 1}, {@realm_b, :unpaired, 1}]
+      assert states(ctx.tenant) == [{@env_a, :unpaired, 1}, {@env_b, :unpaired, 1}]
 
       fake = FakePairing.start!(challenge_failures: [{400, "invalid-request"}])
       other = TenantFixture.tenant!().attrs.access_tenant_id
@@ -326,29 +384,33 @@ defmodule Relay.Access.PairingTest do
       assert [%{error: {:refused, 400, "invalid-request"}}] = signals(report, :failed)
     end
 
-    test "E-101: a refused realm is reported with its slug, and its pairing later clears it",
+    test "E-101: a refused Access environment is reported with its slug, and its pairing later clears it",
          ctx do
-      fake = FakePairing.start!(refused: [@realm_a])
+      fake = FakePairing.start!(refused: [@env_a])
       report = run({:tenant, ctx.tenant}, fake, signer: Signer)
 
-      assert [%{realm: @realm_a, slug: slug, code: "realm-closed"}] = signals(report, :refused)
+      assert [%{access_environment: @env_a, slug: slug, code: "environment-closed"}] =
+               signals(report, :refused)
+
       assert slug == ctx.tenant <> "-a"
-      assert states(ctx.tenant) == [{@realm_a, :refused, 1}, {@realm_b, :paired, 0}]
+      assert states(ctx.tenant) == [{@env_a, :refused, 1}, {@env_b, :paired, 0}]
 
       FakePairing.update(fake, &%{&1 | refused: MapSet.new()})
       report = run({:tenant, ctx.tenant}, fake, signer: Signer)
 
-      assert [%{realm: @realm_a, slug: ^slug}] = signals(report, :cleared)
-      assert states(ctx.tenant) == [{@realm_a, :paired, 0}, {@realm_b, :paired, 0}]
+      assert [%{access_environment: @env_a, slug: ^slug}] = signals(report, :cleared)
+      assert states(ctx.tenant) == [{@env_a, :paired, 0}, {@env_b, :paired, 0}]
     end
 
-    test "E-101: realms that leave the snapshot are retired, never deleted", ctx do
+    test "E-101: Access environments that leave the snapshot are retired, never deleted", ctx do
       _stored = Store.seen(ctx.tenant, [{"00000000-0000-4000-8000-0000000000ff", "gone"}])
       _report = run({:tenant, ctx.tenant}, ctx.fake)
 
-      assert Enum.map(Store.realms(ctx.tenant), &{&1.realm, &1.state}) == [
-               {@realm_a, :unpaired},
-               {@realm_b, :unpaired},
+      stored = Store.access_environments(ctx.tenant)
+
+      assert Enum.map(stored, &{&1.access_environment, &1.state}) == [
+               {@env_a, :unpaired},
+               {@env_b, :unpaired},
                {"00000000-0000-4000-8000-0000000000ff", :retired}
              ]
     end
@@ -356,17 +418,17 @@ defmodule Relay.Access.PairingTest do
 
   describe "E-101 the event stream" do
     test "E-101: a paused stream is a warning and is left as it is" do
-      fake = FakePairing.start!(streams: [FakePairing.stream(@realm_b, "paused")])
+      fake = FakePairing.start!(streams: [FakePairing.stream(@env_b, "paused")])
       report = run(:due, fake)
 
-      assert [%{stream: @realm_b, status: :paused}] = signals(report, :stream_down)
+      assert [%{stream: @env_b, status: :paused}] = signals(report, :stream_down)
       refute_received {:fake_pairing, :open_stream, _body}
       refute report.stream_up
-      assert %{stream: @realm_b, status: :paused} = Store.stream()
+      assert %{stream: @env_b, status: :paused} = Store.stream()
     end
 
     test "E-101: a disabled or missing stream is opened again with the events of a known stream" do
-      fake = FakePairing.start!(streams: [FakePairing.stream(@realm_b, "disabled")])
+      fake = FakePairing.start!(streams: [FakePairing.stream(@env_b, "disabled")])
       report = run(:due, fake)
 
       assert_received {:fake_pairing, :open_stream, body}
@@ -394,15 +456,15 @@ defmodule Relay.Access.PairingTest do
     end
 
     test "E-101: when Access already holds a live stream, Relay adopts it" do
-      fake = FakePairing.start!(streams: [FakePairing.stream(@realm_a, "enabled")])
-      _recreated = Store.record_stream(@realm_b, :enabled, false)
+      fake = FakePairing.start!(streams: [FakePairing.stream(@env_a, "enabled")])
+      _recreated = Store.record_stream(@env_b, :enabled, false)
       report = run(:due, fake)
 
-      assert_received {:fake_pairing, :stream, @realm_b}
+      assert_received {:fake_pairing, :stream, @env_b}
       assert_received {:fake_pairing, :open_stream, _body}
       assert signals(report, :stream_recreated) == []
       assert report.stream_up
-      assert %{stream: @realm_a, status: :enabled, recreated: 0} = Store.stream()
+      assert %{stream: @env_a, status: :enabled, recreated: 0} = Store.stream()
     end
   end
 
@@ -439,8 +501,8 @@ defmodule Relay.Access.PairingTest do
       assert [%{tenant: nil, error: %Relay.Error{code: :access_discovery_invalid}}] =
                signals(report, :failed)
 
-      assert Store.realms(ctx.tenant) == []
-      assert_received {:telemetry, %{unpaired_realms: 0, stream_up: 0}}
+      assert Store.access_environments(ctx.tenant) == []
+      assert_received {:telemetry, %{unpaired_access_environments: 0, stream_up: 0}}
     end
   end
 end

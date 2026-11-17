@@ -43,9 +43,14 @@ defmodule RelayTest.TenantFixture do
   def tenant!(opts \\ []) do
     id = Relay.Id.generate()
 
+    access_tenant_id =
+      Keyword.get_lazy(opts, :access_tenant_id, fn ->
+        "acc_" <> Base.encode16(:crypto.strong_rand_bytes(8), case: :lower)
+      end)
+
     attrs = %{
       id: id,
-      access_tenant_id: "acc_" <> Base.encode16(:crypto.strong_rand_bytes(8), case: :lower),
+      access_tenant_id: access_tenant_id,
       region: Keyword.get_lazy(opts, :region, &region/0),
       sector: "general",
       default_timezone: "Europe/Istanbul",

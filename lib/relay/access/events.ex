@@ -6,7 +6,7 @@ defmodule Relay.Access.Events do
 
   `process/1` (the `Relay.Access.EventConsumer` job) applies a receipt by its type:
 
-  * `tenant.created` creates the mapped tenant with its keys (TN-1). Access carries no time zone or locale (E-95): the region is the one the tenant's snapshot names (`Relay.Access.Realms.snapshot/1`), read outside any transaction, and the default time zone and locale (TN-2, X-35) are that region's installation defaults from the active `region_defaults` data set; without an active version the job retries. While the snapshot cannot be read (Access does not answer, does not know the tenant yet, or names no region) the receipt waits as `deferred` with reason `snapshot_unavailable` and the job retries; a snapshot region this installation does not serve is `rejected` with reason `region_mismatch`, because a tenant's Access and Relay records stay in one region (INV-41, E-39). An Access tenant that Access marks with a `platform_product` (a Suiss product such as `access` itself) becomes that product's platform tenant (C-18, E-9, TN-9): an ordinary, isolated tenant with no data privilege; an unknown product is refused.
+  * `tenant.created` creates the mapped tenant with its keys (TN-1). Access carries no time zone or locale (E-95): the region is the one the tenant's snapshot names (`Relay.Access.Environments.snapshot/1`), read outside any transaction, and the default time zone and locale (TN-2, X-35) are that region's installation defaults from the active `region_defaults` data set; without an active version the job retries. While the snapshot cannot be read (Access does not answer, does not know the tenant yet, or names no region) the receipt waits as `deferred` with reason `snapshot_unavailable` and the job retries; a snapshot region this installation does not serve is `rejected` with reason `region_mismatch`, because a tenant's Access and Relay records stay in one region (INV-41, E-39). An Access tenant that Access marks with a `platform_product` (a Suiss product such as `access` itself) becomes that product's platform tenant (C-18, E-9, TN-9): an ordinary, isolated tenant with no data privilege; an unknown product is refused.
   * `organization.created`, `organization.updated`, `api_client.updated`, `account.created`, `account.updated`, `session.revoked`, `preference.changed` and `instance-terminated` are recorded and acknowledged but not applied, `processed` with reason `not_applied` (E-95, E-104): Access holds no organization name or state yet, an API client change carries nothing Relay keeps, the account, session and preference events name the person only by an Access account id, and an agent's binding is at its Party, not at one of its Instances (AG-75).
   * `api_client.created` registers the client in its tenant's `live` scope as pending, with no environment and no scopes, until a tenant administrator assigns them (E-99, `Relay.Access.Assignment`); a client Relay already knows is left as it is. `api_client.disabled`, which Access emits when it retires a client for good, revokes it, and the API client trace announces the new generation to every node (API-44, TN-24, E-104). A revocation of a client that is still pending waits as `deferred` with reason `unknown_client` and is queued again once the client is assigned.
   * `account.suspended`, `account.reactivated` and `account.deleted` go to the configured user event handlers (`config :relay, Relay.Access, user_handlers: [module]`, `Relay.Access.UserHandler`) with the person's pairwise `sub` when the event carries one (TN-20, TN-73); without one the receipt waits as `deferred` with reason `no_handler`. Access names the person only by the `usr_` id of the account, which no Access interface maps to Relay's pairwise `sub`: such an event is `processed` with reason `not_applied_account_unresolved`, changes nothing, and is counted in `[:relay, :access, :event, :unresolved]` for the operator's alarm (E-104).
@@ -22,10 +22,10 @@ defmodule Relay.Access.Events do
 
   alias Relay.Access.Clients
   alias Relay.Access.ClientStore
+  alias Relay.Access.Environments
   alias Relay.Access.EventConsumer
   alias Relay.Access.EventStore
   alias Relay.Access.Link
-  alias Relay.Access.Realms
   alias Relay.Access.SecurityEvent
   alias Relay.Scope
 
@@ -367,7 +367,7 @@ defmodule Relay.Access.Events do
   # E-95
   defp snapshot_region(tenant) do
     if Regex.match?(@access_tenant, tenant),
-      do: read_region(tenant, Realms.snapshot(tenant)),
+      do: read_region(tenant, Environments.snapshot(tenant)),
       else: {:rejected, "tenant_invalid"}
   end
 

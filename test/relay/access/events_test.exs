@@ -490,10 +490,10 @@ defmodule Relay.Access.EventsTest do
       capture_unresolved()
 
       with_user_handlers([Handler], fn ->
-        for {type, status} <- [
-              {"account.suspended", "suspended"},
-              {"account.reactivated", "active"},
-              {"account.deleted", "deactivated"}
+        for {type, status, kind} <- [
+              {"account.suspended", "suspended", :suspended},
+              {"account.reactivated", "active", :reactivated},
+              {"account.deleted", "deactivated", :deleted}
             ] do
           id = deliver!(type, account_member(status))
           receipt = receipt_of(id)
@@ -502,7 +502,7 @@ defmodule Relay.Access.EventsTest do
                    receipt
 
           assert receipt["payload"] == %{}
-          assert_received {:unresolved, %{count: 1}, %{type: ^type}}
+          assert_received {:unresolved, %{count: 1}, %{kind: ^kind}}
           refute_received {:user, _kind, _sub, ^id}
         end
       end)

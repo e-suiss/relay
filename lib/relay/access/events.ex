@@ -516,13 +516,13 @@ defmodule Relay.Access.Events do
   defp account(type, payload, receipt) do
     case text(payload["sub"], 256) do
       sub when is_binary(sub) and sub != "" -> user(Map.fetch!(@accounts, type), sub, receipt)
-      _unresolved -> unresolved(type)
+      _unresolved -> unresolved(Map.fetch!(@accounts, type))
     end
   end
 
   # E-104
-  defp unresolved(type) do
-    :telemetry.execute([:relay, :access, :event, :unresolved], %{count: 1}, %{type: type})
+  defp unresolved(kind) do
+    :telemetry.execute([:relay, :access, :event, :unresolved], %{count: 1}, %{kind: kind})
     {:processed, @unresolved}
   end
 

@@ -561,7 +561,7 @@ tests:
               runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentceilingcounterunreadable
   - interval: 1m
     input_series:
-      - series: 'relay_access_event_unresolved_total{type="account.suspended"}'
+      - series: 'relay_access_event_unresolved_total{kind="suspended"}'
         values: "0 0 0 1x80"
     alert_rule_test:
       - eval_time: 2m

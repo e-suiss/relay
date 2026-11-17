@@ -634,7 +634,7 @@ defmodule RelayWeb.Telemetry do
       ),
       counter("relay.access.event_unresolved.total",
         event_name: [:relay, :access, :event, :unresolved],
-        tags: [:type],
+        tags: [:kind],
         description: "Access account events Relay could not map to a pairwise sub"
       )
     ]

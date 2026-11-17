@@ -3,6 +3,8 @@ defmodule RelayDev.Seed do
   Sample data of the local environment (T-65 (1)): a sample tenant with its `live` and `test` environments and keys, a recipient in the test plane, the bundled data set versions, the link to the local Access stand-in (`RelayDev.Access`), a test plane API client trace with every server scope and the test plane's own setup run at once (`Relay.Api.TestPlane.seed/1`): the seven seed recipients and the published sample workflow `welcome` with its inbox and e-mail steps (X-43, X-35), so a single request to `POST /v1/events` works right after `just dev`. `mix relay.dev.token` prints a token of the sample client. Running it again changes nothing.
   """
 
+  alias Relay.Api.TestPlane
+
   @tenant "dev-sample-tenant"
   @recipient "dev-sample-recipient"
   @client "dev-sample-client"
@@ -28,7 +30,7 @@ defmodule RelayDev.Seed do
            }),
          :ok <- RelayDev.Access.link(),
          {:ok, client_id} <- client(test),
-         :ok <- Relay.Api.TestPlane.seed(test),
+         :ok <- TestPlane.seed(test),
          {:ok, version} <- workflow_version(test) do
       {:ok,
        %{
@@ -36,7 +38,7 @@ defmodule RelayDev.Seed do
          environments: [:live, :test],
          recipient: @recipient,
          api_client: Relay.ExternalId.encode("cli", client_id),
-         workflow: Relay.Api.TestPlane.sample_workflow(),
+         workflow: TestPlane.sample_workflow(),
          workflow_version: version
        }}
     end
@@ -52,7 +54,7 @@ defmodule RelayDev.Seed do
   @spec sample_event() :: map()
   def sample_event do
     %{
-      "workflow" => Relay.Api.TestPlane.sample_workflow(),
+      "workflow" => TestPlane.sample_workflow(),
       "to" => [@recipient],
       "data" => %{"first_name" => "Ayşe"}
     }
@@ -96,7 +98,7 @@ defmodule RelayDev.Seed do
 
   # WF-6
   defp workflow_version(test) do
-    case Relay.Workflow.resolve_published(test, Relay.Api.TestPlane.sample_workflow()) do
+    case Relay.Workflow.resolve_published(test, TestPlane.sample_workflow()) do
       {:ok, {:ok, published}} -> {:ok, published["version_no"]}
       other -> {:error, other}
     end

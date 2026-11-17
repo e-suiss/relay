@@ -18,6 +18,7 @@ defmodule Relay.Api.TestPlane do
 
   @behaviour Relay.Tenancy.Provisioning
 
+  alias Relay.Api.Templates
   alias Relay.Api.TestPlane.Seeder
 
   @workflow "welcome"
@@ -105,16 +106,18 @@ defmodule Relay.Api.TestPlane do
     {:ok, actor} = Relay.Actor.new(:system, "system:test_plane", "system:test_plane")
 
     with :ok <- sample(scope, actor) do
-      Enum.reduce_while(Relay.Channels.seed_recipients(), :ok, fn seed, :ok ->
-        case recipient(scope, seed, actor) do
-          :ok -> {:cont, :ok}
-          {:error, reason} -> {:halt, {:error, {seed["seed"], reason}}}
-        end
-      end)
+      Enum.reduce_while(Relay.Channels.seed_recipients(), :ok, &seed_one(scope, &1, actor, &2))
     end
   end
 
   def seed(_scope), do: {:error, :live_plane}
+
+  defp seed_one(scope, seed, actor, :ok) do
+    case recipient(scope, seed, actor) do
+      :ok -> {:cont, :ok}
+      {:error, reason} -> {:halt, {:error, {seed["seed"], reason}}}
+    end
+  end
 
   # X-35
   @doc "The key of the sample workflow."
@@ -171,7 +174,7 @@ defmodule Relay.Api.TestPlane do
       _ = Relay.Preferences.create_category(scope, category(), actor)
 
       case Relay.TemplateStore.template(@template, nil) do
-        nil -> Relay.Api.Templates.create(scope, at, template_body(), actor)
+        nil -> Templates.create(scope, at, template_body(), actor)
         %{"live_version_no" => live} when is_integer(live) -> :live
         %{} -> :draft
       end
@@ -186,11 +189,10 @@ defmodule Relay.Api.TestPlane do
   end
 
   defp publish_template(scope, at, actor) do
-    with {:ok, prepared} <-
-           Relay.Api.Templates.prepare_publish(scope, at, %{"accept_warnings" => true}) do
+    with {:ok, prepared} <- Templates.prepare_publish(scope, at, %{"accept_warnings" => true}) do
       publish = fn _status ->
         %{"version" => version} = Relay.TemplateStore.template(@template, nil)
-        Relay.Api.Templates.publish(scope, at, prepared, version, actor)
+        Templates.publish(scope, at, prepared, version, actor)
       end
 
       case Relay.TemplateStore.in_scope(scope, publish) do
@@ -318,12 +320,14 @@ defmodule Relay.Api.TestPlane do
     with {:ok, current} <- Relay.Preferences.get_consents(scope, id) do
       missing = Enum.reject(@consent_channels, &in_state?(current, &1, status))
 
-      Enum.reduce_while(missing, :ok, fn channel, :ok ->
-        case record_consent(scope, id, seed, channel, status) do
-          {:ok, _recorded} -> {:cont, :ok}
-          {:error, reason} -> {:halt, {:error, reason}}
-        end
-      end)
+      Enum.reduce_while(missing, :ok, &consent_one(scope, id, seed, status, &1, &2))
+    end
+  end
+
+  defp consent_one(scope, id, seed, status, channel, :ok) do
+    case record_consent(scope, id, seed, channel, status) do
+      {:ok, _recorded} -> {:cont, :ok}
+      {:error, reason} -> {:halt, {:error, reason}}
     end
   end
 

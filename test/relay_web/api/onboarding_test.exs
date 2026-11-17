@@ -28,7 +28,7 @@ defmodule RelayWeb.Api.OnboardingTest do
 
       pending ->
         for [id, worker, args] <- pending do
-          module = Module.concat([worker])
+          module = Module.safe_concat([worker])
           module.perform(%Oban.Job{id: id, worker: worker, args: args, attempt: 1})
         end
 

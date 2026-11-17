@@ -39,9 +39,9 @@ defmodule RelayWeb.ConsoleController do
   # X-4
   @doc "Answers the console application for any `/console` path."
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  # sobelow_skip ["XSS.SendResp"]
   def show(conn, %{"path" => ["assets" | _rest]}), do: send_resp(conn, 404, "")
 
+  # sobelow_skip ["XSS.SendResp"]
   def show(conn, _params) do
     case index() do
       {:ok, html} ->

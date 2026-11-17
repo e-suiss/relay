@@ -75,10 +75,7 @@ class RelayPhoenixTransport implements RelayRealtimeTransport {
     return baseUrl.replace(
       scheme: baseUrl.scheme == 'http' ? 'ws' : 'wss',
       path: '$prefix$relayWebSocketPath',
-      queryParameters: <String, String>{
-        'vsn': '2.0.0',
-        'device_id': ?deviceId,
-      },
+      queryParameters: <String, String>{'vsn': '2.0.0', 'device_id': ?deviceId},
     );
   }
 

@@ -23,7 +23,8 @@ void main() {
       final Map<String, Object?> c = raw! as Map<String, Object?>;
       test('CH-30 ${c['name']}', () {
         final List<RelayCategory> categories = <RelayCategory>[
-          for (final Object? e in c['categories']! as List<Object?>) category(e),
+          for (final Object? e in c['categories']! as List<Object?>)
+            category(e),
         ];
         final List<Map<String, Object?>> actual = <Map<String, Object?>>[
           for (final RelayAndroidChannel ch in relayAndroidChannels(categories))

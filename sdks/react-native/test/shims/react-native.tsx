@@ -2,7 +2,6 @@ import { createElement, Fragment, type ReactNode } from 'react';
 
 type Props = Record<string, unknown> & { children?: ReactNode };
 
-
 function flatten(style: unknown): Record<string, unknown> {
   if (Array.isArray(style))
     return Object.assign({}, ...style.map(flatten)) as Record<string, unknown>;

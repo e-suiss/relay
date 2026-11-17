@@ -106,11 +106,7 @@ describe('X-32 inbox components', () => {
           })
         : json(200, {}),
     );
-    relay.inbox.reset(
-      [inboxItem({ read: true, state_version: 2 })],
-      counters(1, 0),
-      'c1',
-    );
+    relay.inbox.reset([inboxItem({ read: true, state_version: 2 })], counters(1, 0), 'c1');
     renderWith(relay, <InboxList />);
     fireEvent.click(screen.getByTestId(`relay-inbox-toggle-read-${ITEM_ID}`));
     await waitFor(() => {

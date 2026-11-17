@@ -442,12 +442,16 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/EventId"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: The event.
@@ -484,6 +488,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -505,9 +511,12 @@ paths:
         - internal_error
         - service_unavailable
         - event_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -522,6 +531,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/EventId"
       requestBody:
         required: false
@@ -532,6 +544,8 @@ paths:
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: Cancellation counts.
@@ -610,8 +624,12 @@ paths:
         - validation_failed
         - unknown_field
         - event_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -626,6 +644,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
       requestBody:
         required: true
         content:
@@ -635,6 +656,8 @@ paths:
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: Cancellation counts.
@@ -710,8 +733,12 @@ paths:
         - payload_too_large
         - validation_failed
         - unknown_field
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -725,6 +752,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
@@ -769,6 +798,8 @@ paths:
             - read
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: A page of notifications.
@@ -827,9 +858,12 @@ paths:
         - service_unavailable
         - auth_environment_mismatch
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -843,6 +877,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/NotificationId"
         - name: expand
           in: query
@@ -861,6 +897,8 @@ paths:
             - read
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: The notification.
@@ -921,9 +959,12 @@ paths:
         - service_unavailable
         - notification_not_found
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -938,6 +979,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/NotificationId"
       requestBody:
         required: false
@@ -948,6 +992,8 @@ paths:
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: Cancellation counts.
@@ -1026,8 +1072,12 @@ paths:
         - validation_failed
         - unknown_field
         - notification_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -1041,6 +1091,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/NotificationId"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
@@ -1050,6 +1102,8 @@ paths:
             - read
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: A page of deliveries.
@@ -1111,9 +1165,12 @@ paths:
         - notification_not_found
         - auth_environment_mismatch
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -1127,12 +1184,16 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/DeliveryId"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: Delivery history.
@@ -1169,6 +1230,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -1190,9 +1253,12 @@ paths:
         - internal_error
         - service_unavailable
         - delivery_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -1208,6 +1274,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/SubscriberId"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
@@ -1235,6 +1303,8 @@ paths:
             - read
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: A page of decision chains.
@@ -1296,9 +1366,12 @@ paths:
         - auth_environment_mismatch
         - validation_failed
         - subscriber_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -1564,6 +1637,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -2184,6 +2259,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -2933,6 +3010,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -3131,6 +3210,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -3538,6 +3619,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -3754,6 +3837,8 @@ paths:
           "$ref": "./components/responses.yaml#/NotFound"
         "409":
           "$ref": "./components/responses.yaml#/Conflict"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -4053,6 +4138,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -4604,6 +4691,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -4694,6 +4783,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -5328,6 +5419,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -5889,6 +5982,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -6627,6 +6722,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -7175,6 +7272,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -7590,6 +7689,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -8138,6 +8239,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -8347,6 +8450,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -8548,6 +8653,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -8746,6 +8853,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -9150,6 +9259,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -9678,6 +9789,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -9896,6 +10009,8 @@ paths:
           "$ref": "./components/responses.yaml#/NotFound"
         "409":
           "$ref": "./components/responses.yaml#/Conflict"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -9990,6 +10105,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -10228,6 +10345,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -10432,6 +10551,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -10999,6 +11120,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -11694,6 +11817,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
       requestBody:
         required: true
         content:
@@ -11703,6 +11829,8 @@ paths:
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "201":
           description: Published.
@@ -11780,8 +11908,12 @@ paths:
         - payload_too_large
         - validation_failed
         - unknown_field
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -11798,12 +11930,16 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/InboxAnnouncementId"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: The announcement.
@@ -11840,6 +11976,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -11861,9 +11999,12 @@ paths:
         - internal_error
         - service_unavailable
         - inbox_announcement_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -11881,10 +12022,15 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/InboxAnnouncementId"
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: Retracted.
@@ -11963,8 +12109,12 @@ paths:
         - validation_failed
         - unknown_field
         - inbox_announcement_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -12231,6 +12381,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -12324,6 +12476,8 @@ paths:
           "$ref": "./components/responses.yaml#/NotFound"
         "409":
           "$ref": "./components/responses.yaml#/Conflict"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -13055,6 +13209,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -13599,11 +13755,15 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: The virtual clock.
@@ -13638,6 +13798,8 @@ paths:
           "$ref": "./components/responses.yaml#/Unauthorized"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -13659,9 +13821,12 @@ paths:
         - internal_error
         - service_unavailable
         - auth_environment_mismatch
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -13679,6 +13844,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
       requestBody:
         required: true
         content:
@@ -13688,6 +13856,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: Advanced.
@@ -13764,8 +13934,12 @@ paths:
         - validation_failed
         - unknown_field
         - auth_environment_mismatch
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -13781,11 +13955,15 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: The simulated results in table order.
@@ -13820,6 +13998,8 @@ paths:
           "$ref": "./components/responses.yaml#/Unauthorized"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -13841,9 +14021,12 @@ paths:
         - internal_error
         - service_unavailable
         - auth_environment_mismatch
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -13986,6 +14169,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
@@ -14019,6 +14204,8 @@ paths:
             - read
         - access_bearer:
             - agents
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of waitpoints."
@@ -14076,9 +14263,12 @@ paths:
         - internal_error
         - service_unavailable
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - agents
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -14210,12 +14400,16 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WaitpointId"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - agents
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The waitpoint."
@@ -14252,6 +14446,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -14273,9 +14469,12 @@ paths:
         - internal_error
         - service_unavailable
         - waitpoint_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - agents
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -14291,6 +14490,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WaitpointId"
       requestBody:
         required: true
@@ -14303,6 +14505,8 @@ paths:
             - publish
         - access_bearer:
             - agents
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The cancelled waitpoint."
@@ -14382,9 +14586,13 @@ paths:
         - unknown_field
         - waitpoint_not_found
         - waitpoint_closed
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - publish
         - agents
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -14506,11 +14714,15 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
       security:
         - access_bearer:
             - agents
         - access_bearer:
             - "agent:mailbox"
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The mailbox."
@@ -14547,6 +14759,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -14569,9 +14783,12 @@ paths:
         - service_unavailable
         - mailbox_not_found
         - agent_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - agents
         - "agent:mailbox"
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -15014,6 +15231,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - name: since
           in: query
           description: "Position to read after: a cursor of this mailbox. Absent: the acknowledged position."
@@ -15026,6 +15245,8 @@ paths:
             - agents
         - access_bearer:
             - "agent:mailbox"
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The records after the position."
@@ -15087,9 +15308,12 @@ paths:
         - validation_failed
         - mailbox_not_found
         - agent_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - agents
         - "agent:mailbox"
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -15104,6 +15328,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/MailboxRecordId"
         - name: content
           in: query
@@ -15122,6 +15348,8 @@ paths:
             - read
         - access_bearer:
             - "agent:mailbox"
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The record."
@@ -15158,6 +15386,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -15179,10 +15409,13 @@ paths:
         - internal_error
         - service_unavailable
         - mailbox_record_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - agents
         - read
         - "agent:mailbox"
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -15197,6 +15430,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
@@ -15213,6 +15448,8 @@ paths:
             - read
         - access_bearer:
             - "agent:mailbox"
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of dead-lettered records."
@@ -15274,10 +15511,13 @@ paths:
         - validation_failed
         - mailbox_not_found
         - agent_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - agents
         - read
         - "agent:mailbox"
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -15776,6 +16016,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
@@ -15790,6 +16032,8 @@ paths:
             - read
         - access_bearer:
             - agents
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of escalation policies."
@@ -15847,9 +16091,12 @@ paths:
         - internal_error
         - service_unavailable
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - agents
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -15864,12 +16111,16 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/EscalationPolicyKey"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - agents
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The escalation policy."
@@ -15908,6 +16159,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -15929,9 +16182,12 @@ paths:
         - internal_error
         - service_unavailable
         - escalation_policy_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - agents
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -15946,6 +16202,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/EscalationPolicyKey"
         - "$ref": "./components/parameters.yaml#/IfMatchOptional"
       requestBody:
@@ -15959,6 +16218,8 @@ paths:
             - config
         - access_bearer:
             - agents
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The new version."
@@ -16076,9 +16337,13 @@ paths:
         - precondition_failed
         - precondition_required
         - escalation_policy_archived
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
         - agents
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -16093,6 +16358,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/EscalationPolicyKey"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
@@ -16102,6 +16369,8 @@ paths:
             - read
         - access_bearer:
             - agents
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of versions."
@@ -16162,9 +16431,12 @@ paths:
         - service_unavailable
         - escalation_policy_not_found
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - agents
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -16180,6 +16452,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/EscalationPolicyKey"
         - "$ref": "./components/parameters.yaml#/IfMatchOptional"
       security:
@@ -16187,6 +16462,8 @@ paths:
             - config
         - access_bearer:
             - agents
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The archived policy."
@@ -16268,9 +16545,13 @@ paths:
         - unknown_field
         - escalation_policy_not_found
         - precondition_failed
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
         - agents
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -16285,6 +16566,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
@@ -16295,6 +16578,8 @@ paths:
             - subscribers
         - access_bearer:
             - agents
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of agents."
@@ -16353,10 +16638,13 @@ paths:
         - service_unavailable
         - auth_agent_inactive
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - subscribers
         - agents
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -16373,6 +16661,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
       requestBody:
         required: true
         content:
@@ -16382,6 +16673,8 @@ paths:
       security:
         - access_bearer:
             - subscribers
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "201":
           description: "Created."
@@ -16463,8 +16756,12 @@ paths:
         - validation_failed
         - unknown_field
         - resource_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - subscribers
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -16481,6 +16778,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/AgentId"
       security:
         - access_bearer:
@@ -16489,6 +16788,8 @@ paths:
             - subscribers
         - access_bearer:
             - agents
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The agent."
@@ -16527,6 +16828,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -16549,10 +16852,13 @@ paths:
         - service_unavailable
         - auth_agent_inactive
         - agent_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - subscribers
         - agents
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -16569,6 +16875,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/AgentId"
         - "$ref": "./components/parameters.yaml#/IfMatch"
       requestBody:
@@ -16580,6 +16889,8 @@ paths:
       security:
         - access_bearer:
             - subscribers
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "Updated."
@@ -16668,8 +16979,12 @@ paths:
         - resource_conflict
         - precondition_failed
         - precondition_required
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - subscribers
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -16686,10 +17001,15 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/AgentId"
       security:
         - access_bearer:
             - subscribers
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "Deleted."
@@ -16763,8 +17083,12 @@ paths:
         - idempotency_key_in_progress
         - validation_failed
         - agent_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - subscribers
+      x-relay-role: tenant_admin
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -16893,6 +17217,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/AgentId"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
@@ -16908,6 +17234,8 @@ paths:
             - agents
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: A page of held notifications.
@@ -16968,9 +17296,12 @@ paths:
         - service_unavailable
         - validation_failed
         - agent_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - agents
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -16988,6 +17319,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/AgentId"
       requestBody:
         required: true
@@ -17000,6 +17334,8 @@ paths:
             - agents
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The agent's state."
@@ -17078,9 +17414,13 @@ paths:
         - validation_failed
         - unknown_field
         - agent_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - agents
         - config
+      x-relay-role: tenant_admin
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -17095,6 +17435,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
@@ -17112,6 +17454,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of consumers."
@@ -17169,9 +17513,12 @@ paths:
         - internal_error
         - service_unavailable
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -17188,6 +17535,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
       requestBody:
         required: true
         content:
@@ -17197,6 +17547,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "201":
           description: "Created."
@@ -17277,8 +17629,12 @@ paths:
         - validation_failed
         - unknown_field
         - resource_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -17295,12 +17651,16 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WebhookConsumerId"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The consumer."
@@ -17339,6 +17699,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -17360,9 +17722,12 @@ paths:
         - internal_error
         - service_unavailable
         - webhook_consumer_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -17379,6 +17744,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookConsumerId"
         - "$ref": "./components/parameters.yaml#/IfMatchOptional"
       requestBody:
@@ -17390,6 +17758,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The consumer."
@@ -17474,8 +17844,12 @@ paths:
         - precondition_failed
         - webhook_consumer_not_found
         - webhook_consumer_archived
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -17493,10 +17867,15 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookConsumerId"
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The archived consumer."
@@ -17576,8 +17955,12 @@ paths:
         - unknown_field
         - webhook_consumer_not_found
         - webhook_consumer_in_use
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -17594,6 +17977,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
@@ -17611,6 +17996,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of sources."
@@ -17667,9 +18054,12 @@ paths:
         - internal_error
         - service_unavailable
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -17686,6 +18076,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
       requestBody:
         required: true
         content:
@@ -17695,6 +18088,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "201":
           description: "Created."
@@ -17772,8 +18167,12 @@ paths:
         - validation_failed
         - unknown_field
         - webhook_source_limit_reached
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -17790,12 +18189,16 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WebhookSourceId"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The source."
@@ -17832,6 +18235,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -17852,9 +18257,12 @@ paths:
         - internal_error
         - service_unavailable
         - webhook_source_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -17872,10 +18280,15 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookSourceId"
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The archived source."
@@ -17953,8 +18366,12 @@ paths:
         - validation_failed
         - unknown_field
         - webhook_source_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -17972,10 +18389,15 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookConsumerId"
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "201":
           description: "The portal token."
@@ -18055,8 +18477,12 @@ paths:
         - unknown_field
         - webhook_consumer_not_found
         - webhook_consumer_archived
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -18073,6 +18499,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
@@ -18090,6 +18518,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of event types."
@@ -18147,9 +18577,12 @@ paths:
         - internal_error
         - service_unavailable
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -18166,6 +18599,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
       requestBody:
         required: true
         content:
@@ -18175,6 +18611,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "201":
           description: "Created."
@@ -18253,8 +18691,12 @@ paths:
         - validation_failed
         - unknown_field
         - resource_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -18271,12 +18713,16 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WebhookEventTypeId"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The event type."
@@ -18313,6 +18759,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -18334,9 +18782,12 @@ paths:
         - internal_error
         - service_unavailable
         - webhook_event_type_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -18354,10 +18805,15 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookEventTypeId"
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The archived event type."
@@ -18436,8 +18892,12 @@ paths:
         - validation_failed
         - unknown_field
         - webhook_event_type_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -18454,6 +18914,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WebhookEventTypeId"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
@@ -18463,6 +18925,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of schema versions."
@@ -18523,9 +18987,12 @@ paths:
         - service_unavailable
         - validation_failed
         - webhook_event_type_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -18542,6 +19009,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookEventTypeId"
       requestBody:
         required: true
@@ -18552,6 +19022,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The current version; nothing changed."
@@ -18662,8 +19134,12 @@ paths:
         - unknown_field
         - webhook_event_type_not_found
         - webhook_event_type_archived
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -18680,6 +19156,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WebhookEventTypeId"
         - "$ref": "./components/parameters.yaml#/WebhookVersion"
       security:
@@ -18687,6 +19165,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The schema version."
@@ -18723,6 +19203,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -18744,9 +19226,12 @@ paths:
         - internal_error
         - service_unavailable
         - webhook_event_type_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -18763,6 +19248,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
@@ -18771,6 +19258,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of catalog event types."
@@ -18828,9 +19317,12 @@ paths:
         - internal_error
         - service_unavailable
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -18847,6 +19339,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
@@ -18873,6 +19367,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of webhook endpoints."
@@ -18930,9 +19426,12 @@ paths:
         - internal_error
         - service_unavailable
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -18947,6 +19446,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
       requestBody:
         required: true
         content:
@@ -18956,6 +19458,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "201":
           description: "Created."
@@ -19041,8 +19545,12 @@ paths:
         - webhook_endpoint_limit_reached
         - webhook_endpoint_url_not_allowed
         - webhook_credential_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -19057,12 +19565,16 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The webhook endpoint."
@@ -19101,6 +19613,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -19122,9 +19636,12 @@ paths:
         - internal_error
         - service_unavailable
         - webhook_endpoint_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -19139,6 +19656,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
         - "$ref": "./components/parameters.yaml#/IfMatchOptional"
       requestBody:
@@ -19150,6 +19670,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The webhook endpoint."
@@ -19239,8 +19761,12 @@ paths:
         - webhook_endpoint_url_not_allowed
         - webhook_endpoint_state_conflict
         - webhook_credential_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -19256,10 +19782,15 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The archived endpoint."
@@ -19339,8 +19870,12 @@ paths:
         - unknown_field
         - webhook_endpoint_not_found
         - webhook_endpoint_managed
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -19356,6 +19891,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
       requestBody:
         required: false
@@ -19366,6 +19904,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The new key."
@@ -19447,8 +19987,12 @@ paths:
         - webhook_endpoint_archived
         - webhook_endpoint_managed
         - webhook_endpoint_not_signed
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -19463,6 +20007,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
@@ -19472,6 +20018,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of endpoint versions."
@@ -19532,9 +20080,12 @@ paths:
         - service_unavailable
         - validation_failed
         - webhook_endpoint_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -19551,6 +20102,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
         - "$ref": "./components/parameters.yaml#/WebhookVersion"
       security:
@@ -19558,6 +20111,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The endpoint version."
@@ -19594,6 +20149,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -19615,9 +20172,12 @@ paths:
         - internal_error
         - service_unavailable
         - webhook_endpoint_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -19635,10 +20195,15 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The paused endpoint."
@@ -19720,8 +20285,12 @@ paths:
         - webhook_endpoint_archived
         - webhook_endpoint_managed
         - webhook_endpoint_state_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -19739,10 +20308,15 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The resumed endpoint."
@@ -19824,8 +20398,12 @@ paths:
         - webhook_endpoint_archived
         - webhook_endpoint_managed
         - webhook_endpoint_state_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -19842,12 +20420,16 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The endpoint health."
@@ -19884,6 +20466,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -19905,9 +20489,12 @@ paths:
         - internal_error
         - service_unavailable
         - webhook_endpoint_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -19925,6 +20512,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
       requestBody:
         required: false
@@ -19935,6 +20525,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "202":
           description: "The test message."
@@ -20015,8 +20607,12 @@ paths:
         - webhook_endpoint_not_found
         - webhook_endpoint_archived
         - webhook_endpoint_state_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -20034,6 +20630,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
       requestBody:
         required: true
@@ -20044,6 +20643,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The recovery."
@@ -20124,8 +20725,12 @@ paths:
         - webhook_endpoint_not_found
         - webhook_endpoint_archived
         - webhook_endpoint_state_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -20143,6 +20748,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
       requestBody:
         required: true
@@ -20153,6 +20761,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The recovery."
@@ -20233,8 +20843,12 @@ paths:
         - webhook_endpoint_not_found
         - webhook_endpoint_archived
         - webhook_endpoint_state_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -20252,6 +20866,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
       requestBody:
         required: true
@@ -20262,6 +20879,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The recovery."
@@ -20342,8 +20961,12 @@ paths:
         - webhook_endpoint_not_found
         - webhook_endpoint_archived
         - webhook_endpoint_state_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -20361,6 +20984,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
       requestBody:
         required: false
@@ -20371,6 +20997,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The recovery."
@@ -20450,8 +21078,12 @@ paths:
         - unknown_field
         - webhook_endpoint_not_found
         - webhook_endpoint_archived
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -20468,6 +21100,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WebhookEndpointId"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
@@ -20495,6 +21129,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of missed events."
@@ -20555,9 +21191,12 @@ paths:
         - service_unavailable
         - validation_failed
         - webhook_endpoint_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -20574,6 +21213,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
@@ -20594,6 +21235,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of events."
@@ -20651,9 +21294,12 @@ paths:
         - internal_error
         - service_unavailable
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -20670,6 +21316,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
@@ -20715,6 +21363,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of messages."
@@ -20772,9 +21422,12 @@ paths:
         - internal_error
         - service_unavailable
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -20791,12 +21444,16 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WebhookMessageId"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The message."
@@ -20833,6 +21490,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -20854,9 +21513,12 @@ paths:
         - internal_error
         - service_unavailable
         - webhook_message_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -20873,6 +21535,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WebhookMessageId"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
@@ -20882,6 +21546,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of attempts."
@@ -20942,9 +21608,12 @@ paths:
         - service_unavailable
         - validation_failed
         - webhook_message_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -20961,6 +21630,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/WebhookMessageId"
         - "$ref": "./components/parameters.yaml#/WebhookAttemptId"
       security:
@@ -20968,6 +21639,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The attempt."
@@ -21004,6 +21677,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -21026,9 +21701,12 @@ paths:
         - service_unavailable
         - webhook_message_not_found
         - webhook_attempt_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -21046,10 +21724,15 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookMessageId"
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "202":
           description: "The message with the attempt started."
@@ -21131,8 +21814,12 @@ paths:
         - webhook_message_in_flight
         - webhook_endpoint_archived
         - webhook_endpoint_state_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -21150,10 +21837,15 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/WebhookMessageId"
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The message."
@@ -21233,8 +21925,12 @@ paths:
         - unknown_field
         - webhook_message_not_found
         - webhook_message_in_flight
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -21251,11 +21947,15 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The operations contacts."
@@ -21290,6 +21990,8 @@ paths:
           "$ref": "./components/responses.yaml#/Unauthorized"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -21310,9 +22012,12 @@ paths:
         - rate_limited
         - internal_error
         - service_unavailable
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -21329,6 +22034,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
       requestBody:
         required: true
         content:
@@ -21338,6 +22046,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The operations contacts."
@@ -21413,8 +22123,12 @@ paths:
         - payload_too_large
         - validation_failed
         - unknown_field
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -21431,11 +22145,15 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The İYS configuration."
@@ -21472,6 +22190,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -21493,9 +22213,12 @@ paths:
         - internal_error
         - service_unavailable
         - iys_not_configured
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -21512,6 +22235,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
       requestBody:
         required: true
         content:
@@ -21521,6 +22247,8 @@ paths:
       security:
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The İYS configuration."
@@ -21597,8 +22325,12 @@ paths:
         - validation_failed
         - unknown_field
         - resource_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - config
+      x-relay-role: tenant_admin
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -21615,11 +22347,15 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The brands."
@@ -21654,6 +22390,8 @@ paths:
           "$ref": "./components/responses.yaml#/Unauthorized"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -21674,9 +22412,12 @@ paths:
         - rate_limited
         - internal_error
         - service_unavailable
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -21693,11 +22434,15 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "The result of the test."
@@ -21734,6 +22479,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -21755,9 +22502,12 @@ paths:
         - internal_error
         - service_unavailable
         - iys_not_configured
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 5
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -21774,6 +22524,8 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
@@ -21795,6 +22547,8 @@ paths:
             - read
         - access_bearer:
             - config
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: "A page of uploads."
@@ -21851,9 +22605,12 @@ paths:
         - internal_error
         - service_unavailable
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
         - config
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -22352,6 +23109,8 @@ paths:
           "$ref": "./components/responses.yaml#/Unauthorized"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -23027,6 +23786,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -23207,6 +23968,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -23427,6 +24190,8 @@ paths:
           "$ref": "./components/responses.yaml#/NotFound"
         "409":
           "$ref": "./components/responses.yaml#/Conflict"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -24135,6 +24900,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -24425,6 +25192,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -24466,12 +25235,16 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: A page of campaigns.
@@ -24529,8 +25302,11 @@ paths:
         - internal_error
         - service_unavailable
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -24545,6 +25321,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
       requestBody:
         required: true
         content:
@@ -24554,6 +25333,8 @@ paths:
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "201":
           description: Created.
@@ -24631,8 +25412,12 @@ paths:
         - unknown_field
         - workflow_not_found
         - workflow_not_published
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -24649,10 +25434,14 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/CampaignId"
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: The campaign.
@@ -24689,6 +25478,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -24710,8 +25501,11 @@ paths:
         - internal_error
         - service_unavailable
         - campaign_not_found
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -24727,6 +25521,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/CampaignId"
       requestBody:
         required: true
@@ -24737,6 +25534,8 @@ paths:
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: Added.
@@ -24816,8 +25615,12 @@ paths:
         - unknown_field
         - campaign_not_found
         - resource_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -24833,10 +25636,15 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/CampaignId"
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "202":
           description: Preparing.
@@ -24912,8 +25720,12 @@ paths:
         - topic_archived
         - workflow_not_found
         - workflow_not_published
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -24928,10 +25740,14 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/CampaignId"
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: The samples.
@@ -24970,6 +25786,8 @@ paths:
           "$ref": "./components/responses.yaml#/NotFound"
         "409":
           "$ref": "./components/responses.yaml#/Conflict"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -24992,8 +25810,11 @@ paths:
         - service_unavailable
         - campaign_not_found
         - resource_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -25011,6 +25832,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/CampaignId"
       requestBody:
         required: true
@@ -25021,6 +25845,8 @@ paths:
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: Approved.
@@ -25101,8 +25927,12 @@ paths:
         - campaign_not_found
         - resource_conflict
         - campaign_samples_changed
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -25118,10 +25948,15 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/CampaignId"
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "202":
           description: Triggered.
@@ -25194,8 +26029,12 @@ paths:
         - resource_conflict
         - campaign_samples_changed
         - campaign_approval_required
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 100
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -25211,6 +26050,9 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
         - "$ref": "./components/parameters.yaml#/CampaignId"
       requestBody:
         required: true
@@ -25221,6 +26063,8 @@ paths:
       security:
         - access_bearer:
             - publish
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: Cancelled.
@@ -25300,8 +26144,12 @@ paths:
         - unknown_field
         - campaign_not_found
         - resource_conflict
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
       x-relay-scopes:
         - publish
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -25844,6 +26692,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -26063,6 +26913,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -26247,6 +27099,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -26466,6 +27320,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -27143,6 +27999,8 @@ paths:
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":

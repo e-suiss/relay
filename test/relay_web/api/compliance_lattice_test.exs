@@ -108,7 +108,9 @@ defmodule RelayWeb.Api.ComplianceLatticeTest do
   end
 
   defp send!(token, to, extra \\ %{}) do
-    body = Map.merge(%{"workflow" => "newsletter", "to" => [to], "data" => %{"order" => "A-1"}}, extra)
+    body =
+      Map.merge(%{"workflow" => "newsletter", "to" => [to], "data" => %{"order" => "A-1"}}, extra)
+
     F.body(F.request(:post, "/v1/events", token, body), 202)
   end
 
@@ -145,7 +147,12 @@ defmodule RelayWeb.Api.ComplianceLatticeTest do
       external_id = subscriber!(ctx.token)
       consent!(ctx.scope, external_id, "email", "explicit_opt_in")
 
-      body = %{"workflow" => "order-shipped", "to" => [external_id], "data" => %{"order" => "A-1"}}
+      body = %{
+        "workflow" => "order-shipped",
+        "to" => [external_id],
+        "data" => %{"order" => "A-1"}
+      }
+
       sent = F.body(F.request(:post, "/v1/events", ctx.token, body), 202)
       assert %{"email" => %{"status" => "queued"}} = deliveries(ctx.token, sent)
       refute_received {:iys_asked, _brand, _channel, _digest}

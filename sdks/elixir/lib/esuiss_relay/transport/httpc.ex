@@ -37,7 +37,10 @@ defmodule EsuissRelay.Transport.Httpc do
   end
 
   defp normalize(headers),
-    do: Enum.map(headers, fn {name, value} -> {String.downcase(to_string(name)), to_string(value)} end)
+    do:
+      Enum.map(headers, fn {name, value} ->
+        {String.downcase(to_string(name)), to_string(value)}
+      end)
 
   defp ssl do
     [

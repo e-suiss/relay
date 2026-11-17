@@ -13,7 +13,8 @@ defmodule EsuissRelay.MixProject do
       start_permanent: false,
       deps: deps(),
       package: package(),
-      description: "Server SDK for Relay, the notification, messaging and agent platform of Suiss.",
+      description:
+        "Server SDK for Relay, the notification, messaging and agent platform of Suiss.",
       name: "EsuissRelay",
       source_url: @source_url,
       docs: [main: "readme", extras: ["README.md"]],

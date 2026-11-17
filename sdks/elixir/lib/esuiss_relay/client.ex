@@ -267,7 +267,14 @@ defmodule EsuissRelay.Client do
   defp failed(client, operation, request, retry, max, response) do
     problem = problem(response.body)
     retry_after = retry_after(response.headers, problem)
-    error = Error.from_response(response.status, header(response.headers, "request-id"), problem, retry_after)
+
+    error =
+      Error.from_response(
+        response.status,
+        header(response.headers, "request-id"),
+        problem,
+        retry_after
+      )
 
     case delay(client, retry, max, error.retryable, retry_after) do
       nil ->
@@ -343,14 +350,19 @@ defmodule EsuissRelay.Client do
           client.random_bytes.(16)
         )
 
-      {:ok, %{request | headers: [{"authorization", "DPoP " <> token}, {"dpop", proof} | request.headers]}}
+      {:ok,
+       %{
+         request
+         | headers: [{"authorization", "DPoP " <> token}, {"dpop", proof} | request.headers]
+       }}
     end
   end
 
   @doc "Sends one request through the client's transport."
   @spec transport(t(), EsuissRelay.Transport.request()) ::
           {:ok, EsuissRelay.Transport.response()} | {:error, term()}
-  def transport(%__MODULE__{transport: {module, state}}, request), do: module.request(state, request)
+  def transport(%__MODULE__{transport: {module, state}}, request),
+    do: module.request(state, request)
 
   @doc "The value of a header, matched without regard to case; `nil` when absent."
   @spec header([{String.t(), String.t()}], String.t()) :: String.t() | nil
@@ -360,8 +372,12 @@ defmodule EsuissRelay.Client do
     end)
   end
 
-  defp decode(_client, %Operation{response: :none}, _path_values, _opts, _response), do: {:ok, nil}
-  defp decode(_client, %Operation{response: :text}, _path_values, _opts, response), do: {:ok, response.body}
+  defp decode(_client, %Operation{response: :none}, _path_values, _opts, _response),
+    do: {:ok, nil}
+
+  defp decode(_client, %Operation{response: :text}, _path_values, _opts, response),
+    do: {:ok, response.body}
+
   defp decode(_client, _operation, _path_values, _opts, %{body: ""}), do: {:ok, nil}
 
   defp decode(client, %Operation{paginated: true} = operation, path_values, opts, response),

@@ -7,16 +7,30 @@ defmodule EsuissRelay.CredentialsTest do
   alias EsuissRelay.DpopKey
   alias EsuissRelay.Stub
 
-  defp decode_segment(segment), do: segment |> Base.url_decode64!(padding: false) |> JSON.decode!()
+  defp decode_segment(segment),
+    do: segment |> Base.url_decode64!(padding: false) |> JSON.decode!()
 
   defp parts(proof) do
     [header, claims, signature] = String.split(proof, ".")
-    {decode_segment(header), decode_segment(claims), Base.url_decode64!(signature, padding: false), header <> "." <> claims}
+
+    {decode_segment(header), decode_segment(claims),
+     Base.url_decode64!(signature, padding: false), header <> "." <> claims}
   end
 
   test "X-29: a DPoP proof is an Ed25519 JWS over htm, htu, iat, jti and ath" do
     key = DpopKey.from_seed(:binary.copy(<<1>>, 32))
-    proof = DpopKey.proof(key, "post", "https://relay.test/v1/events?x=1#f", "tok", nil, 1_800_000_000, <<0::128>>)
+
+    proof =
+      DpopKey.proof(
+        key,
+        "post",
+        "https://relay.test/v1/events?x=1#f",
+        "tok",
+        nil,
+        1_800_000_000,
+        <<0::128>>
+      )
+
     {header, claims, signature, input} = parts(proof)
 
     assert header == %{"typ" => "dpop+jwt", "alg" => "Ed25519", "jwk" => DpopKey.jwk(key)}
@@ -40,7 +54,9 @@ defmodule EsuissRelay.CredentialsTest do
        }}
     end
 
-    token = Stub.json(200, %{"access_token" => "at-1", "token_type" => "DPoP", "expires_in" => 300})
+    token =
+      Stub.json(200, %{"access_token" => "at-1", "token_type" => "DPoP", "expires_in" => 300})
+
     waitpoint = Stub.json(200, %{"id" => "wp_1", "state" => "open"})
 
     stub = Stub.start([nonce, token, waitpoint, waitpoint])
@@ -69,7 +85,10 @@ defmodule EsuissRelay.CredentialsTest do
 
     assert first.url == "https://access.test/oauth2/token"
     assert first.body == "grant_type=client_credentials&resource=relay-client&scope=read+agents"
-    assert Client.header(first.headers, "authorization") == "Basic " <> Base.encode64("cli+id:s3cret")
+
+    assert Client.header(first.headers, "authorization") ==
+             "Basic " <> Base.encode64("cli+id:s3cret")
+
     {_header, claims, _signature, _input} = parts(Client.header(first.headers, "dpop"))
     refute Map.has_key?(claims, "ath")
 

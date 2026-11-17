@@ -7,7 +7,9 @@ defmodule EsuissRelay.GeneratedTest do
   @contract File.read!("../../contracts/openapi/server.yaml")
 
   test "API-55: the SDK is pinned to the API version of the contract" do
-    [version] = Regex.run(~r/^info:\n(?:  .*\n)*?  version: "([^"]+)"/m, @contract, capture: :all_but_first)
+    [version] =
+      Regex.run(~r/^info:\n(?:  .*\n)*?  version: "([^"]+)"/m, @contract, capture: :all_but_first)
+
     assert EsuissRelay.api_version() == version
   end
 

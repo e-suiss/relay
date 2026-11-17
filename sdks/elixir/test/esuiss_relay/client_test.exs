@@ -9,7 +9,12 @@ defmodule EsuissRelay.ClientTest do
 
   defp problem(status, code, extra \\ %{}) do
     Map.merge(
-      %{"type" => "https://relay.test/v1/errors/#{code}", "title" => code, "status" => status, "code" => code},
+      %{
+        "type" => "https://relay.test/v1/errors/#{code}",
+        "title" => code,
+        "status" => status,
+        "code" => code
+      },
       extra
     )
   end
@@ -54,7 +59,9 @@ defmodule EsuissRelay.ClientTest do
   test "API-10: a caller's own idempotency key is sent unchanged" do
     {client, stub} = Stub.client([Stub.json(201, @waitpoint)])
 
-    assert {:ok, _waitpoint} = Api.create_waitpoint(client, %{}, idempotency_key: "order-4821-key")
+    assert {:ok, _waitpoint} =
+             Api.create_waitpoint(client, %{}, idempotency_key: "order-4821-key")
+
     assert [request] = Stub.requests(stub)
     assert header(request, "idempotency-key") == "order-4821-key"
     assert header(request, "content-type") == "application/json"
@@ -62,7 +69,8 @@ defmodule EsuissRelay.ClientTest do
   end
 
   test "X-29: an error Relay marks not retryable is returned at once" do
-    {client, stub} = Stub.client([Stub.json(422, problem(422, "validation_failed", %{"retryable" => false}))])
+    {client, stub} =
+      Stub.client([Stub.json(422, problem(422, "validation_failed", %{"retryable" => false}))])
 
     assert {:error, %EsuissRelay.ValidationError{code: "validation_failed", retryable: false}} =
              Api.create_waitpoint(client, %{})
@@ -104,15 +112,23 @@ defmodule EsuissRelay.ClientTest do
   end
 
   test "X-29: a Retry-After longer than the client waits is not waited for" do
-    response = Stub.json(503, problem(503, "service_unavailable", %{"retryable" => true}), [{"retry-after", "3600"}])
+    response =
+      Stub.json(503, problem(503, "service_unavailable", %{"retryable" => true}), [
+        {"retry-after", "3600"}
+      ])
+
     {client, stub} = Stub.client([response])
 
-    assert {:error, %EsuissRelay.ServerError{retry_after: 3600}} = Api.get_waitpoint(client, "wp_1")
+    assert {:error, %EsuissRelay.ServerError{retry_after: 3600}} =
+             Api.get_waitpoint(client, "wp_1")
+
     assert length(Stub.requests(stub)) == 1
   end
 
   test "API-38: without a retryable member the catalog and the status table decide" do
-    in_progress = Stub.json(409, %{"code" => "idempotency_key_in_progress"}, [{"retry-after", "1"}])
+    in_progress =
+      Stub.json(409, %{"code" => "idempotency_key_in_progress"}, [{"retry-after", "1"}])
+
     {client, stub} = Stub.client([in_progress, Stub.json(201, @waitpoint)])
 
     assert {:ok, _waitpoint} = Api.create_waitpoint(client, %{})
@@ -122,7 +138,12 @@ defmodule EsuissRelay.ClientTest do
     assert {:error, %EsuissRelay.QuotaError{retryable: false}} = Api.create_waitpoint(client, %{})
     assert length(Stub.requests(stub)) == 1
 
-    {client, stub} = Stub.client([{:ok, %{status: 504, headers: [], body: "gateway"}}, Stub.json(200, @waitpoint)])
+    {client, stub} =
+      Stub.client([
+        {:ok, %{status: 504, headers: [], body: "gateway"}},
+        Stub.json(200, @waitpoint)
+      ])
+
     assert {:ok, _waitpoint} = Api.get_waitpoint(client, "wp_1")
     assert length(Stub.requests(stub)) == 2
   end

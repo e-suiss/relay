@@ -52,8 +52,12 @@ defmodule Mix.Tasks.EsuissRelay.Gen do
       for method <- @methods, is_map(item[method]), do: {path, method, item[method]}
     end)
     |> Enum.filter(fn {_path, _method, operation} -> access?(operation, server) end)
-    |> Enum.sort_by(fn {path, method, _operation} -> {path, Enum.find_index(@methods, &(&1 == method))} end)
-    |> Enum.map(fn {path, method, operation} -> operation(path, method, operation, parameters, schemas) end)
+    |> Enum.sort_by(fn {path, method, _operation} ->
+      {path, Enum.find_index(@methods, &(&1 == method))}
+    end)
+    |> Enum.map(fn {path, method, operation} ->
+      operation(path, method, operation, parameters, schemas)
+    end)
   end
 
   defp access?(operation, server) do
@@ -310,17 +314,24 @@ defmodule Mix.Tasks.EsuissRelay.Gen do
   defp doc(op) do
     lines = [
       String.trim_trailing(op.summary, ".") <> ".",
-      "`#{String.upcase(op.method)} #{op.path}`" <> if(op.paginated, do: ", returns a page.", else: "")
+      "`#{String.upcase(op.method)} #{op.path}`" <>
+        if(op.paginated, do: ", returns a page.", else: "")
     ]
 
     lines =
       case op.query do
-        [] -> lines
-        query -> lines ++ ["Query: " <> Enum.map_join(query, ", ", fn {name, _, _} -> "`#{name}`" end) <> "."]
+        [] ->
+          lines
+
+        query ->
+          lines ++
+            ["Query: " <> Enum.map_join(query, ", ", fn {name, _, _} -> "`#{name}`" end) <> "."]
       end
 
     lines =
-      if op.body == "optional", do: lines ++ ["The body is optional and passed as `:body`."], else: lines
+      if op.body == "optional",
+        do: lines ++ ["The body is optional and passed as `:body`."],
+        else: lines
 
     Enum.join(lines, "\n\n")
   end

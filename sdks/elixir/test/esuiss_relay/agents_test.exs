@@ -27,7 +27,9 @@ defmodule EsuissRelay.AgentsTest do
     resolved = Stub.json(200, %{"id" => "wp_1", "state" => "resolved", "response" => %{}})
     {client, stub} = Stub.client([open, stalled, resolved])
 
-    assert {:ok, %{"state" => "resolved"}} = Agents.await_waitpoint(client, "wp_1", poll_interval: 10)
+    assert {:ok, %{"state" => "resolved"}} =
+             Agents.await_waitpoint(client, "wp_1", poll_interval: 10)
+
     assert length(Stub.requests(stub)) == 3
     assert_received {:slept, 10}
   end

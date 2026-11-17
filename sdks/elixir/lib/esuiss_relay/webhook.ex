@@ -91,7 +91,8 @@ defmodule EsuissRelay.Webhook do
   end
 
   @doc "Parses a `webhook-signature` value into its `{scheme, signature}` tokens."
-  @spec parse_signature_header(term()) :: {:ok, [{scheme(), binary()}]} | {:error, :malformed_header}
+  @spec parse_signature_header(term()) ::
+          {:ok, [{scheme(), binary()}]} | {:error, :malformed_header}
   def parse_signature_header(value) when is_binary(value) do
     tokens = value |> String.split(" ", trim: true) |> Enum.map(&decode/1)
 

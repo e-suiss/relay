@@ -35,7 +35,15 @@ defmodule EsuissRelay.DpopKey do
   the access token it carries (`nil` at the token endpoint), an optional server nonce, the
   current Unix time and 16 random bytes for `jti`.
   """
-  @spec proof(t(), String.t(), String.t(), String.t() | nil, String.t() | nil, integer(), binary()) ::
+  @spec proof(
+          t(),
+          String.t(),
+          String.t(),
+          String.t() | nil,
+          String.t() | nil,
+          integer(),
+          binary()
+        ) ::
           String.t()
   def proof(%__MODULE__{} = key, method, url, token, nonce, now, jti) do
     header = %{"typ" => "dpop+jwt", "alg" => "Ed25519", "jwk" => jwk(key)}

@@ -61,7 +61,8 @@ defmodule EsuissRelay.Agents do
   @doc "Acknowledges records of one lease."
   @spec ack(Client.t(), String.t(), [String.t()], keyword()) :: Client.result()
   def ack(client, lease_id, record_ids, opts \\ []),
-    do: Api.ack_mailbox_records(client, %{"lease_id" => lease_id, "record_ids" => record_ids}, opts)
+    do:
+      Api.ack_mailbox_records(client, %{"lease_id" => lease_id, "record_ids" => record_ids}, opts)
 
   # X-30
   @doc "Reads mailbox records after a position (`:since`), without a lease."

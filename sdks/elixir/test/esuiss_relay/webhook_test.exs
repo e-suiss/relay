@@ -39,7 +39,12 @@ defmodule EsuissRelay.WebhookTest do
                Base.decode16!(vector["signed_content_hex"], case: :lower)
 
       assert {:ok, %{id: ^id, timestamp: ^timestamp, scheme: :v1a}} =
-               Webhook.verify(headers(id, timestamp, vector["v1a"]), body(vector), [@public], opts)
+               Webhook.verify(
+                 headers(id, timestamp, vector["v1a"]),
+                 body(vector),
+                 [@public],
+                 opts
+               )
 
       assert {:ok, %{scheme: :v1}} =
                Webhook.verify(headers(id, timestamp, vector["v1"]), body(vector), [@hmac], opts)
@@ -81,7 +86,8 @@ defmodule EsuissRelay.WebhookTest do
                Webhook.verify(signed, body(vector), [@public], now: now)
     end
 
-    assert {:ok, _verified} = Webhook.verify(signed, body(vector), [@public], now: timestamp + 300)
+    assert {:ok, _verified} =
+             Webhook.verify(signed, body(vector), [@public], now: timestamp + 300)
   end
 
   test "WH-7: missing, duplicate and malformed headers and unknown keys are refused" do
@@ -96,7 +102,12 @@ defmodule EsuissRelay.WebhookTest do
              Webhook.verify([{"webhook-id", "x"} | signed], "", [@public], opts)
 
     assert {:error, :malformed_header} =
-             Webhook.verify(headers(vector["webhook_id"], timestamp, "v1a,???"), "", [@public], opts)
+             Webhook.verify(
+               headers(vector["webhook_id"], timestamp, "v1a,???"),
+               "",
+               [@public],
+               opts
+             )
 
     assert {:error, :invalid_key} = Webhook.verify(signed, "", ["whpk_short"], opts)
     assert {:ok, _verified} = Webhook.verify(Map.new(signed), "", [@public], opts)

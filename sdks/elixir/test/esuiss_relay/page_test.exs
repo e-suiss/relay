@@ -16,7 +16,9 @@ defmodule EsuissRelay.PageTest do
 
   test "API-56: the page iterator reads the next page only when it needs it" do
     second = list(["wp_3"], "c2")
-    {client, stub} = Stub.client([list(["wp_1", "wp_2"], "c1"), second, second, list(["wp_4"], nil)])
+
+    {client, stub} =
+      Stub.client([list(["wp_1", "wp_2"], "c1"), second, second, list(["wp_4"], nil)])
 
     assert {:ok, %Page{has_more: true, next_cursor: "c1"} = page} =
              Api.list_waitpoints(client, state: "open", limit: 2)

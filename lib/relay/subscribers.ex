@@ -294,6 +294,22 @@ defmodule Relay.Subscribers do
   defp active_id(%{"id" => id, "kind" => "subscriber", "state" => "active"}), do: id
   defp active_id(_other), do: nil
 
+  # X-12
+  # X-5
+  @doc "The subscribers whose active or disabled address of `kind` (`\"email\"` or `\"phone\"`) is `address`, found through the address blind index under every readable key and described with masked personal fields, oldest first: at most `limit` and whether more matched. Call it outside any transaction."
+  @spec lookup(Scope.t(), String.t(), String.t(), pos_integer()) ::
+          {:ok, {[map()], boolean()}} | {:error, term()}
+  def lookup(%Scope{} = scope, kind, address, limit)
+      when kind in ["email", "phone"] and is_binary(address) and limit > 0 do
+    with {:ok, entries} <- address_digests(scope, kind, address),
+         digests = Enum.map(entries, &elem(&1, 1)),
+         {:ok, rows} <-
+           Store.in_scope(scope, fn _status -> Store.address_lookup(kind, digests, limit + 1) end) do
+      {found, more} = Enum.split(rows, limit)
+      {:ok, {Enum.map(found, &describe(scope, &1)), more != []}}
+    end
+  end
+
   # E-90
   # CH-84
   @doc "The external identifier of a recipient, its pairwise `sub` in Relay's sector, decrypted outside any transaction; `nil` when there is no such recipient or its subject key was erased."

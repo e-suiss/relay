@@ -42,6 +42,16 @@ defmodule RelayWeb.Api.WorkflowController do
     end
   end
 
+  # WF-6
+  # X-10
+  @spec publication_check(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def publication_check(conn, %{"workflow_key" => key}) do
+    case key(key) do
+      {:ok, key} -> Work.answer(conn, Workflows.check_publication(conn.assigns.scope, key))
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
+
   # WF-5
   # T-59 (7)
   @spec replace(Plug.Conn.t(), map()) :: Plug.Conn.t()

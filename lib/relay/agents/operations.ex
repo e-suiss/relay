@@ -37,6 +37,14 @@ defmodule Relay.Agents.Operations do
     }
   end
 
+  # AG-54
+  # AG-49
+  @doc "The waitpoint figures of one tenant environment at `now`, in its own read transaction; see `Relay.Agents.WaitpointStore.scope_stats/2`. A waitpoint is silent after `x-relay-limits` `agent_operations.silent_after`."
+  @spec scope_stats(Relay.Scope.t(), DateTime.t()) :: {:ok, map()} | {:error, term()}
+  def scope_stats(%Relay.Scope{} = scope, %DateTime{} = now) do
+    WaitpointStore.in_scope(scope, fn _status -> WaitpointStore.scope_stats(now, @silent_s) end)
+  end
+
   defp percent(_part, 0), do: 0
   defp percent(part, whole), do: min(div(part * 100, whole), 100)
 

@@ -269,17 +269,7 @@ defmodule Relay.Api.Templates do
   @doc "Prepares a publication outside any transaction: reads the draft and its inputs and runs the publication gate. The result is handed to `publish/5`."
   @spec prepare_publish(Relay.Scope.t(), at(), map()) :: {:ok, map()} | {:error, Relay.Error.t()}
   def prepare_publish(scope, at, body) do
-    read =
-      TemplateStore.in_scope(scope, fn _status ->
-        with {:ok, t} <- found(at),
-             :ok <- owned(t, at),
-             :ok <- active(t),
-             {:ok, draft} <- draft(t) do
-          inputs(at, t, draft)
-        end
-      end)
-
-    with {:ok, {:ok, inputs}} <- read,
+    with {:ok, {:ok, inputs}} <- read_draft(scope, at),
          :ok <- reviewed(body, inputs.draft) do
       gate = run_gate(inputs, definition(inputs.draft))
       accept = Map.get(body || %{}, "accept_warnings", false) == true
@@ -291,6 +281,43 @@ defmodule Relay.Api.Templates do
       {:error, %Relay.Error{} = error} -> {:error, error}
       {:error, _reason} -> {:error, unavailable()}
     end
+  end
+
+  # TP-32
+  # X-10
+  @doc "Runs the publication gate on the draft without publishing or writing anything (`checkTemplatePublication`); `200` with whether no hard finding blocks it, the checksum of the draft the gate ran on and every finding."
+  @spec check_publication(Relay.Scope.t(), at()) :: answer()
+  def check_publication(scope, at) do
+    case read_draft(scope, at) do
+      {:ok, {:ok, inputs}} ->
+        findings = run_gate(inputs, definition(inputs.draft)).findings
+
+        {:ok,
+         {200, [],
+          %{
+            "object" => "template_publication_check",
+            "publishable" => not Enum.any?(findings, &(&1.level == :hard)),
+            "checksum" => Gate.hex(inputs.draft["checksum"]),
+            "findings" => Enum.map(findings, &Gate.view/1)
+          }}}
+
+      {:ok, {:error, error}} ->
+        {:error, error}
+
+      {:error, _reason} ->
+        {:error, unavailable()}
+    end
+  end
+
+  defp read_draft(scope, at) do
+    TemplateStore.in_scope(scope, fn _status ->
+      with {:ok, t} <- found(at),
+           :ok <- owned(t, at),
+           :ok <- active(t),
+           {:ok, draft} <- draft(t) do
+        inputs(at, t, draft)
+      end
+    end)
   end
 
   defp reviewed(%{"checksum" => checksum}, draft) when is_binary(checksum) do

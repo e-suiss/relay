@@ -21,6 +21,16 @@ defmodule RelayWeb.Api.ReportController do
   @spec costs(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def costs(conn, _params), do: report(conn, :costs)
 
+  # WF-50
+  # DS-35
+  @spec variants(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def variants(conn, _params), do: report(conn, :variants)
+
+  # TP-26
+  # TP-41
+  @spec render_problems(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def render_problems(conn, _params), do: report(conn, :render_problems)
+
   defp report(conn, kind) do
     case Reports.period(conn.query_params) do
       {:ok, period} -> Work.answer(conn, Reports.get(conn.assigns.scope, kind, period))

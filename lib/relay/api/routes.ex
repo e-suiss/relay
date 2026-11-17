@@ -128,6 +128,40 @@ defmodule Relay.Api.Routes do
     end
   end
 
+  # WF-14
+  # X-10
+  @doc "Where a route is used (`getRouteUsage`): the channel steps of active workflow versions that name it and the active categories that default to it."
+  @spec usage(Relay.Scope.t(), String.t()) ::
+          {:ok, {200, [{String.t(), String.t()}], map()}} | {:error, Relay.Error.t()}
+  def usage(scope, key) do
+    case Relay.Workflow.route_usage(scope, key) do
+      {:ok, nil} ->
+        {:error, not_found()}
+
+      {:ok, %{workflows: workflows, categories: categories}} ->
+        {:ok,
+         {200, [],
+          %{
+            "object" => "route_usage",
+            "route_key" => key,
+            "workflows" => Enum.map(workflows, &usage_view/1),
+            "categories" => categories
+          }}}
+
+      {:error, _reason} ->
+        {:error, Relay.Error.new(:service_unavailable, "try again", %{retry_after: 1})}
+    end
+  end
+
+  defp usage_view(row) do
+    %{
+      "key" => row["key"],
+      "state" => row["state"],
+      "version" => row["version_no"],
+      "steps" => row["steps"]
+    }
+  end
+
   @doc "The error of an unknown route key."
   @spec not_found() :: Relay.Error.t()
   def not_found, do: Relay.Error.new(:route_policy_not_found, "no route has this key")

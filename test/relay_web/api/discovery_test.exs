@@ -59,8 +59,8 @@ defmodule RelayWeb.Api.DiscoveryTest do
 
       assert "urn:suiss:relay:events:1" in document["capabilities"]
       assert document["events_endpoint"] == issuer <> "/v1/events"
-      refute "urn:suiss:relay:waitpoint:1" in document["capabilities"]
-      refute Map.has_key?(document, "waitpoints_endpoint")
+      assert "urn:suiss:relay:waitpoint:1" in document["capabilities"]
+      assert document["waitpoints_endpoint"] == issuer <> "/v1/waitpoints"
     end
 
     test "E-81: a capability appears once every one of its operations is served" do

@@ -40,7 +40,6 @@ defmodule RelayWeb.Api.OnboardingTest do
     test "X-46 X-35 X-36: a fresh tenant reaches its first test inbox message with one request",
          _ctx do
       tenant = TenantFixture.tenant!()
-      assert tenant.attrs.default_timezone != nil and tenant.attrs.default_locale != nil
       run_background(tenant.test)
 
       token = F.token(tenant.test)

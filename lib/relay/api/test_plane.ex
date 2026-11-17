@@ -145,9 +145,13 @@ defmodule Relay.Api.TestPlane do
   end
 
   defp sample(scope, actor) do
+    with :ok <- ensure_workflow(scope, actor), do: template(scope, actor)
+  end
+
+  defp ensure_workflow(scope, actor) do
     case Relay.Workflow.resolve_published(scope, @workflow) do
       {:ok, {:ok, _published}} -> :ok
-      {:ok, :not_found} -> with :ok <- template(scope, actor), do: workflow(scope, actor)
+      {:ok, :not_found} -> workflow(scope, actor)
       {:ok, :not_published} -> publish(scope, actor)
       {:error, reason} -> {:error, reason}
     end
@@ -237,7 +241,10 @@ defmodule Relay.Api.TestPlane do
   end
 
   defp workflow(scope, actor) do
-    create = fn _status -> Relay.Workflow.create(scope, @workflow, sample_definition(), actor) end
+    create = fn _status ->
+      _ = Relay.Preferences.create_category(scope, category(), actor)
+      Relay.Workflow.create(scope, @workflow, sample_definition(), actor)
+    end
 
     case Relay.TemplateStore.in_scope(scope, create) do
       {:ok, {:ok, {:created, _id, _version}}} -> publish(scope, actor)

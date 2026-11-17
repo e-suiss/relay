@@ -262,6 +262,28 @@ defmodule Relay.Channels.SmtpTest do
       assert "list-unsubscribe" in String.split(String.replace(h, " ", ""), ":")
     end
 
+    test "PC-35, CH-76: the footer link of a bulk e-mail is the one-click URI", ctx do
+      {:ok, port} = SmtpServer.start(mode: :implicit, tls: ctx.certs.server)
+      uri = "https://relay.example/abonelik-iptali/opaque"
+
+      content = %{
+        "subject" => "News",
+        "text" => "Leave: urn:relay:unsubscribe",
+        "html" => ~s(<p><a href="urn:relay:unsubscribe">Leave</a></p>),
+        "category" => "newsletter",
+        "unsubscribe" => %{"https" => uri, "mailto" => "mailto:u@news.sender.example"}
+      }
+
+      request = request(port, "implicit", ctx.pem, %{class: "marketing", content: content})
+      assert {:accepted, _info} = Smtp.deliver(request)
+
+      leaves = session().data |> Mime.parse() |> Mime.leaves()
+      bodies = Enum.map(leaves, fn {_type, part} -> Mime.decoded(part) end)
+      assert Enum.any?(bodies, &String.contains?(&1, "Leave: " <> uri))
+      assert Enum.any?(bodies, &String.contains?(&1, ~s(href="#{uri}")))
+      refute Enum.any?(bodies, &String.contains?(&1, "urn:relay:unsubscribe"))
+    end
+
     test "CH-38: a bulk e-mail without unsubscribe URIs is refused before any connection", ctx do
       content = %{"subject" => "News", "text" => "News inside"}
       overrides = %{class: "marketing", content: content}

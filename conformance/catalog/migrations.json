@@ -237,8 +237,13 @@
   {"file": "20261218000000_create_waitpoint_completions.exs", "sha256": "6ef18cce2cdacf450457c9f93dcd38c96d8bc6deb57373d2ed54c5676853ac20"},
   {"file": "20261218000100_create_waitpoint_completion_function.exs", "sha256": "604701a479c25e8a2cc1098047d1756f0bb50249a5b9498ebf3b825b7b64c34f"},
   {"file": "20261218000200_rebuild_reference_check_for_waitpoint_completions.exs", "sha256": "70dfe6a6d5ec92ad3f14b3043dcb6b384ec51dc8aa3ebd3c63b3dc5141c686f8"},
+  {"file": "20261221000000_create_refusal_tables.exs", "sha256": "095499bdf7a30417f9a1dd5fa2097aaeefdc667bd79bfb82c1594054088d6d2a"},
+  {"file": "20261221000100_allow_refusal_suppressions.exs", "sha256": "230e5d0c266d4a5c4e822fc0b2419afe770ee309347c8618ece42db3a603eee7"},
+  {"file": "20261221000200_create_refusal_functions.exs", "sha256": "7207e8da54b9876782c2cec291bd2788c1e6d9eec093e0ef83ef4de761eb583a"},
+  {"file": "20261221000300_validate_refusal_suppression_check.exs", "sha256": "285135fa747ea712e296c5c553f55bd6d3496c15be78d22858c83e6497a9c46d"},
+  {"file": "20261221000400_rebuild_reference_check_for_refusals.exs", "sha256": "8b3bcd03f3a654e19deb6a5b152e4134752ba2a94dd2fc17d37d24e345b9a74d"},
   {"file": "20261223000000_create_dsr_log_and_takedowns.exs", "sha256": "4cdd5b6fc92daef70894dd92787d85a2fba8c4a5bc25b68ef78635489f148652"},
   {"file": "20261223000100_create_record_functions.exs", "sha256": "5fbcc9b21e536f89ec2ea55cf55bd1daf87acadf64b84bee669aff98112d0b9f"},
   {"file": "20261223000200_validate_record_checks.exs", "sha256": "86d4ae8693c984541fd1728e74f2fd850a97772bfd5100e3c6457cdc99cc60a0"},
-  {"file": "20261223000300_rebuild_reference_check_for_records.exs", "sha256": "45ed6f8f85306cb3b89b4d87d8473312af541b53d6d8485a97de3a4369e309e9"}
+  {"file": "20261223000300_rebuild_reference_check_for_records.exs", "sha256": "53dfbf49c34f5155d3928d3829617c8d33f3f5ee0fb01bb0d957f9cf07cccb0b"}
 ]

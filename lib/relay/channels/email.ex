@@ -3,7 +3,7 @@ defmodule Relay.Channels.Email do
   The outgoing e-mail of a delivery, built once for every e-mail adapter so the SMTP adapter and the ESP adapters carry the same sender, header fields, return path and signature (CH-34, CH-35, CH-38, CH-43, CH-44, CH-45, CH-76).
 
     * The sender identity is the stream configuration of the provider account (`Relay.Channels.Email.Streams`): the request's `sender` when the route gives one, otherwise the account's `settings`, read by the message class and the content's optional `"category"`. The `system` class has no e-mail stream. The delivery's `overrides.email.from` (`Request` `overrides`), checked against the verified sender identities at intake and again by the channel step, replaces the stream's from address; the sending domain, DKIM selector and return path stay the stream's (API-23).
-    * The header fields are those of `Relay.Channels.Email.Headers`: `Feedback-ID` (`<campaign>:<category>:<tenant>:<sender>`) on every e-mail, and on a bulk one `List-Unsubscribe` and `List-Unsubscribe-Post` from the content's `"unsubscribe"` (`"https"` and `"mailto"`); a bulk e-mail without them is refused.
+    * The header fields are those of `Relay.Channels.Email.Headers`: `Feedback-ID` (`<campaign>:<category>:<tenant>:<sender>`) on every e-mail, and on a bulk one `List-Unsubscribe` and `List-Unsubscribe-Post` from the content's `"unsubscribe"` (`"https"` and `"mailto"`); a bulk e-mail without them is refused. The renderer's `unsubscribe_url` placeholder in the text and HTML parts becomes that HTTPS URI after the tracking plan is applied, so the footer link is Relay's own link and is never wrapped (PC-35, CH-76).
     * The envelope sender is the VERP return path of the delivery under the stream's return path domain (`Relay.Channels.Email.Verp`), its tag computed inside the key store under the tenant environment's VERP key (`verp_key_label/1`).
     * The subject, plain text and HTML are passed as the renderer wrote them unless the request's `tracking` plan turns on link wrapping or the open pixel, which only the tenant does for a category or template (`Relay.Channels.Email.Tracking`, CH-43, DS-29): then the HTML part's links lead through Relay's click endpoint and an open pixel is appended, signed under the tenant environment's tracking key (`tracking_key_label/1`). Without a plan a link the sender wrote, Access's `email_verification` link among them, reaches the recipient unchanged, and a `security` e-mail never has tracking or a redirect chain.
     * An address that needs SMTPUTF8 is never refused: the message is marked for it, and a provider without support fails with the `permanent_content` error `smtputf8_unsupported`.
@@ -22,6 +22,7 @@ defmodule Relay.Channels.Email do
   alias Relay.Scope
 
   @feedback_part ~r/\A[A-Za-z0-9._\-]{1,64}\z/
+  @unsubscribe_placeholder "urn:relay:unsubscribe"
 
   @type prepared :: %{
           stream: String.t(),
@@ -123,7 +124,7 @@ defmodule Relay.Channels.Email do
          sender = from_override(sender, request),
          {:ok, parts} <- parts(content),
          {:ok, html} <- tracked(request, parts.html, opts),
-         parts = %{parts | html: html},
+         parts = linked(%{parts | html: html}, unsubscribe(content)),
          {:ok, to} <- recipient(request),
          {:ok, return_path} <- Verp.encode(request.delivery_id, sender.return_path_domain, mac),
          {:ok, headers} <- headers(request, class, content, return_path),
@@ -335,6 +336,15 @@ defmodule Relay.Channels.Email do
        do: %{https: https, mailto: mailto}
 
   defp unsubscribe(_content), do: nil
+
+  # PC-35
+  # CH-76
+  defp linked(parts, %{https: https}) do
+    html = if parts.html, do: String.replace(parts.html, @unsubscribe_placeholder, https)
+    %{parts | text: String.replace(parts.text, @unsubscribe_placeholder, https), html: html}
+  end
+
+  defp linked(parts, nil), do: parts
 
   defp text(map, key) do
     case Map.get(map, key) do

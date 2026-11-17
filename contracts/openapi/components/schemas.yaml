@@ -3367,6 +3367,7 @@ SuppressionReason:
     - invalid
     - soft_bounce
     - manual
+    - refusal
 FrequencyFate:
   type: string
   enum:

@@ -20,6 +20,7 @@ defmodule Relay.Channels do
   alias Relay.Channels.Email.Reports
   alias Relay.Channels.Email.ReportStore
   alias Relay.Channels.Email.Reputation
+  alias Relay.Channels.Email.Streams
   alias Relay.Channels.Email.Tracking
   alias Relay.Channels.Email.Verp
   alias Relay.Channels.Inbound
@@ -996,6 +997,17 @@ defmodule Relay.Channels do
   @spec email_tracking_keys(String.t() | nil, String.t() | nil) :: [String.t()]
   def email_tracking_keys(category, template),
     do: Tracking.setting_keys(category, template)
+
+  # CH-38
+  # PC-35
+  @doc "Whether an e-mail of `class` goes out on the marketing and bulk stream and so carries the unsubscribe fields; see `Relay.Channels.Email.Streams.bulk?/1`."
+  @spec bulk_email?(term()) :: boolean()
+  def bulk_email?(class), do: Streams.bulk?(class)
+
+  # CH-43
+  @doc "Relay's public root; see `Relay.Channels.Email.public_root/0`."
+  @spec public_root() :: String.t()
+  def public_root, do: Email.public_root()
 
   # DS-29
   @doc "The setting key of the tracking of a `category` or `template` key; see `Relay.Channels.Email.Tracking.setting_key/2`."

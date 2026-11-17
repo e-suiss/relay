@@ -14,6 +14,7 @@ defmodule RelayWeb.UnsubscribeTest do
   import Phoenix.ConnTest
   import Plug.Conn
 
+  alias Relay.Channels.Live.Unsubscribe
   alias Relay.Compliance.Refusals
   alias Relay.Compliance.Refusals.SinkWorker
   alias Relay.Repo
@@ -162,14 +163,14 @@ defmodule RelayWeb.UnsubscribeTest do
         "locale" => "tr"
       }
 
-      assert {:ok, filled} = Relay.Channels.Live.Unsubscribe.fill(ctx.scope, delivery, content)
+      assert {:ok, filled} = Unsubscribe.fill(ctx.scope, delivery, content)
       assert %{"unsubscribe" => %{"https" => https, "mailto" => mailto}} = Jason.decode!(filled)
       assert "https://" <> _rest = https
       assert https =~ "/abonelik-iptali/"
       assert "mailto:" <> _address = mailto
 
       plain = %{delivery | "message_class" => "transactional", "category_key" => "orders"}
-      assert {:ok, ^content} = Relay.Channels.Live.Unsubscribe.fill(ctx.scope, plain, content)
+      assert {:ok, ^content} = Unsubscribe.fill(ctx.scope, plain, content)
     end
 
     test "PC-35: GET shows the page and changes no state", ctx do

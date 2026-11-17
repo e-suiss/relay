@@ -46,17 +46,15 @@ defmodule Relay.Compliance.Refusals do
   def apply_refusal(%Scope{} = scope, %Refusal{} = refusal) do
     with {:ok, sealed} <- seal(scope, refusal),
          {:ok, digests} <- digests(scope, refusal) do
-      id = Relay.Id.generate()
-
-      result =
-        Store.in_scope(scope, fn _status ->
-          {code, refusal_id} = Store.apply_refusal(id, refusal, sealed, digests)
-          if queued?(refusal, code), do: Store.insert_job!(SinkWorker.job(scope, refusal_id))
-          {code, refusal_id}
-        end)
-
-      applied(result)
+      write = fn _status -> write(scope, refusal, sealed, digests) end
+      applied(Store.in_scope(scope, write))
     end
+  end
+
+  defp write(scope, refusal, sealed, digests) do
+    {code, refusal_id} = Store.apply_refusal(Relay.Id.generate(), refusal, sealed, digests)
+    if queued?(refusal, code), do: Store.insert_job!(SinkWorker.job(scope, refusal_id))
+    {code, refusal_id}
   end
 
   defp queued?(refusal, code),

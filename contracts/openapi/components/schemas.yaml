@@ -1157,9 +1157,38 @@ CloudEvent:
       "$ref": "#/CorrelationId"
       description: "The sender's correlation identifier; mapped to correlation_id of the event."
       x-relay-stage: 7
+    accesstenant:
+      type: string
+      description: "Access's own messages (relay.message.*.v1): the Access tenant the message concerns. It names the tenant whose İYS brand writes an iys_consent record and whose environments accessenvironment must be one of; other events ignore it."
+      minLength: 1
+      maxLength: 128
+    accessenvironment:
+      type: string
+      description: "Access's own messages (relay.message.*.v1): the Access environment of the message, which the source names too (urn:suiss:access:environment:<id>) and which must be an environment of accesstenant; other events ignore it."
+      minLength: 1
+      maxLength: 64
   additionalProperties: false
   x-relay-choice: true
   x-relay-choice-note: "Only the listed attributes are accepted; any other extension attribute is rejected with unknown_field, and data must be a JSON object."
+IysConsentRecordAccepted:
+  type: object
+  description: "The answer to Access's relay.message.iys_consent.v1 message: the consent record was handed to the İYS write path of the tenant accesstenant names. Nothing is delivered and no notification is opened; Relay reports the record's registration state to Access's /relay/v1/iys-status."
+  required:
+    - object
+    - id
+    - status
+  properties:
+    object:
+      type: string
+      const: iys_consent_record
+    id:
+      type: string
+      description: The CloudEvents id of the message, the record's identifier at Access.
+      maxLength: 512
+    status:
+      type: string
+      const: accepted
+  additionalProperties: false
 CloudEventBatch:
   type: array
   description: "CloudEvents batch; batch limits apply."

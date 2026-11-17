@@ -3073,6 +3073,22 @@
   },
   {
     "acceptance": "pending",
+    "id": "E-108",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 13
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-109",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 13
+  },
+  {
+    "acceptance": "pending",
     "id": "X-1",
     "section": "§8",
     "status": "canonical_invariant",

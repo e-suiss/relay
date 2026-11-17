@@ -21,6 +21,8 @@ contracts/
 │   └── events.yaml             # single event catalog: webhooks, realtime, audit actions, Access events
 ├── mcp/
 │   └── tools.yaml              # tool catalogue of the MCP server: each tool is one server operation
+├── access/
+│   └── relay-message.v1.schema.json  # Access's messages to Relay (vendored, never edited here)
 └── connectors/
     └── outbox.sql              # table shape of the PostgreSQL outbox source of ingest connectors
 ```
@@ -28,6 +30,10 @@ contracts/
 - **OpenAPI 3.1** with JSON Schema 2020-12 for HTTP families; **AsyncAPI 3.1** for the event catalog.
 - Every family lives in its own file and has its own authentication rule. The agent family is added in a later stage.
 - `connectors/outbox.sql` is the table a producer exposes to Relay's built-in ingest source: `id` orders the rows, `payload` holds one structured mode CloudEvent, and Relay writes `relay_claimed_until`, `relayed_at` and `relay_outcome`. The producer names the table and may add columns of its own. Relay checks the columns and types when it connects, reads and updates rows, and never deletes one.
+
+## Access's messages
+
+`access/relay-message.v1.schema.json` is an exact copy of Access's own contract for the CloudEvents it posts to `POST /v1/events` (`crates/identity-account/contracts/relay-message.v1.schema.json` in the Access repository, taken at Access commit `aa533324d`, where the file was last changed in `1a42b8743`). Relay validates every `relay.message.*.v1` event of the Access platform tenant against it. It is replaced only by copying a newer Access version over it, never edited here.
 
 ## Discovery
 

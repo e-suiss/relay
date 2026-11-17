@@ -1,6 +1,6 @@
 defmodule Relay.Ingest.CloudEvents do
   @moduledoc """
-  CloudEvents 1.0 intake (API-28 … API-31, MD-16): reading an event in binary mode from its `ce-*` headers and JSON body, the keys derived from `(source, id)`, and the mapping of an event to a native event through the tenant's type mapping: the recipient and sub-tenant pointers and the allow-list of data fields. Only the attributes of the contract are accepted (S-93), with the `correlationid` extension of the sender's correlation identifier (E-83); any other extension attribute is `unknown_field`, and `data` must be a JSON object.
+  CloudEvents 1.0 intake (API-28 … API-31, MD-16): reading an event in binary mode from its `ce-*` headers and JSON body, the keys derived from `(source, id)`, and the mapping of an event to a native event through the tenant's type mapping: the recipient and sub-tenant pointers and the allow-list of data fields. Only the attributes of the contract are accepted (S-93), with the `correlationid` extension of the sender's correlation identifier (E-83) and the `accesstenant` and `accessenvironment` extensions of Access's own messages (E-108); any other extension attribute is `unknown_field`, and `data` must be a JSON object.
 
   The keys are SHA-256 digests over deterministic CBOR, so personal data that a source or id may carry never appears in a key (S-65):
 
@@ -12,7 +12,7 @@ defmodule Relay.Ingest.CloudEvents do
   alias Relay.Ingest.Pointer
 
   @attributes ~w(id source type subject time datacontenttype dataschema traceparent tracestate
-                 correlationid)
+                 correlationid accesstenant accessenvironment)
   @header_attributes Enum.map(@attributes -- ["traceparent", "tracestate"], &("ce-" <> &1))
 
   # API-31

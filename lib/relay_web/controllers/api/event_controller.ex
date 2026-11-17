@@ -34,7 +34,7 @@ defmodule RelayWeb.Api.EventController do
       "application/cloudevents-batch+json" ->
         rows =
           for {event, index} <- Enum.with_index(body),
-              do: {index, nil, CloudEvent.prepare(ctx, event)}
+              do: {index, nil, CloudEvent.prepare(ctx, event, iys: false)}
 
         batch(conn, ctx, rows)
 
@@ -64,6 +64,10 @@ defmodule RelayWeb.Api.EventController do
 
   defp prepared(conn, ctx, {:ok, prepared}), do: single(conn, ctx, prepared)
   defp prepared(conn, _ctx, {:error, error}), do: Response.problem(conn, error)
+
+  # E-109
+  defp single(conn, _ctx, {:iys, body}),
+    do: Work.idempotent(conn, fn _status -> {:ok, {202, [], body}} end)
 
   # T-35
   # OP-7

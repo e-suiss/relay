@@ -38,7 +38,8 @@ defmodule Relay.Api.Events do
           optional(:subtenant_id) => Relay.Id.t() | nil,
           optional(:traceparent) => String.t() | nil,
           optional(:agent) => boolean(),
-          optional(:agent_id) => Relay.Id.t() | nil
+          optional(:agent_id) => Relay.Id.t() | nil,
+          optional(:transient) => boolean()
         }
 
   @type prepared :: map()
@@ -79,7 +80,8 @@ defmodule Relay.Api.Events do
          :ok <- simulated(scope, request.targets),
          {:ok, providers} <- overrides(scope, workflow, request, tenant.settings),
          :ok <- platform(class),
-         {:ok, recipients} <- recipients(scope, request.targets),
+         {:ok, recipients} <-
+           recipients(scope, request.targets, Map.get(ctx, :transient, false)),
          {:ok, recipients} <- WorkflowRuns.attributes(scope, workflow["definition"], recipients),
          {:ok, payload} <- payload(scope, request, cloudevent),
          {:ok, digests} <- digests(scope, workflow, request, recipients, cloudevent),
@@ -309,7 +311,8 @@ defmodule Relay.Api.Events do
   end
 
   # API-21
-  defp recipients(scope, targets) do
+  # E-108
+  defp recipients(scope, targets, transient?) do
     targets
     |> Enum.with_index()
     |> Enum.reduce_while({:ok, []}, fn {target, index}, {:ok, acc} ->
@@ -320,7 +323,7 @@ defmodule Relay.Api.Events do
           {:implicit, id, fields} -> {id, %{external_id: id, fields: fields}, :implicit}
         end
 
-      case Relay.Subscribers.prepare(scope, input, mode) do
+      case Relay.Subscribers.prepare(scope, input, mode, transient: transient?) do
         {:ok, plan} -> {:cont, {:ok, [recipient(plan, index, external_id, input) | acc]}}
         {:error, %Relay.Error{} = error} -> {:halt, {:error, error}}
         {:error, _reason} -> {:halt, {:error, unavailable("the recipient could not be prepared")}}

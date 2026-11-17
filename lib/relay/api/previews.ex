@@ -283,6 +283,10 @@ defmodule Relay.Api.Previews do
 
   defp public(render), do: Map.delete(render, :html_digest)
 
+  defp digests(preview, true), do: preview
+  defp digests(preview, false),
+    do: Map.update!(preview, "steps", fn steps -> Enum.map(steps, &public_step/1) end)
+
   defp public_step(%{"render" => %{} = render} = step), do: %{step | "render" => public(render)}
   defp public_step(step), do: step
 
@@ -414,12 +418,7 @@ defmodule Relay.Api.Previews do
         "steps" => Enum.map(steps, &step(&1, wf.schema, locale, data))
       }
 
-      preview =
-        if Keyword.get(opts, :html_digests, false),
-          do: preview,
-          else: Map.update!(preview, "steps", fn steps -> Enum.map(steps, &public_step/1) end)
-
-      {:ok, {200, @headers, preview}}
+      {:ok, {200, @headers, digests(preview, Keyword.get(opts, :html_digests, false))}}
     end
   end
 

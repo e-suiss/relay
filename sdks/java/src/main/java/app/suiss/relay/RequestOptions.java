@@ -165,8 +165,8 @@ public final class RequestOptions {
     }
 
     /**
-     * Receives the successful response's status and headers, for example to learn whether it was
-     * an idempotent replay.
+     * Receives the successful response's status and headers, for example to learn whether it was an
+     * idempotent replay.
      *
      * @param value the listener
      * @return this builder

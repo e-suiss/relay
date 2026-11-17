@@ -65,8 +65,7 @@ final class Requester {
   private Page page(
       Operation op, List<String> path, Map<String, String> query, RequestOptions options) {
     JsonNode raw = Json.parse(execute(op, path, query, null, options).body());
-    boolean backward =
-        query.containsKey("ending_before") && !query.containsKey("starting_after");
+    boolean backward = query.containsKey("ending_before") && !query.containsKey("starting_after");
     return new Page(
         raw,
         backward,

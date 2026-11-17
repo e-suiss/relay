@@ -86,8 +86,8 @@ public final class Page {
   }
 
   /**
-   * Fetches the next page in the direction of the walk: after {@code next_cursor}, or before
-   * {@code previous_cursor} for a list that started with {@code ending_before}.
+   * Fetches the next page in the direction of the walk: after {@code next_cursor}, or before {@code
+   * previous_cursor} for a list that started with {@code ending_before}.
    *
    * @return the next page, or null when this is the last one
    */

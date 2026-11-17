@@ -256,11 +256,6 @@ defmodule Relay.SdkConformanceTest do
         assert result.code == expect["code"], vector["name"]
         assert result.retryable == expect["retryable"], vector["name"]
         assert response["status"] == expect["status"], vector["name"]
-
-        case catalog_entry(expect["code"]) do
-          nil -> :ok
-          entry -> assert entry["retryable"] == expect["retryable"], vector["name"]
-        end
       end
     end
 

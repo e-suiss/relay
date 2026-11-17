@@ -26,7 +26,7 @@ public data class RelayProblem(
                     detail = json.string("detail"),
                     retryable = json.get("retryable")?.takeIf { it.isJsonPrimitive }?.asBoolean,
                     retryAfter = json.get("retry_after")?.takeIf { it.isJsonPrimitive }?.asInt,
-                    current = json.get("current")?.takeIf { it.isJsonObject }?.asJsonObject?.let(RelayItemState::fromJson),
+                    current = json.get("current")?.takeIf { it.isJsonObject }?.asJsonObject?.let { RelayItemState.fromJson(it) },
                 )
             }.getOrNull()
     }

@@ -11,7 +11,7 @@ import org.junit.Test
 class HttpTest {
     @Test
     fun `X-29 a retry keeps the idempotency key and honours Retry-After`() =
-        runBlocking {
+        runBlocking<Unit> {
             val harness = Harness()
             harness.server.enqueue(
                 "POST /v1/subscriber/inbox/read_all",
@@ -35,7 +35,7 @@ class HttpTest {
 
     @Test
     fun `X-29 a non-retryable problem is thrown without a retry`() =
-        runBlocking {
+        runBlocking<Unit> {
             val harness = Harness()
             harness.server.enqueue("POST /v1/subscriber/inbox/read_all", Reply.problem(422, "validation_failed", retryable = false))
             try {
@@ -51,7 +51,7 @@ class HttpTest {
 
     @Test
     fun `X-29 an expired token is refreshed once`() =
-        runBlocking {
+        runBlocking<Unit> {
             val harness = Harness()
             harness.server.enqueue(
                 "GET /v1/subscriber/inbox/counters",
@@ -80,7 +80,7 @@ class HttpTest {
 
     @Test
     fun `X-31 a missing scope sends nothing`() =
-        runBlocking {
+        runBlocking<Unit> {
             val harness = Harness(scopes = setOf(RelayScope.INBOX_READ))
             try {
                 RelayInboxApi(harness.http).markAllRead()

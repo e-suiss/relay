@@ -60,6 +60,7 @@ defmodule Relay.Config do
     Relay.Realtime.InboxSource,
     Relay.Compliance,
     Relay.Iys,
+    Relay.Tenancy.Provisioning,
     Relay.Policy.IysGate,
     Relay.Preferences,
     RelayWeb.Links,

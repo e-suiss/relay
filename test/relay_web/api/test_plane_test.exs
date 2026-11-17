@@ -80,6 +80,7 @@ defmodule RelayWeb.Api.TestPlaneTest do
 
       opted_out = recipient_id(ctx.scope, "seed_opted_out")
       {:ok, consents} = Relay.Preferences.get_consents(ctx.scope, opted_out)
+
       assert Enum.sort(for c <- consents, do: {c["channel"], c["status"]}) ==
                [{"email", "revoked"}, {"sms", "revoked"}]
 

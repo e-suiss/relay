@@ -112,7 +112,9 @@ defmodule Relay.Channels.Simulated do
   @spec result(kind(), String.t()) :: result()
   def result(:email, address) do
     case String.split(String.downcase(address), "@", parts: 2) do
-      [local, @domain] when local in @names -> local
+      [local, @domain] when local in @names ->
+        local
+
       [local, @seed_domain] when local in @seed_names ->
         Map.get(@seed_results, local, "delivered")
 

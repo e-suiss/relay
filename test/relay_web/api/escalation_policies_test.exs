@@ -215,6 +215,7 @@ defmodule RelayWeb.Api.EscalationPoliciesTest do
 
       {:ok, id} = Relay.ExternalId.decode(created["id"], ["wp"])
       {:ok, steps} = Relay.Agents.waitpoint_steps(ctx.scope, id)
+
       assert Enum.map(steps, &{&1["track"], &1["state"]}) == [
                {"escalation", "armed"},
                {"escalation", "pending"},

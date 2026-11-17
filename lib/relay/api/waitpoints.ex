@@ -825,6 +825,7 @@ defmodule Relay.Api.Waitpoints do
 
     claim = open_text(scope, w, "claim_text_ct", w.claim_text_ct)
     default = open(scope, w, "default_response_ct", w.default_response_ct)
+
     envelope
     |> put_opened("claim_text", claim)
     |> put_opened("default_response", default)

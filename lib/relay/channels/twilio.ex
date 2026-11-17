@@ -7,6 +7,7 @@ defmodule Relay.Channels.Twilio do
     * Voice: `POST /Accounts/{sid}/Calls.json` with TwiML that reads the text once in the content's language; the call status callback reports `completed`.
     * `settings.status_callback_url` is sent as the `StatusCallback`, with the provider idempotency key in its `key` query parameter, which the signed callback brings back. Twilio has no idempotency key and no client message id, so an uncertain call is never sent again on its own (`no_auto_retry`, T-28).
     * A failure answers with Twilio's error `code` (`21211`), or `http:<status>` without one. A delivery report carries its `ErrorCode`; a call report its status `call:<status>` (`reports/3`, verified with `X-Twilio-Signature` on the raw body).
+    * A message one of the account's numbers receives comes to the same webhook with the same signature and is read as an inbound message (`inbound/1`, PC-37).
   """
 
   @behaviour Relay.Channels.Adapter
@@ -133,9 +134,33 @@ defmodule Relay.Channels.Twilio do
 
     with :ok <- Relay.Channels.verify_twilio(key, url, body, headers) do
       query = URI.decode_query(URI.parse(url).query || "")
-      report = Map.put(report(URI.decode_query(body)), :correlation, query["key"])
-      {:ok, [report]}
+      params = URI.decode_query(body)
+
+      if inbound?(params),
+        do: {:ok, [inbound(params)]},
+        else: {:ok, [Map.put(report(params), :correlation, query["key"])]}
     end
+  end
+
+  defp inbound?(%{"MessageSid" => sid, "From" => from, "Body" => _text} = params)
+       when is_binary(sid) and sid != "" and is_binary(from) and from != "",
+       do: not is_map_key(params, "MessageStatus") and not is_map_key(params, "CallSid")
+
+  defp inbound?(_params), do: false
+
+  # PC-37
+  @doc "Reads one Twilio inbound message webhook: `MessageSid`, `From`, `To` and `Body`. `OptOutType` is present when Twilio handled the message as an opt-out keyword and answered it itself."
+  @spec inbound(map()) :: Adapter.inbound_sms()
+  def inbound(%{} = params) do
+    %{
+      kind: :inbound_sms,
+      provider_message_id: params["MessageSid"],
+      from: Relay.Redacted.wrap(params["From"]),
+      to: params["To"],
+      text: Relay.Redacted.wrap(params["Body"]),
+      received_at: nil,
+      replied?: params["OptOutType"] not in [nil, ""]
+    }
   end
 
   # CH-10

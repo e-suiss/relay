@@ -104,7 +104,7 @@ defmodule Relay.Compliance.UnsubscribeTokenTest do
         "unsubscribe_link" => "category",
         "mailto" => "category",
         "unsubscribe_page" => "all_marketing",
-        "sms_keyword" => "all_channel",
+        "sms_keyword" => "all_marketing",
         "complaint" => "all_marketing",
         "whatsapp" => "all_marketing",
         "iys" => "all_marketing"
@@ -120,12 +120,27 @@ defmodule Relay.Compliance.UnsubscribeTokenTest do
       base = %{recipient_id: Relay.Id.generate(), channel: "sms", ref: "r"}
       attrs = Map.put(base, :source, "sms_keyword")
 
-      narrowed = Map.put(attrs, :scope, "all_marketing")
+      widened = Map.put(attrs, :scope, "all_channel")
       unknown = Map.put(attrs, :scope, "everything")
 
-      assert {:ok, %Refusal{scope: "all_channel"}} = Refusal.new(attrs)
-      assert {:ok, %Refusal{scope: "all_marketing"}} = Refusal.new(narrowed)
+      assert {:ok, %Refusal{scope: "all_marketing", covers: []}} = Refusal.new(attrs)
+      assert {:ok, %Refusal{scope: "all_channel"}} = Refusal.new(widened)
       assert {:error, %Relay.Error{code: :validation_failed}} = Refusal.new(unknown)
+    end
+
+    test "PC-39: only an all_channel refusal covers other channels, each once and never its own" do
+      base = %{recipient_id: Relay.Id.generate(), channel: "sms", source: "sms_keyword", ref: "r"}
+      whole = Map.put(base, :scope, "all_channel")
+
+      assert {:ok, %Refusal{covers: ["voice"]}} = Refusal.new(Map.put(whole, :covers, ["voice"]))
+
+      for covers <- [["sms"], ["voice", "voice"], ["fax"]] do
+        assert {:error, %Relay.Error{code: :validation_failed}} =
+                 Refusal.new(Map.put(whole, :covers, covers))
+      end
+
+      assert {:error, %Relay.Error{code: :validation_failed}} =
+               Refusal.new(Map.put(base, :covers, ["voice"]))
     end
 
     test "PC-38: an exit of one message is a category preference and never a refusal notice" do
@@ -156,7 +171,6 @@ defmodule Relay.Compliance.UnsubscribeTokenTest do
       assert {:ok, refusal} = Refusal.new(Map.put(attrs, :evidence, %{ip: ip}))
       refute inspect(refusal) =~ "203.0.113.9"
       assert {:error, _error} = Refusal.new(Map.put(attrs, :evidence, %{ip: "203.0.113.9"}))
-      assert {:error, _error} = Refusal.new(Map.put(attrs, :address, "ayse@example.com"))
     end
   end
 end

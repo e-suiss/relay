@@ -5,12 +5,14 @@ defmodule Relay.Compliance.Refusal do
   | Scope | Reach | Written in Relay | Kind |
   |---|---|---|---|
   | `category` | the category of one message on one channel | a preference `opt_out` of the category on the channel (writer `unsubscribe`) | preference |
-  | `all_marketing` | every marketing category of the brand on the channel | the consent copy `REVOKED` (writer `relay`) for the brand and channel | refusal notice |
-  | `all_channel` | everything on the channel | the consent copy `REVOKED` and a `refusal` suppression of the address | refusal notice |
+  | `all_marketing` | every marketing message of the brand on the channel | the consent copy `REVOKED` (writer `relay`) for the brand and channel | refusal notice |
+  | `all_channel` | every message of the brand that needs consent, on the channel and on the channels the compliance table row names with it (`covers`) | the consent copy `REVOKED` for the brand on each of those channels | refusal notice |
 
-  A category exit is a preference and is never written to the consent copy; a refusal notice is never written as a preference. The two are not reduced to one switch (PC-38), and the lattice reads them apart: a refusal notice is gate 1c (`consent.revoked`) and gate 1b, a preference is filter 3b.
+  No scope suppresses the address: a refusal notice stops what needs consent and nothing else, so a `security` or `transactional` message that needs none keeps flowing. What needs consent is the compliance table's answer for the recipient's country, read by the lattice (gates 1c and 1d); a revoked consent copy stops every class a row asks consent for.
 
-  The sources and their default scopes (PC-39): `rfc8058`, `unsubscribe_link` and `mailto` are the exits of one message and always have the `category` scope; `unsubscribe_page` (the page's "no commercial e-mail from this brand") and `complaint` default to `all_marketing`, `sms_keyword` to `all_channel`, `whatsapp` and `iys` to `all_marketing`. Every refusal carries its evidence: the source, the time and, where the request has them, the requesting address and user agent, redacted. A refusal notice is handed to the refusal sink once applied, except one that came from the registry itself (`iys`).
+  A category exit is a preference and is never written to the consent copy; a refusal notice is never written as a preference. The two are not reduced to one switch (PC-38), and the lattice reads them apart: a refusal notice is gate 1c and 1d (`consent.revoked`), a preference is filter 3b.
+
+  The sources and their default scopes (PC-39): `rfc8058`, `unsubscribe_link` and `mailto` are the exits of one message and always have the `category` scope; `unsubscribe_page` (the page's "no commercial e-mail from this brand"), `complaint`, `sms_keyword`, `whatsapp` and `iys` default to `all_marketing`; an SMS keyword becomes `all_channel` only where the compliance table gives the sender's country that scope (PC-61). Every refusal carries its evidence: the source, the time and, where the request has them, the requesting address and user agent, redacted. A refusal on SMS that came from a keyword or from the provider's own opt-out names the provider account it arrived through and is announced as `sms.opted_out`. A refusal notice is handed to the refusal sink once applied, except one that came from the registry itself (`iys`).
   """
 
   @exits ~w(rfc8058 unsubscribe_link mailto)
@@ -19,7 +21,7 @@ defmodule Relay.Compliance.Refusal do
     "unsubscribe_link" => "category",
     "mailto" => "category",
     "unsubscribe_page" => "all_marketing",
-    "sms_keyword" => "all_channel",
+    "sms_keyword" => "all_marketing",
     "complaint" => "all_marketing",
     "whatsapp" => "all_marketing",
     "iys" => "all_marketing"
@@ -40,7 +42,8 @@ defmodule Relay.Compliance.Refusal do
     brand_subtenant_id: nil,
     ip: nil,
     user_agent: nil,
-    address: nil
+    covers: [],
+    provider_account_id: nil
   ]
 
   @type t :: %__MODULE__{
@@ -55,7 +58,8 @@ defmodule Relay.Compliance.Refusal do
           brand_subtenant_id: Relay.Id.t() | nil,
           ip: Relay.Redacted.t() | nil,
           user_agent: Relay.Redacted.t() | nil,
-          address: Relay.Redacted.t() | nil
+          covers: [String.t()],
+          provider_account_id: Relay.Id.t() | nil
         }
 
   # PC-39
@@ -104,7 +108,8 @@ defmodule Relay.Compliance.Refusal do
       brand_subtenant_id: Map.get(attrs, :brand_subtenant_id),
       ip: Map.get(evidence, :ip),
       user_agent: Map.get(evidence, :user_agent),
-      address: Map.get(attrs, :address)
+      covers: Map.get(attrs, :covers) || [],
+      provider_account_id: Map.get(attrs, :provider_account_id)
     }
 
     case problem(refusal) do
@@ -130,9 +135,20 @@ defmodule Relay.Compliance.Refusal do
       {match?(%DateTime{}, r.occurred_at), "a refusal has its time"},
       {is_nil(r.brand_subtenant_id) or match?(<<_::128>>, r.brand_subtenant_id),
        "the brand is a sub-tenant"},
-      {Enum.all?([r.ip, r.user_agent, r.address], &redacted?/1), "personal evidence is redacted"}
+      {is_nil(r.provider_account_id) or match?(<<_::128>>, r.provider_account_id),
+       "the provider account is an account"},
+      {covers?(r), "only an all_channel refusal covers other channels"},
+      {Enum.all?([r.ip, r.user_agent], &redacted?/1), "personal evidence is redacted"}
     ]
   end
+
+  # PC-61
+  defp covers?(%{covers: []}), do: true
+
+  defp covers?(%{scope: "all_channel", covers: covers, channel: channel}) when is_list(covers),
+    do: Enum.all?(covers, &(&1 in @channels and &1 != channel)) and Enum.uniq(covers) == covers
+
+  defp covers?(_refusal), do: false
 
   defp text?(value, max), do: is_binary(value) and value != "" and String.length(value) <= max
 

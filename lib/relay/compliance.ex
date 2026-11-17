@@ -1,6 +1,6 @@
 defmodule Relay.Compliance do
   @moduledoc """
-  Compliance rules that do not depend on a channel: the compliance table, refusal notices and the one-click unsubscribe token (PC-40, PC-35, PC-38, PC-39).
+  Compliance rules that do not depend on a channel: the compliance table, refusal notices, the keywords of an inbound SMS and the one-click unsubscribe token (PC-40, PC-35, PC-37, PC-38, PC-39).
 
   The compliance table (PC-40, MD-17) says what consent a delivery needs for its country, channel, message class and legal recipient type, with the platform rows, the derived `marketing` default, the legal send window and the scope of a revocation. These rules are pure functions of the content of the `compliance_table` and `compliance_settings` data sets; nothing is read or written. The country of a recipient comes from the profile country and from the country calling code of the phone number; when they differ, the more restrictive row decides. A recipient without either is read with the country of the tenant's region.
 
@@ -11,6 +11,7 @@ defmodule Relay.Compliance do
 
   alias Relay.Compliance.Refusal
   alias Relay.Compliance.Settings
+  alias Relay.Compliance.SmsKeyword
   alias Relay.Compliance.Table
   alias Relay.Compliance.UnsubscribeToken
   alias Relay.Scope
@@ -24,7 +25,7 @@ defmodule Relay.Compliance do
   # PC-39
   # INV-18
   @doc """
-  Records a refusal of a recipient and applies it at once. `attrs` carries `:recipient_id`, `:channel`, `:source` (`unsubscribe_page`, `sms_keyword`, `complaint`, `whatsapp`, `iys`, or the category exits `rfc8058`, `unsubscribe_link` and `mailto`), `:ref` (what identifies the request, so a repeat changes nothing) and optionally `:scope` (`category`, `all_marketing` or `all_channel`; the default of the source otherwise), `:category` (with the `category` scope), `:brand_subtenant_id`, `:occurred_at`, `:evidence` (`:ip` and `:user_agent`, redacted), `:address` (redacted) and `:actor_ref`. Reaches the key store, so it never runs inside a transaction.
+  Records a refusal of a recipient and applies it at once. `attrs` carries `:recipient_id`, `:channel`, `:source` (`unsubscribe_page`, `sms_keyword`, `complaint`, `whatsapp`, `iys`, or the category exits `rfc8058`, `unsubscribe_link` and `mailto`), `:ref` (what identifies the request, so a repeat changes nothing) and optionally `:scope` (`category`, `all_marketing` or `all_channel`; the default of the source otherwise), `:category` (with the `category` scope), `:brand_subtenant_id`, `:occurred_at`, `:evidence` (`:ip` and `:user_agent`, redacted), `:covers` (the other channels an `all_channel` refusal reaches, PC-61), `:provider_account_id` (the account an SMS refusal arrived through) and `:actor_ref`. Reaches the key store, so it never runs inside a transaction.
   """
   @spec refuse(Scope.t(), map()) :: {:ok, applied()} | {:error, Relay.Error.t()}
   def refuse(%Scope{} = scope, attrs) when is_map(attrs) do
@@ -40,6 +41,23 @@ defmodule Relay.Compliance do
   @doc "The scope a refusal of `source` has when none is given; `nil` for an unknown source."
   @spec default_scope(String.t()) :: String.t() | nil
   defdelegate default_scope(source), to: Refusal
+
+  # PC-37
+  @doc "The keyword set and the canonical keyword of an inbound SMS, or `:none`; see `Relay.Compliance.SmsKeyword.classify/1`."
+  @spec sms_keyword(term()) :: {SmsKeyword.set(), String.t()} | :none
+  defdelegate sms_keyword(text), to: SmsKeyword, as: :classify
+
+  # PC-39
+  # PC-61
+  @doc "The scope of a refusal keyword and the channels it covers; see `Relay.Compliance.SmsKeyword.revocation/2`."
+  @spec sms_revocation(SmsKeyword.set(), [SmsKeyword.revocation() | nil]) ::
+          SmsKeyword.revocation()
+  defdelegate sms_revocation(set, scopes), to: SmsKeyword, as: :revocation
+
+  # PC-37
+  @doc "The text of a keyword reply; see `Relay.Compliance.SmsKeyword.reply/3`."
+  @spec sms_reply(SmsKeyword.reply(), String.t() | nil, String.t() | nil) :: String.t()
+  defdelegate sms_reply(kind, locale, brand), to: SmsKeyword, as: :reply
 
   # PC-35
   # TN-35

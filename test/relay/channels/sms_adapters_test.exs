@@ -349,4 +349,91 @@ defmodule Relay.Channels.SmsAdaptersTest do
                Infobip.reports(body <> " ", [{"x-hub-signature", hex}], key: key)
     end
   end
+
+  describe "PC-37 received messages" do
+    test "PC-37, T-40: Twilio's inbound message is read with the same signature, and its own opt-out answer is seen" do
+      url = "https://relay.example/hooks/twilio"
+      body = "Body=STOP&From=%2B15551234567&MessageSid=SM9&OptOutType=STOP&To=%2B15557654321"
+      signed = url <> "BodySTOPFrom+15551234567MessageSidSM9OptOutTypeSTOPTo+15557654321"
+      signature = Base.encode64(:crypto.mac(:hmac, :sha, "token", signed))
+      headers = [{"x-twilio-signature", signature}]
+      key = Relay.Redacted.wrap("token")
+
+      assert {:ok, [message]} = Twilio.reports(body, headers, key: key, url: url)
+
+      assert %{kind: :inbound_sms, provider_message_id: "SM9", to: "+15557654321"} = message
+      assert message.replied?
+      assert Relay.Redacted.expose(message.from) == "+15551234567"
+      assert Relay.Redacted.expose(message.text) == "STOP"
+      refute inspect(message) =~ "5551234567"
+
+      assert {:error, :bad_signature} = Twilio.reports(body, headers, key: key, url: url <> "/")
+
+      plain = Twilio.inbound(%{"MessageSid" => "SM1", "From" => "+1555", "Body" => "hi"})
+      refute plain.replied?
+    end
+
+    test "PC-37, T-40: Infobip's received message is read next to its delivery reports" do
+      key = Relay.Redacted.wrap("hmac-key")
+
+      body =
+        Jason.encode!(%{
+          "results" => [
+            %{
+              "messageId" => "in-1",
+              "from" => "905551112233",
+              "to" => "908501112233",
+              "text" => "RET",
+              "receivedAt" => "2026-11-17T10:00:00.000+0000"
+            },
+            %{"messageId" => "m1", "status" => %{"groupName" => "DELIVERED", "name" => "D"}}
+          ]
+        })
+
+      hex = Base.encode16(:crypto.mac(:hmac, :sha256, "hmac-key", body), case: :lower)
+
+      assert {:ok, [message, %{result: {:delivered, _}}]} =
+               Infobip.reports(body, [{"x-hub-signature", hex}], key: key)
+
+      assert %{kind: :inbound_sms, provider_message_id: "in-1", to: "908501112233"} = message
+      refute message.replied?
+      assert Relay.Redacted.expose(message.from) == "+905551112233"
+      assert Relay.Redacted.expose(message.text) == "RET"
+      assert DateTime.compare(message.received_at, ~U[2026-11-17 10:00:00Z]) == :eq
+    end
+
+    test "PC-37, CH-3: Verimor's received message is read with the URL token, in Turkish time" do
+      key = Relay.Redacted.wrap("token-1")
+
+      body =
+        Jason.encode!([
+          %{
+            "type" => "inbound",
+            "message_id" => 77,
+            "source_addr" => "905551112233",
+            "destination_addr" => "908501112233",
+            "content" => "iptal",
+            "received_at" => "2026-11-17 13:00:00"
+          }
+        ])
+
+      assert {:ok, [message]} = Verimor.reports(body, [], key: key, token: "token-1")
+      assert %{kind: :inbound_sms, provider_message_id: "77", to: "908501112233"} = message
+      assert Relay.Redacted.expose(message.from) == "+905551112233"
+      assert Relay.Redacted.expose(message.text) == "iptal"
+      assert DateTime.compare(message.received_at, ~U[2026-11-17 10:00:00Z]) == :eq
+      assert {:error, :bad_signature} = Verimor.reports(body, [], key: key, token: "token-2")
+
+      request = %{
+        body: body,
+        headers: [],
+        url: "https://relay.test/x",
+        token: "token-1",
+        now: nil
+      }
+
+      assert {:ok, [{:inbound_sms, %{provider_message_id: "77"}}]} =
+               Relay.Channels.provider_webhook("verimor", key, request)
+    end
+  end
 end

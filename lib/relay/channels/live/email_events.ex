@@ -201,7 +201,6 @@ defmodule Relay.Channels.Live.EmailEvents do
           brand_subtenant_id: delivery["subtenant_id"],
           ref: source <> ":" <> Relay.Id.to_string(event.delivery_id),
           occurred_at: event.occurred_at,
-          address: event.recipient,
           actor_ref: "provider:" <> event.provider
         })
 

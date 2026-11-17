@@ -506,6 +506,27 @@ defmodule Relay.Channels do
   def provider_account(scope, id),
     do: Store.in_scope(scope, fn _status -> Store.account(id) end)
 
+  # PC-37
+  # C-25
+  @doc "The approved SMS sender identity of a provider account that a received message was addressed to: the one whose number or header is `to`, compared without a leading `+`, otherwise the account's only one; `nil` when the account has none or `to` names none of several."
+  @spec sms_sender(Relay.Scope.t(), Relay.Id.t() | nil, String.t() | nil) :: result(map() | nil)
+  def sms_sender(_scope, nil, _to), do: {:ok, nil}
+
+  def sms_sender(scope, account_id, to) do
+    Store.in_scope(scope, fn _status ->
+      senders = Enum.filter(Store.senders([account_id]), &(&1["channel"] == "sms"))
+
+      case {Enum.filter(senders, &(bare(&1["value"]) == bare(to))), senders} do
+        {[sender | _], _all} -> sender
+        {[], [only]} -> only
+        _none -> nil
+      end
+    end)
+  end
+
+  defp bare("+" <> digits), do: digits
+  defp bare(value), do: value
+
   # X-14
   # CH-18
   @doc "The providers of a channel's active accounts, by role and priority, read in their own scoped transaction."

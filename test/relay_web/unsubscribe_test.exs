@@ -473,7 +473,7 @@ defmodule RelayWeb.UnsubscribeTest do
       whole = Map.merge(base, %{source: "complaint", scope: "all_channel", ref: "arf:1"})
       assert {:ok, %{result: :applied, refusal_id: id}} = refuse(ctx, whole)
       assert {:ok, %{result: :exists, refusal_id: ^id}} = refuse(ctx, whole)
-      assert sql!(ctx.scope, @suppressions, []) == [["refusal"]]
+      assert sql!(ctx.scope, @suppressions, []) == []
       assert [[_refusal_id]] = F.jobs(inspect(SinkWorker), ctx.scope, "refusal_id")
 
       assert sql!(ctx.scope, @refusals, [ctx.recipient_id]) == [

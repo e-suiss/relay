@@ -164,6 +164,11 @@ table relay.digest_windows relay_app SELECT
 table relay.digest_windows relay_archive SELECT
 table relay.digest_windows relay_maint SELECT
 table relay.digest_windows relay_owner INSERT,SELECT,UPDATE
+table relay.dsr_log relay_app SELECT
+table relay.dsr_log relay_archive SELECT
+table relay.dsr_log relay_maint SELECT
+table relay.dsr_log relay_owner INSERT,SELECT
+table relay.dsr_log relay_report SELECT
 table relay.email_reports relay_app SELECT
 table relay.email_reports relay_archive SELECT
 table relay.email_reports relay_maint SELECT
@@ -479,6 +484,11 @@ table relay.suppressions relay_archive SELECT
 table relay.suppressions relay_maint SELECT
 table relay.suppressions relay_owner INSERT,SELECT,UPDATE
 table relay.suppressions relay_report SELECT
+table relay.takedowns relay_app SELECT
+table relay.takedowns relay_archive SELECT
+table relay.takedowns relay_maint SELECT
+table relay.takedowns relay_owner INSERT,SELECT,UPDATE
+table relay.takedowns relay_report SELECT
 table relay.template_versions relay_app SELECT
 table relay.template_versions relay_archive SELECT
 table relay.template_versions relay_maint SELECT

@@ -492,6 +492,10 @@ channels:
         "$ref": "#/components/messages/audit.sender_identity.resumed"
       audit.sender_identity.archived:
         "$ref": "#/components/messages/audit.sender_identity.archived"
+      audit.takedown.applied:
+        "$ref": "#/components/messages/audit.takedown.applied"
+      audit.takedown.lifted:
+        "$ref": "#/components/messages/audit.takedown.lifted"
       audit.channel_identity.changed:
         "$ref": "#/components/messages/audit.channel_identity.changed"
       audit.channel_identity.retired:
@@ -801,6 +805,8 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.sender_identity.suspended"
       - "$ref": "#/channels/auditLog/messages/audit.sender_identity.resumed"
       - "$ref": "#/channels/auditLog/messages/audit.sender_identity.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.takedown.applied"
+      - "$ref": "#/channels/auditLog/messages/audit.takedown.lifted"
       - "$ref": "#/channels/auditLog/messages/audit.channel_identity.changed"
       - "$ref": "#/channels/auditLog/messages/audit.channel_identity.retired"
       - "$ref": "#/channels/auditLog/messages/audit.push_critical.changed"
@@ -7090,6 +7096,42 @@ components:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.takedown.applied:
+      name: takedown.applied
+      title: takedown.applied
+      summary: "The installation operator took a message, a template or a sender identity down."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: takedown
+      x-relay-surface: audit
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.takedown.lifted:
+      name: takedown.lifted
+      title: takedown.lifted
+      summary: "The installation operator lifted a takedown."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: takedown
+      x-relay-surface: audit
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.channel_identity.changed:
       name: channel_identity.changed
       title: channel_identity.changed
@@ -8040,6 +8082,8 @@ x-relay-event-names:
   - support_delegation.revoked
   - suppression.added
   - suppression.lifted
+  - takedown.applied
+  - takedown.lifted
   - template.archived
   - template.created
   - template.drafted

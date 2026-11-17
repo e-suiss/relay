@@ -328,5 +328,17 @@
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",
     "reason": "CH-54, OP-9: the no-delete trigger rejects TRUNCATE on the SMS destination stops"
+  },
+  {
+    "path": "priv/repo/migrations/20261223000000_create_dsr_log_and_takedowns.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "OP-24, TN-60, OP-9: the append-only and no-delete triggers reject TRUNCATE on the data subject request log and the takedowns"
+  },
+  {
+    "path": "priv/repo/migrations/20261223000100_create_record_functions.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "OP-24: the committed relay_fn.subject_erase is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit, so an erasure also ends the subject's workflow runs, recurrence rules and digest windows; the role is reset in the same migration transaction"
   }
 ]

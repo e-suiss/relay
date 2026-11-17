@@ -249,5 +249,9 @@
   {"file": "20261222000100_create_sms_destination_stop_functions.exs", "sha256": "c627233c2d3d309a554a026a6f731dd877eb3ff0d378c5fec0ed7feda2f0d47c"},
   {"file": "20261222000200_add_attempt_commercial_declaration.exs", "sha256": "0783beab8197eeb313a10e969582b64c497df58e81f923aa962632613728532a"},
   {"file": "20261222000300_create_attempt_declare_function.exs", "sha256": "962ddcc956c939c905b119ec2a6a3c9e6444a58cd240b3257f0bf912b4e6b818"},
-  {"file": "20261222000400_validate_commercial_declaration_checks.exs", "sha256": "379b8e9dae023f922ed3fa297a3557072d8d1fc6721565ddf756cb0725cab79a"}
+  {"file": "20261222000400_validate_commercial_declaration_checks.exs", "sha256": "379b8e9dae023f922ed3fa297a3557072d8d1fc6721565ddf756cb0725cab79a"},
+  {"file": "20261223000000_create_dsr_log_and_takedowns.exs", "sha256": "4cdd5b6fc92daef70894dd92787d85a2fba8c4a5bc25b68ef78635489f148652"},
+  {"file": "20261223000100_create_record_functions.exs", "sha256": "5fbcc9b21e536f89ec2ea55cf55bd1daf87acadf64b84bee669aff98112d0b9f"},
+  {"file": "20261223000200_validate_record_checks.exs", "sha256": "86d4ae8693c984541fd1728e74f2fd850a97772bfd5100e3c6457cdc99cc60a0"},
+  {"file": "20261223000300_rebuild_reference_check_for_records.exs", "sha256": "53dfbf49c34f5155d3928d3829617c8d33f3f5ee0fb01bb0d957f9cf07cccb0b"}
 ]

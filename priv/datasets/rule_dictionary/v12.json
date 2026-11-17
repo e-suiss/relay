@@ -1,5 +1,5 @@
 {
-  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59; WF-52; WF-34; WF-44; WF-62; X-14; WF-56; IN-40; CH-54; TN-52; E-33; PC-40; PC-27; PC-33; PC-47",
+  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59; WF-52; WF-34; WF-44; WF-62; X-14; WF-56; IN-40; CH-54; TN-52; E-33; OP-24; TN-60",
   "rules": [
     {
       "id": "admission.aimd.l2",
@@ -597,40 +597,11 @@
       "detail": [
         "channel",
         "brand",
-        "consent_id",
-        "compliance_row",
-        "compliance_country",
-        "compliance_version",
-        "platform_row",
-        "required_consent",
-        "recipient_type"
+        "consent_id"
       ],
       "description": {
-        "en": "Not sent because the recipient's consent for these messages on this channel has expired.",
-        "tr": "Alıcının bu kanalda bu iletiler için verdiği iznin süresi dolduğu için gönderilmedi."
-      }
-    },
-    {
-      "id": "consent.insufficient",
-      "reason": "consent_missing",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "PC-40",
-      "detail": [
-        "channel",
-        "brand",
-        "consent_id",
-        "consent_kind",
-        "compliance_row",
-        "compliance_country",
-        "compliance_version",
-        "platform_row",
-        "required_consent",
-        "recipient_type"
-      ],
-      "description": {
-        "en": "Not sent because the kind of the recipient's consent is not one the compliance table accepts for this message on this channel.",
-        "tr": "Alıcının izninin türü, uyum tablosunun bu kanalda bu ileti için kabul ettiği türlerden olmadığı için gönderilmedi."
+        "en": "Not sent because the recipient's consent for marketing messages on this channel has expired.",
+        "tr": "Alıcının bu kanalda pazarlama iletileri için verdiği iznin süresi dolduğu için gönderilmedi."
       }
     },
     {
@@ -638,20 +609,14 @@
       "reason": "consent_missing",
       "kind": "gate",
       "outcome": "skip",
-      "decision": "PC-40",
+      "decision": "PC-58",
       "detail": [
         "channel",
-        "brand",
-        "compliance_row",
-        "compliance_country",
-        "compliance_version",
-        "platform_row",
-        "required_consent",
-        "recipient_type"
+        "brand"
       ],
       "description": {
-        "en": "Not sent because the compliance table asks for consent for this message on this channel and there is no active consent.",
-        "tr": "Uyum tablosu bu kanalda bu ileti için izin istediği ve etkin izin olmadığı için gönderilmedi."
+        "en": "Not sent because there is no active consent for marketing messages on this channel.",
+        "tr": "Bu kanalda pazarlama iletileri için etkin izin olmadığı için gönderilmedi."
       }
     },
     {
@@ -663,17 +628,11 @@
       "detail": [
         "channel",
         "brand",
-        "consent_id",
-        "compliance_row",
-        "compliance_country",
-        "compliance_version",
-        "platform_row",
-        "required_consent",
-        "recipient_type"
+        "consent_id"
       ],
       "description": {
-        "en": "Not sent because the recipient withdrew consent for these messages on this channel.",
-        "tr": "Alıcı bu kanalda bu iletilere verdiği izni geri çektiği için gönderilmedi."
+        "en": "Not sent because the recipient withdrew consent for marketing messages on this channel.",
+        "tr": "Alıcı bu kanalda pazarlama iletilerine verdiği izni geri çektiği için gönderilmedi."
       }
     },
     {
@@ -899,6 +858,18 @@
       }
     },
     {
+      "id": "erasure.subject",
+      "reason": "subject_erased",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "OP-24",
+      "detail": [],
+      "description": {
+        "en": "Cancelled because the recipient was erased at their request.",
+        "tr": "Alıcı kendi talebiyle silindiği için iptal edildi."
+      }
+    },
+    {
       "id": "escalation.stopped",
       "reason": "escalation_stopped",
       "kind": "terminal",
@@ -1010,67 +981,6 @@
       }
     },
     {
-      "id": "iys.approval_missing",
-      "reason": "consent_missing",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "PC-33",
-      "detail": [
-        "channel",
-        "recipient_type"
-      ],
-      "description": {
-        "en": "Not sent because IYS holds no approval of the recipient for commercial messages on this channel.",
-        "tr": "İYS'de alıcının bu kanalda ticari ileti onayı bulunmadığı için gönderilmedi."
-      }
-    },
-    {
-      "id": "iys.not_configured",
-      "reason": "iys_not_configured",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "PC-27",
-      "detail": [
-        "channel",
-        "recipient_type"
-      ],
-      "description": {
-        "en": "Not sent because the tenant is within the scope of IYS and has not entered its IYS information.",
-        "tr": "Kiracı İYS kapsamında olduğu ve İYS bilgilerini girmediği için gönderilmedi."
-      }
-    },
-    {
-      "id": "iys.rejected",
-      "reason": "consent_revoked",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "PC-21",
-      "detail": [
-        "channel",
-        "recipient_type"
-      ],
-      "description": {
-        "en": "Not sent because IYS holds the recipient's rejection of commercial messages on this channel.",
-        "tr": "İYS'de alıcının bu kanalda ticari ileti reddi bulunduğu için gönderilmedi."
-      }
-    },
-    {
-      "id": "iys.stale",
-      "reason": "iys_stale",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "PC-33",
-      "detail": [
-        "channel",
-        "recipient_type",
-        "iys_synced_at"
-      ],
-      "description": {
-        "en": "Not sent because the local copy of the IYS records has not been synchronised recently enough.",
-        "tr": "İYS kayıtlarının yerel kopyası yeterince yakın zamanda eşitlenmediği için gönderilmedi."
-      }
-    },
-    {
       "id": "killswitch.bulk_cancel",
       "reason": "cancelled",
       "kind": "terminal",
@@ -1164,25 +1074,6 @@
       "description": {
         "en": "Held because the kill switch state could not be read.",
         "tr": "Acil durdurma anahtarlarının durumu okunamadığı için bekletildi."
-      }
-    },
-    {
-      "id": "legal_window.deferred",
-      "reason": "legal_window",
-      "kind": "shaper",
-      "outcome": "defer",
-      "decision": "PC-47",
-      "detail": [
-        "local_time",
-        "local_until",
-        "timezone",
-        "timezone_source",
-        "legal_window",
-        "timezone_inferred"
-      ],
-      "description": {
-        "en": "Postponed to the hours in which the law of the recipient's country allows this message to be sent.",
-        "tr": "Alıcının ülkesindeki mevzuatın bu iletinin gönderilmesine izin verdiği saatlere ertelendi."
       }
     },
     {
@@ -1802,6 +1693,32 @@
       "description": {
         "en": "Not sent because the address is on the suppression list.",
         "tr": "Adres bastırma listesinde olduğu için gönderilmedi."
+      }
+    },
+    {
+      "id": "takedown.message",
+      "reason": "taken_down",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "TN-60",
+      "detail": [
+        "takedown_id"
+      ],
+      "description": {
+        "en": "Cancelled because the installation operator took the message down.",
+        "tr": "Kurulum operatörü mesajı erişime kapattığı için iptal edildi."
+      }
+    },
+    {
+      "id": "takedown.sender_identity",
+      "reason": "taken_down",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "TN-60",
+      "detail": [],
+      "description": {
+        "en": "Not sent because the installation operator took the sender identity down.",
+        "tr": "Kurulum operatörü gönderici kimliğini erişime kapattığı için gönderilmedi."
       }
     },
     {

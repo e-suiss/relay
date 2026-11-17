@@ -1075,6 +1075,13 @@ defmodule RelayWeb.Router do
     post "/sender_identities/:sender_identity_id/resume", ChannelController, :resume_sender,
       private: %{relay_operation: "resumeSenderIdentity"}
 
+    get "/takedowns", TakedownController, :index, private: %{relay_operation: "listTakedowns"}
+
+    post "/takedowns", TakedownController, :create, private: %{relay_operation: "applyTakedown"}
+
+    post "/takedowns/:takedown_id/lift", TakedownController, :lift,
+      private: %{relay_operation: "liftTakedown"}
+
     post "/channel_identities", ChannelController, :create_channel_identity,
       private: %{relay_operation: "createChannelIdentity"}
 

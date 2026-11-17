@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     `maven-publish`
+    signing
 }
 
 group = "app.suiss"
@@ -71,7 +72,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
-    testImplementation(libs.mockwebserver)
     testImplementation(libs.coroutines.test)
 }
 
@@ -93,7 +93,29 @@ publishing {
                         url.set("https://www.apache.org/licenses/LICENSE-2.0")
                     }
                 }
+                developers {
+                    developer {
+                        name.set("Suiss")
+                    }
+                }
+                scm {
+                    url.set("https://github.com/e-suiss/relay")
+                }
             }
         }
+    }
+    repositories {
+        maven {
+            name = "staging"
+            url = uri(layout.buildDirectory.dir("staging"))
+        }
+    }
+}
+
+signing {
+    val key = providers.environmentVariable("RELAY_SIGNING_KEY").orNull
+    if (key != null) {
+        useInMemoryPgpKeys(key, providers.environmentVariable("RELAY_SIGNING_PASSWORD").orNull)
+        sign(publishing.publications)
     }
 }

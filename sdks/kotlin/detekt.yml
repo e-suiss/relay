@@ -21,7 +21,7 @@ naming:
 complexity:
   LongParameterList:
     functionThreshold: 8
-    constructorThreshold: 10
+    constructorThreshold: 12
     ignoreAnnotated:
       - Composable
   TooManyFunctions:

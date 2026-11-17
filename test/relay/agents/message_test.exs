@@ -8,7 +8,7 @@ defmodule Relay.Agents.MessageTest do
   @origins ["https://app.example.com", "https://pay.example.com:8443"]
   @nonce "000102030405060708090a0b0c0d0e0f"
 
-  defp input(overrides \\ %{}) do
+  defp input(overrides) do
     Map.merge(
       %{
         sender: %{kind: :human, id: "party:7f3a"},

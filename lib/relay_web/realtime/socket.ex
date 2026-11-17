@@ -9,6 +9,7 @@ defmodule RelayWeb.Realtime.Socket do
   alias RelayWeb.Realtime.Authorization
 
   channel "inbox", RelayWeb.Realtime.InboxChannel
+  channel "ag_ui", RelayWeb.Realtime.InboxChannel
 
   # IN-32
   # IN-33

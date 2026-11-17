@@ -14,7 +14,7 @@ defmodule Relay.Access.SubscriberToken do
   alias Relay.Scope
 
   @token_type "urn:suiss:relay:token-type:subscriber"
-  @scopes ~w(inbox:read inbox:write preferences devices:write presence:write)
+  @scopes ~w(inbox:read inbox:write preferences devices:write presence:write agui:read)
   @default ~w(inbox:read inbox:write preferences)
   @lifetime_s Relay.Limits.fetch!(["subscriber_token_lifetime_seconds"])
   @aad "relay.subscriber_token.v1:"

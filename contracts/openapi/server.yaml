@@ -14792,6 +14792,217 @@ paths:
       x-relay-idempotency: required
       x-relay-step-up: false
       x-relay-stage: 12
+  "/v1/agui/events":
+    post:
+      operationId: publishAgUiEvent
+      tags:
+        - agents
+      summary: "Publish an AG-UI event"
+      description: "Appends one AG-UI event to the opaque stream of a subscriber's realtime channel (AG-44, IN-37, E-53). The payload is text, carried to the subscriber's clients exactly as it was given: Relay does not parse it, change it or read it for any decision. The event takes the next position of the subscriber's stream, so a client reads it with the cursor, order and recovery rules of the inbox stream, on a connection whose token holds agui:read. The operation takes no idempotency key: a request sent again appends the event again, and a client tells the two apart by their identifiers. The payload is at most the published limit realtime.opaque_payload_max_bytes."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/OpaqueEventRequest"
+      security:
+        - access_bearer:
+            - publish
+        - access_bearer:
+            - "agent:send"
+      responses:
+        "202":
+          description: "The event was appended."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/OpaqueEvent"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - subscriber_not_found
+      x-relay-scopes:
+        - publish
+        - "agent:send"
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 12
+  "/v1/mcp":
+    post:
+      operationId: callMcp
+      tags:
+        - agents
+      summary: "Call the MCP server"
+      description: "The Model Context Protocol endpoint of Relay: one stateless JSON-RPC request per call, protocol revision 2026-07-28 (AG-43, E-52). The methods are server/discover, tools/list and tools/call; there is no session, no stream and no request from the server to the client, so neither sampling nor elicitation is used. Every request names its protocol version in the MCP-Protocol-Version header and in params._meta, its method in Mcp-Method and, for tools/call, the tool in Mcp-Name; a mismatch is the JSON-RPC error -32020 with status 400, a version Relay does not serve -32022 with status 400 and an unknown method -32601 with status 404. Each tool is one operation of this API and runs under the scopes, limits, idempotency and policy decisions of that operation: tools/list shows only the tools the credential's scopes grant, and a call to a tool they do not grant is refused in the tool result. An idempotent tool takes its key as the idempotency_key argument. No tool answers a waitpoint, and a result obtained through this endpoint is never an authorisation (AG-45, E-54)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - name: MCP-Protocol-Version
+          in: header
+          description: "The protocol revision of the request; the same value as params._meta of the body."
+          required: true
+          schema:
+            type: string
+            maxLength: 32
+        - name: Mcp-Method
+          in: header
+          description: "The JSON-RPC method of the body."
+          required: true
+          schema:
+            type: string
+            maxLength: 64
+        - name: Mcp-Name
+          in: header
+          description: "The tool a tools/call request names; a value outside plain ASCII is carried as =?base64?...?=."
+          required: false
+          schema:
+            type: string
+            maxLength: 512
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/McpRequest"
+      security:
+        - access_bearer: []
+      responses:
+        "200":
+          description: "The JSON-RPC response."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/McpResponse"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+      x-relay-scopes: []
+      x-relay-weight: 1
+      x-relay-idempotency: none
+      x-relay-step-up: false
+      x-relay-stage: 12
   "/v1/mailbox/records":
     get:
       operationId: listMailboxRecords
@@ -22346,6 +22557,107 @@ paths:
       x-relay-stage: 10
       x-relay-choice: true
       x-relay-choice-note: "WH-68 gives a source one endpoint of its own, the shared verifier, the 96 hour deduplication and the acceptance rules of provider webhooks, and has a notification complete the waitpoint it references; it names no path, body or event type. The path, the CloudEvents body, the job.completed and job.failed types, the answers, completing only an event waitpoint without a condition, and the limits of the body and of data.result are chosen by the contract."
+  "/inbound/v1/a2a/{tenant}/{environment}/sources/{webhook_source_id}":
+    post:
+      operationId: receiveA2aPushNotification
+      tags:
+        - webhooks
+      summary: Receive an A2A push notification
+      description: "The endpoint a registered source posts A2A push notifications to: the task life cycle events of an agent at that source (AG-42, AG-37, E-51). Not a tenant API and outside the /v1 request rules: the path names the tenant, the environment and the source. The request names its protocol version in A2A-Version, which must be one Relay serves; another version, or none, is 400 with the A2A VersionNotSupportedError problem. What A2A leaves open comes from the Suiss webhook profile: the request is verified on its raw body with the one verifier of the profile, against the source's whpk_ public key (v1a) or whsec_ secret (v1). A request that does not verify is 401 and has no effect. The body is an A2A StreamResponse with exactly one of task, statusUpdate, artifactUpdate and message. Its sequence number is metadata.seq when the sender gives one, otherwise the microsecond timestamp of the status. A verified notification is committed as a receipt, unique by source, task and sequence number, with its processing job before the 200; the same task and sequence number is acknowledged and counted, never processed again. From the queue the notification moves the recorded state of its task forward and produces agent.task_notification_received; a notification older than the recorded one changes nothing, and one that arrived out of order or names no state makes Relay read the task again at its source. A notification is a hint that the task changed and never an authorisation."
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            "$ref": "./components/schemas.yaml#/Id_ten"
+        - name: environment
+          in: path
+          required: true
+          schema:
+            "$ref": "./components/schemas.yaml#/Environment"
+        - "$ref": "./components/parameters.yaml#/WebhookSourceId"
+        - name: A2A-Version
+          in: header
+          required: true
+          description: "The A2A protocol version of the request, as Major.Minor."
+          schema:
+            type: string
+            pattern: "^[0-9]{1,3}[.][0-9]{1,3}$"
+        - name: webhook-id
+          in: header
+          required: true
+          description: "The identifier of the notification, the same on every attempt; Relay processes an identifier once."
+          schema:
+            type: string
+            pattern: "^[!-~]{1,256}$"
+        - name: webhook-timestamp
+          in: header
+          required: true
+          description: "Unix seconds of this attempt."
+          schema:
+            type: string
+            pattern: "^(0|[1-9][0-9]{0,14})$"
+        - name: webhook-signature
+          in: header
+          required: true
+          description: "A space separated list of v1a or v1 signatures over webhook-id, webhook-timestamp and the raw body."
+          schema:
+            type: string
+            maxLength: 4096
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/A2aStreamResponse"
+          "application/a2a+json":
+            schema:
+              "$ref": "./components/schemas.yaml#/A2aStreamResponse"
+      security: []
+      responses:
+        "200":
+          description: "Received: the notification is a committed receipt, or was one already."
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "400":
+          description: The request names an A2A version Relay does not serve, or the verified body is no task notification.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "401":
+          description: The request did not verify, or the source's secret is no longer active.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "404":
+          description: No active source has this tenant, environment and id.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "413":
+          description: The body is larger than 256 KiB.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+        "503":
+          description: The receipt could not be committed; the source sends the notification again.
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CompletionNotificationAnswer"
+      x-relay-weight: 0
+      x-relay-weight-note: "Inbound channel of a registered source; not counted against tenant limits."
+      x-relay-idempotency: derived
+      x-relay-step-up: false
+      x-relay-stage: 10
+      x-relay-choice: true
+      x-relay-choice-note: "WH-68 gives a source one endpoint of its own, the shared verifier, the 96 hour deduplication and the acceptance rules of provider webhooks, and has a notification complete the waitpoint it references; it names no path, body or event type. The path, the CloudEvents body, the job.completed and job.failed types, the answers, completing only an event waitpoint without a condition, and the limits of the body and of data.result are chosen by the contract."
   "/inbound/v1/providers/{provider_account_id}":
     post:
       operationId: receiveProviderWebhook
@@ -27332,6 +27644,7 @@ x-relay-limits:
       max: 5
     max_connections_per_subscriber: 10
     max_changes_per_read: 500
+    opaque_payload_max_bytes: 65536
     connection_ttl_seconds: 45
     heartbeat_seconds: 15
     keepalive_seconds: 25

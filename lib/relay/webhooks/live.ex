@@ -194,6 +194,51 @@ defmodule Relay.Webhooks.Live do
 
   # WH-68
   # WH-49 (1)
+  # AG-42
+  # E-50
+  @doc "Checks the `A2A-Version` values of a request; see `Relay.Agents.a2a_version/1`."
+  @spec task_version([String.t()]) :: {:ok, String.t()} | {:error, :version_not_supported}
+  def task_version(values), do: Relay.Agents.a2a_version(values)
+
+  # AG-42
+  # AG-37
+  @doc "Reads a decoded A2A `StreamResponse` as a task notification; see `Relay.Agents.a2a_notification/1`."
+  @spec task_notification(term()) :: {:ok, map()} | :error
+  def task_notification(decoded), do: Relay.Agents.a2a_notification(decoded)
+
+  # T-15
+  @doc "Queues the job that processes the receipt of a task notification, inside the caller's scoped transaction."
+  @spec enqueue_task_notification(Scope.t(), Relay.Id.t()) :: :ok | {:error, term()}
+  def enqueue_task_notification(%Scope{} = scope, receipt_id) do
+    attrs = %{
+      id: Relay.Id.generate(),
+      lane: Relay.Platform.lane(:transactional),
+      worker: Relay.Webhooks.TaskNotificationWorker,
+      args: Map.put(Scope.to_job_args(scope), "receipt_id", Relay.Id.to_string(receipt_id)),
+      ref_kind: "webhook_receipt",
+      ref_id: receipt_id
+    }
+
+    case Relay.Platform.enqueue_job(attrs) do
+      {:ok, _queued} -> :ok
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  # AG-37
+  # INV-35
+  @doc "Applies a task notification to the recorded state of its task; see `Relay.Agents.record_task_notification/2`."
+  @spec apply_task_notification(Scope.t(), map()) :: {:ok, atom()} | {:error, term()}
+  def apply_task_notification(%Scope{} = scope, attrs),
+    do: Relay.Agents.record_task_notification(scope, attrs)
+
+  # AG-42
+  # INV-35
+  @doc "Reads a task again at its source; see `Relay.Agents.reconcile_task/3`."
+  @spec reconcile_task(Scope.t(), Relay.Id.t(), String.t()) :: {:ok, atom()} | {:error, term()}
+  def reconcile_task(%Scope{} = scope, source_id, task),
+    do: Relay.Agents.reconcile_task(scope, source_id, task)
+
   # T-15
   @doc "Queues the job that processes the receipt of a completion notification, inside the caller's scoped transaction."
   @spec enqueue_completion(Scope.t(), Relay.Id.t()) :: :ok | {:error, term()}

@@ -150,6 +150,34 @@ defmodule Relay.Api.WebhookSources do
     end
   end
 
+  # AG-42
+  # AG-37
+  # WH-49
+  @doc "Verifies and records an A2A push notification of the source the path names; returns the HTTP status and the JSON body. A version Relay does not serve is answered with the problem A2A names for it."
+  @spec inbound_task(notification()) :: {pos_integer(), map()}
+  def inbound_task(%{body: body, headers: headers} = notification) when is_binary(body) do
+    with {:ok, tenant_id} <- Relay.ExternalId.decode(notification.tenant, ["ten"]),
+         {:ok, source_id} <- Relay.ExternalId.decode(notification.source, ["whs"]),
+         {:ok, environment} <- Relay.Environment.cast(notification.environment),
+         {:ok, scope} <- Scope.new(tenant_id, environment) do
+      request = %{body: body, headers: headers, now: Relay.Clock.utc_now()}
+      answered(Relay.Webhooks.accept_task_notification(scope, source_id, request))
+    else
+      _invalid -> {404, %{"error" => "not_found"}}
+    end
+  end
+
+  defp answered({:error, :version_not_supported}) do
+    {400,
+     %{
+       "error" => "version_not_supported",
+       "type" => "https://a2a-protocol.org/errors/version-not-supported",
+       "title" => "Version not supported",
+       "status" => 400,
+       "supported" => Relay.Agents.protocol_versions("a2a")
+     }}
+  end
+
   defp answered({:ok, _recorded_or_duplicate}), do: {200, %{}}
   defp answered({:error, :not_found}), do: {404, %{"error" => "not_found"}}
   defp answered({:error, :unauthorized}), do: {401, %{"error" => "unauthorized"}}

@@ -1,6 +1,6 @@
 defmodule RelayWeb.Realtime.InboxChannel do
   @moduledoc """
-  The `inbox` channel (IN-23, IN-26): the token subscriber's inbox stream, each envelope pushed with its event type as the event name. The join parameter `cursor` resumes after the last envelope `id` the client saw; without it the stream starts at the head with the current counters.
+  The `inbox` channel (IN-23, IN-26) and, with the same rules, the `ag_ui` channel of the opaque AG-UI stream (IN-37, AG-44), which a token with `agui:read` may join: the token subscriber's inbox stream, each envelope pushed with its event type as the event name. The join parameter `cursor` resumes after the last envelope `id` the client saw; without it the stream starts at the head with the current counters.
 
   The channel is read-only (IN-31): writes go through the REST API, and every client message is refused with `read_only`, except `auth.refresh` with a fresh subscriber token for the same subscriber, which moves the connection's expiry (INV-42). The stream's history is never queried over the channel (IN-32).
   """
@@ -14,18 +14,30 @@ defmodule RelayWeb.Realtime.InboxChannel do
   # IN-28
   # IN-32
   @impl true
-  def join("inbox", params, socket) do
+  def join(topic, params, socket) when topic in ["inbox", "ag_ui"] do
     %{grant: grant, token: token, device_id: device_id} = socket.assigns
     origin = Map.get(socket.assigns, :origin)
 
-    with {:ok, cursor} <- cursor(params),
-         {:ok, session, envelopes} <-
-           Session.open(grant, token, cursor: cursor, device_id: device_id, origin: origin) do
+    with {:ok, stream} <- stream(topic, grant.scopes),
+         {:ok, cursor} <- cursor(params),
+         opts = [cursor: cursor, device_id: device_id, origin: origin],
+         opts = opts ++ [source: Relay.Realtime.source(stream), register: stream == :inbox],
+         {:ok, session, envelopes} <- Session.open(grant, token, opts) do
       send(self(), {:relay_realtime_push, envelopes})
       {:ok, assign(socket, :session, session)}
     else
       {:error, %Relay.Error{code: code}} -> {:error, %{reason: Atom.to_string(code)}}
     end
+  end
+
+  # IN-37
+  # AG-44
+  defp stream(topic, scopes) do
+    {:ok, stream} = Relay.Realtime.stream(topic)
+
+    if Relay.Realtime.permitted?(scopes, stream),
+      do: {:ok, stream},
+      else: {:error, Relay.Error.new(:auth_insufficient_scope, "the token lacks the scope")}
   end
 
   # IN-31

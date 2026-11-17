@@ -26,6 +26,7 @@ defmodule Relay.Webhooks.Engine do
   alias Relay.Webhooks.TokenCache
 
   @lock_extra_ms 40_000
+  @a2a_push "a2a.push_notification"
   @response_field {"webhook_attempts", "response_ct"}
 
   @type result :: :done | {:retry_in, pos_integer()} | {:attempted, atom()}
@@ -203,14 +204,39 @@ defmodule Relay.Webhooks.Engine do
   @spec prepare(Scope.t(), map(), DateTime.t()) :: {:ok, map()} | {:error, term(), map()}
   def prepare(scope, %{message: message, endpoint: endpoint} = delivery, now) do
     with {:ok, envelope} <- envelope(scope, delivery),
-         body = Envelope.encode(envelope),
+         {body, shape} = shaped(envelope),
          sent = %{body_digest: :crypto.hash(:sha256, body), signature: nil, timestamp: nil},
          :ok <- sized(body, sent),
          {:ok, headers, sent} <- signed(scope, endpoint, envelope.id, body, sent, now) do
       attempt_no = message["total_attempt_count"] + 1
-      {:ok, Map.put(sent, :prepared, Destination.prepare(envelope, body, headers, attempt_no))}
+
+      prepared =
+        envelope
+        |> Destination.prepare(body, headers ++ shape.headers, attempt_no)
+        |> Map.put(:content_type, shape.content_type)
+
+      {:ok, Map.put(sent, :prepared, prepared)}
     end
   end
+
+  # AG-42
+  @doc "The event type of an A2A push notification: its body is the event's data alone, an A2A `StreamResponse`, sent as JSON with the `A2A-Version` header of the protocol mapping table beside the signed profile headers."
+  @spec a2a_push_type() :: String.t()
+  def a2a_push_type, do: @a2a_push
+
+  # AG-42
+  # E-50
+  defp shaped(%Envelope{type: @a2a_push} = envelope) do
+    table = Relay.AgentProtocols.bundled()
+    header = String.downcase(Relay.AgentProtocols.version_header(table, "a2a"))
+    version = Relay.AgentProtocols.current(table, "a2a")
+
+    {Envelope.data_body(envelope),
+     %{content_type: "application/json", headers: [{header, version}]}}
+  end
+
+  defp shaped(envelope),
+    do: {Envelope.encode(envelope), %{content_type: Envelope.content_type(), headers: []}}
 
   defp sized(body, sent) do
     case Envelope.check_size(body, Settings.payload_max()) do

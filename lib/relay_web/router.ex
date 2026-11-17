@@ -144,6 +144,13 @@ defmodule RelayWeb.Router do
          :create,
          private: %{relay_operation: "receiveCompletionNotification"}
 
+    # AG-42
+    # AG-37
+    post "/a2a/:tenant/:environment/sources/:webhook_source_id",
+         CompletionController,
+         :task,
+         private: %{relay_operation: "receiveA2aPushNotification"}
+
     post "/:channel/:tenant/:environment/:identity", InboundController, :create,
       private: %{relay_operation: "receiveMessagingInbound"}
   end
@@ -963,6 +970,14 @@ defmodule RelayWeb.Router do
     # AG-22
     # AG-24
     # AG-64
+    # AG-43
+    # E-52
+    post "/mcp", McpController, :rpc, private: %{relay_operation: "callMcp"}
+
+    # AG-44
+    # IN-37
+    post "/agui/events", McpController, :publish, private: %{relay_operation: "publishAgUiEvent"}
+
     get "/mailbox", MailboxController, :show, private: %{relay_operation: "getMailbox"}
 
     post "/mailbox/leases", MailboxController, :lease,

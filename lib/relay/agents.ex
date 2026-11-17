@@ -5,6 +5,8 @@ defmodule Relay.Agents do
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
+  alias Relay.AgentProtocols, as: Protocols
+  alias Relay.Agents.A2a
   alias Relay.Agents.Correlation
   alias Relay.Agents.Escalation
   alias Relay.Agents.FirstContact
@@ -15,6 +17,7 @@ defmodule Relay.Agents do
   alias Relay.Agents.Response
   alias Relay.Agents.ResponseToken
   alias Relay.Agents.ResponseValue
+  alias Relay.Agents.TaskNotifications
   alias Relay.Agents.TrustLabel
   alias Relay.Agents.Waitpoint
   alias Relay.Agents.WakeHint
@@ -269,6 +272,9 @@ defmodule Relay.Agents do
   @doc "The public key that verifies the messages of the scope's mailboxes; see `Relay.Agents.Messages.key/1`."
   @spec mailbox_message_key(Relay.Scope.t()) :: {:ok, String.t()} | {:error, Relay.Error.t()}
   defdelegate mailbox_message_key(scope), to: Messages, as: :key
+
+  # AG-53
+  # AG-70
   @doc "The published limits of messages between agents; see `Relay.Agents.FirstContact.limits/0`."
   @spec message_limits() :: map()
   defdelegate message_limits(), to: FirstContact, as: :limits
@@ -539,6 +545,72 @@ defmodule Relay.Agents do
   @spec open_response_value(Relay.Scope.t(), Relay.Id.t(), binary() | nil) ::
           {:ok, term()} | :error
   defdelegate open_response_value(scope, recipient_id, ct), to: ResponseValue, as: :open
+  # AG-46
+  # L-28
+  @doc "What a protocol (`:a2a`, `:mcp_tasks` or `:managed_agents`) sees of a waitpoint; see `Relay.AgentProtocols.of/3`."
+  @spec protocol_state(Protocols.protocol(), map()) :: {:ok, Protocols.cell()} | :error
+  def protocol_state(protocol, waitpoint),
+    do: Protocols.of(Protocols.bundled(), protocol, waitpoint)
+
+  # AG-46
+  @doc "Every waitpoint state and interaction a protocol state stands for; see `Relay.AgentProtocols.waitpoints/3`."
+  @spec protocol_waitpoints(Protocols.protocol(), String.t()) :: [{String.t(), String.t()}]
+  def protocol_waitpoints(protocol, protocol_state),
+    do: Protocols.waitpoints(Protocols.bundled(), protocol, protocol_state)
+
+  # E-50
+  # AG-47
+  @doc "The version of `a2a` or `mcp` Relay speaks when it sends."
+  @spec protocol_version(String.t()) :: String.t()
+  def protocol_version(protocol), do: Protocols.current(Protocols.bundled(), protocol)
+
+  # AG-72
+  @doc "The versions of `a2a` or `mcp` Relay serves."
+  @spec protocol_versions(String.t()) :: [String.t(), ...]
+  def protocol_versions(protocol), do: Protocols.served(Protocols.bundled(), protocol)
+
+  # AG-42
+  # AG-21
+  @doc "The A2A push notification of a mailbox record inside the caller's scoped transaction, or `nil`; see `Relay.Agents.A2a.push_in/2`."
+  @spec a2a_push_in(Relay.Id.t(), Relay.Id.t()) :: A2a.push() | nil
+  defdelegate a2a_push_in(mailbox_id, record_id), to: A2a, as: :push_in
+
+  # AG-42
+  # AG-37
+  @doc "Reads an A2A `StreamResponse` as a task notification; see `Relay.Agents.A2a.notification/1`."
+  @spec a2a_notification(term()) :: {:ok, A2a.notification()} | :error
+  defdelegate a2a_notification(body), to: A2a, as: :notification
+
+  # AG-42
+  # INV-35
+  @doc "Reads the answer of A2A `GetTask`; see `Relay.Agents.A2a.task/1`."
+  @spec a2a_task(term()) :: {:ok, A2a.notification()} | :error
+  defdelegate a2a_task(body), to: A2a, as: :task
+
+  # AG-42
+  @doc "Checks the `A2A-Version` values of a request; see `Relay.Agents.A2a.version/1`."
+  @spec a2a_version([String.t()]) :: {:ok, String.t()} | {:error, :version_not_supported}
+  defdelegate a2a_version(values), to: A2a, as: :version
+
+  # AG-37
+  # INV-35
+  @doc "Applies a task notification of a registered source; see `Relay.Agents.TaskNotifications.record/2`."
+  @spec record_task_notification(Relay.Scope.t(), TaskNotifications.attrs()) ::
+          {:ok, TaskNotifications.result()} | {:error, term()}
+  defdelegate record_task_notification(scope, attrs), to: TaskNotifications, as: :record
+
+  # AG-37
+  @doc "Reads the recorded state of a task of a source, or `nil`; see `Relay.Agents.TaskNotifications.get/3`."
+  @spec task_notification(Relay.Scope.t(), Relay.Id.t(), String.t()) ::
+          {:ok, map() | nil} | {:error, term()}
+  defdelegate task_notification(scope, source_id, task), to: TaskNotifications, as: :get
+
+  # AG-42
+  # INV-35
+  @doc "Reads a task again at its source and applies what it reports; see `Relay.Agents.TaskNotifications.reconcile/3`."
+  @spec reconcile_task(Relay.Scope.t(), Relay.Id.t(), String.t()) ::
+          {:ok, TaskNotifications.result() | :unconfigured | :unreadable} | {:error, term()}
+  defdelegate reconcile_task(scope, source_id, task), to: TaskNotifications, as: :reconcile
 
   # AG-63
   @doc "Reads an invitation with the kind of its responder inside the caller's scoped transaction, or `nil`; see `Relay.Agents.Escalation.invitation/1`."

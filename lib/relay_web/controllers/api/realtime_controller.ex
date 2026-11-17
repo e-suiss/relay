@@ -26,8 +26,10 @@ defmodule RelayWeb.Api.RealtimeController do
          {:ok, grant} <- Authorization.authorize(token, origin),
          {:ok, cursor} <- cursor(conn |> get_req_header("last-event-id") |> List.first()),
          {:ok, device_id} <- device(params["device_id"]),
-         {:ok, session, envelopes} <-
-           Session.open(grant, token, cursor: cursor, device_id: device_id, origin: origin) do
+         {:ok, stream} <- stream(params["stream"], grant.scopes),
+         opts = [cursor: cursor, device_id: device_id, origin: origin],
+         opts = opts ++ [source: Relay.Realtime.source(stream), register: stream == :inbox],
+         {:ok, session, envelopes} <- Session.open(grant, token, opts) do
       conn
       |> put_resp_header("content-type", "text/event-stream; charset=utf-8")
       |> put_resp_header("cache-control", "no-store")
@@ -44,9 +46,10 @@ defmodule RelayWeb.Api.RealtimeController do
   @spec poll(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def poll(conn, params) do
     %{scope: scope, principal: principal} = conn.assigns
-    source = Relay.Realtime.source()
 
     with {:ok, cursor} <- cursor(params["cursor"]),
+         {:ok, stream} <- stream(params["stream"], principal.scopes),
+         source = Relay.Realtime.source(stream),
          {:ok, feed, envelopes} <- open(scope, principal.subscriber_id, cursor, source) do
       deadline = Relay.Clock.monotonic_ms() + @wait_ms
       {feed, envelopes} = if envelopes == [], do: wait(feed, deadline), else: {feed, envelopes}
@@ -54,6 +57,21 @@ defmodule RelayWeb.Api.RealtimeController do
       Response.json(conn, 200, %{"events" => envelopes, "cursor" => feed.cursor})
     else
       {:error, error} -> Response.problem(conn, error)
+    end
+  end
+
+  # IN-37
+  # AG-44
+  defp stream(name, scopes) do
+    with {:ok, stream} <- Relay.Realtime.stream(name),
+         true <- Relay.Realtime.permitted?(scopes, stream) do
+      {:ok, stream}
+    else
+      :error ->
+        {:error, Relay.Error.new(:validation_failed, "stream is inbox or ag_ui")}
+
+      false ->
+        {:error, Relay.Error.new(:auth_insufficient_scope, "the token lacks the stream's scope")}
     end
   end
 

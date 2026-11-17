@@ -32,6 +32,7 @@ defmodule Relay.Channels do
   alias Relay.Channels.Push.CriticalGrant
   alias Relay.Channels.Push.Policy
   alias Relay.Channels.Push.Priority
+  alias Relay.Channels.Push.Progress
   alias Relay.Channels.Push.Tokens
   alias Relay.Channels.Registry
   alias Relay.Channels.Request
@@ -78,6 +79,13 @@ defmodule Relay.Channels do
   @doc "Decides the push policy of a delivery; see `Relay.Channels.Push.Policy.decide/2`."
   @spec push_policy(Priority.t(), Policy.facts()) :: {:ok, Policy.t()} | {:error, Relay.Error.t()}
   defdelegate push_policy(table, facts), to: Policy, as: :decide
+
+  # AG-52
+  # CH-23
+  @doc "Maps a long-running job's progress update onto the Live Activity and Android progress surfaces under the job's collapse key; see `Relay.Channels.Push.Progress.surface/2`."
+  @spec push_progress(Progress.update(), String.t()) ::
+          {:ok, Progress.surface()} | {:error, Relay.Error.t()}
+  defdelegate push_progress(update, fcm_collapse_key), to: Progress, as: :surface
 
   # T-25
   # INV-40

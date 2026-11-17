@@ -25,9 +25,9 @@ class ClientTest < Minitest::Test
   def test_x29_caller_idempotency_key_wins
     transport = StubTransport.new(TestSupport.json(202, ACCEPTED))
     client, = TestSupport.client(transport)
-    client.create_event({ "workflow" => "welcome" }, idempotency_key: "order-4821-shipped")
+    client.create_event({ "workflow" => "welcome" }, idempotency_key: "caller-key-1")
 
-    assert_equal "order-4821-shipped", transport.requests.first.headers["Idempotency-Key"]
+    assert_equal "caller-key-1", transport.requests.first.headers["Idempotency-Key"]
   end
 
   def test_x29_fresh_dpop_proof_on_every_attempt

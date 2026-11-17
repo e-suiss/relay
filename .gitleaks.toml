@@ -28,3 +28,9 @@ regexes = ['''^0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b11$''']
 [[allowlists]]
 description = "Published Suiss webhook profile and Standard Webhooks signature test vectors"
 paths = ['''^conformance/webhooks/vectors/''']
+
+[[allowlists]]
+description = "Synthetic idempotency key of an earlier Ruby SDK test revision"
+condition = "AND"
+paths = ['''^sdks/ruby/test/client_test\.rb$''']
+regexes = ['''^order-4821-shipped$''']

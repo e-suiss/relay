@@ -220,6 +220,24 @@ defmodule RelayWeb.Api.RecurrencesTest do
     end
   end
 
+  describe "OP-24 erasure" do
+    test "OP-24: erasing the subscriber cancels its recurrence rule in the erasure", ctx do
+      :ok = TenantFixture.retention_periods!()
+      subscriber = subscriber!(ctx.token)
+      body = created!(ctx.token, rule(%{"subscriber_id" => subscriber}))
+      [[recipient]] = scoped(ctx.scope, "SELECT recipient_id FROM relay.recurrences", [])
+
+      assert {:ok, :erased, _cancelled} =
+               Relay.Keys.Erasure.erase_subject(ctx.scope, recipient, "dsr-rule", actor())
+
+      assert scoped(
+               ctx.scope,
+               "SELECT state, cancel_reason, next_at IS NULL FROM relay.recurrences WHERE id = $1",
+               [id(body["id"])]
+             ) == [["cancelled", "subject_erasure", true]]
+    end
+  end
+
   describe "WF-49 WF-61 firing" do
     test "WF-49, WF-42: a due occurrence is sent once through the event path with the published version and the rule moves on",
          ctx do

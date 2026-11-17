@@ -1,6 +1,6 @@
 defmodule Relay.Subscribers.Erasure do
   @moduledoc """
-  The job that carries out a subscriber deletion request (API-66): it erases the subject by crypto-shredding (`Relay.Keys.Erasure.erase_subject/4`, request reference `sdr_…`), which cancels its pending and scheduled deliveries and deletes its inbox, and then completes the request with the erasure log entry, or holds it under a legal hold. Rows are never deleted. Its arguments carry identifiers only (T-15).
+  The job that carries out a subscriber deletion request (API-66): it erases the subject by crypto-shredding (`Relay.Keys.Erasure.erase_subject/4`, request reference `sdr_…`), which cancels its pending and scheduled deliveries with the rule `erasure.subject`, ends its workflow runs, cancels its recurrence rules, closes its open digest windows and shreds its inbox content (OP-24), and then completes the request with the erasure log entry, or holds it under a legal hold. The request and its answer are appended to `relay.dsr_log` by the database when the request is recorded and answered. Rows are never deleted. Its arguments carry identifiers only (T-15).
   """
 
   use Relay.Worker, queue: :maintenance, max_attempts: 20, timeout: 120_000

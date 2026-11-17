@@ -42,6 +42,8 @@ tags:
     description: Relay-side view of Access API clients.
   - name: channels
     description: "Provider accounts, sender identities and channel identities: adding, archiving, credential rotation, review and suspension with step-up."
+  - name: takedowns
+    description: "Takedowns of a message, a template or a sender identity by the installation operator, and their lifting, with step-up."
 paths:
   "/v1/operator/session/login":
     get:
@@ -4360,6 +4362,341 @@ paths:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "Paths, bodies and response shapes of channel management are chosen by the contract; a secret is only ever named by its reference and shown by its fingerprint (TN-26)."
+  "/v1/operator/takedowns":
+    get:
+      operationId: listTakedowns
+      tags:
+        - takedowns
+      summary: List takedowns
+      description: "The takedowns of the selected tenant environment, in force and lifted, oldest first (TN-60)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: A page of takedowns.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/TakedownList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "TN-60 names the takedown and its effects but no path, body or response shape, and is silent on lifting; the contract chooses them. A takedown is lifted by a second explicit action of the installation operator with step-up, and lifting never sends a cancelled delivery."
+    post:
+      operationId: applyTakedown
+      tags:
+        - takedowns
+      summary: Take a message, a template or a sender identity down
+      description: "The installation operator closes access to the content of a message (a notification), a template or a sender identity of the selected tenant environment after step-up (TN-60, TN-21). A message: its deliveries that were not handed to a provider are cancelled with the rule takedown.message, its workflow run ends and its inbox items are hidden. A template: it is archived, so nothing is rendered from it and it cannot be published. A sender identity: it is suspended with the rule takedown.sender_identity and is never used to send. Answers 201 with the takedown; a target that already has a takedown in force is answered 200 with that takedown and nothing changes. Audited as takedown.applied."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/TakedownCreate"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: A takedown of the target was already in force.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Takedown"
+        "201":
+          description: Taken down.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Takedown"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - notification_not_found
+        - template_not_found
+        - sender_identity_not_found
+        - auth_delegation_required
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "TN-60 names the takedown and its effects but no path, body or response shape, and is silent on lifting; the contract chooses them. A takedown is lifted by a second explicit action of the installation operator with step-up, and lifting never sends a cancelled delivery."
+  "/v1/operator/takedowns/{takedown_id}/lift":
+    post:
+      operationId: liftTakedown
+      tags:
+        - takedowns
+      summary: Lift a takedown
+      description: "The installation operator lifts a takedown after step-up (TN-60, TN-21): the inbox items it hid are shown again, the template it archived is active again with the live version it had, and the sender identity it suspended is resumed. Deliveries the takedown cancelled stay cancelled. A target that was already archived or suspended when it was taken down is left as it is. Lifting a lifted takedown changes nothing. Audited as takedown.lifted."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - name: takedown_id
+          in: path
+          description: Takedown identifier.
+          required: true
+          schema:
+            "$ref": "#/components/schemas/TakedownId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/TakedownLift"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Lifted.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Takedown"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - takedown_not_found
+        - auth_delegation_required
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "TN-60 names the takedown and its effects but no path, body or response shape, and is silent on lifting; the contract chooses them. A takedown is lifted by a second explicit action of the installation operator with step-up, and lifting never sends a cancelled delivery."
   "/v1/operator/channel_identities":
     post:
       operationId: createChannelIdentity
@@ -6409,6 +6746,113 @@ components:
           minLength: 1
           maxLength: 2000
       additionalProperties: false
+    TakedownId:
+      type: string
+      description: "Takedown identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+      pattern: "^tkd_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+      examples:
+        - tkd_01j9zq3k4m5n6p7q8r9s0t1v2w
+    TakedownTarget:
+      type: object
+      description: "What is taken down: a message by its notification identifier (ntf_), a template (tpl_) or a sender identity (snd_)."
+      required:
+        - type
+        - id
+      properties:
+        type:
+          type: string
+          enum:
+            - message
+            - template
+            - sender_identity
+        id:
+          type: string
+          pattern: "^(ntf|tpl|snd)_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+          maxLength: 30
+      additionalProperties: false
+    TakedownCreate:
+      type: object
+      required:
+        - target
+        - reason
+      properties:
+        target:
+          "$ref": "#/components/schemas/TakedownTarget"
+        reason:
+          type: string
+          description: Why the content is taken down; kept with the takedown and its audit record.
+          minLength: 1
+          maxLength: 500
+      additionalProperties: false
+    TakedownLift:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          description: Why the takedown is lifted; kept with the takedown and its audit record.
+          minLength: 1
+          maxLength: 500
+      additionalProperties: false
+    Takedown:
+      type: object
+      required:
+        - object
+        - id
+        - target
+        - reason
+        - state
+        - hidden_inbox_items
+        - cancelled_deliveries
+        - lift_reason
+        - lifted_at
+        - created_at
+        - updated_at
+      properties:
+        object:
+          type: string
+          const: takedown
+        id:
+          "$ref": "#/components/schemas/TakedownId"
+        target:
+          "$ref": "#/components/schemas/TakedownTarget"
+        reason:
+          type: string
+        state:
+          type: string
+          enum:
+            - active
+            - lifted
+        hidden_inbox_items:
+          type: integer
+          minimum: 0
+          description: Inbox items the takedown hid.
+        cancelled_deliveries:
+          type: integer
+          minimum: 0
+          description: Deliveries the takedown cancelled before they were handed to a provider.
+        lift_reason:
+          oneOf:
+            - type: string
+            - type: "null"
+        lifted_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        created_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+        updated_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+      additionalProperties: false
+    TakedownList:
+      allOf:
+        - "$ref": "./components/schemas.yaml#/ListEnvelope"
+        - properties:
+            data:
+              type: array
+              items:
+                "$ref": "#/components/schemas/Takedown"
 x-relay-family:
   - operator
 x-relay-error-catalog: "../errors.yaml"

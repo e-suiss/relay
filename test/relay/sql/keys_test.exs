@@ -93,7 +93,7 @@ defmodule Relay.Sql.KeysTest do
     assert row("SELECT failure_kind, failure_rule_id FROM relay.deliveries WHERE id = $1", [
              pending
            ]) ==
-             ["cancelled", "subject_erasure"]
+             ["cancelled", "erasure.subject"]
 
     assert row(
              "SELECT cancelled_deliveries, backup_copies_expire_at = created_at + interval '35 days' FROM relay.erasure_log WHERE recipient_id = $1",

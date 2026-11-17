@@ -259,6 +259,16 @@ defmodule Relay.Inbox do
     retracted
   end
 
+  # TN-60
+  # IN-35
+  @doc "Sends, inside the caller's transaction, a sync signal to the devices of every recipient that holds an item of a notification, after a takedown hid its items or showed them again (`relay_fn.inbox_takedown`)."
+  @spec takedown_sync(Relay.Id.t()) :: :ok
+  def takedown_sync(notification_id) do
+    scope = Store.current_scope()
+    recipients = Store.retract_recipients(nil, [notification_id])
+    Enum.each(recipients, &sync!(scope, &1))
+  end
+
   # IN-17
   # IN-9
   # IN-35

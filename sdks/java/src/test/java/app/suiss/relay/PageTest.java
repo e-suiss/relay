@@ -41,8 +41,7 @@ class PageTest {
     Page first =
         stub.client()
             .api()
-            .listWaitpoints(
-                new ListWaitpointsParams().limit(2), RequestOptions.none());
+            .listWaitpoints(new ListWaitpointsParams().limit(2), RequestOptions.none());
 
     assertEquals(1, stub.requests.size());
     assertEquals(2, first.data().size());

@@ -90,6 +90,53 @@ defmodule Relay.Agents do
   @spec list_waitpoints(Relay.Scope.t(), map()) :: {:ok, [map()]} | {:error, term()}
   defdelegate list_waitpoints(scope, filter), to: Waitpoint, as: :list
 
+  # AG-46
+  # API-56
+  @doc "A page of the waitpoints of agents and API clients, newest first; see `Relay.Agents.Waitpoint.page/4`."
+  @spec page_waitpoints(Relay.Scope.t(), map(), map() | nil, pos_integer()) ::
+          {:ok, [map()]} | {:error, term()}
+  defdelegate page_waitpoints(scope, filter, cursor, limit), to: Waitpoint, as: :page
+
+  # AG-12
+  # AG-25
+  @doc "Reads a waitpoint with its responders and its response, or `nil`; see `Relay.Agents.Waitpoint.read/2`."
+  @spec read_waitpoint(Relay.Scope.t(), Relay.Id.t()) :: {:ok, map() | nil} | {:error, term()}
+  defdelegate read_waitpoint(scope, waitpoint_id), to: Waitpoint, as: :read
+
+  # AG-12
+  # AG-25
+  @doc "Reads a waitpoint with its responders and its response inside the caller's scoped transaction; see `Relay.Agents.Waitpoint.read_in/1`."
+  @spec read_waitpoint_in(Relay.Id.t()) :: map() | nil
+  defdelegate read_waitpoint_in(waitpoint_id), to: Waitpoint, as: :read_in
+
+  # AG-12
+  # AG-25
+  @doc "Adds responders and responses to waitpoints; see `Relay.Agents.Waitpoint.details/2`."
+  @spec waitpoint_details(Relay.Scope.t(), [map()]) :: {:ok, [map()]} | {:error, term()}
+  defdelegate waitpoint_details(scope, waitpoints), to: Waitpoint, as: :details
+
+  # C-72
+  # AG-46
+  @doc "Cancels a waitpoint inside the caller's scoped transaction; see `Relay.Agents.Waitpoint.cancel_in/4`."
+  @spec cancel_waitpoint_in(Relay.Id.t(), String.t(), <<_::256>>, Relay.Actor.t()) ::
+          :cancelled | :already_terminal | :not_found
+  defdelegate cancel_waitpoint_in(waitpoint_id, reason, record_digest, actor),
+    to: Waitpoint,
+    as: :cancel_in
+
+  # AG-10
+  # AG-15
+  @doc "Renews a waiter's heartbeat inside the caller's scoped transaction; see `Relay.Agents.Waitpoint.heartbeat_in/3`."
+  @spec heartbeat_in(Relay.Id.t(), Waitpoint.waiter_kind(), Relay.Id.t()) ::
+          {atom(), DateTime.t() | nil}
+  defdelegate heartbeat_in(waitpoint_id, waiter_kind, waiter_ref), to: Waitpoint
+
+  # AG-53
+  # TN-54
+  @doc "The number of open and stalled waitpoints of the scope and the contract's limits on it, inside the caller's scoped transaction."
+  @spec open_waitpoints_in() :: %{required(:open | :tenant | :waiter) => non_neg_integer()}
+  def open_waitpoints_in, do: Map.put(Waitpoint.default_caps(), :open, Waitpoint.open_count_in())
+
   # T-24
   # TN-8
   @doc "Fires the waitpoints of a scope whose timers are due; the virtual clock tick calls it after a step."

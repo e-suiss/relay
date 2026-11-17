@@ -2,11 +2,11 @@ package app.suiss.relay;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
-import java.security.spec.InvalidKeySpecException;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.PublicKey;
 import java.security.Signature;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Clock;
 import java.time.Duration;
@@ -19,8 +19,8 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Verifies webhooks of the Suiss webhook profile, the Standard Webhooks headers shared by Relay
- * and Access: {@code v1a} Ed25519 signatures (the default) and {@code v1} HMAC-SHA256 signatures.
+ * Verifies webhooks of the Suiss webhook profile, the Standard Webhooks headers shared by Relay and
+ * Access: {@code v1a} Ed25519 signatures (the default) and {@code v1} HMAC-SHA256 signatures.
  *
  * <p>Pass the body exactly as it arrived, before any JSON parsing. Deduplicate verified messages by
  * {@code webhook-id} for at least 96 hours.
@@ -36,7 +36,8 @@ public final class WebhookVerifier {
 
   private static final Pattern ID = Pattern.compile("[\\x21-\\x7E]{1,256}");
   private static final Pattern TIMESTAMP = Pattern.compile("0|[1-9][0-9]{0,14}");
-  private static final Pattern OTHER_SCHEME = Pattern.compile("v[0-9][0-9a-z]{0,7},[A-Za-z0-9+/=_-]+");
+  private static final Pattern OTHER_SCHEME =
+      Pattern.compile("v[0-9][0-9a-z]{0,7},[A-Za-z0-9+/=_-]+");
   private static final byte[] ED25519_PREFIX = {
     0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00
   };
@@ -214,8 +215,8 @@ public final class WebhookVerifier {
     private Builder() {}
 
     /**
-     * Adds a key that may have signed the webhooks: {@code whpk_<base64>} for an Ed25519 public
-     * key or {@code whsec_<base64>} for an HMAC secret. Add both keys during a rotation.
+     * Adds a key that may have signed the webhooks: {@code whpk_<base64>} for an Ed25519 public key
+     * or {@code whsec_<base64>} for an HMAC secret. Add both keys during a rotation.
      *
      * @param text the key in its text form
      * @return this builder

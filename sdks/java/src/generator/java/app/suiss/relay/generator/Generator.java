@@ -71,7 +71,8 @@ public final class Generator {
       }
     }
 
-    write(base.resolve("ApiVersion.java"), apiVersion(server.path("info").path("version").asText()));
+    write(
+        base.resolve("ApiVersion.java"), apiVersion(server.path("info").path("version").asText()));
     write(base.resolve("ErrorCatalog.java"), errorCatalog(errors));
     write(base.resolve("RelayApi.java"), api(ops));
     for (Op op : ops) {
@@ -336,7 +337,13 @@ public final class Generator {
       String body = op.body().equals("NONE") ? "null" : "body";
       String call =
           op.paginated()
-              ? "requester.page(" + constant(op.id()) + ", " + pathList + ", " + params + ", options)"
+              ? "requester.page("
+                  + constant(op.id())
+                  + ", "
+                  + pathList
+                  + ", "
+                  + params
+                  + ", options)"
               : op.response().equals("TEXT")
                   ? "requester.text("
                       + constant(op.id())

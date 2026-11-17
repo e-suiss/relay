@@ -32,7 +32,8 @@ class RequesterTest {
   }
 
   @Test
-  @DisplayName("X-29 API-10: a mutating request carries one generated idempotency key on every retry")
+  @DisplayName(
+      "X-29 API-10: a mutating request carries one generated idempotency key on every retry")
   void idempotencyKeyIsReused() {
     Stub stub =
         new Stub()
@@ -242,7 +243,9 @@ class RequesterTest {
   @DisplayName("API-56: query parameters are sent with their wire names")
   void queryParameters() {
     Stub stub =
-        new Stub().reply(200, "{\"object\":\"list\",\"data\":[],\"has_more\":false,\"next_cursor\":null}");
+        new Stub()
+            .reply(
+                200, "{\"object\":\"list\",\"data\":[],\"has_more\":false,\"next_cursor\":null}");
     stub.client()
         .api()
         .listWaitpoints(

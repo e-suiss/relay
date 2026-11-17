@@ -86,7 +86,8 @@ class WebhookVerifierTest {
   }
 
   @Test
-  @DisplayName("API-65 WH-4: every shared vector verifies with the key of its scheme, alone or together")
+  @DisplayName(
+      "API-65 WH-4: every shared vector verifies with the key of its scheme, alone or together")
   void vectorsVerify() {
     assertTrue(VECTORS.path("cases").size() >= 3);
     for (JsonNode c : VECTORS.path("cases")) {
@@ -102,8 +103,7 @@ class WebhookVerifierTest {
       assertEquals(
           new VerifiedWebhook(id, timestamp, "v1"),
           verifier(timestamp, hmac()).verify(headers(id, timestamp, v1), body));
-      for (String[] keys :
-          new String[][] {{ed25519()}, {hmac()}, {hmac(), ed25519()}}) {
+      for (String[] keys : new String[][] {{ed25519()}, {hmac()}, {hmac(), ed25519()}}) {
         verifier(timestamp, keys).verify(headers(id, timestamp, v1 + " " + v1a), body);
       }
       verifier(timestamp, ed25519()).verify(id, Long.toString(timestamp), v1a, body);
@@ -165,7 +165,10 @@ class WebhookVerifierTest {
         reason(verifier(timestamp, hmac()), headers(id, timestamp, "v1,short"), body));
     assertEquals(
         WebhookVerificationException.Reason.NO_MATCHING_SIGNATURE,
-        reason(verifier(timestamp, hmac()), headers(id, timestamp, "v2,abcd " + c.path("v1a").asText()), body));
+        reason(
+            verifier(timestamp, hmac()),
+            headers(id, timestamp, "v2,abcd " + c.path("v1a").asText()),
+            body));
   }
 
   private static WebhookVerificationException.Reason reason(

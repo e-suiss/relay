@@ -33,7 +33,10 @@ final class Urls {
     StringBuilder out = new StringBuilder(root).append(path);
     char separator = '?';
     for (Map.Entry<String, String> entry : query.entrySet()) {
-      out.append(separator).append(encode(entry.getKey())).append('=').append(encode(entry.getValue()));
+      out.append(separator)
+          .append(encode(entry.getKey()))
+          .append('=')
+          .append(encode(entry.getValue()));
       separator = '&';
     }
     return URI.create(out.toString());

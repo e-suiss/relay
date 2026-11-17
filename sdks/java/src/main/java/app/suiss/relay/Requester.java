@@ -165,7 +165,8 @@ final class Requester {
     byte[] jti = new byte[16];
     settings.random().nextBytes(jti);
     try {
-      String[] auth = settings.credentials().headers(op.method(), uri, settings.clock().instant(), jti);
+      String[] auth =
+          settings.credentials().headers(op.method(), uri, settings.clock().instant(), jti);
       headers.put("Authorization", List.of(auth[0]));
       headers.put("DPoP", List.of(auth[1]));
     } catch (IOException e) {

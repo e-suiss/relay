@@ -45,9 +45,7 @@ class AgentsTest {
             .reply(200, waitpoint("stalled"))
             .reply(200, waitpoint("resolved"));
     JsonNode resolved =
-        stub.client()
-            .agents()
-            .awaitWaitpoint("wp_1", Duration.ofMinutes(1), Duration.ofSeconds(2));
+        stub.client().agents().awaitWaitpoint("wp_1", Duration.ofMinutes(1), Duration.ofSeconds(2));
 
     assertEquals("resolved", resolved.path("state").asText());
     assertEquals(List.of(Duration.ofSeconds(2), Duration.ofSeconds(2)), stub.sleeps);
@@ -60,7 +58,10 @@ class AgentsTest {
     WaitpointTimeoutException error =
         assertThrows(
             WaitpointTimeoutException.class,
-            () -> stub.client().agents().awaitWaitpoint("wp_1", Duration.ZERO, Duration.ofSeconds(1)));
+            () ->
+                stub.client()
+                    .agents()
+                    .awaitWaitpoint("wp_1", Duration.ZERO, Duration.ofSeconds(1)));
 
     assertEquals("wp_1", error.waitpointId());
   }
@@ -76,16 +77,17 @@ class AgentsTest {
     client.agents().leaseMailbox(5);
     client.agents().ackMailbox("l1", List.of("mbr_1", "mbr_2"));
 
-    assertEquals(
-        "{\"max\":5}", new String(stub.requests.get(0).body(), StandardCharsets.UTF_8));
+    assertEquals("{\"max\":5}", new String(stub.requests.get(0).body(), StandardCharsets.UTF_8));
     assertEquals(
         "{\"lease_id\":\"l1\",\"record_ids\":[\"mbr_1\",\"mbr_2\"]}",
         new String(stub.requests.get(1).body(), StandardCharsets.UTF_8));
-    assertEquals("https://relay.example.com/v1/mailbox/acks", stub.requests.get(1).uri().toString());
+    assertEquals(
+        "https://relay.example.com/v1/mailbox/acks", stub.requests.get(1).uri().toString());
   }
 
   @Test
-  @DisplayName("X-30: follow opens the stream, reads the history, then reads after each hint once per record")
+  @DisplayName(
+      "X-30: follow opens the stream, reads the history, then reads after each hint once per record")
   void follow() {
     List<String> order = new ArrayList<>();
     Stub stub =

@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.function.Consumer;
 
 /**
- * Reads the mailbox in stream order from where it last stopped and hands each record to its
- * handler once. Subscribe to wake hints first, call {@link #catchUp()} once for the history and
- * again after every hint.
+ * Reads the mailbox in stream order from where it last stopped and hands each record to its handler
+ * once. Subscribe to wake hints first, call {@link #catchUp()} once for the history and again after
+ * every hint.
  */
 public final class MailboxFeed {
   static final int DEFAULT_CAPACITY = 10_000;

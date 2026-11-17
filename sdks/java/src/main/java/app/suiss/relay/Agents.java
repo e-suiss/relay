@@ -121,9 +121,9 @@ public final class Agents {
   }
 
   /**
-   * Opens the hint stream first, then reads the mailbox history, then reads again after every
-   * hint, and hands each record to {@code handler} once by its id. A hint is only a wake-up: its
-   * content is not used.
+   * Opens the hint stream first, then reads the mailbox history, then reads again after every hint,
+   * and hands each record to {@code handler} once by its id. A hint is only a wake-up: its content
+   * is not used.
    *
    * @param hints the wake hints, for example webhook or push deliveries
    * @param handler receives each record

@@ -99,7 +99,8 @@ class DpopTest {
         "grant_type=client_credentials&resource=relay-client&scope=publish+read",
         new String(first.body(), StandardCharsets.UTF_8));
     assertEquals(
-        "Basic " + Base64.getEncoder().encodeToString("cli+1:s3cret".getBytes(StandardCharsets.UTF_8)),
+        "Basic "
+            + Base64.getEncoder().encodeToString("cli+1:s3cret".getBytes(StandardCharsets.UTF_8)),
         first.header("Authorization"));
     assertNull(part(first.header("DPoP"), 1).get("nonce"));
     assertFalse(part(first.header("DPoP"), 1).has("ath"));

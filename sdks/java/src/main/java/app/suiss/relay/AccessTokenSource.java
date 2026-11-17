@@ -17,8 +17,8 @@ import java.util.Objects;
 import java.util.Random;
 
 /**
- * Obtains DPoP-bound access tokens from Access with OAuth 2.0 client credentials and keeps each
- * one until shortly before it expires.
+ * Obtains DPoP-bound access tokens from Access with OAuth 2.0 client credentials and keeps each one
+ * until shortly before it expires.
  */
 public final class AccessTokenSource implements TokenSource {
   private static final Duration SKEW = Duration.ofSeconds(30);
@@ -77,7 +77,8 @@ public final class AccessTokenSource implements TokenSource {
     headers.put("Accept", List.of("application/json"));
     headers.put("Content-Type", List.of("application/x-www-form-urlencoded"));
     headers.put("Authorization", List.of("Basic " + basic()));
-    headers.put("DPoP", List.of(key.proof("POST", tokenEndpoint, null, nonce, clock.instant(), jti)));
+    headers.put(
+        "DPoP", List.of(key.proof("POST", tokenEndpoint, null, nonce, clock.instant(), jti)));
     Transport.Response response =
         transport.send(
             new Transport.Request(
@@ -111,7 +112,8 @@ public final class AccessTokenSource implements TokenSource {
       throw new AuthenticationException(
           Problem.local(200, "access_token_refused", "Access did not issue a DPoP access token"));
     }
-    long lifetime = body.path("expires_in").canConvertToLong() ? body.path("expires_in").asLong() : 300;
+    long lifetime =
+        body.path("expires_in").canConvertToLong() ? body.path("expires_in").asLong() : 300;
     this.token = accessToken;
     this.expiresAt = clock.instant().plus(Duration.ofSeconds(lifetime)).minus(SKEW);
     return accessToken;

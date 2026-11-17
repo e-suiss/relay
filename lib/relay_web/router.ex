@@ -947,6 +947,10 @@ defmodule RelayWeb.Router do
     # AG-22
     # AG-24
     # AG-64
+    # AG-43
+    # E-52
+    post "/mcp", McpController, :rpc, private: %{relay_operation: "callMcp"}
+
     get "/mailbox", MailboxController, :show, private: %{relay_operation: "getMailbox"}
 
     post "/mailbox/leases", MailboxController, :lease,

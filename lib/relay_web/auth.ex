@@ -210,6 +210,15 @@ defmodule RelayWeb.Auth do
 
   defp environment(_principal, _operation), do: :ok
 
+  # AG-43
+  # E-52
+  @doc "Checks that a verified principal may call an operation: the operation's environment and any one of its scopes. It is the rule `authenticate/2` applies, for a caller that reaches an operation through another one."
+  @spec permits(Principal.t(), Relay.Api.Contract.operation()) ::
+          :ok | {:error, Relay.Error.t()}
+  def permits(%Principal{} = principal, operation) do
+    with :ok <- environment(principal, operation), do: scopes(principal, operation)
+  end
+
   defp scopes(_principal, %{scopes: []}), do: :ok
 
   defp scopes(%Principal{scopes: granted} = principal, %{scopes: accepted}) do

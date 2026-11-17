@@ -114,6 +114,7 @@ defmodule Relay.Api do
       OperationsContacts,
       Agents,
       Mailbox,
+      Mcp,
       Waitpoints
     ]
 end

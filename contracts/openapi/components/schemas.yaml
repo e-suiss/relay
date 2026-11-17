@@ -6000,6 +6000,62 @@ MailboxLease:
       items:
         "$ref": "#/MailboxRecord"
   additionalProperties: false
+McpRequest:
+  type: object
+  description: "One JSON-RPC 2.0 request of the Model Context Protocol. A request without id is a notification and gets no response body."
+  required:
+    - jsonrpc
+    - method
+  properties:
+    jsonrpc:
+      type: string
+      const: "2.0"
+    id:
+      oneOf:
+        - type: string
+          minLength: 1
+          maxLength: 128
+        - type: integer
+    method:
+      type: string
+      minLength: 1
+      maxLength: 64
+    params:
+      type: object
+      description: "The parameters of the method. _meta carries io.modelcontextprotocol/protocolVersion, io.modelcontextprotocol/clientInfo and io.modelcontextprotocol/clientCapabilities; tools/call carries name and arguments."
+  additionalProperties: false
+McpResponse:
+  type: object
+  description: "One JSON-RPC 2.0 response of the Model Context Protocol: a result or an error. A result carries resultType complete; Relay never answers input_required."
+  required:
+    - jsonrpc
+  properties:
+    jsonrpc:
+      type: string
+      const: "2.0"
+    id:
+      oneOf:
+        - type: string
+          maxLength: 128
+        - type: integer
+        - type: "null"
+    result:
+      type: object
+    error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+          maxLength: 1024
+        data:
+          type: object
+      additionalProperties: false
+  additionalProperties: false
 MailboxAckRequest:
   type: object
   description: "Acknowledges records of one lease."

@@ -14792,6 +14792,119 @@ paths:
       x-relay-idempotency: required
       x-relay-step-up: false
       x-relay-stage: 12
+  "/v1/mcp":
+    post:
+      operationId: callMcp
+      tags:
+        - agents
+      summary: "Call the MCP server"
+      description: "The Model Context Protocol endpoint of Relay: one stateless JSON-RPC request per call, protocol revision 2026-07-28 (AG-43, E-52). The methods are server/discover, tools/list and tools/call; there is no session, no stream and no request from the server to the client, so neither sampling nor elicitation is used. Every request names its protocol version in the MCP-Protocol-Version header and in params._meta, its method in Mcp-Method and, for tools/call, the tool in Mcp-Name; a mismatch is the JSON-RPC error -32020 with status 400, a version Relay does not serve -32022 with status 400 and an unknown method -32601 with status 404. Each tool is one operation of this API and runs under the scopes, limits, idempotency and policy decisions of that operation: tools/list shows only the tools the credential's scopes grant, and a call to a tool they do not grant is refused in the tool result. An idempotent tool takes its key as the idempotency_key argument. No tool answers a waitpoint, and a result obtained through this endpoint is never an authorisation (AG-45, E-54)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - name: MCP-Protocol-Version
+          in: header
+          description: "The protocol revision of the request; the same value as params._meta of the body."
+          required: true
+          schema:
+            type: string
+            maxLength: 32
+        - name: Mcp-Method
+          in: header
+          description: "The JSON-RPC method of the body."
+          required: true
+          schema:
+            type: string
+            maxLength: 64
+        - name: Mcp-Name
+          in: header
+          description: "The tool a tools/call request names; a value outside plain ASCII is carried as =?base64?...?=."
+          required: false
+          schema:
+            type: string
+            maxLength: 512
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/McpRequest"
+      security:
+        - access_bearer: []
+      responses:
+        "200":
+          description: "The JSON-RPC response."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/McpResponse"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+      x-relay-scopes: []
+      x-relay-weight: 1
+      x-relay-idempotency: none
+      x-relay-step-up: false
+      x-relay-stage: 12
   "/v1/mailbox/records":
     get:
       operationId: listMailboxRecords

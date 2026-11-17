@@ -19,6 +19,8 @@ contracts/
 │       └── responses.yaml      # shared error responses
 ├── asyncapi/
 │   └── events.yaml             # single event catalog: webhooks, realtime, audit actions, Access events
+├── mcp/
+│   └── tools.yaml              # tool catalogue of the MCP server: each tool is one server operation
 └── connectors/
     └── outbox.sql              # table shape of the PostgreSQL outbox source of ingest connectors
 ```

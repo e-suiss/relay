@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "agent_protocols",
+  "description": "The mapping between Relay's waitpoint model and the agent protocols: the protocol versions Relay speaks and serves, and for each waitpoint state and interaction the task state each protocol sees. A protocol revision changes this table and nothing else; the waitpoint model does not depend on it. A cell either names a protocol state, leaves the protocol's state unchanged, or leaves the decision to the owner of the task.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source_ref", "protocols", "states"],
+  "properties": {
+    "source_ref": {"type": "string", "minLength": 1, "maxLength": 512},
+    "protocols": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["a2a", "mcp", "mcp_tasks", "ag_ui", "managed_agents"],
+      "properties": {
+        "a2a": {"$ref": "#/$defs/versioned"},
+        "mcp": {"$ref": "#/$defs/versioned"},
+        "mcp_tasks": {"$ref": "#/$defs/extension"},
+        "ag_ui": {"$ref": "#/$defs/opaque"},
+        "managed_agents": {"$ref": "#/$defs/extension"}
+      }
+    },
+    "states": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {"$ref": "#/$defs/row"}
+    }
+  },
+  "$defs": {
+    "version": {"type": "string", "pattern": "^[0-9][0-9A-Za-z.-]{0,31}$"},
+    "versioned": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["current", "served", "version_header"],
+      "properties": {
+        "current": {"$ref": "#/$defs/version"},
+        "served": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/version"}
+        },
+        "version_header": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]{0,63}$"}
+      }
+    },
+    "extension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identifier"],
+      "properties": {
+        "identifier": {"type": "string", "minLength": 1, "maxLength": 128}
+      }
+    },
+    "opaque": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transport"],
+      "properties": {
+        "transport": {"const": "opaque"}
+      }
+    },
+    "cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule"],
+      "properties": {
+        "rule": {"enum": ["state", "unchanged", "owner_decides"]},
+        "state": {"type": "string", "pattern": "^[A-Za-z][A-Za-z_]{0,63}$"}
+      }
+    },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["waitpoint", "interaction", "a2a", "mcp_tasks", "managed_agents"],
+      "properties": {
+        "waitpoint": {"enum": ["open", "stalled", "resolved", "expired", "cancelled"]},
+        "interaction": {"enum": ["response", "access_invitation", "event", "any"]},
+        "a2a": {"$ref": "#/$defs/cell"},
+        "mcp_tasks": {"$ref": "#/$defs/cell"},
+        "managed_agents": {"$ref": "#/$defs/cell"}
+      }
+    }
+  }
+}

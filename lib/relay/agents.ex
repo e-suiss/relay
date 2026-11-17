@@ -8,6 +8,7 @@ defmodule Relay.Agents do
   alias Relay.Agents.Correlation
   alias Relay.Agents.Escalation
   alias Relay.Agents.Mailbox
+  alias Relay.Agents.Protocols
   alias Relay.Agents.Registry
   alias Relay.Agents.Waitpoint
   alias Relay.Agents.WakeHint
@@ -362,4 +363,28 @@ defmodule Relay.Agents do
   @spec waitpoint_invitations(Relay.Scope.t(), Relay.Id.t()) ::
           {:ok, [map()]} | {:error, term()}
   defdelegate waitpoint_invitations(scope, waitpoint_id), to: Escalation, as: :invitations
+
+  # AG-46
+  # L-28
+  @doc "What a protocol (`:a2a`, `:mcp_tasks` or `:managed_agents`) sees of a waitpoint; see `Relay.Agents.Protocols.of/3`."
+  @spec protocol_state(Protocols.protocol(), map()) :: {:ok, Protocols.cell()} | :error
+  def protocol_state(protocol, waitpoint),
+    do: Protocols.of(Protocols.bundled(), protocol, waitpoint)
+
+  # AG-46
+  @doc "Every waitpoint state and interaction a protocol state stands for; see `Relay.Agents.Protocols.waitpoints/3`."
+  @spec protocol_waitpoints(Protocols.protocol(), String.t()) :: [{String.t(), String.t()}]
+  def protocol_waitpoints(protocol, protocol_state),
+    do: Protocols.waitpoints(Protocols.bundled(), protocol, protocol_state)
+
+  # E-50
+  # AG-47
+  @doc "The version of `\"a2a\"` or `\"mcp\"` Relay speaks when it sends."
+  @spec protocol_version(String.t()) :: String.t()
+  def protocol_version(protocol), do: Protocols.current(Protocols.bundled(), protocol)
+
+  # AG-72
+  @doc "The versions of `\"a2a\"` or `\"mcp\"` Relay serves."
+  @spec protocol_versions(String.t()) :: [String.t(), ...]
+  def protocol_versions(protocol), do: Protocols.served(Protocols.bundled(), protocol)
 end

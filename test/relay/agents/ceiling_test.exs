@@ -11,6 +11,8 @@ defmodule Relay.Agents.CeilingTest do
 
   @exceeded "agent_ceiling.exceeded"
   @unreadable "agent_ceiling.counter_unreadable"
+  @agent_sent "SELECT count(*) FROM relay.notifications WHERE sender_type = 'agent'"
+  @attributed "SELECT agent_ref FROM relay.agent_ceiling_holds WHERE notification_id = $1"
   @delivery "SELECT paused_at, pause_rule_id::text, failure_kind FROM relay.deliveries WHERE id = $1"
 
   setup do
@@ -72,9 +74,13 @@ defmodule Relay.Agents.CeilingTest do
     assert {:ok, _} = Relay.Tenancy.put_setting(scope, change, TenantFixture.actor())
   end
 
-  defp send!(ctx, sender, extra \\ %{}) do
+  defp event(ctx) do
     to = %{"id" => "user-" <> TenantFixture.random(), "email" => "ayse@example.com"}
-    body = %{"workflow" => ctx.workflow, "to" => [to], "data" => %{"order" => "A-1"}}
+    %{"workflow" => ctx.workflow, "to" => [to], "data" => %{"order" => "A-1"}}
+  end
+
+  defp send!(ctx, sender, extra \\ %{}) do
+    body = event(ctx)
     named? = sender in ["human", "system"]
     body = if named?, do: Map.put(body, "actor", %{"type" => sender}), else: body
     token = if sender == "agent", do: ctx.sender, else: ctx.token
@@ -221,6 +227,59 @@ defmodule Relay.Agents.CeilingTest do
         assert holds(ctx.scope) == []
         assert [nil, nil, nil] = delivery(ctx.scope, sent)
       end)
+    end
+
+    test "AG-48, INV-34: stating agent without an agent's credential is refused", ctx do
+      body = Map.put(event(ctx), "actor", %{"type" => "agent"})
+      refused = F.body(F.request(:post, "/v1/events", ctx.token, body), 422)
+
+      assert refused["code"] == "validation_failed"
+      assert [%{"pointer" => "/actor/type", "code" => "not_allowed"}] = refused["errors"]
+      assert sql!(ctx.scope, @agent_sent, []) == [[0]]
+    end
+
+    test "AG-48, INV-34: a batch item stating agent is refused on its own", ctx do
+      rows = [
+        Map.put(event(ctx), "ref", "a"),
+        Map.merge(event(ctx), %{"ref" => "b", "actor" => %{"type" => "agent"}})
+      ]
+
+      conn = F.request(:post, "/v1/events/batch", ctx.token, %{"events" => rows})
+      body = F.body(conn, 207)
+
+      assert [%{"ref" => "a", "status" => "accepted"}, rejected] = body["results"]
+      assert %{"ref" => "b", "status" => "rejected", "error" => error} = rejected
+      assert error["code"] == "validation_failed"
+      assert [%{"pointer" => "/actor/type", "code" => "not_allowed"}] = error["errors"]
+      assert sql!(ctx.scope, @agent_sent, []) == [[0]]
+    end
+
+    test "AG-48, INV-34: an agent's own send is accepted and attributed to it", ctx do
+      body = Map.put(event(ctx), "actor", %{"type" => "agent"})
+      accepted = F.body(F.request(:post, "/v1/events", ctx.sender, body), 202)
+      [%{"notification_id" => notification}] = accepted["notifications"]
+      {:ok, id} = Relay.ExternalId.decode(notification, ["ntf"])
+
+      assert sql!(ctx.scope, @attributed, [id]) == [[agent(ctx.scope)]]
+      assert sql!(ctx.scope, @agent_sent, []) == [[1]]
+    end
+
+    test "INV-34, AG-75: an agent notification that names no agent is not sent", ctx do
+      handler = "unattributed-" <> TenantFixture.random()
+      pid = self()
+      event = [:relay, :agents, :ceiling, :unattributed]
+      :telemetry.attach(handler, event, fn _, _, _, _ -> send(pid, :unattributed) end, nil)
+      on_exit(fn -> :telemetry.detach(handler) end)
+
+      sender = %{
+        notification_id: Relay.Id.generate(),
+        delivery_id: Relay.Id.generate(),
+        sender_type: "agent"
+      }
+
+      assert {:error, {:input_unavailable, :agent_ceiling}} = Ceiling.admit(ctx.scope, sender)
+      assert_received :unattributed
+      assert :pass = Ceiling.admit(ctx.scope, %{sender | sender_type: "system"})
     end
   end
 

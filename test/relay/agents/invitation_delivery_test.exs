@@ -351,6 +351,23 @@ defmodule Relay.Agents.InvitationDeliveryTest do
       assert output(ctx, copy(ctx, own, "push"))["subtitle"] == "Sent by a system"
       assert row(output(ctx, copy(ctx, own, "in_app")), "sender_type") == "system"
     end
+
+    test "AG-48, AG-75: the decision request of an agent's waitpoint names the agent", ctx do
+      sql = """
+      SELECT DISTINCT h.agent_ref FROM relay.agent_ceiling_holds h
+      JOIN relay.notifications n ON n.tenant_id = h.tenant_id AND n.environment = h.environment
+        AND n.id = h.notification_id
+      WHERE n.subject_type = 'waitpoint' AND n.subject_id = $1
+      """
+
+      waitpoint = create!(ctx, question(ctx))
+      assert :ok = invite!(ctx, waitpoint)
+      assert scoped(ctx, sql, [Relay.Id.to_string(waitpoint.id)]) == [[ctx.agent]]
+
+      own = create!(ctx, Map.delete(question(ctx), "waiter"))
+      assert :ok = invite!(ctx, own)
+      assert scoped(ctx, sql, [Relay.Id.to_string(own.id)]) == []
+    end
   end
 
   describe "AG-32 IN-6 E-16 the approval-type request" do

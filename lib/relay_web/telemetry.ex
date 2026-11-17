@@ -738,7 +738,7 @@ defmodule RelayWeb.Telemetry do
         ),
         counter("relay.agents.ceiling.unattributed.total",
           event_name: [:relay, :agents, :ceiling, :unattributed],
-          description: "Agent notifications that named no agent and passed the ceiling uncounted"
+          description: "Agent notifications that named no agent and were kept from sending"
         )
       ]
   end

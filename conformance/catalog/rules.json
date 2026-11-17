@@ -8216,6 +8216,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "AG-68",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "Untrusted content is wrapped in numbered markers after escaping, HTML stripping, NFC and removal of invisible characters",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
     "id": "AG-69",
     "section": "§17",
     "status": "frozen_technical",
@@ -8240,6 +8248,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "AG-72",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "A protocol version change ships with a Relay release: assessed within 30 days and served beside the old version for at least 90 days",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
     "id": "AG-73",
     "section": "§17",
     "status": "frozen_technical",
@@ -8252,6 +8268,78 @@
     "section": "§17",
     "status": "policy_default",
     "title": "Person-to-person encrypted transport is off in the eu region until a recorded legal approval; turning it on without one stops the release",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-75",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "An agent credential carries agent scopes only and is bound to an Access Party; a non-agent credential cannot state the sender type agent",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-76",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "Any credential of the tenant environment reads and cancels waitpoints; notify opens none; a second open waitpoint for the same waiter, type and key is a conflict",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-77",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "Escalation tiers are suspended while a waitpoint is stalled; a surface step never produces an escalated event",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-78",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "A mailbox lease runs on business time; N redeliveries mean 1 + N deliveries; a record is dead-lettered lazily",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-79",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "The ceiling is keyed by the agent record; a stop is a run state apart from the record; only send_all needs a step-up",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-80",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "Every decision request is sensitive on the lock screen; the response token is minted only for a message on a human channel",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-81",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "A response value is not carried in the event; the same value again is idempotent; a response token is single-use and short-lived",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-82",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "MCP authorises per tool, offers eight tools and none answers a waitpoint; a protocol cannot produce an Access decision reference",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-83",
+    "section": "§17",
+    "status": "frozen_technical",
+    "title": "Encrypted envelopes travel between agents of one tenant environment; a request box event reaches only an endpoint that names it",
     "verify_stage": 12
   },
   {

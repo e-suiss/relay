@@ -159,7 +159,8 @@ DECLARE
     "relay_ops.workflow_run_due_scopes": ["relay_worker"],
     "relay_ops.webhook_due_scopes": ["relay_worker"],
     "relay_ops.iys_scopes": ["relay_worker"],
-    "relay_ops.iys_sync_overview": ["relay_worker"]
+    "relay_ops.iys_sync_overview": ["relay_worker"],
+    "relay_ops.agent_operations_overview": ["relay_worker"]
   }';
   v_function regprocedure;
   v_name text;

@@ -480,3 +480,82 @@ tests:
       - eval_time: 4h
         alertname: RelayIysReconciliationDrift
         exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'relay_agents_waitpoints_silent'
+        values: "40 60x44 40x10"
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: RelayAgentSilentWaitpoints
+        exp_alerts: []
+      - eval_time: 45m
+        alertname: RelayAgentSilentWaitpoints
+        exp_alerts:
+          - exp_labels: {severity: ticket, decision: AG-71}
+            exp_annotations:
+              summary: "More than 50 waitpoints have been open or stalled without a state change for a day"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentsilentwaitpoints
+      - eval_time: 50m
+        alertname: RelayAgentSilentWaitpoints
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'relay_agents_responses_hour'
+        values: "49 60 60 60 60"
+      - series: 'relay_agents_response_median_milliseconds'
+        values: "900 900 900 2000 5000"
+      - series: 'relay_agents_response_rate_previous_percent'
+        values: "80 80 80 80 80"
+      - series: 'relay_agents_response_rate_percent'
+        values: "70 60 60 61 60"
+      - series: 'relay_agents_waitpoints_opened_day'
+        values: "300 150 200 200 0"
+      - series: 'relay_agents_waitpoints_opened_daily_average'
+        values: "100 100 100 100 0"
+      - series: 'relay_agents_ceiling_held_total{reason="counter_unreadable"}'
+        values: "0 0 3 3 3"
+      - series: 'relay_agents_ceiling_held_total{reason="exceeded"}'
+        values: "0 5 9 9 9"
+    alert_rule_test:
+      - eval_time: 0m
+        alertname: RelayAgentAutoAccept
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: RelayAgentAutoAccept
+        exp_alerts:
+          - exp_labels: {severity: ticket, decision: AG-71}
+            exp_annotations:
+              summary: "Waitpoints are answered in a median of under two seconds, the mark of an automatic accept"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentautoaccept
+      - eval_time: 3m
+        alertname: RelayAgentAutoAccept
+        exp_alerts: []
+      - eval_time: 0m
+        alertname: RelayAgentResponseRateDrop
+        exp_alerts: []
+      - eval_time: 1m
+        alertname: RelayAgentResponseRateDrop
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: RelayAgentResponseRateDrop
+        exp_alerts:
+          - exp_labels: {severity: ticket, decision: AG-71}
+            exp_annotations:
+              summary: "The waitpoint response rate fell by 20 points while twice as many waitpoints were opened"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentresponseratedrop
+      - eval_time: 3m
+        alertname: RelayAgentResponseRateDrop
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: RelayAgentResponseRateDrop
+        exp_alerts: []
+      - eval_time: 1m
+        alertname: RelayAgentCeilingCounterUnreadable
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: RelayAgentCeilingCounterUnreadable
+        exp_alerts:
+          - exp_labels: {severity: ticket, decision: AG-50}
+            exp_annotations:
+              summary: "Agent notifications are held because the agent ceiling counter cannot be read"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentceilingcounterunreadable

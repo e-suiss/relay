@@ -34,6 +34,8 @@ tags:
     description: Subscriber suspension.
   - name: suppressions
     description: Lifting bounce and complaint suppressions with step-up.
+  - name: agents
+    description: "Decisions on the notifications held at the agent ceiling, with step-up (AG-49, TN-21)."
   - name: pii
     description: Audited reveal of masked personal data.
   - name: audit
@@ -2659,6 +2661,118 @@ paths:
       x-relay-step-up: always
       x-relay-choice: true
       x-relay-choice-note: "Path chosen by the contract; the suppression is named by its sup_ identifier in the session's tenant and environment context, as the subscriber suspension operations do."
+  "/v1/operator/agents/{agent_id}/ceiling_decisions":
+    post:
+      operationId: createAgentCeilingDecisionAsOperator
+      tags:
+        - agents
+      summary: "Decide on held agent notifications with step-up"
+      description: "A tenant administrator with step-up decides on the notifications held for an agent of the selected tenant and environment after agent.ceiling_exceeded (AG-49, TN-21): send_all, which an API client cannot give, cancel or stop. The decision, its audit record (agent.ceiling_decided) and the step-up reference are written together; the held notifications are then sent or cancelled in the background, and one that is past its expires_at when it is released is closed as expired. A second, different decision for the same ceiling_event_id is 409 ceiling_decision_conflict; the same decision again returns the first."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/AgentId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/CeilingDecisionCreate"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "201":
+          description: Decided.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CeilingDecision"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - agent_not_found
+        - ceiling_event_not_found
+        - ceiling_decision_conflict
+        - auth_delegation_required
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+      x-relay-choice: true
+      x-relay-choice-note: "TN-21 asks a step-up for releasing the notifications held at the agent ceiling; giving the decision on the operator surface, the path and the tenant_admin role are chosen by the contract."
   "/v1/operator/email_reputation":
     get:
       operationId: listEmailReputationCircuits

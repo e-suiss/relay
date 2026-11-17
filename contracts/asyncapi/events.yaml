@@ -396,6 +396,10 @@ channels:
         "$ref": "#/components/messages/audit.sms_destination.stopped"
       audit.sms_destination.released:
         "$ref": "#/components/messages/audit.sms_destination.released"
+      audit.agent.ceiling_decided:
+        "$ref": "#/components/messages/audit.agent.ceiling_decided"
+      audit.agent.resumed:
+        "$ref": "#/components/messages/audit.agent.resumed"
       audit.email_reputation.closed:
         "$ref": "#/components/messages/audit.email_reputation.closed"
       audit.test_recipient.added:
@@ -791,6 +795,8 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.suppression.lifted"
       - "$ref": "#/channels/auditLog/messages/audit.sms_destination.stopped"
       - "$ref": "#/channels/auditLog/messages/audit.sms_destination.released"
+      - "$ref": "#/channels/auditLog/messages/audit.agent.ceiling_decided"
+      - "$ref": "#/channels/auditLog/messages/audit.agent.resumed"
       - "$ref": "#/channels/auditLog/messages/audit.email_reputation.closed"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.added"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.verified"
@@ -3810,6 +3816,42 @@ components:
                   const: sms_destination_stop
       x-relay-surface: audit
       x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.agent.ceiling_decided:
+      name: agent.ceiling_decided
+      title: agent.ceiling_decided
+      summary: "The owner decided on the notifications held at an agent's ceiling: send_all, cancel or stop (AG-49)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: agent_ceiling_decision
+      x-relay-surface: audit
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.agent.resumed:
+      name: agent.resumed
+      title: agent.resumed
+      summary: "A stop decision on an agent was lifted (AG-49)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: agent
+      x-relay-surface: audit
+      x-relay-stage: 12
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     webhook.quota.threshold_reached:
@@ -8457,10 +8499,12 @@ components:
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
 x-relay-event-names:
   - address.disabled
+  - agent.ceiling_decided
   - agent.ceiling_exceeded
   - agent.created
   - agent.deleted
   - agent.reactivated
+  - agent.resumed
   - agent.suspended
   - agent.updated
   - api_client.assigned

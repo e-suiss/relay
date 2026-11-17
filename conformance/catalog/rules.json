@@ -8208,6 +8208,22 @@
   },
   {
     "acceptance": "pending",
+    "id": "AG-70",
+    "section": "§17",
+    "status": "policy_default",
+    "title": "The agent ceiling starts at 100 an hour and 1000 a day; a tenant may only lower it",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
+    "id": "AG-71",
+    "section": "§17",
+    "status": "policy_default",
+    "title": "The agent operations alarms have fixed thresholds and none of them pages",
+    "verify_stage": 12
+  },
+  {
+    "acceptance": "pending",
     "id": "TN-1",
     "section": "§18",
     "status": "central",

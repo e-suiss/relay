@@ -390,6 +390,17 @@ defmodule Relay.Agents.WaitpointStore do
         do: {row["tenant_id"], row["environment"]}
   end
 
+  # AG-54
+  # AG-71
+  # TN-13 (4)
+  @doc "Counts the waitpoints, responses and held agent notifications of every tenant at `now`, by count only, through the cross-tenant overview escape hatch; a waitpoint is silent once its state has not changed for `silent_s` seconds."
+  @spec operations_overview(DateTime.t(), pos_integer()) :: map()
+  def operations_overview(%DateTime{} = now, silent_s) do
+    function = "relay_ops.agent_operations_overview"
+    [row] = Repo.call_unscoped!(:cross_tenant_overview, function, [now, silent_s])
+    row
+  end
+
   # AG-65
   @doc "Rows of the established scope that still hold a correlation key in clear, as `{source, id, created_at, event_type, correlation_key}` with the source `:waitpoint` or `:mailbox_record`; at most `limit` of each source."
   @spec plain_batch(pos_integer()) :: [

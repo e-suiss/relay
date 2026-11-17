@@ -16071,7 +16071,7 @@ paths:
       tags:
         - agents
       summary: "Decide on held agent notifications"
-      description: "The owner's decision on the notifications held for this agent after agent.ceiling_exceeded: send_all sends them, cancel cancels them, stop cancels them and stops the agent. It applies, at acceptance, to every notification held for the agent and enters the audit log with decision_ref. A second, different decision for the same ceiling_event_id is 409 ceiling_decision_conflict; the same decision again returns the first. A stopped agent's new notifications are accepted and skipped with agent_stopped (a decision, not an error) until resume."
+      description: "The owner's decision on the notifications held for this agent after agent.ceiling_exceeded (AG-49): send_all sends them, cancel cancels them, stop cancels them and stops the agent. It applies, at acceptance, to every notification held for the agent and enters the audit log with decision_ref; the held notifications are then sent or cancelled in the background. A held notification keeps its expires_at: one that is past it when it is released is closed as expired and not sent. Releasing held notifications needs a step-up (TN-21): send_all from an API client is 403 auth_operator_session_required and is given on the operator surface instead; cancel and stop need none. A second, different decision for the same ceiling_event_id is 409 ceiling_decision_conflict; the same decision again returns the first. A stopped agent's new notifications are accepted and skipped with agent_ceiling.stopped (a decision, not an error) until resume."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -16086,6 +16086,8 @@ paths:
       security:
         - access_bearer:
             - agents
+        - access_bearer:
+            - config
       responses:
         "201":
           description: Decided.
@@ -16166,12 +16168,109 @@ paths:
         - agent_not_found
         - ceiling_event_not_found
         - ceiling_decision_conflict
+        - auth_operator_session_required
       x-relay-scopes:
         - agents
+        - config
       x-relay-weight: 1
       x-relay-idempotency: required
+      x-relay-step-up: conditional
+      x-relay-step-up-when: decision is send_all
+      x-relay-stage: 12
+  "/v1/agents/{agent_id}/ceiling_holds":
+    get:
+      operationId: listAgentCeilingHolds
+      tags:
+        - agents
+      summary: "List held agent notifications"
+      description: "Pages through the notifications of this agent that reached the agent ceiling and were held, newest first (AG-49, INV-3): each with its rule (agent_ceiling.exceeded when the ceiling was reached, agent_ceiling.counter_unreadable when the counter could not be read), its ceiling event, its expires_at and its state. A held notification is never deleted: it stays held until the owner decides, and its row stays after the decision as released, cancelled or expired."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/AgentId"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+        - name: state
+          in: query
+          description: "Only held notifications in this state."
+          required: false
+          schema:
+            "$ref": "./components/schemas.yaml#/CeilingHoldState"
+      security:
+        - access_bearer:
+            - agents
+        - access_bearer:
+            - config
+      responses:
+        "200":
+          description: A page of held notifications.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/CeilingHoldList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+        - agent_not_found
+      x-relay-scopes:
+        - agents
+        - config
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
       x-relay-step-up: false
       x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: "AG-49 lets the owner see the held notifications but names no surface; the path, the state filter and the response shape are chosen by the contract."
   "/v1/agents/{agent_id}/resume":
     post:
       operationId: resumeAgent
@@ -16193,6 +16292,8 @@ paths:
       security:
         - access_bearer:
             - agents
+        - access_bearer:
+            - config
       responses:
         "200":
           description: "The agent's state."
@@ -16273,6 +16374,7 @@ paths:
         - agent_not_found
       x-relay-scopes:
         - agents
+        - config
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -26831,4 +26933,11 @@ x-relay-limits:
     verifications_per_run: 100
     x-relay-choice: true
     x-relay-choice-note: "The request rates, the 1000 consents of a batch and the hourly token and status limits are İYS's published limits (PC-34), transcribed in conformance/iys/openapi.yaml. PC-62 sets the direct access threshold of 250000 addresses with its warning at 80 percent. The quota warning at 80 percent of the consent limit, the hourly refresh of an integrator's authorisations, the 24 hours after which an authorisation that was not read again stops the brand's writes, the three read-backs after which a status that still disagrees fails the upload and the 100 brands of an environment are contract choices. PC-32 sets the pull every 15 minutes and OP-42 the hourly reconciliation; the seven days of İYS's window of movements, its blind spot of the last hour and the 1000 movements of a page are İYS's published values. The 50 pages a run reads for a brand and the 100 single verifications a run asks for a brand, under the hourly status limit, are contract choices."
+  agent_ceiling:
+    per_hour: 100
+    per_day: 1000
+  agent_operations:
+    silent_after: PT24H
+    x-relay-choice: true
+    x-relay-choice-note: "AG-70 sets the agent ceiling at 100 notifications an hour and 1000 a day for each agent; a tenant may only lower them (settings agents.ceiling.per_hour and agents.ceiling.per_day). AG-71 counts an open or stalled waitpoint as silent once its state has not changed for silent_after; the counts, rates and waits of the three agent operations alarms are in the alert rules."
 x-relay-error-catalog: "../errors.yaml"

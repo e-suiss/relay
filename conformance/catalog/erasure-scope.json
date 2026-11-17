@@ -881,6 +881,30 @@
       "personal_columns": [],
       "tenant_close": "row kept",
       "subject_erasure": "not subject data; the target identifiers and the operator's reason only"
+    },
+    {
+      "table": "agent_ceiling_events",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data; the agent's identifier, the rule and a count only"
+    },
+    {
+      "table": "agent_ceiling_decisions",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data; the owner's decision, its reference and note on an agent"
+    },
+    {
+      "table": "agent_ceiling_holds",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "identifiers, states and times only; the recipient's personal fields live in the notification and its subscriber record; row kept"
+    },
+    {
+      "table": "agent_run_states",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data; the run state of an agent and the owner's reference"
     }
   ],
   "locations": [

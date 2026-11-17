@@ -50,6 +50,7 @@ defmodule RelayTest.Isolation do
     {"replaceTemplateEmailTracking", %{"open_pixel" => false, "wrap_links" => false}},
     {"liftSuppression", %{"reason" => "isolation"}},
     {"liftSmsDestinationStop", %{"reason" => "isolation"}},
+    {"resumeAgent", %{"decision_ref" => "isolation"}},
     {"registerSubscriberDevice",
      %{
        "platform" => "fcm",
@@ -175,6 +176,11 @@ defmodule RelayTest.Isolation do
     @bodies
     |> Map.new()
     |> Map.put("replaceWorkflowDraft", %{"definition" => F.definition()})
+    |> Map.put("createAgentCeilingDecision", %{
+      "decision" => "cancel",
+      "ceiling_event_id" => Relay.ExternalId.encode("oev", Relay.Id.generate()),
+      "decision_ref" => "isolation"
+    })
     |> Map.put("replaceTemplateDraft", %{"definition" => @sms})
     |> Map.put("publishProducerTemplate", %{
       "name" => "Isolation",

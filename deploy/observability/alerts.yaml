@@ -624,6 +624,41 @@ groups:
         annotations:
           summary: "An integrator brand reached the İYS direct access threshold"
           runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiysdirectaccessreached
+  - name: relay-agents
+    rules:
+      - alert: RelayAgentSilentWaitpoints
+        expr: max(relay_agents_waitpoints_silent) > 50
+        for: 30m
+        labels:
+          severity: ticket
+          decision: AG-71
+        annotations:
+          summary: "More than 50 waitpoints have been open or stalled without a state change for a day"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentsilentwaitpoints
+      - alert: RelayAgentAutoAccept
+        expr: max(relay_agents_responses_hour) >= 50 and max(relay_agents_response_median_milliseconds) < 2000
+        labels:
+          severity: ticket
+          decision: AG-71
+        annotations:
+          summary: "Waitpoints are answered in a median of under two seconds, the mark of an automatic accept"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentautoaccept
+      - alert: RelayAgentResponseRateDrop
+        expr: max(relay_agents_response_rate_previous_percent) - max(relay_agents_response_rate_percent) >= 20 and max(relay_agents_waitpoints_opened_day) >= 2 * max(relay_agents_waitpoints_opened_daily_average) and max(relay_agents_waitpoints_opened_day) > 0
+        labels:
+          severity: ticket
+          decision: AG-71
+        annotations:
+          summary: "The waitpoint response rate fell by 20 points while twice as many waitpoints were opened"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentresponseratedrop
+      - alert: RelayAgentCeilingCounterUnreadable
+        expr: sum(increase(relay_agents_ceiling_held_total{reason="counter_unreadable"}[15m])) > 0
+        labels:
+          severity: ticket
+          decision: AG-50
+        annotations:
+          summary: "Agent notifications are held because the agent ceiling counter cannot be read"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentceilingcounterunreadable
   - name: relay-vm
     rules:
       - alert: RelayAtomGrowth

@@ -4,6 +4,8 @@ defmodule Relay.Policy.Live do
 
   Every skip and expiry is recorded on the delivery with its reason, rule and detail, with a ledger event and a `notification.suppressed` outbox event in the same transaction; a deferral is a `delivery.deferred` ledger event and the delivery stays `queued` with `deferred_until` (DS-24, DS-26, DS-27). An input that cannot be read records nothing and the job retries (INV-43); only the frequency counter fails open (INV-45). At acceptance and in the job, a deferral by quiet hours of a `social` or `marketing` delivery, a frequency cap met with the `digest` fate and a send past the category's density threshold hold the delivery in a digest window instead (`Relay.Policy.Live.Hold`, PC-46, PC-50, WF-30): it is recorded as deferred with its digest rule until the window fires and its job ends; the window's release (`digest_ready/2`, configured as `config :relay, Relay.Workflow.Digest, release: Relay.Policy.Live`) queues it again. Counters are read outside every transaction and counted only for a delivery the lattice sends, by its identifier. Each recorded decision emits `[:relay, :policy, :decision]` telemetry with its kind and reason, and a send whose time zone was inferred (device, profile country, tenant default) emits `[:relay, :policy, :fallback_zone]` with the source, so those deliveries are counted apart (WF-46, PC-48). `config :relay, Relay.Policy.Live, frequency_counter: […]` passes options to `Relay.Policy.FrequencyCounter`.
 
+  A delivery of a notification whose sender type is `agent` that the lattice decided to send then passes the ceiling of its agent (`Relay.Agents.Ceiling.admit/3`, AG-48, INV-34), on every run of the delivery job: a notification over the ceiling, or one whose counter cannot be read, is held with its delivery paused for the owner's decision and the job ends; notifications of human and system senders never reach the ceiling. `config :relay, Relay.Policy.Live, agent_ceiling: […]` passes options to it.
+
   A delivery sent with `timing: next_break`, or opened by a channel step that has it while the send request gives none (WF-56, WF-57), waits as a deferral with `next_break.deferred` and its job snoozes until the deferral ends (WF-43). Its break is released, once and durably, when that deferral or a quiet hours deferral of it has run out at the next evaluation, or at once when a device of the recipient reports a break transition (`break_reached/2`, IN-53); a released delivery passes the lattice like any other.
   """
 
@@ -11,6 +13,7 @@ defmodule Relay.Policy.Live do
     top_level?: true,
     deps: [
       Relay,
+      Relay.Agents.Ceiling,
       Relay.Compliance,
       Relay.Datasets,
       Relay.Delivery,
@@ -26,6 +29,7 @@ defmodule Relay.Policy.Live do
 
   @behaviour Relay.Policy.Lattice
 
+  alias Relay.Agents.Ceiling
   alias Relay.Datasets
   alias Relay.Policy.FrequencyCounter
   alias Relay.Policy.Live.Hold
@@ -264,8 +268,9 @@ defmodule Relay.Policy.Live do
       {:ok, nil} ->
         :done
 
-      {:ok, {snapshot, hold}} ->
-        run(scope, delivery_id, {snapshot, hold}, Relay.Policy.evaluate(snapshot))
+      {:ok, {snapshot, hold, sender}} ->
+        result = ceiling(scope, sender, Relay.Policy.evaluate(snapshot))
+        run(scope, delivery_id, {snapshot, hold}, result)
 
       {:error, %Relay.Error{code: :not_found}} ->
         :done
@@ -284,7 +289,7 @@ defmodule Relay.Policy.Live do
   def reevaluate(%{scope: %Scope{} = scope, delivery_id: delivery_id}) do
     case load(scope, delivery_id) do
       {:ok, nil} -> {:error, :not_ready}
-      {:ok, {snapshot, _hold}} -> port(Relay.Policy.evaluate(snapshot))
+      {:ok, {snapshot, _hold, _sender}} -> port(Relay.Policy.evaluate(snapshot))
       {:error, _reason} -> {:error, :not_ready}
     end
   end
@@ -316,8 +321,8 @@ defmodule Relay.Policy.Live do
       {:ok, nil} ->
         {:ok, nil}
 
-      {:ok, {snapshot, recipient_id, hold}} ->
-        {:ok, {with_frequency(scope, recipient_id, snapshot), hold}}
+      {:ok, {snapshot, recipient_id, hold, sender}} ->
+        {:ok, {with_frequency(scope, recipient_id, snapshot), hold, sender}}
 
       error ->
         error
@@ -368,7 +373,33 @@ defmodule Relay.Policy.Live do
       category: category
     }
 
-    {snapshot, context["recipient_id"], hold}
+    sender = %{
+      notification_id: context["notification_id"],
+      delivery_id: context["id"],
+      sender_type: context["sender_type"]
+    }
+
+    {snapshot, context["recipient_id"], hold, sender}
+  end
+
+  # AG-48
+  # AG-49
+  # AG-50
+  # INV-34
+  defp ceiling(scope, sender, {:send, _info} = result) do
+    case Ceiling.admit(scope, sender, ceiling_options()) do
+      :pass -> result
+      :held -> :ceiling_held
+      {:skip, reason, rule_id} -> {:skip, reason, rule_id, %{}}
+      {:expire, rule_id} -> {:expire, rule_id, %{}}
+      {:error, _reason} = error -> error
+    end
+  end
+
+  defp ceiling(_scope, _sender, result), do: result
+
+  defp ceiling_options do
+    :relay |> Application.get_env(__MODULE__, []) |> Keyword.get(:agent_ceiling, [])
   end
 
   # WF-56
@@ -445,6 +476,11 @@ defmodule Relay.Policy.Live do
     if in_scope!(scope, fn -> Store.pause(delivery_id, rule_id, id) end) == :paused,
       do: emit(:pause, :kill_switch)
 
+    :done
+  end
+
+  defp run(_scope, _delivery_id, _snapshot, :ceiling_held) do
+    emit(:pause, :agent_ceiling)
     :done
   end
 

@@ -78,6 +78,7 @@ defmodule RelayWeb.Telemetry do
       inbox_metrics() ++
       webhook_metrics() ++
       iys_metrics() ++
+      agent_metrics() ++
       vm_metrics()
   end
 
@@ -683,6 +684,63 @@ defmodule RelayWeb.Telemetry do
         description: "Marketing deliveries evaluated against an İYS copy past the warning age"
       )
     ]
+  end
+
+  # AG-48
+  # AG-50
+  # AG-54
+  # AG-71
+  @doc "The agent metrics: the agent notifications held at an agent ceiling by reason (`exceeded` or `counter_unreadable`) and those no agent could be named for; and the agent operations gauges the missed-timer sweep measures across tenants: silent and stalled waitpoints, the responses of the last hour and their median response time, the response rate and opened volume of the last day beside those of the seven days before, the share of waitpoints resolved through an escalation, the responses of the last seven days by evidence level, and the held notifications and open ceiling events."
+  @spec agent_metrics() :: [Telemetry.Metrics.t()]
+  def agent_metrics do
+    overview = [:relay, :agents, :operations, :overview]
+
+    gauges = [
+      {"relay.agents.waitpoints.silent", :silent_waitpoints,
+       "Open or stalled waitpoints whose state has not changed for the silence period"},
+      {"relay.agents.waitpoints.stalled", :stalled_waitpoints, "Stalled waitpoints"},
+      {"relay.agents.responses.hour", :responses_hour, "Waitpoint responses of the last hour"},
+      {"relay.agents.response.median.milliseconds", :median_response_ms,
+       "Median time from opening to response of the responses of the last hour"},
+      {"relay.agents.waitpoints.opened.day", :opened_day,
+       "Question and review waitpoints opened in the last day"},
+      {"relay.agents.waitpoints.opened.daily_average", :opened_daily_average,
+       "Daily average of the waitpoints opened in the seven days before the last day"},
+      {"relay.agents.response.rate.percent", :response_rate_day,
+       "Responses per opened waitpoint of the last day, in percent"},
+      {"relay.agents.response.rate.previous.percent", :response_rate_week,
+       "Responses per opened waitpoint of the seven days before the last day, in percent"},
+      {"relay.agents.escalation.share.percent", :escalation_share,
+       "Share of the waitpoints resolved in seven days by a responder an escalation added"},
+      {"relay.agents.ceiling.held", :held_notifications,
+       "Agent notifications held at an agent ceiling for the owner's decision"},
+      {"relay.agents.ceiling.open_events", :open_ceiling_events,
+       "Agent ceiling events the owner has not decided"}
+    ]
+
+    overview_gauges =
+      for {name, measurement, description} <- gauges do
+        last_value(name, event_name: overview, measurement: measurement, description: description)
+      end
+
+    overview_gauges ++
+      [
+        last_value("relay.agents.responses.evidence",
+          event_name: [:relay, :agents, :operations, :evidence],
+          measurement: :count,
+          tags: [:level],
+          description: "Waitpoint responses of the last seven days by evidence level"
+        ),
+        counter("relay.agents.ceiling.held.total",
+          event_name: [:relay, :agents, :ceiling, :held],
+          tags: [:reason],
+          description: "Agent notifications held at an agent ceiling, by reason"
+        ),
+        counter("relay.agents.ceiling.unattributed.total",
+          event_name: [:relay, :agents, :ceiling, :unattributed],
+          description: "Agent notifications that named no agent and passed the ceiling uncounted"
+        )
+      ]
   end
 
   # OP-32

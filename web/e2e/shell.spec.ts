@@ -27,8 +27,12 @@ test.describe("X-47 console shell", () => {
         .getByRole("link", { name })
         .click();
       await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
-      await expect(page.getByLabel("Tenant", { exact: true })).toHaveValue(tenant);
-      await expect(page.getByLabel("Environment", { exact: true })).toBeVisible();
+      await expect(page.getByLabel("Tenant", { exact: true })).toHaveValue(
+        tenant,
+      );
+      await expect(
+        page.getByLabel("Environment", { exact: true }),
+      ).toBeVisible();
       await expect(page.getByLabel("Subtenant", { exact: true })).toBeVisible();
     }
     await expectAccessible(page);
@@ -38,9 +42,13 @@ test.describe("X-47 console shell", () => {
     const seen = await mockApi(page);
     await page.goto("/console/activity");
     await page.getByLabel("Tenant", { exact: true }).selectOption(otherTenant);
-    await expect(page.getByLabel("Environment", { exact: true })).toHaveValue("test");
+    await expect(page.getByLabel("Environment", { exact: true })).toHaveValue(
+      "test",
+    );
     await page.reload();
-    await expect(page.getByLabel("Tenant", { exact: true })).toHaveValue(otherTenant);
+    await expect(page.getByLabel("Tenant", { exact: true })).toHaveValue(
+      otherTenant,
+    );
     expect(seen.some((item) => item.path === "/v1/operator/session")).toBe(
       true,
     );

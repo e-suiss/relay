@@ -32,7 +32,10 @@ describe("X-4 one tenant context", () => {
       { tenant: b, environment: "live", subtenant: null },
     );
     expect(
-      resolveContext({ tenant: a, environment: "test", subtenant: stn }, choices),
+      resolveContext(
+        { tenant: a, environment: "test", subtenant: stn },
+        choices,
+      ),
     ).toEqual({ tenant: a, environment: "test", subtenant: stn });
     expect(resolveContext({ subtenant: "nope" }, choices).subtenant).toBeNull();
   });

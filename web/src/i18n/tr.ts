@@ -52,8 +52,7 @@ export const tr: Messages = {
   "session.signIn": "Access ile giriş yap",
   "session.signOut": "Çıkış yap",
   "session.operator": "{name} olarak giriş yapıldı",
-  "session.unavailable":
-    "Oturum yüklenemedi. Biraz sonra yeniden deneyin.",
+  "session.unavailable": "Oturum yüklenemedi. Biraz sonra yeniden deneyin.",
   "session.retry": "Yeniden dene",
   "theme.label": "Tema",
   "theme.system": "Sistem",

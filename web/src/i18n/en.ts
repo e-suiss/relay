@@ -36,7 +36,8 @@ export const en = {
   "context.environment": "Environment",
   "context.subtenant": "Subtenant",
   "context.subtenantAll": "Tenant level",
-  "context.subtenantHint": "Subtenant identifier (stn_…), empty for the tenant level",
+  "context.subtenantHint":
+    "Subtenant identifier (stn_…), empty for the tenant level",
   "context.subtenantInvalid": "Not a subtenant identifier",
   "context.apply": "Apply",
   "context.none": "No tenant is assigned to your account.",
@@ -44,11 +45,13 @@ export const en = {
   "env.test": "Test",
   "session.loading": "Loading your session…",
   "session.signInTitle": "Sign in to the Relay console",
-  "session.signInBody": "The console uses your Access account. Roles are kept in Relay.",
+  "session.signInBody":
+    "The console uses your Access account. Roles are kept in Relay.",
   "session.signIn": "Sign in with Access",
   "session.signOut": "Sign out",
   "session.operator": "Signed in as {name}",
-  "session.unavailable": "The session could not be loaded. Try again in a moment.",
+  "session.unavailable":
+    "The session could not be loaded. Try again in a moment.",
   "session.retry": "Try again",
   "theme.label": "Theme",
   "theme.system": "System",
@@ -67,18 +70,26 @@ export const en = {
   "status.cancelled": "Cancelled",
   "status.pushAccepted": "Accepted by the push service",
   "status.pushShown": "Shown on the device (SDK receipt)",
-  "semantics.push": "Provider acceptance is not delivery. Delivered only when the app's SDK reports the message as shown.",
-  "semantics.web_push": "Provider acceptance is not delivery. Delivered only when the browser SDK reports the message as shown.",
-  "semantics.email": "Sent: the email provider or relay accepted it. Delivered: the provider's delivery event or a success DSN. Opens are unreliable; only human clicks count.",
-  "semantics.sms": "Sent: the provider accepted it. Delivered: the operator's delivery report, which can be hours late or never arrive.",
-  "semantics.voice": "Sent: the provider started the call. Delivered: the provider reported the call answered or completed.",
-  "semantics.whatsapp": "Sent: the provider accepted it. Delivered: the WhatsApp delivered event. Recipients can turn read receipts off.",
+  "semantics.push":
+    "Provider acceptance is not delivery. Delivered only when the app's SDK reports the message as shown.",
+  "semantics.web_push":
+    "Provider acceptance is not delivery. Delivered only when the browser SDK reports the message as shown.",
+  "semantics.email":
+    "Sent: the email provider or relay accepted it. Delivered: the provider's delivery event or a success DSN. Opens are unreliable; only human clicks count.",
+  "semantics.sms":
+    "Sent: the provider accepted it. Delivered: the operator's delivery report, which can be hours late or never arrive.",
+  "semantics.voice":
+    "Sent: the provider started the call. Delivered: the provider reported the call answered or completed.",
+  "semantics.whatsapp":
+    "Sent: the provider accepted it. Delivered: the WhatsApp delivered event. Recipients can turn read receipts off.",
   "semantics.slack": "Sent: Slack accepted the message.",
   "semantics.teams": "Sent: Teams accepted the message.",
   "semantics.telegram": "Sent: Telegram accepted the message.",
   "semantics.discord": "Sent: Discord accepted the message.",
-  "semantics.in_app": "Delivered: the inbox item was stored. Seen and read are tracked separately.",
-  "semantics.webhook": "Delivered: the endpoint answered with a success status.",
+  "semantics.in_app":
+    "Delivered: the inbox item was stored. Seen and read are tracked separately.",
+  "semantics.webhook":
+    "Delivered: the endpoint answered with a success status.",
   "channel.push": "Push",
   "channel.web_push": "Web push",
   "channel.email": "Email",
@@ -99,17 +110,20 @@ export const en = {
   "pii.reveal": "Reveal",
   "pii.hide": "Hide",
   "pii.revealTitle": "Reveal {field}",
-  "pii.revealBody": "Revealing personal data is recorded in the audit log with your reason.",
+  "pii.revealBody":
+    "Revealing personal data is recorded in the audit log with your reason.",
   "pii.reason": "Reason",
   "pii.confirm": "Reveal",
   "pii.cancel": "Cancel",
-  "pii.stepUp": "Revealing needs a fresh sign-in. You are being sent to Access.",
+  "pii.stepUp":
+    "Revealing needs a fresh sign-in. You are being sent to Access.",
   "pii.failed": "The value could not be revealed: {reason}",
   "pii.field.email": "email",
   "pii.field.phone": "phone",
   "pii.field.name": "name",
   "pii.field.attributes": "attributes",
-  "engagement.openNotice": "Open tracking is unreliable: mail clients and privacy proxies load or block the pixel. Open rates are shown for information only and drive no decision.",
+  "engagement.openNotice":
+    "Open tracking is unreliable: mail clients and privacy proxies load or block the pixel. Open rates are shown for information only and drive no decision.",
   "engagement.clicks": "Clicks",
   "engagement.human": "Human: {count}",
   "engagement.bot": "Likely bot: {count}",

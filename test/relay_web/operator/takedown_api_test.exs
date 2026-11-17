@@ -308,6 +308,22 @@ defmodule RelayWeb.Operator.TakedownApiTest do
       unknown = %{"id" => Relay.ExternalId.encode("tkd", Relay.Id.generate())}
       assert json(lift(ctx, unknown, platform), 404)["code"] == "takedown_not_found"
     end
+
+    test "TN-60, TN-16: a takedown and its target are not found from another tenant", ctx do
+      F.workflow!(ctx.scope, ctx.token, "order-shipped")
+      [[id]] = sql!(ctx.scope, "SELECT id FROM relay.templates", [])
+      external = Relay.ExternalId.encode("tpl", id)
+      platform = step_up(installation_operator())
+      other = %{ctx | scope: TenantFixture.tenant!().live}
+
+      missing = json(take_down(other, "template", external, platform), 404)
+      assert missing["code"] == "template_not_found"
+
+      takedown = json(take_down(ctx, "template", external, platform), 201)
+      assert json(lift(other, takedown, platform), 404)["code"] == "takedown_not_found"
+      assert json(request(:get, @path, as: platform, tenant: other.scope), 200)["data"] == []
+      assert sql!(ctx.scope, "SELECT state FROM relay.takedowns", []) == [["active"]]
+    end
   end
 
   describe "TN-60 TN-21 TN-47 takedown of a sender identity" do

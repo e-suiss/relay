@@ -35,10 +35,7 @@ jobs:
       - run: dart analyze --fatal-infos
       - run: flutter test
       # X-50
-      - name: pub.dev token from GitHub OIDC
-        run: |
-          token="$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://pub.dev" | jq -r .value)"
-          echo "::add-mask::$token"
-          echo "PUB_TOKEN=$token" >> "$GITHUB_ENV"
-      - run: flutter pub token add https://pub.dev --env-var PUB_TOKEN
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
+        with:
+          sdk: 3.13.7
       - run: flutter pub publish --force

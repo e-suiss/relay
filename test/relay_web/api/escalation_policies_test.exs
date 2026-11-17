@@ -42,6 +42,25 @@ defmodule RelayWeb.Api.EscalationPoliciesTest do
 
   defp pointers(problem), do: Enum.map(problem["errors"], &{&1["pointer"], &1["code"]})
 
+  defp question(ctx, responders, plan) do
+    key = "ck-" <> TenantFixture.random()
+    expires = ctx.scope |> Relay.Clock.business_now() |> DateTime.add(3_600, :second)
+
+    body = %{
+      "kind" => "question",
+      "waiter" => %{"kind" => "agent", "id" => agent!(ctx)},
+      "match" => %{"type" => "refund.decided", "correlation_key" => key},
+      "expires_at" => DateTime.to_iso8601(expires),
+      "response_schema" => %{"type" => "object"},
+      "responders" => responders,
+      "subject_digest" => "sha256:" <> String.duplicate("ab", 32),
+      "content" => %{"action" => "refund"},
+      "actions" => [%{"id" => "accept", "label" => "Accept"}]
+    }
+
+    F.request(:post, "/v1/waitpoints", ctx.manager, Map.merge(body, plan))
+  end
+
   defp audit(scope, action) do
     now = DateTime.utc_now()
 
@@ -173,6 +192,85 @@ defmodule RelayWeb.Api.EscalationPoliciesTest do
       assert code(write(ctx, "old", tiers, match(1)), 422) == "escalation_policy_archived"
       assert %{"state" => "archived", "version" => 1} = F.body(read(ctx, "/old"), 200)
       assert code(archive(ctx, "missing"), 404) == "escalation_policy_not_found"
+    end
+  end
+
+  describe "AG-17 AG-63 AG-12 the plan of a waitpoint on the API" do
+    test "AG-17, AG-63: a waitpoint takes an inline policy and a surface policy and shows them",
+         ctx do
+      first = %{"kind" => "subscriber", "id" => subscriber!(ctx)}
+      second = %{"kind" => "subscriber", "id" => subscriber!(ctx)}
+      step = %{"surfaces" => [%{"channel" => "sms"}], "escalate_after" => "PT2M"}
+      surface = %{"recipients" => [%{"responder" => first, "steps" => [step]}]}
+      tiers = [%{"after" => "PT5M", "add_responders" => [second], "repeat" => 1}]
+      plan = %{"escalation_policy" => %{"tiers" => tiers}, "surface_policy" => surface}
+
+      created = F.body(question(ctx, [first, second], plan), 201)
+      assert created["escalation_policy"] == %{"key" => nil, "version" => 1, "inline" => true}
+      assert created["surface_policy"] == surface
+
+      shown = F.body(F.request(:get, "/v1/waitpoints/" <> created["id"], ctx.manager), 200)
+      assert shown["escalation_policy"] == created["escalation_policy"]
+      assert shown["surface_policy"] == surface
+
+      {:ok, id} = Relay.ExternalId.decode(created["id"], ["wp"])
+      {:ok, steps} = Relay.Agents.waitpoint_steps(ctx.scope, id)
+      assert Enum.map(steps, &{&1["track"], &1["state"]}) == [
+               {"escalation", "armed"},
+               {"escalation", "pending"},
+               {"surface", "fired"},
+               {"surface", "armed"}
+             ]
+
+      {:ok, [invitation]} = Relay.Agents.waitpoint_invitations(ctx.scope, id)
+      assert invitation["surfaces"] == [%{"channel" => "sms"}]
+    end
+
+    test "AG-17: a waitpoint pins the stored policy it names by key", ctx do
+      first = %{"kind" => "subscriber", "id" => subscriber!(ctx)}
+      F.body(write(ctx, "on-call", [%{"after" => "PT1M"}]), 201)
+
+      plan = %{"escalation_policy" => %{"key" => "on-call"}}
+      created = F.body(question(ctx, [first], plan), 201)
+      pinned = %{"key" => "on-call", "version" => 1, "inline" => false}
+      assert created["escalation_policy"] == pinned
+
+      plain = F.body(question(ctx, [first], %{}), 201)
+      assert plain["escalation_policy"] == nil
+      refute Map.has_key?(plain, "surface_policy")
+
+      missing = question(ctx, [first], %{"escalation_policy" => %{"key" => "nobody"}})
+      assert code(missing, 404) == "escalation_policy_not_found"
+      F.body(archive(ctx, "on-call"), 200)
+      assert code(question(ctx, [first], plan), 422) == "escalation_policy_archived"
+    end
+
+    test "AG-12, AG-53: a plan outside the responders or over the limit opens nothing", ctx do
+      first = %{"kind" => "subscriber", "id" => subscriber!(ctx)}
+      outsider = %{"kind" => "subscriber", "id" => subscriber!(ctx)}
+      step = %{"surfaces" => [%{"channel" => "sms"}], "escalate_after" => "PT2M"}
+      inbox = %{"surfaces" => [%{"channel" => "in_app"}], "escalate_after" => "PT2M"}
+
+      tier = %{"after" => "PT1M", "add_responders" => [outsider]}
+      outside = %{"escalation_policy" => %{"tiers" => [tier]}}
+      assert code(question(ctx, [first], outside), 422) == "escalation_responder_outside_set"
+
+      long = %{"escalation_policy" => %{"tiers" => List.duplicate(%{"after" => "PT1M"}, 11)}}
+      problem = F.body(question(ctx, [first], long), 422)
+      assert [%{"code" => "too_long", "limit" => 10, "actual" => 11} = error] = problem["errors"]
+      assert error["pointer"] == "/escalation_policy/tiers"
+
+      foreign = %{"recipients" => [%{"responder" => outsider, "steps" => [step]}]}
+      problem = F.body(question(ctx, [first], %{"surface_policy" => foreign}), 422)
+      assert pointers(problem) == [{"/surface_policy/recipients", "not_allowed"}]
+
+      at_once = %{"recipients" => [%{"responder" => first, "steps" => [inbox]}]}
+      problem = F.body(question(ctx, [first], %{"surface_policy" => at_once}), 422)
+      pointer = "/surface_policy/recipients/0/steps/0/surfaces/0/channel"
+      assert pointers(problem) == [{pointer, "not_allowed"}]
+
+      listed = F.body(F.request(:get, "/v1/waitpoints", ctx.manager), 200)
+      assert listed["data"] == []
     end
   end
 

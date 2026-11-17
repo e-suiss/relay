@@ -69,15 +69,16 @@ defmodule Relay.Webhooks.Live do
   # WH-1
   # WH-2
   # INV-12
-  @doc "The handler of the outbox dispatcher: records the outbox event as a webhook event with its messages and their jobs inside the dispatch transaction. The jobs are queued here, so no job changeset is returned."
+  # AG-21
+  @doc "The handler of the outbox dispatcher: records the outbox event as a webhook event with its messages and their jobs inside the dispatch transaction. Those jobs are queued here; the job changesets returned are the ones the wake transports of `Relay.Agents` derive from the event of a mailbox record, none without a transport."
   @spec outbox_jobs(map()) :: [Ecto.Changeset.t()]
-  def outbox_jobs(%{id: id, event_type: type, payload: payload} = event) do
+  def outbox_jobs(%{id: id, event_type: type} = event) do
     if Relay.EventCatalog.delivered?(type) do
       _created =
         Relay.Webhooks.deliver_event(%{
           id: id,
           type: type,
-          data: Relay.Platform.outbox_data(payload),
+          data: Relay.Platform.outbox_thin_data(event),
           subject: event.stream_key,
           epoch: event.epoch,
           seq: event.seq,
@@ -86,7 +87,7 @@ defmodule Relay.Webhooks.Live do
         })
     end
 
-    []
+    Relay.Agents.wake_jobs(event)
   end
 
   # T-15

@@ -646,6 +646,22 @@ defmodule RelayWeb.Router do
 
     get "/iys/uploads", IysController, :uploads, private: %{relay_operation: "listIysUploads"}
 
+    # C-72
+    # AG-46
+    get "/waitpoints", WaitpointController, :index, private: %{relay_operation: "listWaitpoints"}
+
+    post "/waitpoints", WaitpointController, :create,
+      private: %{relay_operation: "createWaitpoint"}
+
+    get "/waitpoints/:waitpoint_id", WaitpointController, :show,
+      private: %{relay_operation: "getWaitpoint"}
+
+    post "/waitpoints/:waitpoint_id/cancel", WaitpointController, :cancel,
+      private: %{relay_operation: "cancelWaitpoint"}
+
+    post "/waitpoints/:waitpoint_id/heartbeat", WaitpointController, :heartbeat,
+      private: %{relay_operation: "heartbeatWaitpoint"}
+
     get "/topics", TopicController, :index, private: %{relay_operation: "listTopics"}
     post "/topics", TopicController, :create, private: %{relay_operation: "createTopic"}
     get "/topics/:topic_key", TopicController, :show, private: %{relay_operation: "getTopic"}
@@ -905,6 +921,28 @@ defmodule RelayWeb.Router do
 
     get "/realtime/poll", RealtimeController, :poll,
       private: %{relay_operation: "pollRealtimeEvents"}
+
+    # AG-20
+    # AG-21
+    # AG-22
+    # AG-24
+    # AG-64
+    get "/mailbox", MailboxController, :show, private: %{relay_operation: "getMailbox"}
+
+    post "/mailbox/leases", MailboxController, :lease,
+      private: %{relay_operation: "leaseMailboxRecords"}
+
+    post "/mailbox/acks", MailboxController, :ack,
+      private: %{relay_operation: "ackMailboxRecords"}
+
+    get "/mailbox/records", MailboxController, :index,
+      private: %{relay_operation: "listMailboxRecords"}
+
+    get "/mailbox/records/:record_id", MailboxController, :record,
+      private: %{relay_operation: "getMailboxRecord"}
+
+    get "/mailbox/dead_letters", MailboxController, :dead_letters,
+      private: %{relay_operation: "listMailboxDeadLetters"}
   end
 
   # WH-14

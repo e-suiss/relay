@@ -5842,6 +5842,248 @@ Sha256Digest:
   type: string
   description: "SHA-256 digest: sha256: and 64 lowercase hexadecimal characters."
   pattern: "^sha256:[0-9a-f]{64}$"
+MailboxCursor:
+  type: string
+  description: "Opaque position in a mailbox stream: the stream epoch and the sequence number after which a reader continues."
+  minLength: 1
+  maxLength: 64
+MailboxLeaseId:
+  type: string
+  description: "Identifier of one lease request: 32 lowercase hexadecimal characters. Only the lease that holds a record acknowledges it."
+  pattern: "^[0-9a-f]{32}$"
+MailboxRecordState:
+  type: string
+  description: "Delivery state of a record on the agent face: available (waiting to be leased), leased, acked or dead_lettered (past the redelivery count; kept, never deleted)."
+  enum:
+    - available
+    - leased
+    - acked
+    - dead_lettered
+Mailbox:
+  type: object
+  description: "The durable mailbox of the calling agent or API client (AG-20, AG-64): one per owner, opened lazily. cursor is the head of the stream and acked_cursor the position up to which every record is acknowledged or dead-lettered; a reader that wakes up continues from acked_cursor. lease_duration and max_redeliveries are the tenant's settings in force, within the published limits (AG-22)."
+  required:
+    - object
+    - id
+    - owner
+    - state
+    - cursor
+    - acked_cursor
+    - lease_duration
+    - max_redeliveries
+    - created_at
+  properties:
+    object:
+      type: string
+      const: mailbox
+    id:
+      "$ref": "#/Id_mbx"
+    owner:
+      type: string
+      description: "The owner: an agent (agt_) or API client (cli_) identifier."
+      pattern: "^(agt|cli)_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+    state:
+      type: string
+      description: "active, or suspended while the owner is suspended in Access: a suspended mailbox is read but hands out no lease, and its records stay (AG-23)."
+      enum:
+        - active
+        - suspended
+    cursor:
+      "$ref": "#/MailboxCursor"
+    acked_cursor:
+      "$ref": "#/MailboxCursor"
+    lease_duration:
+      "$ref": "#/Duration"
+    max_redeliveries:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+MailboxRecord:
+  type: object
+  description: "A durable mailbox record (C-68). id is the durable handle a wake hint carries and the identifier a reader deduplicates by: delivery is at least once (AG-21). epoch and seq are the record's position in the mailbox stream; seq follows commit order, so reading in seq order is the guaranteed order (AG-24). A waitpoint_event record names its waitpoint, whose state and response are read from the waitpoint."
+  required:
+    - object
+    - id
+    - mailbox_id
+    - epoch
+    - seq
+    - kind
+    - event_type
+    - waitpoint_id
+    - payload_digest
+    - state
+    - delivery_count
+    - lease_expires_at
+    - acked_at
+    - dead_lettered_at
+    - created_at
+  properties:
+    object:
+      type: string
+      const: mailbox_record
+    id:
+      "$ref": "#/Id_mbr"
+    mailbox_id:
+      "$ref": "#/Id_mbx"
+    epoch:
+      type: integer
+      minimum: 1
+    seq:
+      type: integer
+      minimum: 1
+    kind:
+      type: string
+      enum:
+        - message
+        - waitpoint_event
+    event_type:
+      type: string
+      maxLength: 128
+    waitpoint_id:
+      oneOf:
+        - "$ref": "#/Id_wp"
+        - type: "null"
+    payload_digest:
+      "$ref": "#/Sha256Digest"
+    state:
+      "$ref": "#/MailboxRecordState"
+    delivery_count:
+      type: integer
+      minimum: 0
+      description: "How many times the record was handed out with a lease."
+    lease_expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    acked_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    dead_lettered_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+MailboxLeaseRequest:
+  type: object
+  description: "A lease request: at most max records, oldest first. max is at most the published limit mailbox.lease_max_records; a larger value is refused with the limit in the error."
+  properties:
+    max:
+      type: integer
+      minimum: 1
+      default: 1
+  additionalProperties: false
+MailboxLease:
+  type: object
+  description: "The records one lease request took, in stream order, and the lease that holds them until lease_expires_at. A record that is not acknowledged with this lease_id by then is handed out again; past the redelivery count it moves to the dead letters instead (AG-20, AG-22). The lease runs on Relay's clock, never the caller's; in the test environment the virtual clock moves it. lease_expires_at is null when no record was taken."
+  required:
+    - object
+    - lease_id
+    - lease_expires_at
+    - records
+  properties:
+    object:
+      type: string
+      const: mailbox_lease
+    lease_id:
+      "$ref": "#/MailboxLeaseId"
+    lease_expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    records:
+      type: array
+      items:
+        "$ref": "#/MailboxRecord"
+  additionalProperties: false
+MailboxAckRequest:
+  type: object
+  description: "Acknowledges records of one lease."
+  required:
+    - lease_id
+    - record_ids
+  properties:
+    lease_id:
+      "$ref": "#/MailboxLeaseId"
+    record_ids:
+      type: array
+      minItems: 1
+      maxItems: 100
+      uniqueItems: true
+      items:
+        "$ref": "#/Id_mbr"
+  additionalProperties: false
+MailboxAck:
+  type: object
+  description: "The outcome of an acknowledgement, one result for each record: acked, already_acked, lease_lost (the lease ran out and another lease holds the record, or the record is dead-lettered) or not_found."
+  required:
+    - object
+    - results
+    - acked_cursor
+  properties:
+    object:
+      type: string
+      const: mailbox_ack
+    results:
+      type: array
+      items:
+        type: object
+        required:
+          - record_id
+          - result
+        properties:
+          record_id:
+            "$ref": "#/Id_mbr"
+          result:
+            type: string
+            enum:
+              - acked
+              - already_acked
+              - lease_lost
+              - not_found
+        additionalProperties: false
+    acked_cursor:
+      "$ref": "#/MailboxCursor"
+  additionalProperties: false
+MailboxRecords:
+  type: object
+  description: "Records after a position, in stream order (AG-24). cursor is the position to continue from. resync_required says the position given no longer holds (another epoch, or outside the stream): the reader starts over from cursor, which is then the acknowledged position."
+  required:
+    - object
+    - records
+    - cursor
+    - has_more
+    - resync_required
+  properties:
+    object:
+      type: string
+      const: mailbox_records
+    records:
+      type: array
+      maxItems: 100
+      items:
+        "$ref": "#/MailboxRecord"
+    cursor:
+      "$ref": "#/MailboxCursor"
+    has_more:
+      type: boolean
+    resync_required:
+      type: boolean
+  additionalProperties: false
+MailboxRecordList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/MailboxRecord"
+  description: "A page of mailbox records."
 CorrelationId:
   type: string
   description: "The sender's correlation identifier, 1 to 128 printable ASCII characters. Returned in outgoing events as the correlationid extension."
@@ -6237,9 +6479,96 @@ SurfacePolicy:
   additionalProperties: false
   x-relay-choice: true
   x-relay-choice-note: "AG-63 gives the rule (ordered steps of a surface set and escalate_after per responder); the member names and the bounds on steps and surfaces are chosen by the contract."
+WaitpointProfile:
+  type: string
+  description: "A profile narrows a waitpoint. guardian_approval is the request of a child that a guardian decides (AG-62): a review whose responders the creator takes from the guardianship and household records, whose expires_at comes from the creator and is never moved, and which takes no default_response, because silence is no response; when it expires only waitpoint.expired is produced."
+  enum:
+    - guardian_approval
+WaitpointLabel:
+  type: string
+  description: "A label of the owner: lowercase letters, digits, underscore, dot, colon and hyphen, 1 to 64 characters."
+  pattern: "^[a-z0-9][a-z0-9_.:-]{0,63}$"
+WaitpointLabels:
+  type: object
+  description: "Labels of the waitpoint's owner (C-75, AG-8). Relay stores and returns them as they came; it never produces, reads or changes an outcome class or a risk tier."
+  properties:
+    outcome_class:
+      "$ref": "#/WaitpointLabel"
+    risk_tier:
+      "$ref": "#/WaitpointLabel"
+  minProperties: 1
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "C-75 and AG-8 have the outcome class and the risk tier come from the owner as labels; the member names and the label format are chosen by the contract."
+WaitpointAction:
+  type: object
+  description: "One structured action a responder can take (AG-8): its identifier, unique in the waitpoint, and the label shown for it."
+  required:
+    - id
+    - label
+  properties:
+    id:
+      type: string
+      pattern: "^[a-z][a-z0-9_]{0,63}$"
+    label:
+      type: string
+      minLength: 1
+      maxLength: 80
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "AG-8 names a structured action list; the shape of an action is chosen by the contract."
+WaitpointEvidenceField:
+  type: object
+  description: "One structured field of an evidence pack. It carries its value or, for a sensitive value, the digest of the value and never the value itself (AG-8): exactly one of value and digest, and a field marked sensitive takes only a digest."
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      pattern: "^[a-z][a-z0-9_]{0,63}$"
+    value:
+      type: string
+      maxLength: 500
+    digest:
+      "$ref": "#/Sha256Digest"
+    sensitive:
+      type: boolean
+      default: false
+  additionalProperties: false
+WaitpointEvidence:
+  type: object
+  description: "The evidence pack of a review (AG-8): the sender's structured fields a responder checks before deciding. It is kept encrypted at rest with the content."
+  required:
+    - source
+    - expected_outcome
+    - harm_if_wrong
+  properties:
+    source:
+      type: string
+      description: "Where the request comes from."
+      minLength: 1
+      maxLength: 500
+    expected_outcome:
+      type: string
+      description: "What happens when the request is accepted."
+      minLength: 1
+      maxLength: 1000
+    harm_if_wrong:
+      type: string
+      description: "What is lost when the decision is wrong."
+      minLength: 1
+      maxLength: 1000
+    fields:
+      type: array
+      items:
+        "$ref": "#/WaitpointEvidenceField"
+      maxItems: 20
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "AG-8 names the source, the expected outcome and the harm if wrong as structured fields and has sensitive values travel as digests; the member names, the sizes and the fields list are chosen by the contract."
 WaitpointCreate:
   type: object
-  description: "Waitpoint creation request."
+  description: "Waitpoint creation request. kind names the interaction (C-75, AG-8): a question or a review asks its responders for one response, is of class action_required and carries response_schema, responders, subject_digest, content and actions; a review also carries evidence. An event waitpoint waits for an event and takes none of these. A notification that expects no response is an ordinary event and has no waitpoint."
   required:
     - kind
     - match
@@ -6260,19 +6589,20 @@ WaitpointCreate:
       description: "JSON Schema the response value must follow, at most 64 kB."
     responders:
       type: array
+      description: "Who may respond. The set is the creator's: Relay stores and returns it as it came and never widens or narrows it (AG-12). Responders and deliver_to topics together are at most x-relay-limits waitpoint.max_messages."
       items:
         "$ref": "#/Responder"
       maxItems: 50
     expires_at:
       "$ref": "#/Timestamp"
-      description: "Deadline, at most 30 days ahead."
+      description: "Deadline, at most x-relay-limits waitpoint.max_wait ahead. It is written once and never moved."
     heartbeat_interval:
       "$ref": "#/Duration"
       description: "Waiter heartbeat interval, PT1S to P1D; a missed heartbeat makes the waitpoint stalled."
     surface_policy:
       "$ref": "#/SurfacePolicy"
     default_response:
-      description: "Response value used when the waitpoint expires; it follows response_schema."
+      description: "A response value the creator declares for the case that nobody responds: it follows response_schema, is at most x-relay-limits waitpoint.max_response_bytes as JSON and is handed to the waiter with waitpoint.expired. Relay never records it as a response (AG-18). Not taken with profile guardian_approval."
     subject_digest:
       "$ref": "#/Sha256Digest"
     content:
@@ -6300,6 +6630,20 @@ WaitpointCreate:
       oneOf:
         - "$ref": "#/EscalationPolicyReference"
         - "$ref": "#/EscalationPolicyDefinition"
+    actions:
+      type: array
+      description: "The structured actions a responder can take; required for a question and a review. Kept encrypted at rest with the content."
+      items:
+        "$ref": "#/WaitpointAction"
+      minItems: 1
+      maxItems: 10
+    evidence:
+      "$ref": "#/WaitpointEvidence"
+      description: "The evidence pack; required for a review and taken by nothing else."
+    labels:
+      "$ref": "#/WaitpointLabels"
+    profile:
+      "$ref": "#/WaitpointProfile"
   additionalProperties: false
 WaitpointResponder:
   type: object
@@ -6385,19 +6729,20 @@ Waitpoint:
       description: "JSON Schema the response value must follow, at most 64 kB."
     responders:
       type: array
+      description: "Who may respond. The set is the creator's: Relay stores and returns it as it came and never widens or narrows it (AG-12). Responders and deliver_to topics together are at most x-relay-limits waitpoint.max_messages."
       items:
         "$ref": "#/Responder"
       maxItems: 50
     expires_at:
       "$ref": "#/Timestamp"
-      description: "Deadline, at most 30 days ahead."
+      description: "Deadline, at most x-relay-limits waitpoint.max_wait ahead. It is written once and never moved."
     heartbeat_interval:
       "$ref": "#/Duration"
       description: "Waiter heartbeat interval, PT1S to P1D; a missed heartbeat makes the waitpoint stalled."
     surface_policy:
       "$ref": "#/SurfacePolicy"
     default_response:
-      description: "Response value used when the waitpoint expires; it follows response_schema."
+      description: "A response value the creator declares for the case that nobody responds: it follows response_schema, is at most x-relay-limits waitpoint.max_response_bytes as JSON and is handed to the waiter with waitpoint.expired. Relay never records it as a response (AG-18). Not taken with profile guardian_approval."
     subject_digest:
       "$ref": "#/Sha256Digest"
     content:
@@ -6448,6 +6793,20 @@ Waitpoint:
         - type: string
           maxLength: 200
         - type: "null"
+    message_class:
+      "$ref": "#/MessageClass"
+      description: "action_required for a question and a review; absent for an event waitpoint."
+    actions:
+      type: array
+      items:
+        "$ref": "#/WaitpointAction"
+      maxItems: 10
+    evidence:
+      "$ref": "#/WaitpointEvidence"
+    labels:
+      "$ref": "#/WaitpointLabels"
+    profile:
+      "$ref": "#/WaitpointProfile"
   additionalProperties: false
 WaitpointCompletion:
   type: object

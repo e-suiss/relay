@@ -30,6 +30,8 @@ defmodule Relay.Agents.WaitpointStore do
   ]
   @heartbeat [:renewed, :reopened, :no_heartbeat, :already_terminal, :not_waiter, :not_found]
   @timer [:expired, :stalled, :escalation_due, :not_due, :already_terminal, :not_found]
+  @describe [:described, :exists, :not_open, :profile_refused, :labels_refused, :not_found]
+  @listed_waiters ["agent", "api_client"]
 
   # TN-13 (2)
   @doc "Runs work in a transaction scoped to `scope`; see `Relay.Repo.in_scope/3`."
@@ -73,6 +75,24 @@ defmodule Relay.Agents.WaitpointStore do
 
     {Repo.code!(row["result"], @open), row["waitpoint_id"], row["expires_at"],
      row["early_record_id"]}
+  end
+
+  # AG-8
+  # AG-62
+  # C-75
+  @doc "Writes the profile, the owner's labels and the sender's correlation identifier of a waitpoint that was just opened, once; `description` carries `:profile`, `:outcome_class`, `:risk_tier` and `:correlation_id`, each optional."
+  @spec describe(Relay.Id.t(), map()) :: atom()
+  def describe(waitpoint_id, description) do
+    [row] =
+      Repo.call!("relay_fn.waitpoint_describe", [
+        waitpoint_id,
+        description |> Map.get(:profile) |> kind_text(),
+        Map.get(description, :outcome_class),
+        Map.get(description, :risk_tier),
+        Map.get(description, :correlation_id)
+      ])
+
+    Repo.code!(row["waitpoint_describe"], @describe)
   end
 
   # AG-14
@@ -247,6 +267,111 @@ defmodule Relay.Agents.WaitpointStore do
         do: waitpoint(row)
   end
 
+  # AG-46
+  # API-56
+  @doc "A page of the waitpoints an agent or an API client waits on, newest first, at most `limit + 1`; `filter` narrows it by `:states`, by the waiter (`:waiter_kind` with `:waiter_ref`) and by a `:tag`. Each row carries `:cursor_at`."
+  @spec page(map(), map() | nil, pos_integer()) :: [map()]
+  def page(filter, cursor, limit) do
+    params = [
+      @listed_waiters,
+      filter |> Map.get(:states) |> states(),
+      filter |> Map.get(:waiter_kind) |> kind_text(),
+      Map.get(filter, :waiter_ref),
+      Map.get(filter, :tag)
+    ]
+
+    {condition, order, params} =
+      case cursor do
+        nil ->
+          {"", "DESC", params}
+
+        %{direction: :after, sort_ts_us: ts, id: id} ->
+          {" AND (w.created_at, w.id) < ($6, $7)", "DESC", params ++ [from_us(ts), id]}
+
+        %{direction: :before, sort_ts_us: ts, id: id} ->
+          {" AND (w.created_at, w.id) > ($6, $7)", "ASC", params ++ [from_us(ts), id]}
+      end
+
+    sql = """
+    SELECT w.* FROM relay.waitpoints w
+    WHERE w.waiter_kind = ANY ($1)
+      AND ($2::text[] IS NULL OR w.state = ANY ($2))
+      AND ($3::text IS NULL OR (w.waiter_kind = $3 AND w.waiter_ref = $4))
+      AND ($5::text IS NULL OR w.tags @> ARRAY[$5])#{condition}
+    ORDER BY w.created_at #{order}, w.id #{order}
+    LIMIT #{limit + 1}
+    """
+
+    rows =
+      for row <- all(sql, params),
+          do: row |> waitpoint() |> Map.put(:cursor_at, row["created_at"])
+
+    if order == "ASC", do: Enum.reverse(rows), else: rows
+  end
+
+  defp from_us(us), do: DateTime.from_unix!(us, :microsecond)
+
+  # AG-12
+  @doc "The responders of waitpoints, as `{recipient, kind}` in identifier order by waitpoint; the set is the one the waitpoint was opened with."
+  @spec responders([Relay.Id.t()]) :: %{Relay.Id.t() => [{Relay.Id.t(), String.t()}]}
+  def responders(waitpoint_ids) do
+    """
+    SELECT s.waitpoint_id, s.recipient_id, r.kind
+    FROM relay.waitpoint_responders s
+    JOIN relay.recipients r ON r.tenant_id = s.tenant_id AND r.environment = s.environment
+      AND r.id = s.recipient_id
+    WHERE s.waitpoint_id = ANY ($1)
+    ORDER BY s.waitpoint_id, s.recipient_id
+    """
+    |> all([waitpoint_ids])
+    |> Enum.group_by(& &1["waitpoint_id"], &{&1["recipient_id"], &1["kind"]})
+  end
+
+  # AG-25
+  # AG-11
+  @doc "The responses that resolved waitpoints, by waitpoint, without their sealed value."
+  @spec responses([Relay.Id.t()]) :: %{Relay.Id.t() => map()}
+  def responses(waitpoint_ids) do
+    """
+    SELECT p.waitpoint_id, p.id, p.responder_recipient_id, r.kind, p.via, p.evidence_level,
+      p.subject_digest, p.value_digest, p.responded_at
+    FROM relay.waitpoint_responses p
+    JOIN relay.recipients r ON r.tenant_id = p.tenant_id AND r.environment = p.environment
+      AND r.id = p.responder_recipient_id
+    WHERE p.waitpoint_id = ANY ($1)
+    """
+    |> all([waitpoint_ids])
+    |> Map.new(fn row ->
+      {row["waitpoint_id"],
+       %{
+         id: row["id"],
+         responder_recipient_id: row["responder_recipient_id"],
+         responder_kind: row["kind"],
+         via: row["via"],
+         evidence_level: row["evidence_level"],
+         subject_digest: row["subject_digest"],
+         value_digest: row["value_digest"],
+         responded_at: row["responded_at"]
+       }}
+    end)
+  end
+
+  # AG-53
+  # TN-54
+  @doc "The number of open and stalled waitpoints of the established scope."
+  @spec open_count() :: non_neg_integer()
+  def open_count do
+    case Repo.scoped_query!("SELECT c.open_count FROM relay.waitpoint_counters c", []).rows do
+      [[count]] -> count
+      [] -> 0
+    end
+  end
+
+  defp all(sql, params) do
+    %Postgrex.Result{columns: columns, rows: rows} = Repo.scoped_query!(sql, params)
+    Enum.map(rows, &(columns |> Enum.zip(&1) |> Map.new()))
+  end
+
   # T-24
   @doc "Lists the waitpoints of the established scope whose next timer is due in business time."
   @spec due(pos_integer()) :: [{Relay.Id.t(), DateTime.t()}]
@@ -319,7 +444,22 @@ defmodule Relay.Agents.WaitpointStore do
       resolution_response_id: row["resolution_response_id"],
       resolved_by_record_id: row["resolved_by_record_id"],
       tags: row["tags"],
-      version: row["version"]
+      version: row["version"],
+      response_schema: row["response_schema"],
+      subject_digest: row["subject_digest"],
+      content_ct: row["content_ct"],
+      claim_text_ct: row["claim_text_ct"],
+      default_response_ct: row["default_response_ct"],
+      field_key_id: row["field_key_id"],
+      heartbeat_interval_ms: row["heartbeat_interval_ms"],
+      deliver_to_topics: row["deliver_to_topics"],
+      profile: row["profile"],
+      outcome_class: row["outcome_class"],
+      risk_tier: row["risk_tier"],
+      correlation_id: row["correlation_id"],
+      cancel_reason: row["cancel_reason"],
+      state_changed_at: row["state_changed_at"],
+      created_at: row["created_at"]
     }
   end
 end

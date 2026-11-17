@@ -7,6 +7,7 @@ defmodule RelayTest.Isolation do
     top_level?: true,
     deps: [
       Relay,
+      Relay.Agents,
       Relay.Api,
       Relay.Channels,
       Relay.DestinationGuard,
@@ -73,6 +74,7 @@ defmodule RelayTest.Isolation do
     {"addTopicSubscriptions", %{"subscribers" => ["isolation-subscriber"]}},
     {"removeTopicSubscriptions", %{"subscribers" => ["isolation-subscriber"]}},
     {"replaceRoute", %{"name" => "Isolation", "tree" => "email"}},
+    {"putEscalationPolicy", %{"tiers" => [%{"after" => "PT1M"}]}},
     {"addCampaignRecipients", %{"recipients" => ["iso-campaign"]}},
     {"approveCampaignSamples", %{"samples_digest" => String.duplicate("0", 64)}},
     {"cancelCampaign", %{"reason" => "isolation"}},
@@ -84,9 +86,14 @@ defmodule RelayTest.Isolation do
     {"recoverWebhookEndpoint", %{"since" => "2026-01-01T00:00:00Z"}},
     {"retryWebhookEndpointMessages", %{"states" => ["exhausted"]}},
     {"replayWebhookEndpointEvents", %{"since" => "2026-01-01T00:00:00Z"}},
-    {"cancelWebhookEndpointRetries", %{}}
+    {"cancelWebhookEndpointRetries", %{}},
+    {"cancelWaitpoint", %{"reason" => "isolation"}}
   ]
-  @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
+  @upserts %{
+    "replaceSubscriber" => 201,
+    "publishProducerTemplate" => 200,
+    "putEscalationPolicy" => 412
+  }
   @sms %{
     "default_locale" => "tr",
     "sensitivity" => "public",
@@ -124,6 +131,7 @@ defmodule RelayTest.Isolation do
       "mapping_id" => &mapping!/1,
       "category_key" => &category!/1,
       "route_key" => &route!/1,
+      "policy_key" => &escalation_policy!/1,
       "subtenant_id" => &subtenant!/1,
       "suppression_id" => &suppression!/1,
       "sms_destination_stop_id" => &sms_destination_stop!/1,
@@ -149,7 +157,9 @@ defmodule RelayTest.Isolation do
       "webhook_event_type_id" => &webhook_event_type!/1,
       "webhook_endpoint_id" => &webhook_endpoint!/1,
       "webhook_message_id" => &webhook_message!/1,
-      "webhook_attempt_id" => &webhook_attempt!/1
+      "webhook_attempt_id" => &webhook_attempt!/1,
+      "record_id" => &mailbox_record!/1,
+      "waitpoint_id" => &waitpoint!/1
     }
   end
 
@@ -207,6 +217,25 @@ defmodule RelayTest.Isolation do
   defp body_request(operation, method, path, body, headers) do
     [media | _] = Map.keys(operation.request)
     RelayTest.Api.conn(method, path, Jason.encode!(body), [{"content-type", media} | headers])
+  end
+
+  @doc "Opens an event waitpoint of an API client in `scope` and returns its identifier."
+  @spec waitpoint!(Relay.Scope.t()) :: String.t()
+  def waitpoint!(scope) do
+    id = Relay.Id.generate()
+
+    {:ok, %{result: :opened}} =
+      Relay.Agents.open_waitpoint(scope, %{
+        id: id,
+        kind: :event,
+        waiter_kind: :api_client,
+        waiter_ref: Relay.Id.generate(),
+        match_event_type: "isolation.finished",
+        correlation_key: "isolation-" <> random(),
+        expires_at: DateTime.add(Relay.Clock.business_now(scope), 3_600, :second)
+      })
+
+    Relay.ExternalId.encode("wp", id)
   end
 
   defp owner(scope), do: F.token(scope)
@@ -448,6 +477,15 @@ defmodule RelayTest.Isolation do
   def category!(scope) do
     key = "iso_" <> random()
     :ok = F.category!(owner(scope), key)
+    key
+  end
+
+  @doc "Creates an escalation policy in `scope` and returns its key."
+  @spec escalation_policy!(Relay.Scope.t()) :: String.t()
+  def escalation_policy!(scope) do
+    key = "iso-" <> random()
+    body = %{"tiers" => [%{"after" => "PT1M"}]}
+    F.body(F.request(:put, "/v1/escalation_policies/" <> key, owner(scope), body), 201)
     key
   end
 
@@ -706,5 +744,22 @@ defmodule RelayTest.Isolation do
       end)
 
     Relay.ExternalId.encode("ksw", id)
+  end
+
+  @doc "Appends a record to the mailbox of a new API client in `scope` and returns its identifier."
+  @spec mailbox_record!(Relay.Scope.t()) :: String.t()
+  def mailbox_record!(scope) do
+    id = Relay.Id.generate()
+    owner = [Relay.Id.generate(), "api_client", Relay.Id.generate()]
+    digest = :crypto.strong_rand_bytes(32)
+
+    {:ok, [%{"result" => "appended"}]} =
+      Relay.Repo.in_scope(scope, fn _status ->
+        [%{"mailbox_id" => mailbox}] = Relay.Repo.call!("relay_fn.mailbox_ensure", owner)
+        record = [id, mailbox, "message", "agent.note", nil, nil, nil, nil, nil, nil, digest, nil]
+        Relay.Repo.call!("relay_fn.mailbox_append", record)
+      end)
+
+    Relay.ExternalId.encode("mbr", id)
   end
 end

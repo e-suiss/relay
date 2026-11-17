@@ -13973,7 +13973,7 @@ paths:
       tags:
         - agents
       summary: "List waitpoints"
-      description: "Pages through the waitpoints of this environment, newest first; state, waiter and tag narrow the page. A waitpoint is not looked up by its correlation key, which the API takes only at creation (AG-65)."
+      description: "Pages through the waitpoints agents and API clients wait on in this environment, newest first; state, waiter and tag narrow the page, and awaiting_response=true lists the requests that still wait for a response, the open and the stalled ones (AG-46). Every credential of the environment with the scope lists them. A waitpoint is not looked up by its correlation key, which the API takes only at creation (AG-65). The event wait of a workflow run belongs to its run and is not listed."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -13986,6 +13986,12 @@ paths:
           required: false
           schema:
             "$ref": "./components/schemas.yaml#/WaitpointState"
+        - name: awaiting_response
+          in: query
+          description: "true lists the waitpoints that still wait for a response: the open and the stalled ones. Not used together with state."
+          required: false
+          schema:
+            type: boolean
         - name: waiter
           in: query
           description: "Waiter: an agent (agt_) or API client (cli_) identifier."
@@ -14000,6 +14006,8 @@ paths:
           schema:
             "$ref": "./components/schemas.yaml#/WaitpointTag"
       security:
+        - access_bearer:
+            - read
         - access_bearer:
             - agents
       responses:
@@ -14060,6 +14068,7 @@ paths:
         - service_unavailable
         - validation_failed
       x-relay-scopes:
+        - read
         - agents
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
@@ -14070,7 +14079,7 @@ paths:
       tags:
         - agents
       summary: "Create a waitpoint"
-      description: "Opens a waitpoint: a question, review or event wait of a waiter (an agent, or the calling API client when waiter is absent), matched exactly by event type and correlation key. expires_at is required and at most 30 days ahead; the Idempotency-Key is the waitpoint's identity, so a retry keeps its deadline. escalation_policy is a reference (key and optional version; without a version the latest version at creation is pinned) or an inline definition stored as an anonymous, immutable version bound to this waitpoint. Every escalation tier responder must be in responders, otherwise 422 escalation_responder_outside_set. After the last tier nothing happens until expires_at; then only waitpoint.expired is produced."
+      description: "Opens a waitpoint: a question, review or event wait of a waiter (an agent, or the calling API client when waiter is absent; an API client is named as a waiter only by itself), matched exactly by event type and correlation key. kind names the interaction: a question and a review are of class action_required and need response_schema, responders, subject_digest, content and actions, a review also its evidence pack; an event waitpoint takes none of them. expires_at is required and at most x-relay-limits waitpoint.max_wait ahead; the Idempotency-Key is the waitpoint's identity, so a retry keeps its deadline. A waiter waits once for an event type and correlation key: a second open waitpoint for them is 409 resource_conflict. The limits of x-relay-limits waitpoint are enforced and every refusal names its limit: responders, deliver_to topics and the runs of inline escalation tiers together at most max_messages, the tiers of an escalation policy at most max_escalation_tiers and default_response at most max_response_bytes (422 validation_failed with the field's pointer, limit and actual), and the open waitpoints of the environment and of the waiter (422 waitpoint_limit_reached with limit and limit_name). A deliver_to topic must exist and be active. profile guardian_approval is a review without default_response. condition is taken only by the event wait of a workflow. escalation_policy is a reference (key and optional version; without a version the latest version at creation is pinned) or an inline definition stored as an anonymous, immutable version bound to this waitpoint. Every escalation tier responder must be in responders, otherwise 422 escalation_responder_outside_set. After the last tier nothing happens until expires_at; then only waitpoint.expired is produced. surface_policy orders, for each responder it names, the surfaces the invitation interrupts on; a responder it names must be in responders (422 validation_failed at /surface_policy/recipients) and in_app is not a surface of a step. An event waitpoint takes neither escalation_policy nor surface_policy."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -14082,6 +14091,8 @@ paths:
             schema:
               "$ref": "./components/schemas.yaml#/WaitpointCreate"
       security:
+        - access_bearer:
+            - publish
         - access_bearer:
             - agents
       responses:
@@ -14169,7 +14180,9 @@ paths:
         - agent_not_found
         - recipient_not_found
         - waitpoint_limit_reached
+        - resource_conflict
       x-relay-scopes:
+        - publish
         - agents
       x-relay-weight: 1
       x-relay-idempotency: required
@@ -14187,6 +14200,8 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/WaitpointId"
       security:
+        - access_bearer:
+            - read
         - access_bearer:
             - agents
       responses:
@@ -14247,6 +14262,7 @@ paths:
         - service_unavailable
         - waitpoint_not_found
       x-relay-scopes:
+        - read
         - agents
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
@@ -14258,7 +14274,7 @@ paths:
       tags:
         - agents
       summary: "Cancel a waitpoint"
-      description: "Cancels an open or stalled waitpoint with a reason; produces waitpoint.cancelled. A closed waitpoint does not change."
+      description: "Cancels an open or stalled waitpoint with a reason; produces waitpoint.cancelled. Every credential of the environment with the scope cancels: the waiter, or an operator of the tenant. A closed waitpoint does not change (409 waitpoint_closed)."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -14271,6 +14287,8 @@ paths:
             schema:
               "$ref": "./components/schemas.yaml#/WaitpointCancel"
       security:
+        - access_bearer:
+            - publish
         - access_bearer:
             - agents
       responses:
@@ -14353,6 +14371,7 @@ paths:
         - waitpoint_not_found
         - waitpoint_closed
       x-relay-scopes:
+        - publish
         - agents
       x-relay-weight: 1
       x-relay-idempotency: required
@@ -14364,13 +14383,15 @@ paths:
       tags:
         - agents
       summary: "Send a waiter heartbeat"
-      description: "Records the waiter's heartbeat and moves the heartbeat deadline by heartbeat_interval; a stalled waitpoint is open again. Only for a waitpoint with heartbeat_interval."
+      description: "Records the waiter's heartbeat and moves the heartbeat deadline by heartbeat_interval; a stalled waitpoint is open again and keeps the response it may have taken while stalled. Only for a waitpoint with heartbeat_interval, and for a waitpoint an API client waits on only from that client; anything else is 409 waitpoint_heartbeat_refused. The total deadline is never moved."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
         - "$ref": "./components/parameters.yaml#/WaitpointId"
       security:
+        - access_bearer:
+            - publish
         - access_bearer:
             - agents
       responses:
@@ -14452,10 +14473,559 @@ paths:
         - unknown_field
         - waitpoint_not_found
         - waitpoint_closed
+        - waitpoint_heartbeat_refused
+      x-relay-scopes:
+        - publish
+        - agents
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 12
+  "/v1/mailbox":
+    get:
+      operationId: getMailbox
+      tags:
+        - agents
+      summary: "Get the caller's mailbox"
+      description: "The durable mailbox of the calling agent or API client: the agent face of the shared durable record core (C-68, AG-20, AG-64). A mailbox is opened lazily, here or by its first record. A push, webhook or protocol notification is only a hint to wake up; the records wait here, and a lost hint loses nothing (AG-21). The mailbox belongs to its owner; a person's work or approval queue is not a mailbox (AG-23)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      security:
+        - access_bearer:
+            - agents
+      responses:
+        "200":
+          description: "The mailbox."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Mailbox"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - mailbox_not_found
+        - agent_not_found
+      x-relay-scopes:
+        - agents
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 12
+  "/v1/mailbox/leases":
+    post:
+      operationId: leaseMailboxRecords
+      tags:
+        - agents
+      summary: "Lease mailbox records"
+      description: "Takes at most max records of the caller's mailbox with a lease, oldest first: records that wait and records whose lease ran out. A record that is not acknowledged within the lease is handed out again, so delivery is at least once and the reader deduplicates by record id (AG-20). A record past the tenant's redelivery count is not handed out again: it moves to the dead letters, stays there and mailbox.record_dead_lettered is produced (AG-22). The lease duration and the redelivery count are tenant settings within the published limits; max above mailbox.lease_max_records is 422 validation_failed with the limit (AG-53). A retry with the same Idempotency-Key returns the same lease."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/MailboxLeaseRequest"
+      security:
+        - access_bearer:
+            - agents
+      responses:
+        "200":
+          description: "The lease and its records."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/MailboxLease"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - mailbox_not_found
+        - agent_not_found
+        - mailbox_inactive
       x-relay-scopes:
         - agents
       x-relay-weight: 1
       x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 12
+  "/v1/mailbox/acks":
+    post:
+      operationId: ackMailboxRecords
+      tags:
+        - agents
+      summary: "Acknowledge mailbox records"
+      description: "Acknowledges records of one lease of the caller's mailbox. Each record has its own result; a record whose lease another lease took over is lease_lost and is delivered by that lease (AG-20). An acknowledgement is a delivery fact, never an authorisation."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/MailboxAckRequest"
+      security:
+        - access_bearer:
+            - agents
+      responses:
+        "200":
+          description: "The result for each record."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/MailboxAck"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - mailbox_not_found
+        - agent_not_found
+      x-relay-scopes:
+        - agents
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 12
+  "/v1/mailbox/records":
+    get:
+      operationId: listMailboxRecords
+      tags:
+        - agents
+      summary: "Read mailbox records in order"
+      description: "Reads the records of the caller's mailbox after a position, in stream order. Without since the read starts after the acknowledged position, so a reader that wakes up gets what it missed in order (AG-20). Delivery order is not guaranteed; reading order is: seq follows commit order, and a reader that sees a gap fills it with since (AG-24). Reading takes no lease and changes nothing."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - name: since
+          in: query
+          description: "Position to read after: a cursor of this mailbox. Absent: the acknowledged position."
+          required: false
+          schema:
+            "$ref": "./components/schemas.yaml#/MailboxCursor"
+        - "$ref": "./components/parameters.yaml#/Limit"
+      security:
+        - access_bearer:
+            - agents
+      responses:
+        "200":
+          description: "The records after the position."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/MailboxRecords"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+        - mailbox_not_found
+        - agent_not_found
+      x-relay-scopes:
+        - agents
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 12
+  "/v1/mailbox/records/{record_id}":
+    get:
+      operationId: getMailboxRecord
+      tags:
+        - agents
+      summary: "Get a mailbox record by its handle"
+      description: "Reads one record by its durable handle, the record id every wake hint and every mailbox event carries (AG-21): its position, its delivery state and how often it was handed out. With scope agents the record is one of the caller's mailbox; with scope read it is any record of this environment."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/MailboxRecordId"
+      security:
+        - access_bearer:
+            - agents
+        - access_bearer:
+            - read
+      responses:
+        "200":
+          description: "The record."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/MailboxRecord"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - mailbox_record_not_found
+      x-relay-scopes:
+        - agents
+        - read
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 12
+  "/v1/mailbox/dead_letters":
+    get:
+      operationId: listMailboxDeadLetters
+      tags:
+        - agents
+      summary: "List dead-lettered mailbox records"
+      description: "The dead letter view of a mailbox, newest first: the records that passed the redelivery count. They are kept under the retention rules and never deleted (AG-22, AG-23). Without mailbox_id the view is the caller's mailbox; mailbox_id names another mailbox of this environment and needs scope read, which is how the owner of an agent looks at what mailbox.record_dead_lettered told it."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+        - name: mailbox_id
+          in: query
+          description: "The mailbox to look at instead of the caller's own."
+          required: false
+          schema:
+            "$ref": "./components/schemas.yaml#/Id_mbx"
+      security:
+        - access_bearer:
+            - agents
+        - access_bearer:
+            - read
+      responses:
+        "200":
+          description: "A page of dead-lettered records."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/MailboxRecordList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+        - mailbox_not_found
+        - agent_not_found
+      x-relay-scopes:
+        - agents
+        - read
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
       x-relay-step-up: false
       x-relay-stage: 12
   "/v1/escalation_policies":
@@ -14478,6 +15048,8 @@ paths:
           schema:
             "$ref": "./components/schemas.yaml#/EscalationPolicyState"
       security:
+        - access_bearer:
+            - read
         - access_bearer:
             - agents
       responses:
@@ -14538,6 +15110,7 @@ paths:
         - service_unavailable
         - validation_failed
       x-relay-scopes:
+        - read
         - agents
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
@@ -14555,6 +15128,8 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/EscalationPolicyKey"
       security:
+        - access_bearer:
+            - read
         - access_bearer:
             - agents
       responses:
@@ -14617,6 +15192,7 @@ paths:
         - service_unavailable
         - escalation_policy_not_found
       x-relay-scopes:
+        - read
         - agents
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
@@ -14641,6 +15217,8 @@ paths:
             schema:
               "$ref": "./components/schemas.yaml#/EscalationPolicyWrite"
       security:
+        - access_bearer:
+            - config
         - access_bearer:
             - agents
       responses:
@@ -14761,6 +15339,7 @@ paths:
         - precondition_required
         - escalation_policy_archived
       x-relay-scopes:
+        - config
         - agents
       x-relay-weight: 1
       x-relay-idempotency: required
@@ -14781,6 +15360,8 @@ paths:
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
       security:
+        - access_bearer:
+            - read
         - access_bearer:
             - agents
       responses:
@@ -14844,6 +15425,7 @@ paths:
         - escalation_policy_not_found
         - validation_failed
       x-relay-scopes:
+        - read
         - agents
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
@@ -14863,6 +15445,8 @@ paths:
         - "$ref": "./components/parameters.yaml#/EscalationPolicyKey"
         - "$ref": "./components/parameters.yaml#/IfMatchOptional"
       security:
+        - access_bearer:
+            - config
         - access_bearer:
             - agents
       responses:
@@ -14947,6 +15531,7 @@ paths:
         - escalation_policy_not_found
         - precondition_failed
       x-relay-scopes:
+        - config
         - agents
       x-relay-weight: 1
       x-relay-idempotency: required
@@ -25411,6 +25996,13 @@ x-relay-api-versions:
   x-relay-choice: true
   x-relay-choice-note: The first dated version identifier is chosen by the contract.
 x-relay-limits:
+  waitpoint:
+    max_wait: P30D
+    max_open_per_environment: 10000
+    max_open_per_waiter: 1000
+    max_messages: 50
+    max_response_bytes: 65536
+    max_escalation_tiers: 10
   idempotency_key_ttl_hours: 24
   idempotency_key_length:
     min: 8
@@ -25514,8 +26106,6 @@ x-relay-limits:
   route:
     max_depth: 4
     max_leaves: 10
-  waitpoint:
-    max_escalation_tiers: 10
   workflow:
     max_steps: 50
     max_branch_depth: 4
@@ -25581,6 +26171,16 @@ x-relay-limits:
       archive_days: 365
     x-relay-choice: true
     x-relay-choice-note: "IN-49 sets the field limits and the realtime threshold, IN-29 the 500 changes, IN-52 the snapshot rates and IN-44/OP-22 the retention defaults. The bulk chunk size is a contract choice; the tenant's inbox.retention setting may only lower the retention defaults until the Appendix C upper bounds for inbox content are set."
+  mailbox:
+    lease_duration:
+      default: PT60S
+      min: PT10S
+      max: PT15M
+    redeliveries:
+      default: 5
+      min: 1
+      max: 20
+    lease_max_records: 100
   realtime:
     accept_per_second: 200
     accept_burst: 400

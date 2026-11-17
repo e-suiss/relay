@@ -395,7 +395,6 @@ defmodule Relay.Repo.Migrations.CreateEscalationFunctions do
       v_invited uuid[];
       v_targets uuid[];
       v_target uuid;
-      v_seq bigint;
       v_result text;
     BEGIN
       v_invited := ARRAY(SELECT DISTINCT i.recipient_id FROM relay.waitpoint_invitations i
@@ -423,7 +422,7 @@ defmodule Relay.Repo.Migrations.CreateEscalationFunctions do
           PERFORM relay_private.waitpoint_invite(p_waitpoint, v_target, 'escalation', p_step.id,
             v_channels, p_now);
         END LOOP;
-        SELECT a.seq INTO v_seq
+        PERFORM a.seq
           FROM relay_fn.mailbox_append(uuidv7(), p_waitpoint.waiter_mailbox_id, 'waitpoint_event',
             'waitpoint.escalated', NULL, p_waitpoint.id, NULL, NULL, NULL, NULL,
             sha256(convert_to(jsonb_build_object('waitpoint_id', p_waitpoint.id, 'event_type',
@@ -432,8 +431,8 @@ defmodule Relay.Repo.Migrations.CreateEscalationFunctions do
             p_waitpoint.traceparent) a;
         PERFORM relay_fn.outbox_append(uuidv7(), 'waitpoint.escalated',
           'waitpoint:' || p_waitpoint.id::text,
-          jsonb_build_object('waitpoint_id', p_waitpoint.id, 'state', p_waitpoint.state, 'level',
-            p_step.level, 'mailbox_seq', v_seq),
+          jsonb_build_object('waitpoint_id', p_waitpoint.id, 'kind', p_waitpoint.kind, 'level',
+            p_step.level),
           p_waitpoint.traceparent);
         v_result := 'fired';
       END IF;

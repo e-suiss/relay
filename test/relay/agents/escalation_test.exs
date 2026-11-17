@@ -10,6 +10,7 @@ defmodule Relay.Agents.EscalationTest do
   @check "SELECT * FROM relay_fn.waitpoint_plan_check($1, $2, $3, $4, $5, $6)"
   @pin "SELECT * FROM relay_fn.waitpoint_plan_pin($1, $2, $3, $4, $5, $6)"
   @cancel "SELECT relay_fn.waitpoint_cancel($1, $2, $3, $4, $5, $6, $7)"
+  @state "SELECT state FROM relay.escalation_policies WHERE id = $1"
   @settle "SELECT * FROM relay_fn.waitpoint_invitation_settle($1, $2)"
   @heartbeat "SELECT * FROM relay_fn.waitpoint_heartbeat($1, 'agent', $2)"
   @steps "SELECT level, state, rule_id FROM relay.waitpoint_steps WHERE waitpoint_id = $1 AND track = 'escalation' ORDER BY ordinal"
@@ -20,8 +21,6 @@ defmodule Relay.Agents.EscalationTest do
   @revive "UPDATE relay.waitpoint_steps SET state = 'armed', due_at = now(), rule_id = NULL, settled_at = NULL WHERE waitpoint_id = $1"
   @rewrite "UPDATE relay.escalation_policy_versions SET description = 'changed' WHERE policy_id = $1"
   @versions "SELECT version, jsonb_array_length(tiers) FROM relay.escalation_policy_versions WHERE policy_id = $1 ORDER BY version"
-  @audited "SELECT action FROM relay.audit_log WHERE target_id = $1 ORDER BY created_at, id"
-  @audit_count "SELECT count(*) FROM relay.audit_log WHERE target_id = $1"
   @responders "SELECT recipient_id, added_by FROM relay.waitpoint_responders WHERE waitpoint_id = $1 ORDER BY 1"
   @responses "SELECT count(*) FROM relay.waitpoint_responses WHERE waitpoint_id = $1"
   @levels "SELECT payload->'level' FROM relay.outbox_events WHERE event_type = 'waitpoint.escalated' AND stream_key = $1"
@@ -103,11 +102,6 @@ defmodule Relay.Agents.EscalationTest do
 
       assert rows(@versions, [policy]) == [[1, 1], [2, 2]]
       assert one("SELECT version FROM relay.escalation_policies WHERE id = $1", [policy]) == 2
-
-      assert rows(@audited, [text(policy)]) == [
-               ["escalation_policy.created"],
-               ["escalation_policy.updated"]
-             ]
     end
 
     test "AG-17: a stored version never changes" do
@@ -129,7 +123,7 @@ defmodule Relay.Agents.EscalationTest do
       assert ["archived", ^policy, 1] = put_policy("retired", [tier(@minute)], 1)
       assert ["policy_archived", nil] = check([ctx.first], key: "retired")
       assert ["policy_not_found", nil] = check([ctx.first], key: "missing")
-      assert List.last(rows(@audited, [text(policy)])) == ["escalation_policy.archived"]
+      assert one(@state, [policy]) == "archived"
     end
 
     test "AG-17: a waitpoint pins the version it referenced and a later version leaves it alone",
@@ -316,7 +310,6 @@ defmodule Relay.Agents.EscalationTest do
 
       assert [[_, "creation", nil, true, "cancelled", rule]] = invitations(id)
       assert rule == "waitpoint.invitation_cancelled"
-      assert one(@audit_count, [text(id)]) == 1
       assert one(@responses, [id]) == 0
       assert events(id) == ["waitpoint.created", "waitpoint.cancelled"]
       assert ["not_open", 0, nil] = run(id)

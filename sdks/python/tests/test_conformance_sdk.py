@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from conftest import REPO, StubTransport, client, conformance
 
+from conftest import REPO, StubTransport, client, conformance
 from esuiss_relay import (
     APIError,
     HttpRequest,

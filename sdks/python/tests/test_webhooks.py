@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from conftest import conformance
 
+from conftest import conformance
 from esuiss_relay import Webhook, WebhookVerificationError
 
 VECTOR = conformance("webhooks", "vectors", "1", "signature.json")

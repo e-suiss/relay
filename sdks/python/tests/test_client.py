@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 import yaml
-from conftest import REPO, FakeAuth, Sleeper, StubTransport, answer, client, problem
 
+from conftest import REPO, FakeAuth, Sleeper, StubTransport, answer, client, problem
 from esuiss_relay import (
     API_VERSION,
     AuthenticationError,
@@ -33,7 +33,7 @@ def test_x29_relay_version_is_pinned_to_the_contract() -> None:
     transport = StubTransport(answer(202, ACCEPTED))
     client(transport).create_event(EVENT)
     request = transport.requests[0]
-    assert API_VERSION == contract_version()
+    assert contract_version() == API_VERSION
     assert request.headers["Relay-Version"] == API_VERSION
     assert request.headers["User-Agent"].startswith("esuiss-relay-python/")
     assert request.headers["Authorization"] == "DPoP token"

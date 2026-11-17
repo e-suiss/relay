@@ -7,9 +7,9 @@ import urllib.parse
 from typing import Any
 
 import pytest
-from conftest import StubTransport, answer
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
+from conftest import StubTransport, answer
 from esuiss_relay import (
     AccessTokenError,
     ClientCredentials,

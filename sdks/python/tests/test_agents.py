@@ -5,8 +5,8 @@ from collections.abc import Iterator
 from typing import Any
 
 import pytest
-from conftest import Sleeper, StubTransport, answer, client
 
+from conftest import Sleeper, StubTransport, answer, client
 from esuiss_relay import WaitTimeoutError, merge_stream_and_history, parse_duration
 
 WP = "wp_01j9zq3k4m5n6p7q8r9s0t1v2w"

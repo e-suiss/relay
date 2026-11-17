@@ -5,8 +5,8 @@ from typing import Any
 
 import pytest
 import yaml
-from conftest import REPO
 
+from conftest import REPO
 from esuiss_relay import (
     APIError,
     AuthenticationError,

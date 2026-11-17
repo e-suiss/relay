@@ -9,7 +9,7 @@ defmodule Relay.Compliance.IysChannel do
 
   # CH-56
   # PC-27
-  @doc "The İYS channel of a Relay channel, given by name or as an atom: `{:ok, \"MESAJ\"}` for `sms`, `{:ok, \"ARAMA\"}` for `voice`, `{:ok, \"EPOSTA\"}` for `email`, `:none` for a channel İYS does not cover."
+  @doc "The İYS channel of a Relay channel, given by name or as an atom, in an `:ok` tuple: `MESAJ` for `sms`, `ARAMA` for `voice` and `EPOSTA` for `email`; `:none` for a channel İYS does not cover."
   @spec of(String.t() | atom()) :: {:ok, t()} | :none
   def of(channel) when is_atom(channel) and not is_nil(channel), do: of(Atom.to_string(channel))
 

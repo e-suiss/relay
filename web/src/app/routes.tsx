@@ -3,11 +3,21 @@ import type { MessageKey } from "../i18n/en";
 import { Activity } from "../pages/activity/Activity";
 import { AgentCeiling, Agents, Topics } from "../pages/agents/Agents";
 import { Waitpoints } from "../pages/agents/Waitpoints";
+import { Channels } from "../pages/delivery/Channels";
+import { Senders } from "../pages/delivery/Senders";
+import { Webhooks } from "../pages/delivery/Webhooks";
 import { Audit } from "../pages/governance/Audit";
+import { Compliance } from "../pages/governance/Compliance";
 import { KillSwitches } from "../pages/governance/KillSwitches";
 import { NotificationDetail } from "../pages/activity/NotificationDetail";
 import { RecipientDetail, Recipients } from "../pages/recipients/Recipients";
+import {
+  PlatformKillSwitch,
+  Regions,
+  Tenants,
+} from "../pages/operator/Operator";
 import { Reports } from "../pages/reports/Reports";
+import { Settings } from "../pages/settings/Settings";
 import { RouteSlot } from "../pages/RouteSlot";
 import { Why } from "../pages/why/Why";
 import type { Params } from "./router";
@@ -117,6 +127,14 @@ export const pages: readonly ConsoleRoute[] = [
   { pattern: "/agent-ceiling", render: () => <AgentCeiling /> },
   { pattern: "/agents", render: () => <Agents /> },
   { pattern: "/topics", render: () => <Topics /> },
+  { pattern: "/channels", render: () => <Channels /> },
+  { pattern: "/senders", render: () => <Senders /> },
+  { pattern: "/webhooks", render: () => <Webhooks /> },
+  { pattern: "/compliance", render: () => <Compliance /> },
+  { pattern: "/settings", render: () => <Settings /> },
+  { pattern: "/operator/tenants", render: () => <Tenants /> },
+  { pattern: "/operator/kill-switch", render: () => <PlatformKillSwitch /> },
+  { pattern: "/operator/regions", render: () => <Regions /> },
   {
     pattern: "/recipients/:id",
     render: (params) => {

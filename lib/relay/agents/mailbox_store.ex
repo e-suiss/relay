@@ -172,6 +172,7 @@ defmodule Relay.Agents.MailboxStore do
   end
 
   defp keyset(nil, params), do: {"", "DESC", params}
+
   defp keyset(%{direction: :after, id: id}, params),
     do: {" AND r.id < $2", "DESC", params ++ [id]}
 

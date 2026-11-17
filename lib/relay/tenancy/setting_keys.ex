@@ -259,11 +259,11 @@ defmodule Relay.Tenancy.SettingKeys do
 
   defp mailbox_lease_error do
     {lease_min, lease_max} = Map.fetch!(@mailbox_lease, "lease_seconds")
-    {count_min, count_max} = Map.fetch!(@mailbox_lease, "max_redeliveries")
+    {low, high} = Map.fetch!(@mailbox_lease, "max_redeliveries")
 
     message =
       "the mailbox lease is lease_seconds from #{lease_min} to #{lease_max} and " <>
-        "max_redeliveries from #{count_min} to #{count_max}"
+        "max_redeliveries from #{low} to #{high}"
 
     {:error, Relay.Error.new(:invalid_setting, message)}
   end

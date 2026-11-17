@@ -300,6 +300,7 @@ defmodule Relay.Api.Mailbox do
     do: Relay.Error.new(:mailbox_inactive, "the mailbox is suspended and hands out no lease")
 
   defp refused(reason) when reason in [:not_found, :owner_not_found], do: not_found()
+
   defp refused(:tenant_inactive),
     do: Relay.Error.new(:tenant_inactive, "the tenant is not active")
 

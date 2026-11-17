@@ -113,6 +113,7 @@ defmodule Relay.Agents.MailboxLeaseTest do
       first = append!(ctx, mailbox: id)
       assert {:ok, %{records: [record]} = lease} = Agents.lease_mailbox(ctx.scope, client, 10)
       assert record["id"] == first.id
+
       assert {:ok, %{results: results}} =
                Agents.ack_mailbox(ctx.scope, client, lease.lease_id, [first.id])
 

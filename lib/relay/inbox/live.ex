@@ -1,6 +1,6 @@
 defmodule Relay.Inbox.Live do
   @moduledoc """
-  The inbox on the running send path (IN-2, IN-4, IN-44, IN-49). `deliver/3` is the `in_app` adapter of the channel step: it takes the delivery's rendered content (the render is stored, the template never runs again for the item), reads the delivery's retention class and, for a digest delivery, its digest render (total activities and actors and the collapse key, WF-29), checks the published limits and seals the content under the recipient's subject key of that class, so an erasure shreds it (IN-44, IN-45). The item, its counters, its stream publication and the delivery's `delivered` evidence then commit in one transaction (`Relay.Inbox.record/2`). Content over a limit fails the delivery with `inbox_item_too_large` (an action URL that is not `https` with `schema_violation`), without retry (TP-41).
+  The inbox on the running send path (IN-2, IN-4, IN-44, IN-49). `deliver/3` is the `in_app` adapter of the channel step: it takes the delivery's rendered content (the render is stored, the template never runs again for the item), reads the delivery's retention class and, for a digest delivery, its digest render (total activities and actors and the collapse key, WF-29), takes the group key the content names (the copies of one decision request are one item, AG-35), checks the published limits and seals the content under the recipient's subject key of that class, so an erasure shreds it (IN-44, IN-45). The item, its counters, its stream publication and the delivery's `delivered` evidence then commit in one transaction (`Relay.Inbox.record/2`). Content over a limit fails the delivery with `inbox_item_too_large` (an action URL that is not `https` with `schema_violation`), without retry (TP-41).
 
   `open/2` is the content opener of `Relay.Inbox`: it unseals item content after the read transaction; content that no longer opens, as after an erasure, is `nil`.
   """
@@ -39,7 +39,7 @@ defmodule Relay.Inbox.Live do
   def deliver(%Scope{} = scope, %{"id" => delivery_id} = delivery, content) do
     with {:ok, policy, digest} <- inputs(scope, delivery_id),
          {:ok, item} <- item(content) do
-      meta = meta(digest)
+      meta = meta(digest, group(content))
 
       case Relay.Inbox.check_item(item, meta) do
         :ok -> seal(scope, delivery, policy, item, meta)
@@ -86,8 +86,20 @@ defmodule Relay.Inbox.Live do
      }}
   end
 
+  # AG-35
+  defp group(content) when is_binary(content) do
+    case Jason.decode(content) do
+      {:ok, %{} = document} -> group(document)
+      _invalid -> nil
+    end
+  end
+
+  defp group(%{"output" => %{} = output}), do: group(output)
+  defp group(%{"group_key" => key}) when is_binary(key), do: key
+  defp group(_output), do: nil
+
   # WF-29
-  defp meta(%{"collapse_key" => key} = digest) when is_binary(key) do
+  defp meta(%{"collapse_key" => key} = digest, _group) when is_binary(key) do
     %{
       tags: [],
       group_key: "digest:" <> key,
@@ -96,7 +108,8 @@ defmodule Relay.Inbox.Live do
     }
   end
 
-  defp meta(_digest), do: %{tags: [], group_key: nil, activity_count: 1, actor_count: 0}
+  defp meta(_digest, group),
+    do: %{tags: [], group_key: group, activity_count: 1, actor_count: 0}
 
   defp positive(value, _default) when is_integer(value) and value >= 1, do: value
   defp positive(_value, default), do: default

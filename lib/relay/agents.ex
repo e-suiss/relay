@@ -5,12 +5,13 @@ defmodule Relay.Agents do
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
+  alias Relay.AgentProtocols, as: Protocols
+  alias Relay.Agents.A2a
   alias Relay.Agents.Correlation
   alias Relay.Agents.Escalation
   alias Relay.Agents.Mailbox
-  alias Relay.AgentProtocols, as: Protocols
-  alias Relay.Agents.A2a
   alias Relay.Agents.Registry
+  alias Relay.Agents.ResponseToken
   alias Relay.Agents.TaskNotifications
   alias Relay.Agents.Waitpoint
   alias Relay.Agents.WakeHint
@@ -237,9 +238,10 @@ defmodule Relay.Agents do
   defdelegate mailbox_dead_letters(scope, whose, cursor, limit), to: Mailbox, as: :dead_letters
 
   # AG-21
-  @doc "The jobs the configured wake transports derive from an outbox event; see `Relay.Agents.WakeHint.jobs/1`."
+  # AG-35
+  @doc "The jobs derived from an outbox event inside the dispatch transaction: those of the configured wake transports for the event of a mailbox record (`Relay.Agents.WakeHint.jobs/1`) and those of the invitation sink for the event of a closed waitpoint (`Relay.Agents.Escalation.closed_jobs/1`)."
   @spec wake_jobs(map()) :: [Ecto.Changeset.t()]
-  defdelegate wake_jobs(event), to: WakeHint, as: :jobs
+  def wake_jobs(event), do: WakeHint.jobs(event) ++ Escalation.closed_jobs(event)
 
   # AG-46
   # API-56
@@ -432,4 +434,19 @@ defmodule Relay.Agents do
   @spec reconcile_task(Relay.Scope.t(), Relay.Id.t(), String.t()) ::
           {:ok, TaskNotifications.result() | :unconfigured | :unreadable} | {:error, term()}
   defdelegate reconcile_task(scope, source_id, task), to: TaskNotifications, as: :reconcile
+
+  # AG-63
+  @doc "Reads an invitation with the kind of its responder inside the caller's scoped transaction, or `nil`; see `Relay.Agents.Escalation.invitation/1`."
+  @spec invitation(Relay.Id.t()) :: map() | nil
+  defdelegate invitation(invitation_id), to: Escalation
+
+  # INV-33
+  # AG-30
+  # AG-31
+  @doc "Mints the response token of a responder for a waitpoint; see `Relay.Agents.ResponseToken.mint/3`."
+  @spec mint_response_token(Relay.Scope.t(), Relay.Id.t(), Relay.Id.t()) ::
+          {:ok, ResponseToken.token()} | {:error, atom()}
+  defdelegate mint_response_token(scope, waitpoint_id, recipient_id),
+    to: ResponseToken,
+    as: :mint
 end

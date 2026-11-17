@@ -15,6 +15,12 @@ defmodule Relay.Access.Pairing.Streams do
     "unreachable" => :unreachable
   }
   @catalog ~w(
+    urn:suiss:access:event:account.created
+    urn:suiss:access:event:account.deleted
+    urn:suiss:access:event:account.reactivated
+    urn:suiss:access:event:account.suspended
+    urn:suiss:access:event:account.updated
+    urn:suiss:access:event:agent.suspended
     urn:suiss:access:event:api_client.created
     urn:suiss:access:event:api_client.disabled
     urn:suiss:access:event:api_client.updated
@@ -27,8 +33,10 @@ defmodule Relay.Access.Pairing.Streams do
     urn:suiss:access:event:organization.updated
     urn:suiss:access:event:party.compromised
     urn:suiss:access:event:party.disabled
+    urn:suiss:access:event:preference.changed
     urn:suiss:access:event:projection-invalidated
     urn:suiss:access:event:revalidation-required
+    urn:suiss:access:event:session.revoked
     urn:suiss:access:event:tenant.created
   )
 
@@ -41,7 +49,9 @@ defmodule Relay.Access.Pairing.Streams do
           events_supported: [String.t()]
         }
 
-  @doc "Access's event catalog, asked for when no stream is left to read `events_supported` from."
+  # E-101
+  # E-104
+  @doc "The Access events Relay asks for when no stream is left to read `events_supported` from: every type Relay consumes that Access emits, with Access's own URNs, and the authority events. Access refuses a stream that asks for a type it does not emit, so a type awaited from Access joins once Access emits it."
   @spec catalog() :: [String.t(), ...]
   def catalog, do: @catalog
 

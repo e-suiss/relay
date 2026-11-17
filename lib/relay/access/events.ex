@@ -2,16 +2,20 @@ defmodule Relay.Access.Events do
   @moduledoc """
   Access lifecycle events (`POST /v1/access/events`, S-110), pushed by Access as Security Event Tokens (E-94, `Relay.Access.SecurityEvent`): a SET is verified under the keys of the link, its `jti` is the event identifier, and its receipt commits with the job that processes it before the delivery is acknowledged; a repeated `jti` is acknowledged, counted on its receipt and not processed again (S-69). These are the acceptance rules of an inbound provider webhook (WH-51, WH-49): a durable receipt first, a fast answer, processing from the queue and a durable deduplication on the event identifier. Access events do not use the signature headers of the Suiss webhook profile: E-94 replaced that intake with the SET, whose signature covers the token as it arrived and is checked against every key of the linked key set, so an event signed with the old or the new key of an overlapping rotation is accepted. A key the link does not hold refreshes the keys once. Only the fields Relay needs cross the boundary: the receipt keeps the event's mapping fields and nothing else, and an event type Relay does not consume keeps none (E-70); a type that is not an event name of Relay's form is acknowledged and not recorded.
 
+  Access names a few event types with hyphens and no dot (`instance-terminated`); such a type is recorded under its Relay form, each hyphen read as a dot (`instance.terminated`).
+
   `process/1` (the `Relay.Access.EventConsumer` job) applies a receipt by its type:
 
   * `tenant.created` creates the mapped tenant with its keys (TN-1). Access carries no time zone or locale (E-95): the region is the one the tenant's snapshot names (`Relay.Access.Environments.snapshot/1`), read outside any transaction, and the default time zone and locale (TN-2, X-35) are that region's installation defaults from the active `region_defaults` data set; without an active version the job retries. While the snapshot cannot be read (Access does not answer, does not know the tenant yet, or names no region) the receipt waits as `deferred` with reason `snapshot_unavailable` and the job retries; a snapshot region this installation does not serve is `rejected` with reason `region_mismatch`, because a tenant's Access and Relay records stay in one region (INV-41, E-39). An Access tenant that Access marks with a `platform_product` (a Suiss product such as `access` itself) becomes that product's platform tenant (C-18, E-9, TN-9): an ordinary, isolated tenant with no data privilege; an unknown product is refused.
-  * `organization.created` and `organization.updated` are recorded and acknowledged but not applied, `processed` with reason `not_applied`: Access holds no organization name or state yet, so no sub-tenant is created from them (E-95).
-  * `api_client.created` registers the client in its tenant's `live` scope as pending, with no environment and no scopes, until a tenant administrator assigns them (E-99, `Relay.Access.Assignment`); a client Relay already knows is left as it is. `api_client.updated` carries nothing Relay keeps and is `processed` with reason `not_applied`. `api_client.suspended`, `api_client.reactivated` and `api_client.revoked` change the API client trace's status and announce the new generation to every node (API-44, TN-24); `api_client.disabled`, which Access emits when it retires a client, suspends it (E-97). A status event of a client that is still pending waits as `deferred` with reason `unknown_client` and is queued again once the client is assigned.
-  * `user.suspended`, `user.reactivated` and `user.deleted` go to the configured user event handlers (`config :relay, Relay.Access, user_handlers: [module]`, `Relay.Access.UserHandler`); without one the receipt waits as `deferred` with reason `no_handler`.
-  * `agent.suspended`, `agent.reactivated` and `agent.deleted` go, in each environment of the mapped tenant, to the configured agent event handlers (`config :relay, Relay.Access, agent_handlers: [module]`, `Relay.Access.AgentHandler`) with the agent's Access Party reference (E-29, AG-5); without one the receipt waits as `deferred` with reason `no_handler`, and an event that names no subject is `rejected`.
+  * `organization.created`, `organization.updated`, `api_client.updated`, `account.created`, `account.updated`, `session.revoked`, `preference.changed` and `instance-terminated` are recorded and acknowledged but not applied, `processed` with reason `not_applied` (E-95, E-104): Access holds no organization name or state yet, an API client change carries nothing Relay keeps, the account, session and preference events name the person only by an Access account id, and an agent's binding is at its Party, not at one of its Instances (AG-75).
+  * `api_client.created` registers the client in its tenant's `live` scope as pending, with no environment and no scopes, until a tenant administrator assigns them (E-99, `Relay.Access.Assignment`); a client Relay already knows is left as it is. `api_client.disabled`, which Access emits when it retires a client for good, revokes it, and the API client trace announces the new generation to every node (API-44, TN-24, E-104). A revocation of a client that is still pending waits as `deferred` with reason `unknown_client` and is queued again once the client is assigned.
+  * `account.suspended`, `account.reactivated` and `account.deleted` go to the configured user event handlers (`config :relay, Relay.Access, user_handlers: [module]`, `Relay.Access.UserHandler`) with the person's pairwise `sub` when the event carries one (TN-20, TN-73); without one the receipt waits as `deferred` with reason `no_handler`. Access names the person only by the `usr_` id of the account, which no Access interface maps to Relay's pairwise `sub`: such an event is `processed` with reason `not_applied_account_unresolved`, changes nothing, and is counted in `[:relay, :access, :event, :unresolved]` for the operator's alarm (E-104).
+  * `agent.suspended`, `agent.reactivated` and `agent.deleted` go, in each environment of the mapped tenant, to the configured agent event handlers (`config :relay, Relay.Access, agent_handlers: [module]`, `Relay.Access.AgentHandler`) with the agent's Access Party from the event's `agent` member, as Access writes it: the unpadded base64url of its 16 bytes (E-29, AG-5, E-104). `party.disabled`, whatever its `reason_class`, suspends the agent bound to its `party` the same way: delivery stops and the mailbox stays. Without a handler the receipt waits as `deferred` with reason `no_handler`, and an event whose Party is not of that form is `rejected` with reason `party_invalid`. Access emits no reactivation yet, so a suspended agent is reactivated only by `agent.reactivated` once Access adds it.
   * `approval.decided` goes, in each environment of the mapped tenant, to the configured decision handler (`config :relay, Relay.Access, decision_handler: module`, `Relay.Access.DecisionHandler`) with the waitpoint it names, the pairwise `sub` of the person who decided, the decision, its reference on the Access approval surface and the subject digest it was given for (E-15, AG-27). The event is `processed` when an environment recorded the decision, `rejected` with the refusal when the waitpoint refused it or when no environment knows the waitpoint, and waits as `deferred` without a handler.
   * `relationship.updated` goes, in each environment of the mapped tenant, to the configured relationship handler (`config :relay, Relay.Access, relationship_handler: module`, `Relay.Access.RelationshipHandler`) with the Access Party references of the two agents, the level in lowercase and the pair's sequence number (AG-59, AG-73). A relationship that cannot be read is `rejected`; without a handler it waits as `deferred`.
   * `consent.updated` goes, in each environment of the mapped tenant, to the configured consent handler (`config :relay, Relay.Access, consent_handler: module`, `Relay.Access.ConsentHandler`) with its status and source in lowercase, the evidence it sealed for that environment when the event was received (the receipt keeps only that ciphertext and never the evidence in clear) and its brand: the sub-tenant mapped from the event's organization, or the tenant itself without one (E-80). A consent that cannot be read is `rejected`; without a handler, or while its organization is not mapped yet, it waits as `deferred`.
+
+  `agent.reactivated`, `agent.deleted`, `approval.decided`, `relationship.updated` and `consent.updated` are awaited from Access, which does not emit them yet (E-104); any other type is `rejected` with reason `unsupported_type`.
 
   A receipt whose tenant, sub-tenant or client does not exist yet is `deferred` and queued again when a later event of the same Access tenant is applied; anything else that cannot apply is `rejected` with a reason.
   """
@@ -31,16 +35,19 @@ defmodule Relay.Access.Events do
     "organization.updated" => ~w(access_tenant_id access_organization_id),
     "api_client.created" => ~w(access_tenant_id access_client_id),
     "api_client.updated" => ~w(access_tenant_id access_client_id),
-    "api_client.suspended" => ~w(access_tenant_id access_client_id),
     "api_client.disabled" => ~w(access_tenant_id access_client_id),
-    "api_client.reactivated" => ~w(access_tenant_id access_client_id),
-    "api_client.revoked" => ~w(access_tenant_id access_client_id),
-    "user.suspended" => ~w(subject),
-    "user.reactivated" => ~w(subject),
-    "user.deleted" => ~w(subject),
-    "agent.suspended" => ~w(access_tenant_id subject),
-    "agent.reactivated" => ~w(access_tenant_id subject),
-    "agent.deleted" => ~w(access_tenant_id subject),
+    "account.created" => ~w(access_tenant_id),
+    "account.updated" => ~w(access_tenant_id),
+    "account.suspended" => ~w(access_tenant_id sub),
+    "account.reactivated" => ~w(access_tenant_id sub),
+    "account.deleted" => ~w(access_tenant_id sub),
+    "session.revoked" => ~w(access_tenant_id),
+    "preference.changed" => ~w(access_tenant_id),
+    "agent.suspended" => ~w(access_tenant_id agent),
+    "agent.reactivated" => ~w(access_tenant_id agent),
+    "agent.deleted" => ~w(access_tenant_id agent),
+    "party.disabled" => ~w(access_tenant_id party reason_class),
+    "instance.terminated" => ~w(access_tenant_id),
     "approval.decided" =>
       ~w(access_tenant_id subject waitpoint_id decision decision_ref subject_digest),
     "consent.updated" =>
@@ -48,17 +55,14 @@ defmodule Relay.Access.Events do
          source occurred_at text_version_digest evidence iys_transaction_id sequence),
     "relationship.updated" => ~w(access_tenant_id sub peer level sequence)
   }
-  @statuses %{
-    "api_client.suspended" => "suspended",
-    "api_client.disabled" => "suspended",
-    "api_client.reactivated" => "active",
-    "api_client.revoked" => "revoked"
+  @statuses %{"api_client.disabled" => "revoked"}
+  @accounts %{
+    "account.suspended" => :suspended,
+    "account.reactivated" => :reactivated,
+    "account.deleted" => :deleted
   }
-  @users %{
-    "user.suspended" => :suspended,
-    "user.reactivated" => :reactivated,
-    "user.deleted" => :deleted
-  }
+  @not_applied ~w(organization.created organization.updated api_client.updated account.created
+                  account.updated session.revoked preference.changed instance.terminated)
   @agents %{
     "agent.suspended" => :suspended,
     "agent.reactivated" => :reactivated,
@@ -74,6 +78,9 @@ defmodule Relay.Access.Events do
   @region_defaults "region_defaults"
   @batch 100
   @event_name ~r/\A[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+\z/
+  @hyphenated ~r/\A[a-z][a-z0-9]*(-[a-z][a-z0-9]*)+\z/
+  @party ~r/\A[A-Za-z0-9_-]{22}\z/
+  @unresolved "not_applied_account_unresolved"
   @access_tenant ~r/\A[A-Za-z0-9_-]{1,128}\z/
   @snapshot_unavailable "snapshot_unavailable"
 
@@ -120,7 +127,9 @@ defmodule Relay.Access.Events do
     end
   end
 
-  defp record(token, %{jti: jti, type: type, data: data}) do
+  defp record(token, %{jti: jti, type: access_type, data: data}) do
+    type = relay_name(access_type)
+
     if Regex.match?(@event_name, type) and byte_size(type) <= 128 do
       with {:ok, payload} <- sealed(type, minimal(type, data)) do
         store(token, jti, type, payload)
@@ -128,6 +137,11 @@ defmodule Relay.Access.Events do
     else
       :ok
     end
+  end
+
+  # E-104
+  defp relay_name(type) do
+    if Regex.match?(@hyphenated, type), do: String.replace(type, "-", "."), else: type
   end
 
   defp store(token, jti, type, payload) do
@@ -182,12 +196,14 @@ defmodule Relay.Access.Events do
   defp unsealed, do: Relay.Error.new(:service_unavailable, "the consent evidence was not sealed")
 
   # E-70
+  # E-104
   @doc "The fields of an event's data that cross the boundary; an unknown type keeps none."
   @spec minimal(String.t(), term()) :: map()
   def minimal(type, data) when is_map(data), do: Map.take(data, Map.get(@mapping, type, []))
   def minimal(_type, _data), do: %{}
 
-  @doc "The Access event types Relay consumes."
+  # E-104
+  @doc "The Access event types Relay consumes, in Relay's form."
   @spec types() :: [String.t()]
   def types, do: @mapping |> Map.keys() |> Enum.sort()
 
@@ -242,21 +258,22 @@ defmodule Relay.Access.Events do
 
   defp handle("tenant.created", payload, receipt), do: tenant_created(payload, receipt)
 
-  defp handle("organization." <> _type, _payload, _receipt), do: {:processed, "not_applied"}
+  defp handle(type, _payload, _receipt) when type in @not_applied, do: {:processed, "not_applied"}
 
   defp handle("api_client.created", payload, receipt),
     do: with_tenant(payload, &client_created(payload, receipt, &1))
 
-  defp handle("api_client.updated", _payload, _receipt), do: {:processed, "not_applied"}
-
   defp handle("api_client." <> _ = type, payload, receipt) when is_map_key(@statuses, type),
     do: with_client(payload, &client_status(type, payload, receipt, &1))
 
-  defp handle("user." <> _ = type, payload, receipt) when is_map_key(@users, type),
-    do: user(Map.fetch!(@users, type), payload, receipt)
+  defp handle("account." <> _ = type, payload, receipt) when is_map_key(@accounts, type),
+    do: account(type, payload, receipt)
 
   defp handle("agent." <> _ = type, payload, receipt) when is_map_key(@agents, type),
-    do: with_tenant(payload, &agent(Map.fetch!(@agents, type), payload, receipt, &1))
+    do: with_tenant(payload, &agent(Map.fetch!(@agents, type), payload["agent"], receipt, &1))
+
+  defp handle("party.disabled", payload, receipt),
+    do: with_tenant(payload, &agent(:suspended, payload["party"], receipt, &1))
 
   defp handle("consent.updated", payload, receipt),
     do: with_tenant(payload, &consent(payload, receipt, &1))
@@ -464,7 +481,7 @@ defmodule Relay.Access.Events do
   # API-44
   # TN-24 (5)
   # TN-36
-  # E-97
+  # E-104
   defp client_status(type, payload, receipt, resolved) do
     client = to_string(payload["access_client_id"])
     status = Map.fetch!(@statuses, type)
@@ -493,15 +510,31 @@ defmodule Relay.Access.Events do
     :processed
   end
 
+  # E-104
   # TN-20
-  defp user(kind, payload, receipt) do
+  # TN-73
+  defp account(type, payload, receipt) do
+    case text(payload["sub"], 256) do
+      sub when is_binary(sub) and sub != "" -> user(Map.fetch!(@accounts, type), sub, receipt)
+      _unresolved -> unresolved(Map.fetch!(@accounts, type))
+    end
+  end
+
+  # E-104
+  defp unresolved(kind) do
+    :telemetry.execute([:relay, :access, :event, :unresolved], %{count: 1}, %{kind: kind})
+    {:processed, @unresolved}
+  end
+
+  # TN-20
+  # TN-73
+  defp user(kind, sub, receipt) do
     case Keyword.get(Relay.Access.config(), :user_handlers, []) do
       [] ->
         {:deferred, "no_handler"}
 
       handlers ->
-        subject = to_string(payload["subject"])
-        results = Enum.map(handlers, & &1.handle_user_event(kind, subject, receipt.webhook_id))
+        results = Enum.map(handlers, & &1.handle_user_event(kind, sub, receipt.webhook_id))
 
         case Enum.find(results, &(&1 != :ok)) do
           nil -> :processed
@@ -513,21 +546,22 @@ defmodule Relay.Access.Events do
 
   # E-29
   # AG-5
-  defp agent(kind, payload, receipt, tenant_id) do
+  # E-104
+  defp agent(kind, party, receipt, tenant_id) do
     handlers = Keyword.get(Relay.Access.config(), :agent_handlers, [])
 
-    case {handlers, text(payload["subject"], 256)} do
-      {[], _subject} ->
+    case {handlers, party(party)} do
+      {[], _party} ->
         {:deferred, "no_handler"}
 
-      {_handlers, subject} when subject in [nil, ""] ->
-        {:rejected, "subject_missing"}
+      {_handlers, :error} ->
+        {:rejected, "party_invalid"}
 
-      {handlers, subject} ->
+      {handlers, {:ok, party}} ->
         results =
           for handler <- handlers, environment <- Relay.Environment.all() do
             scope = Scope.new!(tenant_id, environment)
-            handler.handle_agent_event(scope, kind, subject, receipt.webhook_id)
+            handler.handle_agent_event(scope, kind, party, receipt.webhook_id)
           end
 
         case Enum.find(results, &(&1 != :ok)) do
@@ -537,6 +571,19 @@ defmodule Relay.Access.Events do
         end
     end
   end
+
+  # E-104
+  defp party(value) when is_binary(value) do
+    with true <- Regex.match?(@party, value),
+         {:ok, <<_::128>> = bytes} <- Base.url_decode64(value, padding: false),
+         ^value <- Base.url_encode64(bytes, padding: false) do
+      {:ok, value}
+    else
+      _invalid -> :error
+    end
+  end
+
+  defp party(_value), do: :error
 
   # E-80
   # PC-59 (1)

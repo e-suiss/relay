@@ -20,7 +20,7 @@ defmodule Relay.Access do
       Relay.Tenancy,
       Relay.Tenancy.Provisioning
     ],
-    exports: [Client, Pep, ServiceKey, UserHandler, ConsentHandler]
+    exports: [Client, Pep, ServiceKey, UserHandler, AgentHandler, ConsentHandler]
 
   alias Relay.Access.Assignment
   alias Relay.Access.Cache
@@ -41,7 +41,9 @@ defmodule Relay.Access do
   alias Relay.AccessClaims
   alias Relay.Scope
 
-  @scopes ~w(publish read subscribers config kill_switch)
+  @server_scopes ~w(publish read subscribers config kill_switch agents)
+  @agent_scopes ~w(agent:send agent:waitpoint agent:mailbox presence:read)
+  @scopes @server_scopes ++ @agent_scopes
   @access_typ "at+jwt"
   @client_cap Relay.Limits.fetch!(["api_clients_per_environment"])
   @unused_days Relay.Limits.fetch!(["unused_api_client_warning_days"])
@@ -51,8 +53,45 @@ defmodule Relay.Access do
           scopes: [String.t()],
           subtenant_id: Relay.Id.t() | nil,
           api_client_id: String.t(),
-          certificate_bound: boolean()
+          certificate_bound: boolean(),
+          subject: String.t() | nil
         }
+
+  # API-75
+  # E-82
+  @doc "The scopes of a server API client: the API-75 scopes and `agents`, the scope of the agent family's server operations (E-82)."
+  @spec server_scopes() :: [String.t(), ...]
+  def server_scopes, do: @server_scopes
+
+  # AG-6
+  @doc "The scopes of an agent's credential, each narrow and separate: `agent:send` (send events as the agent), `agent:waitpoint` (open the agent's own waitpoints and keep them alive), `agent:mailbox` (read and acknowledge the agent's own mailbox) and `presence:read` (read device status). No scope covers them all, and none is granted together with a server scope."
+  @spec agent_scopes() :: [String.t(), ...]
+  def agent_scopes, do: @agent_scopes
+
+  # AG-6
+  # API-75
+  @doc "Checks a set of scopes for an API client assignment: every scope is known and the set holds either server scopes or agent scopes, never both."
+  @spec assignable_scopes([String.t()]) :: :ok | {:error, Relay.Error.t()}
+  def assignable_scopes([_ | _] = scopes) do
+    cond do
+      Enum.any?(scopes, &(&1 not in @scopes)) ->
+        {:error, unassignable("unsupported_value", "unknown scope")}
+
+      Enum.any?(scopes, &(&1 in @agent_scopes)) and Enum.any?(scopes, &(&1 in @server_scopes)) ->
+        {:error, unassignable("not_allowed", "agent scopes and server scopes do not mix")}
+
+      true ->
+        :ok
+    end
+  end
+
+  def assignable_scopes(_scopes), do: {:error, unassignable("required", "no scope")}
+
+  defp unassignable(code, detail) do
+    Relay.Error.new(:validation_failed, "the scopes cannot be assigned", %{
+      errors: [%{pointer: "/scopes", code: code, detail: detail}]
+    })
+  end
 
   @doc "The `Relay.Access` configuration."
   @spec config() :: keyword()
@@ -119,10 +158,16 @@ defmodule Relay.Access do
          scopes: granted(resolved.scopes, claims),
          subtenant_id: resolved.subtenant_id,
          api_client_id: Relay.ExternalId.encode("cli", resolved.api_client_id),
-         certificate_bound: bound
+         certificate_bound: bound,
+         subject: subject(claims)
        }}
     end
   end
+
+  # E-29
+  # TN-25
+  defp subject(%{"sub" => subject}) when is_binary(subject) and subject != "", do: subject
+  defp subject(_claims), do: nil
 
   # API-71
   # E-93
@@ -188,7 +233,8 @@ defmodule Relay.Access do
          scopes: granted(resolved.scopes, %{}),
          subtenant_id: resolved.subtenant_id,
          api_client_id: Relay.ExternalId.encode("cli", resolved.api_client_id),
-         certificate_bound: false
+         certificate_bound: false,
+         subject: nil
        }}
     end
   end
@@ -297,12 +343,21 @@ defmodule Relay.Access do
 
   # API-43
   # API-75
+  # AG-6
   defp granted(scopes, %{"scope" => carried}) when is_binary(carried) do
     carried = String.split(carried, " ", trim: true)
-    Enum.filter(scopes, &(&1 in carried and &1 in @scopes))
+    one_family(Enum.filter(scopes, &(&1 in carried and &1 in @scopes)))
   end
 
-  defp granted(scopes, _claims), do: Enum.filter(scopes, &(&1 in @scopes))
+  defp granted(scopes, _claims), do: one_family(Enum.filter(scopes, &(&1 in @scopes)))
+
+  # AG-6
+  defp one_family(scopes) do
+    case Enum.filter(scopes, &(&1 in @agent_scopes)) do
+      [] -> scopes
+      agent -> agent
+    end
+  end
 
   # API-44
   @doc false

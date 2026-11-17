@@ -666,6 +666,16 @@ defmodule RelayWeb.Router do
     get "/subscribers/:subscriber_id/subscriptions", TopicController, :subscriber,
       private: %{relay_operation: "listSubscriberSubscriptions"}
 
+    get "/agents", AgentController, :index, private: %{relay_operation: "listAgents"}
+    post "/agents", AgentController, :create, private: %{relay_operation: "createAgent"}
+    get "/agents/:agent_id", AgentController, :show, private: %{relay_operation: "getAgent"}
+
+    patch "/agents/:agent_id", AgentController, :update,
+      private: %{relay_operation: "updateAgent"}
+
+    delete "/agents/:agent_id", AgentController, :delete,
+      private: %{relay_operation: "deleteAgent"}
+
     get "/templates", TemplateController, :index, private: %{relay_operation: "listTemplates"}
     post "/templates", TemplateController, :create, private: %{relay_operation: "createTemplate"}
 

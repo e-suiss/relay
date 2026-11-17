@@ -19,6 +19,7 @@ defmodule Relay.Api.Mailbox do
   @type caller :: %{
           required(:api_client_id) => String.t() | nil,
           required(:agent) => boolean(),
+          optional(:agent_id) => Relay.Id.t() | nil,
           required(:scopes) => [String.t()]
         }
 
@@ -219,6 +220,10 @@ defmodule Relay.Api.Mailbox do
         {:error, Relay.Error.new(:auth_insufficient_scope, message, %{required_scope: "read"})}
     end
   end
+
+  # AG-6
+  # E-29
+  defp owner(%{agent: true, agent_id: <<_::128>> = id}), do: {:ok, {:agent, id}}
 
   defp owner(%{agent: true}) do
     {:error, Relay.Error.new(:agent_not_found, "the credential names no agent record")}

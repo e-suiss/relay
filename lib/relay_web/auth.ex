@@ -4,7 +4,7 @@ defmodule RelayWeb.Auth do
 
   * No credential or no proof is `401 auth_missing_credentials`, a malformed one (another scheme, more than one proof) `401 auth_malformed_credentials`; every 401 of a server operation carries a `WWW-Authenticate: DPoP` challenge.
   * Invalid credentials are limited per client IP (`throttle_invalid/1`); past the limit the answer is `429 rate_limited`.
-  * A missing scope is `403 auth_insufficient_scope`, with `required_scope` and `granted_scopes` for an API client credential; the other environment's operation is `403 auth_environment_mismatch`.
+  * A missing scope is `403 auth_insufficient_scope`, with `required_scope` and `granted_scopes` for a server API client credential (an agent's credential, which holds only the narrow agent scopes of AG-6, gets neither); the other environment's operation is `403 auth_environment_mismatch`.
   * `Relay-Tenant` and `Relay-Environment` belong to operator sessions; with an API client credential they are `422 validation_failed`.
   * A webhook portal operation accepts only a Relay webhook portal token as `Authorization: Bearer` (WH-47); its principal names the one consumer the token is scoped to, and the token of an unknown or archived consumer is `401 auth_invalid_token`.
   * A subscriber operation accepts only a Relay subscriber token as `Authorization: Bearer` (`RelayWeb.Auth.Subscriber`); its principal names the subscriber, and the token of a suspended subscriber is `403 auth_subscriber_suspended`.
@@ -217,6 +217,10 @@ defmodule RelayWeb.Auth do
       do: :ok,
       else: {:error, insufficient(principal, accepted)}
   end
+
+  # AG-6
+  defp insufficient(%Principal{agent: true}, _accepted),
+    do: Relay.Error.new(:auth_insufficient_scope, "the agent's credential lacks the scope")
 
   defp insufficient(%Principal{subscriber_id: nil, scopes: granted}, [required | _]) do
     Relay.Error.new(:auth_insufficient_scope, "the API client lacks the scope", %{

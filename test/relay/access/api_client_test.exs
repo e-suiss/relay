@@ -10,7 +10,7 @@ defmodule Relay.Access.ApiClientTest do
   alias RelayTest.FakeAccess
   alias RelayTest.TenantFixture
 
-  @domain "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'api_scope_check'"
+  @names "SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'api_clients_scope_names_check'"
   @set_status "SELECT * FROM relay_fn.api_client_set_status($1, $2, $3, $4, $5, $6, $7, $8)"
 
   setup do
@@ -147,10 +147,10 @@ defmodule Relay.Access.ApiClientTest do
       Api.assert_contract(conn)
     end
 
-    test "API-75: the api_scope domain is the OpenAPI ScopeName set" do
-      [[definition]] = Relay.Repo.query!(@domain, []).rows
-      names = ~r/'([a-z_]+)'/ |> Regex.scan(definition) |> Enum.map(&List.last/1)
-      contract = Relay.Api.Contract.documents()["schemas"]["ScopeName"]["enum"]
+    test "API-75, AG-6: the scope names of an API client are the OpenAPI ApiClientScope set" do
+      [[definition]] = Relay.Repo.query!(@names, []).rows
+      names = ~r/'([a-z_:]+)'/ |> Regex.scan(definition) |> Enum.map(&List.last/1)
+      contract = Relay.Api.Contract.documents()["schemas"]["ApiClientScope"]["enum"]
       assert Enum.sort(names) == Enum.sort(contract)
     end
   end

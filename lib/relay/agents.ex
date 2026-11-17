@@ -1,11 +1,12 @@
 defmodule Relay.Agents do
   @moduledoc """
-  Agent recipient records, waitpoints, agent mailboxes and agent protocols. Other contexts use only the functions of this module.
+  Agent recipient records, waitpoints with their escalation chain and surface policy, agent mailboxes and agent protocols. Other contexts use only the functions of this module.
   """
 
   use Boundary, top_level?: true, deps: [Relay], exports: []
 
   alias Relay.Agents.Correlation
+  alias Relay.Agents.Escalation
   alias Relay.Agents.Mailbox
   alias Relay.Agents.Registry
   alias Relay.Agents.Waitpoint
@@ -289,4 +290,76 @@ defmodule Relay.Agents do
   @doc "Fires the waitpoints of a scope whose timers are due; the virtual clock tick calls it after a step."
   @spec run_due(Relay.Scope.t()) :: :ok | {:error, term()}
   defdelegate run_due(scope), to: Waitpoint
+
+  # AG-53
+  @doc "The escalation tier limit; see `Relay.Agents.Escalation.tier_limit/0`."
+  @spec escalation_tier_limit() :: %{limit: pos_integer(), path: [String.t(), ...]}
+  defdelegate escalation_tier_limit(), to: Escalation, as: :tier_limit
+
+  # AG-17
+  @doc "Writes an escalation policy version inside the caller's scoped transaction; see `Relay.Agents.Escalation.put_policy/5`."
+  @spec put_escalation_policy(String.t(), map(), integer() | nil, binary(), Relay.Actor.t()) ::
+          {atom(), Relay.Id.t() | nil, pos_integer() | nil}
+  defdelegate put_escalation_policy(key, attrs, expected_version, digest, actor),
+    to: Escalation,
+    as: :put_policy
+
+  # AG-17
+  @doc "Archives an escalation policy inside the caller's scoped transaction; see `Relay.Agents.Escalation.archive_policy/3`."
+  @spec archive_escalation_policy(String.t(), <<_::256>>, Relay.Actor.t()) ::
+          {:archived | :already_archived | :not_found, pos_integer() | nil}
+  defdelegate archive_escalation_policy(key, digest, actor), to: Escalation, as: :archive_policy
+
+  # AG-17
+  @doc "Reads an escalation policy with its latest version inside the caller's scoped transaction, or `nil`."
+  @spec escalation_policy(String.t()) :: map() | nil
+  defdelegate escalation_policy(key), to: Escalation, as: :policy
+
+  # AG-17
+  @doc "Reads an escalation policy with its latest version; see `Relay.Agents.Escalation.get_policy/2`."
+  @spec get_escalation_policy(Relay.Scope.t(), String.t()) ::
+          {:ok, map() | nil} | {:error, term()}
+  defdelegate get_escalation_policy(scope, key), to: Escalation, as: :get_policy
+
+  # AG-17
+  # API-56
+  @doc "Lists escalation policies; see `Relay.Agents.Escalation.list_policies/4`."
+  @spec list_escalation_policies(Relay.Scope.t(), String.t() | nil, map() | nil, integer()) ::
+          {:ok, [map()]} | {:error, term()}
+  defdelegate list_escalation_policies(scope, state, cursor, limit),
+    to: Escalation,
+    as: :list_policies
+
+  # AG-17
+  # API-56
+  @doc "Lists the versions of an escalation policy; see `Relay.Agents.Escalation.policy_versions/4`."
+  @spec escalation_policy_versions(Relay.Scope.t(), String.t(), map() | nil, pos_integer()) ::
+          {:ok, [map()] | nil} | {:error, term()}
+  defdelegate escalation_policy_versions(scope, key, cursor, limit),
+    to: Escalation,
+    as: :policy_versions
+
+  # AG-17
+  @doc "The recipients among `ids` that exist and are not deleted; see `Relay.Agents.Escalation.known_recipients/2`."
+  @spec known_recipients(Relay.Scope.t(), [Relay.Id.t()]) ::
+          {:ok, [{Relay.Id.t(), String.t()}]} | {:error, term()}
+  defdelegate known_recipients(scope, ids), to: Escalation
+
+  # AG-63
+  # INV-35
+  @doc "Settles an invitation of a waitpoint; see `Relay.Agents.Escalation.settle/3`."
+  @spec settle_invitation(Relay.Scope.t(), Relay.Id.t(), :delivered | :unreachable) ::
+          {:ok, {atom(), DateTime.t() | nil}} | {:error, term()}
+  defdelegate settle_invitation(scope, invitation_id, outcome), to: Escalation, as: :settle
+
+  # AG-19
+  @doc "The escalation tiers and surface steps of a waitpoint; see `Relay.Agents.Escalation.steps/2`."
+  @spec waitpoint_steps(Relay.Scope.t(), Relay.Id.t()) :: {:ok, [map()]} | {:error, term()}
+  defdelegate waitpoint_steps(scope, waitpoint_id), to: Escalation, as: :steps
+
+  # AG-63
+  @doc "The invitations of a waitpoint; see `Relay.Agents.Escalation.invitations/2`."
+  @spec waitpoint_invitations(Relay.Scope.t(), Relay.Id.t()) ::
+          {:ok, [map()]} | {:error, term()}
+  defdelegate waitpoint_invitations(scope, waitpoint_id), to: Escalation, as: :invitations
 end

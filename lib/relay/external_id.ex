@@ -83,7 +83,8 @@ defmodule Relay.ExternalId do
     {"whb", "webhook_batches"},
     {"whs", "webhook_sources"},
     {"iyu", "iys_uploads"},
-    {"tkd", "takedowns"}
+    {"tkd", "takedowns"},
+    {"esp", "escalation_policies"}
   ]
   @by_prefix Map.new(@tables)
 

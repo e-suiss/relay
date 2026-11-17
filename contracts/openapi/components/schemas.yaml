@@ -6376,7 +6376,7 @@ EscalationPolicyKey:
   maxLength: 100
 EscalationPolicyDefinition:
   type: object
-  description: "An escalation policy definition: 1 to 10 tiers."
+  description: "An inline escalation policy definition: at least one tier and at most x-relay-limits waitpoint.max_escalation_tiers. More tiers are 422 validation_failed with too_long at /escalation_policy/tiers, the limit and the count sent."
   required:
     - tiers
   properties:
@@ -6385,7 +6385,6 @@ EscalationPolicyDefinition:
       items:
         "$ref": "#/EscalationTier"
       minItems: 1
-      maxItems: 10
   additionalProperties: false
 EscalationPolicyReference:
   type: object
@@ -6418,6 +6417,68 @@ WaitpointEscalation:
       type: boolean
       description: "true for an inline definition stored as an anonymous version of this waitpoint; key is then null."
   additionalProperties: false
+SurfaceTarget:
+  type: object
+  description: "One surface of a surface policy step: a registered device of the responder, or a channel; exactly one of the two. in_app is not a surface of a step: the inbox record is written at once, whatever the policy says."
+  properties:
+    device_id:
+      "$ref": "#/Id_dev"
+    channel:
+      "$ref": "#/Channel"
+  minProperties: 1
+  maxProperties: 1
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "AG-63 names a surface as a registered device (device_id) or a channel; the object shape is chosen by the contract."
+SurfacePolicyStep:
+  type: object
+  description: "One step of a responder's surface policy: the surfaces invited together and the time after which the next step is invited when no response has come."
+  required:
+    - surfaces
+    - escalate_after
+  properties:
+    surfaces:
+      type: array
+      items:
+        "$ref": "#/SurfaceTarget"
+      minItems: 1
+      maxItems: 20
+    escalate_after:
+      "$ref": "#/Duration"
+      description: "Time after this step is invited before the next step is; at least PT1S. The sender gives it; Relay sets no default."
+  additionalProperties: false
+SurfacePolicyRecipient:
+  type: object
+  description: "The surface policy of one responder: ordered steps. The first step is invited when the responder is; each next step when the step before it has waited its escalate_after without a response. Surfaces no step names are invited together after the last step."
+  required:
+    - responder
+    - steps
+  properties:
+    responder:
+      "$ref": "#/Responder"
+      description: "A responder of the waitpoint; the policy never changes the responders."
+    steps:
+      type: array
+      items:
+        "$ref": "#/SurfacePolicyStep"
+      minItems: 1
+      maxItems: 10
+  additionalProperties: false
+SurfacePolicy:
+  type: object
+  description: "The sender's surface policy (AG-63): for each responder it names, on which surfaces the invitation interrupts first and when it moves on. It orders only the interrupting deliveries; the inbox record is written at once. A surface that is not registered for the responder, is not permitted or fails for good is recorded as surface_step_skipped and the next step is invited without waiting. The schedule never extends expires_at, stops when the waitpoint is resolved, cancelled or stalled and goes on from the step it stopped at when the heartbeat returns. A responder without a policy is invited on every device and channel at once. At most 16 kB."
+  required:
+    - recipients
+  properties:
+    recipients:
+      type: array
+      items:
+        "$ref": "#/SurfacePolicyRecipient"
+      minItems: 1
+      maxItems: 50
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "AG-63 gives the rule (ordered steps of a surface set and escalate_after per responder); the member names and the bounds on steps and surfaces are chosen by the contract."
 WaitpointProfile:
   type: string
   description: "A profile narrows a waitpoint. guardian_approval is the request of a child that a guardian decides (AG-62): a review whose responders the creator takes from the guardianship and household records, whose expires_at comes from the creator and is never moved, and which takes no default_response, because silence is no response; when it expires only waitpoint.expired is produced."
@@ -6539,8 +6600,7 @@ WaitpointCreate:
       "$ref": "#/Duration"
       description: "Waiter heartbeat interval, PT1S to P1D; a missed heartbeat makes the waitpoint stalled."
     surface_policy:
-      type: object
-      description: "Where the waitpoint is surfaced to responders, at most 16 kB."
+      "$ref": "#/SurfacePolicy"
     default_response:
       description: "A response value the creator declares for the case that nobody responds: it follows response_schema, is at most x-relay-limits waitpoint.max_response_bytes as JSON and is handed to the waiter with waitpoint.expired. Relay never records it as a response (AG-18). Not taken with profile guardian_approval."
     subject_digest:
@@ -6680,8 +6740,7 @@ Waitpoint:
       "$ref": "#/Duration"
       description: "Waiter heartbeat interval, PT1S to P1D; a missed heartbeat makes the waitpoint stalled."
     surface_policy:
-      type: object
-      description: "Where the waitpoint is surfaced to responders, at most 16 kB."
+      "$ref": "#/SurfacePolicy"
     default_response:
       description: "A response value the creator declares for the case that nobody responds: it follows response_schema, is at most x-relay-limits waitpoint.max_response_bytes as JSON and is handed to the waiter with waitpoint.expired. Relay never records it as a response (AG-18). Not taken with profile guardian_approval."
     subject_digest:
@@ -6800,7 +6859,7 @@ EscalationPolicyState:
     - archived
 EscalationPolicyWrite:
   type: object
-  description: "A new version of an escalation policy."
+  description: "A new version of an escalation policy: at least one tier and at most x-relay-limits waitpoint.max_escalation_tiers. More tiers are 422 validation_failed with too_long at /tiers, the limit and the count sent."
   required:
     - tiers
   properties:
@@ -6809,7 +6868,6 @@ EscalationPolicyWrite:
       items:
         "$ref": "#/EscalationTier"
       minItems: 1
-      maxItems: 10
     description:
       type: string
       maxLength: 500

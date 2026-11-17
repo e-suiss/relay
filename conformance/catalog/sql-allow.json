@@ -376,5 +376,11 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "PC-39, PC-61: the committed relay_fn.refusal_apply is dropped as its owner, relay_owner, which relay_migrator may SET but does not inherit, so a refusal notice no longer suppresses an address; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261228000000_create_escalation_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "AG-17, AG-19, OP-9: the no-delete and append-only triggers reject TRUNCATE on the escalation policies, their versions, the waitpoint steps and the invitations"
   }
 ]

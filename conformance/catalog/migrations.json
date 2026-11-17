@@ -273,5 +273,8 @@
   {"file": "20261227000000_add_waitpoint_interaction_fields.exs", "sha256": "f7f74887843dc70172b1034efd222858ed88e4a41a88e8c471c7c9f4f6b70cb8"},
   {"file": "20261227000100_validate_waitpoint_interaction_checks.exs", "sha256": "8932bd7ab0824f64fdc187c9e13ef55bad7177b153fbf3c321b0032d12def575"},
   {"file": "20261227000200_shape_waitpoint_event_data.exs", "sha256": "ab4af0477c9c9fdb861b41edea23584b1e394bd77e5962497ee009abb657c2e7"},
+  {"file": "20261228000000_create_escalation_tables.exs", "sha256": "83ab2aa6b740de59e54c042ca162a95d06a46e34cf7ac2b38e3d797a55814f96"},
+  {"file": "20261228000100_create_escalation_functions.exs", "sha256": "aef1bc36c0bcaec4f067a744bed7a1865ab9b83d0efce2915b1a27df70b6ca45"},
+  {"file": "20261228000200_rebuild_reference_check_for_escalation.exs", "sha256": "ed6920283cf87b6acc7bc9970a6bcb54b838dee6159f88476f73639ac317c8f5"},
   {"file": "20261229000100_create_mailbox_agent_lease.exs", "sha256": "3cd6e5fcd397a780ecf2fac1043c7fac06bb86fcfa9400db1dcc6aa2e9e3bd42"}
 ]

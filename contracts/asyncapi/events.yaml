@@ -382,6 +382,12 @@ channels:
         "$ref": "#/components/messages/audit.route.replaced"
       audit.route.archived:
         "$ref": "#/components/messages/audit.route.archived"
+      audit.escalation_policy.created:
+        "$ref": "#/components/messages/audit.escalation_policy.created"
+      audit.escalation_policy.updated:
+        "$ref": "#/components/messages/audit.escalation_policy.updated"
+      audit.escalation_policy.archived:
+        "$ref": "#/components/messages/audit.escalation_policy.archived"
       audit.suppression.added:
         "$ref": "#/components/messages/audit.suppression.added"
       audit.suppression.lifted:
@@ -778,6 +784,9 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.route.created"
       - "$ref": "#/channels/auditLog/messages/audit.route.replaced"
       - "$ref": "#/channels/auditLog/messages/audit.route.archived"
+      - "$ref": "#/channels/auditLog/messages/audit.escalation_policy.created"
+      - "$ref": "#/channels/auditLog/messages/audit.escalation_policy.updated"
+      - "$ref": "#/channels/auditLog/messages/audit.escalation_policy.archived"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.added"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.lifted"
       - "$ref": "#/channels/auditLog/messages/audit.sms_destination.stopped"
@@ -6440,6 +6449,60 @@ components:
       x-relay-stage: 8
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.escalation_policy.created:
+      name: escalation_policy.created
+      title: escalation_policy.created
+      summary: "An escalation policy was created with its first version."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: escalation_policy
+      x-relay-surface: audit
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.escalation_policy.updated:
+      name: escalation_policy.updated
+      title: escalation_policy.updated
+      summary: "A new immutable version of an escalation policy was written; waitpoints keep the version they pinned."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: escalation_policy
+      x-relay-surface: audit
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.escalation_policy.archived:
+      name: escalation_policy.archived
+      title: escalation_policy.archived
+      summary: "An escalation policy was archived; the row and its versions stay."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: escalation_policy
+      x-relay-surface: audit
+      x-relay-stage: 12
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.category_subtenant_setting.changed:
       name: category_subtenant_setting.changed
       title: category_subtenant_setting.changed
@@ -8450,6 +8513,9 @@ x-relay-event-names:
   - email_reputation.resumed
   - email_reputation.stopped
   - email_reputation.warning
+  - escalation_policy.archived
+  - escalation_policy.created
+  - escalation_policy.updated
   - event_type_mapping.changed
   - export.completed
   - export.downloaded

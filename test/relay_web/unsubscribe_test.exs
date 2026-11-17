@@ -24,6 +24,7 @@ defmodule RelayWeb.UnsubscribeTest do
   alias Relay.Channels.Live.Unsubscribe
   alias Relay.Compliance.Refusals
   alias Relay.Compliance.Refusals.SinkWorker
+  alias Relay.Policy.IysGate
   alias Relay.Repo
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.OutboxEvents
@@ -43,13 +44,13 @@ defmodule RelayWeb.UnsubscribeTest do
   @gates ~w(consent.missing consent.revoked consent.expired preference.category_channel)
 
   setup do
-    gate = Application.get_env(:relay, Relay.Policy.IysGate)
-    Application.put_env(:relay, Relay.Policy.IysGate, impl: __MODULE__.OutsideIys)
+    gate = Application.get_env(:relay, IysGate)
+    Application.put_env(:relay, IysGate, impl: __MODULE__.OutsideIys)
 
     on_exit(fn ->
       if gate,
-        do: Application.put_env(:relay, Relay.Policy.IysGate, gate),
-        else: Application.delete_env(:relay, Relay.Policy.IysGate)
+        do: Application.put_env(:relay, IysGate, gate),
+        else: Application.delete_env(:relay, IysGate)
     end)
 
     tenant = TenantFixture.tenant!()

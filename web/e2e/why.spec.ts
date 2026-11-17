@@ -57,7 +57,7 @@ test.describe("X-12 why didn't I receive", () => {
     await expect(main).not.toContainText(subscriber.email);
     await expect(main).not.toContainText(subscriber.phone);
     await expect(main).not.toContainText(subscriber.name);
-    await expect(main).toContainText("+90••••••••67");
+    await expect(main).toContainText("+90••••••••33");
     await expect(
       main.locator("[data-rule-id='consent.missing']").first(),
     ).toBeVisible();

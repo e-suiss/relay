@@ -91,7 +91,21 @@ func newGen(l *loader) *gen {
 	}
 }
 
+var handWritten = map[string]bool{
+	"APIError": true, "APIVersion": true, "AuthenticationError": true, "Authorizer": true,
+	"Client": true, "ClientCredentials": true, "ClientOption": true, "ConflictError": true,
+	"ConnectionError": true, "CredentialOption": true, "DefaultWebhookTolerance": true,
+	"IdempotencyError": true, "MergeStreamAndHistory": true, "NewClient": true,
+	"NewClientCredentials": true, "NewWebhookVerifier": true, "NotFoundError": true, "Page": true,
+	"RateLimitError": true, "RequestOption": true, "Response": true, "ServerError": true,
+	"ValidationError": true, "Version": true, "WaitTimeoutError": true,
+	"WebhookVerificationError": true, "WebhookVerifier": true,
+}
+
 func (g *gen) reserve(name string) string {
+	if handWritten[name] || strings.HasPrefix(name, "With") {
+		name += "Value"
+	}
 	if !g.used[name] {
 		g.used[name] = true
 		return name

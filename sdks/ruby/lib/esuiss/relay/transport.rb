@@ -7,7 +7,7 @@ require "uri"
 module Esuiss
   module Relay
     # One HTTP request handed to a transport.
-    Request = Struct.new(:method, :url, :headers, :body, :timeout, keyword_init: true)
+    Request = Struct.new(:http_method, :url, :headers, :body, :timeout, keyword_init: true)
 
     # One HTTP answer: status, headers with lowercase names, and the raw body.
     class Response
@@ -47,7 +47,7 @@ module Esuiss
       private
 
       def build(uri, request)
-        net = Net::HTTPGenericRequest.new(request.method, !request.body.nil?, true, uri.request_uri,
+        net = Net::HTTPGenericRequest.new(request.http_method, !request.body.nil?, true, uri.request_uri,
                                           request.headers)
         net.body = request.body unless request.body.nil?
         net

@@ -46,8 +46,8 @@ class ErrorsTest < Minitest::Test
   end
 
   def test_x29_problem_members_are_exposed
-    response = TestSupport.problem(429, "rate_limited", retryable: true, retry_after: 4, request_id: "req_1",
-                                                                       detail: "slow down")
+    extra = { retry_after: 4, request_id: "req_1", detail: "slow down" }
+    response = TestSupport.problem(429, "rate_limited", retryable: true, **extra)
     error = Esuiss::Relay::Errors.from_response(response)
 
     assert_equal 4, error.retry_after

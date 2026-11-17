@@ -37,7 +37,7 @@ module Esuiss
           "iat" => now.to_i,
           "jti" => Codec.b64url(jti)
         }
-        claims["ath"] = Codec.b64url(OpenSSL::Digest::SHA256.digest(token)) if token
+        claims["ath"] = Codec.b64url(OpenSSL::Digest.digest("SHA256", token)) if token
         claims["nonce"] = nonce if nonce
         input = "#{Codec.b64url(JSON.generate(header))}.#{Codec.b64url(JSON.generate(claims))}"
         "#{input}.#{Codec.b64url(@key.sign(nil, input))}"

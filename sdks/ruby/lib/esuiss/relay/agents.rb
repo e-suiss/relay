@@ -41,13 +41,13 @@ module Esuiss
         end
       end
 
-      def read_mailbox(since: nil, limit: nil)
-        return enum_for(:read_mailbox, since: since, limit: limit) unless block_given?
+      def read_mailbox(since: nil, limit: nil, &block)
+        return enum_for(:read_mailbox, since: since, limit: limit) unless block
 
         cursor = since
         loop do
           page = list_mailbox_records(since: cursor, limit: limit)
-          page.fetch("records", []).each { |record| yield record }
+          page.fetch("records", []).each(&block)
           cursor = page["cursor"]
           break unless page["has_more"] == true && cursor
         end

@@ -274,19 +274,22 @@ module RelayCodegen
     end
 
     def call(op)
-      helper = op.paginated ? "paginate" : "perform"
       args = ["method: :#{op.verb}", "path: #{path_literal(op)}"]
       args << "query: #{hash_literal(op.params.select { |p| p.location == 'query' })}"
       args << "headers: #{hash_literal(op.params.select { |p| p.location == 'header' })}"
-      unless op.paginated
-        args << "body: #{op.body ? 'body' : 'nil'}"
-        args << "content_type: #{op.content_type.inspect}" if op.content_type
-        args << "idempotent: #{op.idempotent}"
-        args << "idempotency_key: idempotency_key" if op.idempotent
-        args << "response: :#{op.response}"
-      end
+      args.concat(perform_args(op)) unless op.paginated
       args << "request_options: request_options"
-      ["#{helper}(", *args.each_with_index.map { |a, i| "  #{a}#{i == args.size - 1 ? '' : ','}" }, ")"]
+      lines = args.map { |arg| "  #{arg}," }
+      lines[-1] = lines[-1].delete_suffix(",")
+      ["#{op.paginated ? 'paginate' : 'perform'}(", *lines, ")"]
+    end
+
+    def perform_args(op)
+      args = ["body: #{op.body ? 'body' : 'nil'}"]
+      args << "content_type: #{op.content_type.inspect}" if op.content_type
+      args << "idempotent: #{op.idempotent}"
+      args << "idempotency_key: idempotency_key" if op.idempotent
+      args << "response: :#{op.response}"
     end
 
     def path_literal(op)

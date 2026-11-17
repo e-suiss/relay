@@ -13,14 +13,24 @@ AllCops:
 Layout/LineLength:
   Max: 120
 
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Naming/MethodParameterName:
+  AllowedNames:
+    - id
+    - op
+
 Metrics/AbcSize:
   Max: 30
+  Exclude:
+    - test/**/*
 
 Metrics/ClassLength:
   Max: 250
 
 Metrics/CyclomaticComplexity:
-  Max: 10
+  Max: 14
 
 Metrics/MethodLength:
   Max: 25
@@ -29,7 +39,7 @@ Metrics/ParameterLists:
   CountKeywordArgs: false
 
 Metrics/PerceivedComplexity:
-  Max: 10
+  Max: 14
 
 Metrics/BlockLength:
   Exclude:

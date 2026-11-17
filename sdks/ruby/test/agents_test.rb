@@ -65,7 +65,7 @@ class AgentsTest < Minitest::Test
                                   TestSupport.json(200, lease), TestSupport.json(200, { "object" => "mailbox_ack" }))
     client, = clocked_client(transport)
 
-    assert_equal %w[mbr_1 mbr_2], client.read_mailbox(limit: 1).map { |r| r["id"] }
+    assert_equal(%w[mbr_1 mbr_2], client.read_mailbox(limit: 1).map { |r| r["id"] })
     assert_includes transport.requests[1].url, "since=k1"
     seen = []
 
@@ -92,7 +92,8 @@ class AgentsTest < Minitest::Test
     order = []
     stream = lambda {
       order << :stream
-      [{ "id" => "a", "seq" => 2 }, { "id" => "b", "seq" => 1 }, { "id" => "c", "seq" => 1 }, { "id" => "a", "seq" => 3 }]
+      [{ "id" => "a", "seq" => 2 }, { "id" => "b", "seq" => 1 },
+       { "id" => "c", "seq" => 1 }, { "id" => "a", "seq" => 3 }]
     }
     history = lambda {
       order << :history
@@ -102,7 +103,7 @@ class AgentsTest < Minitest::Test
     merged = client.merge_stream_and_history(stream, history).to_a
 
     assert_equal %i[stream history], order
-    assert_equal [%w[a 2], %w[b 1], %w[c 1], %w[a 3]], merged.map { |i| [i["id"], i["seq"].to_s] }
+    assert_equal([%w[a 2], %w[b 1], %w[c 1], %w[a 3]], merged.map { |i| [i["id"], i["seq"].to_s] })
   end
 
   def test_x30_iso8601_durations

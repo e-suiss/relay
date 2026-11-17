@@ -34,7 +34,7 @@ module TestSupport
     def call(request)
       @requests << request
       response = @responses.shift
-      raise "no stubbed response left for #{request.method} #{request.url}" if response.nil?
+      raise "no stubbed response left for #{request.http_method} #{request.url}" if response.nil?
       raise response if response.is_a?(Exception)
 
       response

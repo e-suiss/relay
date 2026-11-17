@@ -19,9 +19,9 @@ class ClientCredentialsTest < Minitest::Test
     [TestSupport.json(200, { "access_client_id" => "relay-client" }), TestSupport.json(200, openid)]
   end
 
-  def credentials(transport, **options)
+  def credentials(transport, **)
     Esuiss::Relay::ClientCredentials.new(issuer: ISSUER, client_id: "cli_1", client_secret: "s3cr3t",
-                                         transport: transport, clock: -> { NOW }, **options)
+                                         transport: transport, clock: -> { NOW }, **)
   end
 
   def test_api41_dpop_proof_is_signed_by_the_jwk_and_binds_the_token
@@ -36,7 +36,7 @@ class ClientCredentialsTest < Minitest::Test
     assert_equal "POST", claims.fetch("htm")
     assert_equal "https://relay.test/v1/events", claims.fetch("htu")
     assert_equal NOW.to_i, claims.fetch("iat")
-    assert_equal Esuiss::Relay::Codec.b64url(OpenSSL::Digest::SHA256.digest("tok")), claims.fetch("ath")
+    assert_equal Esuiss::Relay::Codec.b64url(OpenSSL::Digest.digest("SHA256", "tok")), claims.fetch("ath")
     assert_equal 22, claims.fetch("jti").length
     public_key = Esuiss::Relay::DPoPKey.public_key(Esuiss::Relay::Codec.decode_b64url(header.dig("jwk", "x")))
 

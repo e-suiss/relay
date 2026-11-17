@@ -26,7 +26,7 @@ class WebhookTest < Minitest::Test
       now = entry.fetch("webhook_timestamp")
       combined = "#{entry.fetch('v1a')} #{entry.fetch('v1')}"
 
-      assert both.verify(body(entry), headers(entry, combined), now: now), entry.fetch("name")
+      assert both.verify(body(entry), headers(entry, combined), now: now)
       assert webhook(KEYS.fetch("ed25519_public_key")).verify(body(entry), headers(entry, entry.fetch("v1a")), now: now)
       assert webhook(KEYS.fetch("hmac_secret")).verify(body(entry), headers(entry, entry.fetch("v1")), now: now)
     end

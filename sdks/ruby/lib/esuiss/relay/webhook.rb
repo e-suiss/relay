@@ -26,10 +26,12 @@ module Esuiss
         id, timestamp, signatures = read_headers(headers)
         seconds = parse_timestamp(timestamp)
         current = (now || @clock.call).to_i
-        raise WebhookVerificationError, "webhook-timestamp is outside the tolerance" if (current - seconds).abs > @tolerance
+        if (current - seconds).abs > @tolerance
+          raise WebhookVerificationError, "webhook-timestamp is outside the tolerance"
+        end
 
         content = "#{id}.#{timestamp}.".b + body.to_s.b
-        return true if signatures.split(" ").any? { |entry| valid?(entry, content) }
+        return true if signatures.split.any? { |entry| valid?(entry, content) }
 
         raise WebhookVerificationError, "no webhook signature matches"
       end

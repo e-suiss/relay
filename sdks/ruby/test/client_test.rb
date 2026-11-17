@@ -36,7 +36,7 @@ class ClientTest < Minitest::Test
     client, = TestSupport.client(transport)
     client.create_event({ "workflow" => "welcome" })
 
-    assert_equal %w[proof-1 proof-2], transport.requests.map { |r| r.headers["DPoP"] }
+    assert_equal(%w[proof-1 proof-2], transport.requests.map { |r| r.headers["DPoP"] })
   end
 
   def test_x29_non_retryable_problem_is_raised_at_once
@@ -97,7 +97,7 @@ class ClientTest < Minitest::Test
     request = transport.requests.first
 
     assert_equal Esuiss::Relay::API_VERSION, request.headers["Relay-Version"]
-    assert_equal "GET", request.method
+    assert_equal "GET", request.http_method
     assert_equal "https://relay.test/v1/notifications/ntf_1", request.url
     assert_nil request.headers["Idempotency-Key"]
     assert_nil request.body

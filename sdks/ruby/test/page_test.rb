@@ -30,7 +30,7 @@ class PageTest < Minitest::Test
     transport = StubTransport.new(list(%w[ntf_1], "c1"), list(%w[ntf_2], nil))
     client, = TestSupport.client(transport)
 
-    assert_equal %w[ntf_1 ntf_2], client.list_notifications.map { |item| item["id"] }
+    assert_equal(%w[ntf_1 ntf_2], client.list_notifications.map { |item| item["id"] })
     assert_equal 2, transport.requests.size
   end
 

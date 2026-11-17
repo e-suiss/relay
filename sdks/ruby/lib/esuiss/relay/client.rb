@@ -75,12 +75,13 @@ module Esuiss
         renewed = false
         max = options.fetch(:max_retries, @max_retries)
         loop do
-          response = @transport.call(Request.new(method: method, url: url, headers: headers.merge(authorization(method, url)),
-                                                 body: payload, timeout: options.fetch(:timeout, @timeout)))
+          request = Request.new(http_method: method, url: url, headers: headers.merge(authorization(method, url)),
+                                body: payload, timeout: options.fetch(:timeout, @timeout))
+          response = @transport.call(request)
           return response if response.status.between?(200, 299)
 
-          error = Errors.from_response(response,
-                                       retry_after: RetryPolicy.retry_after(response.header("retry-after"), @clock.call))
+          retry_after = RetryPolicy.retry_after(response.header("retry-after"), @clock.call)
+          error = Errors.from_response(response, retry_after: retry_after)
           if error.code == "auth_expired_token" && !renewed && @auth
             renewed = true
             @auth.invalidate
@@ -119,7 +120,7 @@ module Esuiss
       end
 
       def compact(hash)
-        hash.reject { |_, value| value.nil? }
+        hash.compact
       end
 
       def segment(value)

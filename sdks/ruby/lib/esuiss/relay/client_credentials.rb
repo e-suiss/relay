@@ -113,7 +113,7 @@ module Esuiss
         else
           headers["Authorization"] = "Basic #{basic}"
         end
-        Request.new(method: "POST", url: endpoint, headers: headers, body: URI.encode_www_form(form),
+        Request.new(http_method: "POST", url: endpoint, headers: headers, body: URI.encode_www_form(form),
                     timeout: @timeout)
       end
 
@@ -130,14 +130,14 @@ module Esuiss
       def issued(body)
         token = body["access_token"]
         raise TokenError, "Access answered without an access token" unless token.is_a?(String) && !token.empty?
-        raise TokenError, "Access issued a token that is not a DPoP token" unless body["token_type"].to_s.casecmp?("dpop")
+        return body if body["token_type"].to_s.casecmp?("dpop")
 
-        body
+        raise TokenError, "Access issued a token that is not a DPoP token"
       end
 
       def get_json(url)
-        request = Request.new(method: "GET", url: url, headers: { "Accept" => "application/json" }, body: nil,
-                              timeout: @timeout)
+        request = Request.new(http_method: "GET", url: url, headers: { "Accept" => "application/json" },
+                              body: nil, timeout: @timeout)
         response = @transport.call(request)
         raise TokenError, "discovery at #{url} answered HTTP #{response.status}" unless response.status == 200
 

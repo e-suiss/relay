@@ -229,13 +229,13 @@ class RequesterTest {
   @Test
   @DisplayName("API-38: without a body flag the catalog decides whether an error is retryable")
   void catalogDecides() {
-    assertTrue(Problem.catalogRetryable(503, "service_unavailable"));
-    assertTrue(Problem.catalogRetryable(409, "idempotency_key_in_progress"));
-    assertTrue(Problem.catalogRetryable(429, "rate_limited"));
-    assertTrue(!Problem.catalogRetryable(429, "quota_exhausted"));
-    assertTrue(!Problem.catalogRetryable(409, "resource_conflict"));
-    assertTrue(Problem.catalogRetryable(502, null));
-    assertTrue(!Problem.catalogRetryable(404, null));
+    assertTrue(Problem.defaultRetryable(503, "service_unavailable"));
+    assertTrue(Problem.defaultRetryable(409, "idempotency_key_in_progress"));
+    assertTrue(Problem.defaultRetryable(429, "rate_limited"));
+    assertTrue(!Problem.defaultRetryable(429, "quota_exhausted"));
+    assertTrue(!Problem.defaultRetryable(409, "resource_conflict"));
+    assertTrue(!Problem.defaultRetryable(502, null));
+    assertTrue(!Problem.defaultRetryable(404, null));
     assertTrue(ErrorCatalog.CODES.size() > 100);
   }
 

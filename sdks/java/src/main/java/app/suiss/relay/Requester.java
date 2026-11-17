@@ -7,6 +7,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,12 +65,16 @@ final class Requester {
   private Page page(
       Operation op, List<String> path, Map<String, String> query, RequestOptions options) {
     JsonNode raw = Json.parse(execute(op, path, query, null, options).body());
+    boolean backward =
+        query.containsKey("ending_before") && !query.containsKey("starting_after");
     return new Page(
         raw,
+        backward,
         cursor -> {
           Map<String, String> next = new LinkedHashMap<>(query);
           next.remove("ending_before");
-          next.put("starting_after", cursor);
+          next.remove("starting_after");
+          next.put(backward ? "ending_before" : "starting_after", cursor);
           return page(op, path, next, options);
         });
   }
@@ -97,9 +102,9 @@ final class Requester {
     if (op.idempotency() != Operation.Presence.NONE) {
       key = o.idempotencyKey() != null ? o.idempotencyKey() : newIdempotencyKey();
     }
-    boolean replayable = op.method().equals("GET") || key != null;
     for (int attempt = 0; ; attempt++) {
       Transport.Response response;
+      IOException failure = null;
       try {
         response =
             settings
@@ -112,39 +117,54 @@ final class Requester {
                         payload,
                         settings.timeout()));
       } catch (IOException e) {
-        if (replayable && attempt < settings.maxRetries()) {
-          pause(backoff(attempt));
-          continue;
-        }
-        throw new ConnectionException(op.id() + " got no response: " + e.getMessage(), e);
+        response = null;
+        failure = e;
       }
-      if (response.status() < 400) {
+      if (response != null && response.status() < 400) {
+        if (o.onResponse() != null) {
+          o.onResponse().accept(ResponseInfo.of(response));
+        }
         return response;
       }
-      Problem problem = Problem.of(response);
-      if (problem.retryable() && attempt < settings.maxRetries()) {
-        Duration delay = delay(attempt, problem.retryAfter());
-        if (delay != null) {
-          pause(delay);
-          continue;
-        }
+      Instant now = settings.clock().instant();
+      Decision decision = decide(attempt + 1, settings.random().nextDouble(), now, response);
+      if (decision.retry()) {
+        pause(decision.delay());
+        continue;
       }
-      throw problem.toException();
+      if (failure != null) {
+        throw new ConnectionException(
+            op.id() + " got no response: " + failure.getMessage(), failure);
+      }
+      throw Problem.of(response, now).toException();
     }
   }
 
-  Duration delay(int attempt, Duration retryAfter) {
-    if (retryAfter == null) {
-      return backoff(attempt);
+  record Decision(boolean retry, Duration delay, String reason) {}
+
+  Decision decide(int retry, double random, Instant now, Transport.Response response) {
+    Duration wait = null;
+    if (response != null) {
+      Problem problem = Problem.of(response, now);
+      if (!problem.retryable()) {
+        return new Decision(false, null, "not_retryable");
+      }
+      wait = problem.retryAfter();
     }
-    return retryAfter.compareTo(settings.maxRetryAfter()) > 0 ? null : retryAfter;
+    if (retry > settings.maxRetries()) {
+      return new Decision(false, null, "retries_exhausted");
+    }
+    if (wait != null && wait.compareTo(settings.maxRetryAfter()) > 0) {
+      return new Decision(false, null, "retry_after_too_long");
+    }
+    return new Decision(true, wait != null ? wait : backoff(retry, random), null);
   }
 
-  Duration backoff(int attempt) {
+  Duration backoff(int retry, double random) {
     long base = settings.baseDelay().toMillis();
     long cap = settings.maxDelay().toMillis();
-    long ceiling = attempt >= 30 ? cap : Math.min(cap, base << attempt);
-    return Duration.ofMillis((long) Math.floor(settings.random().nextDouble() * ceiling));
+    long ceiling = retry > 31 ? cap : Math.min(cap, base * (1L << (retry - 1)));
+    return Duration.ofMillis((long) Math.floor(random * ceiling));
   }
 
   private void pause(Duration delay) {

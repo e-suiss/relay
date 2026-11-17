@@ -78,7 +78,7 @@ public final class RelayClient {
     private Random random;
     private int maxRetries = 3;
     private Duration baseDelay = Duration.ofMillis(500);
-    private Duration maxDelay = Duration.ofSeconds(20);
+    private Duration maxDelay = Duration.ofSeconds(8);
     private Duration maxRetryAfter = Duration.ofSeconds(60);
     private Duration timeout = Duration.ofSeconds(30);
 

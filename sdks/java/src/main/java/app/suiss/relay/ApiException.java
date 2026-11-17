@@ -116,6 +116,20 @@ public class ApiException extends RelayException {
   }
 
   /**
+   * The field errors of a validation problem, each with its {@code pointer}, {@code code} and
+   * {@code detail}.
+   *
+   * @return the field errors, empty when there are none
+   */
+  public java.util.List<JsonNode> fieldErrors() {
+    java.util.List<JsonNode> errors = new java.util.ArrayList<>();
+    if (problem != null) {
+      problem.path("errors").forEach(errors::add);
+    }
+    return errors;
+  }
+
+  /**
    * The whole problem body, with its extension members.
    *
    * @return the body, a missing node when it was not JSON

@@ -3,6 +3,7 @@ package app.suiss.relay;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /** Per-request options. Instances are immutable. */
 public final class RequestOptions {
@@ -13,6 +14,7 @@ public final class RequestOptions {
   private final String beta;
   private final String contentType;
   private final Map<String, String> headers;
+  private final Consumer<ResponseInfo> onResponse;
 
   private RequestOptions(Builder builder) {
     this.idempotencyKey = builder.idempotencyKey;
@@ -20,6 +22,7 @@ public final class RequestOptions {
     this.beta = builder.beta;
     this.contentType = builder.contentType;
     this.headers = Collections.unmodifiableMap(new LinkedHashMap<>(builder.headers));
+    this.onResponse = builder.onResponse;
   }
 
   /**
@@ -85,6 +88,15 @@ public final class RequestOptions {
     return headers;
   }
 
+  /**
+   * The listener that receives the successful response's status and headers.
+   *
+   * @return the listener, or null
+   */
+  public Consumer<ResponseInfo> onResponse() {
+    return onResponse;
+  }
+
   /** Builds {@link RequestOptions}. */
   public static final class Builder {
     private String idempotencyKey;
@@ -92,6 +104,7 @@ public final class RequestOptions {
     private String beta;
     private String contentType;
     private final Map<String, String> headers = new LinkedHashMap<>();
+    private Consumer<ResponseInfo> onResponse;
 
     private Builder() {}
 
@@ -148,6 +161,18 @@ public final class RequestOptions {
      */
     public Builder header(String name, String value) {
       this.headers.put(name, value);
+      return this;
+    }
+
+    /**
+     * Receives the successful response's status and headers, for example to learn whether it was
+     * an idempotent replay.
+     *
+     * @param value the listener
+     * @return this builder
+     */
+    public Builder onResponse(Consumer<ResponseInfo> value) {
+      this.onResponse = value;
       return this;
     }
 

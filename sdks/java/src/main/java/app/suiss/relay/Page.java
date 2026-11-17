@@ -14,16 +14,19 @@ import java.util.stream.StreamSupport;
 
 /**
  * One page of a cursor-paginated list. {@link #autoPaging()} walks every item of this and the
- * following pages, fetching a page only when the previous one is used up.
+ * following pages, fetching a page only when the previous one is used up. A list that started with
+ * {@code ending_before} is walked backwards, each page's items in reverse order.
  */
 public final class Page {
   private final JsonNode raw;
   private final List<JsonNode> data;
   private final boolean hasMore;
   private final String nextCursor;
-  private final Function<String, Page> fetchAfter;
+  private final String previousCursor;
+  private final boolean backward;
+  private final Function<String, Page> fetch;
 
-  Page(JsonNode raw, Function<String, Page> fetchAfter) {
+  Page(JsonNode raw, boolean backward, Function<String, Page> fetch) {
     this.raw = raw;
     List<JsonNode> items = new ArrayList<>();
     raw.path("data").forEach(items::add);
@@ -31,7 +34,10 @@ public final class Page {
     this.hasMore = raw.path("has_more").asBoolean(false);
     JsonNode cursor = raw.path("next_cursor");
     this.nextCursor = cursor.isTextual() ? cursor.textValue() : null;
-    this.fetchAfter = fetchAfter;
+    JsonNode previous = raw.path("previous_cursor");
+    this.previousCursor = previous.isTextual() ? previous.textValue() : null;
+    this.backward = backward;
+    this.fetch = fetch;
   }
 
   /**
@@ -62,6 +68,15 @@ public final class Page {
   }
 
   /**
+   * The cursor of the previous page.
+   *
+   * @return the cursor, or null
+   */
+  public String previousCursor() {
+    return previousCursor;
+  }
+
+  /**
    * The page as Relay returned it.
    *
    * @return the list object
@@ -71,12 +86,23 @@ public final class Page {
   }
 
   /**
-   * Fetches the next page.
+   * Fetches the next page in the direction of the walk: after {@code next_cursor}, or before
+   * {@code previous_cursor} for a list that started with {@code ending_before}.
    *
    * @return the next page, or null when this is the last one
    */
   public Page nextPage() {
-    return hasMore && nextCursor != null ? fetchAfter.apply(nextCursor) : null;
+    String cursor = backward ? previousCursor : nextCursor;
+    return cursor == null ? null : fetch.apply(cursor);
+  }
+
+  private Iterator<JsonNode> walkItems() {
+    if (!backward) {
+      return data.iterator();
+    }
+    List<JsonNode> reversed = new ArrayList<>(data);
+    Collections.reverse(reversed);
+    return reversed.iterator();
   }
 
   /**
@@ -104,7 +130,7 @@ public final class Page {
 
     Walker(Page first) {
       this.page = first;
-      this.items = first.data.iterator();
+      this.items = first.walkItems();
     }
 
     @Override
@@ -116,7 +142,7 @@ public final class Page {
           return false;
         }
         page = next;
-        items = next.data.iterator();
+        items = next.walkItems();
       }
       return true;
     }

@@ -1,0 +1,88 @@
+name: web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "contracts/openapi/**"
+      - ".github/workflows/web.yml"
+  pull_request:
+    paths:
+      - "web/**"
+      - "contracts/openapi/**"
+      - ".github/workflows/web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  console:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+      # T-78
+      - run: echo "NPM_CONFIG_BEFORE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+      # T-76
+      - id: lock
+        name: lockfile matches package.json
+        continue-on-error: true
+        run: |
+          npm install --package-lock-only --no-audit
+          git add --intent-to-add package-lock.json
+          git diff --exit-code -- package-lock.json
+      - run: npm ci --no-audit
+      - run: npm audit
+      # X-47
+      - id: types
+        name: contract types match the OpenAPI contracts
+        continue-on-error: true
+        run: |
+          npm run generate
+          git add --intent-to-add src/api/generated
+          git diff --exit-code --stat -- src/api/generated
+      - run: npm run typecheck
+      - run: npm run lint
+      - id: format
+        name: prettier
+        continue-on-error: true
+        run: |
+          if ! npm run format:check; then
+            npx prettier --write .
+            git diff -- . ':!src/api/generated' ':!package-lock.json' > "$RUNNER_TEMP/format.patch"
+            cp "$RUNNER_TEMP/format.patch" format.patch
+            exit 1
+          fi
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - name: generated files are committed
+        env:
+          LOCK: ${{ steps.lock.outcome }}
+          TYPES: ${{ steps.types.outcome }}
+          FORMAT: ${{ steps.format.outcome }}
+        run: test "$LOCK" = success && test "$TYPES" = success && test "$FORMAT" = success
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: web-fixups
+          path: |
+            web/package-lock.json
+            web/src/api/generated
+            web/format.patch
+            web/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7

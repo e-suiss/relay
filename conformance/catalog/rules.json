@@ -3497,6 +3497,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "X-47",
+    "section": "§8",
+    "status": "frozen_technical",
+    "title": "Console is the React app in web/ served at /console on the same origin",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
     "id": "API-1",
     "section": "§9",
     "status": "frozen_technical",

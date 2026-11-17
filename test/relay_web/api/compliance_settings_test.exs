@@ -1,6 +1,7 @@
 defmodule RelayWeb.Api.ComplianceSettingsTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Policy.Live
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
 
@@ -21,7 +22,7 @@ defmodule RelayWeb.Api.ComplianceSettingsTest do
 
       assert %{"object" => "compliance_settings", "version" => nil, "refusals" => []} = view
       assert is_list(view["installation_refusals"])
-      assert %{refusals: refusals} = Relay.Policy.Live.compliance(ctx.scope)
+      assert %{refusals: refusals} = Live.compliance(ctx.scope)
       assert refusals == %{}
     end
 
@@ -30,15 +31,15 @@ defmodule RelayWeb.Api.ComplianceSettingsTest do
       view = F.body(put(ctx.token, [refusal("EU", ["soft_opt_in"])]), 200)
 
       assert %{"version" => 1, "refusals" => [%{"country" => "EU"}]} = view
-      assert %{refusals: %{"EU" => ["soft_opt_in"]}} = Relay.Policy.Live.compliance(ctx.scope)
+      assert %{refusals: %{"EU" => ["soft_opt_in"]}} = Live.compliance(ctx.scope)
 
       other = TenantFixture.tenant!()
-      assert %{refusals: refusals} = Relay.Policy.Live.compliance(other.live)
+      assert %{refusals: refusals} = Live.compliance(other.live)
       assert refusals == %{}
 
       reset = F.body(put(ctx.token, []), 200)
       assert %{"version" => 2, "refusals" => []} = reset
-      assert %{refusals: cleared} = Relay.Policy.Live.compliance(ctx.scope)
+      assert %{refusals: cleared} = Live.compliance(ctx.scope)
       assert cleared == %{}
     end
 

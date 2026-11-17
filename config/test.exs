@@ -54,7 +54,7 @@ config :relay, Relay.Webhooks, resolver: RelayTest.WebhookResolver
 config :relay, Relay.Iys,
   runtime: Relay.Iys.Live,
   rate_limits: false,
-  http: [plug: {Relay.Conformance.Iys.Fake, []}],
+  http: [plug: {RelayTest.IysFake, []}],
   base_urls: %{"production" => "http://iys.invalid", "sandbox" => "http://iys.invalid"}
 
 config :relay, Relay.Keys,

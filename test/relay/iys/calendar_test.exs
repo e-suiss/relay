@@ -20,8 +20,8 @@ defmodule Relay.Iys.CalendarTest do
     {DateTime.to_date(shifted), DateTime.to_time(shifted)}
   end
 
-  describe "PC-31 PC-60 business days" do
-    test "PC-60: the packaged calendar covers Turkey from 2026 to 2028 and names its sources" do
+  describe "PC-31 business days" do
+    test "PC-31: the packaged calendar covers Turkey from 2026 to 2028 and names its sources" do
       content = @package |> File.read!() |> Jason.decode!()
       calendar = packaged()
 
@@ -47,7 +47,7 @@ defmodule Relay.Iys.CalendarTest do
       end
     end
 
-    test "PC-60: a weekend and a full-day holiday are not business days; a half day is" do
+    test "PC-31: a weekend and a full-day holiday are not business days; a half day is" do
       calendar = packaged()
 
       refute Calendar.business_day?(calendar, ~D[2026-11-21])
@@ -67,7 +67,7 @@ defmodule Relay.Iys.CalendarTest do
       assert DateTime.diff(deadline, consent_at, :hour) == 120
     end
 
-    test "PC-31, PC-60: holidays are skipped and the eve of a holiday counts" do
+    test "PC-31: holidays are skipped and the eve of a holiday counts" do
       calendar = packaged()
 
       assert {deadline, :covered} = Calendar.deadline(calendar, tr(~D[2026-05-25], ~T[09:30:00]))
@@ -84,7 +84,7 @@ defmodule Relay.Iys.CalendarTest do
       assert local(deadline) == {~D[2026-11-25], ~T[23:15:00]}
     end
 
-    test "PC-60: beyond the coverage only weekends are left out and the result says so" do
+    test "PC-31: beyond the coverage only weekends are left out and the result says so" do
       calendar = packaged()
 
       assert {deadline, :beyond_coverage} =
@@ -96,7 +96,7 @@ defmodule Relay.Iys.CalendarTest do
                Calendar.add_business_days(calendar, ~D[2029-01-01], 3)
     end
 
-    test "PC-60: the coverage warning starts sixty days before the end" do
+    test "PC-31: the coverage warning starts sixty days before the end" do
       calendar = packaged()
 
       assert Calendar.coverage(calendar, ~D[2028-10-31]) == :ok
@@ -105,7 +105,7 @@ defmodule Relay.Iys.CalendarTest do
       assert Calendar.coverage(calendar, ~D[2029-01-01]) == :ended
     end
 
-    test "PC-60: a calendar without the country or with a broken date is refused" do
+    test "PC-31: a calendar without the country or with a broken date is refused" do
       assert Calendar.parse(%{"countries" => %{}}, "TR") == {:error, :country_missing}
       assert Calendar.parse(%{}, "TR") == {:error, :invalid_calendar}
 

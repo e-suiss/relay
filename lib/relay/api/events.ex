@@ -7,6 +7,7 @@ defmodule Relay.Api.Events do
   Policy outcomes are decisions, not errors (C-4, MD-12, DS-26): every delivery is opened and the policy lattice decides it at once (`Relay.Policy.Live`, PC-58 (2)): a gate or filter skips it, a shaper defers it to `deferred_until` and queues its job for then, and an expiry closes it, each recorded with its reason, rule and detail and announced as `notification.suppressed` (DS-24, DS-27). The class comes from the workflow's category (PC-57 (3)), the priority is clamped to the class ceiling with a `priority_clamped` warning (API-22, PC-58 (7)) and a request without `expires_at` gets the category's or the class default (PC-57 (4)). A matching kill switch pauses the delivery at acceptance and queues no job (TN-40), the send mode `off` and an unknown sub-tenant skip it with a rule (OP-51, API-25), and a suspended subscriber's deliveries are skipped with `subscriber.suspended` (TN-73): the send is accepted and no delivery is sent. Before the lattice, each delivery's template is resolved with sub-tenant inheritance and its cell chosen for the recipient's locale (`Relay.Templates.Live`): a channel without a variant, a locale chain without a cell and a template without a live version skip the delivery with their template rule, and otherwise the template, layout and partial versions and the locale are pinned with the delivery (TP-50, TP-11, TP-26, WF-16). In `dry_run` the template step and the lattice run and the answer carries each channel's decision; nothing is opened, pinned or counted (PC-58 (8)). A durable write failure is `503` (INV-2).
   """
 
+  alias Relay.Api.OtpChain
   alias Relay.Api.Schema
   alias Relay.Api.Views
   alias Relay.Api.WorkflowRuns
@@ -86,6 +87,7 @@ defmodule Relay.Api.Events do
       request = immediate(request, category.message_class)
       now = Relay.Clock.business_now(scope)
       expires_at = expires_at(request, category, now)
+      otp = OtpChain.prepare(scope, request, tenant.settings)
 
       {:ok,
        %{
@@ -101,7 +103,8 @@ defmodule Relay.Api.Events do
          frequency: frequency(scope, category, recipients, request.steps),
          request: request,
          providers: providers,
-         recipients: recipients,
+         recipients: OtpChain.destinations(scope, otp, recipients),
+         otp: otp,
          payload: payload,
          settings: tenant.settings,
          installation_mode: tenant.installation_mode,
@@ -665,6 +668,7 @@ defmodule Relay.Api.Events do
   # API-25
   defp notification(p, event, %{plan: plan, index: index, external_id: external_id} = r, ctx) do
     ctx = Map.put(ctx, :attributes, Map.get(r, :attributes, %{}))
+    ctx = Map.put(ctx, :otp_destination, Map.get(r, :otp_destination))
 
     with {:ok, recipient_id} <- upsert(plan, index),
          {:ok, result, id, original, mismatch?} <- open_notification(p, event, recipient_id),
@@ -686,6 +690,7 @@ defmodule Relay.Api.Events do
   # WF-6
   defp start_run(p, notification_id, row, mismatch?, ctx) do
     definition = p.workflow["definition"]
+    plan = WorkflowRuns.plan(p, row, mismatch?, Map.get(ctx, :otp_destination))
 
     run = %{
       notification_id: notification_id,
@@ -693,8 +698,8 @@ defmodule Relay.Api.Events do
       workflow_key: p.workflow["key"],
       message_class: p.message_class,
       definition: definition,
-      plan: WorkflowRuns.plan(p, row, mismatch?),
-      context: WorkflowRuns.context(p, row, Map.get(ctx, :attributes, %{})),
+      plan: plan,
+      context: WorkflowRuns.context(p, row, Map.get(ctx, :attributes, %{}), plan["otp"]),
       now: p.request.send_at || p.now,
       opener: fn step, channel, pointer ->
         open_step(p, notification_id, row, mismatch?, step, {channel, pointer})

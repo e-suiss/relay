@@ -9,6 +9,7 @@ defmodule RelayTest.Isolation do
       Relay,
       Relay.Api,
       Relay.Channels,
+      Relay.DestinationGuard,
       Relay.Secrets,
       Relay.Webhooks,
       Relay.Workflow,
@@ -47,6 +48,7 @@ defmodule RelayTest.Isolation do
     {"replaceCategoryEmailTracking", %{"open_pixel" => false, "wrap_links" => false}},
     {"replaceTemplateEmailTracking", %{"open_pixel" => false, "wrap_links" => false}},
     {"liftSuppression", %{"reason" => "isolation"}},
+    {"liftSmsDestinationStop", %{"reason" => "isolation"}},
     {"registerSubscriberDevice",
      %{
        "platform" => "fcm",
@@ -124,6 +126,7 @@ defmodule RelayTest.Isolation do
       "route_key" => &route!/1,
       "subtenant_id" => &subtenant!/1,
       "suppression_id" => &suppression!/1,
+      "sms_destination_stop_id" => &sms_destination_stop!/1,
       "device_id" => &device!/1,
       "whatsapp_template_id" => &whatsapp_template!/1,
       "template_key" => &template!/1,
@@ -477,6 +480,24 @@ defmodule RelayTest.Isolation do
   def suppression!(scope) do
     body = %{"channel" => "email", "address" => "iso-" <> random() <> "@example.com"}
     F.body(F.request(:post, "/v1/suppressions", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Stops security SMS to a number block in `scope` and returns the stop's identifier."
+  @spec sms_destination_stop!(Relay.Scope.t()) :: String.t()
+  def sms_destination_stop!(scope) do
+    <<n::16>> = :crypto.strong_rand_bytes(2)
+    block = "+9055" <> String.pad_leading(Integer.to_string(n), 5, "0")
+
+    {:ok, {:opened, id}} =
+      Relay.DestinationGuard.stop(scope, %{
+        kind: :prefix,
+        value: block,
+        country: "TR",
+        rule_id: "destination.pumping_prefix",
+        detail: %{"current" => 60, "baseline" => 60, "threshold" => 60, "window" => "PT10M"}
+      })
+
+    Relay.ExternalId.encode("sds", id)
   end
 
   @doc "Adds the subscriber `subscriber!/1` creates to the test recipient list of `scope` and returns the entry's identifier."

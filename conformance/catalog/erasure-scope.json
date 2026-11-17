@@ -423,6 +423,12 @@
       "tenant_close": "row kept"
     },
     {
+      "table": "sms_destination_stops",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "a country or a number block of a thousand numbers; not subject data"
+    },
+    {
       "personal_columns": [],
       "subject_erasure": "not subject data",
       "table": "templates",

@@ -125,6 +125,10 @@ channels:
         "$ref": "#/components/messages/webhook.killswitch.released"
       webhook.killswitch.auto_paused:
         "$ref": "#/components/messages/webhook.killswitch.auto_paused"
+      webhook.sms_destination.stopped:
+        "$ref": "#/components/messages/webhook.sms_destination.stopped"
+      webhook.sms_destination.released:
+        "$ref": "#/components/messages/webhook.sms_destination.released"
       webhook.quota.threshold_reached:
         "$ref": "#/components/messages/webhook.quota.threshold_reached"
       webhook.quota.reserve_opened:
@@ -194,6 +198,10 @@ channels:
         "$ref": "#/components/messages/webhook.email_reputation.resumed"
       operations.push_priority.threshold_reached:
         "$ref": "#/components/messages/operations.push_priority.threshold_reached"
+      webhook.sms_destination.stopped:
+        "$ref": "#/components/messages/webhook.sms_destination.stopped"
+      webhook.sms_destination.released:
+        "$ref": "#/components/messages/webhook.sms_destination.released"
       webhook.quota.threshold_reached:
         "$ref": "#/components/messages/webhook.quota.threshold_reached"
       webhook.quota.reserve_opened:
@@ -370,6 +378,10 @@ channels:
         "$ref": "#/components/messages/audit.suppression.added"
       audit.suppression.lifted:
         "$ref": "#/components/messages/audit.suppression.lifted"
+      audit.sms_destination.stopped:
+        "$ref": "#/components/messages/audit.sms_destination.stopped"
+      audit.sms_destination.released:
+        "$ref": "#/components/messages/audit.sms_destination.released"
       audit.email_reputation.closed:
         "$ref": "#/components/messages/audit.email_reputation.closed"
       audit.test_recipient.added:
@@ -605,6 +617,8 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.killswitch.engaged"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.killswitch.released"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.killswitch.auto_paused"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.sms_destination.stopped"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.sms_destination.released"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.quota.threshold_reached"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.quota.reserve_opened"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.whatsapp_account.updated"
@@ -642,6 +656,8 @@ operations:
       - "$ref": "#/channels/operations/messages/webhook.email_reputation.stopped"
       - "$ref": "#/channels/operations/messages/webhook.email_reputation.resumed"
       - "$ref": "#/channels/operations/messages/operations.push_priority.threshold_reached"
+      - "$ref": "#/channels/operations/messages/webhook.sms_destination.stopped"
+      - "$ref": "#/channels/operations/messages/webhook.sms_destination.released"
       - "$ref": "#/channels/operations/messages/webhook.quota.threshold_reached"
       - "$ref": "#/channels/operations/messages/webhook.quota.reserve_opened"
   sendInboxRealtime:
@@ -732,6 +748,8 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.route.archived"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.added"
       - "$ref": "#/channels/auditLog/messages/audit.suppression.lifted"
+      - "$ref": "#/channels/auditLog/messages/audit.sms_destination.stopped"
+      - "$ref": "#/channels/auditLog/messages/audit.sms_destination.released"
       - "$ref": "#/channels/auditLog/messages/audit.email_reputation.closed"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.added"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.verified"
@@ -3436,6 +3454,132 @@ components:
         - audit
       x-relay-choice: true
       x-relay-choice-note: "The spec warns the tenant over a high priority ratio but names neither the event nor the threshold; the threshold is a POLICY DEFAULT."
+    webhook.sms_destination.stopped:
+      name: sms_destination.stopped
+      title: sms_destination.stopped
+      summary: "The SMS pumping detection stopped security SMS to a number block or a country of the tenant (CH-54, E-33): the sends counted there rose far above the tenant's baseline, or several number blocks of the country were stopped. Deliveries to it are skipped with destination.prefix_stopped or destination.country_stopped until the stop is lifted; it never ends by itself."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: sms_destination.stopped
+                data:
+                  type: object
+                  required:
+                    - kind
+                    - value
+                    - country
+                    - rule_id
+                    - stopped_at
+                  properties:
+                    kind:
+                      "$ref": "../openapi/components/schemas.yaml#/SmsDestinationStopKind"
+                    value:
+                      type: string
+                      maxLength: 16
+                    country:
+                      type: string
+                      pattern: "^[A-Z]{2}$"
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                    stopped_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    detail:
+                      "$ref": "../openapi/components/schemas.yaml#/SmsDestinationStopDetail"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 11
+      x-relay-also:
+        - operations
+        - audit
+      x-relay-choice: true
+      x-relay-choice-note: "CH-54 sends a tenant event when a prefix or a country is stopped; the event name and the fields of its thin payload are chosen by the contract."
+    webhook.sms_destination.released:
+      name: sms_destination.released
+      title: sms_destination.released
+      summary: "A stop of security SMS to a number block or a country was lifted with a reason (CH-54)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: sms_destination.released
+                data:
+                  type: object
+                  required:
+                    - kind
+                    - value
+                    - country
+                    - rule_id
+                    - released_at
+                  properties:
+                    kind:
+                      "$ref": "../openapi/components/schemas.yaml#/SmsDestinationStopKind"
+                    value:
+                      type: string
+                      maxLength: 16
+                    country:
+                      type: string
+                      pattern: "^[A-Z]{2}$"
+                    rule_id:
+                      "$ref": "../openapi/components/schemas.yaml#/RuleId"
+                    released_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 11
+      x-relay-also:
+        - operations
+        - audit
+      x-relay-choice: true
+      x-relay-choice-note: "CH-54 makes lifting an explicit action; the event name and the fields of its thin payload are chosen by the contract."
+    audit.sms_destination.stopped:
+      name: sms_destination.stopped
+      title: sms_destination.stopped
+      summary: "The SMS pumping detection stopped security SMS to a number block or a country (CH-54); the reason is the rule of the detection."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: sms_destination_stop
+      x-relay-surface: audit
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.sms_destination.released:
+      name: sms_destination.released
+      title: sms_destination.released
+      summary: "A stop of security SMS to a number block or a country was lifted with a reason (CH-54)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: sms_destination_stop
+      x-relay-surface: audit
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     webhook.quota.threshold_reached:
       name: quota.threshold_reached
       title: quota.threshold_reached
@@ -7922,6 +8066,8 @@ x-relay-event-names:
   - sender_identity.suspended
   - setting.changed
   - sms.opted_out
+  - sms_destination.released
+  - sms_destination.stopped
   - stream.resync_required
   - subject.erased
   - subject_key.retired

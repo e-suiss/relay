@@ -22,6 +22,7 @@ defmodule Relay.Workflow do
   alias Relay.Workflow.Definition
   alias Relay.Workflow.Digest
   alias Relay.Workflow.KeyTemplate
+  alias Relay.Workflow.OtpChain
   alias Relay.Workflow.PublishGate
   alias Relay.Workflow.Recurrence
   alias Relay.Workflow.RecurrenceStore
@@ -1048,6 +1049,17 @@ defmodule Relay.Workflow do
   @doc "The next actions of a resolved route tree; see `Relay.Workflow.RouteTree.next/3`."
   @spec next_route(Route.tree(), map(), map()) :: {:ok, map()} | {:error, [map()]}
   defdelegate next_route(tree, facts, state), to: Route, as: :next
+
+  # PC-53
+  # PC-52
+  @doc "Orders the OTP channels a route names by the inputs of the OTP chain; see `Relay.Workflow.OtpChain.order/2`."
+  @spec otp_order([String.t()], OtpChain.inputs()) :: [String.t()]
+  defdelegate otp_order(written, inputs), to: OtpChain, as: :order
+
+  # PC-53
+  @doc "The inputs of an OTP chain from their frozen form in a run's plan; see `Relay.Workflow.OtpChain.thaw/1`."
+  @spec otp_inputs(map() | nil) :: OtpChain.inputs() | nil
+  defdelegate otp_inputs(frozen), to: OtpChain, as: :thaw
 
   # WF-15
   # WF-18

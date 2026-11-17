@@ -3,7 +3,7 @@ defmodule Relay.Ingest.Request do
   The checks of a send request that the body schema cannot express (API-20 … API-26, API-62), as a pure function of the request, the workflow version it resolves to, the environment and the time. Field errors are all reported at once (API-37); the request's own fields never change the lane, and a policy outcome is never an error here.
 
   * `data` is at most the contract's `event.max_data_bytes`; `send_at` lies in the future and at most `event.max_send_at_ahead` ahead (`Relay.Limits`); `expires_at` lies in the future and not before `send_at`.
-  * `security_subtype` and `on_expire` belong to the `security` class; a subtype needs `expires_at` (API-24). `retention: none` is refused for `security` and together with an inbox step (API-26, IN-46); a security subtype (an OTP) is refused together with an inbox step, since an OTP is never written to the inbox (IN-55).
+  * `security_subtype` and `on_expire` belong to the `security` class; a subtype needs `expires_at` (API-24). `security_signals`, the sender's own mobile application and SIM change signals, are accepted only with the `otp_oob` subtype and become inputs of its OTP channel chain (E-33). `retention: none` is refused for `security` and together with an inbox step (API-26, IN-46); a security subtype (an OTP) is refused together with an inbox step, since an OTP is never written to the inbox (IN-55).
   * `priority` is clamped to the class ceiling with a `priority_clamped` warning (API-22); `channels` only narrows the workflow's steps.
   * Raw provider blocks cannot set policy fields (`422 policy_field_not_overridable`, API-23). The provider and `overrides.email.from` are checked against the verified routes by the send operation (`403 channel_not_configured`).
   * A per-request `send_mode` is accepted only in the test environment (`403 auth_environment_mismatch`, API-62, API-76).
@@ -76,6 +76,7 @@ defmodule Relay.Ingest.Request do
            tenant: Map.get(body, "tenant"),
            dedup_key: Map.get(body, "dedup_key"),
            security_subtype: Map.get(body, "security_subtype"),
+           signals: Map.get(body, "security_signals"),
            on_expire: Map.get(body, "on_expire"),
            timing_precision: Map.get(body, "timing_precision"),
            cancellation_key: Map.get(body, "cancellation_key"),
@@ -329,7 +330,9 @@ defmodule Relay.Ingest.Request do
       {subtype != nil and times.expires_at == nil,
        field("/expires_at", "required", "a security subtype needs expires_at")},
       {Map.has_key?(body, "on_expire") and class != "security",
-       field("/on_expire", "not_allowed", "only the security class has on_expire")}
+       field("/on_expire", "not_allowed", "only the security class has on_expire")},
+      {Map.has_key?(body, "security_signals") and subtype != "otp_oob",
+       field("/security_signals", "not_allowed", "only an otp_oob request carries signals")}
     ]
     |> Enum.filter(&elem(&1, 0))
     |> Enum.map(&elem(&1, 1))

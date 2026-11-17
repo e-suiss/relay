@@ -1,5 +1,5 @@
 {
-  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59; WF-52; WF-34; WF-44; WF-62; X-14; WF-56; IN-40; OP-24; TN-60",
+  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59; WF-52; WF-34; WF-44; WF-62; X-14; WF-56; IN-40; CH-54; TN-52; E-33",
   "rules": [
     {
       "id": "admission.aimd.l2",
@@ -651,6 +651,123 @@
       }
     },
     {
+      "id": "destination.country_not_allowed",
+      "reason": "destination_not_allowed",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country"
+      ],
+      "description": {
+        "en": "The security SMS was not sent because the destination country is not on the tenant's country allow-list.",
+        "tr": "Güvenlik SMS'i, hedef ülke kiracının ülke izin listesinde olmadığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "destination.country_stopped",
+      "reason": "destination_stopped",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country",
+        "stop_id"
+      ],
+      "description": {
+        "en": "The security SMS was not sent because security SMS to the destination country is stopped after an SMS pumping detection; the stop stays until it is lifted.",
+        "tr": "Güvenlik SMS'i, hedef ülkeye güvenlik SMS'i SMS pumping tespiti sonrası durdurulduğu için gönderilmedi; durdurma kaldırılana kadar sürer."
+      }
+    },
+    {
+      "id": "destination.number_rate_limited",
+      "reason": "destination_rate_limited",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country",
+        "limit",
+        "window"
+      ],
+      "description": {
+        "en": "The security SMS was not sent because the destination number reached the rate limit of security SMS per number.",
+        "tr": "Güvenlik SMS'i, hedef numara numara başına güvenlik SMS'i hız sınırına ulaştığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "destination.prefix_rate_limited",
+      "reason": "destination_rate_limited",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country",
+        "limit",
+        "window"
+      ],
+      "description": {
+        "en": "The security SMS was not sent because the number block of the destination reached the rate limit of security SMS per number block.",
+        "tr": "Güvenlik SMS'i, hedefin numara bloğu numara bloğu başına güvenlik SMS'i hız sınırına ulaştığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "destination.prefix_stopped",
+      "reason": "destination_stopped",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country",
+        "stop_id"
+      ],
+      "description": {
+        "en": "The security SMS was not sent because security SMS to the number block of the destination is stopped after an SMS pumping detection; the stop stays until it is lifted.",
+        "tr": "Güvenlik SMS'i, hedefin numara bloğuna güvenlik SMS'i SMS pumping tespiti sonrası durdurulduğu için gönderilmedi; durdurma kaldırılana kadar sürer."
+      }
+    },
+    {
+      "id": "destination.pumping_country",
+      "reason": "destination_stopped",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country",
+        "current",
+        "baseline",
+        "threshold"
+      ],
+      "description": {
+        "en": "Security SMS to the country was stopped because its volume is far above the tenant's baseline or several of its number blocks were stopped (SMS pumping).",
+        "tr": "Ülkeye güvenlik SMS'i, hacmi kiracının olağan düzeyinin çok üstüne çıktığı ya da birkaç numara bloğu durdurulduğu için durduruldu (SMS pumping)."
+      }
+    },
+    {
+      "id": "destination.pumping_prefix",
+      "reason": "destination_stopped",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country",
+        "current",
+        "baseline",
+        "threshold"
+      ],
+      "description": {
+        "en": "Security SMS to the number block was stopped because the sends concentrated on it far above the tenant's baseline (SMS pumping).",
+        "tr": "Numara bloğuna güvenlik SMS'i, gönderimler bu blokta kiracının olağan düzeyinin çok üstünde yoğunlaştığı için durduruldu (SMS pumping)."
+      }
+    },
+    {
       "id": "digest.density",
       "reason": "digested",
       "kind": "shaper",
@@ -738,18 +855,6 @@
       "description": {
         "en": "Postponed because the reputation circuit of the sending domain is stopped until a tenant administrator closes it.",
         "tr": "Gönderim alan adının itibar devresi durdurulduğu için, kiracı yöneticisi devreyi kapatana kadar ertelendi."
-      }
-    },
-    {
-      "id": "erasure.subject",
-      "reason": "subject_erased",
-      "kind": "terminal",
-      "outcome": "cancel",
-      "decision": "OP-24",
-      "detail": [],
-      "description": {
-        "en": "Cancelled because the recipient was erased at their request.",
-        "tr": "Alıcı kendi talebiyle silindiği için iptal edildi."
       }
     },
     {
@@ -1576,32 +1681,6 @@
       "description": {
         "en": "Not sent because the address is on the suppression list.",
         "tr": "Adres bastırma listesinde olduğu için gönderilmedi."
-      }
-    },
-    {
-      "id": "takedown.message",
-      "reason": "taken_down",
-      "kind": "terminal",
-      "outcome": "cancel",
-      "decision": "TN-60",
-      "detail": [
-        "takedown_id"
-      ],
-      "description": {
-        "en": "Cancelled because the installation operator took the message down.",
-        "tr": "Kurulum operatörü mesajı erişime kapattığı için iptal edildi."
-      }
-    },
-    {
-      "id": "takedown.sender_identity",
-      "reason": "taken_down",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "TN-60",
-      "detail": [],
-      "description": {
-        "en": "Not sent because the installation operator took the sender identity down.",
-        "tr": "Kurulum operatörü gönderici kimliğini erişime kapattığı için gönderilmedi."
       }
     },
     {

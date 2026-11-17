@@ -15,6 +15,7 @@ defmodule Relay.Channels.Request do
     * `push`: the push policy the channel step decided (`Relay.Channels.Push.Policy`), `nil` on the other channels.
     * `encoding`: on SMS the explicit encoding of the send, `"GSM7"`, `"GSM7_TR"` or `"UCS2"` (CH-48); the adapter names it to the provider and never leaves it to the provider's detection.
     * `product`: the provider product, `"otp"` for a `security` message on a provider with an OTP product, otherwise `"standard"` (CH-53).
+    * `commercial`: on SMS and voice the commercial message declaration of the send (`Relay.Channels.Commercial`, PC-4): whether it is a commercial message and its İYS recipient type; `nil` on the other channels, and an adapter then derives it from the message class.
     * `provider_message_id`: the provider's identifier of the message an earlier attempt sent, for a reconciliation status query (`c:Relay.Channels.Adapter.delivery_status/1`), otherwise `nil`.
     * `update`: on a channel that updates messages, the provider message reference of the earlier message about the same subject in the same conversation, which the adapter edits in place instead of posting a new one (CH-23), or `nil`.
     * `tracking`: on e-mail the open and click tracking plan of the message (`Relay.Channels.Email.Tracking.plan/1`, CH-43, DS-29), `nil` for none.
@@ -51,6 +52,7 @@ defmodule Relay.Channels.Request do
     push: nil,
     encoding: nil,
     product: "standard",
+    commercial: nil,
     update: nil,
     tracking: nil,
     provider_message_id: nil,
@@ -84,6 +86,7 @@ defmodule Relay.Channels.Request do
           push: map() | nil,
           encoding: String.t() | nil,
           product: String.t(),
+          commercial: %{commercial: boolean(), iys_recipient_type: String.t() | nil} | nil,
           update: String.t() | nil,
           tracking: %{open_pixel: boolean(), wrap_links: boolean()} | nil,
           provider_message_id: String.t() | nil,

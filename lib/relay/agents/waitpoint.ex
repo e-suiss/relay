@@ -13,8 +13,8 @@ defmodule Relay.Agents.Waitpoint do
   alias Relay.Agents.WaitpointStore
   alias Relay.Agents.WaitpointTimer
 
-  @tenant_open_cap 10_000
-  @waiter_open_cap 1_000
+  @tenant_open_cap Relay.Limits.fetch!(["waitpoint", "max_open_per_environment"])
+  @waiter_open_cap Relay.Limits.fetch!(["waitpoint", "max_open_per_waiter"])
   @due_batch 100
 
   @type kind :: :question | :review | :event
@@ -30,7 +30,8 @@ defmodule Relay.Agents.Waitpoint do
 
   # TN-54
   # T-91
-  @doc "Default open waitpoint limits: per tenant and per waiter (ENGINEERING ASSUMPTION, T-91)."
+  # AG-53
+  @doc "The open waitpoint limits of the contract (`x-relay-limits.waitpoint`, AG-53, AG-70): per tenant environment and per waiter."
   @spec default_caps() :: %{tenant: pos_integer(), waiter: pos_integer()}
   def default_caps, do: %{tenant: @tenant_open_cap, waiter: @waiter_open_cap}
 
@@ -88,12 +89,26 @@ defmodule Relay.Agents.Waitpoint do
 
     case WaitpointStore.open(wp) do
       {:opened, id, expires_at, early} ->
+        :ok = described(id, Map.get(wp, :description))
         :ok = schedule(scope, id)
         resolution = early(scope, wp, id, early, Keyword.get(opts, :on_early))
         %{result: :opened, waitpoint_id: id, expires_at: expires_at, early: resolution}
 
       {result, id, expires_at, _early} ->
         %{result: result, waitpoint_id: id, expires_at: expires_at, early: nil}
+    end
+  end
+
+  # AG-8
+  # AG-62
+  defp described(_id, nil), do: :ok
+
+  defp described(id, description) do
+    if Enum.all?(Map.values(description), &is_nil/1) do
+      :ok
+    else
+      :described = WaitpointStore.describe(id, description)
+      :ok
     end
   end
 
@@ -268,6 +283,87 @@ defmodule Relay.Agents.Waitpoint do
   @spec get(Relay.Scope.t(), Relay.Id.t()) :: {:ok, map() | nil} | {:error, term()}
   def get(%Relay.Scope{} = scope, waitpoint_id),
     do: WaitpointStore.in_scope(scope, fn _status -> WaitpointStore.get(waitpoint_id) end)
+
+  # AG-46
+  # API-56
+  @doc "A page of the waitpoints of agents and API clients, newest first; see `Relay.Agents.WaitpointStore.page/3`. `%{states: [:open, :stalled]}` lists the requests waiting for a response."
+  @spec page(Relay.Scope.t(), map(), map() | nil, pos_integer()) ::
+          {:ok, [map()]} | {:error, term()}
+  def page(%Relay.Scope{} = scope, filter, cursor, limit) do
+    WaitpointStore.in_scope(scope, fn _status ->
+      WaitpointStore.page(filter, cursor, limit)
+    end)
+  end
+
+  # AG-12
+  # AG-25
+  @doc "Reads a waitpoint an agent or an API client waits on with its responders and its response, or `nil`; a subscriber's event wait belongs to its workflow run and is not read here."
+  @spec read(Relay.Scope.t(), Relay.Id.t()) :: {:ok, map() | nil} | {:error, term()}
+  def read(%Relay.Scope{} = scope, waitpoint_id),
+    do: WaitpointStore.in_scope(scope, fn _status -> read_in(waitpoint_id) end)
+
+  # AG-12
+  # AG-25
+  @doc "Reads a waitpoint as `read/2` does, inside the caller's scoped transaction."
+  @spec read_in(Relay.Id.t()) :: map() | nil
+  def read_in(waitpoint_id) do
+    case WaitpointStore.get(waitpoint_id) do
+      %{waiter_kind: kind} = waitpoint when kind in ["agent", "api_client"] ->
+        [detailed] = details_in([waitpoint])
+        detailed
+
+      _missing_or_subscriber_wait ->
+        nil
+    end
+  end
+
+  # AG-12
+  # AG-25
+  @doc "Adds `:responders` (`{recipient, kind}` pairs) and `:response` (the response that resolved it, or `nil`) to waitpoints, inside the caller's scoped transaction."
+  @spec details_in([map()]) :: [map()]
+  def details_in([]), do: []
+
+  def details_in(waitpoints) do
+    ids = Enum.map(waitpoints, & &1.id)
+    responders = WaitpointStore.responders(ids)
+    responses = WaitpointStore.responses(ids)
+
+    for waitpoint <- waitpoints do
+      Map.merge(waitpoint, %{
+        responders: Map.get(responders, waitpoint.id, []),
+        response: Map.get(responses, waitpoint.id)
+      })
+    end
+  end
+
+  # AG-12
+  # AG-25
+  @doc "Adds responders and responses to waitpoints as `details_in/1` does, in a transaction of its own."
+  @spec details(Relay.Scope.t(), [map()]) :: {:ok, [map()]} | {:error, term()}
+  def details(%Relay.Scope{} = scope, waitpoints),
+    do: WaitpointStore.in_scope(scope, fn _status -> details_in(waitpoints) end)
+
+  # C-72
+  # AG-46
+  @doc "Cancels a waitpoint inside the caller's scoped transaction; see `cancel/5`."
+  @spec cancel_in(Relay.Id.t(), String.t(), <<_::256>>, Relay.Actor.t()) ::
+          :cancelled | :already_terminal | :not_found
+  def cancel_in(waitpoint_id, reason, record_digest, actor),
+    do: WaitpointStore.cancel(waitpoint_id, reason, record_digest, actor)
+
+  # AG-10
+  # AG-15
+  @doc "Renews the waiter's heartbeat inside the caller's scoped transaction; see `heartbeat/4`."
+  @spec heartbeat_in(Relay.Id.t(), waiter_kind(), Relay.Id.t()) ::
+          {atom(), DateTime.t() | nil}
+  def heartbeat_in(waitpoint_id, waiter_kind, waiter_ref),
+    do: WaitpointStore.heartbeat(waitpoint_id, waiter_kind, waiter_ref)
+
+  # AG-53
+  # TN-54
+  @doc "The number of open and stalled waitpoints of the scope, inside the caller's scoped transaction."
+  @spec open_count_in() :: non_neg_integer()
+  defdelegate open_count_in(), to: WaitpointStore, as: :open_count
 
   # AG-46
   @doc "Lists waitpoints; `%{states: [:open, :stalled]}` lists the requests waiting for an answer."

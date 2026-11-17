@@ -1544,10 +1544,26 @@ codes:
       kind: none
       seconds: null
       max_seconds: null
+    extensions:
+      - limit
+      - limit_name
+    choice: true
+    description: "The tenant environment or the waiter has reached its limit of open waitpoints (x-relay-limits waitpoint.max_open_per_environment, waitpoint.max_open_per_waiter); limit_name says which. Resolve or cancel waitpoints first."
+    type: "{base_url}/v1/errors/waitpoint_limit_reached"
+    choice_note: "Code name and status chosen by the contract."
+  - code: waitpoint_heartbeat_refused
+    family: agent
+    status: 409
+    title: "Waitpoint takes no heartbeat"
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
     extensions: []
     choice: true
-    description: "The tenant or the waiter has reached its limit of open waitpoints. Resolve or cancel waitpoints first."
-    type: "{base_url}/v1/errors/waitpoint_limit_reached"
+    description: "The waitpoint was created without heartbeat_interval, or the caller is not the API client that waits on it. Only the waiter sends the heartbeat of its waitpoint."
+    type: "{base_url}/v1/errors/waitpoint_heartbeat_refused"
     choice_note: "Code name and status chosen by the contract."
   - code: escalation_policy_not_found
     family: resource

@@ -1,6 +1,6 @@
 defmodule Relay.Api do
   @moduledoc """
-  The core of the HTTP API edge: the contract read from `contracts/`, the error catalog and problem documents, API versions, request schema validation, signed pagination cursors, the API rate limit tiers and idempotent request execution, and the operations of the server API, which compose the contexts for each request: sending (`Events`, `CloudEvent`, `Cancels`), queries, subscribers and their devices, workflows, named routes, type mappings, kill switches, categories, preferences and consents, suppressions, templates, layouts, partials, brand fields and previews, WhatsApp templates, test sends with their test recipient list, topics with their subscriptions, recurrence rules with the firing of their occurrences, and webhook consumers, tenant event types, endpoints and operations contacts; and the Relay discovery document. The web layer (`RelayWeb`) turns these into plugs and responses.
+  The core of the HTTP API edge: the contract read from `contracts/`, the error catalog and problem documents, API versions, request schema validation, signed pagination cursors, the API rate limit tiers and idempotent request execution, and the operations of the server API, which compose the contexts for each request: sending (`Events`, `CloudEvent`, `Cancels`), queries, subscribers and their devices, workflows, named routes, type mappings, kill switches, categories, preferences and consents, suppressions, templates, layouts, partials, brand fields and previews, WhatsApp templates, test sends with their test recipient list, topics with their subscriptions, recurrence rules with the firing of their occurrences, and webhook consumers, tenant event types, endpoints and operations contacts, and waitpoints; and the Relay discovery document. The web layer (`RelayWeb`) turns these into plugs and responses.
   """
 
   use Boundary,
@@ -33,7 +33,8 @@ defmodule Relay.Api do
       Relay.Topics,
       Relay.Inbox,
       Relay.Webhooks,
-      Relay.Iys
+      Relay.Iys,
+      Relay.Agents
     ],
     exports: [
       Contract,
@@ -107,6 +108,7 @@ defmodule Relay.Api do
       WebhookCatalog,
       WebhookPortal,
       WebhookSources,
-      OperationsContacts
+      OperationsContacts,
+      Waitpoints
     ]
 end

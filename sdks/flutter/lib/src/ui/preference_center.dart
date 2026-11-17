@@ -152,7 +152,7 @@ class _RelayPreferenceCenterState extends State<RelayPreferenceCenter> {
       byCategory.putIfAbsent(c.category, () => <PreferenceCell>[]).add(c);
     }
     final bool osDisabled = client.pushPermission == DevicePermission.denied;
-    return ColoredBox(
+    return Material(
       color: theme.surface,
       child: ListView(
         children: <Widget>[

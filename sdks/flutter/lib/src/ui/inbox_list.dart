@@ -99,7 +99,7 @@ class _RelayInboxListState extends State<RelayInboxList> {
             ),
           );
         }
-        return ColoredBox(
+        return Material(
           color: theme.surface,
           child: ListView.separated(
             itemCount: items.length + (client.inbox.hasMore ? 1 : 0),

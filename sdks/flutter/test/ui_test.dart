@@ -204,7 +204,7 @@ void main() {
       ]);
       await tester.pumpWidget(app(client, const RelayInboxList()));
       await tester.tap(find.byTooltip('Arşivle'));
-      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
       expect(find.text('Kargonuz yolda'), findsNothing);
       await tester.tap(find.text('Geri al'));
       await tester.pump();

@@ -137,9 +137,13 @@ describe("IN-23 transports", () => {
     await settle();
     const socket = h.sockets[0];
     if (socket === undefined) throw new Error("no socket");
-    expect(socket.url).toBe("wss://relay.example.com/v1/realtime/websocket?vsn=2.0.0&device_id=dev_1");
+    expect(socket.url).toBe(
+      "wss://relay.example.com/v1/realtime/websocket?vsn=2.0.0&device_id=dev_1",
+    );
     expect(socket.protocols[0]).toBe("phoenix");
-    expect(socket.protocols[1]).toBe(`base64url.bearer.phx.${btoa("subscriber-token").replace(/=+$/, "")}`);
+    expect(socket.protocols[1]).toBe(
+      `base64url.bearer.phx.${btoa("subscriber-token").replace(/=+$/, "")}`,
+    );
     socket.open();
     expect(socket.sent[0]).toEqual(["1", "1", "inbox", "phx_join", { cursor: "c0" }]);
     socket.receive(["1", "1", "inbox", "phx_reply", { status: "ok", response: {} }]);
@@ -154,7 +158,11 @@ describe("IN-23 transports", () => {
   it("IN-23: a WebSocket that never opens hands over to SSE, which resumes with Last-Event-ID", async () => {
     const h = harness({
       cursor: "c0",
-      responses: [sseResponse(`: keep-alive\n\nid: c1\nevent: inbox.counters_changed\ndata: ${JSON.stringify(envelope("c1"))}\n\n`)],
+      responses: [
+        sseResponse(
+          `: keep-alive\n\nid: c1\nevent: inbox.counters_changed\ndata: ${JSON.stringify(envelope("c1"))}\n\n`,
+        ),
+      ],
     });
     h.connection.start();
     await settle();
@@ -220,7 +228,11 @@ describe("IN-34 reconnect", () => {
     socket?.open();
     socket?.drop(1013, "retry-after=3");
     await settle();
-    expect(h.statuses.at(-1)).toMatchObject({ state: "waiting", delayMs: 3000, transport: "websocket" });
+    expect(h.statuses.at(-1)).toMatchObject({
+      state: "waiting",
+      delayMs: 3000,
+      transport: "websocket",
+    });
     h.connection.stop();
   });
 
@@ -253,7 +265,8 @@ describe("IN-23 SSE parsing", () => {
   it("IN-23: events, multi-line data, comments, ids and CRLF line ends are parsed", async () => {
     const events = [];
     for await (const event of readSse(
-      sseResponse(": hi\r\nevent: a\r\ndata: one\r\ndata: two\r\nid: 5\r\n\r\ndata: three\n\n").body as ReadableStream<Uint8Array>,
+      sseResponse(": hi\r\nevent: a\r\ndata: one\r\ndata: two\r\nid: 5\r\n\r\ndata: three\n\n")
+        .body as ReadableStream<Uint8Array>,
     )) {
       events.push(event);
     }

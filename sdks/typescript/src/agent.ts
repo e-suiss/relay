@@ -63,14 +63,20 @@ export class RelayAgent {
   }
 
   /** Opens a waitpoint. The Idempotency-Key is the waitpoint's identity, so a retry keeps its deadline. */
-  createWaitpoint(body: WaitpointRequest, options: { idempotencyKey?: string } = {}): Promise<Waitpoint> {
+  createWaitpoint(
+    body: WaitpointRequest,
+    options: { idempotencyKey?: string } = {},
+  ): Promise<Waitpoint> {
     const args = { body, ...options } as unknown as ServerCallArgs<"createWaitpoint">;
     return this.client.call("createWaitpoint", args) as Promise<Waitpoint>;
   }
 
   /** Reads a waitpoint. */
   getWaitpoint(waitpointId: string, signal?: AbortSignal): Promise<Waitpoint> {
-    const args = { path: { waitpoint_id: waitpointId }, signal } as unknown as ServerCallArgs<"getWaitpoint">;
+    const args = {
+      path: { waitpoint_id: waitpointId },
+      signal,
+    } as unknown as ServerCallArgs<"getWaitpoint">;
     return this.client.call("getWaitpoint", args);
   }
 
@@ -80,7 +86,10 @@ export class RelayAgent {
   }
 
   /** Polls a waitpoint until it is resolved, expired or cancelled; `wake()` polls at once. */
-  async awaitWaitpoint(waitpointId: string, options: AwaitWaitpointOptions = {}): Promise<Waitpoint> {
+  async awaitWaitpoint(
+    waitpointId: string,
+    options: AwaitWaitpointOptions = {},
+  ): Promise<Waitpoint> {
     const min = options.minIntervalMs ?? 1000;
     const max = options.maxIntervalMs ?? 30000;
     let interval = min;
@@ -93,24 +102,34 @@ export class RelayAgent {
   }
 
   /** Reads records after a position in stream order, without taking a lease. */
-  readMailbox(options: { since?: string; limit?: number; signal?: AbortSignal } = {}): Promise<MailboxRecords> {
+  readMailbox(
+    options: { since?: string; limit?: number; signal?: AbortSignal } = {},
+  ): Promise<MailboxRecords> {
     const query: Record<string, string | number> = {};
     if (options.since !== undefined) query.since = options.since;
     if (options.limit !== undefined) query.limit = options.limit;
-    const args = { query, signal: options.signal } as unknown as ServerCallArgs<"listMailboxRecords">;
+    const args = {
+      query,
+      signal: options.signal,
+    } as unknown as ServerCallArgs<"listMailboxRecords">;
     return this.client.call("listMailboxRecords", args) as Promise<MailboxRecords>;
   }
 
   /** Takes up to `max` records with a lease; an unacknowledged record is handed out again (at least once). */
   leaseMailbox(options: { max?: number; idempotencyKey?: string } = {}): Promise<MailboxLease> {
     const body = options.max === undefined ? {} : { max: options.max };
-    const args = { body, idempotencyKey: options.idempotencyKey } as unknown as ServerCallArgs<"leaseMailboxRecords">;
+    const args = {
+      body,
+      idempotencyKey: options.idempotencyKey,
+    } as unknown as ServerCallArgs<"leaseMailboxRecords">;
     return this.client.call("leaseMailboxRecords", args) as Promise<MailboxLease>;
   }
 
   /** Acknowledges records of one lease. */
   ackMailbox(leaseId: string, recordIds: readonly string[]): Promise<MailboxAck> {
-    const args = { body: { lease_id: leaseId, record_ids: recordIds } } as unknown as ServerCallArgs<"ackMailboxRecords">;
+    const args = {
+      body: { lease_id: leaseId, record_ids: recordIds },
+    } as unknown as ServerCallArgs<"ackMailboxRecords">;
     return this.client.call("ackMailboxRecords", args) as Promise<MailboxAck>;
   }
 

@@ -101,9 +101,18 @@ describe("X-30 agent helpers", () => {
           key: new Headers(init?.headers).get("idempotency-key"),
         });
         if (url.pathname === "/v1/mailbox/leases") {
-          return { object: "mailbox_lease", lease_id: "mbl_1", lease_expires_at: null, records: [record("mbr_1", 1)] };
+          return {
+            object: "mailbox_lease",
+            lease_id: "mbl_1",
+            lease_expires_at: null,
+            records: [record("mbr_1", 1)],
+          };
         }
-        return { object: "mailbox_ack", results: [{ record_id: "mbr_1", result: "acked" }], acked_cursor: "1:1" };
+        return {
+          object: "mailbox_ack",
+          results: [{ record_id: "mbr_1", result: "acked" }],
+          acked_cursor: "1:1",
+        };
       }),
     );
     const lease = (await agent.leaseMailbox({ max: 5 })) as unknown as { lease_id: string };

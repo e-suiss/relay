@@ -130,7 +130,8 @@ export class Transport {
 
   /** Sends one logical request, retrying it under the policy. */
   async request<T>(spec: RequestSpec): Promise<RelayResponse<T>> {
-    const fetchImpl: FetchLike = this.#options.fetch ?? ((input, init) => globalThis.fetch(input, init));
+    const fetchImpl: FetchLike =
+      this.#options.fetch ?? ((input, init) => globalThis.fetch(input, init));
     const random = this.#options.random ?? Math.random;
     const now = this.#options.now ?? Date.now;
     const wait = this.#options.sleep ?? sleep;
@@ -207,7 +208,11 @@ export class Transport {
   #key(spec: RequestSpec, contentType: string | null): string | null {
     if (spec.idempotency === "none") return null;
     if (spec.idempotencyKey !== undefined) return spec.idempotencyKey;
-    if (spec.idempotency === "optional" && contentType !== null && /cloudevents/i.test(contentType)) {
+    if (
+      spec.idempotency === "optional" &&
+      contentType !== null &&
+      /cloudevents/i.test(contentType)
+    ) {
       return null;
     }
     return (this.#options.idempotencyKey ?? newIdempotencyKey)();

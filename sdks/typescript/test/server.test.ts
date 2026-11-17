@@ -40,7 +40,12 @@ function client(responses: Response[], sent: Sent[]): RelayServerClient {
 }
 
 function base64urlDecode(text: string): Uint8Array<ArrayBuffer> {
-  const binary = atob(text.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(text.length / 4) * 4, "="));
+  const binary = atob(
+    text
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(text.length / 4) * 4, "="),
+  );
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
   return bytes;
@@ -97,8 +102,20 @@ describe("X-29 server client", () => {
     const sent: Sent[] = [];
     const relay = client(
       [
-        json({ object: "list", data: [{ id: "wp_3" }], has_more: true, next_cursor: "c1", previous_cursor: null }),
-        json({ object: "list", data: [{ id: "wp_4" }], has_more: false, next_cursor: null, previous_cursor: "c0" }),
+        json({
+          object: "list",
+          data: [{ id: "wp_3" }],
+          has_more: true,
+          next_cursor: "c1",
+          previous_cursor: null,
+        }),
+        json({
+          object: "list",
+          data: [{ id: "wp_4" }],
+          has_more: false,
+          next_cursor: null,
+          previous_cursor: "c0",
+        }),
       ],
       sent,
     );
@@ -114,17 +131,40 @@ describe("X-29 server client", () => {
 
 describe("X-29 DPoP authenticator", () => {
   it("X-29: every attempt carries a DPoP token and a fresh ES256 proof for the request", async () => {
-    const keyPair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
-    const authenticate = dpopAuthenticator({ accessToken: () => "access-token", keyPair, now: () => 1_800_000_000_000 });
-    const first = await authenticate({ method: "post", url: "https://relay.example.com/v1/events?x=1#y" });
-    const second = await authenticate({ method: "post", url: "https://relay.example.com/v1/events" });
+    const keyPair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, [
+      "sign",
+      "verify",
+    ]);
+    const authenticate = dpopAuthenticator({
+      accessToken: () => "access-token",
+      keyPair,
+      now: () => 1_800_000_000_000,
+    });
+    const first = await authenticate({
+      method: "post",
+      url: "https://relay.example.com/v1/events?x=1#y",
+    });
+    const second = await authenticate({
+      method: "post",
+      url: "https://relay.example.com/v1/events",
+    });
     expect(first.authorization).toBe("DPoP access-token");
     const [header, claims, signature] = (first.dpop ?? "").split(".");
     const decodedHeader = JSON.parse(new TextDecoder().decode(base64urlDecode(header ?? "")));
     const decodedClaims = JSON.parse(new TextDecoder().decode(base64urlDecode(claims ?? "")));
-    expect(decodedHeader).toMatchObject({ typ: "dpop+jwt", alg: "ES256", jwk: { kty: "EC", crv: "P-256" } });
-    expect(decodedClaims).toMatchObject({ htm: "POST", htu: "https://relay.example.com/v1/events", iat: 1_800_000_000 });
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("access-token")));
+    expect(decodedHeader).toMatchObject({
+      typ: "dpop+jwt",
+      alg: "ES256",
+      jwk: { kty: "EC", crv: "P-256" },
+    });
+    expect(decodedClaims).toMatchObject({
+      htm: "POST",
+      htu: "https://relay.example.com/v1/events",
+      iat: 1_800_000_000,
+    });
+    const digest = new Uint8Array(
+      await crypto.subtle.digest("SHA-256", new TextEncoder().encode("access-token")),
+    );
     expect(base64urlDecode(decodedClaims.ath)).toEqual(digest);
     const valid = await crypto.subtle.verify(
       { name: "ECDSA", hash: "SHA-256" },
@@ -133,7 +173,9 @@ describe("X-29 DPoP authenticator", () => {
       new TextEncoder().encode(`${header}.${claims}`),
     );
     expect(valid).toBe(true);
-    const secondClaims = JSON.parse(new TextDecoder().decode(base64urlDecode((second.dpop ?? "").split(".")[1] ?? "")));
+    const secondClaims = JSON.parse(
+      new TextDecoder().decode(base64urlDecode((second.dpop ?? "").split(".")[1] ?? "")),
+    );
     expect(secondClaims.jti).not.toBe(decodedClaims.jti);
   });
 });

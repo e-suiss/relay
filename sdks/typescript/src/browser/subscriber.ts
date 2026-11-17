@@ -9,7 +9,12 @@ import {
   type ResponseOf,
 } from "../core/operations.js";
 import type { Paginator } from "../core/pagination.js";
-import { newIdempotencyKey, Transport, type RelayResponse, type TransportOptions } from "../core/transport.js";
+import {
+  newIdempotencyKey,
+  Transport,
+  type RelayResponse,
+  type TransportOptions,
+} from "../core/transport.js";
 import { subscriberOperations } from "../generated/operations.js";
 import type { operations } from "../generated/subscriber.js";
 import { SubscriberTokenSource, type SubscriberTokenProvider } from "./token.js";
@@ -19,7 +24,9 @@ export type SubscriberOperationId = keyof typeof subscriberOperations & keyof op
 
 /** Subscriber API operations that return a cursor list. */
 export type SubscriberListOperationId = {
-  [K in SubscriberOperationId]: (typeof subscriberOperations)[K]["paginated"] extends true ? K : never;
+  [K in SubscriberOperationId]: (typeof subscriberOperations)[K]["paginated"] extends true
+    ? K
+    : never;
 }[SubscriberOperationId];
 
 /** The argument of a subscriber API call. */
@@ -46,7 +53,9 @@ export class RelaySubscriberClient {
 
   constructor(options: RelaySubscriberClientOptions) {
     this.tokens =
-      options.token instanceof SubscriberTokenSource ? options.token : new SubscriberTokenSource(options.token);
+      options.token instanceof SubscriberTokenSource
+        ? options.token
+        : new SubscriberTokenSource(options.token);
     const tokens = this.tokens;
     this.transport = new Transport({
       ...options,
@@ -77,7 +86,8 @@ export class RelaySubscriberClient {
     try {
       return await invoke<SubscriberResult<K>>(this.transport, spec, loose);
     } catch (error) {
-      if (!(error instanceof AuthenticationError) || error.code !== "auth_expired_token") throw error;
+      if (!(error instanceof AuthenticationError) || error.code !== "auth_expired_token")
+        throw error;
       this.tokens.invalidate();
       return invoke<SubscriberResult<K>>(this.transport, spec, loose);
     }

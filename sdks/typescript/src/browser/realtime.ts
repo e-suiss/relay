@@ -92,7 +92,12 @@ const HEARTBEAT_MS = 30_000;
 const retryReasons = new Set(["auth_expired_token"]);
 
 /** Reconnect delay of the given attempt (counted from 1): exponential backoff with full jitter (IN-34). */
-export function reconnectDelay(attempt: number, random: number, baseMs = 1000, capMs = 60_000): number {
+export function reconnectDelay(
+  attempt: number,
+  random: number,
+  baseMs = 1000,
+  capMs = 60_000,
+): number {
   return Math.floor(random * Math.min(capMs, baseMs * 2 ** (attempt - 1)));
 }
 
@@ -104,13 +109,16 @@ function base64url(text: string): string {
 }
 
 function defaultEnvironment(): RealtimeEnvironment {
-  const WebSocketClass = (globalThis as { WebSocket?: new (url: string, protocols: string[]) => WebSocketLike })
-    .WebSocket;
+  const WebSocketClass = (
+    globalThis as { WebSocket?: new (url: string, protocols: string[]) => WebSocketLike }
+  ).WebSocket;
   return {
-    webSocket: WebSocketClass === undefined ? null : (url, protocols) => new WebSocketClass(url, protocols),
+    webSocket:
+      WebSocketClass === undefined ? null : (url, protocols) => new WebSocketClass(url, protocols),
     fetch: (input, init) => globalThis.fetch(input, init),
     setTimeout: (callback, ms) => globalThis.setTimeout(callback, ms),
-    clearTimeout: (handle) => globalThis.clearTimeout(handle as ReturnType<typeof globalThis.setTimeout>),
+    clearTimeout: (handle) =>
+      globalThis.clearTimeout(handle as ReturnType<typeof globalThis.setTimeout>),
     random: Math.random,
   };
 }
@@ -134,7 +142,9 @@ export class RealtimeConnection {
     this.#options = options;
     this.#env = { ...defaultEnvironment(), ...options.env };
     const transports = options.transports ?? ["websocket", "sse", "poll"];
-    this.#transports = transports.filter((kind) => kind !== "websocket" || this.#env.webSocket !== null);
+    this.#transports = transports.filter(
+      (kind) => kind !== "websocket" || this.#env.webSocket !== null,
+    );
     this.#cursor = options.cursor ?? null;
   }
 
@@ -258,7 +268,10 @@ export class RealtimeConnection {
     if (factory === null) return { type: "unavailable" };
     const token = await this.#options.tokens.get();
     const topic = this.#options.stream ?? "inbox";
-    const url = this.#url("/v1/realtime/websocket", { vsn: "2.0.0", device_id: this.#options.deviceId });
+    const url = this.#url("/v1/realtime/websocket", {
+      vsn: "2.0.0",
+      device_id: this.#options.deviceId,
+    });
     url.protocol = url.protocol === "http:" ? "ws:" : "wss:";
     const socket = factory(url.toString(), ["phoenix", `base64url.bearer.phx.${base64url(token)}`]);
 
@@ -305,7 +318,13 @@ export class RealtimeConnection {
       socket.onopen = () => {
         socketOpened = true;
         joinMessageRef = String(++ref);
-        send([joinRef, joinMessageRef, topic, "phx_join", this.#cursor === null ? {} : { cursor: this.#cursor }]);
+        send([
+          joinRef,
+          joinMessageRef,
+          topic,
+          "phx_join",
+          this.#cursor === null ? {} : { cursor: this.#cursor },
+        ]);
         beat();
       };
       socket.onmessage = (event) => {
@@ -317,7 +336,13 @@ export class RealtimeConnection {
           return;
         }
         if (!Array.isArray(message) || message.length !== 5) return;
-        const [, messageRef, messageTopic, name, payload] = message as [unknown, unknown, unknown, string, unknown];
+        const [, messageRef, messageTopic, name, payload] = message as [
+          unknown,
+          unknown,
+          unknown,
+          string,
+          unknown,
+        ];
         if (name === "phx_reply" && messageRef === joinMessageRef) {
           const reply = payload as { status?: string; response?: { reason?: string } };
           if (reply.status === "ok") {
@@ -342,10 +367,17 @@ export class RealtimeConnection {
       socket.onerror = () => undefined;
       socket.onclose = (event) => {
         if (event.code === 1008) {
-          finish({ type: "fatal", reason: event.reason === "" ? "policy_violation" : event.reason });
+          finish({
+            type: "fatal",
+            reason: event.reason === "" ? "policy_violation" : event.reason,
+          });
         } else if (event.code === 1013) {
           const seconds = /retry-after=(\d+)/.exec(event.reason)?.[1];
-          finish({ type: "dropped", opened: joined, ...(seconds ? { retryAfterMs: Number(seconds) * 1000 } : {}) });
+          finish({
+            type: "dropped",
+            opened: joined,
+            ...(seconds ? { retryAfterMs: Number(seconds) * 1000 } : {}),
+          });
         } else if (!socketOpened) {
           finish({ type: "unavailable" });
         } else {
@@ -355,7 +387,11 @@ export class RealtimeConnection {
     });
   }
 
-  async #authorizedFetch(url: URL, headers: Record<string, string>, signal: AbortSignal): Promise<Response> {
+  async #authorizedFetch(
+    url: URL,
+    headers: Record<string, string>,
+    signal: AbortSignal,
+  ): Promise<Response> {
     const token = await this.#options.tokens.get();
     return this.#env.fetch(url.toString(), {
       method: "GET",
@@ -367,7 +403,11 @@ export class RealtimeConnection {
   async #refused(response: Response): Promise<End> {
     const retryAfter = parseRetryAfter(response.headers.get("retry-after"), Date.now());
     if (response.status === 429 || response.status === 503) {
-      return { type: "dropped", opened: false, ...(retryAfter === null ? {} : { retryAfterMs: retryAfter }) };
+      return {
+        type: "dropped",
+        opened: false,
+        ...(retryAfter === null ? {} : { retryAfterMs: retryAfter }),
+      };
     }
     if (response.status === 401 || response.status === 403) {
       const problem = parseProblem(await response.text().catch(() => ""));
@@ -417,10 +457,17 @@ export class RealtimeConnection {
     let opened = false;
     try {
       while (this.#running) {
-        const url = this.#url("/v1/realtime/poll", { stream: this.#options.stream, cursor: this.#cursor });
+        const url = this.#url("/v1/realtime/poll", {
+          stream: this.#options.stream,
+          cursor: this.#cursor,
+        });
         let response: Response;
         try {
-          response = await this.#authorizedFetch(url, { accept: "application/json" }, controller.signal);
+          response = await this.#authorizedFetch(
+            url,
+            { accept: "application/json" },
+            controller.signal,
+          );
         } catch {
           return { type: "dropped", opened };
         }

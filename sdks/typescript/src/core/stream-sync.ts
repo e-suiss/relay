@@ -53,7 +53,9 @@ export interface StreamSubscription<T> {
 /**
  * The client pattern (IN-28, AG-21): open the stream first and buffer it, then list the history, then apply the buffer, deduplicating by key and version. Listing before the stream is open loses what changes between the two steps.
  */
-export async function openThenList<T>(options: OpenThenListOptions<T>): Promise<StreamSubscription<T>> {
+export async function openThenList<T>(
+  options: OpenThenListOptions<T>,
+): Promise<StreamSubscription<T>> {
   const deduper = new VersionedDeduper<T>(options.key, options.version);
   const buffer: T[] = [];
   let live = false;

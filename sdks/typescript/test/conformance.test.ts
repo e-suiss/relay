@@ -13,7 +13,12 @@ import {
   type ErrorClass,
 } from "../src/core/errors.js";
 import { Paginator, type Page } from "../src/core/pagination.js";
-import { backoffDelay, decideRetry, defaultRetryPolicy, type AttemptOutcome } from "../src/core/retry.js";
+import {
+  backoffDelay,
+  decideRetry,
+  defaultRetryPolicy,
+  type AttemptOutcome,
+} from "../src/core/retry.js";
 import { Transport } from "../src/core/transport.js";
 import { errorCatalog, retryableDefaults } from "../src/generated/errors.js";
 import { WebhookVerificationError, verifyWebhook } from "../src/webhooks.js";
@@ -52,7 +57,12 @@ interface ErrorsVector {
 }
 
 interface RetryVector {
-  readonly policy: { max_retries: number; base_ms: number; cap_ms: number; max_retry_after_s: number };
+  readonly policy: {
+    max_retries: number;
+    base_ms: number;
+    cap_ms: number;
+    max_retry_after_s: number;
+  };
   readonly backoff: readonly { retry: number; random: number; max_ms: number; delay_ms: number }[];
   readonly decisions: readonly {
     name: string;
@@ -162,7 +172,9 @@ function outcomeOf(response: VectorResponse | undefined): AttemptOutcome {
 
 describe("X-29 error hierarchy against conformance/sdk errors", () => {
   it("X-29: the generated catalog is the vector catalog, code by code", () => {
-    expect(Object.keys(errorCatalog).sort()).toEqual(errors.catalog.map((entry) => entry.code).sort());
+    expect(Object.keys(errorCatalog).sort()).toEqual(
+      errors.catalog.map((entry) => entry.code).sort(),
+    );
     for (const entry of errors.catalog) {
       expect(errorCatalog[entry.code]).toEqual({
         family: entry.family,
@@ -201,7 +213,8 @@ describe("X-29 error hierarchy against conformance/sdk errors", () => {
       if (vector.expect.retry_after_s !== undefined) {
         expect(error.retryAfterSeconds).toBe(vector.expect.retry_after_s);
       }
-      if (vector.expect.request_id !== undefined) expect(error.requestId).toBe(vector.expect.request_id);
+      if (vector.expect.request_id !== undefined)
+        expect(error.requestId).toBe(vector.expect.request_id);
       if (vector.expect.field_errors !== undefined) {
         expect(error.fieldErrors).toHaveLength(vector.expect.field_errors);
       }
@@ -232,7 +245,13 @@ describe("X-29 retry decisions against conformance/sdk retry", () => {
   for (const vector of retry.decisions) {
     it(`X-29: ${vector.name}`, () => {
       const outcome = vector.network_error ? outcomeOf(undefined) : outcomeOf(vector.response);
-      const decision = decideRetry(outcome, vector.retry, policy, Date.parse(vector.now), vector.random);
+      const decision = decideRetry(
+        outcome,
+        vector.retry,
+        policy,
+        Date.parse(vector.now),
+        vector.random,
+      );
       if (vector.expect.retry) {
         expect(decision).toEqual({ retry: true, delayMs: vector.expect.delay_ms });
       } else {
@@ -269,7 +288,9 @@ describe("X-29 Idempotency-Key against conformance/sdk idempotency", () => {
             method: call.method,
             path: call.path,
             idempotency: call.takes_idempotency_key ? "required" : "none",
-            ...(call.caller_idempotency === undefined ? {} : { idempotencyKey: call.caller_idempotency }),
+            ...(call.caller_idempotency === undefined
+              ? {}
+              : { idempotencyKey: call.caller_idempotency }),
             ...(call.method === "GET" ? {} : { body: {} }),
           });
           outcome = "success";
@@ -295,7 +316,8 @@ describe("X-29 Idempotency-Key against conformance/sdk idempotency", () => {
           expect((first as string).length).toBeGreaterThanOrEqual(idempotency.key_length.min);
           expect((first as string).length).toBeLessThanOrEqual(idempotency.key_length.max);
           if (expected.same_key_on_every_request) expect(new Set(sent).size).toBe(1);
-          if (expected.sent_idempotency !== undefined) expect(first).toBe(expected.sent_idempotency);
+          if (expected.sent_idempotency !== undefined)
+            expect(first).toBe(expected.sent_idempotency);
         }
         keysOfCalls.push(sent[0] ?? null);
       }
@@ -317,7 +339,8 @@ describe("X-29 lazy pagination against conformance/sdk pagination", () => {
         expect(query).toEqual(exchange.query);
         return exchange.page;
       }, vector.params);
-      const items = vector.take === undefined ? await paginator.toArray() : await paginator.take(vector.take);
+      const items =
+        vector.take === undefined ? await paginator.toArray() : await paginator.take(vector.take);
       expect(items.map((item) => item.id)).toEqual(vector.expect.items);
       expect(requests).toBe(vector.expect.requests);
     });
@@ -356,17 +379,35 @@ describe("X-29 raw-body webhook verifier against the shared signature vectors", 
       };
       const now = vector.webhook_timestamp;
       await expect(
-        verifyWebhook({ ...headers, "webhook-signature": vector.v1a }, body, signatures.keys.ed25519_public_key, {
-          now,
-          toleranceS: tolerance,
-        }),
-      ).resolves.toEqual({ id: vector.webhook_id, timestamp: vector.webhook_timestamp, scheme: "v1a" });
+        verifyWebhook(
+          { ...headers, "webhook-signature": vector.v1a },
+          body,
+          signatures.keys.ed25519_public_key,
+          {
+            now,
+            toleranceS: tolerance,
+          },
+        ),
+      ).resolves.toEqual({
+        id: vector.webhook_id,
+        timestamp: vector.webhook_timestamp,
+        scheme: "v1a",
+      });
       await expect(
-        verifyWebhook({ ...headers, "webhook-signature": vector.v1 }, body, signatures.keys.hmac_secret, {
-          now,
-          toleranceS: tolerance,
-        }),
-      ).resolves.toEqual({ id: vector.webhook_id, timestamp: vector.webhook_timestamp, scheme: "v1" });
+        verifyWebhook(
+          { ...headers, "webhook-signature": vector.v1 },
+          body,
+          signatures.keys.hmac_secret,
+          {
+            now,
+            toleranceS: tolerance,
+          },
+        ),
+      ).resolves.toEqual({
+        id: vector.webhook_id,
+        timestamp: vector.webhook_timestamp,
+        scheme: "v1",
+      });
     });
   }
 
@@ -385,7 +426,10 @@ describe("X-29 raw-body webhook verifier against the shared signature vectors", 
       const body = hexToBytes(rejection.body_hex ?? base.body_hex);
       for (const key of [signatures.keys.ed25519_public_key, signatures.keys.hmac_secret]) {
         await expect(
-          verifyWebhook(headers, body, key, { now: rejection.now ?? base.webhook_timestamp, toleranceS: tolerance }),
+          verifyWebhook(headers, body, key, {
+            now: rejection.now ?? base.webhook_timestamp,
+            toleranceS: tolerance,
+          }),
         ).rejects.toBeInstanceOf(WebhookVerificationError);
       }
     });
@@ -402,7 +446,8 @@ describe("X-29 raw-body webhook verifier against the shared signature vectors", 
       };
       const headers: [string, string][] = [];
       for (const [name, value] of Object.entries(merged)) {
-        if (value !== null) headers.push([name, value.replace("{v1a}", base.v1a).replace("{v1}", base.v1)]);
+        if (value !== null)
+          headers.push([name, value.replace("{v1a}", base.v1a).replace("{v1}", base.v1)]);
       }
       const keys = vector.keys.map((name) => signatures.keys[name]);
       const body = hexToBytes(vector.body_hex ?? base.body_hex);

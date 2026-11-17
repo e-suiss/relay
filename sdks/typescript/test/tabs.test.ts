@@ -7,13 +7,21 @@ import {
   type ServiceWorkerScopeLike,
   type WindowClientLike,
 } from "../src/browser/service-worker.js";
-import { TabCoordinator, type BroadcastChannelLike, type LockManagerLike } from "../src/browser/tabs.js";
+import {
+  TabCoordinator,
+  type BroadcastChannelLike,
+  type LockManagerLike,
+} from "../src/browser/tabs.js";
 
 class FakeLocks implements LockManagerLike {
   readonly #queues = new Map<string, (() => void)[]>();
   readonly #held = new Set<string>();
 
-  request(name: string, options: { signal?: AbortSignal }, callback: (lock: unknown) => Promise<void>): Promise<unknown> {
+  request(
+    name: string,
+    options: { signal?: AbortSignal },
+    callback: (lock: unknown) => Promise<void>,
+  ): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const run = () => {
         this.#held.add(name);
@@ -156,7 +164,12 @@ describe("IN-20 IN-36 service worker helpers", () => {
   }
 
   it("IN-20: the badge is the absolute count of the push and the in-app badge caps at 99+", () => {
-    expect(badgeFromPayload({ web_push: 8030, notification: { title: "t", navigate: "https://x", app_badge: "12" } })).toBe(12);
+    expect(
+      badgeFromPayload({
+        web_push: 8030,
+        notification: { title: "t", navigate: "https://x", app_badge: "12" },
+      }),
+    ).toBe(12);
     expect(badgeFromPayload({ counters: { unseen: 3 } })).toBe(3);
     expect(badgeFromPayload({ notification: { app_badge: "-1" } })).toBeNull();
     expect(badgeFromPayload(null)).toBeNull();
@@ -166,7 +179,10 @@ describe("IN-20 IN-36 service worker helpers", () => {
 
   it("IN-36: a push updates the badge and shows its notification", async () => {
     const { value, calls } = scope([]);
-    await handlePush(value, { web_push: 8030, notification: { title: "Hello", navigate: "https://app.example.com/inbox", app_badge: "0" } });
+    await handlePush(value, {
+      web_push: 8030,
+      notification: { title: "Hello", navigate: "https://app.example.com/inbox", app_badge: "0" },
+    });
     expect(calls[0]).toBe("badge:clear");
     expect(calls[1]).toContain("show:Hello");
     expect(calls[1]).toContain("https://app.example.com/inbox");
@@ -193,7 +209,10 @@ describe("IN-20 IN-36 service worker helpers", () => {
     expect(focused).toEqual(["navigate:https://app.example.com/inbox/inb_1", "focus"]);
     expect(calls).toEqual([]);
     const empty = scope([]);
-    await handleNotificationClick(empty.value, { data: { navigate: "/inbox" }, close: () => undefined });
+    await handleNotificationClick(empty.value, {
+      data: { navigate: "/inbox" },
+      close: () => undefined,
+    });
     expect(empty.calls).toEqual(["open:https://app.example.com/inbox"]);
   });
 });

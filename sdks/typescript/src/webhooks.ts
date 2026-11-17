@@ -73,7 +73,10 @@ function parseKey(text: string): ParsedKey {
     const bytes = decodeBase64(text.slice(6));
     if (bytes !== null && bytes.length >= 24) return { kind: "hmac", bytes };
   }
-  throw new RelayUsageError("invalid_webhook_key", "A webhook key is whpk_<base64> or whsec_<base64>.");
+  throw new RelayUsageError(
+    "invalid_webhook_key",
+    "A webhook key is whpk_<base64> or whsec_<base64>.",
+  );
 }
 
 function headerValues(headers: HeadersInput, name: string): string[] {
@@ -139,7 +142,11 @@ function bodyBytes(body: RawBody): Uint8Array {
 }
 
 /** The signed content of a message: `<id>.<timestamp>.<raw body>`. */
-export function signedContent(id: string, timestamp: number, body: RawBody): Uint8Array<ArrayBuffer> {
+export function signedContent(
+  id: string,
+  timestamp: number,
+  body: RawBody,
+): Uint8Array<ArrayBuffer> {
   const prefix = encoder.encode(`${id}.${timestamp}.`);
   const raw = bodyBytes(body);
   const content = new Uint8Array(prefix.length + raw.length);
@@ -148,10 +155,16 @@ export function signedContent(id: string, timestamp: number, body: RawBody): Uin
   return content;
 }
 
-async function valid(token: Token, key: ParsedKey, content: Uint8Array<ArrayBuffer>): Promise<boolean> {
+async function valid(
+  token: Token,
+  key: ParsedKey,
+  content: Uint8Array<ArrayBuffer>,
+): Promise<boolean> {
   const subtle = globalThis.crypto.subtle;
   if (token.scheme === "v1a" && key.kind === "ed25519") {
-    const cryptoKey = await subtle.importKey("raw", key.bytes, { name: "Ed25519" }, false, ["verify"]);
+    const cryptoKey = await subtle.importKey("raw", key.bytes, { name: "Ed25519" }, false, [
+      "verify",
+    ]);
     return subtle.verify({ name: "Ed25519" }, cryptoKey, token.signature, content);
   }
   if (token.scheme === "v1" && key.kind === "hmac") {

@@ -12,7 +12,10 @@ export interface ServiceWorkerScopeLike {
     showNotification(title: string, options?: Record<string, unknown>): Promise<void>;
   };
   readonly clients: {
-    matchAll(options: { type: "window"; includeUncontrolled: boolean }): Promise<readonly WindowClientLike[]>;
+    matchAll(options: {
+      type: "window";
+      includeUncontrolled: boolean;
+    }): Promise<readonly WindowClientLike[]>;
     openWindow(url: string): Promise<unknown>;
   };
   readonly navigator?: {
@@ -38,7 +41,11 @@ interface DeclarativeNotification {
   readonly silent?: boolean;
   readonly app_badge?: string | number;
   readonly data?: unknown;
-  readonly actions?: readonly { readonly action: string; readonly title: string; readonly navigate?: string }[];
+  readonly actions?: readonly {
+    readonly action: string;
+    readonly title: string;
+    readonly navigate?: string;
+  }[];
 }
 
 interface PushPayload {
@@ -82,7 +89,11 @@ export async function handlePush(scope: ServiceWorkerScopeLike, payload: unknown
     ...(notification.actions === undefined
       ? {}
       : { actions: notification.actions.map(({ action, title }) => ({ action, title })) }),
-    data: { navigate: notification.navigate, actions: notification.actions ?? [], data: notification.data },
+    data: {
+      navigate: notification.navigate,
+      actions: notification.actions ?? [],
+      data: notification.data,
+    },
   });
 }
 
@@ -100,7 +111,11 @@ export async function handleNotificationClick(
     url?: string;
     actions?: readonly { action: string; navigate?: string }[];
   };
-  const target = data.actions?.find((item) => item.action === action)?.navigate ?? data.navigate ?? data.url ?? "/";
+  const target =
+    data.actions?.find((item) => item.action === action)?.navigate ??
+    data.navigate ??
+    data.url ??
+    "/";
   const url = new URL(target, scope.location.origin);
   const windows = await scope.clients.matchAll({ type: "window", includeUncontrolled: true });
   const sameOrigin = windows.find((client) => new URL(client.url).origin === url.origin);

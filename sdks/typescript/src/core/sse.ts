@@ -7,7 +7,9 @@ export interface SseEvent {
 }
 
 /** Parses a text/event-stream body into events (WHATWG HTML server-sent events). */
-export async function* readSse(stream: ReadableStream<Uint8Array>): AsyncGenerator<SseEvent, void, undefined> {
+export async function* readSse(
+  stream: ReadableStream<Uint8Array>,
+): AsyncGenerator<SseEvent, void, undefined> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -18,7 +20,9 @@ export async function* readSse(stream: ReadableStream<Uint8Array>): AsyncGenerat
   const line = (text: string): SseEvent | null => {
     if (text === "") {
       const dispatched =
-        data.length === 0 ? null : { event: event === "" ? "message" : event, data: data.join("\n"), id: lastId };
+        data.length === 0
+          ? null
+          : { event: event === "" ? "message" : event, data: data.join("\n"), id: lastId };
       event = "";
       data = [];
       return dispatched;

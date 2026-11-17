@@ -24,7 +24,8 @@ export interface InboxItem {
 }
 
 /** A state intent (IN-12). */
-export type InboxIntentOp = "seen" | "read" | "unread" | "archive" | "unarchive" | "hide" | "snooze" | "unsnooze" | "click";
+export type InboxIntentOp =
+  "seen" | "read" | "unread" | "archive" | "unarchive" | "hide" | "snooze" | "unsnooze" | "click";
 
 /** An intent waiting in the offline queue (IN-13). */
 export interface QueuedIntent {
@@ -50,7 +51,12 @@ export interface InboxSnapshot {
 /** Something the user should be told. */
 export type InboxNotice =
   | { readonly type: "updated_elsewhere"; readonly itemId: string; readonly op: InboxIntentOp }
-  | { readonly type: "intent_failed"; readonly itemId: string; readonly op: InboxIntentOp; readonly error: unknown };
+  | {
+      readonly type: "intent_failed";
+      readonly itemId: string;
+      readonly op: InboxIntentOp;
+      readonly error: unknown;
+    };
 
 /** Handle of an undoable action (IN-15). */
 export interface UndoHandle {
@@ -114,7 +120,10 @@ function inTab(item: InboxItem, now: number): boolean {
   return !item.archived && !item.hidden && !item.expired && !snoozed(item, now);
 }
 
-function counts(item: InboxItem | undefined, now: number): { unseen: number; unread: number; total: number } {
+function counts(
+  item: InboxItem | undefined,
+  now: number,
+): { unseen: number; unread: number; total: number } {
   if (item === undefined || !inTab(item, now)) return { unseen: 0, unread: 0, total: 0 };
   return { unseen: item.seen ? 0 : 1, unread: item.read ? 0 : 1, total: 1 };
 }
@@ -150,7 +159,8 @@ export function compactQueue(intents: readonly QueuedIntent[]): QueuedIntent[] {
   const latest = new Map<string, QueuedIntent>();
   for (const intent of intents) {
     const known = latest.get(intent.item_id);
-    if (known === undefined || intent.client_seq > known.client_seq) latest.set(intent.item_id, intent);
+    if (known === undefined || intent.client_seq > known.client_seq)
+      latest.set(intent.item_id, intent);
   }
   return [...latest.values()].sort((a, b) => a.client_seq - b.client_seq);
 }
@@ -327,7 +337,8 @@ export class InboxClient {
       body: category === undefined ? {} : { category },
     } as never)) as unknown as { counters: InboxCounters };
     for (const [id, item] of this.#items) {
-      if (category === undefined || item.category === category) this.#items.set(id, { ...item, read: true, seen: true });
+      if (category === undefined || item.category === category)
+        this.#items.set(id, { ...item, read: true, seen: true });
     }
     this.#setCounters(result.counters, true);
     this.#emit();
@@ -372,9 +383,15 @@ export class InboxClient {
       for (const change of changes.changes) {
         const known = this.#items.get(change.item_id);
         if (known !== undefined && change.state_version <= known.state_version) continue;
-        const item = { ...(known ?? {}), ...change.item, id: change.item_id, state_version: change.state_version } as InboxItem;
+        const item = {
+          ...(known ?? {}),
+          ...change.item,
+          id: change.item_id,
+          state_version: change.state_version,
+        } as InboxItem;
         this.#items.set(change.item_id, item);
-        if (change.type === "created" && !this.#order.includes(change.item_id)) this.#order.unshift(change.item_id);
+        if (change.type === "created" && !this.#order.includes(change.item_id))
+          this.#order.unshift(change.item_id);
       }
       this.#cursor = changes.cursor;
       this.#setCounters(changes.counters, false);
@@ -425,8 +442,17 @@ export class InboxClient {
   #setCounters(counters: InboxCounters | undefined, allowEqual: boolean): void {
     if (counters === undefined) return;
     const current = this.#counters;
-    if (current === null || counters.version > current.version || (allowEqual && counters.version === current.version)) {
-      this.#counters = { unseen: counters.unseen, unread: counters.unread, total: counters.total, version: counters.version };
+    if (
+      current === null ||
+      counters.version > current.version ||
+      (allowEqual && counters.version === current.version)
+    ) {
+      this.#counters = {
+        unseen: counters.unseen,
+        unread: counters.unread,
+        total: counters.total,
+        version: counters.version,
+      };
     }
   }
 
@@ -472,7 +498,12 @@ export class InboxClient {
       total += c.total;
     }
     const counters = this.#counters;
-    return counters !== null && counters.unseen === unseen && counters.unread === unread && counters.total === total;
+    return (
+      counters !== null &&
+      counters.unseen === unseen &&
+      counters.unread === unread &&
+      counters.total === total
+    );
   }
 
   async #coldSync(): Promise<void> {
@@ -495,9 +526,13 @@ export class InboxClient {
     this.#nextCursor = page.next_cursor;
     if (page.cursor !== undefined) this.#cursor = page.cursor;
     this.#setCounters(page.counters, true);
-    for (const intent of [...this.#queue, ...[...this.#undo.values()].map((entry) => entry.intent)]) {
+    for (const intent of [
+      ...this.#queue,
+      ...[...this.#undo.values()].map((entry) => entry.intent),
+    ]) {
       const item = this.#items.get(intent.item_id);
-      if (item !== undefined) this.#items.set(item.id, applyIntent(item, intent.op, intent.snooze_until));
+      if (item !== undefined)
+        this.#items.set(item.id, applyIntent(item, intent.op, intent.snooze_until));
     }
     this.#emit();
   }
@@ -580,7 +615,11 @@ export class InboxClient {
         const version = data.state_version as number;
         const known = this.#items.get(id);
         if (known === undefined || version <= known.state_version) return;
-        this.#items.set(id, { ...known, ...(data.changes as Record<string, unknown>), state_version: version });
+        this.#items.set(id, {
+          ...known,
+          ...(data.changes as Record<string, unknown>),
+          state_version: version,
+        });
         return;
       }
       case "inbox.items_bulk_updated":
@@ -673,7 +712,9 @@ export class InboxClient {
             body: {
               op: intent.op,
               client_seq: intent.client_seq,
-              ...(intent.base_state_version === undefined ? {} : { base_state_version: intent.base_state_version }),
+              ...(intent.base_state_version === undefined
+                ? {}
+                : { base_state_version: intent.base_state_version }),
               ...(intent.snooze_until === undefined ? {} : { snooze_until: intent.snooze_until }),
             },
             idempotencyKey: intent.key,
@@ -710,7 +751,10 @@ export class InboxClient {
     const merged = { ...(known ?? {}), ...state } as InboxItem;
     const queued =
       this.#queue.find((intent) => intent.item_id === state.id) ?? this.#undo.get(state.id)?.intent;
-    this.#items.set(state.id, queued === undefined ? merged : applyIntent(merged, queued.op, queued.snooze_until));
+    this.#items.set(
+      state.id,
+      queued === undefined ? merged : applyIntent(merged, queued.op, queued.snooze_until),
+    );
   }
 
   #remove(intent: QueuedIntent): void {
@@ -750,7 +794,10 @@ export class InboxClient {
 
   #saveQueue(): void {
     try {
-      this.#storage()?.setItem(this.#storageKey(), JSON.stringify({ seq: this.#seq, queue: this.#queue }));
+      this.#storage()?.setItem(
+        this.#storageKey(),
+        JSON.stringify({ seq: this.#seq, queue: this.#queue }),
+      );
     } catch {
       return;
     }

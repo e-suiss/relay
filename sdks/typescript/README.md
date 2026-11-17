@@ -2,13 +2,13 @@
 
 The TypeScript SDK for Relay. It ships four entry points:
 
-| Import | For |
-|---|---|
-| `@esuiss/relay` | Server client, webhook verifier, DPoP authorization, agent helpers |
-| `@esuiss/relay/agent` | Agent helpers only: waitpoints and the mailbox |
-| `@esuiss/relay/webhooks` | The raw-body webhook verifier only |
-| `@esuiss/relay/browser` | The headless browser client behind the UI components |
-| `@esuiss/relay/service-worker` | Badge and notification click helpers for a service worker |
+| Import                         | For                                                                |
+| ------------------------------ | ------------------------------------------------------------------ |
+| `@esuiss/relay`                | Server client, webhook verifier, DPoP authorization, agent helpers |
+| `@esuiss/relay/agent`          | Agent helpers only: waitpoints and the mailbox                     |
+| `@esuiss/relay/webhooks`       | The raw-body webhook verifier only                                 |
+| `@esuiss/relay/browser`        | The headless browser client behind the UI components               |
+| `@esuiss/relay/service-worker` | Badge and notification click helpers for a service worker          |
 
 Types and operations are generated from the Relay OpenAPI contract; the SDK always sends the API version it was generated from, so updating the package never changes behaviour behind your back.
 
@@ -23,7 +23,11 @@ const relay = new RelayServerClient({
 });
 
 const accepted = await relay.call("createEvent", {
-  body: { event: "order.shipped", to: { id: "user_42", email: "ada@example.com" }, data: { order: "4821" } },
+  body: {
+    event: "order.shipped",
+    to: { id: "user_42", email: "ada@example.com" },
+    data: { order: "4821" },
+  },
 });
 
 for await (const notification of relay.paginate("listNotifications", { query: { limit: 100 } })) {
@@ -82,7 +86,10 @@ The browser client holds only the subscriber's narrow-scoped token, never a secr
 ```ts
 import { InboxClient, RelaySubscriberClient } from "@esuiss/relay/browser";
 
-const client = new RelaySubscriberClient({ baseUrl: "https://relay.example.com", token: fetchSubscriberToken });
+const client = new RelaySubscriberClient({
+  baseUrl: "https://relay.example.com",
+  token: fetchSubscriberToken,
+});
 const inbox = new InboxClient({ client });
 inbox.subscribe(({ items, counters }) => render(items, counters));
 await inbox.start();

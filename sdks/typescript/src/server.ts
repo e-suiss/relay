@@ -59,7 +59,11 @@ export class RelayServerClient {
     operation: K,
     ...args: CallArgsTuple<operations[K]>
   ): Promise<RelayResponse<ServerResult<K>>> {
-    return invoke<ServerResult<K>>(this.transport, serverOperations[operation], (args[0] ?? {}) as unknown as LooseArgs);
+    return invoke<ServerResult<K>>(
+      this.transport,
+      serverOperations[operation],
+      (args[0] ?? {}) as unknown as LooseArgs,
+    );
   }
 
   /** Iterates lazily over every item of a list operation. */
@@ -67,6 +71,10 @@ export class RelayServerClient {
     operation: K,
     ...args: CallArgsTuple<operations[K]>
   ): Paginator<ServerListItem<K>> {
-    return paginate<ServerListItem<K>>(this.transport, serverOperations[operation], (args[0] ?? {}) as unknown as LooseArgs);
+    return paginate<ServerListItem<K>>(
+      this.transport,
+      serverOperations[operation],
+      (args[0] ?? {}) as unknown as LooseArgs,
+    );
   }
 }

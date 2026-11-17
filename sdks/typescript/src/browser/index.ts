@@ -13,7 +13,12 @@ export {
   type Problem,
 } from "../core/errors.js";
 export { Paginator, type Page, type PageParams } from "../core/pagination.js";
-export { VersionedDeduper, openThenList, type OpenThenListOptions, type StreamSubscription } from "../core/stream-sync.js";
+export {
+  VersionedDeduper,
+  openThenList,
+  type OpenThenListOptions,
+  type StreamSubscription,
+} from "../core/stream-sync.js";
 export type { FetchLike, RelayResponse } from "../core/transport.js";
 export type { components as SubscriberComponents } from "../generated/subscriber.js";
 export { API_VERSION } from "../generated/meta.js";
@@ -56,5 +61,10 @@ export {
   type SubscriberOperationId,
   type SubscriberResult,
 } from "./subscriber.js";
-export { TabCoordinator, type BroadcastChannelLike, type LockManagerLike, type TabCoordinatorOptions } from "./tabs.js";
+export {
+  TabCoordinator,
+  type BroadcastChannelLike,
+  type LockManagerLike,
+  type TabCoordinatorOptions,
+} from "./tabs.js";
 export { SubscriberTokenSource, tokenExpiry, type SubscriberTokenProvider } from "./token.js";

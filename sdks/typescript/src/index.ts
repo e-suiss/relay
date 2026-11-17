@@ -27,7 +27,12 @@ export {
   type RetryDecision,
   type RetryPolicy,
 } from "./core/retry.js";
-export { VersionedDeduper, openThenList, type OpenThenListOptions, type StreamSubscription } from "./core/stream-sync.js";
+export {
+  VersionedDeduper,
+  openThenList,
+  type OpenThenListOptions,
+  type StreamSubscription,
+} from "./core/stream-sync.js";
 export {
   Transport,
   newIdempotencyKey,

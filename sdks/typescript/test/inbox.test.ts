@@ -38,7 +38,9 @@ interface Request {
   readonly key: string | null;
 }
 
-type Route = (request: Request) => { status?: number; body: unknown } | Promise<{ status?: number; body: unknown }>;
+type Route = (
+  request: Request,
+) => { status?: number; body: unknown } | Promise<{ status?: number; body: unknown }>;
 
 function subscriber(route: Route, requests: Request[]): RelaySubscriberClient {
   return new RelaySubscriberClient({
@@ -50,7 +52,10 @@ function subscriber(route: Route, requests: Request[]): RelaySubscriberClient {
       const request: Request = {
         method: init?.method ?? "GET",
         path: url.pathname + url.search,
-        body: typeof init?.body === "string" ? (JSON.parse(init.body) as Record<string, unknown>) : null,
+        body:
+          typeof init?.body === "string"
+            ? (JSON.parse(init.body) as Record<string, unknown>)
+            : null,
         key: new Headers(init?.headers).get("idempotency-key"),
       };
       requests.push(request);
@@ -58,7 +63,9 @@ function subscriber(route: Route, requests: Request[]): RelaySubscriberClient {
       const status = answer.status ?? 200;
       return new Response(JSON.stringify(answer.body), {
         status,
-        headers: { "content-type": status >= 400 ? "application/problem+json" : "application/json" },
+        headers: {
+          "content-type": status >= 400 ? "application/problem+json" : "application/json",
+        },
       });
     },
   });
@@ -92,7 +99,8 @@ const settle = async (): Promise<void> => {
   for (let index = 0; index < 20; index++) await new Promise((resolve) => setTimeout(resolve, 0));
 };
 
-const intents = (requests: Request[]) => requests.filter((request) => request.path.includes("/intents"));
+const intents = (requests: Request[]) =>
+  requests.filter((request) => request.path.includes("/intents"));
 
 describe("IN-12 IN-13 offline queue", () => {
   it("IN-13: the queue keeps one intent per item, newest wins, in client_seq order", () => {
@@ -103,10 +111,9 @@ describe("IN-12 IN-13 offline queue", () => {
       key: `key-${seq}`,
       offline: true,
     });
-    expect(compactQueue([queued("read", "a", 1), queued("seen", "b", 2), queued("archive", "a", 3)])).toEqual([
-      queued("seen", "b", 2),
-      queued("archive", "a", 3),
-    ]);
+    expect(
+      compactQueue([queued("read", "a", 1), queued("seen", "b", 2), queued("archive", "a", 3)]),
+    ).toEqual([queued("seen", "b", 2), queued("archive", "a", 3)]);
   });
 
   it("IN-13: a reverse intent based on an older state is dropped, a monotone one is still sent", () => {
@@ -127,8 +134,10 @@ describe("IN-12 IN-13 offline queue", () => {
     const listeners: (() => void)[] = [];
     const storage = new MemoryStorage();
     const client = subscriber((request) => {
-      if (request.path.startsWith("/v1/subscriber/inbox/counters")) return { body: counters(2, 2, 2, 1) };
-      if (request.path.startsWith("/v1/subscriber/inbox/items?")) return { body: page([item("a", 1), item("b", 1)], 1) };
+      if (request.path.startsWith("/v1/subscriber/inbox/counters"))
+        return { body: counters(2, 2, 2, 1) };
+      if (request.path.startsWith("/v1/subscriber/inbox/items?"))
+        return { body: page([item("a", 1), item("b", 1)], 1) };
       const id = request.path.split("/")[5] ?? "";
       return {
         body: {
@@ -166,7 +175,9 @@ describe("IN-12 IN-13 offline queue", () => {
     for (const listener of listeners) listener();
     await settle();
     const sent = intents(requests);
-    expect(sent.map((request) => [request.path, request.body?.op, request.body?.client_seq])).toEqual([
+    expect(
+      sent.map((request) => [request.path, request.body?.op, request.body?.client_seq]),
+    ).toEqual([
       ["/v1/subscriber/inbox/items/a/intents", "read", 2],
       ["/v1/subscriber/inbox/items/b/intents", "read", 3],
     ]);
@@ -180,7 +191,8 @@ describe("IN-12 IN-13 offline queue", () => {
     const requests: Request[] = [];
     const current = item("a", 4, { seen: true, read: true });
     const client = subscriber((request) => {
-      if (request.path.startsWith("/v1/subscriber/inbox/counters")) return { body: counters(0, 0, 1, 1) };
+      if (request.path.startsWith("/v1/subscriber/inbox/counters"))
+        return { body: counters(0, 0, 1, 1) };
       if (request.path.startsWith("/v1/subscriber/inbox/items?")) {
         return { body: page([item("a", 3, { seen: true, read: true })], 1) };
       }
@@ -197,7 +209,14 @@ describe("IN-12 IN-13 offline queue", () => {
       };
     }, requests);
     const notices: InboxNotice[] = [];
-    const inbox = new InboxClient({ client, realtime: false, storage: null, visibility: null, online: null, isOnline: () => true });
+    const inbox = new InboxClient({
+      client,
+      realtime: false,
+      storage: null,
+      visibility: null,
+      online: null,
+      isOnline: () => true,
+    });
     inbox.onNotice((notice) => notices.push(notice));
     await inbox.start();
     inbox.markUnread("a");
@@ -214,8 +233,10 @@ describe("IN-15 undo buffer", () => {
     const requests: Request[] = [];
     const timers: (() => void)[] = [];
     const client = subscriber((request) => {
-      if (request.path.startsWith("/v1/subscriber/inbox/counters")) return { body: counters(1, 1, 1, 1) };
-      if (request.path.startsWith("/v1/subscriber/inbox/items?")) return { body: page([item("a", 1)], 1) };
+      if (request.path.startsWith("/v1/subscriber/inbox/counters"))
+        return { body: counters(1, 1, 1, 1) };
+      if (request.path.startsWith("/v1/subscriber/inbox/items?"))
+        return { body: page([item("a", 1)], 1) };
       return {
         body: {
           object: "inbox_intent_result",
@@ -268,7 +289,13 @@ describe("IN-21 foreground counter sync", () => {
     let countersRead = 0;
     const client = subscriber((request) => {
       if (request.path.startsWith("/v1/subscriber/inbox/counters/inconsistency")) {
-        return { body: { object: "inbox_reconciliation", result: "repaired", counters: counters(1, 1, 1, 9) } };
+        return {
+          body: {
+            object: "inbox_reconciliation",
+            result: "repaired",
+            counters: counters(1, 1, 1, 9),
+          },
+        };
       }
       if (request.path.startsWith("/v1/subscriber/inbox/counters")) {
         countersRead++;
@@ -296,7 +323,9 @@ describe("IN-21 foreground counter sync", () => {
     for (const listener of listeners) listener();
     await settle();
     expect(countersRead).toBe(2);
-    expect(requests.some((request) => request.path === "/v1/subscriber/inbox/counters/inconsistency")).toBe(true);
+    expect(
+      requests.some((request) => request.path === "/v1/subscriber/inbox/counters/inconsistency"),
+    ).toBe(true);
     expect(inbox.snapshot().counters).toEqual({ unseen: 1, unread: 1, total: 1, version: 9 });
     inbox.stop();
   });
@@ -309,9 +338,11 @@ describe("IN-28 stream before list", () => {
     const listed = new Promise<void>((resolve) => {
       releaseList = resolve;
     });
-    const sockets: { socket: WebSocketLike & { open(): void; push(message: unknown[]): void } }[] = [];
+    const sockets: { socket: WebSocketLike & { open(): void; push(message: unknown[]): void } }[] =
+      [];
     const client = subscriber(async (request) => {
-      if (request.path.startsWith("/v1/subscriber/inbox/counters")) return { body: counters(2, 2, 2, 1) };
+      if (request.path.startsWith("/v1/subscriber/inbox/counters"))
+        return { body: counters(2, 2, 2, 1) };
       await listed;
       return { body: page([item("a", 1), item("b", 3)], 1) };
     }, requests);
@@ -333,7 +364,8 @@ describe("IN-28 stream before list", () => {
               readyState: 0,
               onopen: null as ((event: unknown) => void) | null,
               onmessage: null as ((event: { readonly data: unknown }) => void) | null,
-              onclose: null as ((event: { readonly code: number; readonly reason: string }) => void) | null,
+              onclose: null as
+                ((event: { readonly code: number; readonly reason: string }) => void) | null,
               onerror: null as ((event: unknown) => void) | null,
               send: () => undefined,
               close: () => undefined,
@@ -354,7 +386,9 @@ describe("IN-28 stream before list", () => {
     await settle();
     const socket = sockets[0]?.socket;
     if (socket === undefined) throw new Error("the stream was not opened before the list");
-    expect(requests.some((request) => request.path.startsWith("/v1/subscriber/inbox/items"))).toBe(true);
+    expect(requests.some((request) => request.path.startsWith("/v1/subscriber/inbox/items"))).toBe(
+      true,
+    );
     socket.open();
     socket.push(["1", "1", "inbox", "phx_reply", { status: "ok", response: {} }]);
     const envelopeCounters = { unseen: 1, unread: 2, total: 2, version: 2 };
@@ -363,21 +397,38 @@ describe("IN-28 stream before list", () => {
       null,
       "inbox",
       "inbox.item_updated",
-      { t: "inbox.item_updated", v: 1, ts: "2026-11-18T10:00:00Z", d: { item_id: "a", state_version: 2, changes: { seen: true } }, counters: envelopeCounters, id: "s2" },
+      {
+        t: "inbox.item_updated",
+        v: 1,
+        ts: "2026-11-18T10:00:00Z",
+        d: { item_id: "a", state_version: 2, changes: { seen: true } },
+        counters: envelopeCounters,
+        id: "s2",
+      },
     ]);
     socket.push([
       "1",
       null,
       "inbox",
       "inbox.item_updated",
-      { t: "inbox.item_updated", v: 1, ts: "2026-11-18T10:00:00Z", d: { item_id: "b", state_version: 2, changes: { archived: true } }, counters: envelopeCounters, id: "s3" },
+      {
+        t: "inbox.item_updated",
+        v: 1,
+        ts: "2026-11-18T10:00:00Z",
+        d: { item_id: "b", state_version: 2, changes: { archived: true } },
+        counters: envelopeCounters,
+        id: "s3",
+      },
     ]);
     releaseList?.();
     await starting;
     await settle();
     const items = inbox.snapshot().items;
     expect(items.find((entry) => entry.id === "a")).toMatchObject({ seen: true, state_version: 2 });
-    expect(items.find((entry) => entry.id === "b")).toMatchObject({ archived: false, state_version: 3 });
+    expect(items.find((entry) => entry.id === "b")).toMatchObject({
+      archived: false,
+      state_version: 3,
+    });
     expect(inbox.snapshot().counters).toEqual(envelopeCounters);
     inbox.stop();
   });

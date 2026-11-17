@@ -1,6 +1,10 @@
 /** The part of the Web Locks API the coordinator uses. */
 export interface LockManagerLike {
-  request(name: string, options: { signal?: AbortSignal }, callback: (lock: unknown) => Promise<void>): Promise<unknown>;
+  request(
+    name: string,
+    options: { signal?: AbortSignal },
+    callback: (lock: unknown) => Promise<void>,
+  ): Promise<unknown>;
 }
 
 /** The part of BroadcastChannel the coordinator uses. */
@@ -37,7 +41,8 @@ export class TabCoordinator {
 
   constructor(options: TabCoordinatorOptions) {
     this.#options = options;
-    const navigatorLocks = (globalThis as { navigator?: { locks?: LockManagerLike } }).navigator?.locks;
+    const navigatorLocks = (globalThis as { navigator?: { locks?: LockManagerLike } }).navigator
+      ?.locks;
     this.#locks = options.locks === undefined ? (navigatorLocks ?? null) : options.locks;
   }
 

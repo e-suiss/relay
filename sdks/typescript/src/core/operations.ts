@@ -42,9 +42,13 @@ export interface CallOptions {
   readonly contentType?: string;
 }
 
-type PathArg<O> = [PathOf<O>] extends [never] ? { readonly path?: undefined } : { readonly path: PathOf<O> };
+type PathArg<O> = [PathOf<O>] extends [never]
+  ? { readonly path?: undefined }
+  : { readonly path: PathOf<O> };
 
-type QueryArg<O> = [QueryOf<O>] extends [never] ? { readonly query?: undefined } : { readonly query?: QueryOf<O> };
+type QueryArg<O> = [QueryOf<O>] extends [never]
+  ? { readonly query?: undefined }
+  : { readonly query?: QueryOf<O> };
 
 type BodyArg<O> = [BodyOf<O>] extends [never]
   ? { readonly body?: undefined }
@@ -56,7 +60,8 @@ type BodyArg<O> = [BodyOf<O>] extends [never]
 export type CallArgs<O> = PathArg<O> & QueryArg<O> & BodyArg<O> & CallOptions;
 
 /** The argument tuple of a call: optional when nothing in it is required. */
-export type CallArgsTuple<O> = object extends CallArgs<O> ? [args?: CallArgs<O>] : [args: CallArgs<O>];
+export type CallArgsTuple<O> =
+  object extends CallArgs<O> ? [args?: CallArgs<O>] : [args: CallArgs<O>];
 
 /** Untyped call arguments, as the operation tables take them. */
 export interface LooseArgs extends CallOptions {
@@ -102,7 +107,11 @@ export function invoke<T>(
 }
 
 /** A lazy iterator over a list operation of a generated table. */
-export function paginate<T>(transport: Transport, spec: OperationSpec, args: LooseArgs = {}): Paginator<T> {
+export function paginate<T>(
+  transport: Transport,
+  spec: OperationSpec,
+  args: LooseArgs = {},
+): Paginator<T> {
   return new Paginator<T>(async (query) => {
     const response = await invoke<Page<T>>(transport, spec, { ...args, query });
     return response.data;

@@ -109,6 +109,12 @@ defmodule Relay.Platform do
   @spec outbox_data(map()) :: map()
   defdelegate outbox_data(payload), to: Relay.Platform.Envelope, as: :data
 
+  # API-72
+  # AG-21
+  @doc "The thin data of an outbox event, with the position of a mailbox record; see `Relay.Platform.Envelope.event_data/1`."
+  @spec outbox_thin_data(OutboxStore.event()) :: map()
+  defdelegate outbox_thin_data(event), to: Relay.Platform.Envelope, as: :event_data
+
   # WH-12
   @doc "Reads the data of an outbox event in its own scoped transaction, as `outbox_data/1` writes it; `nil` when the event is no longer kept."
   @spec outbox_event_data(Relay.Scope.t(), Relay.Id.t(), DateTime.t()) ::

@@ -18,6 +18,7 @@ defmodule Relay.Agents.Live do
     deps: [
       Relay,
       Relay.Agents,
+      Relay.Agents.Ceiling,
       Relay.Delivery,
       Relay.Devices,
       Relay.Ingest,
@@ -174,6 +175,7 @@ defmodule Relay.Agents.Live do
 
     case Relay.Ingest.notification_accept(notification) do
       {:created, id} ->
+        :ok = attribute(waitpoint, id)
         Enum.each(targets, &deliver!(scope, id, recipient_id, &1))
         settle = args(scope, "invitation_id", invitation["id"])
         :ok = queue!(Settle.new(settle, schedule_in: @settle_in_s))
@@ -190,6 +192,15 @@ defmodule Relay.Agents.Live do
   # AG-34
   defp sender(%{waiter_kind: "agent"}), do: :agent
   defp sender(_api_client), do: :system
+
+  # AG-48
+  # AG-75
+  defp attribute(%{waiter_kind: "agent", waiter_ref: <<_::128>> = agent_id}, notification_id) do
+    _attributed = Relay.Agents.Ceiling.attribute_here(notification_id, agent_id)
+    :ok
+  end
+
+  defp attribute(_waitpoint, _notification_id), do: :ok
 
   defp deliver!(scope, notification_id, recipient_id, target) do
     delivery = %{

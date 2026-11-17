@@ -2,7 +2,7 @@ defmodule Relay.Agents.Ceiling do
   @moduledoc """
   The per-agent notification ceiling (AG-48, AG-49, AG-50, C-78, INV-3, INV-34). A notification whose sender type is `agent` passes the ceiling of the agent that sent it before it is sent; notifications of human and system senders never reach it, and their frequency cap keeps its own rule. The ceiling is apart from the frequency cap and from throttle: it counts the notifications an agent sent in a rolling hour and a rolling day (`x-relay-limits` `agent_ceiling`, AG-70), which a tenant may only lower (`agents.ceiling.per_hour`, `agents.ceiling.per_day`).
 
-  A notification is attributed to its agent when it is accepted with the agent's own credential (`attribute_here/2`, in the accepting transaction). The policy lattice step of a delivery job asks `admit/3` once the lattice decided to send:
+  A notification is attributed to its agent when it is accepted (`attribute_here/2`, in the accepting transaction). The policy lattice step of a delivery job asks `admit/3` once the lattice decided to send:
 
     * A notification is decided once. Its first delivery to arrive reads the agent's counters, sliding counters of `Relay.Platform.rate_counter/5` that fall back to PostgreSQL when Valkey is away. Below the ceiling the notification is recorded as passed and counted; every later delivery of it passes without being counted again.
     * At or over the ceiling the notification is held (`agent_ceiling.exceeded`): its delivery is paused, never failed and never deleted, and the first hold of an agent opens a ceiling event and announces `agent.ceiling_exceeded` to the owner in the same transaction. Further deliveries of a held notification are paused under the same hold.
@@ -11,7 +11,7 @@ defmodule Relay.Agents.Ceiling do
 
   The owner lists the held notifications (`list_holds/5`) and decides with `decide_here/4`: `send_all` releases them, `cancel` cancels them and `stop` cancels them and stops the agent until `resume_here/4`. A release needs the reference of a step-up (TN-21) and is refused without one. The decision, the state of every held notification and the audit record are written in one transaction with the job that applies it (`Relay.Agents.Ceiling.ApplyWorker`); the job resumes, cancels or expires the paused deliveries batch by batch. A held notification keeps its `expires_at`: one that is past it when it is released is closed as `expired` with `agent_ceiling.expired` and is not sent, and the paused expiry sweep leaves held notifications alone.
 
-  A stop is the owner's decision and is kept apart from the agent record's state, which only Access changes. A notification of sender type `agent` that was not sent with an agent's credential names no agent and passes with `[:relay, :agents, :ceiling, :unattributed]` telemetry. `[:relay, :agents, :ceiling, :held]` counts the holds by reason.
+  A stop is the owner's decision and is kept apart from the agent record's state, which only Access changes. Every way a notification of sender type `agent` is accepted names its agent (AG-75): a send with an agent's credential, and a decision request of a waitpoint an agent waits on; a request that states the sender type without an agent's credential is refused at acceptance. A notification of sender type `agent` that names no agent all the same is never sent: its job fails closed and retries, with `[:relay, :agents, :ceiling, :unattributed]` telemetry. `[:relay, :agents, :ceiling, :held]` counts the holds by reason.
   """
 
   use Boundary, top_level?: true, deps: [Relay, Relay.Delivery, Relay.Platform], exports: []
@@ -45,7 +45,8 @@ defmodule Relay.Agents.Ceiling do
 
   # AG-48
   # E-56
-  @doc "Attributes a notification accepted with an agent's credential to that agent, inside the accepting transaction; a notification that is already attributed keeps its agent."
+  # AG-75
+  @doc "Attributes a notification of sender type `agent` to the agent it was accepted for, inside the accepting transaction; a notification that is already attributed keeps its agent."
   @spec attribute_here(Relay.Id.t(), Relay.Id.t()) :: :attributed | :exists | :not_found
   def attribute_here(notification_id, agent_id), do: Store.attribute(notification_id, agent_id)
 
@@ -54,7 +55,7 @@ defmodule Relay.Agents.Ceiling do
   # AG-50
   # INV-34
   @doc """
-  Passes a delivery the lattice decided to send through the ceiling of its agent. `:pass`: the notification is not an agent's, or it is below the ceiling, already passed or released; `:held`: its delivery is paused for the owner's decision; `{:skip, reason, rule_id}`: the agent is stopped or the owner cancelled the held notification; `{:expire, rule_id}`: it was released past its `expires_at`; an error when the ceiling's own records cannot be read, so that nothing is sent and the job retries. `counter: fun` replaces `Relay.Platform.rate_counter/5`.
+  Passes a delivery the lattice decided to send through the ceiling of its agent. `:pass`: the notification is not an agent's, or it is below the ceiling, already passed or released; `:held`: its delivery is paused for the owner's decision; `{:skip, reason, rule_id}`: the agent is stopped or the owner cancelled the held notification; `{:expire, rule_id}`: it was released past its `expires_at`; an error when the ceiling's own records cannot be read or the notification names no agent, so that nothing is sent and the job retries. `counter: fun` replaces `Relay.Platform.rate_counter/5`.
   """
   @spec admit(Scope.t(), sender(), [option()]) :: admission()
   def admit(%Scope{} = scope, sender, opts \\ []) do
@@ -69,9 +70,12 @@ defmodule Relay.Agents.Ceiling do
     end
   end
 
+  # AG-75
+  # INV-34
   defp unattributed do
     :telemetry.execute([:relay, :agents, :ceiling, :unattributed], %{count: 1}, %{})
-    :pass
+    Logger.error("agent notification names no agent; it is not sent")
+    unavailable()
   end
 
   defp known(_scope, _sender, %{hold_state: state}, _opts) when state in ["passed", "released"],

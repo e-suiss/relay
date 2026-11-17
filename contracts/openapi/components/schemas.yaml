@@ -592,7 +592,7 @@ Actor:
         - human
         - system
         - agent
-      description: "Sender type, independent of the message class. A request made with agent credentials is always agent and the request cannot change it; otherwise the default is system."
+      description: "Sender type, independent of the message class. A request made with agent credentials is always agent and the request cannot change it, and its actor is the agent's own record. Otherwise the default is system, and a request that states agent is 422 validation_failed at /actor/type (not_allowed): every agent notification names its agent and counts against that agent's ceiling."
     id:
       "$ref": "#/ExternalId"
     name:

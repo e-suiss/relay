@@ -418,5 +418,11 @@
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",
     "reason": "AG-37, OP-9: the no-delete trigger rejects TRUNCATE on the agent task notifications"
+  },
+  {
+    "path": "priv/repo/migrations/20270105000000_hold_blocked_mailbox_messages.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "AG-61, AG-84: the committed relay_fn.mailbox_message_append is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
   }
 ]

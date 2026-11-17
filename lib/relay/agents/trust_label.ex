@@ -9,7 +9,7 @@ defmodule Relay.Agents.TrustLabel do
     * `authenticated`: the sender's identity is verified, by an Access token, a verified webhook signature, A2A authentication or an aligned DMARC pass of an e-mail;
     * `unauthenticated`: none of them.
 
-  A record of a `spam` or `blocked` message is announced with `mailbox.record_flagged`, which only an endpoint that names the type receives; `mailbox.record_appended`, the hint that wakes an agent, is never written for it.
+  A record of a `spam` message is announced with `mailbox.record_flagged`, which only an endpoint that names the type receives; `mailbox.record_appended`, the hint that wakes an agent, is never written for it. A `blocked` message is recorded held: no lease or read hands it out and no event announces it, so it wakes nobody and its sender learns nothing (AG-61, AG-84).
   """
 
   @labels ~w(blocked spam authenticated unauthenticated)a

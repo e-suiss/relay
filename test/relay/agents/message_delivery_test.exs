@@ -135,8 +135,15 @@ defmodule Relay.Agents.MessageDeliveryTest do
         assert delivered.trust_label == label
         text = Atom.to_string(label)
         id = delivered.record_id
-        assert ["message." <> ^text, ^text, _payload, nil] = stored(ctx.scope, id)
-        assert %{"trust_label" => ^text, "event_type" => "message." <> ^text} = record!(ctx, id)
+        assert ["message." <> ^text, kept, _payload, nil] = stored(ctx.scope, id)
+
+        if label == :blocked do
+          assert kept == nil
+          assert {:ok, nil} = Agents.mailbox_record(ctx.scope, id, ctx.owner)
+        else
+          assert kept == text
+          assert %{"trust_label" => ^text, "event_type" => "message." <> ^text} = record!(ctx, id)
+        end
       end
     end
 
@@ -156,13 +163,28 @@ defmodule Relay.Agents.MessageDeliveryTest do
 
       assert [
                ["mailbox.record_appended", %{"trust_label" => "authenticated"} = first],
-               ["mailbox.record_flagged", %{"trust_label" => "spam"} = second],
-               ["mailbox.record_flagged", %{"trust_label" => "blocked"} = third]
+               ["mailbox.record_flagged", %{"trust_label" => "spam"} = second]
              ] = events(ctx.scope)
 
-      ids = Enum.map([fine, spam, blocked], &Relay.Id.to_string(&1.record_id))
-      assert Enum.map([first, second, third], & &1["record_id"]) == ids
+      ids = Enum.map([fine, spam], &Relay.Id.to_string(&1.record_id))
+      assert Enum.map([first, second], & &1["record_id"]) == ids
       assert Enum.map([fine, spam, blocked], & &1.seq) == [1, 2, 3]
+    end
+
+    test "AG-84, AG-61: a blocked message is held, is never leased and has no event", ctx do
+      blocked = deliver!(ctx, %{suspended: true})
+      assert blocked.trust_label == :blocked
+      assert blocked.seq == 1
+
+      sql = "SELECT r.kind, r.delivery_state FROM relay.mailbox_records r WHERE r.id = $1"
+      read = fn _status -> Repo.scoped_query!(sql, [blocked.record_id]).rows end
+      assert {:ok, [["blocked_message", "held"]]} = Repo.in_scope(ctx.scope, read)
+
+      assert events(ctx.scope) == []
+      assert {:ok, nil} = Agents.mailbox_record(ctx.scope, blocked.record_id, ctx.owner)
+      assert {:ok, lease} = Agents.lease_mailbox(ctx.scope, ctx.owner, 10)
+      assert lease.records == []
+      assert deliver!(ctx).seq == 2
     end
 
     test "AG-38: a spam or blocked message wakes nobody without an explicit subscription", ctx do
@@ -187,6 +209,7 @@ defmodule Relay.Agents.MessageDeliveryTest do
       refute_received {:wake, _hint}
 
       assert_received {:event, "mailbox.record_flagged", data}
+      refute_received {:event, "mailbox.record_flagged", _again}
       assert {:ok, %{data: schema}} = Relay.EventCatalog.fetch("mailbox.record_flagged")
       assert schema["required"] -- Map.keys(data) == []
       assert Map.keys(data) -- Map.keys(schema["properties"]) == []
@@ -201,8 +224,9 @@ defmodule Relay.Agents.MessageDeliveryTest do
       refute_received {:wake, _other}
 
       assert {:ok, lease} = Agents.lease_mailbox(ctx.scope, ctx.owner, 10)
-      expected = Enum.map([spam, blocked, fine], & &1.record_id)
+      expected = Enum.map([spam, fine], & &1.record_id)
       assert Enum.map(lease.records, & &1["id"]) == expected
+      refute blocked.record_id in expected
     end
   end
 

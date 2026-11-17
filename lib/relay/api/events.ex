@@ -52,13 +52,15 @@ defmodule Relay.Api.Events do
   # WF-7
   # API-81
   # WF-52
-  @doc "Prepares a native event request outside any transaction. `opts`: `:source` (`:api` or `:cloudevents`), `:cloudevent` (its attributes) and `:dedup_key`."
+  # AG-75
+  @doc "Prepares a native event request outside any transaction. `opts`: `:source` (`:api` or `:cloudevents`), `:cloudevent` (its attributes) and `:dedup_key`. A request that states the sender type `agent` without an agent's credential is refused at `/actor/type`, so every agent notification names its agent (AG-48, INV-34)."
   @spec prepare(context(), map(), keyword()) :: {:ok, prepared()} | {:error, Relay.Error.t()}
   def prepare(%{scope: scope} = ctx, body, opts \\ []) do
     cloudevent = Keyword.get(opts, :cloudevent)
     body = labelled(body, ctx)
 
-    with {:ok, workflow} <- workflow(scope, body["workflow"]),
+    with :ok <- attributable(body, ctx),
+         {:ok, workflow} <- workflow(scope, body["workflow"]),
          {:ok, routes} <- routes(scope, workflow),
          steps = Relay.Workflow.route_steps(workflow["definition"], routes),
          {:ok, tenant} <- tenant_settings(scope, workflow, steps),
@@ -134,6 +136,24 @@ defmodule Relay.Api.Events do
   end
 
   defp labelled(body, _ctx), do: body
+
+  # AG-48
+  # AG-75
+  # INV-34
+  defp attributable(_body, %{agent_id: <<_::128>>}), do: :ok
+
+  defp attributable(_body, %{agent: true}) do
+    {:error, Relay.Error.new(:auth_agent_inactive, "no active agent is bound to this credential")}
+  end
+
+  defp attributable(%{"actor" => %{"type" => "agent"}}, _ctx) do
+    detail = "only an agent's own credential sends as an agent"
+    error = %{pointer: "/actor/type", code: "not_allowed", detail: detail}
+    message = "the sender type agent is not open to this credential"
+    {:error, Relay.Error.new(:validation_failed, message, %{errors: [error]})}
+  end
+
+  defp attributable(_body, _ctx), do: :ok
 
   # AG-65
   defp digests(scope, workflow, request, recipients, cloudevent) do

@@ -16,7 +16,10 @@ defmodule Relay.Agents.CeilingTest do
 
   setup do
     tenant = TenantFixture.tenant!()
-    scope = tenant.live
+    Map.put(world(tenant.live), :tenant, tenant)
+  end
+
+  defp world(scope) do
     access_client = FakeAccess.client!(scope, @scopes)
     clients = "SELECT id FROM relay.api_clients WHERE access_client_id = $1"
     [[client]] = sql!(scope, clients, [access_client])
@@ -321,13 +324,18 @@ defmodule Relay.Agents.CeilingTest do
 
     test "AG-49: a held notification past its expires_at is expired on release", ctx do
       with_counter(counter(), fn ->
+        ctx = world(ctx.tenant.test)
         lower!(ctx.scope, "agents.ceiling.per_hour", 1)
         assert {:send, _info} = job(ctx, send!(ctx, "agent"))
-        expires_at = DateTime.add(DateTime.utc_now(), 2, :second)
+        expires_at = DateTime.add(DateTime.utc_now(), 600, :second)
         held = send!(ctx, "agent", %{"expires_at" => DateTime.to_iso8601(expires_at)})
         assert :done = job(ctx, held)
         [[event_id]] = sql!(ctx.scope, "SELECT id FROM relay.agent_ceiling_events", [])
-        Process.sleep(2_200)
+        digest = TenantFixture.digest()
+        hour = 3_600_000
+
+        assert {:ok, _clock} =
+                 Relay.Platform.advance_virtual_clock(ctx.scope, hour, digest, operator(nil))
 
         actor = operator("step-up:1")
         assert {:decided, decision} = decide(ctx.scope, "send_all", event_id, actor)

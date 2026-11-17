@@ -287,7 +287,7 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingFunctions do
         FOR UPDATE
       LOOP
         v_expired := v_hold.state = 'released' AND v_hold.expires_at IS NOT NULL
-          AND v_hold.expires_at <= now();
+          AND v_hold.expires_at <= relay_private.business_now();
         v_any := false;
         FOR v_delivery IN
           SELECT * FROM relay.deliveries d

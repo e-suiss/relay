@@ -5,6 +5,8 @@ defmodule Relay.Agents.WaitpointSweep do
 
   use Relay.Worker, queue: :maintenance, max_attempts: 3, timeout: 240_000
 
+  alias Relay.Agents.Operations
+
   # T-24
   # AG-54
   # AG-71
@@ -12,6 +14,6 @@ defmodule Relay.Agents.WaitpointSweep do
   def perform(%Oban.Job{scheduled_at: scheduled_at}) do
     _ = Relay.Agents.Waitpoint.sweep()
     now = scheduled_at || Relay.Clock.utc_now()
-    Relay.Agents.Operations.report(Relay.Agents.Operations.overview(now))
+    Operations.report(Operations.overview(now))
   end
 end

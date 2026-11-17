@@ -5,7 +5,7 @@ defmodule Relay.Agents.Operations do
   `report/1` emits `[:relay, :agents, :operations, :overview]` with the measurements of `measurements/1` and `[:relay, :agents, :operations, :evidence]` once per evidence level. The alert rules hold the thresholds; none of them pages.
   """
 
-  alias Relay.Repo
+  alias Relay.Agents.WaitpointStore
 
   @silent_s Relay.Limits.seconds!(["agent_operations", "silent_after"])
   @levels ~w(channel_claim relay_session access_aas_ref)
@@ -15,11 +15,7 @@ defmodule Relay.Agents.Operations do
   # TN-13 (4)
   @doc "Counts the waitpoints, responses and held agent notifications of every tenant at `now`, by count only, through the cross-tenant overview escape hatch."
   @spec overview(DateTime.t()) :: map()
-  def overview(%DateTime{} = now) do
-    function = "relay_ops.agent_operations_overview"
-    [row] = Repo.call_unscoped!(:cross_tenant_overview, function, [now, @silent_s])
-    row
-  end
+  def overview(%DateTime{} = now), do: WaitpointStore.operations_overview(now, @silent_s)
 
   # AG-54
   # AG-71

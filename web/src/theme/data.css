@@ -72,3 +72,27 @@
 details > summary {
   cursor: pointer;
 }
+
+.kill-bar {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+
+.kill-bar-on {
+  border-color: var(--bad);
+}
+
+.funnel li {
+  padding: 0.25rem 0;
+}
+
+.funnel-label {
+  min-width: 14rem;
+}

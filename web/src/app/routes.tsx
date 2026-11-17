@@ -1,8 +1,13 @@
 import type { ReactNode } from "react";
 import type { MessageKey } from "../i18n/en";
 import { Activity } from "../pages/activity/Activity";
+import { AgentCeiling, Agents, Topics } from "../pages/agents/Agents";
+import { Waitpoints } from "../pages/agents/Waitpoints";
+import { Audit } from "../pages/governance/Audit";
+import { KillSwitches } from "../pages/governance/KillSwitches";
 import { NotificationDetail } from "../pages/activity/NotificationDetail";
 import { RecipientDetail, Recipients } from "../pages/recipients/Recipients";
+import { Reports } from "../pages/reports/Reports";
 import { RouteSlot } from "../pages/RouteSlot";
 import { Why } from "../pages/why/Why";
 import type { Params } from "./router";
@@ -105,6 +110,13 @@ export const pages: readonly ConsoleRoute[] = [
   },
   { pattern: "/why", render: () => <Why /> },
   { pattern: "/recipients", render: () => <Recipients /> },
+  { pattern: "/reports", render: () => <Reports /> },
+  { pattern: "/audit", render: () => <Audit /> },
+  { pattern: "/kill-switches", render: () => <KillSwitches /> },
+  { pattern: "/waitpoints", render: () => <Waitpoints /> },
+  { pattern: "/agent-ceiling", render: () => <AgentCeiling /> },
+  { pattern: "/agents", render: () => <Agents /> },
+  { pattern: "/topics", render: () => <Topics /> },
   {
     pattern: "/recipients/:id",
     render: (params) => {

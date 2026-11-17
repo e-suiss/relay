@@ -19,9 +19,13 @@ export function useGet<T>(
   query: Record<string, QueryValue> = {},
 ): Loaded<T> {
   const context = useRequestContext();
-  const [state, setState] = useState<Load<T>>({ kind: "loading" });
+  const [state, setState] = useState<{ id: string; load: Load<T> }>({
+    id: "",
+    load: { kind: "loading" },
+  });
   const [attempt, setAttempt] = useState(0);
   const key = JSON.stringify(query);
+  const id = `${context.tenant ?? ""}|${context.environment ?? ""}|${path ?? ""}?${key}`;
 
   useEffect(() => {
     if (path === null) return;
@@ -33,23 +37,25 @@ export function useGet<T>(
       signal: controller.signal,
     }).then(
       (data) => {
-        setState({ kind: "ready", data });
+        setState({ id, load: { kind: "ready", data } });
       },
       (error: unknown) => {
-        if (!controller.signal.aborted) setState({ kind: "error", error });
+        if (!controller.signal.aborted)
+          setState({ id, load: { kind: "error", error } });
       },
     );
     return () => {
       controller.abort();
-      setState({ kind: "loading" });
     };
-  }, [path, key, context, attempt]);
+  }, [id, path, key, context, attempt]);
 
   const reload = useCallback(() => {
     setAttempt((value) => value + 1);
   }, []);
 
-  return { state, reload };
+  const current: Load<T> =
+    state.id === id ? state.load : { kind: "loading" };
+  return { state: current, reload };
 }
 
 export interface Paged<T> extends Loaded<Page<T>> {

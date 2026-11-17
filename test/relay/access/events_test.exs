@@ -3,6 +3,7 @@ defmodule Relay.Access.EventsTest do
 
   alias Relay.Access.ClientStore
   alias Relay.Access.Events
+  alias Relay.Access.Pairing.Streams
   alias Relay.Api.Schema
   alias RelayTest.FakeAccess
   alias RelayTest.TenantFixture
@@ -24,8 +25,18 @@ defmodule Relay.Access.EventsTest do
     :ok
   end
 
-  defp deliver!(type, data) do
-    claims = FakeAccess.event(type, data)
+  @environment "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b10"
+  @account "usr_01j9zq3k4m5n6p7q8r9s0t1v2w"
+  @events "contracts/asyncapi/events.yaml"
+  @awaited ~w(agent.reactivated agent.deleted approval.decided relationship.updated
+              consent.updated)
+
+  defp deliver!(type, data), do: deliver_claims!(FakeAccess.event(type, data))
+
+  defp deliver_in!(access_tenant, type, data),
+    do: deliver_claims!(Map.put(FakeAccess.event(type, data), "access_tenant", access_tenant))
+
+  defp deliver_claims!(claims) do
     conn = FakeAccess.deliver(claims)
     assert conn.status == 202
     assert conn.resp_body == ""
@@ -52,10 +63,23 @@ defmodule Relay.Access.EventsTest do
   defp tenant_member(access_tenant_id),
     do: %{"tenant" => access_tenant_id, "placement" => "pool-default", "at" => 1_790_000_000_000}
 
+  defp account_member(status, extra \\ %{}) do
+    Map.merge(
+      %{
+        "environment" => @environment,
+        "account" => @account,
+        "status" => status,
+        "at" => 1_790_000_000_000,
+        "access_position" => %{"pos" => 7, "idx" => 0}
+      },
+      extra
+    )
+  end
+
   defp client_member(access_tenant_id, client_id) do
     %{
       "tenant" => access_tenant_id,
-      "realm" => "0b6e5c1a-6f0e-4a8c-9a51-2d0c3f6e7b10",
+      "environment" => @environment,
       "client_id" => client_id,
       "exercise" => String.duplicate("A", 43),
       "at" => 1_790_000_000_000
@@ -81,6 +105,40 @@ defmodule Relay.Access.EventsTest do
 
   defp verify(token), do: Relay.Access.verify_server_token(token, FakeAccess.presented(token))
 
+  defp with_user_handlers(handlers, fun) do
+    previous = Application.get_env(:relay, Relay.Access)
+    Application.put_env(:relay, Relay.Access, Keyword.put(previous, :user_handlers, handlers))
+    Application.put_env(:relay, :access_events_test, self())
+
+    try do
+      fun.()
+    after
+      Application.put_env(:relay, Relay.Access, previous)
+      Application.delete_env(:relay, :access_events_test)
+    end
+  end
+
+  defp capture_unresolved do
+    test = self()
+    id = {__MODULE__, make_ref()}
+    event = [:relay, :access, :event, :unresolved]
+    handler = fn _event, measurements, meta, _config ->
+      send(test, {:unresolved, measurements, meta})
+    end
+
+    :ok = :telemetry.attach(id, event, handler, nil)
+    on_exit(fn -> :telemetry.detach(id) end)
+  end
+
+  defp message_names do
+    doc = YamlElixir.read_from_file!(@events)
+    messages = doc["components"]["messages"]
+
+    for {_key, %{"$ref" => "#/components/messages/" <> key}} <-
+          doc["channels"]["accessInbound"]["messages"],
+        do: messages[key]["name"]
+  end
+
   defp jobs do
     sql = "SELECT count(*) FROM relay_queue.oban_jobs WHERE worker = 'Relay.Access.EventConsumer'"
     [[count]] = Relay.Repo.query!(sql, []).rows
@@ -89,7 +147,7 @@ defmodule Relay.Access.EventsTest do
 
   describe "E-94 intake" do
     test "E-94, S-69: a signed SET is recorded with its job before 202 and a repeat is not queued again" do
-      token = FakeAccess.set(FakeAccess.event("user.reactivated", %{"subject" => "pairwise-1"}))
+      token = FakeAccess.set(FakeAccess.event("account.reactivated", account_member("active")))
 
       assert FakeAccess.deliver(token).status == 202
       assert jobs() == 1
@@ -98,12 +156,9 @@ defmodule Relay.Access.EventsTest do
     end
 
     test "WH-51, WH-49, E-94: a replayed event identifier is counted on its receipt and not processed again" do
-      previous = Application.get_env(:relay, Relay.Access)
-      Application.put_env(:relay, Relay.Access, Keyword.put(previous, :user_handlers, [Handler]))
-      Application.put_env(:relay, :access_events_test, self())
-
-      try do
-        claims = FakeAccess.event("user.suspended", %{"subject" => "pairwise-7"})
+      with_user_handlers([Handler], fn ->
+        member = account_member("suspended", %{"sub" => "pairwise-7"})
+        claims = FakeAccess.event("account.suspended", member)
         jti = claims["jti"]
         token = FakeAccess.set(claims)
 
@@ -116,18 +171,15 @@ defmodule Relay.Access.EventsTest do
         assert jobs() == 1
         assert %{"state" => "processed", "duplicate_count" => 2} = receipt_of(jti)
         refute_received {:user, :suspended, "pairwise-7", ^jti}
-      after
-        Application.put_env(:relay, Relay.Access, previous)
-        Application.delete_env(:relay, :access_events_test)
-      end
+      end)
     end
 
     test "WH-51, WH-6, E-94: during an overlapping key rotation an event signed with either published key is accepted" do
       kids = Enum.map(FakeAccess.jwks()["keys"], & &1["kid"])
       assert "fake-es256" in kids and "fake-ed25519" in kids
 
-      newer = FakeAccess.event("user.reactivated", %{"subject" => "pairwise-8"})
-      older = FakeAccess.event("user.reactivated", %{"subject" => "pairwise-9"})
+      newer = FakeAccess.event("account.reactivated", account_member("active"))
+      older = FakeAccess.event("account.reactivated", account_member("active"))
 
       assert FakeAccess.deliver(FakeAccess.set(newer)).status == 202
 
@@ -137,11 +189,12 @@ defmodule Relay.Access.EventsTest do
     end
 
     test "WH-51, WH-7, E-94: a tampered token or a stale timestamp is refused with its catalogued error" do
-      claims = FakeAccess.event("user.reactivated", %{"subject" => "pairwise-1"})
+      claims = FakeAccess.event("account.reactivated", account_member("active"))
       [header, _payload, signature] = String.split(FakeAccess.set(claims), ".")
+      deleted = %{"urn:suiss:access:event:account.deleted" => account_member("deactivated")}
 
       tampered =
-        %{claims | "events" => %{"urn:suiss:access:event:user.deleted" => %{"subject" => "x"}}}
+        %{claims | "events" => deleted}
         |> Jason.encode!()
         |> Base.url_encode64(padding: false)
 
@@ -157,7 +210,7 @@ defmodule Relay.Access.EventsTest do
     end
 
     test "E-94: a forged, stale, foreign or misaddressed SET is refused with its RFC 8935 code and records nothing" do
-      claims = FakeAccess.event("user.reactivated", %{"subject" => "pairwise-1"})
+      claims = FakeAccess.event("account.reactivated", account_member("active"))
       [header, payload, _signature] = String.split(FakeAccess.set(claims), ".")
       forged = header <> "." <> payload <> "." <> Base.url_encode64(<<0::512>>, padding: false)
 
@@ -177,15 +230,17 @@ defmodule Relay.Access.EventsTest do
     end
 
     test "E-94: a SET of an Access event type that is not an event name of Relay's form is acknowledged and not recorded" do
-      claims = FakeAccess.event("authority-revoked", %{"domain" => "d"})
+      for type <- ["tenant_created", "Tenant.Created", "authority-", "-revoked"] do
+        assert FakeAccess.deliver(FakeAccess.event(type, %{"domain" => "d"})).status == 202
+      end
 
-      assert FakeAccess.deliver(claims).status == 202
       assert jobs() == 0
     end
 
-    test "E-70: only the mapping fields of a consumed type cross the boundary; another type keeps none" do
-      data = %{"subject" => "pairwise-1", "email" => "user@example.com"}
-      assert Events.minimal("user.suspended", data) == %{"subject" => "pairwise-1"}
+    test "E-70, E-104: only the mapping fields of a consumed type cross the boundary; another type keeps none" do
+      data = account_member("suspended", %{"sub" => "pairwise-1", "email" => "user@example.com"})
+      assert Events.minimal("account.suspended", data) == %{"sub" => "pairwise-1"}
+      assert Events.minimal("account.created", data) == %{}
       assert Events.minimal("consent.granted", %{"phone" => "+905551112233"}) == %{}
 
       id = deliver!("consent.granted", %{"phone" => "+905551112233"})
@@ -308,7 +363,7 @@ defmodule Relay.Access.EventsTest do
       assert {:ok, []} = Relay.Access.pending_api_clients(tenant.id)
     end
 
-    test "API-44, TN-24, TN-36, E-99: api_client.updated changes nothing and a revocation is rejected at once" do
+    test "API-44, TN-24, TN-36, E-99, E-104: api_client.updated changes nothing and api_client.disabled revokes the client for good" do
       tenant = TenantFixture.tenant!()
       access_tenant = tenant.attrs.access_tenant_id
       member = client_member(access_tenant, "app_status")
@@ -323,16 +378,20 @@ defmodule Relay.Access.EventsTest do
       assert %{"state" => "processed", "reason" => "not_applied"} = receipt_of(updated)
       assert {:ok, %{scopes: ["publish", "read"]}} = verify(token)
 
-      revoked = deliver!("api_client.revoked", member)
-      assert receipt_of(revoked)["state"] == "processed"
+      disabled = deliver!("api_client.disabled", member)
+      assert receipt_of(disabled)["state"] == "processed"
       assert {:error, %Relay.Error{code: :auth_revoked_client}} = verify(token)
 
-      again = deliver!("api_client.reactivated", member)
-      assert receipt_of(again)["state"] == "processed"
+      for type <- ["api_client.created", "api_client.updated", "api_client.disabled"] do
+        assert receipt_of(deliver!(type, member))["state"] == "processed"
+      end
+
       assert {:error, %Relay.Error{code: :auth_revoked_client}} = verify(token)
+
+      assert [%{status: "revoked"}] = ClientStore.resolve(access_tenant, "app_status")
     end
 
-    test "E-97: api_client.disabled suspends the client and api_client.reactivated opens it again" do
+    test "E-104, TN-24: the API client statuses Access does not emit are not consumed and change nothing" do
       tenant = TenantFixture.tenant!()
       access_tenant = tenant.attrs.access_tenant_id
       member = client_member(access_tenant, "app_retired")
@@ -340,18 +399,22 @@ defmodule Relay.Access.EventsTest do
       assert receipt_of(deliver!("api_client.created", member))["state"] == "processed"
       assign!(tenant.live, "app_retired", ["publish"])
       token = FakeAccess.server_token(access_tenant, "app_retired", "publish")
+
+      for type <- ["api_client.suspended", "api_client.revoked"] do
+        receipt = receipt_of(deliver!(type, member))
+        assert %{"state" => "rejected", "reason" => "unsupported_type"} = receipt
+        assert receipt["payload"] == %{}
+      end
+
       assert {:ok, %{scopes: ["publish"]}} = verify(token)
 
-      disabled = deliver!("api_client.disabled", member)
-      assert receipt_of(disabled)["state"] == "processed"
+      assert receipt_of(deliver!("api_client.disabled", member))["state"] == "processed"
+      reactivated = receipt_of(deliver!("api_client.reactivated", member))
+      assert %{"state" => "rejected", "reason" => "unsupported_type"} = reactivated
       assert {:error, %Relay.Error{code: :auth_revoked_client}} = verify(token)
-
-      again = deliver!("api_client.reactivated", member)
-      assert receipt_of(again)["state"] == "processed"
-      assert {:ok, %{scopes: ["publish"]}} = verify(token)
     end
 
-    test "E-99, E-97: a status event of a pending client waits and applies once the client is assigned" do
+    test "E-99, E-104: a revocation of a pending client waits and applies once the client is assigned" do
       tenant = TenantFixture.tenant!()
       access_tenant = tenant.attrs.access_tenant_id
       member = client_member(access_tenant, "app_early")
@@ -403,24 +466,135 @@ defmodule Relay.Access.EventsTest do
     end
   end
 
-  describe "TN-20 user events" do
-    test "TN-20: a user event waits for a handler and reaches it once one is configured" do
-      previous = Application.get_env(:relay, Relay.Access)
-      Application.put_env(:relay, Relay.Access, Keyword.put(previous, :user_handlers, []))
-      id = deliver!("user.suspended", %{"subject" => "pairwise-op"})
-      assert %{"state" => "deferred", "reason" => "no_handler"} = receipt_of(id)
+  describe "TN-20 E-104 account events" do
+    test "TN-20, E-104: an account event that carries a pairwise sub waits for a handler and reaches it once one is configured" do
+      member = account_member("suspended", %{"sub" => "pairwise-op"})
+      id =
+        with_user_handlers([], fn ->
+          id = deliver!("account.suspended", member)
+          assert %{"state" => "deferred", "reason" => "no_handler"} = receipt_of(id)
+          id
+        end)
 
-      Application.put_env(:relay, Relay.Access, Keyword.put(previous, :user_handlers, [Handler]))
-      Application.put_env(:relay, :access_events_test, self())
-
-      try do
+      with_user_handlers([Handler], fn ->
         :ok = Relay.Access.requeue_deferred(nil, "no_handler")
         assert receipt_of(id)["state"] == "processed"
         assert_received {:user, :suspended, "pairwise-op", ^id}
-      after
-        Application.put_env(:relay, Relay.Access, previous)
-        Application.delete_env(:relay, :access_events_test)
+      end)
+    end
+
+    test "E-104, TN-20, TN-73: an account event that names the person only by its usr_ id is recorded, not applied, and raises the operator alarm" do
+      capture_unresolved()
+
+      with_user_handlers([Handler], fn ->
+        for {type, status} <- [
+              {"account.suspended", "suspended"},
+              {"account.reactivated", "active"},
+              {"account.deleted", "deactivated"}
+            ] do
+          id = deliver!(type, account_member(status))
+          receipt = receipt_of(id)
+
+          assert %{"state" => "processed", "reason" => "not_applied_account_unresolved"} =
+                   receipt
+
+          assert receipt["payload"] == %{}
+          assert_received {:unresolved, %{count: 1}, %{type: ^type}}
+          refute_received {:user, _kind, _sub, ^id}
+        end
+      end)
+    end
+
+    test "E-104: the account, session and preference events Relay does not apply are recorded and acknowledged" do
+      tenant = TenantFixture.tenant!()
+      access_tenant = tenant.attrs.access_tenant_id
+      capture_unresolved()
+
+      with_user_handlers([Handler], fn ->
+        for {type, member} <- [
+              {"account.created", Map.delete(account_member("active"), "status")},
+              {"account.updated", account_member("locked")},
+              {"session.revoked", Map.put(account_member("active"), "rev", 4)},
+              {"preference.changed", Map.put(account_member("active"), "topics", ["news"])}
+            ] do
+          id = deliver_in!(access_tenant, type, member)
+          receipt = receipt_of(id)
+          assert %{"state" => "processed", "reason" => "not_applied"} = receipt
+          assert receipt["payload"] == %{"access_tenant_id" => access_tenant}
+          refute_received {:user, _kind, _sub, ^id}
+        end
+      end)
+
+      refute_received {:unresolved, _measurements, _meta}
+    end
+
+    test "E-104, TN-20: the user events Access never emits are no longer consumed" do
+      with_user_handlers([Handler], fn ->
+        for type <- ["user.suspended", "user.reactivated", "user.deleted"] do
+          id = deliver!(type, %{"subject" => "pairwise-1"})
+          receipt = receipt_of(id)
+          assert %{"state" => "rejected", "reason" => "unsupported_type"} = receipt
+          assert receipt["payload"] == %{}
+          refute_received {:user, _kind, _sub, ^id}
+        end
+      end)
+    end
+  end
+
+  describe "E-104 Access event names" do
+    test "E-104, AG-75: instance-terminated is recorded in Relay's form and not applied; another hyphenated type is unsupported" do
+      tenant = TenantFixture.tenant!()
+      access_tenant = tenant.attrs.access_tenant_id
+      instance = Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)
+
+      member = %{
+        "domain" => String.duplicate("A", 43),
+        "source" => %{"exercise" => String.duplicate("B", 43)},
+        "subject" => %{"kind" => "instance", "id" => instance},
+        "party" => Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false),
+        "at" => 1_790_000_000_000
+      }
+
+      terminated = receipt_of(deliver_in!(access_tenant, "instance-terminated", member))
+      assert %{"state" => "processed", "reason" => "not_applied"} = terminated
+      assert terminated["event_type"] == "instance.terminated"
+      assert terminated["payload"] == %{"access_tenant_id" => access_tenant}
+
+      revoked = receipt_of(deliver_in!(access_tenant, "authority-revoked", member))
+      assert %{"state" => "rejected", "reason" => "unsupported_type"} = revoked
+      assert revoked["event_type"] == "authority.revoked"
+      assert revoked["payload"] == %{}
+    end
+
+    test "E-104: the consumed Access events are the messages of the accessInbound contract" do
+      names = message_names()
+      assert Enum.sort(names) == Events.types()
+
+      for type <- ["user.suspended", "api_client.suspended", "api_client.reactivated"] do
+        refute type in names
       end
+
+      for type <- ~w(account.suspended agent.suspended party.disabled relationship.updated) do
+        assert type in names
+      end
+    end
+
+    test "E-104, E-101: Relay's stream asks for every consumed type Access emits, with Access's URNs, and for no awaited one" do
+      catalog = Streams.catalog()
+
+      for type <- Events.types(), type not in @awaited do
+        access_name = if type == "instance.terminated", do: "instance-terminated", else: type
+        assert "urn:suiss:access:event:" <> access_name in catalog, type
+      end
+
+      for type <- @awaited, do: refute("urn:suiss:access:event:" <> type in catalog, type)
+
+      for urn <- catalog do
+        assert "urn:suiss:access:event:" <> name = urn
+        assert Regex.match?(~r/\A[a-z][a-z0-9_]*([.-][a-z][a-z0-9_]*)+\z/, name), urn
+      end
+
+      assert catalog == Enum.sort(Enum.uniq(catalog))
     end
   end
 end

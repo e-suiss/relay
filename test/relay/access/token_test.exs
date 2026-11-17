@@ -247,13 +247,13 @@ defmodule Relay.Access.TokenTest do
     test "E-94: access_tenant names the tenant when the member does not and must agree with it" do
       {ed, private} = ed25519()
       keys = keys([ed])
-      user = %{"urn:suiss:access:event:user.suspended" => %{"subject" => "pairwise-1"}}
-      claims = set_claims(%{"events" => user, "access_tenant" => "tnt_9"})
+      agent = %{"urn:suiss:access:event:agent.suspended" => %{"agent" => "AAAAAAAAAAAAAAAAAAAAAA"}}
+      claims = set_claims(%{"events" => agent, "access_tenant" => "tnt_9"})
 
-      assert {:ok, %{type: "user.suspended", data: data}} =
+      assert {:ok, %{type: "agent.suspended", data: data}} =
                SecurityEvent.verify(set(claims, private), keys, set_expectation())
 
-      assert data == %{"subject" => "pairwise-1", "access_tenant_id" => "tnt_9"}
+      assert data == %{"agent" => "AAAAAAAAAAAAAAAAAAAAAA", "access_tenant_id" => "tnt_9"}
 
       other = set_claims(%{"access_tenant" => "tnt_9"})
       assert refusal(set(other, private), keys) == "invalid_request"

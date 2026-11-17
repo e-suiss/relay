@@ -559,3 +559,21 @@ tests:
             exp_annotations:
               summary: "Agent notifications are held because the agent ceiling counter cannot be read"
               runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentceilingcounterunreadable
+  - interval: 1m
+    input_series:
+      - series: 'relay_access_event_unresolved_total{type="account.suspended"}'
+        values: "0 0 0 1x80"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: RelayAccessAccountUnresolved
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: RelayAccessAccountUnresolved
+        exp_alerts:
+          - exp_labels: {severity: ticket, decision: E-104}
+            exp_annotations:
+              summary: "Access account events named a person Relay cannot map to a pairwise sub and were not applied"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayaccessaccountunresolved
+      - eval_time: 75m
+        alertname: RelayAccessAccountUnresolved
+        exp_alerts: []

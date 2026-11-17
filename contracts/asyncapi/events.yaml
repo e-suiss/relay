@@ -571,7 +571,7 @@ channels:
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
-    description: "Events Access pushes to Relay as Security Event Tokens with the Shared Signals Framework push delivery (RFC 8417, RFC 8935), through Relay's platform product subscription: a compact JWS of typ secevent+jwt signed by a key of the Access realm key set, with no shared secret. Each message is the SET's claims; the event is the one member of events. Access's member names tenant, organization and client_id are read as access_tenant_id, access_organization_id and access_client_id, the access_tenant claim names the tenant when the member does not, and members Relay does not read are ignored."
+    description: "Events Access pushes to Relay as Security Event Tokens with the Shared Signals Framework push delivery (RFC 8417, RFC 8935), through Relay's platform product subscription: a compact JWS of typ secevent+jwt signed by a key of the Access environment key set, with no shared secret. Each message is the SET's claims; the event is the one member of events. Access's member names tenant, organization and client_id are read as access_tenant_id, access_organization_id and access_client_id, the access_tenant claim names the tenant when the member does not, and members Relay does not read are ignored. An Access type named with hyphens is recorded in Relay's form, each hyphen read as a dot. Messages marked as awaited from Access are types Relay consumes that Access does not emit yet; Relay's stream asks only for the types Access emits (E-104)."
     messages:
       access.tenant.created:
         "$ref": "#/components/messages/access.tenant.created"
@@ -585,24 +585,32 @@ channels:
         "$ref": "#/components/messages/access.api_client.updated"
       access.api_client.disabled:
         "$ref": "#/components/messages/access.api_client.disabled"
-      access.api_client.suspended:
-        "$ref": "#/components/messages/access.api_client.suspended"
-      access.api_client.reactivated:
-        "$ref": "#/components/messages/access.api_client.reactivated"
-      access.api_client.revoked:
-        "$ref": "#/components/messages/access.api_client.revoked"
-      access.user.suspended:
-        "$ref": "#/components/messages/access.user.suspended"
-      access.user.reactivated:
-        "$ref": "#/components/messages/access.user.reactivated"
-      access.user.deleted:
-        "$ref": "#/components/messages/access.user.deleted"
+      access.account.created:
+        "$ref": "#/components/messages/access.account.created"
+      access.account.updated:
+        "$ref": "#/components/messages/access.account.updated"
+      access.account.suspended:
+        "$ref": "#/components/messages/access.account.suspended"
+      access.account.reactivated:
+        "$ref": "#/components/messages/access.account.reactivated"
+      access.account.deleted:
+        "$ref": "#/components/messages/access.account.deleted"
+      access.session.revoked:
+        "$ref": "#/components/messages/access.session.revoked"
+      access.preference.changed:
+        "$ref": "#/components/messages/access.preference.changed"
       access.agent.suspended:
         "$ref": "#/components/messages/access.agent.suspended"
       access.agent.reactivated:
         "$ref": "#/components/messages/access.agent.reactivated"
       access.agent.deleted:
         "$ref": "#/components/messages/access.agent.deleted"
+      access.party.disabled:
+        "$ref": "#/components/messages/access.party.disabled"
+      access.instance.terminated:
+        "$ref": "#/components/messages/access.instance.terminated"
+      access.relationship.updated:
+        "$ref": "#/components/messages/access.relationship.updated"
       access.consent.updated:
         "$ref": "#/components/messages/access.consent.updated"
       access.approval.decided:
@@ -902,15 +910,19 @@ operations:
       - "$ref": "#/channels/accessInbound/messages/access.api_client.created"
       - "$ref": "#/channels/accessInbound/messages/access.api_client.updated"
       - "$ref": "#/channels/accessInbound/messages/access.api_client.disabled"
-      - "$ref": "#/channels/accessInbound/messages/access.api_client.suspended"
-      - "$ref": "#/channels/accessInbound/messages/access.api_client.reactivated"
-      - "$ref": "#/channels/accessInbound/messages/access.api_client.revoked"
-      - "$ref": "#/channels/accessInbound/messages/access.user.suspended"
-      - "$ref": "#/channels/accessInbound/messages/access.user.reactivated"
-      - "$ref": "#/channels/accessInbound/messages/access.user.deleted"
+      - "$ref": "#/channels/accessInbound/messages/access.account.created"
+      - "$ref": "#/channels/accessInbound/messages/access.account.updated"
+      - "$ref": "#/channels/accessInbound/messages/access.account.suspended"
+      - "$ref": "#/channels/accessInbound/messages/access.account.reactivated"
+      - "$ref": "#/channels/accessInbound/messages/access.account.deleted"
+      - "$ref": "#/channels/accessInbound/messages/access.session.revoked"
+      - "$ref": "#/channels/accessInbound/messages/access.preference.changed"
       - "$ref": "#/channels/accessInbound/messages/access.agent.suspended"
       - "$ref": "#/channels/accessInbound/messages/access.agent.reactivated"
       - "$ref": "#/channels/accessInbound/messages/access.agent.deleted"
+      - "$ref": "#/channels/accessInbound/messages/access.party.disabled"
+      - "$ref": "#/channels/accessInbound/messages/access.instance.terminated"
+      - "$ref": "#/channels/accessInbound/messages/access.relationship.updated"
       - "$ref": "#/channels/accessInbound/messages/access.consent.updated"
       - "$ref": "#/channels/accessInbound/messages/access.approval.decided"
   sendAccessOutbound:
@@ -1031,6 +1043,20 @@ components:
           pattern: "^[\\x20-\\x7E]+$"
         data:
           type: object
+      additionalProperties: false
+    AccessPosition:
+      type: object
+      description: "The monotone version of an Access event within its source (Access OP-22). Relay does not read it."
+      required:
+        - pos
+        - idx
+      properties:
+        pos:
+          type: integer
+          minimum: 0
+        idx:
+          type: integer
+          minimum: 0
       additionalProperties: false
     AccessSecurityEventClaims:
       type: object
@@ -6068,6 +6094,9 @@ components:
                         at:
                           type: integer
                           minimum: 0
+                          description: "Unix time, milliseconds."
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -6107,6 +6136,9 @@ components:
                         at:
                           type: integer
                           minimum: 0
+                          description: "Unix time, milliseconds."
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -6146,6 +6178,9 @@ components:
                         at:
                           type: integer
                           minimum: 0
+                          description: "Unix time, milliseconds."
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -6179,8 +6214,10 @@ components:
                         tenant:
                           type: string
                           maxLength: 128
-                        realm:
+                        environment:
                           type: string
+                          description: "The Access environment the event happened in; Relay does not read it."
+                          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
                         client_id:
                           type: string
                           maxLength: 255
@@ -6191,6 +6228,9 @@ components:
                         at:
                           type: integer
                           minimum: 0
+                          description: "Unix time, milliseconds."
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -6224,8 +6264,10 @@ components:
                         tenant:
                           type: string
                           maxLength: 128
-                        realm:
+                        environment:
                           type: string
+                          description: "The Access environment the event happened in; Relay does not read it."
+                          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
                         client_id:
                           type: string
                           maxLength: 255
@@ -6236,6 +6278,9 @@ components:
                         at:
                           type: integer
                           minimum: 0
+                          description: "Unix time, milliseconds."
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
@@ -6244,7 +6289,7 @@ components:
     access.api_client.disabled:
       name: api_client.disabled
       title: api_client.disabled
-      summary: "An API client was disabled in Access (idp.client.retire); Relay suspends it and rejects its tokens at once on every node (E-97)."
+      summary: "An API client was retired in Access (idp.client.retire); Relay revokes it for good and rejects its tokens at once on every node. Access emits no suspension, reactivation or revocation of an API client, so this is the only status event Relay applies (E-104)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -6269,8 +6314,10 @@ components:
                         tenant:
                           type: string
                           maxLength: 128
-                        realm:
+                        environment:
                           type: string
+                          description: "The Access environment the event happened in; Relay does not read it."
+                          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
                         client_id:
                           type: string
                           maxLength: 255
@@ -6281,121 +6328,16 @@ components:
                         at:
                           type: integer
                           minimum: 0
+                          description: "Unix time, milliseconds."
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 3
-    access.api_client.suspended:
-      name: api_client.suspended
-      title: api_client.suspended
-      summary: "An API client was suspended in Access; Relay rejects its tokens at once on every node."
-      contentType: application/secevent+jwt
-      payload:
-        schemaFormat: "application/schema+json;version=2020-12"
-        schema:
-          allOf:
-            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
-            - type: object
-              required:
-                - events
-              properties:
-                events:
-                  type: object
-                  required:
-                    - "urn:suiss:access:event:api_client.suspended"
-                  properties:
-                    "urn:suiss:access:event:api_client.suspended":
-                      type: object
-                      required:
-                        - access_tenant_id
-                        - access_client_id
-                      properties:
-                        access_tenant_id:
-                          type: string
-                          maxLength: 128
-                        access_client_id:
-                          type: string
-                          maxLength: 256
-                  additionalProperties: false
-      x-relay-surface: access
-      x-relay-stage: 3
-      x-relay-choice: true
-      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
-    access.api_client.reactivated:
-      name: api_client.reactivated
-      title: api_client.reactivated
-      summary: A suspended API client was reactivated in Access.
-      contentType: application/secevent+jwt
-      payload:
-        schemaFormat: "application/schema+json;version=2020-12"
-        schema:
-          allOf:
-            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
-            - type: object
-              required:
-                - events
-              properties:
-                events:
-                  type: object
-                  required:
-                    - "urn:suiss:access:event:api_client.reactivated"
-                  properties:
-                    "urn:suiss:access:event:api_client.reactivated":
-                      type: object
-                      required:
-                        - access_tenant_id
-                        - access_client_id
-                      properties:
-                        access_tenant_id:
-                          type: string
-                          maxLength: 128
-                        access_client_id:
-                          type: string
-                          maxLength: 256
-                  additionalProperties: false
-      x-relay-surface: access
-      x-relay-stage: 3
-      x-relay-choice: true
-      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
-    access.api_client.revoked:
-      name: api_client.revoked
-      title: api_client.revoked
-      summary: An API client was revoked in Access (terminal).
-      contentType: application/secevent+jwt
-      payload:
-        schemaFormat: "application/schema+json;version=2020-12"
-        schema:
-          allOf:
-            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
-            - type: object
-              required:
-                - events
-              properties:
-                events:
-                  type: object
-                  required:
-                    - "urn:suiss:access:event:api_client.revoked"
-                  properties:
-                    "urn:suiss:access:event:api_client.revoked":
-                      type: object
-                      required:
-                        - access_tenant_id
-                        - access_client_id
-                      properties:
-                        access_tenant_id:
-                          type: string
-                          maxLength: 128
-                        access_client_id:
-                          type: string
-                          maxLength: 256
-                  additionalProperties: false
-      x-relay-surface: access
-      x-relay-stage: 3
-      x-relay-choice: true
-      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
     access.agent.suspended:
       name: agent.suspended
       title: agent.suspended
-      summary: "An agent's Access identity was suspended; nothing is delivered to the agent record bound to the subject and its own requests are refused. Its mailbox is kept."
+      summary: "An agent's Access Party was suspended; nothing is delivered to the agent record bound to the Party and its own requests are refused. Its mailbox is kept (E-29, AG-5, E-104)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -6414,25 +6356,30 @@ components:
                     "urn:suiss:access:event:agent.suspended":
                       type: object
                       required:
-                        - access_tenant_id
-                        - subject
+                        - agent
+                        - at
                       properties:
-                        access_tenant_id:
+                        environment:
                           type: string
-                          maxLength: 128
-                        subject:
+                          description: "The Access environment the event happened in; Relay does not read it."
+                          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        agent:
                           type: string
-                          description: "The agent's Access Party for the Relay client: the sub of the agent's Access tokens."
-                          maxLength: 256
+                          description: "The agent's Access Party, unpadded base64url of its 16 bytes, matched exactly with the Party the agent record stores."
+                          pattern: "^[A-Za-z0-9_-]{22}$"
+                        at:
+                          type: integer
+                          minimum: 0
+                          description: "Unix time, milliseconds."
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 12
-      x-relay-choice: true
-      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
     access.agent.reactivated:
       name: agent.reactivated
       title: agent.reactivated
-      summary: "An agent's Access identity was reactivated; the suspension of the agent record bound to the subject is lifted."
+      summary: "Awaited from Access, not yet emitted (E-104). An agent's Access Party was reactivated; the suspension of the agent record bound to the Party is lifted. Until Access emits it, a suspended agent stays suspended: nothing else reactivates it (E-104)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -6451,25 +6398,32 @@ components:
                     "urn:suiss:access:event:agent.reactivated":
                       type: object
                       required:
-                        - access_tenant_id
-                        - subject
+                        - agent
+                        - at
                       properties:
-                        access_tenant_id:
+                        environment:
                           type: string
-                          maxLength: 128
-                        subject:
+                          description: "The Access environment the event happened in; Relay does not read it."
+                          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        agent:
                           type: string
-                          description: "The agent's Access Party for the Relay client: the sub of the agent's Access tokens."
-                          maxLength: 256
+                          description: "The agent's Access Party, unpadded base64url of its 16 bytes, matched exactly with the Party the agent record stores."
+                          pattern: "^[A-Za-z0-9_-]{22}$"
+                        at:
+                          type: integer
+                          minimum: 0
+                          description: "Unix time, milliseconds."
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 12
       x-relay-choice: true
-      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+      x-relay-choice-note: "Name and members proposed to Access; Relay follows what Access approves in its own contract."
     access.agent.deleted:
       name: agent.deleted
       title: agent.deleted
-      summary: "An agent's Access identity was deleted; the agent record bound to the subject becomes deleted and its mailbox is kept."
+      summary: "Awaited from Access, not yet emitted (E-104). An agent's Access Party was deleted; the agent record bound to the Party becomes deleted and its mailbox is kept (AG-23, INV-47)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -6488,25 +6442,32 @@ components:
                     "urn:suiss:access:event:agent.deleted":
                       type: object
                       required:
-                        - access_tenant_id
-                        - subject
+                        - agent
+                        - at
                       properties:
-                        access_tenant_id:
+                        environment:
                           type: string
-                          maxLength: 128
-                        subject:
+                          description: "The Access environment the event happened in; Relay does not read it."
+                          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        agent:
                           type: string
-                          description: "The agent's Access Party for the Relay client: the sub of the agent's Access tokens."
-                          maxLength: 256
+                          description: "The agent's Access Party, unpadded base64url of its 16 bytes, matched exactly with the Party the agent record stores."
+                          pattern: "^[A-Za-z0-9_-]{22}$"
+                        at:
+                          type: integer
+                          minimum: 0
+                          description: "Unix time, milliseconds."
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
                   additionalProperties: false
       x-relay-surface: access
       x-relay-stage: 12
       x-relay-choice: true
-      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
-    access.user.suspended:
-      name: user.suspended
-      title: user.suspended
-      summary: "An Access user was suspended; the operator's Relay sessions are revoked and the subscribers whose external_id is the subject are suspended."
+      x-relay-choice-note: "Name and members proposed to Access; Relay follows what Access approves in its own contract."
+    access.account.created:
+      name: account.created
+      title: account.created
+      summary: "An Access account was created; Relay records and acknowledges it without applying it (E-104)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -6520,26 +6481,36 @@ components:
                 events:
                   type: object
                   required:
-                    - "urn:suiss:access:event:user.suspended"
+                    - "urn:suiss:access:event:account.created"
                   properties:
-                    "urn:suiss:access:event:user.suspended":
+                    "urn:suiss:access:event:account.created":
                       type: object
                       required:
-                        - subject
+                        - environment
+                        - account
+                        - at
                       properties:
-                        subject:
+                        environment:
                           type: string
-                          description: Access subject for the Relay client.
-                          maxLength: 256
+                          description: "The Access environment the event happened in; Relay does not read it."
+                          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        account:
+                          type: string
+                          description: "The opaque usr_ id of the Access account. No Access interface maps it to the pairwise sub Relay knows the person by, so Relay does not keep it."
+                          pattern: "^usr_[0-9a-hjkmnp-tv-z]{26}$"
+                        at:
+                          type: integer
+                          minimum: 0
+                          description: "Unix time, milliseconds."
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
                   additionalProperties: false
       x-relay-surface: access
-      x-relay-stage: 3
-      x-relay-choice: true
-      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
-    access.user.reactivated:
-      name: user.reactivated
-      title: user.reactivated
-      summary: "An Access user was reactivated; roles in Relay are unchanged and the suspension of the subscribers whose external_id is the subject is lifted."
+      x-relay-stage: 13
+    access.account.updated:
+      name: account.updated
+      title: account.updated
+      summary: "An Access account's status moved; Relay records and acknowledges it without applying it (E-104)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -6553,25 +6524,45 @@ components:
                 events:
                   type: object
                   required:
-                    - "urn:suiss:access:event:user.reactivated"
+                    - "urn:suiss:access:event:account.updated"
                   properties:
-                    "urn:suiss:access:event:user.reactivated":
+                    "urn:suiss:access:event:account.updated":
                       type: object
                       required:
-                        - subject
+                        - environment
+                        - account
+                        - at
                       properties:
-                        subject:
+                        environment:
                           type: string
-                          maxLength: 256
+                          description: "The Access environment the event happened in; Relay does not read it."
+                          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        account:
+                          type: string
+                          description: "The opaque usr_ id of the Access account. No Access interface maps it to the pairwise sub Relay knows the person by, so Relay does not keep it."
+                          pattern: "^usr_[0-9a-hjkmnp-tv-z]{26}$"
+                        at:
+                          type: integer
+                          minimum: 0
+                          description: "Unix time, milliseconds."
+                        status:
+                          type: string
+                          enum:
+                            - staged
+                            - pending_user_action
+                            - active
+                            - locked
+                            - suspended
+                            - deactivated
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
                   additionalProperties: false
       x-relay-surface: access
-      x-relay-stage: 3
-      x-relay-choice: true
-      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
-    access.user.deleted:
-      name: user.deleted
-      title: user.deleted
-      summary: "An Access user was deleted; the operator record becomes deleted and its roles are revoked."
+      x-relay-stage: 13
+    access.account.suspended:
+      name: account.suspended
+      title: account.suspended
+      summary: "An Access account was suspended. When the event carries the person's pairwise sub, the operator's Relay sessions are revoked and the subscribers whose external_id is the person's pairwise sub are suspended (TN-20, TN-73). Access now names the person only by the usr_ id of the account, which Relay cannot map to a pairwise sub: such an event is recorded with reason not_applied_account_unresolved, changes nothing and raises an operator alarm (E-104)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -6585,21 +6576,462 @@ components:
                 events:
                   type: object
                   required:
-                    - "urn:suiss:access:event:user.deleted"
+                    - "urn:suiss:access:event:account.suspended"
                   properties:
-                    "urn:suiss:access:event:user.deleted":
+                    "urn:suiss:access:event:account.suspended":
                       type: object
                       required:
-                        - subject
+                        - environment
+                        - account
+                        - at
                       properties:
-                        subject:
+                        environment:
                           type: string
+                          description: "The Access environment the event happened in; Relay does not read it."
+                          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        account:
+                          type: string
+                          description: "The opaque usr_ id of the Access account. No Access interface maps it to the pairwise sub Relay knows the person by, so Relay does not keep it."
+                          pattern: "^usr_[0-9a-hjkmnp-tv-z]{26}$"
+                        at:
+                          type: integer
+                          minimum: 0
+                          description: "Unix time, milliseconds."
+                        status:
+                          type: string
+                          enum:
+                            - suspended
+                        sub:
+                          type: string
+                          description: "Awaited from Access, not yet emitted (E-104). The pairwise sub of the person for the Relay client; Relay applies the event only when it is present."
                           maxLength: 256
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
                   additionalProperties: false
       x-relay-surface: access
-      x-relay-stage: 3
+      x-relay-stage: 13
+    access.account.reactivated:
+      name: account.reactivated
+      title: account.reactivated
+      summary: "An Access account was reactivated. When the event carries the person's pairwise sub, roles in Relay are unchanged and the suspension of the subscribers whose external_id is the person's pairwise sub is lifted (TN-20, TN-73). Access now names the person only by the usr_ id of the account, which Relay cannot map to a pairwise sub: such an event is recorded with reason not_applied_account_unresolved, changes nothing and raises an operator alarm (E-104)."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:account.reactivated"
+                  properties:
+                    "urn:suiss:access:event:account.reactivated":
+                      type: object
+                      required:
+                        - environment
+                        - account
+                        - at
+                      properties:
+                        environment:
+                          type: string
+                          description: "The Access environment the event happened in; Relay does not read it."
+                          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        account:
+                          type: string
+                          description: "The opaque usr_ id of the Access account. No Access interface maps it to the pairwise sub Relay knows the person by, so Relay does not keep it."
+                          pattern: "^usr_[0-9a-hjkmnp-tv-z]{26}$"
+                        at:
+                          type: integer
+                          minimum: 0
+                          description: "Unix time, milliseconds."
+                        status:
+                          type: string
+                          enum:
+                            - active
+                        sub:
+                          type: string
+                          description: "Awaited from Access, not yet emitted (E-104). The pairwise sub of the person for the Relay client; Relay applies the event only when it is present."
+                          maxLength: 256
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 13
+    access.account.deleted:
+      name: account.deleted
+      title: account.deleted
+      summary: "An Access account was deleted. When the event carries the person's pairwise sub, the operator record becomes deleted and its roles are revoked; subscribers are left to their own erasure (TN-20, TN-73). Access now names the person only by the usr_ id of the account, which Relay cannot map to a pairwise sub: such an event is recorded with reason not_applied_account_unresolved, changes nothing and raises an operator alarm (E-104)."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:account.deleted"
+                  properties:
+                    "urn:suiss:access:event:account.deleted":
+                      type: object
+                      required:
+                        - environment
+                        - account
+                        - at
+                      properties:
+                        environment:
+                          type: string
+                          description: "The Access environment the event happened in; Relay does not read it."
+                          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        account:
+                          type: string
+                          description: "The opaque usr_ id of the Access account. No Access interface maps it to the pairwise sub Relay knows the person by, so Relay does not keep it."
+                          pattern: "^usr_[0-9a-hjkmnp-tv-z]{26}$"
+                        at:
+                          type: integer
+                          minimum: 0
+                          description: "Unix time, milliseconds."
+                        status:
+                          type: string
+                          enum:
+                            - deactivated
+                        sub:
+                          type: string
+                          description: "Awaited from Access, not yet emitted (E-104). The pairwise sub of the person for the Relay client; Relay applies the event only when it is present."
+                          maxLength: 256
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 13
+    access.session.revoked:
+      name: session.revoked
+      title: session.revoked
+      summary: "Every session of an Access account ended; Relay records and acknowledges it without applying it, since applying it needs its own decision (E-104)."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:session.revoked"
+                  properties:
+                    "urn:suiss:access:event:session.revoked":
+                      type: object
+                      required:
+                        - environment
+                        - account
+                        - rev
+                        - at
+                      properties:
+                        environment:
+                          type: string
+                          description: "The Access environment the event happened in; Relay does not read it."
+                          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        account:
+                          type: string
+                          description: "The opaque usr_ id of the Access account. No Access interface maps it to the pairwise sub Relay knows the person by, so Relay does not keep it."
+                          pattern: "^usr_[0-9a-hjkmnp-tv-z]{26}$"
+                        at:
+                          type: integer
+                          minimum: 0
+                          description: "Unix time, milliseconds."
+                        rev:
+                          type: integer
+                          minimum: 0
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 13
+    access.preference.changed:
+      name: preference.changed
+      title: preference.changed
+      summary: "Preferences of an Access account changed; the topics are named, never their values. Relay records and acknowledges it without applying it: the consent copy follows consent.updated (E-80, E-104)."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:preference.changed"
+                  properties:
+                    "urn:suiss:access:event:preference.changed":
+                      type: object
+                      required:
+                        - environment
+                        - account
+                        - topics
+                        - at
+                      properties:
+                        environment:
+                          type: string
+                          description: "The Access environment the event happened in; Relay does not read it."
+                          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                        account:
+                          type: string
+                          description: "The opaque usr_ id of the Access account. No Access interface maps it to the pairwise sub Relay knows the person by, so Relay does not keep it."
+                          pattern: "^usr_[0-9a-hjkmnp-tv-z]{26}$"
+                        at:
+                          type: integer
+                          minimum: 0
+                          description: "Unix time, milliseconds."
+                        topics:
+                          type: array
+                          maxItems: 32
+                          items:
+                            type: string
+                            pattern: "^[a-z][a-z0-9_.-]{0,63}$"
+                        iys:
+                          type: object
+                          required:
+                            - channels
+                            - recipient_type
+                            - source
+                          properties:
+                            channels:
+                              type: array
+                              minItems: 1
+                              maxItems: 3
+                              uniqueItems: true
+                              items:
+                                type: string
+                                enum:
+                                  - sms
+                                  - email
+                                  - call
+                            recipient_type:
+                              type: string
+                              enum:
+                                - individual
+                                - merchant
+                            consent:
+                              type: string
+                              enum:
+                                - approved
+                                - rejected
+                            source:
+                              type: string
+                              enum:
+                                - self_service
+                                - admin
+                                - import
+                                - app
+                          additionalProperties: false
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 13
+    access.party.disabled:
+      name: party.disabled
+      title: party.disabled
+      summary: "An Access Party departed or was suspended. Whatever the reason class, the agent record bound to the Party is suspended as by agent.suspended: delivery stops and the mailbox is kept; a Party bound to no agent record changes nothing (E-104)."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:party.disabled"
+                  properties:
+                    "urn:suiss:access:event:party.disabled":
+                      type: object
+                      required:
+                        - party
+                        - at
+                        - reason_class
+                      properties:
+                        party:
+                          type: string
+                          description: "The Party, unpadded base64url of its 16 bytes, matched exactly with the Party the agent record stores."
+                          pattern: "^[A-Za-z0-9_-]{22}$"
+                        at:
+                          type: integer
+                          minimum: 0
+                          description: "Unix time, milliseconds."
+                        reason_class:
+                          type: string
+                          enum:
+                            - departed
+                            - suspended
+                            - other
+                        domain:
+                          type: string
+                          pattern: "^[A-Za-z0-9_-]{43}$"
+                        source:
+                          type: object
+                          description: "The Exercise whose decision recorded the event, or the Claim whose record admitted it."
+                          maxProperties: 1
+                          properties:
+                            exercise:
+                              type: string
+                              pattern: "^[A-Za-z0-9_-]{43}$"
+                            claim:
+                              type: string
+                              pattern: "^[A-Za-z0-9_-]{22}$"
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 13
+    access.instance.terminated:
+      name: instance.terminated
+      title: instance.terminated
+      summary: "An Instance of an Access Party ended. Access names the type instance-terminated; Relay records it as instance.terminated and acknowledges it without applying it, because an agent is bound to its Party, not to one of its Instances (AG-75, E-104)."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:instance-terminated"
+                  properties:
+                    "urn:suiss:access:event:instance-terminated":
+                      type: object
+                      required:
+                        - domain
+                        - source
+                        - subject
+                        - at
+                      properties:
+                        domain:
+                          type: string
+                          pattern: "^[A-Za-z0-9_-]{43}$"
+                        source:
+                          type: object
+                          description: "The Exercise whose decision recorded the event, or the Claim whose record admitted it."
+                          maxProperties: 1
+                          properties:
+                            exercise:
+                              type: string
+                              pattern: "^[A-Za-z0-9_-]{43}$"
+                            claim:
+                              type: string
+                              pattern: "^[A-Za-z0-9_-]{22}$"
+                        subject:
+                          type: object
+                          required:
+                            - kind
+                            - id
+                          properties:
+                            kind:
+                              type: string
+                              enum:
+                                - instance
+                            id:
+                              type: string
+                              pattern: "^[A-Za-z0-9_-]{22}([A-Za-z0-9_-]{21})?$"
+                          additionalProperties: false
+                        at:
+                          type: integer
+                          minimum: 0
+                          description: "Unix time, milliseconds."
+                        party:
+                          type: string
+                          description: "The Party of the Instance."
+                          pattern: "^[A-Za-z0-9_-]{22}$"
+                        access_position:
+                          "$ref": "#/components/schemas/AccessPosition"
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 13
+    access.relationship.updated:
+      name: relationship.updated
+      title: relationship.updated
+      summary: "Awaited from Access, not yet emitted (E-104). The relationship level an agent holds towards another agent changed; Relay records it in each environment of the tenant where both agents are registered and ignores an older or repeated sequence of the pair (AG-59, AG-73)."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:relationship.updated"
+                  properties:
+                    "urn:suiss:access:event:relationship.updated":
+                      type: object
+                      required:
+                        - sub
+                        - peer
+                        - level
+                        - sequence
+                      properties:
+                        tenant:
+                          type: string
+                          description: "The Access tenant; the access_tenant claim names it when the member does not."
+                          maxLength: 128
+                        sub:
+                          type: string
+                          description: "The Access Party of the agent that holds the level, as the agent record stores it."
+                          maxLength: 256
+                        peer:
+                          type: string
+                          description: "The Access Party of the other agent; never the same as sub."
+                          maxLength: 256
+                        level:
+                          type: string
+                          description: "Read case-insensitively."
+                          enum:
+                            - unknown
+                            - known
+                            - verified
+                            - trusted
+                            - UNKNOWN
+                            - KNOWN
+                            - VERIFIED
+                            - TRUSTED
+                        sequence:
+                          type: integer
+                          minimum: 0
+                          description: "Monotonic per pair; an older or repeated sequence changes nothing."
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 12
       x-relay-choice: true
-      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+      x-relay-choice-note: "Name and members proposed to Access; Relay follows what Access approves in its own contract."
     audit.category.created:
       name: category.created
       title: category.created
@@ -8334,7 +8766,7 @@ components:
     access.approval.decided:
       name: approval.decided
       title: approval.decided
-      summary: "A decision was given on the Access approval surface for a request a waitpoint asks about; the waitpoint is resolved at evidence level access_aas_ref with the reference of the decision (AG-27). A waitpoint of the profile guardian_approval closes only this way (AG-62)."
+      summary: "Awaited from Access, not yet emitted (E-104). A decision was given on the Access approval surface for a request a waitpoint asks about; the waitpoint is resolved at evidence level access_aas_ref with the reference of the decision (AG-27). A waitpoint of the profile guardian_approval closes only this way (AG-62)."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -8390,7 +8822,7 @@ components:
     access.consent.updated:
       name: consent.updated
       title: consent.updated
-      summary: "A commercial consent of an Access subject changed; Relay records it idempotently in its consent copy and ignores an older sequence."
+      summary: "Awaited from Access, not yet emitted (E-104). A commercial consent of an Access subject changed; Relay records it idempotently in its consent copy and ignores an older sequence."
       contentType: application/secevent+jwt
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -8790,6 +9222,11 @@ components:
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
 x-relay-event-names:
   - a2a.push_notification
+  - account.created
+  - account.deleted
+  - account.reactivated
+  - account.suspended
+  - account.updated
   - address.disabled
   - agent.ceiling_decided
   - agent.ceiling_exceeded
@@ -8866,6 +9303,7 @@ x-relay-event-names:
   - inbox.items_bulk_updated
   - inbox_announcement.published
   - inbox_announcement.retracted
+  - instance.terminated
   - iys.consent_expired
   - iys.copy_stale
   - iys.quota_warning
@@ -8912,6 +9350,7 @@ x-relay-event-names:
   - partial.published
   - partial.rolled_back
   - partition_policy.updated
+  - party.disabled
   - pii.revealed
   - preference.changed
   - provider.unknown_code
@@ -8929,6 +9368,7 @@ x-relay-event-names:
   - quota_policy.changed
   - recurrence.cancelled
   - recurrence.created
+  - relationship.updated
   - role_assignment.created
   - role_assignment.revoked
   - route.archived
@@ -8941,6 +9381,7 @@ x-relay-event-names:
   - sender_identity.changed
   - sender_identity.resumed
   - sender_identity.suspended
+  - session.revoked
   - setting.changed
   - sms.opted_out
   - sms_destination.released
@@ -8984,9 +9425,6 @@ x-relay-event-names:
   - topic.created
   - topic.subscribed
   - topic.unsubscribed
-  - user.deleted
-  - user.reactivated
-  - user.suspended
   - virtual_clock.advanced
   - waitpoint.cancelled
   - waitpoint.created

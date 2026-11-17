@@ -28,7 +28,6 @@ defmodule Relay.Channels.InboundSmsTest do
 
   @refusals "SELECT channel::text, source, scope FROM relay.refusals WHERE recipient_id = $1"
   @consents "SELECT channel::text, status, writer, source FROM relay.consents WHERE recipient_id = $1 ORDER BY source_sequence, id"
-  @receipts "SELECT state FROM relay.webhook_receipts WHERE provider_event_id = $1"
   @preference "SELECT result FROM relay_fn.preference_set($1, $2, 'category_channel', 'news', $3, 'opt_in', 'subscriber', 'acc_user_1')"
 
   defp forget do
@@ -151,20 +150,28 @@ defmodule Relay.Channels.InboundSmsTest do
     Live.accept_provider_webhook(ctx.scope, ctx.account, Relay.Redacted.wrap(@token), request)
   end
 
-  defp process!(ctx) do
-    ids =
-      for [text] <- F.jobs(@worker, ctx.scope, "receipt_ids"), id <- Jason.decode!(text) do
-        {:ok, parsed} = Relay.Id.parse(id)
-        parsed
-      end
+  defp receipt_ids(ctx) do
+    for [text] <- F.jobs(@worker, ctx.scope, "receipt_ids"), id <- Jason.decode!(text) do
+      {:ok, parsed} = Relay.Id.parse(id)
+      parsed
+    end
+  end
 
-    Receipts.process(ctx.scope, ids)
+  defp process!(ctx), do: Receipts.process(ctx.scope, receipt_ids(ctx))
+
+  defp states(ctx) do
+    {:ok, rows} =
+      Repo.in_scope(ctx.scope, fn _status ->
+        Enum.map(receipt_ids(ctx), &Relay.Webhooks.receipt/1)
+      end)
+
+    rows |> Enum.map(& &1["state"]) |> Enum.uniq()
   end
 
   defp take!(ctx, id, from, text, at \\ "2026-11-17 13:00:00") do
     assert {:ok, %{recorded: 1}} = receive!(ctx, message(id, from, text, at))
     assert :ok = process!(ctx)
-    assert [["processed"]] = sql!(ctx.scope, @receipts, ["sms_in:#{id}"])
+    assert states(ctx) == ["processed"]
   end
 
   defp refusals(ctx, recipient_id),
@@ -282,8 +289,8 @@ defmodule Relay.Channels.InboundSmsTest do
     end
   end
 
-  describe "PC-61 the scope of a revocation" do
-    test "PC-61, PC-39: STOP from a number of the United States revokes the brand's SMS and voice",
+  describe "PC-39 the scope of a revocation" do
+    test "PC-39, PC-40: STOP from a number of the United States revokes the brand's SMS and voice",
          ctx do
       F.category!(ctx.token, "news", "marketing")
 

@@ -56,8 +56,8 @@ defmodule Relay.Compliance.SmsKeywordTest do
     end
   end
 
-  describe "PC-39 PC-61 the scope of a refusal keyword" do
-    test "PC-61: STOP from a number of the United States covers SMS and voice" do
+  describe "PC-39 the scope of a refusal keyword" do
+    test "PC-39, PC-40: STOP from a number of the United States covers SMS and voice" do
       assert @us in scopes("+12025550123")
       assert Compliance.sms_revocation(:stop, scopes("+12025550123")) == @us
     end

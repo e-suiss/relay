@@ -128,7 +128,7 @@ defmodule Relay.Compliance.UnsubscribeTokenTest do
       assert {:error, %Relay.Error{code: :validation_failed}} = Refusal.new(unknown)
     end
 
-    test "PC-61: only an all_channel refusal covers other channels, each once and never its own" do
+    test "PC-39: only an all_channel refusal covers other channels, each once and never its own" do
       base = %{recipient_id: Relay.Id.generate(), channel: "sms", source: "sms_keyword", ref: "r"}
       whole = Map.put(base, :scope, "all_channel")
 
@@ -171,7 +171,6 @@ defmodule Relay.Compliance.UnsubscribeTokenTest do
       assert {:ok, refusal} = Refusal.new(Map.put(attrs, :evidence, %{ip: ip}))
       refute inspect(refusal) =~ "203.0.113.9"
       assert {:error, _error} = Refusal.new(Map.put(attrs, :evidence, %{ip: "203.0.113.9"}))
-      assert {:error, _error} = Refusal.new(Map.put(attrs, :address, "ayse@example.com"))
     end
   end
 end

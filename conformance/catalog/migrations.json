@@ -244,5 +244,10 @@
   {"file": "20261221000100_allow_refusal_suppressions.exs", "sha256": "230e5d0c266d4a5c4e822fc0b2419afe770ee309347c8618ece42db3a603eee7"},
   {"file": "20261221000200_create_refusal_functions.exs", "sha256": "7207e8da54b9876782c2cec291bd2788c1e6d9eec093e0ef83ef4de761eb583a"},
   {"file": "20261221000300_validate_refusal_suppression_check.exs", "sha256": "285135fa747ea712e296c5c553f55bd6d3496c15be78d22858c83e6497a9c46d"},
-  {"file": "20261221000400_rebuild_reference_check_for_refusals.exs", "sha256": "8b3bcd03f3a654e19deb6a5b152e4134752ba2a94dd2fc17d37d24e345b9a74d"}
+  {"file": "20261221000400_rebuild_reference_check_for_refusals.exs", "sha256": "8b3bcd03f3a654e19deb6a5b152e4134752ba2a94dd2fc17d37d24e345b9a74d"},
+  {"file": "20261222000000_create_sms_destination_stops.exs", "sha256": "7b6113c448653ec61ef0a207b13944abf1da150fdeeef02fb58c9da8de139e7d"},
+  {"file": "20261222000100_create_sms_destination_stop_functions.exs", "sha256": "c627233c2d3d309a554a026a6f731dd877eb3ff0d378c5fec0ed7feda2f0d47c"},
+  {"file": "20261222000200_add_attempt_commercial_declaration.exs", "sha256": "0783beab8197eeb313a10e969582b64c497df58e81f923aa962632613728532a"},
+  {"file": "20261222000300_create_attempt_declare_function.exs", "sha256": "962ddcc956c939c905b119ec2a6a3c9e6444a58cd240b3257f0bf912b4e6b818"},
+  {"file": "20261222000400_validate_commercial_declaration_checks.exs", "sha256": "379b8e9dae023f922ed3fa297a3557072d8d1fc6721565ddf756cb0725cab79a"}
 ]

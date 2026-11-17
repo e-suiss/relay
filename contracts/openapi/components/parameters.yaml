@@ -335,6 +335,13 @@ SuppressionId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_sup"
+SmsDestinationStopId:
+  name: sms_destination_stop_id
+  in: path
+  description: SMS destination stop identifier.
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_sds"
 TemplateKey:
   name: template_key
   in: path

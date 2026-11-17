@@ -8,6 +8,13 @@ defmodule RelayWeb.UnsubscribeTest.Sink do
   end
 end
 
+defmodule RelayWeb.UnsubscribeTest.OutsideIys do
+  @behaviour Relay.Policy.IysGate
+
+  @impl Relay.Policy.IysGate
+  def status(_scope, _brand, _channel, _address_digest), do: :out_of_scope
+end
+
 defmodule RelayWeb.UnsubscribeTest do
   use Relay.DataCase, async: false
 
@@ -36,6 +43,15 @@ defmodule RelayWeb.UnsubscribeTest do
   @gates ~w(consent.missing consent.revoked consent.expired preference.category_channel)
 
   setup do
+    gate = Application.get_env(:relay, Relay.Policy.IysGate)
+    Application.put_env(:relay, Relay.Policy.IysGate, impl: __MODULE__.OutsideIys)
+
+    on_exit(fn ->
+      if gate,
+        do: Application.put_env(:relay, Relay.Policy.IysGate, gate),
+        else: Application.delete_env(:relay, Relay.Policy.IysGate)
+    end)
+
     tenant = TenantFixture.tenant!()
     scope = tenant.live
     token = F.token(scope)

@@ -6,7 +6,9 @@ defmodule Relay.Channels.Live do
     2. The target. An address channel reads the recipient's active address; a device channel reads the recipient's permitted devices from `Relay.Devices` and takes the most recently seen one of the route's provider platform (CH-28); a recipient whose devices are all without permission is skipped with `channel.no_permission`, one without a device with `channel.no_address`. A device that holds an active realtime connection (`Relay.Devices.connected?/3`) is left out when the notification also has an `in_app` delivery, which its connection carries; when every device of the route's platform holds one the delivery is skipped with `channel.realtime_connected` (IN-40). A target that cannot be read holds the delivery with `channel.target_unavailable`. On the live plane an address in a simulated range is skipped with `channel.invalid_recipient` (CH-72).
     3. The content, from the renderer step's `prepare/2`, which renders the pinned plan again and checks its digest (TP-50). On `push` and `web_push` the push policy is decided from the active `push_priority_map` before the attempt opens (`Relay.Channels.push_policy/2`: platform priority, interruption level, collapse keys, content-free mode and lock screen text; CH-19, CH-23, CH-33, CH-65, CH-67) and handed to the adapter; its recorded reasons (`priority_clamped`, `interruption_clamped`, `critical_not_granted`, `interruption_platform_lowered`, `override_ignored`) are emitted as `[:relay, :push, :policy]`. The requested level is the event's `interruption`; for `critical` the tenant's opening, the template's declaration and the platform entitlement of the route's provider are read, and the recipient's Grant is asked only when the first two hold (`Relay.Channels.critical_grant/1`, CH-84). When the provider accepts a push it is counted for the high priority monitor and a `critical` one is audited (`Relay.PushPolicy`, CH-20, CH-22). On SMS and voice the route keeps only the accounts of the message class's traffic, `security` or `standard`, so an OTP never shares an account or a credit pool with a campaign (CH-53), and a `+90` number only the BTK-authorized providers, or the delivery is skipped with `channel.tr_route_unauthorized` (CH-51). Before the attempt `Relay.Channels.sms_preflight/7`, with the renderer's SMS measurement, checks the sender identity's rules for the class (CH-50), the TR route and the explicit encoding (CH-48), and names the provider product (CH-53); a broken rule skips the delivery with its `rule_id`. On WhatsApp, `Relay.Channels.Live.Whatsapp.prepare/4` then applies the number's availability, the customer service window, the template's approval and the tier count (CH-57, CH-58, CH-61).
     4. The reputation and provider limits. An e-mail of a sending domain whose reputation circuit is stopped is held with `email.reputation_stopped` until a tenant administrator closes the circuit, and a sent e-mail is counted in its domain's window (`Relay.EmailReputation`, CH-87). The provider limits (CH-17): the account, sender and recipient layers of the provider's declared limits, stricter than the provider's and in the channel's unit, each a GCRA decision (`Relay.Channels.Limits`); a denial snoozes the job for its `retry_after` without opening an attempt. A shared account's quota carries the lane ceiling (T-33, TN-53), and a 429 lowers the account's rate until successes raise it again (AIMD, `Relay.Channels.Throttle`); the provider's `Retry-After` still plans the retry.
+    4a. The destination protections. A `security` SMS a real provider would send is shown to `Relay.DestinationGuard` once the provider limits allowed it and before its attempt opens (`Relay.Channels.Live.Destination`, CH-54, E-33): the tenant's country allow-list, the stops of a number block or a country, the rate limits per number and per number block and the pumping detection. A stopped delivery is skipped with its `destination.*` rule and opens no attempt; an input that cannot be read is an error and the job retries (INV-43). The protections run for every such delivery, also one accepted under the `security` reserve of an exhausted quota, which never passes them (TN-52 (2)).
     5. The attempt. It is opened with the provider idempotency key that stays the same across the logical send (INV-13, OP-6 (4)) and marked started in its own transaction before the call (INV-55, CH-10). The credential is read from the secret backend for this call only, so a rotation applies at the next call (TN-26). The call is bounded by the three timeout layers (CH-9).
+    5a. The commercial declaration. On SMS and voice the attempt records whether the message is commercial and its İYS recipient type (`Relay.Channels.commercial_declaration/2`, PC-4, CH-56): `commercial` from the message class, the type from the consent copy of the notification's brand and channel. The adapter sends exactly this declaration, never a provider default.
     6. The outcome is normalized into the eight failure classes (CH-7). A success finishes the attempt. A failure finishes it and plans its retry through the job queue only (T-26, INV-14); a permanent target failure soft disables the address or the device at once (CH-11); a code without a mapping raises `provider.unknown_code` and the alarm (CH-8). An uncertain outcome follows the provider's declared policy (T-28): the status query, a retry with the same key, or none; on a paid channel at most one retry and `delivery.uncertain`.
   """
 
@@ -19,6 +21,7 @@ defmodule Relay.Channels.Live do
       Relay.Compliance,
       Relay.Delivery,
       Relay.Datasets,
+      Relay.DestinationGuard,
       Relay.Devices,
       Relay.EmailReputation,
       Relay.Inbox.Live,
@@ -38,6 +41,7 @@ defmodule Relay.Channels.Live do
   @behaviour Relay.Devices
 
   alias Relay.ChannelDeclarations
+  alias Relay.Channels.Live.Destination
   alias Relay.Channels.Live.EmailEvents
   alias Relay.Channels.Live.Events
   alias Relay.Channels.Live.Followup
@@ -738,9 +742,21 @@ defmodule Relay.Channels.Live do
       hold(ctx.scope, ctx.delivery["id"], "email.reputation_stopped")
     else
       case provider_limits(ctx, account, target, content) do
-        :allow -> attempt(ctx, account, ticket, target, content)
+        :allow -> guarded(ctx, account, ticket, target, content)
         {:deny, ms} -> {:snooze, max(div(ms + 999, 1000), 1)}
       end
+    end
+  end
+
+  # CH-54
+  # E-33
+  # TN-52 (2)
+  # INV-43
+  defp guarded(ctx, account, ticket, target, content) do
+    case Destination.admit(ctx.scope, ctx.delivery, account, phone(target)) do
+      :ok -> attempt(ctx, account, ticket, target, content)
+      {:skip, rule_id} -> skip(ctx.scope, ctx.delivery["id"], rule_id)
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -837,6 +853,7 @@ defmodule Relay.Channels.Live do
       channel = delivery["channel"]
       _ = Relay.Delivery.count_attempt(scope, ctx.parameters, channel, account["id"], n)
       _ = meter(ctx, n, target)
+      ctx = Map.put(ctx, :commercial, declare(ctx, n))
       call(ctx, account, ticket, request(ctx, account, target, content, key, n))
     else
       {:ok, {:attempt_active, _n}} -> {:snooze, @hold_s}
@@ -856,6 +873,29 @@ defmodule Relay.Channels.Live do
     if country || segments do
       meter = %{destination_country: country, sms_segments: segments}
       Relay.Delivery.meter_attempt(ctx.scope, ctx.delivery["id"], n, meter)
+    end
+  end
+
+  # PC-4
+  # CH-56
+  defp declare(%{scope: scope, delivery: %{"channel" => channel} = delivery}, n)
+       when channel in ["sms", "voice"] do
+    class = delivery["message_class"]
+    type = if class == "marketing", do: recipient_type(scope, delivery)
+    declaration = Relay.Channels.commercial_declaration(class, type)
+    _ = Relay.Delivery.declare_attempt(scope, delivery["id"], n, declaration)
+    declaration
+  end
+
+  defp declare(_ctx, _n), do: nil
+
+  defp recipient_type(scope, %{"channel" => channel} = delivery) do
+    case Relay.Preferences.get_consents(scope, delivery["recipient_id"]) do
+      {:ok, [_ | _] = consents} ->
+        Relay.Channels.consent_recipient_type(consents, channel, delivery["subtenant_id"])
+
+      _none ->
+        nil
     end
   end
 
@@ -899,6 +939,7 @@ defmodule Relay.Channels.Live do
       account: account,
       ttl_s: ttl,
       message_class: ctx.delivery["message_class"],
+      commercial: Map.get(ctx, :commercial),
       test?: ctx.scope.environment == :test,
       overrides: ctx.overrides,
       push: Map.get(ctx, :push),

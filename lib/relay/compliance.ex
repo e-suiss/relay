@@ -7,7 +7,7 @@ defmodule Relay.Compliance do
   A refusal is described here (`Relay.Compliance.Refusal`) and applied by the module configured as `config :relay, Relay.Compliance, refusals: Module`, which implements this behaviour; `Relay.Compliance.Refusals` on a running node. Once a refusal notice is applied in Relay it is handed to the refusal sink (`Relay.Compliance.RefusalSink`).
   """
 
-  use Boundary, top_level?: true, deps: [Relay], exports: [Refusal, RefusalSink]
+  use Boundary, top_level?: true, deps: [Relay], exports: [Refusal, RefusalSink, IysChannel]
 
   alias Relay.Compliance.Refusal
   alias Relay.Compliance.Settings

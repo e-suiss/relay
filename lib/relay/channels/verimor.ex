@@ -2,8 +2,8 @@ defmodule Relay.Channels.Verimor do
   @moduledoc """
   The Verimor SMS and voice adapter (CH-3, CH-48, CH-51, CH-56), a thin client of Verimor's SMS API v2 and of its Bulutsantralim automatic call campaigns on Req; its declaration is `priv/channels/verimor/`. Verimor is a Turkish operator and a BTK-authorized route for `+90` numbers.
 
-    * SMS: `POST /v2/send.json` with the account's `settings.username` and the credential (the API password). The encoding is named on every send (CH-48): `datacoding` `0` for `GSM7`, `1` for `GSM7_TR` and `2` for `UCS2`. The provider idempotency key is the message's custom id (`messages[].id`) and the campaign's `custom_id`, so an uncertain send is looked up with `GET /v2/status?custom_id=` (`query/1`, T-28), and the reconciliation reads its reports there too (`delivery_status/1`, DS-48). Verimor answers in plain text, so its bodies are read as they come, never decoded by content type. The validity (`valid_for`) follows the channel time to live, between one minute and 48 hours (CH-9). A commercial (`marketing`) message is flagged `is_commercial` with the İYS recipient type `BIREYSEL`.
-    * Voice (`otp_oob`, CH-56): one call campaign per delivery, `POST /ivr_campaigns.json` with the credential as the API key, the sender identity's number as the caller id (`cli`) and the text read in the content's language (`tr-TR` by default). The billing unit is the answered call.
+    * SMS: `POST /v2/send.json` with the account's `settings.username` and the credential (the API password). The encoding is named on every send (CH-48): `datacoding` `0` for `GSM7`, `1` for `GSM7_TR` and `2` for `UCS2`. The provider idempotency key is the message's custom id (`messages[].id`) and the campaign's `custom_id`, so an uncertain send is looked up with `GET /v2/status?custom_id=` (`query/1`, T-28), and the reconciliation reads its reports there too (`delivery_status/1`, DS-48). Verimor answers in plain text, so its bodies are read as they come, never decoded by content type. The validity (`valid_for`) follows the channel time to live, between one minute and 48 hours (CH-9). The commercial declaration of the send (`Relay.Channels.Commercial`, PC-4) is always named: `is_commercial` with the İYS recipient type `BIREYSEL` or `TACIR` for a commercial message, `is_commercial: false` otherwise.
+    * Voice (`otp_oob`, CH-56): one call campaign per delivery, declared commercial or not like an SMS since a commercial call is subject to İYS `ARAMA`, `POST /ivr_campaigns.json` with the credential as the API key, the sender identity's number as the caller id (`cli`) and the text read in the content's language (`tr-TR` by default). The billing unit is the answered call.
     * A failure answers with its error name or status: `send:<NAME>`, `voice:<status>` or `http:<status>`. A delivery report is `dlr:<STATUS>` and a call report `call:<status>`.
     * Neither webhook is signed: the callback URL carries a secret token checked in constant time, a compensating control whose authenticity is declared unverifiable (`reports/3`).
     * The settings check asks the balance: an SMS account with `GET /v2/balance` under its user name and password, a voice account with Bulutsantralim's `GET /balance` under its API key; `401` or `403` is a credential mismatch (CH-14, CH-52).
@@ -12,6 +12,7 @@ defmodule Relay.Channels.Verimor do
   @behaviour Relay.Channels.Adapter
 
   alias Relay.Channels.Adapter
+  alias Relay.Channels.Commercial
   alias Relay.Channels.ProviderHttp
   alias Relay.Channels.Request
   alias Relay.Channels.SettingsCheck
@@ -44,9 +45,10 @@ defmodule Relay.Channels.Verimor do
         }
       ],
       "cli" => ProviderHttp.sender(request),
-      "timeout_target" => "timeout",
-      "is_commercial" => false
+      "timeout_target" => "timeout"
     }
+
+    body = put_commercial(body, Commercial.of(request))
 
     opts = [
       method: :post,
@@ -70,8 +72,6 @@ defmodule Relay.Channels.Verimor do
   end
 
   defp sms_options(request) do
-    commercial? = request.message_class == "marketing"
-
     message = %{
       "msg" => ProviderHttp.text(request),
       "dest" => ProviderHttp.digits(request),
@@ -85,11 +85,10 @@ defmodule Relay.Channels.Verimor do
         "source_addr" => ProviderHttp.sender(request),
         "custom_id" => request.idempotency_key,
         "datacoding" => Map.get(@datacoding, request.encoding, "0"),
-        "is_commercial" => commercial?,
         "messages" => [message]
       }
       |> put_valid_for(request.ttl_s)
-      |> put_recipient_type(commercial?)
+      |> put_commercial(Commercial.of(request))
 
     [method: :post, url: @sms <> "/v2/send.json", json: body, decode_body: false]
   end
@@ -103,8 +102,12 @@ defmodule Relay.Channels.Verimor do
 
   defp put_valid_for(body, _ttl), do: body
 
-  defp put_recipient_type(body, true), do: Map.put(body, "iys_recipient_type", "BIREYSEL")
-  defp put_recipient_type(body, false), do: body
+  # PC-4
+  # CH-56
+  defp put_commercial(body, %{commercial: true, iys_recipient_type: type}),
+    do: Map.merge(body, %{"is_commercial" => true, "iys_recipient_type" => type})
+
+  defp put_commercial(body, _not_commercial), do: Map.put(body, "is_commercial", false)
 
   defp language(%{"language" => language}) when language in @languages, do: language
 

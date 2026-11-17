@@ -753,6 +753,19 @@ defmodule RelayWeb.Router do
     put "/realtime_origins", RealtimeOriginsController, :replace,
       private: %{relay_operation: "setRealtimeOrigins"}
 
+    # CH-54
+    get "/sms_destination_policy", SmsDestinationController, :show_policy,
+      private: %{relay_operation: "getSmsDestinationPolicy"}
+
+    put "/sms_destination_policy", SmsDestinationController, :replace_policy,
+      private: %{relay_operation: "setSmsDestinationPolicy"}
+
+    get "/sms_destination_stops", SmsDestinationController, :index,
+      private: %{relay_operation: "listSmsDestinationStops"}
+
+    post "/sms_destination_stops/:sms_destination_stop_id/lift", SmsDestinationController, :lift,
+      private: %{relay_operation: "liftSmsDestinationStop"}
+
     get "/event_type_mappings", MappingController, :index,
       private: %{relay_operation: "listEventTypeMappings"}
 

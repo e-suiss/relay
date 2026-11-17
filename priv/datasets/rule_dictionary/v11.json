@@ -1,5 +1,5 @@
 {
-  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59; WF-52; WF-34; WF-44; WF-62; X-14; WF-56; IN-40; PC-40; PC-27; PC-33; PC-47",
+  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59; WF-52; WF-34; WF-44; WF-62; X-14; WF-56; IN-40; CH-54; TN-52; E-33",
   "rules": [
     {
       "id": "admission.aimd.l2",
@@ -597,40 +597,11 @@
       "detail": [
         "channel",
         "brand",
-        "consent_id",
-        "compliance_row",
-        "compliance_country",
-        "compliance_version",
-        "platform_row",
-        "required_consent",
-        "recipient_type"
+        "consent_id"
       ],
       "description": {
-        "en": "Not sent because the recipient's consent for these messages on this channel has expired.",
-        "tr": "Alıcının bu kanalda bu iletiler için verdiği iznin süresi dolduğu için gönderilmedi."
-      }
-    },
-    {
-      "id": "consent.insufficient",
-      "reason": "consent_missing",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "PC-40",
-      "detail": [
-        "channel",
-        "brand",
-        "consent_id",
-        "consent_kind",
-        "compliance_row",
-        "compliance_country",
-        "compliance_version",
-        "platform_row",
-        "required_consent",
-        "recipient_type"
-      ],
-      "description": {
-        "en": "Not sent because the kind of the recipient's consent is not one the compliance table accepts for this message on this channel.",
-        "tr": "Alıcının izninin türü, uyum tablosunun bu kanalda bu ileti için kabul ettiği türlerden olmadığı için gönderilmedi."
+        "en": "Not sent because the recipient's consent for marketing messages on this channel has expired.",
+        "tr": "Alıcının bu kanalda pazarlama iletileri için verdiği iznin süresi dolduğu için gönderilmedi."
       }
     },
     {
@@ -638,20 +609,14 @@
       "reason": "consent_missing",
       "kind": "gate",
       "outcome": "skip",
-      "decision": "PC-40",
+      "decision": "PC-58",
       "detail": [
         "channel",
-        "brand",
-        "compliance_row",
-        "compliance_country",
-        "compliance_version",
-        "platform_row",
-        "required_consent",
-        "recipient_type"
+        "brand"
       ],
       "description": {
-        "en": "Not sent because the compliance table asks for consent for this message on this channel and there is no active consent.",
-        "tr": "Uyum tablosu bu kanalda bu ileti için izin istediği ve etkin izin olmadığı için gönderilmedi."
+        "en": "Not sent because there is no active consent for marketing messages on this channel.",
+        "tr": "Bu kanalda pazarlama iletileri için etkin izin olmadığı için gönderilmedi."
       }
     },
     {
@@ -663,17 +628,11 @@
       "detail": [
         "channel",
         "brand",
-        "consent_id",
-        "compliance_row",
-        "compliance_country",
-        "compliance_version",
-        "platform_row",
-        "required_consent",
-        "recipient_type"
+        "consent_id"
       ],
       "description": {
-        "en": "Not sent because the recipient withdrew consent for these messages on this channel.",
-        "tr": "Alıcı bu kanalda bu iletilere verdiği izni geri çektiği için gönderilmedi."
+        "en": "Not sent because the recipient withdrew consent for marketing messages on this channel.",
+        "tr": "Alıcı bu kanalda pazarlama iletilerine verdiği izni geri çektiği için gönderilmedi."
       }
     },
     {
@@ -689,6 +648,123 @@
       "description": {
         "en": "Not sent because the same content went to the recipient on this channel a short while ago.",
         "tr": "Aynı içerik kısa süre önce bu kanaldan alıcıya gittiği için gönderilmedi."
+      }
+    },
+    {
+      "id": "destination.country_not_allowed",
+      "reason": "destination_not_allowed",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country"
+      ],
+      "description": {
+        "en": "The security SMS was not sent because the destination country is not on the tenant's country allow-list.",
+        "tr": "Güvenlik SMS'i, hedef ülke kiracının ülke izin listesinde olmadığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "destination.country_stopped",
+      "reason": "destination_stopped",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country",
+        "stop_id"
+      ],
+      "description": {
+        "en": "The security SMS was not sent because security SMS to the destination country is stopped after an SMS pumping detection; the stop stays until it is lifted.",
+        "tr": "Güvenlik SMS'i, hedef ülkeye güvenlik SMS'i SMS pumping tespiti sonrası durdurulduğu için gönderilmedi; durdurma kaldırılana kadar sürer."
+      }
+    },
+    {
+      "id": "destination.number_rate_limited",
+      "reason": "destination_rate_limited",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country",
+        "limit",
+        "window"
+      ],
+      "description": {
+        "en": "The security SMS was not sent because the destination number reached the rate limit of security SMS per number.",
+        "tr": "Güvenlik SMS'i, hedef numara numara başına güvenlik SMS'i hız sınırına ulaştığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "destination.prefix_rate_limited",
+      "reason": "destination_rate_limited",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country",
+        "limit",
+        "window"
+      ],
+      "description": {
+        "en": "The security SMS was not sent because the number block of the destination reached the rate limit of security SMS per number block.",
+        "tr": "Güvenlik SMS'i, hedefin numara bloğu numara bloğu başına güvenlik SMS'i hız sınırına ulaştığı için gönderilmedi."
+      }
+    },
+    {
+      "id": "destination.prefix_stopped",
+      "reason": "destination_stopped",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country",
+        "stop_id"
+      ],
+      "description": {
+        "en": "The security SMS was not sent because security SMS to the number block of the destination is stopped after an SMS pumping detection; the stop stays until it is lifted.",
+        "tr": "Güvenlik SMS'i, hedefin numara bloğuna güvenlik SMS'i SMS pumping tespiti sonrası durdurulduğu için gönderilmedi; durdurma kaldırılana kadar sürer."
+      }
+    },
+    {
+      "id": "destination.pumping_country",
+      "reason": "destination_stopped",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country",
+        "current",
+        "baseline",
+        "threshold"
+      ],
+      "description": {
+        "en": "Security SMS to the country was stopped because its volume is far above the tenant's baseline or several of its number blocks were stopped (SMS pumping).",
+        "tr": "Ülkeye güvenlik SMS'i, hacmi kiracının olağan düzeyinin çok üstüne çıktığı ya da birkaç numara bloğu durdurulduğu için durduruldu (SMS pumping)."
+      }
+    },
+    {
+      "id": "destination.pumping_prefix",
+      "reason": "destination_stopped",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "CH-54",
+      "detail": [
+        "channel",
+        "country",
+        "current",
+        "baseline",
+        "threshold"
+      ],
+      "description": {
+        "en": "Security SMS to the number block was stopped because the sends concentrated on it far above the tenant's baseline (SMS pumping).",
+        "tr": "Numara bloğuna güvenlik SMS'i, gönderimler bu blokta kiracının olağan düzeyinin çok üstünde yoğunlaştığı için durduruldu (SMS pumping)."
       }
     },
     {
@@ -893,67 +969,6 @@
       }
     },
     {
-      "id": "iys.approval_missing",
-      "reason": "consent_missing",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "PC-33",
-      "detail": [
-        "channel",
-        "recipient_type"
-      ],
-      "description": {
-        "en": "Not sent because IYS holds no approval of the recipient for commercial messages on this channel.",
-        "tr": "İYS'de alıcının bu kanalda ticari ileti onayı bulunmadığı için gönderilmedi."
-      }
-    },
-    {
-      "id": "iys.not_configured",
-      "reason": "iys_not_configured",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "PC-27",
-      "detail": [
-        "channel",
-        "recipient_type"
-      ],
-      "description": {
-        "en": "Not sent because the tenant is within the scope of IYS and has not entered its IYS information.",
-        "tr": "Kiracı İYS kapsamında olduğu ve İYS bilgilerini girmediği için gönderilmedi."
-      }
-    },
-    {
-      "id": "iys.rejected",
-      "reason": "consent_revoked",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "PC-21",
-      "detail": [
-        "channel",
-        "recipient_type"
-      ],
-      "description": {
-        "en": "Not sent because IYS holds the recipient's rejection of commercial messages on this channel.",
-        "tr": "İYS'de alıcının bu kanalda ticari ileti reddi bulunduğu için gönderilmedi."
-      }
-    },
-    {
-      "id": "iys.stale",
-      "reason": "iys_stale",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "PC-33",
-      "detail": [
-        "channel",
-        "recipient_type",
-        "iys_synced_at"
-      ],
-      "description": {
-        "en": "Not sent because the local copy of the IYS records has not been synchronised recently enough.",
-        "tr": "İYS kayıtlarının yerel kopyası yeterince yakın zamanda eşitlenmediği için gönderilmedi."
-      }
-    },
-    {
       "id": "killswitch.bulk_cancel",
       "reason": "cancelled",
       "kind": "terminal",
@@ -1047,25 +1062,6 @@
       "description": {
         "en": "Held because the kill switch state could not be read.",
         "tr": "Acil durdurma anahtarlarının durumu okunamadığı için bekletildi."
-      }
-    },
-    {
-      "id": "legal_window.deferred",
-      "reason": "legal_window",
-      "kind": "shaper",
-      "outcome": "defer",
-      "decision": "PC-47",
-      "detail": [
-        "local_time",
-        "local_until",
-        "timezone",
-        "timezone_source",
-        "legal_window",
-        "timezone_inferred"
-      ],
-      "description": {
-        "en": "Postponed to the hours in which the law of the recipient's country allows this message to be sent.",
-        "tr": "Alıcının ülkesindeki mevzuatın bu iletinin gönderilmesine izin verdiği saatlere ertelendi."
       }
     },
     {

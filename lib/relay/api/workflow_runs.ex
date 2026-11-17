@@ -6,6 +6,7 @@ defmodule Relay.Api.WorkflowRuns do
   """
 
   alias Relay.Api.Events
+  alias Relay.Api.OtpChain
   alias Relay.Policy.Live
 
   @classes Map.new(
@@ -22,9 +23,9 @@ defmodule Relay.Api.WorkflowRuns do
 
   # WF-7
   # WF-59 (5)
-  @doc "The plan of a notification's run: what its later steps need to open their deliveries, as JSON without personal data."
-  @spec plan(Events.prepared(), map(), boolean()) :: map()
-  def plan(p, row, mismatch?) do
+  @doc "The plan of a notification's run: what its later steps need to open their deliveries, as JSON without personal data. For an `otp_oob` notification it freezes the inputs of the OTP channel chain (PC-53) with the recipient's `destination` (`Relay.Api.OtpChain`)."
+  @spec plan(Events.prepared(), map(), boolean(), OtpChain.destination() | nil) :: map()
+  def plan(p, row, mismatch?, destination \\ nil) do
     %{
       "category" => p.category,
       "message_class" => p.message_class,
@@ -48,7 +49,8 @@ defmodule Relay.Api.WorkflowRuns do
       "variants" =>
         Relay.Workflow.variants(p.workflow["definition"], p.workflow["key"], row["id"]),
       "providers" => p.providers,
-      "templates" => templates(p.templates)
+      "templates" => templates(p.templates),
+      "otp" => OtpChain.freeze(Map.get(p, :otp), destination, row["id"])
     }
   end
 
@@ -108,9 +110,9 @@ defmodule Relay.Api.WorkflowRuns do
 
   # WF-45
   # WF-60
-  @doc "The step context of a run at acceptance, with the recipient's declared attributes read before the transaction (`attributes/3`)."
-  @spec context(Events.prepared(), map(), map()) :: map()
-  def context(p, row, attributes) do
+  @doc "The step context of a run at acceptance, with the recipient's declared attributes read before the transaction (`attributes/3`) and the frozen inputs of its OTP chain (`otp`, from `plan/4`)."
+  @spec context(Events.prepared(), map(), map(), map() | nil) :: map()
+  def context(p, row, attributes, otp \\ nil) do
     definition = p.workflow["definition"]
 
     %{
@@ -122,7 +124,7 @@ defmodule Relay.Api.WorkflowRuns do
       message_class: p.message_class,
       routes: Map.get(p, :routes, %{}),
       variants: Relay.Workflow.variants(definition, p.workflow["key"], row["id"]),
-      facts: facts(),
+      facts: OtpChain.facts(otp),
       correlation_digests: Map.get(p, :correlation_digests, %{}),
       webhook_events: Map.get(p, :webhook_events, %{})
     }
@@ -157,10 +159,6 @@ defmodule Relay.Api.WorkflowRuns do
       {:error, _reason} -> {:error, Relay.Error.new(:service_unavailable, "digests unavailable")}
     end
   end
-
-  # WF-13
-  # WF-16
-  defp facts, do: fn _step -> %{} end
 
   # WF-10
   # WF-59
@@ -291,7 +289,7 @@ defmodule Relay.Api.WorkflowRuns do
       message_class: p.message_class,
       routes: run["plan"]["routes"] || %{},
       variants: run["plan"]["variants"] || %{},
-      facts: facts(),
+      facts: OtpChain.facts(run["plan"]["otp"]),
       correlation_digests: p.correlation_digests,
       webhook_events: p.webhook_events
     }

@@ -2,7 +2,7 @@ defmodule RelayTest.FakeAccess do
   @moduledoc """
   A fake Access for tests, served to the link's HTTP client as a `Req` plug (`config :relay, Relay.Access, http: [plug: {RelayTest.FakeAccess, []}]`); nothing reaches the network. It publishes an OpenID discovery document, a Suiss configuration, an AuthZEN configuration and a key set with one ES256 key (`fake-es256`, tokens) and one Ed25519 key (`fake-ed25519`, Security Event Tokens), issues tokens and pushes events as Security Event Tokens (E-94).
 
-  Every known tenant has two Access environments, `a` and `b` (`environment_issuer/2`), path issuers `<issuer>/env/<slug>` as Access serves them, each with its own discovery document at `<issuer>/.well-known/openid-configuration`, its key set at `<issuer>/jwks.json` and its ES256 key; the tenant snapshot names them in `environments` with the tenant's region (the installation region), and a tenant whose id starts with `tnt_unknown` is not known (E-96, E-103); the snapshot of a tenant whose id starts with `tnt_former` names them in `realms`, as an Access release before the rename did; the snapshot of a tenant whose id starts with `tnt_down` answers 503, and that of one whose id starts with `tnt_elsewhere` names a region other than the installation's (E-95). Relay's own calls are checked as Access checks them (E-98, E-100): the tenant snapshot takes only `Authorization: Bearer` with Relay's RFC 7523 client assertion (ES256 under the key-store key `access-client`, `iss` and `sub` Relay's `client_id`, `aud` the fake issuer, a `jti` and an `exp` at most five minutes ahead); the token endpoint takes only the same assertion as `private_key_jwt` and a DPoP proof carrying the fake's nonce, answering `use_dpop_nonce` with a `DPoP-Nonce` otherwise. AuthZEN decisions are not served here: they need mutual TLS (`RelayTest.FakeAdp`, E-102). The calling test process receives `{:fake_access, :token, jkt, form}`, `{:fake_access, :nonce, :token}`, `{:fake_access, :snapshot, tenant}`, `{:fake_access, :environment_keys, slug}` and `{:fake_access, :first_contact_keys, slug}`.
+  Every known tenant has two Access environments, `a` and `b` (`environment_issuer/2`), path issuers `<issuer>/env/<slug>` as Access serves them, each with its own discovery document at `<issuer>/.well-known/openid-configuration`, its key set at `<issuer>/jwks.json` and its ES256 key; the tenant snapshot names them in `environments` with the tenant's region (the installation region), and a tenant whose id starts with `tnt_unknown` is not known (E-96, E-103); the snapshot of a tenant whose id starts with `tnt_former` names them in `realms`, as an Access release before the rename did; the snapshot of a tenant whose id starts with `tnt_down` answers 503, and that of one whose id starts with `tnt_elsewhere` names a region other than the installation's (E-95). Relay's own calls are checked as Access checks them (E-98, E-100): the tenant snapshot takes only `Authorization: Bearer` with Relay's RFC 7523 client assertion (ES256 under the key-store key `access-client`, `iss` and `sub` Relay's `client_id`, `aud` the fake issuer, a `jti` and an `exp` at most five minutes ahead); the token endpoint takes only the same assertion as `private_key_jwt` and a DPoP proof carrying the fake's nonce, answering `use_dpop_nonce` with a `DPoP-Nonce` otherwise. AuthZEN decisions are not served here: they need mutual TLS (`RelayTest.FakeAdp`, E-102). The calling test process receives `{:fake_access, :token, jkt, form}`, `{:fake_access, :nonce, :token}`, `{:fake_access, :snapshot, tenant}`, `{:fake_access, :environment_keys, slug}` and `{:fake_access, :first_contact_keys, slug}`. The subject resolution (`subjects:resolve`, E-106) takes the same assertion and resolves every agent Party in the tenant's last Access environment only, to `pairwise/1` of it (and that `sub` back to its Party); a Party starting with `unknown` resolves nowhere and one starting with `unreachable` answers 503; the calling test process receives `{:fake_access, :resolve, request}`.
 
   The issuer directory of first-contact tokens of every Access environment (`<environment issuer>/v1/first-contact/keys`, AG-73, E-103) answers 404 until the test process publishes keys with `publish_first_contact!/1`, each with its `not-before`; `first_contact_token/1` makes a token of type `0x0002` signed by the fake's RSA key.
 
@@ -63,7 +63,10 @@ defmodule RelayTest.FakeAccess do
         "webhooks" => "urn:suiss:access:delivery:webhook"
       },
       "suiss_products" => %{},
-      "endpoints" => %{"tenant_snapshot" => @issuer <> "/access/v1/tenants/{tenant}/snapshot"}
+      "endpoints" => %{
+        "tenant_snapshot" => @issuer <> "/access/v1/tenants/{tenant}/snapshot",
+        "subject_resolution" => @issuer <> "/access/v1/tenants/{tenant}/subjects:resolve"
+      }
     }
   end
 
@@ -98,6 +101,11 @@ defmodule RelayTest.FakeAccess do
       "retention" => %{}
     }
   end
+
+  # E-106
+  @doc "The pairwise `sub` in Relay's sector the subject resolution gives for an agent's Party."
+  @spec pairwise(String.t()) :: String.t()
+  def pairwise(party), do: "pw-" <> party
 
   # E-96
   # E-103
@@ -184,6 +192,7 @@ defmodule RelayTest.FakeAccess do
   defp serve(conn, "/access/v1/tenants/" <> rest, _opts) do
     case String.split(rest, "/") do
       [tenant, "snapshot"] -> asserted(conn, &tenant_snapshot(&1, tenant))
+      [tenant, "subjects:resolve"] -> asserted(conn, &resolve(&1, tenant))
       _other -> send_resp(conn, 404, "")
     end
   end
@@ -290,6 +299,63 @@ defmodule RelayTest.FakeAccess do
   defp tenant_snapshot(conn, tenant) do
     send(self(), {:fake_access, :snapshot, tenant})
     json(conn, snapshot(tenant))
+  end
+
+  # E-106
+  defp resolve(conn, "tnt_unknown" <> _rest), do: send_resp(conn, 404, "")
+  defp resolve(conn, "tnt_down" <> _rest), do: send_resp(conn, 503, "unavailable")
+
+  defp resolve(conn, tenant) do
+    {:ok, body, conn} = read_body(conn)
+    environments = Enum.map(snapshot(tenant)["environments"], & &1["id"])
+
+    case {conn.method, Jason.decode(body)} do
+      {"POST", {:ok, %{"environment" => environment, "client_id" => client_id} = request}} ->
+        cond do
+          client_id != Relay.Access.client_id() -> send_resp(conn, 400, "client-mismatch")
+          environment not in environments -> send_resp(conn, 400, "environment")
+          true -> resolved(conn, request, environment == List.last(environments))
+        end
+
+      _other ->
+        send_resp(conn, 400, "json")
+    end
+  end
+
+  defp resolved(conn, request, known?) do
+    send(self(), {:fake_access, :resolve, request})
+
+    case Map.drop(request, ["environment", "client_id"]) do
+      %{"parties" => [_ | _] = parties} when map_size(request) == 3 ->
+        pairs = for party <- parties, known?, resolvable?(party), do: party
+        found = Enum.map(pairs, &%{"party" => &1, "sub" => pairwise(&1)})
+        resolution(conn, request, found, parties -- pairs)
+
+      %{"subs" => [_ | _] = subs} when map_size(request) == 3 ->
+        pairs = for "pw-" <> party = sub <- subs, known?, resolvable?(party), do: {party, sub}
+        found = Enum.map(pairs, fn {party, sub} -> %{"party" => party, "sub" => sub} end)
+        resolution(conn, request, found, subs -- Enum.map(pairs, &elem(&1, 1)))
+
+      _other ->
+        send_resp(conn, 400, "parties-or-subs")
+    end
+  end
+
+  defp resolvable?("unknown" <> _rest), do: false
+  defp resolvable?(_party), do: true
+
+  defp resolution(conn, request, found, unknown) do
+    if Enum.any?(Map.get(request, "parties", []), &String.starts_with?(&1, "unreachable")) do
+      send_resp(conn, 503, "unavailable")
+    else
+      json(conn, %{
+        "environment" => request["environment"],
+        "client_id" => request["client_id"],
+        "resolved" => found,
+        "unknown" => unknown,
+        "consistency_token" => "fake-" <> random()
+      })
+    end
   end
 
   defp environment_discovery(slug) do

@@ -40,7 +40,8 @@ defmodule RelayWeb.Api.MailboxMessagesTest do
   defp credential(ctx, party, scopes) do
     client = FakeAccess.client!(ctx.scope, scopes)
     access_tenant = ctx.tenant.attrs.access_tenant_id
-    FakeAccess.server_token(access_tenant, client, Enum.join(scopes, " "), %{"sub" => party})
+    claims = %{"sub" => FakeAccess.pairwise(party)}
+    FakeAccess.server_token(access_tenant, client, Enum.join(scopes, " "), claims)
   end
 
   defp envelope(bytes),

@@ -4,6 +4,8 @@ defmodule Relay.Access.Client do
 
   * `product_get/2` reads a product route with `Authorization: Bearer` and a fresh RFC 7523 client assertion (E-100): ES256, `iss` and `sub` Relay's Access `client_id`, `aud` the linked (platform environment) issuer, a single-use `jti` and an `exp` one minute ahead. No access token is involved.
 
+  * `resolve_subjects/4` maps an agent's Access Party to its pairwise `sub` in Relay's sector and back (E-106), with the same client assertion.
+
   * `token/3` sends a token request authenticated with a `private_key_jwt` client assertion (RFC 7523; `iss` and `sub` Relay's Access `client_id`, `aud` the linked issuer, signed with the same key) and carrying a DPoP proof of the same key, so the token is bound to it. Relay takes no access token for its own calls to Access: product and platform routes take the client assertion itself, and AuthZEN decisions go over mutual TLS with the PEP certificate (`Relay.Access.Pep`). A client credentials grant is only for a service token of another platform product and must name it (`resource`); one without it is refused before it reaches Access.
   * A `use_dpop_nonce` answer (400) is sent once more with the nonce Access names in `DPoP-Nonce`; the last nonce of each Access origin goes into the next proof to that origin.
 
@@ -51,6 +53,54 @@ defmodule Relay.Access.Client do
       type = if is_map(body), do: [{"content-type", "application/json"}], else: []
       call(url, [method: method, headers: headers ++ type] ++ json, opts)
     end
+  end
+
+  # E-106
+  @doc "Asks the Access subject resolution (`POST /access/v1/tenants/{tenant}/subjects:resolve`, at `url`) to map the Party identifiers (`{:parties, list}`) or pairwise subjects (`{:subs, list}`) of one Access environment to their counterparts in the sector of Relay's own client, which the request names (`client_id`). A 200 answer comes back as its `resolved` pairs (`party`, or an Access `client_id`, with its `sub`) and its `unknown` values; a 400 is `{:error, :refused}` (Access does not take the lookup) and a 404 `{:error, :not_found}` (Access does not know the tenant or the client). Called outside any transaction. Options: `:http`, extra Req options."
+  @spec resolve_subjects(
+          String.t(),
+          String.t(),
+          {:parties | :subs, [String.t(), ...]},
+          keyword()
+        ) ::
+          {:ok, %{resolved: [map()], unknown: [term()]}}
+          | {:error, :refused | :not_found}
+          | {:error, Relay.Error.t()}
+  def resolve_subjects(url, environment, {kind, [_ | _] = values}, opts \\ [])
+      when kind in [:parties, :subs] and is_binary(url) and is_binary(environment) do
+    with {:ok, client_id} <- client_id() do
+      body = %{
+        "environment" => environment,
+        "client_id" => client_id,
+        Atom.to_string(kind) => values
+      }
+
+      with {:ok, response} <- product_request(:post, url, body, opts),
+           do: resolution(response, {client_id, environment})
+    end
+  end
+
+  defp resolution(%Req.Response{status: 200, body: body}, asked) do
+    with {:ok, document, _raw} <- Http.json(body), do: resolved(document, asked)
+  end
+
+  defp resolution(%Req.Response{status: 400}, _asked), do: {:error, :refused}
+  defp resolution(%Req.Response{status: 404}, _asked), do: {:error, :not_found}
+
+  defp resolution(%Req.Response{status: 401}, _asked),
+    do: unreachable("Access refused Relay's client assertion")
+
+  defp resolution(%Req.Response{status: status}, _asked),
+    do: unreachable("Access answered #{status}")
+
+  defp resolved(document, {client_id, environment}) do
+    pairs = document["resolved"]
+    unknown = document["unknown"]
+    same? = document["client_id"] == client_id and document["environment"] == environment
+
+    if same? and is_list(pairs) and is_list(unknown),
+      do: {:ok, %{resolved: Enum.filter(pairs, &is_map/1), unknown: unknown}},
+      else: unreachable("Access answered the subject resolution of another request")
   end
 
   # E-100

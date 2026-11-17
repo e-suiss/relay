@@ -4,7 +4,7 @@ defmodule Relay.Operators do
 
   Relay keeps no users or passwords. An operator signs in through Access OpenID Connect (authorization code with PKCE); on the first sign-in Relay creates the operator record, keyed by the Access subject, and opens a session whose cookie value is stored only as a digest. The first installation operator is the Access subject configured as `config :relay, Relay.Operators, bootstrap_subject: sub`, assigned on its first sign-in while the installation has never had an installation operator; emergency access is Access break-glass. The CLI authenticates with a DPoP-bound Access access token whose audience is Relay's Access `client_id`, sent as `Authorization: DPoP` with a proof (E-98).
 
-  Sensitive operations need a step-up that is at most five minutes old and bound to the session, at the `acr` the installation configures; when Access offers the AuthZEN decision API, Access decides too (`config :relay, Relay.Operators, authzen: :when_offered | :required | :off`). Access that cannot be reached means the operation is not performed (`auth_step_up_unavailable`). Every audit record of an operator action carries the operator's Access subject and the Access record of its step-up or session (TN-48, E-31).
+  Sensitive operations need a step-up that is at most five minutes old and bound to the session, at least at AAL2 by Access's `acr` (AAL3 passes too; the installation can raise the threshold to AAL3, E-105); when Access offers the AuthZEN decision API, Access decides too (`config :relay, Relay.Operators, authzen: :when_offered | :required | :off`). Access that cannot be reached means the operation is not performed (`auth_step_up_unavailable`). Every audit record of an operator action carries the operator's Access subject and the Access record of its step-up or session (TN-48, E-31).
 
   The Access event consumer calls `Relay.Operators.AccessUserHandler` and `Relay.Operators.AccessSubscriberHandler` for the Access `account.suspended`, `account.reactivated` and `account.deleted` events that carry a pairwise `sub` (TN-20, TN-73, E-104) and `tenant_owner/2` for the owners named by `tenant.created` (API-79 (5)).
   """
@@ -310,8 +310,9 @@ defmodule Relay.Operators do
 
   # TN-21
   # E-27
+  # E-105
   @doc """
-  Records a completed step-up on a panel session. The ID token must belong to the session's operator, carry the configured `acr` and an authentication time inside the step-up window.
+  Records a completed step-up on a panel session. The ID token must belong to the session's operator, reach the required Authenticator Assurance Level (E-105) and carry an authentication time inside the step-up window.
   """
   @spec complete_step_up(Session.t(), String.t(), map(), String.t()) ::
           :ok | {:error, Relay.Error.t()}
@@ -337,31 +338,34 @@ defmodule Relay.Operators do
     do: {:error, Relay.Error.new(:auth_invalid_token, "the step-up belongs to another operator")}
 
   defp fresh_authentication(%DateTime{} = auth_time, acr) do
-    if within_window?(auth_time) and acr_satisfied?(acr),
-      do: :ok,
-      else: {:error, Relay.Error.new(:validation_failed, "the step-up is not recent enough")}
+    cond do
+      not Access.acr_satisfied?(acr) ->
+        {:error, Relay.Error.new(:validation_failed, "the step-up is below the required level")}
+
+      within_window?(auth_time) ->
+        :ok
+
+      true ->
+        {:error, Relay.Error.new(:validation_failed, "the step-up is not recent enough")}
+    end
   end
 
   defp fresh_authentication(_auth_time, _acr),
     do: {:error, Relay.Error.new(:validation_failed, "the step-up has no authentication time")}
 
   # TN-21
-  @doc "Returns true if the session's step-up is inside the window and at the required `acr`."
+  # E-105
+  @doc "Returns true if the session's step-up is inside the window and reaches the required Authenticator Assurance Level (E-105)."
   @spec step_up_fresh?(Session.t()) :: boolean()
   def step_up_fresh?(%Session{step_up_at: %DateTime{} = at, step_up_ref: ref, acr: acr})
       when is_binary(ref),
-      do: within_window?(at) and acr_satisfied?(acr)
+      do: within_window?(at) and Access.acr_satisfied?(acr)
 
   def step_up_fresh?(%Session{}), do: false
 
   defp within_window?(at) do
     age = DateTime.diff(Relay.Clock.utc_now(), at, :second)
     age >= -60 and age <= @step_up_window_s
-  end
-
-  defp acr_satisfied?(acr) do
-    required = Access.step_up_acr()
-    is_binary(acr) and required in String.split(acr, " ")
   end
 
   # TN-21

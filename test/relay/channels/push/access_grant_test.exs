@@ -14,6 +14,17 @@ defmodule Relay.Channels.Push.AccessGrantTest do
   end
 
   describe "CH-66 Access Grant" do
+    test "E-107: the Grant is asked as the critical action of the relay.interrupt namespace" do
+      assert AccessGrant.action() == %{namespace: "relay.interrupt", name: "critical"}
+    end
+
+    test "E-107: until Access names the endpoint every answer is fail-closed" do
+      for sender <- ["acc_client_1", "agent-1"] do
+        query = %{query() | sender_ref: sender}
+        assert Relay.Channels.critical_grant(query) == :unavailable
+      end
+    end
+
     test "CH-66: without an Access decision for the Grant the answer is unavailable" do
       assert {:error, %Relay.Error{code: :service_unavailable}} = AccessGrant.evaluate(query())
       assert Relay.Channels.critical_grant(query()) == :unavailable

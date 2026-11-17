@@ -31,7 +31,8 @@ defmodule Relay.Agents.CeilingTest do
     agent = F.body(F.request(:post, "/v1/agents", token, body), 201)
     client = FakeAccess.client!(scope, ["agent:send"])
     access_tenant = tenant.attrs.access_tenant_id
-    sender = FakeAccess.server_token(access_tenant, client, "agent:send", %{"sub" => party})
+    claims = %{"sub" => FakeAccess.pairwise(party)}
+    sender = FakeAccess.server_token(access_tenant, client, "agent:send", claims)
     %{tenant: tenant, scope: scope, token: token, sender: sender, workflow: key, agent: agent}
   end
 

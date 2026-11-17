@@ -1,6 +1,6 @@
 defmodule Relay.Agents.RegistryStore do
   @moduledoc """
-  Data access of the agent recipient records (`relay.agents`, C-21, E-28) through the `relay_fn.agent_*` functions. An agent is a recipient of kind `agent` whose external identifier is its Access Party reference; the agent row adds its name, owner, delivery endpoints and state. Rows are never deleted. Every function except `in_scope/2` runs inside `Relay.Repo.in_scope/3`.
+  Data access of the agent recipient records (`relay.agents`, C-21, E-28) through the `relay_fn.agent_*` functions. An agent is a recipient of kind `agent` whose external identifier is its Access Party reference; the agent row adds its name, owner, delivery endpoints, state and the pairwise `sub` of its Access tokens in Relay's sector, encrypted and blind-indexed (E-106). Rows are never deleted. Every function except `in_scope/2` runs inside `Relay.Repo.in_scope/3`.
   """
 
   alias Relay.Actor
@@ -29,6 +29,7 @@ defmodule Relay.Agents.RegistryStore do
   @updated ~w(updated version_conflict not_found deleted endpoint_not_found topic_not_found
               topic_archived)a
   @state ~w(suspended reactivated deleted unchanged not_found)a
+  @bound ~w(bound unchanged sub_conflict deleted not_found)a
 
   @type id :: Relay.Id.t()
   @type bidxs :: [binary()] | nil
@@ -131,6 +132,40 @@ defmodule Relay.Agents.RegistryStore do
       %{"id" => id, "state" => state} -> %{id: id, state: state}
       nil -> nil
     end
+  end
+
+  # E-106
+  # AG-6
+  @doc "The identifier and state of the agent whose pairwise Access `sub` has one of these blind indexes, or `nil`."
+  @spec by_sub([binary()]) :: %{id: id(), state: String.t()} | nil
+  def by_sub(bidxs) do
+    sql = "SELECT a.id, a.state FROM relay.agents a WHERE a.access_sub_bidx = ANY ($1)"
+
+    case one(sql, [bidxs]) do
+      %{"id" => id, "state" => state} -> %{id: id, state: state}
+      nil -> nil
+    end
+  end
+
+  # E-106
+  @doc "Returns true if an agent that is not deleted has no pairwise Access `sub` yet: a record created before E-106."
+  @spec unbound?() :: boolean()
+  def unbound? do
+    sql = """
+    SELECT EXISTS (SELECT 1 FROM relay.agents a
+      WHERE a.state <> 'deleted' AND a.access_sub_bidx IS NULL) AS unbound
+    """
+
+    match?(%{"unbound" => true}, one(sql, []))
+  end
+
+  # E-106
+  # AG-75
+  @doc "Binds the pairwise Access `sub` (its blind index and its encrypted value) to the agent named by its identifier or by the blind indexes of its Access Party; returns the result and the agent: `:bound`, `:unchanged` (it holds this `sub`), `:sub_conflict` (it or another agent holds another binding), `:deleted` or `:not_found`."
+  @spec bind_sub(id() | nil, bidxs(), binary(), binary()) :: {atom(), id() | nil}
+  def bind_sub(id, party_bidxs, sub_bidx, sub_ct) do
+    [row] = Repo.call!("relay_fn.agent_bind_sub", [id, party_bidxs, sub_bidx, sub_ct])
+    {Repo.code!(row["result"], @bound), row["agent_id"]}
   end
 
   # AG-5

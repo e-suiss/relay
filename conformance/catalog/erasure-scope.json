@@ -881,9 +881,12 @@
     },
     {
       "table": "agents",
-      "personal_columns": [],
+      "personal_columns": [
+        "access_sub_ct",
+        "access_sub_bidx"
+      ],
       "tenant_close": "rows kept",
-      "subject_erasure": "holds no personal column: the name and the owner reference are tenant labels that must not carry personal data, and the Access Party reference is the recipient's external identifier in recipients, sealed under the recipient_profile key and erased with it; erasing the recipient marks the row deleted"
+      "subject_erasure": "access_sub_ct is sealed under the recipient_profile key of the agent and becomes unreadable when it is destroyed; access_sub_bidx is set to null when the record or its recipient is deleted or erased, so the sub can be bound again; the name and the owner reference are tenant labels that must not carry personal data, and the Access Party reference is the recipient's external identifier in recipients, erased with it; erasing the recipient marks the row deleted"
     },
     {
       "table": "dsr_log",

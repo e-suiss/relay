@@ -14,6 +14,7 @@ defmodule Relay.Operators do
     deps: [
       Relay,
       Relay.Access,
+      Relay.Agents,
       Relay.Audit,
       Relay.Datasets,
       Relay.Delivery,
@@ -33,7 +34,8 @@ defmodule Relay.Operators do
       SuspensionActivator,
       SubscriberSuspension,
       AccessUserHandler,
-      AccessSubscriberHandler
+      AccessSubscriberHandler,
+      AccessAgentHandler
     ]
 
   require Logger

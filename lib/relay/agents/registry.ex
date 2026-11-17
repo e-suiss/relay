@@ -4,7 +4,7 @@ defmodule Relay.Agents.Registry do
 
   The record is bound to the agent's Access identity (E-29, TN-25): the recipient's external identifier is the Access Party reference, the pairwise `sub` of the agent's Access token in Relay's sector, stored encrypted and found through its blind index like a subscriber's external identifier. A credential whose `sub` is that reference is the agent's (`credential/2`). Access's `agent.suspended` and `agent.deleted` events stop delivery to the agent and the agent's own requests, and `agent.reactivated` lifts a suspension (`access_changed/4`); the mailbox is suspended with the agent and is never deleted, so its records stay under their retention rule (AG-23, INV-47). Deleting a record is a soft delete: the row stays `deleted`, its Access Party reference leaves the blind index so that the Party can be bound again, and its mailbox stays.
 
-  A write happens in two parts, like a subscriber's: `prepare/2` runs outside any transaction and takes the blind index, the data key and the encrypted Party reference from the key store; `create/3`, `update/5` and `delete/3` run inside the caller's scoped transaction.
+  A write happens in two parts, like a subscriber's: `prepare/2` runs outside any transaction and takes the blind index, the data key and the encrypted Party reference from the key store, through the keyring step configured as `config :relay, Relay.Agents, keyring: Module`, by default `Relay.Tenancy`; `create/3`, `update/5` and `delete/3` run inside the caller's scoped transaction.
   """
 
   alias Relay.Actor
@@ -12,6 +12,7 @@ defmodule Relay.Agents.Registry do
   alias Relay.Scope
 
   @access_states %{suspended: "suspended", reactivated: "active", deleted: "deleted"}
+  @keyring Relay.Tenancy
 
   @type id :: Relay.Id.t()
   @type input :: %{
@@ -43,11 +44,13 @@ defmodule Relay.Agents.Registry do
   def prepare(%Scope{} = scope, %{party: party} = input) when is_binary(party) do
     id = Relay.Id.generate()
 
-    with {:ok, {bidx_key_id, bidx}} <- Relay.Tenancy.blind_index(index(scope), party),
-         {:ok, wrapping_key_id} <- Relay.Tenancy.active_tenant_key(scope, :dek_wrap),
+    keyring = keyring()
+
+    with {:ok, {bidx_key_id, bidx}} <- keyring.blind_index(index(scope), party),
+         {:ok, wrapping_key_id} <- keyring.active_tenant_key(scope, :dek_wrap),
          {:ok, %{wrapped_dek: wrapped, data_key: key}} <-
-           Relay.Tenancy.generate_subject_key(scope, wrapping_key_id, id, :recipient_profile),
-         {:ok, party_ct} <- Relay.Tenancy.encrypt_field(field(scope, id), party, data_key: key) do
+           keyring.generate_subject_key(scope, wrapping_key_id, id, :recipient_profile),
+         {:ok, party_ct} <- keyring.encrypt_field(field(scope, id), party, data_key: key) do
       {:ok,
        %{
          id: id,
@@ -112,8 +115,11 @@ defmodule Relay.Agents.Registry do
   @doc "Reads an agent with its Access Party reference, decrypted outside the transaction, or `nil`."
   @spec get(Scope.t(), id()) :: {:ok, agent() | nil} | {:error, term()}
   def get(%Scope{} = scope, id) do
-    with {:ok, row} <- Store.in_scope(scope, fn _status -> Store.get(id) end),
-         do: {:ok, row && opened(scope, row)}
+    case Store.in_scope(scope, fn _status -> Store.get(id) end) do
+      {:ok, nil} -> {:ok, nil}
+      {:ok, row} -> {:ok, opened(scope, row)}
+      {:error, error} -> {:error, error}
+    end
   end
 
   # C-21
@@ -187,7 +193,7 @@ defmodule Relay.Agents.Registry do
   end
 
   defp digests(scope, subject) do
-    with {:ok, entries} <- Relay.Tenancy.blind_index_digests(index(scope), subject),
+    with {:ok, entries} <- keyring().blind_index_digests(index(scope), subject),
          do: {:ok, Enum.map(entries, &elem(&1, 1))}
   end
 
@@ -199,11 +205,14 @@ defmodule Relay.Agents.Registry do
   defp party(_scope, %{"external_id_ct" => nil}), do: nil
 
   defp party(scope, %{"id" => id, "external_id_ct" => ct}) do
-    case Relay.Tenancy.decrypt_field(field(scope, id), ct) do
+    case keyring().decrypt_field(field(scope, id), ct) do
       {:ok, value} -> Relay.Redacted.expose(value)
       {:error, _error} -> nil
     end
   end
+
+  defp keyring,
+    do: :relay |> Application.get_env(Relay.Agents, []) |> Keyword.get(:keyring, @keyring)
 
   defp index(scope),
     do: %{tenant_id: scope.tenant_id, environment: scope.environment, purpose: "external_id"}

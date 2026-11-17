@@ -121,17 +121,16 @@ defmodule Relay.Agents.RegistryStore do
   @doc "The identifier and state of the agent whose Access Party reference has one of these blind indexes, or `nil`."
   @spec by_party([binary()]) :: %{id: id(), state: String.t()} | nil
   def by_party(bidxs) do
-    row =
-      one(
-        """
-        SELECT a.id, a.state FROM #{@agents}
-        WHERE r.kind = 'agent'
-          AND (r.external_id_bidx = ANY ($1) OR r.external_id_bidx_next = ANY ($1))
-        """,
-        [bidxs]
-      )
+    sql = """
+    SELECT a.id, a.state FROM #{@agents}
+    WHERE r.kind = 'agent'
+      AND (r.external_id_bidx = ANY ($1) OR r.external_id_bidx_next = ANY ($1))
+    """
 
-    row && %{id: row["id"], state: row["state"]}
+    case one(sql, [bidxs]) do
+      %{"id" => id, "state" => state} -> %{id: id, state: state}
+      nil -> nil
+    end
   end
 
   # AG-5

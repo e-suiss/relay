@@ -58,7 +58,8 @@ defmodule Relay.Repo.Migrations.CreateAgents do
         name text NOT NULL
           CONSTRAINT agents_name_check CHECK (char_length(name) BETWEEN 1 AND 200),
         owner_ref text NOT NULL
-          CONSTRAINT agents_owner_ref_check CHECK (owner_ref ~ '^[\x20-\x7E]{1,256}$'),
+          CONSTRAINT agents_owner_ref_check
+            CHECK (char_length(owner_ref) BETWEEN 1 AND 256 AND owner_ref ~ '^[\x20-\x7E]+$'),
         webhook_endpoint_id uuid,
         a2a_push_endpoint_id uuid,
         realtime boolean NOT NULL,

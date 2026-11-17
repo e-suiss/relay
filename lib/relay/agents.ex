@@ -3,7 +3,7 @@ defmodule Relay.Agents do
   Agent recipient records, waitpoints, agent mailboxes and agent protocols. Other contexts use only the functions of this module.
   """
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Access, Relay.Tenancy], exports: []
+  use Boundary, top_level?: true, deps: [Relay], exports: []
 
   alias Relay.Agents.Correlation
   alias Relay.Agents.Registry
@@ -68,6 +68,20 @@ defmodule Relay.Agents do
   @doc "The state of an agent recipient, or `nil`; see `Relay.Agents.Registry.state/2`. Whoever delivers to an agent or serves it reads this first: only an `active` agent is delivered to."
   @spec agent_state(Relay.Scope.t(), Relay.Id.t()) :: {:ok, String.t() | nil} | {:error, term()}
   defdelegate agent_state(scope, id), to: Registry, as: :state
+
+  # E-29
+  # AG-5
+  # INV-47
+  @doc "Reflects an Access agent lifecycle event on the agent of a scope bound to an Access Party; see `Relay.Agents.Registry.access_changed/4`."
+  @spec agent_access_changed(
+          Relay.Scope.t(),
+          :suspended | :reactivated | :deleted,
+          String.t(),
+          String.t()
+        ) :: :ok | {:error, term()}
+  defdelegate agent_access_changed(scope, kind, subject, event_ref),
+    to: Registry,
+    as: :access_changed
 
   # TN-48
   @doc "A record digest over an action, the scope and a reference; see `Relay.Agents.Registry.digest/3`."

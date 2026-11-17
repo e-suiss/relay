@@ -110,7 +110,7 @@ config :relay, Relay.Access,
   event_receiver: "https://localhost/v1/access/events",
   autoload: true,
   user_handlers: [Relay.Operators.AccessUserHandler, Relay.Operators.AccessSubscriberHandler],
-  agent_handlers: [Relay.Agents.AccessHandler],
+  agent_handlers: [Relay.Operators.AccessAgentHandler],
   consent_handler: Relay.Preferences.AccessConsentHandler
 
 config :relay, Relay.Iys, runtime: Relay.Iys.Live

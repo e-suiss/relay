@@ -1,8 +1,8 @@
 defmodule RelayWeb.Api.AgentsTest do
   use Relay.DataCase, async: false
 
-  alias Relay.Agents.AccessHandler
   alias Relay.Api.Contract
+  alias Relay.Operators.AccessAgentHandler
   alias Relay.Repo
   alias RelayTest.Api
   alias RelayTest.FakeAccess
@@ -286,9 +286,10 @@ defmodule RelayWeb.Api.AgentsTest do
       foreign = %{tenant: stranger, scope: stranger.test, token: F.token(stranger.test)}
       same_party = agent!(foreign, %{"access" => %{"party" => bound}})
 
-      assert :ok = AccessHandler.handle_agent_event(ctx.scope, :suspended, bound, "evt-1")
-      assert :ok = AccessHandler.handle_agent_event(ctx.scope, :suspended, party(), "evt-2")
-      assert :ok = AccessHandler.handle_agent_event(ctx.tenant.live, :suspended, bound, "evt-3")
+      assert :ok = AccessAgentHandler.handle_agent_event(ctx.scope, :suspended, bound, "evt-1")
+      assert :ok = AccessAgentHandler.handle_agent_event(ctx.scope, :suspended, party(), "evt-2")
+      live = ctx.tenant.live
+      assert :ok = AccessAgentHandler.handle_agent_event(live, :suspended, bound, "evt-3")
 
       assert get(ctx, "/v1/agents/" <> created["id"])["state"] == "suspended"
       assert get(ctx, "/v1/agents/" <> other["id"])["state"] == "active"

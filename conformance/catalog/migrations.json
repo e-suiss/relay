@@ -266,7 +266,7 @@
   {"file": "20261225000100_create_iys_permission_functions.exs", "sha256": "990dc0ab9dd47fc936e304c882bf9b85e1f6555152ba88d7c0078d6f31a91db0"},
   {"file": "20261225000200_rebuild_reference_check_for_iys_permissions.exs", "sha256": "f3429868e340db1af454e569344a0033fd4a82af5bc087d2e063997b76f1f00a"},
   {"file": "20261226000000_add_agent_scopes.exs", "sha256": "3b1e1206ee1bccd0249477246e155747a3b85ca3e2c8c0a803020aaf2363aefc"},
-  {"file": "20261226000100_create_agents.exs", "sha256": "310a82431d6b342a45b2ea4a3de05cb90d9add3780c81ad486a0589c7b86cdbe"},
+  {"file": "20261226000100_create_agents.exs", "sha256": "42ec6801aed68c66528615dc67eb5e042d08fa5f5138624047a28c915323e932"},
   {"file": "20261226000200_create_agent_functions.exs", "sha256": "159a4ee800f1af918bc1d04b874a830bfff3daa6dc62da4bba2c2856f85bc664"},
   {"file": "20261226000300_rebuild_reference_check_for_agents.exs", "sha256": "77472ef64d707ab34346575e3eaf3fe8739e6cbda2dab8439f7942ef8f7adbe6"},
   {"file": "20261226000400_validate_agent_scope_checks.exs", "sha256": "8567b226d9b230108b37348af0f534851d1656f4a4e8fab39115510a9d8e8d5b"}

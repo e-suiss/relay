@@ -4,6 +4,7 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingFunctions do
   @actor "text, text, text, text"
 
   @functions [
+    "relay_fn.agent_ceiling_attribute(uuid, uuid)",
     "relay_fn.agent_ceiling_pass(uuid, uuid)",
     "relay_fn.agent_ceiling_hold(uuid, uuid, uuid, text)",
     "relay_fn.agent_ceiling_decide(uuid, uuid, uuid, text, text, text, bytea, #{@actor})",
@@ -22,7 +23,7 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingFunctions do
   # TN-47
   # OP-8
   def up do
-    Enum.each([pass(), hold(), decide(), apply_decision(), resume()], &execute/1)
+    Enum.each([attribute(), pass(), hold(), decide(), apply_decision(), resume()], &execute/1)
 
     for signature <- @functions do
       execute("REVOKE ALL ON FUNCTION #{signature} FROM PUBLIC")
@@ -40,6 +41,45 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingFunctions do
   end
 
   def down, do: :ok
+
+  defp attribute do
+    ~S"""
+    CREATE FUNCTION relay_fn.agent_ceiling_attribute(p_notification_id uuid, p_agent_ref uuid)
+      RETURNS text
+    LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+    SET search_path = pg_catalog, pg_temp
+    SET TimeZone = 'UTC'
+    AS $fn$
+    DECLARE
+      v_tenant uuid := relay_private.ctx_tenant_id();
+      v_env relay.environment := relay_private.ctx_environment();
+      v_sender text;
+    BEGIN
+      IF p_notification_id IS NULL OR p_agent_ref IS NULL THEN
+        RAISE EXCEPTION 'invalid_argument' USING HINT = 'AG-48';
+      END IF;
+      SELECT n.sender_type INTO v_sender FROM relay.notifications n
+        WHERE n.tenant_id = v_tenant AND n.environment = v_env AND n.id = p_notification_id;
+      IF NOT FOUND THEN
+        RETURN 'not_found';
+      END IF;
+      IF v_sender <> 'agent' THEN
+        RAISE EXCEPTION 'invalid_argument' USING HINT = 'INV-34';
+      END IF;
+      INSERT INTO relay.agent_ceiling_holds (tenant_id, environment, notification_id, agent_ref,
+        state, rule_id, ceiling_event_id, decision_id, expires_at, held_at, decided_at,
+        applied_at, created_at, updated_at)
+      VALUES (v_tenant, v_env, p_notification_id, p_agent_ref, 'pending', NULL, NULL, NULL, NULL,
+        NULL, NULL, NULL, now(), now())
+      ON CONFLICT (tenant_id, environment, notification_id) DO NOTHING;
+      IF FOUND THEN
+        RETURN 'attributed';
+      END IF;
+      RETURN 'exists';
+    END
+    $fn$
+    """
+  end
 
   defp pass do
     ~S"""
@@ -77,7 +117,14 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingFunctions do
       END IF;
       SELECT h.state INTO v_state FROM relay.agent_ceiling_holds h
         WHERE h.tenant_id = v_tenant AND h.environment = v_env
-          AND h.notification_id = p_notification_id;
+          AND h.notification_id = p_notification_id
+        FOR UPDATE;
+      IF v_state = 'pending' THEN
+        UPDATE relay.agent_ceiling_holds h SET state = 'passed', updated_at = now()
+          WHERE h.tenant_id = v_tenant AND h.environment = v_env
+            AND h.notification_id = p_notification_id;
+        RETURN 'passed';
+      END IF;
       IF v_state = 'passed' THEN
         RETURN 'already_passed';
       END IF;
@@ -104,6 +151,7 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingFunctions do
       v_notification relay.notifications;
       v_hold relay.agent_ceiling_holds;
       v_known boolean;
+      v_pending boolean;
       v_event_id uuid;
       v_rule text := p_rule_id;
       v_count bigint;
@@ -129,7 +177,8 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingFunctions do
         WHERE h.tenant_id = v_tenant AND h.environment = v_env
           AND h.notification_id = v_notification.id
         FOR UPDATE;
-      v_known := FOUND;
+      v_known := FOUND AND v_hold.state <> 'pending';
+      v_pending := FOUND AND v_hold.state = 'pending';
       IF v_known AND v_hold.state <> 'held' THEN
         RETURN QUERY SELECT v_hold.state, v_hold.ceiling_event_id, NULL::bigint;
         RETURN;
@@ -155,11 +204,19 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingFunctions do
             jsonb_build_object('agent_id', p_agent_ref, 'held_count', 1),
             v_delivery.traceparent);
         END IF;
-        INSERT INTO relay.agent_ceiling_holds (tenant_id, environment, notification_id,
-          agent_ref, state, rule_id, ceiling_event_id, decision_id, expires_at, held_at,
-          decided_at, applied_at, created_at, updated_at)
-        VALUES (v_tenant, v_env, v_notification.id, p_agent_ref, 'held', p_rule_id, v_event_id,
-          NULL, v_notification.expires_at, now(), NULL, NULL, now(), now());
+        IF v_pending THEN
+          UPDATE relay.agent_ceiling_holds h
+            SET state = 'held', rule_id = p_rule_id, ceiling_event_id = v_event_id,
+              expires_at = v_notification.expires_at, held_at = now(), updated_at = now()
+            WHERE h.tenant_id = v_tenant AND h.environment = v_env
+              AND h.notification_id = v_notification.id;
+        ELSE
+          INSERT INTO relay.agent_ceiling_holds (tenant_id, environment, notification_id,
+            agent_ref, state, rule_id, ceiling_event_id, decision_id, expires_at, held_at,
+            decided_at, applied_at, created_at, updated_at)
+          VALUES (v_tenant, v_env, v_notification.id, p_agent_ref, 'held', p_rule_id, v_event_id,
+            NULL, v_notification.expires_at, now(), NULL, NULL, now(), now());
+        END IF;
         UPDATE relay.agent_ceiling_events e SET held_count = e.held_count + 1, updated_at = now()
           WHERE e.tenant_id = v_tenant AND e.environment = v_env AND e.id = v_event_id
           RETURNING e.held_count INTO v_count;
@@ -194,7 +251,7 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingFunctions do
         OR p_actor_ref IS NULL OR p_record_digest IS NULL THEN
         RAISE EXCEPTION 'invalid_argument' USING HINT = 'AG-49';
       END IF;
-      IF NOT EXISTS (SELECT 1 FROM relay.api_clients c
+      IF NOT EXISTS (SELECT 1 FROM relay.agents c
         WHERE c.tenant_id = v_tenant AND c.environment = v_env AND c.id = p_agent_ref) THEN
         RETURN QUERY SELECT 'agent_not_found'::text, NULL::uuid, NULL::bigint;
         RETURN;
@@ -350,7 +407,7 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingFunctions do
         OR p_record_digest IS NULL THEN
         RAISE EXCEPTION 'invalid_argument' USING HINT = 'AG-49';
       END IF;
-      SELECT c.created_at INTO v_created FROM relay.api_clients c
+      SELECT c.created_at INTO v_created FROM relay.agents c
         WHERE c.tenant_id = v_tenant AND c.environment = v_env AND c.id = p_agent_ref;
       IF NOT FOUND THEN
         RETURN QUERY SELECT 'agent_not_found'::text, NULL::timestamptz;

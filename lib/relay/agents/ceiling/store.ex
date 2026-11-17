@@ -11,6 +11,7 @@ defmodule Relay.Agents.Ceiling.Store do
 
   @hour_key "agents.ceiling.per_hour"
   @day_key "agents.ceiling.per_day"
+  @attributed ~w(attributed exists not_found)a
   @passed ~w(passed already_passed held released cancelled expired not_found)a
   @held ~w(held passed released cancelled expired not_found)a
   @decided ~w(decided exists conflict step_up_required agent_not_found ceiling_event_not_found)a
@@ -18,15 +19,15 @@ defmodule Relay.Agents.Ceiling.Store do
   @outcomes ~w(resumed cancelled expired none)a
 
   @status """
-  SELECT (SELECT h.state FROM relay.agent_ceiling_holds h WHERE h.notification_id = $1)
-      AS hold_state,
+  SELECT h.state AS hold_state, h.agent_ref,
     EXISTS (SELECT 1 FROM relay.agent_run_states s
-      WHERE s.agent_ref = $2 AND s.state = 'stopped') AS stopped
+      WHERE s.agent_ref = h.agent_ref AND s.state = 'stopped') AS stopped
+  FROM relay.agent_ceiling_holds h WHERE h.notification_id = $1
   """
 
   @run_state """
   SELECT c.id AS agent_ref, c.created_at, s.state, s.decision_ref, s.changed_at
-  FROM relay.api_clients c
+  FROM relay.agents c
   LEFT JOIN relay.agent_run_states s ON s.tenant_id = c.tenant_id
     AND s.environment = c.environment AND s.agent_ref = c.id
   WHERE c.id = $1
@@ -47,27 +48,34 @@ defmodule Relay.Agents.Ceiling.Store do
 
   # AG-48
   # AG-70
-  @doc "What the ceiling check reads for a notification of an agent: the state of its record (`nil` when it has none), whether the agent is stopped and the tenant's own ceiling values."
-  @spec status(id(), id()) :: %{
-          hold_state: String.t() | nil,
-          stopped: boolean(),
-          per_hour: term(),
-          per_day: term()
-        }
-  def status(notification_id, agent_ref) do
-    [row] = all(@status, [notification_id, agent_ref])
+  @doc "What the ceiling check reads for a notification attributed to an agent: the agent, the state of the notification's record, whether the agent is stopped and the tenant's own ceiling values; `nil` for a notification no agent is named for."
+  @spec status(id()) :: map() | nil
+  def status(notification_id) do
+    case one(@status, [notification_id]) do
+      nil -> nil
+      row -> Map.merge(limits(), status_of(row))
+    end
+  end
 
+  defp status_of(row),
+    do: %{agent_ref: row["agent_ref"], hold_state: row["hold_state"], stopped: row["stopped"]}
+
+  defp limits do
     settings =
       for setting <- Repo.call!("relay_fn.setting_resolve", [nil, [@hour_key, @day_key]]),
           into: %{},
           do: {setting["key"], setting["value"]}
 
-    %{
-      hold_state: row["hold_state"],
-      stopped: row["stopped"],
-      per_hour: settings[@hour_key],
-      per_day: settings[@day_key]
-    }
+    %{per_hour: settings[@hour_key], per_day: settings[@day_key]}
+  end
+
+  # AG-48
+  # E-56
+  @doc "Attributes a notification of sender type `agent` to the agent whose credential sent it; an attributed notification keeps its agent."
+  @spec attribute(id(), id()) :: :attributed | :exists | :not_found
+  def attribute(notification_id, agent_ref) do
+    [row] = Repo.call!("relay_fn.agent_ceiling_attribute", [notification_id, agent_ref])
+    Repo.code!(row["agent_ceiling_attribute"], @attributed)
   end
 
   # AG-48
@@ -129,7 +137,7 @@ defmodule Relay.Agents.Ceiling.Store do
   end
 
   # AG-49
-  @doc "The run state of an agent sender, or `nil` when the scope has no such sender: `state` and `decision_ref` are `nil` for an agent no decision ever stopped."
+  @doc "The run state of an agent, or `nil` when the scope has no such agent: `state` and `decision_ref` are `nil` for an agent no decision ever stopped."
   @spec run_state(id()) :: map() | nil
   def run_state(agent_ref), do: one(@run_state, [agent_ref])
 

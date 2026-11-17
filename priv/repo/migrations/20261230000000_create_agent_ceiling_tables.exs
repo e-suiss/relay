@@ -95,7 +95,7 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingTables do
         agent_ref uuid NOT NULL,
         state text NOT NULL
           CONSTRAINT agent_ceiling_holds_state_check
-            CHECK (state IN ('passed', 'held', 'released', 'cancelled', 'expired')),
+            CHECK (state IN ('pending', 'passed', 'held', 'released', 'cancelled', 'expired')),
         rule_id text
           CONSTRAINT agent_ceiling_holds_rule_id_check
             CHECK (rule_id IN ('agent_ceiling.exceeded', 'agent_ceiling.counter_unreadable')),
@@ -109,9 +109,9 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingTables do
         updated_at timestamptz NOT NULL,
         CONSTRAINT agent_ceiling_holds_pkey PRIMARY KEY (tenant_id, environment, notification_id),
         CONSTRAINT agent_ceiling_holds_held_check
-          CHECK ((state = 'passed') = (held_at IS NULL)
-            AND (state = 'passed') = (rule_id IS NULL)
-            AND (state = 'passed') = (ceiling_event_id IS NULL)),
+          CHECK ((state IN ('pending', 'passed')) = (held_at IS NULL)
+            AND (state IN ('pending', 'passed')) = (rule_id IS NULL)
+            AND (state IN ('pending', 'passed')) = (ceiling_event_id IS NULL)),
         CONSTRAINT agent_ceiling_holds_decided_check
           CHECK ((state IN ('released', 'cancelled', 'expired')) = (decision_id IS NOT NULL)
             AND (decision_id IS NULL) = (decided_at IS NULL)),

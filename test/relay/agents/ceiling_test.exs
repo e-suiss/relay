@@ -9,25 +9,28 @@ defmodule Relay.Agents.CeilingTest do
   alias RelayTest.OutboxEvents
   alias RelayTest.TenantFixture
 
-  @scopes ["publish", "read", "subscribers", "config", "kill_switch"]
   @exceeded "agent_ceiling.exceeded"
   @unreadable "agent_ceiling.counter_unreadable"
   @delivery "SELECT paused_at, pause_rule_id::text, failure_kind FROM relay.deliveries WHERE id = $1"
 
   setup do
+    :ok = FakeAccess.install!()
     tenant = TenantFixture.tenant!()
-    Map.put(world(tenant.live), :tenant, tenant)
+    world(tenant, tenant.live)
   end
 
-  defp world(scope) do
-    access_client = FakeAccess.client!(scope, @scopes)
-    clients = "SELECT id FROM relay.api_clients WHERE access_client_id = $1"
-    [[client]] = sql!(scope, clients, [access_client])
-    cli = Relay.ExternalId.encode("cli", client)
-    token = RelayTest.Api.token(scope, @scopes, api_client_id: cli)
+  defp world(tenant, scope) do
+    token = F.token(scope)
     key = "agent-" <> TenantFixture.random()
     F.workflow!(scope, token, key, category: "orders", message_class: "transactional")
-    %{scope: scope, token: token, workflow: key}
+    party = "agent-" <> TenantFixture.random()
+    access = %{"party" => party}
+    body = %{"name" => "Billing agent", "owner_ref" => "work:team-7", "access" => access}
+    agent = F.body(F.request(:post, "/v1/agents", token, body), 201)
+    client = FakeAccess.client!(scope, ["agent:send"])
+    access_tenant = tenant.attrs.access_tenant_id
+    sender = FakeAccess.server_token(access_tenant, client, "agent:send", %{"sub" => party})
+    %{tenant: tenant, scope: scope, token: token, sender: sender, workflow: key, agent: agent}
   end
 
   defp sql!(scope, sql, params) do
@@ -72,8 +75,10 @@ defmodule Relay.Agents.CeilingTest do
   defp send!(ctx, sender, extra \\ %{}) do
     to = %{"id" => "user-" <> TenantFixture.random(), "email" => "ayse@example.com"}
     body = %{"workflow" => ctx.workflow, "to" => [to], "data" => %{"order" => "A-1"}}
-    body = if sender, do: Map.put(body, "actor", %{"type" => sender}), else: body
-    accepted = F.body(F.request(:post, "/v1/events", ctx.token, Map.merge(body, extra)), 202)
+    named? = sender in ["human", "system"]
+    body = if named?, do: Map.put(body, "actor", %{"type" => sender}), else: body
+    token = if sender == "agent", do: ctx.sender, else: ctx.token
+    accepted = F.body(F.request(:post, "/v1/events", token, Map.merge(body, extra)), 202)
     [%{"notification_id" => notification}] = accepted["notifications"]
     path = "/v1/notifications/#{notification}/deliveries"
     [delivery | _] = F.body(F.request(:get, path, ctx.token), 200)["data"]
@@ -85,8 +90,7 @@ defmodule Relay.Agents.CeilingTest do
   defp job(ctx, sent), do: Relay.Policy.Live.job(ctx.scope, sent.delivery_id)
 
   defp agent(scope) do
-    sql = "SELECT api_client_id FROM relay.events WHERE sender_type = 'agent' LIMIT 1"
-    [[id]] = sql!(scope, sql, [])
+    [[id]] = sql!(scope, "SELECT id FROM relay.agents", [])
     id
   end
 
@@ -324,7 +328,7 @@ defmodule Relay.Agents.CeilingTest do
 
     test "AG-49: a held notification past its expires_at is expired on release", ctx do
       with_counter(counter(), fn ->
-        ctx = world(ctx.tenant.test)
+        ctx = world(ctx.tenant, ctx.tenant.test)
         lower!(ctx.scope, "agents.ceiling.per_hour", 1)
         assert {:send, _info} = job(ctx, send!(ctx, "agent"))
         expires_at = DateTime.add(DateTime.utc_now(), 600, :second)

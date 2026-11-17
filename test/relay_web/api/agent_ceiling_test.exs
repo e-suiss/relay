@@ -9,20 +9,23 @@ defmodule RelayWeb.Api.AgentCeilingTest do
   alias RelayTest.OutboxEvents
   alias RelayTest.TenantFixture
 
-  @scopes ["publish", "read", "subscribers", "config", "kill_switch"]
-
   setup do
+    :ok = FakeAccess.install!()
     tenant = TenantFixture.tenant!()
     scope = tenant.live
-    access_client = FakeAccess.client!(scope, @scopes)
-    clients = "SELECT id FROM relay.api_clients WHERE access_client_id = $1"
-    [[client]] = sql!(scope, clients, [access_client])
-    cli = Relay.ExternalId.encode("cli", client)
-    token = RelayTest.Api.token(scope, ["agents" | @scopes], api_client_id: cli)
+    token = F.token(scope)
     key = "agent-" <> TenantFixture.random()
     F.workflow!(scope, token, key, category: "orders", message_class: "transactional")
-    agent = Relay.ExternalId.encode("agt", client)
-    %{scope: scope, token: token, workflow: key, client: client, agent: "/v1/agents/" <> agent}
+    party = "agent-" <> TenantFixture.random()
+    access = %{"party" => party}
+    body = %{"name" => "Billing agent", "owner_ref" => "work:team-7", "access" => access}
+    %{"id" => agent} = F.body(F.request(:post, "/v1/agents", token, body), 201)
+    {:ok, client} = Relay.ExternalId.decode(agent, ["agt"])
+    credential = FakeAccess.client!(scope, ["agent:send"])
+    access_tenant = tenant.attrs.access_tenant_id
+    sender = FakeAccess.server_token(access_tenant, credential, "agent:send", %{"sub" => party})
+    path = "/v1/agents/" <> agent
+    %{scope: scope, token: token, sender: sender, workflow: key, client: client, agent: path}
   end
 
   defp sql!(scope, sql, params) do
@@ -54,10 +57,8 @@ defmodule RelayWeb.Api.AgentCeilingTest do
 
   defp send!(ctx) do
     to = %{"id" => "user-" <> TenantFixture.random(), "email" => "ayse@example.com"}
-    actor = %{"type" => "agent"}
     body = %{"workflow" => ctx.workflow, "to" => [to], "data" => %{"order" => "A-1"}}
-    body = Map.put(body, "actor", actor)
-    accepted = F.body(F.request(:post, "/v1/events", ctx.token, body), 202)
+    accepted = F.body(F.request(:post, "/v1/events", ctx.sender, body), 202)
     [%{"notification_id" => notification}] = accepted["notifications"]
     path = "/v1/notifications/#{notification}/deliveries"
     [delivery | _] = F.body(F.request(:get, path, ctx.token), 200)["data"]

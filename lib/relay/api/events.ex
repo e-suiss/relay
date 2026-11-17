@@ -118,6 +118,7 @@ defmodule Relay.Api.Events do
          dedup_key: request.dedup_key || Keyword.get(opts, :dedup_key),
          traceparent: (cloudevent && cloudevent["traceparent"]) || Map.get(ctx, :traceparent),
          api_client_id: api_client(Map.get(ctx, :api_client_id)),
+         agent_id: Map.get(ctx, :agent_id),
          correlation_digests: digests,
          webhook_events: hooks
        }}
@@ -828,15 +829,24 @@ defmodule Relay.Api.Events do
 
     case Relay.Ingest.event_notification_accept(attrs) do
       {:subtenant_not_found, _id, _original} ->
-        open_mismatch(%{attrs | id: Relay.Id.generate(), subtenant_id: nil})
+        open_mismatch(%{attrs | id: Relay.Id.generate(), subtenant_id: nil}, p)
 
       result ->
-        notification_result(result, p.subtenant == :mismatch)
+        notification_result(attributed(result, p), p.subtenant == :mismatch)
     end
   end
 
-  defp open_mismatch(attrs),
-    do: notification_result(Relay.Ingest.event_notification_accept(attrs), true)
+  defp open_mismatch(attrs, p),
+    do: notification_result(attributed(Relay.Ingest.event_notification_accept(attrs), p), true)
+
+  # AG-48
+  # E-56
+  defp attributed({:created, id, _original} = result, %{agent_id: <<_::128>> = agent_id}) do
+    _attributed = Relay.Agents.Ceiling.attribute_here(id, agent_id)
+    result
+  end
+
+  defp attributed(result, _plan), do: result
 
   defp notification_result({result, id, original}, mismatch?)
        when result in [:created, :duplicate],

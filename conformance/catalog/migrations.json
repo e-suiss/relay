@@ -274,8 +274,8 @@
   {"file": "20261227000100_validate_waitpoint_interaction_checks.exs", "sha256": "8932bd7ab0824f64fdc187c9e13ef55bad7177b153fbf3c321b0032d12def575"},
   {"file": "20261227000200_shape_waitpoint_event_data.exs", "sha256": "ab4af0477c9c9fdb861b41edea23584b1e394bd77e5962497ee009abb657c2e7"},
   {"file": "20261229000100_create_mailbox_agent_lease.exs", "sha256": "3cd6e5fcd397a780ecf2fac1043c7fac06bb86fcfa9400db1dcc6aa2e9e3bd42"},
-  {"file": "20261230000000_create_agent_ceiling_tables.exs", "sha256": "5d6397efd20fcc6839b9e418350f45e1a69094f596c350f43d046f7cbcf9a7c0"},
-  {"file": "20261230000100_create_agent_ceiling_functions.exs", "sha256": "3fc5617061dd0812e9be2f73f844ffd6cc8b3443b43478c08fc0c5215091592c"},
+  {"file": "20261230000000_create_agent_ceiling_tables.exs", "sha256": "7c5c70304be70e2d9427263f530b24434afcb5a4da22ce9489045d6c5845d160"},
+  {"file": "20261230000100_create_agent_ceiling_functions.exs", "sha256": "5b68b73cf565f7d28801f68727a4af43c977517cc00c1561eb35ba075a8cee12"},
   {"file": "20261230000200_create_agent_operations_overview.exs", "sha256": "061b0f460ea253580b8baf5f3a6427068e0e38258987884924b723e80b66d803"},
-  {"file": "20261230000300_rebuild_reference_check_for_agent_ceiling.exs", "sha256": "29d01826f61b4e837130ce0dedf04598f354a40f03c302850d4d126a8047e5ed"}
+  {"file": "20261230000300_rebuild_reference_check_for_agent_ceiling.exs", "sha256": "78665b8cf8d48124048327f97713823d52614440f6a1dbd71be0dee9599ab769"}
 ]

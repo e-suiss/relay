@@ -376,8 +376,7 @@ defmodule Relay.Policy.Live do
     sender = %{
       notification_id: context["notification_id"],
       delivery_id: context["id"],
-      sender_type: context["sender_type"],
-      agent_ref: Ceiling.sender_ref(context["sender_type"], context["api_client_id"])
+      sender_type: context["sender_type"]
     }
 
     {snapshot, context["recipient_id"], hold, sender}

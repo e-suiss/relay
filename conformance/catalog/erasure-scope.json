@@ -862,13 +862,13 @@
       "table": "agent_ceiling_events",
       "personal_columns": [],
       "tenant_close": "row kept",
-      "subject_erasure": "not subject data; the agent sender's identifier, the rule and a count only"
+      "subject_erasure": "not subject data; the agent's identifier, the rule and a count only"
     },
     {
       "table": "agent_ceiling_decisions",
       "personal_columns": [],
       "tenant_close": "row kept",
-      "subject_erasure": "not subject data; the owner's decision, its reference and note on an agent sender"
+      "subject_erasure": "not subject data; the owner's decision, its reference and note on an agent"
     },
     {
       "table": "agent_ceiling_holds",
@@ -880,7 +880,7 @@
       "table": "agent_run_states",
       "personal_columns": [],
       "tenant_close": "row kept",
-      "subject_erasure": "not subject data; the run state of an agent sender and the owner's reference"
+      "subject_erasure": "not subject data; the run state of an agent and the owner's reference"
     }
   ],
   "locations": [

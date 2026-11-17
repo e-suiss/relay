@@ -3,8 +3,6 @@ defmodule Relay.Api.AgentCeilings do
   The agent ceiling on the server and operator APIs (AG-49, E-43, E-44, TN-21, TN-47): the owner of an agent lists the notifications held at the agent's ceiling, decides on them and lifts a stop.
 
   A decision answers an `agent.ceiling_exceeded` event, named by its event identifier, and applies to every notification held for the agent: `send_all` releases them, `cancel` cancels them and `stop` cancels them and stops the agent. It is written with its audit record (`agent.ceiling_decided`) in the request's transaction and applied in the background. The same decision again returns the first; a different one is `ceiling_decision_conflict`. Releasing held notifications needs a step-up: an API client's `send_all` is `auth_operator_session_required`, and a tenant administrator gives it on the operator surface (`decide_as_operator/4`). Lifting a stop is audited as `agent.resumed`; resuming an agent that is not stopped changes nothing.
-
-  Until an agent record carries the Access identity of an agent, `agent_id` is the `agt_` spelling of the API client that sent the notifications.
   """
 
   alias Relay.Agents.Ceiling

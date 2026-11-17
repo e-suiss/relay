@@ -10517,6 +10517,426 @@ ChannelAdapterList:
       items:
         "$ref": "#/ChannelAdapter"
   additionalProperties: false
+ProviderAccountStatus:
+  type: object
+  description: "The panel warnings of a provider account: data sent abroad (CH-6), adapter deprecation (CH-4) and circuit breaker state (T-25)."
+  required:
+    - object
+    - provider_account_id
+    - channel
+    - provider
+    - data_residency
+    - adapter
+    - circuit_breaker
+  properties:
+    object:
+      type: string
+      const: provider_account_status
+    provider_account_id:
+      "$ref": "#/Id_pva"
+    channel:
+      "$ref": "#/Channel"
+    provider:
+      type: string
+      pattern: "^[a-z][a-z0-9_]{1,31}$"
+    data_residency:
+      type: object
+      required:
+        - sends_data_abroad
+        - reference_region
+        - abroad_countries
+        - in_installation
+        - processing_countries
+        - declared_processing_countries
+        - transfer_basis
+        - scc_notified_on
+      properties:
+        sends_data_abroad:
+          type: boolean
+        reference_region:
+          type: string
+          enum:
+            - tr
+            - eu
+            - us
+        abroad_countries:
+          type: array
+          maxItems: 64
+          uniqueItems: true
+          items:
+            type: string
+            pattern: "^[A-Z]{2}$"
+        in_installation:
+          type: boolean
+        processing_countries:
+          "$ref": "#/CountryList"
+        declared_processing_countries:
+          type: array
+          maxItems: 64
+          uniqueItems: true
+          items:
+            type: string
+            pattern: "^[A-Z]{2}$"
+        transfer_basis:
+          "$ref": "#/TransferBasis"
+        scc_notified_on:
+          oneOf:
+            - type: string
+              format: date
+            - type: "null"
+      additionalProperties: false
+    adapter:
+      type: object
+      required:
+        - declared
+        - adapter_version
+        - activated
+        - deprecation_warning
+        - deprecations
+      properties:
+        declared:
+          type: boolean
+        adapter_version:
+          oneOf:
+            - type: string
+              maxLength: 32
+            - type: "null"
+        activated:
+          type: boolean
+        deprecation_warning:
+          type: boolean
+        deprecations:
+          type: array
+          items:
+            type: object
+            required:
+              - api
+              - sunset_on
+            properties:
+              api:
+                type: string
+                maxLength: 128
+              sunset_on:
+                oneOf:
+                  - type: string
+                    format: date
+                  - type: "null"
+            additionalProperties: false
+      additionalProperties: false
+    circuit_breaker:
+      type: object
+      required:
+        - provider
+        - account
+        - observed_by
+      properties:
+        provider:
+          "$ref": "#/BreakerState"
+        account:
+          "$ref": "#/BreakerState"
+        observed_by:
+          type: string
+          const: node
+      additionalProperties: false
+  additionalProperties: false
+BreakerState:
+  type: string
+  description: "A circuit breaker state as the answering node sees it; a breaker that saw no call is closed (T-25)."
+  enum:
+    - closed
+    - open
+    - half_open
+EmailDomainCheckList:
+  type: object
+  required:
+    - object
+    - data
+  properties:
+    object:
+      type: string
+      const: list
+    data:
+      type: array
+      maxItems: 2
+      items:
+        "$ref": "#/EmailDomainCheck"
+  additionalProperties: false
+EmailDomainCheck:
+  type: object
+  description: "The sending domain wizard of one e-mail stream (CH-36)."
+  required:
+    - object
+    - stream
+    - domain
+    - verified
+    - checked_at
+    - records
+    - findings
+    - spf
+    - dmarc
+  properties:
+    object:
+      type: string
+      const: email_domain_check
+    stream:
+      type: string
+      enum:
+        - transactional
+        - marketing
+    domain:
+      type: string
+      maxLength: 253
+    verified:
+      type: boolean
+    checked_at:
+      type: string
+      format: date-time
+    records:
+      type: array
+      maxItems: 8
+      items:
+        type: object
+        required:
+          - purpose
+          - type
+          - name
+          - value
+        properties:
+          purpose:
+            type: string
+            enum:
+              - return_path
+              - dkim
+              - spf
+              - dmarc
+          type:
+            type: string
+            enum:
+              - CNAME
+              - TXT
+          name:
+            type: string
+            maxLength: 253
+          value:
+            oneOf:
+              - type: string
+                maxLength: 4096
+              - type: "null"
+        additionalProperties: false
+    findings:
+      type: array
+      maxItems: 64
+      items:
+        type: object
+        required:
+          - severity
+          - code
+          - subject
+        properties:
+          severity:
+            type: string
+            enum:
+              - error
+              - warning
+              - suggestion
+          code:
+            type: string
+            pattern: "^[a-z][a-z0-9_]{1,63}$"
+          subject:
+            type: string
+            maxLength: 253
+        additionalProperties: false
+    spf:
+      type: object
+      required:
+        - record
+        - lookups
+        - void_lookups
+      properties:
+        record:
+          oneOf:
+            - type: string
+              maxLength: 4096
+            - type: "null"
+        lookups:
+          type: integer
+          minimum: 0
+        void_lookups:
+          type: integer
+          minimum: 0
+      additionalProperties: false
+    dmarc:
+      oneOf:
+        - type: object
+          required:
+            - name
+            - policy
+            - org_domain
+          properties:
+            name:
+              type: string
+              maxLength: 253
+            policy:
+              oneOf:
+                - type: string
+                  maxLength: 16
+                - type: "null"
+            org_domain:
+              type: string
+              maxLength: 253
+          additionalProperties: false
+        - type: "null"
+  additionalProperties: false
+EmailWarmupPlanList:
+  type: object
+  description: "The warm-up plans of the active email_warmup_plans data set (CH-42)."
+  required:
+    - object
+    - data
+  properties:
+    object:
+      type: string
+      const: list
+    data:
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - applies_to
+          - until_day
+          - steps
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z][a-z0-9_]{1,63}$"
+          applies_to:
+            type: string
+            enum:
+              - domain
+              - ip
+          until_day:
+            type: integer
+            minimum: 1
+            maximum: 365
+          steps:
+            type: array
+            items:
+              type: object
+              required:
+                - from_day
+                - daily_cap
+                - domain_hourly_cap
+                - domains
+              properties:
+                from_day:
+                  type: integer
+                  minimum: 1
+                daily_cap:
+                  type: integer
+                  minimum: 1
+                domain_hourly_cap:
+                  type: integer
+                  minimum: 1
+                domains:
+                  type: object
+                  additionalProperties:
+                    type: integer
+                    minimum: 1
+              additionalProperties: false
+        additionalProperties: false
+  additionalProperties: false
+ChannelCostQuote:
+  type: object
+  description: "The cost of a paid channel selection per provider account (CH-18). A price the data does not hold is unpriced, never zero."
+  required:
+    - object
+    - channel
+    - country
+    - category
+    - quantity
+    - data
+  properties:
+    object:
+      type: string
+      const: channel_cost_quote
+    channel:
+      type: string
+      enum:
+        - sms
+        - voice
+        - whatsapp
+    country:
+      type: string
+      pattern: "^[A-Z]{2}$"
+    category:
+      oneOf:
+        - type: string
+          maxLength: 32
+        - type: "null"
+    quantity:
+      type: integer
+      minimum: 1
+    data:
+      type: array
+      items:
+        type: object
+        required:
+          - provider_account_id
+          - provider
+          - routable
+          - paid
+          - priced
+          - source
+          - currency
+          - unit
+          - unit_price_micros
+          - total_micros
+          - tier_from
+        properties:
+          provider_account_id:
+            "$ref": "#/Id_pva"
+          provider:
+            type: string
+            pattern: "^[a-z][a-z0-9_]{1,31}$"
+          routable:
+            type: boolean
+          paid:
+            type: boolean
+          priced:
+            type: boolean
+          source:
+            type: string
+            enum:
+              - provider_declaration
+              - whatsapp_rate_card
+          currency:
+            oneOf:
+              - type: string
+                pattern: "^[A-Z]{3}$"
+              - type: "null"
+          unit:
+            oneOf:
+              - type: string
+                maxLength: 32
+              - type: "null"
+          unit_price_micros:
+            oneOf:
+              - type: integer
+                minimum: 0
+              - type: "null"
+          total_micros:
+            oneOf:
+              - type: integer
+                minimum: 0
+              - type: "null"
+          tier_from:
+            oneOf:
+              - type: integer
+                minimum: 0
+              - type: "null"
+        additionalProperties: false
+  additionalProperties: false
 MessagingInboundRequest:
   type: object
   description: "A provider's own request body; Relay reads it only after the signature verified on the raw body."

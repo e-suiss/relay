@@ -6418,9 +6418,96 @@ WaitpointEscalation:
       type: boolean
       description: "true for an inline definition stored as an anonymous version of this waitpoint; key is then null."
   additionalProperties: false
+WaitpointProfile:
+  type: string
+  description: "A profile narrows a waitpoint. guardian_approval is the request of a child that a guardian decides (AG-62): a review whose responders the creator takes from the guardianship and household records, whose expires_at comes from the creator and is never moved, and which takes no default_response, because silence is no response; when it expires only waitpoint.expired is produced."
+  enum:
+    - guardian_approval
+WaitpointLabel:
+  type: string
+  description: "A label of the owner: lowercase letters, digits, underscore, dot, colon and hyphen, 1 to 64 characters."
+  pattern: "^[a-z0-9][a-z0-9_.:-]{0,63}$"
+WaitpointLabels:
+  type: object
+  description: "Labels of the waitpoint's owner (C-75, AG-8). Relay stores and returns them as they came; it never produces, reads or changes an outcome class or a risk tier."
+  properties:
+    outcome_class:
+      "$ref": "#/WaitpointLabel"
+    risk_tier:
+      "$ref": "#/WaitpointLabel"
+  minProperties: 1
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "C-75 and AG-8 have the outcome class and the risk tier come from the owner as labels; the member names and the label format are chosen by the contract."
+WaitpointAction:
+  type: object
+  description: "One structured action a responder can take (AG-8): its identifier, unique in the waitpoint, and the label shown for it."
+  required:
+    - id
+    - label
+  properties:
+    id:
+      type: string
+      pattern: "^[a-z][a-z0-9_]{0,63}$"
+    label:
+      type: string
+      minLength: 1
+      maxLength: 80
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "AG-8 names a structured action list; the shape of an action is chosen by the contract."
+WaitpointEvidenceField:
+  type: object
+  description: "One structured field of an evidence pack. It carries its value or, for a sensitive value, the digest of the value and never the value itself (AG-8): exactly one of value and digest, and a field marked sensitive takes only a digest."
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      pattern: "^[a-z][a-z0-9_]{0,63}$"
+    value:
+      type: string
+      maxLength: 500
+    digest:
+      "$ref": "#/Sha256Digest"
+    sensitive:
+      type: boolean
+      default: false
+  additionalProperties: false
+WaitpointEvidence:
+  type: object
+  description: "The evidence pack of a review (AG-8): the sender's structured fields a responder checks before deciding. It is kept encrypted at rest with the content."
+  required:
+    - source
+    - expected_outcome
+    - harm_if_wrong
+  properties:
+    source:
+      type: string
+      description: "Where the request comes from."
+      minLength: 1
+      maxLength: 500
+    expected_outcome:
+      type: string
+      description: "What happens when the request is accepted."
+      minLength: 1
+      maxLength: 1000
+    harm_if_wrong:
+      type: string
+      description: "What is lost when the decision is wrong."
+      minLength: 1
+      maxLength: 1000
+    fields:
+      type: array
+      items:
+        "$ref": "#/WaitpointEvidenceField"
+      maxItems: 20
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "AG-8 names the source, the expected outcome and the harm if wrong as structured fields and has sensitive values travel as digests; the member names, the sizes and the fields list are chosen by the contract."
 WaitpointCreate:
   type: object
-  description: "Waitpoint creation request."
+  description: "Waitpoint creation request. kind names the interaction (C-75, AG-8): a question or a review asks its responders for one response, is of class action_required and carries response_schema, responders, subject_digest, content and actions; a review also carries evidence. An event waitpoint waits for an event and takes none of these. A notification that expects no response is an ordinary event and has no waitpoint."
   required:
     - kind
     - match
@@ -6441,12 +6528,13 @@ WaitpointCreate:
       description: "JSON Schema the response value must follow, at most 64 kB."
     responders:
       type: array
+      description: "Who may respond. The set is the creator's: Relay stores and returns it as it came and never widens or narrows it (AG-12). Responders and deliver_to topics together are at most x-relay-limits waitpoint.max_messages."
       items:
         "$ref": "#/Responder"
       maxItems: 50
     expires_at:
       "$ref": "#/Timestamp"
-      description: "Deadline, at most 30 days ahead."
+      description: "Deadline, at most x-relay-limits waitpoint.max_wait ahead. It is written once and never moved."
     heartbeat_interval:
       "$ref": "#/Duration"
       description: "Waiter heartbeat interval, PT1S to P1D; a missed heartbeat makes the waitpoint stalled."
@@ -6454,7 +6542,7 @@ WaitpointCreate:
       type: object
       description: "Where the waitpoint is surfaced to responders, at most 16 kB."
     default_response:
-      description: "Response value used when the waitpoint expires; it follows response_schema."
+      description: "A response value the creator declares for the case that nobody responds: it follows response_schema, is at most x-relay-limits waitpoint.max_response_bytes as JSON and is handed to the waiter with waitpoint.expired. Relay never records it as a response (AG-18). Not taken with profile guardian_approval."
     subject_digest:
       "$ref": "#/Sha256Digest"
     content:
@@ -6482,6 +6570,20 @@ WaitpointCreate:
       oneOf:
         - "$ref": "#/EscalationPolicyReference"
         - "$ref": "#/EscalationPolicyDefinition"
+    actions:
+      type: array
+      description: "The structured actions a responder can take; required for a question and a review. Kept encrypted at rest with the content."
+      items:
+        "$ref": "#/WaitpointAction"
+      minItems: 1
+      maxItems: 10
+    evidence:
+      "$ref": "#/WaitpointEvidence"
+      description: "The evidence pack; required for a review and taken by nothing else."
+    labels:
+      "$ref": "#/WaitpointLabels"
+    profile:
+      "$ref": "#/WaitpointProfile"
   additionalProperties: false
 WaitpointResponder:
   type: object
@@ -6567,12 +6669,13 @@ Waitpoint:
       description: "JSON Schema the response value must follow, at most 64 kB."
     responders:
       type: array
+      description: "Who may respond. The set is the creator's: Relay stores and returns it as it came and never widens or narrows it (AG-12). Responders and deliver_to topics together are at most x-relay-limits waitpoint.max_messages."
       items:
         "$ref": "#/Responder"
       maxItems: 50
     expires_at:
       "$ref": "#/Timestamp"
-      description: "Deadline, at most 30 days ahead."
+      description: "Deadline, at most x-relay-limits waitpoint.max_wait ahead. It is written once and never moved."
     heartbeat_interval:
       "$ref": "#/Duration"
       description: "Waiter heartbeat interval, PT1S to P1D; a missed heartbeat makes the waitpoint stalled."
@@ -6580,7 +6683,7 @@ Waitpoint:
       type: object
       description: "Where the waitpoint is surfaced to responders, at most 16 kB."
     default_response:
-      description: "Response value used when the waitpoint expires; it follows response_schema."
+      description: "A response value the creator declares for the case that nobody responds: it follows response_schema, is at most x-relay-limits waitpoint.max_response_bytes as JSON and is handed to the waiter with waitpoint.expired. Relay never records it as a response (AG-18). Not taken with profile guardian_approval."
     subject_digest:
       "$ref": "#/Sha256Digest"
     content:
@@ -6631,6 +6734,20 @@ Waitpoint:
         - type: string
           maxLength: 200
         - type: "null"
+    message_class:
+      "$ref": "#/MessageClass"
+      description: "action_required for a question and a review; absent for an event waitpoint."
+    actions:
+      type: array
+      items:
+        "$ref": "#/WaitpointAction"
+      maxItems: 10
+    evidence:
+      "$ref": "#/WaitpointEvidence"
+    labels:
+      "$ref": "#/WaitpointLabels"
+    profile:
+      "$ref": "#/WaitpointProfile"
   additionalProperties: false
 WaitpointCompletion:
   type: object

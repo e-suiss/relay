@@ -13973,7 +13973,7 @@ paths:
       tags:
         - agents
       summary: "List waitpoints"
-      description: "Pages through the waitpoints of this environment, newest first; state, waiter and tag narrow the page. A waitpoint is not looked up by its correlation key, which the API takes only at creation (AG-65)."
+      description: "Pages through the waitpoints agents and API clients wait on in this environment, newest first; state, waiter and tag narrow the page, and awaiting_response=true lists the requests that still wait for a response, the open and the stalled ones (AG-46). Every credential of the environment with the scope lists them. A waitpoint is not looked up by its correlation key, which the API takes only at creation (AG-65). The event wait of a workflow run belongs to its run and is not listed."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -13986,6 +13986,12 @@ paths:
           required: false
           schema:
             "$ref": "./components/schemas.yaml#/WaitpointState"
+        - name: awaiting_response
+          in: query
+          description: "true lists the waitpoints that still wait for a response: the open and the stalled ones. Not used together with state."
+          required: false
+          schema:
+            type: boolean
         - name: waiter
           in: query
           description: "Waiter: an agent (agt_) or API client (cli_) identifier."
@@ -14000,6 +14006,8 @@ paths:
           schema:
             "$ref": "./components/schemas.yaml#/WaitpointTag"
       security:
+        - access_bearer:
+            - read
         - access_bearer:
             - agents
       responses:
@@ -14060,6 +14068,7 @@ paths:
         - service_unavailable
         - validation_failed
       x-relay-scopes:
+        - read
         - agents
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
@@ -14070,7 +14079,7 @@ paths:
       tags:
         - agents
       summary: "Create a waitpoint"
-      description: "Opens a waitpoint: a question, review or event wait of a waiter (an agent, or the calling API client when waiter is absent), matched exactly by event type and correlation key. expires_at is required and at most 30 days ahead; the Idempotency-Key is the waitpoint's identity, so a retry keeps its deadline. escalation_policy is a reference (key and optional version; without a version the latest version at creation is pinned) or an inline definition stored as an anonymous, immutable version bound to this waitpoint. Every escalation tier responder must be in responders, otherwise 422 escalation_responder_outside_set. After the last tier nothing happens until expires_at; then only waitpoint.expired is produced."
+      description: "Opens a waitpoint: a question, review or event wait of a waiter (an agent, or the calling API client when waiter is absent; an API client is named as a waiter only by itself), matched exactly by event type and correlation key. kind names the interaction: a question and a review are of class action_required and need response_schema, responders, subject_digest, content and actions, a review also its evidence pack; an event waitpoint takes none of them. expires_at is required and at most x-relay-limits waitpoint.max_wait ahead; the Idempotency-Key is the waitpoint's identity, so a retry keeps its deadline. A waiter waits once for an event type and correlation key: a second open waitpoint for them is 409 resource_conflict. The limits of x-relay-limits waitpoint are enforced and every refusal names its limit: responders and deliver_to topics together at most max_messages and default_response at most max_response_bytes (422 validation_failed with the field's pointer, limit and actual), and the open waitpoints of the environment and of the waiter (422 waitpoint_limit_reached with limit and limit_name). A deliver_to topic must exist and be active. profile guardian_approval is a review without default_response. condition is taken only by the event wait of a workflow. escalation_policy is a reference (key and optional version; without a version the latest version at creation is pinned) or an inline definition stored as an anonymous, immutable version bound to this waitpoint. Every escalation tier responder must be in responders, otherwise 422 escalation_responder_outside_set. After the last tier nothing happens until expires_at; then only waitpoint.expired is produced."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -14082,6 +14091,8 @@ paths:
             schema:
               "$ref": "./components/schemas.yaml#/WaitpointCreate"
       security:
+        - access_bearer:
+            - publish
         - access_bearer:
             - agents
       responses:
@@ -14169,7 +14180,9 @@ paths:
         - agent_not_found
         - recipient_not_found
         - waitpoint_limit_reached
+        - resource_conflict
       x-relay-scopes:
+        - publish
         - agents
       x-relay-weight: 1
       x-relay-idempotency: required
@@ -14187,6 +14200,8 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/WaitpointId"
       security:
+        - access_bearer:
+            - read
         - access_bearer:
             - agents
       responses:
@@ -14247,6 +14262,7 @@ paths:
         - service_unavailable
         - waitpoint_not_found
       x-relay-scopes:
+        - read
         - agents
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
@@ -14258,7 +14274,7 @@ paths:
       tags:
         - agents
       summary: "Cancel a waitpoint"
-      description: "Cancels an open or stalled waitpoint with a reason; produces waitpoint.cancelled. A closed waitpoint does not change."
+      description: "Cancels an open or stalled waitpoint with a reason; produces waitpoint.cancelled. Every credential of the environment with the scope cancels: the waiter, or an operator of the tenant. A closed waitpoint does not change (409 waitpoint_closed)."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
@@ -14271,6 +14287,8 @@ paths:
             schema:
               "$ref": "./components/schemas.yaml#/WaitpointCancel"
       security:
+        - access_bearer:
+            - publish
         - access_bearer:
             - agents
       responses:
@@ -14353,6 +14371,7 @@ paths:
         - waitpoint_not_found
         - waitpoint_closed
       x-relay-scopes:
+        - publish
         - agents
       x-relay-weight: 1
       x-relay-idempotency: required
@@ -14364,13 +14383,15 @@ paths:
       tags:
         - agents
       summary: "Send a waiter heartbeat"
-      description: "Records the waiter's heartbeat and moves the heartbeat deadline by heartbeat_interval; a stalled waitpoint is open again. Only for a waitpoint with heartbeat_interval."
+      description: "Records the waiter's heartbeat and moves the heartbeat deadline by heartbeat_interval; a stalled waitpoint is open again and keeps the response it may have taken while stalled. Only for a waitpoint with heartbeat_interval, and for a waitpoint an API client waits on only from that client; anything else is 409 waitpoint_heartbeat_refused. The total deadline is never moved."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
         - "$ref": "./components/parameters.yaml#/WaitpointId"
       security:
+        - access_bearer:
+            - publish
         - access_bearer:
             - agents
       responses:
@@ -14452,7 +14473,9 @@ paths:
         - unknown_field
         - waitpoint_not_found
         - waitpoint_closed
+        - waitpoint_heartbeat_refused
       x-relay-scopes:
+        - publish
         - agents
       x-relay-weight: 1
       x-relay-idempotency: required
@@ -25958,6 +25981,12 @@ x-relay-api-versions:
   x-relay-choice: true
   x-relay-choice-note: The first dated version identifier is chosen by the contract.
 x-relay-limits:
+  waitpoint:
+    max_wait: P30D
+    max_open_per_environment: 10000
+    max_open_per_waiter: 1000
+    max_messages: 50
+    max_response_bytes: 65536
   idempotency_key_ttl_hours: 24
   idempotency_key_length:
     min: 8

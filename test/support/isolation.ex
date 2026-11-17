@@ -7,6 +7,7 @@ defmodule RelayTest.Isolation do
     top_level?: true,
     deps: [
       Relay,
+      Relay.Agents,
       Relay.Api,
       Relay.Channels,
       Relay.DestinationGuard,
@@ -84,7 +85,8 @@ defmodule RelayTest.Isolation do
     {"recoverWebhookEndpoint", %{"since" => "2026-01-01T00:00:00Z"}},
     {"retryWebhookEndpointMessages", %{"states" => ["exhausted"]}},
     {"replayWebhookEndpointEvents", %{"since" => "2026-01-01T00:00:00Z"}},
-    {"cancelWebhookEndpointRetries", %{}}
+    {"cancelWebhookEndpointRetries", %{}},
+    {"cancelWaitpoint", %{"reason" => "isolation"}}
   ]
   @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
   @sms %{
@@ -150,7 +152,8 @@ defmodule RelayTest.Isolation do
       "webhook_endpoint_id" => &webhook_endpoint!/1,
       "webhook_message_id" => &webhook_message!/1,
       "webhook_attempt_id" => &webhook_attempt!/1,
-      "record_id" => &mailbox_record!/1
+      "record_id" => &mailbox_record!/1,
+      "waitpoint_id" => &waitpoint!/1
     }
   end
 
@@ -208,6 +211,25 @@ defmodule RelayTest.Isolation do
   defp body_request(operation, method, path, body, headers) do
     [media | _] = Map.keys(operation.request)
     RelayTest.Api.conn(method, path, Jason.encode!(body), [{"content-type", media} | headers])
+  end
+
+  @doc "Opens an event waitpoint of an API client in `scope` and returns its identifier."
+  @spec waitpoint!(Relay.Scope.t()) :: String.t()
+  def waitpoint!(scope) do
+    id = Relay.Id.generate()
+
+    {:ok, %{result: :opened}} =
+      Relay.Agents.open_waitpoint(scope, %{
+        id: id,
+        kind: :event,
+        waiter_kind: :api_client,
+        waiter_ref: Relay.Id.generate(),
+        match_event_type: "isolation.finished",
+        correlation_key: "isolation-" <> random(),
+        expires_at: DateTime.add(Relay.Clock.business_now(scope), 3_600, :second)
+      })
+
+    Relay.ExternalId.encode("wp", id)
   end
 
   defp owner(scope), do: F.token(scope)

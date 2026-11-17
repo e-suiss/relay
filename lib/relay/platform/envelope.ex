@@ -15,7 +15,9 @@ defmodule Relay.Platform.Envelope do
     "kill_switch_id" => "ksw",
     "audit_record_id" => "aud",
     "mailbox_id" => "mbx",
-    "record_id" => "mbr"
+    "record_id" => "mbr",
+    "waitpoint_id" => "wp",
+    "response_id" => "wpr"
   }
   @record_appended "mailbox.record_appended"
 

@@ -25,7 +25,8 @@ defmodule RelayWeb.Api.ComplianceSettingsTest do
       assert refusals == %{}
     end
 
-    test "PC-40, INV-17: a refusal is published as a version and is in force for the lattice", ctx do
+    test "PC-40, INV-17: a refusal is published as a version and is in force for the lattice",
+         ctx do
       view = F.body(put(ctx.token, [refusal("EU", ["soft_opt_in"])]), 200)
 
       assert %{"version" => 1, "refusals" => [%{"country" => "EU"}]} = view

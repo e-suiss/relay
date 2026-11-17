@@ -396,6 +396,12 @@
     "reason": "AG-17, AG-19, OP-9: the no-delete and append-only triggers reject TRUNCATE on the escalation policies, their versions, the waitpoint steps and the invitations"
   },
   {
+    "path": "priv/repo/migrations/20270104000000_create_first_contact_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "AG-59, AG-61, AG-73, OP-9: the no-delete and append-only triggers reject TRUNCATE on the relationship copy, the block list, the message metadata, the spent first-contact tokens and the abuse reports"
+  },
+  {
     "path": "priv/repo/migrations/20270103000100_create_agent_task_notifications.exs",
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",

@@ -116,7 +116,8 @@ config :relay, Relay.Access,
   autoload: true,
   user_handlers: [Relay.Operators.AccessUserHandler, Relay.Operators.AccessSubscriberHandler],
   agent_handlers: [Relay.Operators.AccessAgentHandler],
-  consent_handler: Relay.Preferences.AccessConsentHandler
+  consent_handler: Relay.Preferences.AccessConsentHandler,
+  relationship_handler: Relay.Operators.AccessRelationshipHandler
 
 config :relay, Relay.Iys, runtime: Relay.Iys.Live
 

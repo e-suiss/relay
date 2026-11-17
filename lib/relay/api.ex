@@ -114,6 +114,7 @@ defmodule Relay.Api do
       OperationsContacts,
       Agents,
       Mailbox,
+      MailboxMessages,
       Mcp,
       OpaqueStreams,
       Waitpoints

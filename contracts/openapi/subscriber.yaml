@@ -3439,7 +3439,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: "Relay subscriber token from the token exchange. Scopes: inbox:read, inbox:write, preferences, devices:write, presence:write. Access tokens are never accepted here."
+      description: "Relay subscriber token from the token exchange. Scopes: inbox:read, inbox:write, preferences, devices:write, presence:write, agui:read. Access tokens are never accepted here."
     portal_bearer:
       type: http
       scheme: bearer
@@ -3474,8 +3474,8 @@ components:
           x-relay-choice-note: Token type URI chosen by the contract.
         scope:
           type: string
-          description: "Space-separated subset of inbox:read inbox:write preferences devices:write presence:write. Default: inbox:read inbox:write preferences."
-          pattern: "^(inbox:read|inbox:write|preferences|devices:write|presence:write)( (inbox:read|inbox:write|preferences|devices:write|presence:write))*$"
+          description: "Space-separated subset of inbox:read inbox:write preferences devices:write presence:write agui:read. Default: inbox:read inbox:write preferences."
+          pattern: "^(inbox:read|inbox:write|preferences|devices:write|presence:write|agui:read)( (inbox:read|inbox:write|preferences|devices:write|presence:write|agui:read))*$"
       additionalProperties: false
     TokenExchangeResponse:
       type: object

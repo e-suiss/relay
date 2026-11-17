@@ -267,7 +267,7 @@ defmodule Relay.Api.KillSwitches do
         state: state,
         reason: body["reason"],
         expires_at: expires_at,
-        no_ttl_approval: approval,
+        no_ttl_approval: if(is_nil(expires_at), do: approval),
         relax_approval: approval
       }
 

@@ -103,16 +103,17 @@ defmodule RelayWeb.Api.KillSwitchController do
 
   defp operator_only(conn, id, command) do
     case KillSwitches.fetch_any(conn.assigns.scope, id) do
-      {:ok, record} ->
-        reason = conn.assigns.body["reason"]
-
-        if Work.operator?(conn),
-          do: Work.spanning(conn, fn -> answer(command.(record, reason)) end),
-          else: Response.problem(conn, KillSwitches.operator_session_required())
-
-      {:error, error} ->
-        Response.problem(conn, error)
+      {:ok, record} -> run_operator_only(conn, record, command)
+      {:error, error} -> Response.problem(conn, error)
     end
+  end
+
+  defp run_operator_only(conn, record, command) do
+    reason = conn.assigns.body["reason"]
+
+    if Work.operator?(conn),
+      do: Work.spanning(conn, fn -> answer(command.(record, reason)) end),
+      else: Response.problem(conn, KillSwitches.operator_session_required())
   end
 
   defp answer({:error, %Relay.Error{code: :auth_step_up_required}}),

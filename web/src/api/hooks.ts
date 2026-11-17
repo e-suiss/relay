@@ -25,7 +25,7 @@ export function useGet<T>(
   });
   const [attempt, setAttempt] = useState(0);
   const key = JSON.stringify(query);
-  const id = `${context.tenant ?? ""}|${context.environment ?? ""}|${path ?? ""}?${key}`;
+  const id = `${context.tenant ?? ""}|${context.environment}|${path ?? ""}?${key}`;
 
   useEffect(() => {
     if (path === null) return;
@@ -53,8 +53,7 @@ export function useGet<T>(
     setAttempt((value) => value + 1);
   }, []);
 
-  const current: Load<T> =
-    state.id === id ? state.load : { kind: "loading" };
+  const current: Load<T> = state.id === id ? state.load : { kind: "loading" };
   return { state: current, reload };
 }
 

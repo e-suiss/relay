@@ -89,9 +89,7 @@ function Funnel({ rows }: { rows: DeliveryRow[] }) {
           <li key={step} className="row">
             <span className="funnel-label">{t(`reports.step.${step}`)}</span>
             <strong>{totals[step]}</strong>
-            <span className="muted">
-              {rate(totals[step], totals.accepted)}
-            </span>
+            <span className="muted">{rate(totals[step], totals.accepted)}</span>
           </li>
         ))}
       </ol>
@@ -265,13 +263,21 @@ function Costs({ rows }: { rows: CostRow[] }) {
       header: t("why.channel"),
       render: (row) => <ChannelLabel channel={row.channel} />,
     },
-    { key: "provider", header: t("history.provider"), render: (row) => row.provider },
+    {
+      key: "provider",
+      header: t("history.provider"),
+      render: (row) => row.provider,
+    },
     {
       key: "country",
       header: t("reports.country"),
       render: (row) => row.destination_country ?? "—",
     },
-    { key: "outcome", header: t("history.outcome"), render: (row) => row.outcome },
+    {
+      key: "outcome",
+      header: t("history.outcome"),
+      render: (row) => row.outcome,
+    },
     {
       key: "units",
       header: t("reports.units"),

@@ -34,10 +34,9 @@ export interface WaitpointSummary {
 // AG-49
 /** Counts of the waiting requests shown on the page; the API reports no installation-wide aggregate. */
 export function summarize(rows: readonly Waitpoint[]): WaitpointSummary {
-  const evidence = Object.fromEntries(levels.map((level) => [level, 0])) as Record<
-    EvidenceLevel,
-    number
-  >;
+  const evidence = Object.fromEntries(
+    levels.map((level) => [level, 0]),
+  ) as Record<EvidenceLevel, number>;
   let withEscalation = 0;
   for (const row of rows) {
     const level = row.response?.evidence_level;
@@ -100,7 +99,9 @@ export function Waitpoints() {
       key: "evidence",
       header: t("waitpoints.evidence"),
       render: (row) =>
-        row.response ? t(`waitpoints.level.${row.response.evidence_level}`) : "—",
+        row.response
+          ? t(`waitpoints.level.${row.response.evidence_level}`)
+          : "—",
     },
     {
       key: "expires",
@@ -127,13 +128,13 @@ export function Waitpoints() {
               setState(event.target.value);
             }}
           >
-            {(["open", "stalled", "resolved", "expired", "cancelled"] as const).map(
-              (value) => (
-                <option key={value} value={value}>
-                  {t(`waitpoints.state.${value}`)}
-                </option>
-              ),
-            )}
+            {(
+              ["open", "stalled", "resolved", "expired", "cancelled"] as const
+            ).map((value) => (
+              <option key={value} value={value}>
+                {t(`waitpoints.state.${value}`)}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -147,10 +148,16 @@ export function Waitpoints() {
                 <KeyValues
                   items={[
                     [t("waitpoints.shown"), summary.total],
-                    [t("waitpoints.resolvedByEscalation"), summary.withEscalation],
+                    [
+                      t("waitpoints.resolvedByEscalation"),
+                      summary.withEscalation,
+                    ],
                     ...levels.map(
                       (level) =>
-                        [t(`waitpoints.level.${level}`), summary.evidence[level]] as const,
+                        [
+                          t(`waitpoints.level.${level}`),
+                          summary.evidence[level],
+                        ] as const,
                     ),
                   ]}
                 />

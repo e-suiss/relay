@@ -4,7 +4,7 @@ defmodule Relay.Channels.Live.Receipts do
 
     1. `accept/4` verifies the request on its raw body with the account's verification secret (`Relay.Channels.provider_webhook/3`) and reads its items. Each item is one provider event: a delivery report that is not pending, a message one of the account's numbers received or an e-mail event that names a delivery.
     2. Each item is a receipt `(tenant, environment, provider, provider_event_id)`, unique in the database (INV-12): the provider's own event identifier when it sends one (`email:<id>`, `sms_in:<id>` for a received message), otherwise the SHA-256 of the item without its personal fields and its actor (`sha256:<hex>`). The item is sealed with the tenant's data key as the receipt body (retention class `delivery_record`). A repeated event is counted on its receipt and processed no further. The receipts and their processing jobs (`Relay.Channels.Live.ReceiptWorker`, at most 100 receipts each, identifiers only, T-15) are committed in one transaction before the provider is answered.
-    3. `process/2`, run by the delivery report batcher (`Relay.Channels.Live.ReportBatcher`, T-41), reads a batch of receipts of one scope, opens each sealed item and records the events of the whole batch in one transaction through the evidence table (`Relay.Channels.Live.Events.record_many/2`), with the receipt's actor (`provider_webhook`, or `provider_api` for a reconciliation's items, `record/4`) and the receipt on each ledger entry, so a receipt becomes `processed` with its ledger entry. A report whose delivery is unknown or whose body cannot be read is `rejected`; an e-mail event without a classification is `processed` with no entry. A received message is no delivery event: its keyword is applied first (`Relay.Channels.Live.InboundSms`, PC-37), its receipt becomes `processed` and only then is its one reply sent, so a reply is never sent twice. The suppressions and telemetry of a recorded e-mail event follow the commit (`Relay.Channels.Live.EmailEvents`).
+    3. `process/2`, run by the delivery report batcher (`Relay.Channels.Live.ReportBatcher`, T-41), reads a batch of receipts of one scope, opens each sealed item and records the events of the whole batch in one transaction through the evidence table (`Relay.Channels.Live.Events.record_many/2`), with the receipt's actor (`provider_webhook`, or `provider_api` for a reconciliation's items, `record/4`) and the receipt on each ledger entry, so a receipt becomes `processed` with its ledger entry. A report whose delivery is unknown or whose body cannot be read is `rejected`; an e-mail event without a classification is `processed` with no entry. A recorded SMS report whose code is the provider's own opt-out is followed by the refusal it stands for (`Relay.Channels.Live.InboundSms.provider_opt_out/3`, PC-37). A received message is no delivery event: its keyword is applied first (`Relay.Channels.Live.InboundSms`, PC-37), its receipt becomes `processed` and only then is its one reply sent, so a reply is never sent twice. The suppressions and telemetry of a recorded e-mail event follow the commit (`Relay.Channels.Live.EmailEvents`).
   """
 
   alias Relay.Channels.Live
@@ -264,7 +264,7 @@ defmodule Relay.Channels.Live.Receipts do
 
   defp item(declarations, _table, row, {:ok, %{"kind" => "report"} = item}) do
     case Live.report_event(declarations, row["provider"], report(item), actor(item)) do
-      {:ok, event} -> {:event, Map.put(event, :receipt_id, row["id"]), nil}
+      {:ok, event} -> {:event, Map.put(event, :receipt_id, row["id"]), opt_out(row, event)}
       {:error, reason} -> {:mark, row["id"], :rejected, Atom.to_string(reason)}
     end
   end
@@ -309,6 +309,14 @@ defmodule Relay.Channels.Live.Receipts do
 
   defp item(_declarations, _table, row, _unreadable),
     do: {:mark, row["id"], :rejected, "unreadable"}
+
+  # PC-37
+  defp opt_out(row, %{channel: "sms", raw_code: code} = event) do
+    if InboundSms.opt_out_code?(row["provider"], code),
+      do: {:sms_opt_out, row["provider_account_id"], event}
+  end
+
+  defp opt_out(_row, _event), do: nil
 
   defp actor(%{"actor" => "provider_api"}), do: :provider_api
   defp actor(_item), do: :provider_webhook
@@ -407,6 +415,10 @@ defmodule Relay.Channels.Live.Receipts do
   defp follow(scope, {{:whatsapp, account_id, event}, {:ok, %{result: result}}})
        when result in @recorded,
        do: Whatsapp.after_status(scope, account_id, event)
+
+  defp follow(scope, {{:sms_opt_out, account_id, event}, {:ok, %{result: result}}})
+       when result in @recorded,
+       do: InboundSms.provider_opt_out(scope, account_id, event)
 
   defp follow(_scope, _post), do: :ok
 end

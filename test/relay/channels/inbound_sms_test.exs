@@ -199,13 +199,35 @@ defmodule Relay.Channels.InboundSmsTest do
     {:ok, :recorded} = Relay.Preferences.record_consent(ctx.scope, attrs)
   end
 
+  defp otp_workflow!(ctx, key) do
+    step = %{
+      "type" => "channel",
+      "key" => "code",
+      "route" => %{"single" => ["sms", "voice"]},
+      "template" => "order-shipped"
+    }
+
+    definition = Map.put(F.definition(message_class: "security"), "steps", [step])
+    :ok = F.category_of!(ctx.token, definition)
+    :ok = F.template!(ctx.scope, "order-shipped", definition["category"])
+    body = %{"key" => key, "definition" => definition}
+    created = F.request(:post, "/v1/workflows", ctx.token, body)
+    assert created.status == 201, created.resp_body
+    F.publish!(ctx.scope, ctx.token, key)
+  end
+
   defp opt_in!(ctx, recipient_id, channel) do
     params = [Relay.Id.generate(), recipient_id, channel]
     assert [["set"]] = sql!(ctx.scope, @preference, params)
   end
 
-  defp deliveries(ctx, external_id) do
-    body = %{"workflow" => "newsletter", "to" => [external_id], "data" => %{"order" => "A-1"}}
+  defp deliveries(ctx, external_id, workflow \\ "newsletter", extra \\ %{}) do
+    body =
+      Map.merge(
+        %{"workflow" => workflow, "to" => [external_id], "data" => %{"order" => "A-1"}},
+        extra
+      )
+
     accepted = F.body(F.request(:post, "/v1/events", ctx.token, body), 202)
     [%{"notification_id" => notification}] = accepted["notifications"]
     path = "/v1/notifications/#{notification}/deliveries"
@@ -286,6 +308,92 @@ defmodule Relay.Channels.InboundSmsTest do
       assert_received {:sent, "/v2/send.json", %{"messages" => [%{"msg" => restarted}]}}
       assert refused == Relay.Compliance.sms_reply(:refused, "tr", nil)
       assert restarted == Relay.Compliance.sms_reply(:restarted, "tr", nil)
+    end
+  end
+
+  describe "PC-37 the reply limit and the provider's own opt-out" do
+    test "PC-37: a number is answered three times in a day; after that a keyword still takes effect unanswered",
+         ctx do
+      {_external_id, recipient_id} = subscriber!(ctx, @phone, %{"locale" => "tr"})
+
+      for id <- 11..13 do
+        take!(ctx, id, @phone, "YARDIM")
+        assert_received {:sent, "/v2/send.json", _body}
+      end
+
+      take!(ctx, 14, @phone, "YARDIM")
+      refute_received {:sent, _path, _body}
+
+      take!(ctx, 15, @phone, "RET")
+      refute_received {:sent, _path, _body}
+      assert refusals(ctx, recipient_id) == [["sms", "sms_keyword", "all_marketing"]]
+      assert [_event] = OutboxEvents.data(ctx.scope, "sms.opted_out")
+    end
+
+    test "PC-37, PC-38: a delivery report with the provider's opt-out code is the same refusal, unanswered",
+         ctx do
+      F.workflow!(ctx.scope, ctx.token, "receipt", channels: ["sms"])
+      {external_id, recipient_id} = subscriber!(ctx, @phone)
+      %{"sms" => %{"id" => delivery}} = deliveries(ctx, external_id, "receipt")
+      {:ok, delivery_id} = Relay.ExternalId.decode(delivery, ["dlv"])
+
+      refute Relay.Channels.Live.InboundSms.opt_out_code?("verimor", "dlr:EXPIRED")
+
+      report =
+        Jason.encode!([
+          %{
+            "message_id" => 5,
+            "status" => "BLACKLISTED_DESTINATION_ADDRESS",
+            "message_custom_id" => "dlv-" <> Relay.Id.to_string(delivery_id)
+          }
+        ])
+
+      assert {:ok, %{recorded: 1}} = receive!(ctx, report)
+      assert :ok = process!(ctx)
+      assert states(ctx) == ["processed"]
+
+      assert refusals(ctx, recipient_id) == [["sms", "sms_keyword", "all_marketing"]]
+      assert consents(ctx, recipient_id) == [["sms", "revoked", "relay", "sms_keyword"]]
+      assert [opted_out] = OutboxEvents.data(ctx.scope, "sms.opted_out")
+      assert opted_out["provider_account_id"] == Relay.ExternalId.encode("pva", ctx.account_id)
+      refute_received {:sent, _path, _body}
+    end
+  end
+
+  describe "PC-39 what a refusal stops" do
+    test "PC-39, PC-38: after RET from a Turkish number a security and a transactional SMS still go and marketing is skipped",
+         ctx do
+      F.workflow!(ctx.scope, ctx.token, "newsletter",
+        category: "news",
+        message_class: "marketing",
+        channels: ["sms"]
+      )
+
+      F.workflow!(ctx.scope, ctx.token, "receipt", channels: ["sms"])
+      otp_workflow!(ctx, "login-code")
+
+      {external_id, recipient_id} = subscriber!(ctx, @phone, %{"locale" => "tr"})
+      consent!(ctx, recipient_id, "sms")
+      opt_in!(ctx, recipient_id, "sms")
+      refute deliveries(ctx, external_id)["sms"]["rule_id"] == "consent.revoked"
+
+      take!(ctx, 21, @phone, "RET")
+
+      marketing = deliveries(ctx, external_id)["sms"]
+      assert %{"status" => "skipped", "rule_id" => "consent.revoked"} = marketing
+
+      transactional = deliveries(ctx, external_id, "receipt")["sms"]
+      assert transactional["status"] != "skipped"
+      assert transactional["rule_id"] == nil
+
+      expires = DateTime.to_iso8601(DateTime.add(Relay.Clock.utc_now(), 600))
+      otp = %{"security_subtype" => "otp_oob", "expires_at" => expires}
+      security = deliveries(ctx, external_id, "login-code", otp)["sms"]
+      assert security["status"] != "skipped"
+      assert security["rule_id"] == nil
+
+      {:ok, rows} = Relay.Preferences.list_suppressions(ctx.scope, %{reason: "refusal"}, nil, 10)
+      assert rows == []
     end
   end
 

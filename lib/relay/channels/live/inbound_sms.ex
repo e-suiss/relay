@@ -8,7 +8,9 @@ defmodule Relay.Channels.Live.InboundSms do
     * `START` and `UNSTOP` record a new evidenced consent in Relay's own copy (writer `relay`, source `sms_keyword`); a revocation of another source, such as the registry's, stays in force;
     * `HELP` and `YARDIM` change nothing.
 
-  It then returns the one reply of the message, a fixed text without marketing content (`Relay.Compliance.sms_reply/3`), or `nil` when the provider answered the keyword itself (`replied?`) or no sender identity can answer. `reply/2` sends it through the account that received the message, from the number it was addressed to, with the provider idempotency key `kw-<receipt id>`; it is called once, after the receipt is `processed`, and a reply that fails is not sent again. On the `test` plane nothing leaves Relay.
+  It then returns the one reply of the message, a fixed text without marketing content (`Relay.Compliance.sms_reply/3`), or `nil` when the provider answered the keyword itself (`replied?`) or no sender identity can answer. `reply/2` sends it through the account that received the message, from the number it was addressed to, with the provider idempotency key `kw-<receipt id>`; it is called once, after the receipt is `processed`, and a reply that fails is not sent again. A number is answered at most `sms_keyword.reply_rate.limit` times in its window (`x-relay-limits`), counted under a keyed digest of the number, so that two machines never answer each other without end; past the limit, or when the counter cannot be read, the keyword still takes effect and only the reply is withheld. On the `test` plane nothing leaves Relay.
+
+  `provider_opt_out/3` keeps Relay in step with a provider's own opt-out list (PC-37): a delivery report whose provider code says the recipient opted out at the provider (`opt_out_code?/2`) is the same refusal notice for the brand of that delivery, announced as `sms.opted_out`, and is never answered.
   """
 
   alias Relay.Channels.Live.Store
@@ -20,13 +22,21 @@ defmodule Relay.Channels.Live.InboundSms do
   @ttl_s 3_600
   @table "compliance_table"
   @types ~w(individual merchant)
+  @reply_limit Relay.Limits.fetch!(["sms_keyword", "reply_rate", "limit"])
+  @reply_window_ms Relay.Limits.seconds!(["sms_keyword", "reply_rate", "window"]) * 1000
+  @opt_out %{
+    "twilio" => ["21610"],
+    "verimor" => ["dlr:BLACKLISTED_DESTINATION_ADDRESS"],
+    "infobip" => ["status:REJECTED_DESTINATION_BLOCKLISTED"]
+  }
 
   @type reply :: %{
           receipt_id: Relay.Id.t(),
           account_id: Relay.Id.t(),
           sender: map(),
           to: Relay.Redacted.t(),
-          text: String.t()
+          text: String.t(),
+          key: String.t()
         }
 
   # PC-37
@@ -43,7 +53,9 @@ defmodule Relay.Channels.Live.InboundSms do
   end
 
   defp keyword(scope, row, %{"from" => "+" <> _digits = from} = item, {set, keyword}) do
-    with {:ok, [_ | _] = recipients} <- recipients(scope, from),
+    with {:ok, [{_key_id, digest} | _] = digests} <-
+           Relay.Subscribers.address_digests(scope, "sms", from),
+         {:ok, [_ | _] = recipients} <- recipients(scope, digests),
          {:ok, sender} <- Relay.Channels.sms_sender(scope, row["provider_account_id"], item["to"]),
          {:ok, revocation} <- revocation(set, from) do
       ctx = %{
@@ -53,6 +65,7 @@ defmodule Relay.Channels.Live.InboundSms do
         sender: sender,
         keyword: keyword,
         revocation: revocation,
+        key: Base.url_encode64(digest, padding: false),
         at: occurred_at(item)
       }
 
@@ -66,11 +79,9 @@ defmodule Relay.Channels.Live.InboundSms do
 
   defp keyword(_scope, _row, _item, _keyword), do: {:ok, nil}
 
-  defp recipients(scope, from) do
-    with {:ok, digests} <- Relay.Subscribers.address_digests(scope, "sms", from) do
-      bidxs = Enum.map(digests, &elem(&1, 1))
-      Store.in_scope(scope, fn _status -> Store.sms_recipients(bidxs) end)
-    end
+  defp recipients(scope, digests) do
+    bidxs = Enum.map(digests, &elem(&1, 1))
+    Store.in_scope(scope, fn _status -> Store.sms_recipients(bidxs) end)
   end
 
   # PC-39
@@ -202,7 +213,8 @@ defmodule Relay.Channels.Live.InboundSms do
       account_id: ctx.row["provider_account_id"],
       sender: ctx.sender,
       to: Relay.Redacted.wrap(from),
-      text: Relay.Compliance.sms_reply(kind(set), locale, header(ctx.sender))
+      text: Relay.Compliance.sms_reply(kind(set), locale, header(ctx.sender)),
+      key: ctx.key
     }
   end
 
@@ -225,18 +237,65 @@ defmodule Relay.Channels.Live.InboundSms do
   def reply(%Scope{environment: :test}, _reply), do: :ok
 
   def reply(%Scope{} = scope, %{} = reply) do
-    with {:ok, %{"state" => "active"} = account} <-
+    with :ok <- within_rate(scope, reply.key),
+         {:ok, %{"state" => "active"} = account} <-
            Relay.Channels.provider_account(scope, reply.account_id),
          {:ok, declarations} <- Relay.Datasets.channel_declarations(),
          {:ok, adapter} <- Relay.Channels.activated_adapter(declarations, account["provider"]),
          {:accepted, _info} <- adapter.deliver(request(scope, account, reply)) do
       :ok
     else
+      :withheld ->
+        :ok
+
       _not_sent ->
         Logger.warning("a keyword reply was not sent",
           receipt_id: Relay.Id.to_string(reply.receipt_id)
         )
 
+        :ok
+    end
+  end
+
+  # PC-37
+  # T-27
+  defp within_rate(scope, key) do
+    name = "sms_keyword_reply:" <> key
+
+    case Relay.Platform.rate_counter(scope, name, @reply_window_ms, :incr, 1) do
+      {:ok, count} when count <= @reply_limit -> :ok
+      _over_or_unreadable -> :withheld
+    end
+  end
+
+  # PC-37
+  @doc "Whether a provider code of a delivery report says the recipient opted out at the provider."
+  @spec opt_out_code?(String.t(), String.t() | nil) :: boolean()
+  def opt_out_code?(provider, code), do: code in Map.get(@opt_out, provider, [])
+
+  # PC-37
+  # PC-38
+  # INV-18
+  @doc "Applies the provider's own opt-out that a recorded delivery report of an SMS shows: a refusal notice of the source `sms_keyword` for the delivery's recipient and brand, through the account the report came from; nothing is answered. An unknown delivery or recipient changes nothing."
+  @spec provider_opt_out(Scope.t(), Relay.Id.t() | nil, map()) :: :ok
+  def provider_opt_out(%Scope{} = scope, account_id, %{delivery_id: delivery_id} = event) do
+    case Store.in_scope(scope, fn _status -> Store.delivery(delivery_id) end) do
+      {:ok, %{"recipient_id" => <<_::128>> = recipient_id, "channel" => "sms"} = delivery} ->
+        _applied =
+          Relay.Compliance.refuse(scope, %{
+            recipient_id: recipient_id,
+            channel: "sms",
+            source: "sms_keyword",
+            brand_subtenant_id: delivery["subtenant_id"],
+            ref: "provider_opt_out:" <> Relay.Id.to_string(delivery_id),
+            occurred_at: Map.get(event, :occurred_at),
+            provider_account_id: account_id,
+            actor_ref: "provider:" <> event.provider
+          })
+
+        :ok
+
+      _unknown ->
         :ok
     end
   end

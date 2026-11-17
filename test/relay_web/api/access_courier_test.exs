@@ -177,7 +177,7 @@ defmodule RelayWeb.Api.AccessCourierTest do
          ctx do
       data = %{
         "recipient" => %{"device" => String.duplicate("A", 43)},
-        "challenge" => "c2lnbg",
+        "challenge" => "c2lnbmF0dXJlLWNoYWxsZW5nZQ",
         "application" => "Portal",
         "action" => "sign in",
         "expires_at" => later(120)

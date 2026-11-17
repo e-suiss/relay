@@ -120,7 +120,8 @@ defmodule EsuissRelay.Agents.Feed do
   alias EsuissRelay.Dedupe
   alias EsuissRelay.Error
 
-  defstruct cursor: nil, dedupe: Dedupe.new()
+  @enforce_keys [:dedupe]
+  defstruct [:cursor, :dedupe]
 
   @type t :: %__MODULE__{cursor: String.t() | nil, dedupe: Dedupe.t()}
 

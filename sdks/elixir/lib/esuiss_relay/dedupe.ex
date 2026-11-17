@@ -4,7 +4,8 @@ defmodule EsuissRelay.Dedupe do
   drops what it has seen; the oldest identifiers leave the set once it holds `limit` of them.
   """
 
-  defstruct seen: MapSet.new(), order: :queue.new(), size: 0, limit: 10_000
+  @enforce_keys [:seen, :order, :limit]
+  defstruct [:seen, :order, :limit, size: 0]
 
   @type t :: %__MODULE__{
           seen: MapSet.t(),
@@ -15,7 +16,8 @@ defmodule EsuissRelay.Dedupe do
 
   @doc "An empty set that remembers at most `limit` identifiers."
   @spec new(pos_integer()) :: t()
-  def new(limit \\ 10_000) when is_integer(limit) and limit > 0, do: %__MODULE__{limit: limit}
+  def new(limit \\ 10_000) when is_integer(limit) and limit > 0,
+    do: %__MODULE__{seen: MapSet.new(), order: :queue.new(), limit: limit}
 
   @doc "`{true, set}` for an identifier seen for the first time, `{false, set}` otherwise."
   @spec first?(t(), term()) :: {boolean(), t()}

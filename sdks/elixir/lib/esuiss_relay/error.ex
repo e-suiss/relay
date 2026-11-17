@@ -117,7 +117,16 @@ defmodule EsuissRelay.Error do
 
   # X-29
   @doc "The class of an error answer, from its status and problem code."
-  @spec classify(non_neg_integer(), String.t() | nil) :: class()
+  @spec classify(non_neg_integer(), String.t() | nil) ::
+          :authentication
+          | :validation
+          | :rate_limit
+          | :quota
+          | :idempotency
+          | :server
+          | :not_found
+          | :conflict
+          | :api
   def classify(status, code) do
     family = family(code)
 

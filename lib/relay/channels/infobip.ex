@@ -5,6 +5,7 @@ defmodule Relay.Channels.Infobip do
     * The provider account's `settings.base_url` is the account's own Infobip host (`<id>.api.infobip.com`), checked before every call; the credential is the API key (`Authorization: App <key>`).
     * `POST /sms/3/messages`. The encoding is named on every send (CH-48): `GSM7_TR` is `language.languageCode: TR` with `singleShift`, `GSM7` and `UCS2` are `languageCode: NONE` with transliteration off, which Infobip sends in the encoding the text needs. The provider idempotency key is the destination's `messageId`, and the `callbackData` carries it again for the delivery reports; an uncertain send is looked up with `GET /sms/3/logs?messageId=` (`query/1`, T-28), where the reconciliation also reads its reports (`delivery_status/1`, DS-48). The validity follows the channel time to live (CH-9), and `settings.webhook_url` receives the delivery reports.
     * A rejected message answers with its status name `status:<NAME>`, an API error with `http:<status>`. A delivery report is `status:<NAME>` (`reports/3`, verified with the HMAC-SHA256 `X-Hub-Signature` of the raw body).
+    * A received message forwarded to the same webhook, with the same signature, is read as an inbound message (`inbound/1`, PC-37).
     * A host that is not an Infobip API host is refused with `config:base_url`, which has no mapping and so raises the alarm (CH-8).
   """
 
@@ -163,12 +164,46 @@ defmodule Relay.Channels.Infobip do
 
     with :ok <- signed(key, body, headers),
          {:ok, %{"results" => rows}} when is_list(rows) <- Jason.decode(body) do
-      {:ok, Enum.map(rows, &report/1)}
+      {:ok, Enum.map(rows, &read/1)}
     else
       {:error, reason} when is_atom(reason) -> {:error, reason}
       _invalid -> {:error, :invalid_body}
     end
   end
+
+  defp read(%{"messageId" => id, "from" => from, "text" => text} = row)
+       when is_binary(id) and is_binary(from) and is_binary(text) do
+    if is_map_key(row, "status"), do: report(row), else: inbound(row)
+  end
+
+  defp read(row), do: report(row)
+
+  # PC-37
+  @doc "Reads one Infobip received message: `messageId`, `from`, `to`, `text` and `receivedAt`."
+  @spec inbound(map()) :: Adapter.inbound_sms()
+  def inbound(%{} = row) do
+    %{
+      kind: :inbound_sms,
+      provider_message_id: row["messageId"],
+      from: Relay.Redacted.wrap(e164(row["from"])),
+      to: row["to"],
+      text: Relay.Redacted.wrap(row["text"]),
+      received_at: received_at(row["receivedAt"]),
+      replied?: false
+    }
+  end
+
+  defp e164("+" <> _digits = number), do: number
+  defp e164(digits), do: "+" <> digits
+
+  defp received_at(text) when is_binary(text) do
+    case DateTime.from_iso8601(text) do
+      {:ok, at, _offset} -> at
+      {:error, _reason} -> nil
+    end
+  end
+
+  defp received_at(_none), do: nil
 
   defp signed(key, body, headers) do
     hex = [header: "x-hub-signature"]

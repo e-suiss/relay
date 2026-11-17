@@ -1,15 +1,15 @@
 defmodule Relay.Compliance.Refusals do
   @moduledoc """
-  Refusals on a running node (PC-35, PC-36, PC-38, PC-39, INV-18): it applies a described refusal (`Relay.Compliance.refuse/2`, configured as `config :relay, Relay.Compliance, refusals: Relay.Compliance.Refusals`) and it issues and reads the one-click unsubscribe links of bulk e-mail.
+  Refusals on a running node (PC-35, PC-36, PC-38, PC-39, PC-61, INV-18): it applies a described refusal (`Relay.Compliance.refuse/2`, configured as `config :relay, Relay.Compliance, refusals: Relay.Compliance.Refusals`) and it issues and reads the one-click unsubscribe links of bulk e-mail.
 
-  A refusal is applied at once and in one transaction (`relay_fn.refusal_apply`): the refusal record with its sealed evidence, what its scope writes (a preference for a `category` exit; the consent copy `REVOKED` with writer `relay` for a refusal notice, and the address suppression of an `all_channel` one), the tenant events (`subscription.unsubscribed` and `preference.changed` for an exit, `consent.revoked` for a notice) in the outbox and, for a refusal notice, the job that hands it to the refusal sink (`Relay.Compliance.Refusals.SinkWorker`). Nothing leaves Relay inside that transaction. The evidence (source, time, requesting address and user agent) is sealed under the recipient's `commercial_consent` subject key before the transaction opens. The request's reference makes a repeat harmless: the refusal is applied again, so a recipient who came back in between is out again, and it is recorded and announced once.
+  A refusal is applied at once and in one transaction (`relay_fn.refusal_apply`): the refusal record with its sealed evidence, what its scope writes (a preference for a `category` exit; the consent copy `REVOKED` with writer `relay` for a refusal notice, on the refusal's channel and, for an `all_channel` one, on every channel it covers, each with a refusal record of its own), the tenant events (`subscription.unsubscribed` and `preference.changed` for an exit, `consent.revoked` for a notice, `sms.opted_out` for a refusal on SMS that came from a keyword or the provider's opt-out) in the outbox and, for a refusal notice, the job that hands it to the refusal sink (`Relay.Compliance.Refusals.SinkWorker`). Nothing leaves Relay inside that transaction. The evidence (source, time, requesting address and user agent) is sealed under the recipient's `commercial_consent` subject key before the transaction opens. The request's reference makes a repeat harmless: the refusal is applied again, so a recipient who came back in between is out again, and it is recorded and announced once.
 
   An unsubscribe link carries a `Relay.Compliance.UnsubscribeToken`. Applying it takes the recipient out of the category of the message it came with, as a preference written by `unsubscribe`; it is never written to the commercial message registry (PC-35). The link's page offers one more step, a refusal notice for every marketing e-mail of the brand (PC-36). A link is invalid when its token does not verify or is on the revocation list, when its recipient is not active or when its category is not a commercial or bulk one.
   """
 
   use Boundary,
     top_level?: true,
-    deps: [Relay, Relay.Compliance, Relay.Preferences, Relay.Subscribers, Relay.Tenancy],
+    deps: [Relay, Relay.Compliance, Relay.Preferences, Relay.Tenancy],
     exports: []
 
   @behaviour Relay.Compliance
@@ -41,21 +41,30 @@ defmodule Relay.Compliance.Refusals do
 
   # PC-38
   # PC-39
+  # PC-61
   # INV-18
   @impl Relay.Compliance
   def apply_refusal(%Scope{} = scope, %Refusal{} = refusal) do
-    with {:ok, sealed} <- seal(scope, refusal),
-         {:ok, digests} <- digests(scope, refusal) do
-      write = fn _status -> write(scope, refusal, sealed, digests) end
-      applied(Store.in_scope(scope, write))
+    with {:ok, sealed} <- seal(scope, refusal) do
+      applied(Store.in_scope(scope, fn _status -> write(scope, refusal, sealed) end))
     end
   end
 
-  defp write(scope, refusal, sealed, digests) do
-    {code, refusal_id} = Store.apply_refusal(Relay.Id.generate(), refusal, sealed, digests)
+  defp write(scope, refusal, sealed) do
+    first = write_one(scope, refusal, sealed)
+    Enum.each(refusal.covers, &write_one(scope, covered(refusal, &1), sealed))
+    first
+  end
+
+  defp write_one(scope, refusal, sealed) do
+    {code, refusal_id} = Store.apply_refusal(Relay.Id.generate(), refusal, sealed)
     if queued?(refusal, code), do: Store.insert_job!(SinkWorker.job(scope, refusal_id))
     {code, refusal_id}
   end
+
+  # PC-61
+  defp covered(refusal, channel),
+    do: %{refusal | channel: channel, ref: String.slice(refusal.ref <> ":" <> channel, 0, 256)}
 
   defp queued?(refusal, code),
     do: Refusal.forwarded?(refusal) and code in [:applied, :reapplied]
@@ -113,26 +122,6 @@ defmodule Relay.Compliance.Refusals do
 
   defp exposed(nil), do: nil
   defp exposed(value), do: value |> Redacted.expose() |> to_string() |> String.slice(0, 512)
-
-  # PC-39
-  # OP-20
-  defp digests(scope, %Refusal{scope: "all_channel"} = refusal) do
-    with {:ok, address} <- address(scope, refusal),
-         value when is_binary(value) <- Redacted.expose(address),
-         {:ok, digests} <- Relay.Subscribers.address_digests(scope, refusal.channel, value) do
-      {:ok, digests}
-    else
-      _unreadable ->
-        {:error, Relay.Error.new(:service_unavailable, "the refused address is not readable")}
-    end
-  end
-
-  defp digests(_scope, _refusal), do: {:ok, []}
-
-  defp address(scope, %Refusal{address: nil, recipient_id: recipient_id, channel: channel}),
-    do: current_address(scope, recipient_id, channel)
-
-  defp address(_scope, %Refusal{address: address}), do: {:ok, address}
 
   defp current_address(scope, recipient_id, channel) do
     kind = Map.get(@kinds, channel)

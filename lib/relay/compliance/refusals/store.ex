@@ -40,12 +40,9 @@ defmodule Relay.Compliance.Refusals.Store do
   # PC-38
   # PC-39
   # INV-18
-  @doc "Applies a refusal; see `relay_fn.refusal_apply`. `sealed` carries the refusal's `:evidence_ct` and `:evidence_key_id` and the consent copy's `:consent_ct`, `digests` the address blind indexes of an `all_channel` refusal, the current key first."
-  @spec apply_refusal(Relay.Id.t(), Refusal.t(), map(), [{Relay.Id.t(), binary()}]) ::
-          {atom(), Relay.Id.t() | nil}
-  def apply_refusal(id, refusal, sealed, digests) do
-    {key_id, digest, next} = target(digests)
-
+  @doc "Applies a refusal; see `relay_fn.refusal_apply`. `sealed` carries the refusal's `:evidence_ct` and `:evidence_key_id` and the consent copy's `:consent_ct`."
+  @spec apply_refusal(Relay.Id.t(), Refusal.t(), map()) :: {atom(), Relay.Id.t() | nil}
+  def apply_refusal(id, refusal, sealed) do
     [row] =
       Repo.call!("relay_fn.refusal_apply", [
         id,
@@ -60,9 +57,7 @@ defmodule Relay.Compliance.Refusals.Store do
         sealed.evidence_ct,
         sealed.evidence_key_id,
         sealed.consent_ct,
-        digest,
-        key_id,
-        next,
+        refusal.provider_account_id,
         refusal.actor_ref
       ])
 
@@ -73,17 +68,10 @@ defmodule Relay.Compliance.Refusals.Store do
        :recipient_not_found,
        :subtenant_not_found,
        :evidence_key_invalid,
-       :key_not_found,
        :category_not_found,
        :not_allowed
      ]), row["refusal_id"]}
   end
-
-  defp target([{key_id, digest} | rest]), do: {key_id, digest, next(rest)}
-  defp target([]), do: {nil, nil, nil}
-
-  defp next([{_key_id, digest} | _rest]), do: digest
-  defp next([]), do: nil
 
   # T-15
   @doc "Queues a job inside the current transaction; rolls the transaction back when it is not queued."

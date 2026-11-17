@@ -246,7 +246,8 @@ defmodule Relay.Tenancy do
   # DS-44
   @doc "The retention period of each record class of a scope (`commercial_message`, `commercial_consent`, `delivery_record`): the legal period of the tenant's region and sector in the active `retention_periods` data set and the tenant's own period, each in days or `nil`."
   @spec retention_periods(Scope.t()) ::
-          {:ok, [%{class: String.t(), legal_days: pos_integer() | nil, days: pos_integer() | nil}]}
+          {:ok,
+           [%{class: String.t(), legal_days: pos_integer() | nil, days: pos_integer() | nil}]}
           | {:error, term()}
   def retention_periods(scope) do
     within(scope, fn _status ->

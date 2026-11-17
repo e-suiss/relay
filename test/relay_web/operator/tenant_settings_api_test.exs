@@ -177,6 +177,7 @@ defmodule RelayWeb.Operator.TenantSettingsApiTest do
 
       shorter = %{longer | "retention" => %{"commercial_message" => legal - 1}}
       problem = json(settings(admin, scope, shorter), 422)
+
       assert [%{"pointer" => "/retention/commercial_message", "code" => "not_allowed"}] =
                problem["errors"]
     end

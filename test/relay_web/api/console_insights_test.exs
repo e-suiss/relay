@@ -28,11 +28,16 @@ defmodule RelayWeb.Api.ConsoleInsightsTest do
 
   describe "X-12 lookup by phone or e-mail" do
     test "X-12, X-5: a phone or e-mail finds its subscriber with masked fields", ctx do
-      created = subscriber!(ctx.token, %{"email" => "ayse@example.com", "phone" => "+905321112233"})
+      created =
+        subscriber!(ctx.token, %{"email" => "ayse@example.com", "phone" => "+905321112233"})
+
       subscriber!(ctx.token, %{"email" => "other@example.com"})
 
       by_email = F.body(lookup(ctx.token, %{"email" => "AYSE@Example.com"}), 200)
-      assert %{"object" => "subscriber_lookup", "truncated" => false, "data" => [found]} = by_email
+
+      assert %{"object" => "subscriber_lookup", "truncated" => false, "data" => [found]} =
+               by_email
+
       assert found["id"] == created["id"]
       assert found["email"] == "a***@example.com"
       assert found["phone"] == nil

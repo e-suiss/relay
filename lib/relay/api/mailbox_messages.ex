@@ -2,7 +2,7 @@ defmodule Relay.Api.MailboxMessages do
   @moduledoc """
   Messages between agents on the server API (AG-56 … AG-61, AG-67, AG-73, AG-74; `Relay.Agents`): sending an end-to-end encrypted envelope to another agent's mailbox, the request box, reading an envelope, the block list and the abuse report. Every operation is the calling agent's own: the sender of a message and the owner of a mailbox is the agent record the credential's Access identity is bound to.
 
-  `prepare/4` runs before the request's transaction. It checks that this installation's region carries encrypted envelopes (the active `encrypted_transport` data set, AG-74), decodes the envelope and holds it to the contract's `encrypted_envelope.max_bytes` (AG-57), verifies a first-contact token against the issuer's token keys, which come from Access's issuer directory and are read again once for a key the kept directory does not list (AG-73), and seals the envelope at rest under the tenant's data key. Relay never opens the envelope and derives nothing from it (AG-56). `send/1` runs inside the request's transaction, where the relationship level, the block list, the first-contact rate and the spent tokens decide where the message goes. Its answer is the same whatever box the message went to, so a blocked sender learns nothing (AG-61).
+  `prepare/4` runs before the request's transaction. It checks that this installation's region carries encrypted envelopes (the active `encrypted_transport` data set, AG-74), decodes the envelope and holds it to the contract's `encrypted_envelope.max_bytes` (AG-57), verifies a first-contact token against the token keys of the tenant's Access environments, which come from each Access environment's issuer directory and are read again once for a key the kept directories do not list (AG-73, E-103), and seals the envelope at rest under the tenant's data key. Relay never opens the envelope and derives nothing from it (AG-56). `send/1` runs inside the request's transaction, where the relationship level, the block list, the first-contact rate and the spent tokens decide where the message goes. Its answer is the same whatever box the message went to, so a blocked sender learns nothing (AG-61).
   """
 
   alias Relay.Agents
@@ -50,7 +50,7 @@ defmodule Relay.Api.MailboxMessages do
          payload_ct: sealed,
          payload_tenant_key_id: key_id,
          payload_digest: :crypto.hash(:sha256, bytes),
-         token: token(body["first_contact_token"]),
+         token: token(scope, body["first_contact_token"]),
          traceparent: traceparent
        }}
     end
@@ -121,32 +121,32 @@ defmodule Relay.Api.MailboxMessages do
 
   # AG-60
   # AG-73
-  defp token(nil), do: :none
+  # E-103
+  defp token(_scope, nil), do: :none
 
-  defp token(text) do
+  defp token(scope, text) do
     case Base.url_decode64(text, padding: false) do
-      {:ok, bytes} -> verified(bytes)
+      {:ok, bytes} -> verified(scope, bytes)
       :error -> :invalid
     end
   end
 
-  defp verified(bytes) do
-    with :invalid <- Agents.first_contact_token(bytes, issuer(false)) do
-      Agents.first_contact_token(bytes, issuer(true))
+  defp verified(scope, bytes) do
+    with :invalid <- any(bytes, Relay.Access.first_contact_issuers(scope)) do
+      any(bytes, Relay.Access.refresh_first_contact_issuers(scope))
     end
   end
 
-  defp issuer(again) do
-    read =
-      if again,
-        do: Relay.Access.refresh_first_contact_issuer(),
-        else: Relay.Access.first_contact_issuer()
-
-    case read do
-      {:ok, issuer} -> issuer
-      :unconfigured -> nil
-    end
+  defp any(bytes, {:ok, [_issuer | _more] = issuers}) do
+    Enum.reduce_while(issuers, :invalid, fn issuer, :invalid ->
+      case Agents.first_contact_token(bytes, issuer) do
+        {:valid, spent} -> {:halt, {:valid, spent}}
+        _invalid -> {:cont, :invalid}
+      end
+    end)
   end
+
+  defp any(bytes, _none), do: Agents.first_contact_token(bytes, nil)
 
   defp seal(scope, bytes) do
     with {:ok, key_id} <- Relay.Tenancy.active_tenant_key(scope, :data),

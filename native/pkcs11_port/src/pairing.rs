@@ -39,7 +39,7 @@ pub struct Exercise {
     pub intent: [u8; 32],
 }
 
-/// A pairing challenge of one realm as Access sent it, with the time of signing; times are Unix milliseconds.
+/// A pairing challenge of one Access environment as Access sent it, with the time of signing; times are Unix milliseconds.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pairing {
     pub domain: [u8; 32],

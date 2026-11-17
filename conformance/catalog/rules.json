@@ -3073,6 +3073,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "E-103",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "Access environments: the snapshot lists environments, pairing names environment, Relay calls it access_environment, first-contact keys are read per environment issuer and honour not-before",
+    "verify_stage": 13
+  },
+  {
+    "acceptance": "pending",
     "id": "X-1",
     "section": "§8",
     "status": "canonical_invariant",

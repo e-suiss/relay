@@ -296,7 +296,7 @@ defmodule Relay.Subscribers do
 
   # X-12
   # X-5
-  @doc "The subscribers whose active or disabled address of `kind` (`\"email\"` or `\"phone\"`) is `address`, found through the address blind index under every readable key and described with masked personal fields, oldest first: at most `limit` and whether more matched. Call it outside any transaction."
+  @doc "The subscribers whose active or disabled address of `kind` (`email` or `phone`) is `address`, found through the address blind index under every readable key and described with masked personal fields, oldest first: at most `limit` and whether more matched. Call it outside any transaction."
   @spec lookup(Scope.t(), String.t(), String.t(), pos_integer()) ::
           {:ok, {[map()], boolean()}} | {:error, term()}
   def lookup(%Scope{} = scope, kind, address, limit)

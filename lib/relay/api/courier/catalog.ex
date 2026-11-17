@@ -502,7 +502,7 @@ defmodule Relay.Api.Courier.Catalog do
     %{
       "subject" => heading,
       "html_kind" => "raw_html",
-      "html" => html(heading, body, link, label),
+      "html" => email_html(heading, body, link, label),
       "text" => heading <> "\n\n" <> body <> text_link(link, label)
     }
   end
@@ -513,7 +513,7 @@ defmodule Relay.Api.Courier.Catalog do
   defp text_link(nil, _label), do: ""
   defp text_link(field, label), do: "\n\n" <> label <> ": {{ " <> field <> " }}"
 
-  defp html(heading, body, link, label) do
+  defp email_html(heading, body, link, label) do
     anchor =
       case link do
         nil -> ""

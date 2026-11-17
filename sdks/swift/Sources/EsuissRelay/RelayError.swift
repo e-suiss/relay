@@ -112,7 +112,7 @@ public enum RelayError: Error, Equatable, Sendable {
   /// Whether repeating the same request, with the same idempotency key, can succeed.
   public var isRetryable: Bool {
     switch self {
-    case let .problem(problem, _):
+    case .problem(let problem, _):
       return RetryClassifier.isRetryable(
         status: problem.status,
         code: problem.code,
@@ -120,7 +120,7 @@ public enum RelayError: Error, Equatable, Sendable {
       )
     case .transport:
       return true
-    case let .unexpectedStatus(status):
+    case .unexpectedStatus(let status):
       return RetryClassifier.isRetryable(status: status, code: nil, declared: nil)
     case .missingScope, .invalidResponse, .notRegistered:
       return false
@@ -129,7 +129,7 @@ public enum RelayError: Error, Equatable, Sendable {
 
   /// The server's `Retry-After`, in seconds, when it sent one.
   public var retryAfter: TimeInterval? {
-    if case let .problem(problem, header) = self {
+    if case .problem(let problem, let header) = self {
       return header ?? problem.retryAfter.map(TimeInterval.init)
     }
     return nil
@@ -137,7 +137,7 @@ public enum RelayError: Error, Equatable, Sendable {
 
   /// The problem code, when the error is a problem response.
   public var code: String? {
-    if case let .problem(problem, _) = self { return problem.code }
+    if case .problem(let problem, _) = self { return problem.code }
     return nil
   }
 }

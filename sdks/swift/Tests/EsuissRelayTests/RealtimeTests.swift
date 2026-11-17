@@ -7,12 +7,16 @@ final class RealtimeTests: XCTestCase {
   func testIN23ServerSentEventParser() {
     var splitter = LineSplitter()
     var parser = ServerSentEventParser()
-    let stream = ": keep-alive\r\nevent: inbox.counters_changed\nid: c7\ndata: {\"a\":\ndata: 1}\n\n\n"
+    let stream =
+      ": keep-alive\r\nevent: inbox.counters_changed\nid: c7\ndata: {\"a\":\ndata: 1}\n\n\n"
     var events: [ServerSentEvent] = []
     for byte in Array(stream.utf8) {
-      if let line = splitter.feed(byte), let event = parser.feed(line: line) { events.append(event) }
+      if let line = splitter.feed(byte), let event = parser.feed(line: line) {
+        events.append(event)
+      }
     }
-    XCTAssertEqual(events, [ServerSentEvent(event: "inbox.counters_changed", data: "{\"a\":\n1}", id: "c7")])
+    XCTAssertEqual(
+      events, [ServerSentEvent(event: "inbox.counters_changed", data: "{\"a\":\n1}", id: "c7")])
   }
 
   func testIN23PhoenixFramesAndTokenSubprotocol() throws {
@@ -29,22 +33,28 @@ final class RealtimeTests: XCTestCase {
     XCTAssertEqual(decoded.joinRef, "1")
     let payload = try JSONSerialization.jsonObject(with: decoded.payload) as? [String: String]
     XCTAssertEqual(payload, ["cursor": "c1"])
-    let heartbeat = PhoenixFrame(joinRef: nil, ref: "2", topic: "phoenix", event: "heartbeat", payload: Data("{}".utf8))
+    let heartbeat = PhoenixFrame(
+      joinRef: nil, ref: "2", topic: "phoenix", event: "heartbeat", payload: Data("{}".utf8))
     XCTAssertTrue(heartbeat.encoded().hasPrefix("[null,"))
-    XCTAssertEqual(PhoenixFrame.subprotocols(token: "a?b>"), ["phoenix", "base64url.bearer.phx.YT9iPg"])
+    XCTAssertEqual(
+      PhoenixFrame.subprotocols(token: "a?b>"), ["phoenix", "base64url.bearer.phx.YT9iPg"])
   }
 
   func testIN33IN52CloseReasons() {
-    XCTAssertEqual(WebSocketRealtimeTransport.stop(reason: "retry-after=4", joined: true), .retryAfter(4))
-    XCTAssertEqual(WebSocketRealtimeTransport.stop(reason: "auth_expired_token", joined: true), .authExpired)
+    XCTAssertEqual(
+      WebSocketRealtimeTransport.stop(reason: "retry-after=4", joined: true), .retryAfter(4))
+    XCTAssertEqual(
+      WebSocketRealtimeTransport.stop(reason: "auth_expired_token", joined: true), .authExpired)
     XCTAssertEqual(
       WebSocketRealtimeTransport.stop(reason: "auth_subscriber_suspended", joined: true),
       .refused("auth_subscriber_suspended")
     )
     XCTAssertEqual(WebSocketRealtimeTransport.stop(reason: nil, joined: false), .unavailable)
     XCTAssertEqual(WebSocketRealtimeTransport.stop(reason: nil, joined: true), .closed)
-    XCTAssertEqual(ServerSentEventsRealtimeTransport.stop(status: 503, retryAfter: 3), .retryAfter(3))
-    XCTAssertEqual(ServerSentEventsRealtimeTransport.stop(status: 401, retryAfter: nil), .authExpired)
+    XCTAssertEqual(
+      ServerSentEventsRealtimeTransport.stop(status: 503, retryAfter: 3), .retryAfter(3))
+    XCTAssertEqual(
+      ServerSentEventsRealtimeTransport.stop(status: 401, retryAfter: nil), .authExpired)
   }
 
   func testIN26EnvelopeDecoding() throws {
@@ -73,7 +83,8 @@ final class RealtimeTests: XCTestCase {
     let harness = Harness()
     let log = Recorder()
     let webSocket = ScriptedTransport(kind: .webSocket, log: log, script: [.unavailable])
-    let sse = ScriptedTransport(kind: .serverSentEvents, log: log, script: [.retryAfter(3), .closed])
+    let sse = ScriptedTransport(
+      kind: .serverSentEvents, log: log, script: [.retryAfter(3), .closed])
     let poll = ScriptedTransport(kind: .longPoll, log: log, script: [])
     let connection = RelayRealtimeConnection(
       transports: [webSocket, sse, poll],
@@ -94,7 +105,8 @@ final class RealtimeTests: XCTestCase {
   func testIN33RefusedConnectionStops() async {
     let harness = Harness()
     let log = Recorder()
-    let webSocket = ScriptedTransport(kind: .webSocket, log: log, script: [.refused("auth_tenant_suspended")])
+    let webSocket = ScriptedTransport(
+      kind: .webSocket, log: log, script: [.refused("auth_tenant_suspended")])
     let connection = RelayRealtimeConnection(
       transports: [webSocket],
       tokens: TokenStore(provider: harness.tokens, clock: harness.clock),

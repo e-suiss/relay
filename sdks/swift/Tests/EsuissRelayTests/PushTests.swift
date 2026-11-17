@@ -41,7 +41,8 @@ final class PushTests: XCTestCase {
 
   func testCH32ReceiptNamesTheDelivery() async throws {
     let harness = Harness()
-    let push = RelayPushAPI(http: harness.http, storage: MemoryDeviceStorage(), settings: FixedSettings())
+    let push = RelayPushAPI(
+      http: harness.http, storage: MemoryDeviceStorage(), settings: FixedSettings())
     harness.transport.enqueue(
       "recordMyPushReceipt",
       .json(
@@ -87,7 +88,8 @@ final class PushTests: XCTestCase {
 
   func testIN47StatusNeedsARegisteredDevice() async {
     let harness = Harness()
-    let push = RelayPushAPI(http: harness.http, storage: MemoryDeviceStorage(), settings: FixedSettings())
+    let push = RelayPushAPI(
+      http: harness.http, storage: MemoryDeviceStorage(), settings: FixedSettings())
     do {
       try await push.updateStatus([.locked: true])
       XCTFail("expected notRegistered")
@@ -114,7 +116,8 @@ final class PushTests: XCTestCase {
     XCTAssertTrue(quiet.contains(.provisional))
     let mixed = RelayPermissionMapping.authorizationOptions(for: [.marketing, .transactional])
     XCTAssertFalse(mixed.contains(.provisional))
-    let security = RelayPermissionMapping.authorizationOptions(for: [.security], criticalAlerts: true)
+    let security = RelayPermissionMapping.authorizationOptions(
+      for: [.security], criticalAlerts: true)
     XCTAssertFalse(security.contains(.provisional))
     XCTAssertTrue(security.contains(.criticalAlert))
     XCTAssertTrue(security.contains(.providesAppNotificationSettings))
@@ -194,14 +197,16 @@ final class PushTests: XCTestCase {
       RelayDeliveredNotification(identifier: "c", relayId: "dlv_other", topic: "other"),
     ])
     let remover = RelayNotificationRemover(center: delivered)
-    let item = RelayInboxItem(id: Fixtures.itemId, stateVersion: 2, createdAt: Date(), groupKey: "order-1")
+    let item = RelayInboxItem(
+      id: Fixtures.itemId, stateVersion: 2, createdAt: Date(), groupKey: "order-1")
     await remover.remove(items: [item])
     XCTAssertEqual(Set(delivered.removed), ["a", "b"])
   }
 
   func testCH28DeviceContextFollowsTheContractPatterns() {
     XCTAssertEqual(RelayDeviceContext.locale(Locale(identifier: "tr_TR")), "tr-TR")
-    XCTAssertEqual(RelayDeviceContext.timeZone(TimeZone(identifier: "Europe/Istanbul")!), "Europe/Istanbul")
+    XCTAssertEqual(
+      RelayDeviceContext.timeZone(TimeZone(identifier: "Europe/Istanbul")!), "Europe/Istanbul")
     XCTAssertNil(RelayDeviceContext.timeZone(TimeZone(identifier: "GMT")!))
   }
 }

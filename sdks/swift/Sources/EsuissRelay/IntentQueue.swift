@@ -95,7 +95,8 @@ public struct FileIntentQueueStorage: IntentQueueStorage {
       withIntermediateDirectories: true
     )
     #if os(iOS)
-      try? data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+      try? data.write(
+        to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     #else
       try? data.write(to: url, options: [.atomic])
     #endif

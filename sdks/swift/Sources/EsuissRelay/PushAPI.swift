@@ -133,9 +133,9 @@ public final class RelayPushAPI: Sendable {
         .init(headers: .init(idempotencyKey: key), body: .json(registration))
       )
       switch output {
-      case let .ok(ok):
+      case .ok(let ok):
         return try ok.body.json.id
-      case let .created(created):
+      case .created(let created):
         return try created.body.json.id
       default:
         throw RelayError.invalidResponse("registerMyDevice")
@@ -164,7 +164,7 @@ public final class RelayPushAPI: Sendable {
         guard case .ok = output else { throw RelayError.invalidResponse("deleteMyDevice") }
       }
     } catch let error as RelayError {
-      if case let .problem(problem, _) = error, problem.status == 404 {
+      if case .problem(let problem, _) = error, problem.status == 404 {
         storage.save(nil)
         return
       }
@@ -254,7 +254,8 @@ enum RelayDeviceContext {
 
   static func timeZone(_ zone: TimeZone = .current) -> String? {
     let identifier = zone.identifier
-    let rejected = identifier == "GMT" || identifier == "UTC" || identifier.hasPrefix("Etc/")
+    let rejected =
+      identifier == "GMT" || identifier == "UTC" || identifier.hasPrefix("Etc/")
       || identifier.hasPrefix("GMT")
     guard !rejected,
       identifier.range(of: "^[A-Za-z]+(/[A-Za-z0-9_+-]+)*$", options: .regularExpression) != nil

@@ -112,7 +112,8 @@ final class InboxTests: XCTestCase {
     pending = await client.store.queue.pending()
     XCTAssertTrue(pending.isEmpty)
     XCTAssertEqual(client.store.counters.version, 5)
-    let keys = Set(harness.transport.requests("applyMyInboxIntent").compactMap { $0.header("Idempotency-Key") })
+    let keys = Set(
+      harness.transport.requests("applyMyInboxIntent").compactMap { $0.header("Idempotency-Key") })
     XCTAssertEqual(keys.count, 1)
   }
 
@@ -208,7 +209,9 @@ final class InboxTests: XCTestCase {
     )
     await client.store.synchronize()
     await client.store.synchronize()
-    XCTAssertEqual(harness.transport.requests("listMyInboxChanges").first?.request.path?.contains("since=c1"), true)
+    XCTAssertEqual(
+      harness.transport.requests("listMyInboxChanges").first?.request.path?.contains("since=c1"),
+      true)
     XCTAssertEqual(client.store.items.map(\.id), [Fixtures.itemId])
     XCTAssertEqual(client.store.streamCursor, "c9")
   }
@@ -226,7 +229,8 @@ final class InboxTests: XCTestCase {
   func testIN35SyncSignalPushRunsADeltaSync() async {
     let harness = Harness()
     let client = harness.client()
-    harness.transport.enqueue("getMyInboxCounters", .json(200, Fixtures.counters(unseen: 2, unread: 2, version: 3)))
+    harness.transport.enqueue(
+      "getMyInboxCounters", .json(200, Fixtures.counters(unseen: 2, unread: 2, version: 3)))
     harness.transport.enqueue(
       "listMyInboxItems",
       .json(
@@ -237,7 +241,9 @@ final class InboxTests: XCTestCase {
         """
       )
     )
-    let handled = await client.handleBackgroundPush(userInfo: ["relay": ["sync": true, "counter_version": 3]])
+    let handled = await client.handleBackgroundPush(userInfo: [
+      "relay": ["sync": true, "counter_version": 3]
+    ])
     XCTAssertTrue(handled)
     XCTAssertEqual(client.store.counters.unseen, 2)
     let ignored = await client.handleBackgroundPush(userInfo: ["aps": ["alert": "x"]])

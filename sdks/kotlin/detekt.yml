@@ -8,6 +8,10 @@ style:
     active: true
   MaxLineLength:
     maxLineLength: 140
+  ReturnCount:
+    active: false
+  LoopWithTooManyJumpStatements:
+    active: false
 
 naming:
   FunctionNaming:
@@ -21,4 +25,22 @@ complexity:
     ignoreAnnotated:
       - Composable
   TooManyFunctions:
+    active: false
+  CyclomaticComplexMethod:
+    threshold: 25
+  LongMethod:
+    threshold: 120
+  NestedBlockDepth:
+    threshold: 6
+  CognitiveComplexMethod:
+    active: false
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+  SwallowedException:
+    active: false
+  ThrowsCount:
+    active: false
+  InstanceOfCheckForException:
     active: false

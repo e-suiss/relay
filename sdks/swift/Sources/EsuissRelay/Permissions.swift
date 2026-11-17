@@ -98,7 +98,9 @@ public enum RelayPermissionMapping {
     for classes: Set<RelayMessageClass>,
     criticalAlerts: Bool = false
   ) -> UNAuthorizationOptions {
-    var options: UNAuthorizationOptions = [.alert, .sound, .badge, .providesAppNotificationSettings]
+    var options: UNAuthorizationOptions = [
+      .alert, .sound, .badge, .providesAppNotificationSettings,
+    ]
     let quiet: Set<RelayMessageClass> = [.marketing, .social]
     if !classes.isEmpty, classes.isSubset(of: quiet) {
       options.insert(.provisional)

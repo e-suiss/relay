@@ -86,7 +86,7 @@ public final class RelayPreferencesAPI: Sendable {
   public func load() async throws -> RelayPreferences {
     try await http.perform(scope: .preferences) { client in
       let output = try await client.getMyPreferences(.init())
-      guard case let .ok(ok) = output else { throw RelayError.invalidResponse("getMyPreferences") }
+      guard case .ok(let ok) = output else { throw RelayError.invalidResponse("getMyPreferences") }
       return RelayPreferences(try ok.body.json)
     }
   }
@@ -117,7 +117,9 @@ public final class RelayPreferencesAPI: Sendable {
     }
     return try await patch(
       .init(
-        preferences: [.init(channel: channelValue, level: .channel, value: RelayPreferences.wire(value))]
+        preferences: [
+          .init(channel: channelValue, level: .channel, value: RelayPreferences.wire(value))
+        ]
       )
     )
   }
@@ -144,7 +146,7 @@ public final class RelayPreferencesAPI: Sendable {
       let output = try await client.updateMyPreferences(
         .init(headers: .init(idempotencyKey: key), body: .json(body))
       )
-      guard case let .ok(ok) = output else {
+      guard case .ok(let ok) = output else {
         throw RelayError.invalidResponse("updateMyPreferences")
       }
       return RelayPreferences(try ok.body.json)

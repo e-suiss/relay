@@ -75,7 +75,8 @@ final class HTTPTests: XCTestCase {
     }
     for entry in ErrorCatalog.codes(text) {
       XCTAssertEqual(
-        RetryClassifier.isRetryable(status: entry.status, code: entry.code, declared: entry.retryable),
+        RetryClassifier.isRetryable(
+          status: entry.status, code: entry.code, declared: entry.retryable),
         entry.retryable
       )
     }
@@ -152,7 +153,9 @@ enum ErrorCatalog {
         status = nil
       } else if line.hasPrefix("    status: ") {
         status = Int(line.dropFirst("    status: ".count))
-      } else if line.hasPrefix("    retryable: "), let currentCode = code, let currentStatus = status {
+      } else if line.hasPrefix("    retryable: "), let currentCode = code,
+        let currentStatus = status
+      {
         result.append(
           Entry(status: currentStatus, code: currentCode, retryable: line.hasSuffix("true"))
         )

@@ -89,7 +89,9 @@ public final class RelayInboxStore: ObservableObject {
       nextCursor = page.nextCursor
       if let pageCounters = page.counters { apply(counters: pageCounters) }
       if let cursor = page.streamCursor { streamCursor = cursor }
-      for item in page.items { await queue.observe(itemId: item.id, stateVersion: item.stateVersion) }
+      for item in page.items {
+        await queue.observe(itemId: item.id, stateVersion: item.stateVersion)
+      }
     } catch {
       record(error)
     }
@@ -139,7 +141,9 @@ public final class RelayInboxStore: ObservableObject {
   // IN-15
   /// Applies an intent on screen at once, queues it and sends it; hide and archive wait for the undo
   /// window first.
-  public func perform(_ operation: RelayInboxOperation, on item: RelayInboxItem, snoozeUntil: Date? = nil)
+  public func perform(
+    _ operation: RelayInboxOperation, on item: RelayInboxItem, snoozeUntil: Date? = nil
+  )
     async
   {
     let undoable = operation == .archive || operation == .hide
@@ -206,7 +210,7 @@ public final class RelayInboxStore: ObservableObject {
         apply(state: state)
         apply(counters: newCounters)
       } catch let error as RelayError {
-        if case let .problem(problem, _) = error, problem.code == "inbox_item_conflict" {
+        if case .problem(let problem, _) = error, problem.code == "inbox_item_conflict" {
           await queue.remove(clientSeq: intent.clientSeq)
           if let current = problem.current { apply(state: current) }
           if intent.operation.isReverse, reversalsThisSession.contains(intent.itemId) {
@@ -227,7 +231,9 @@ public final class RelayInboxStore: ObservableObject {
     reversalsThisSession.removeAll()
   }
 
-  private func commit(_ operation: RelayInboxOperation, item: RelayInboxItem, snoozeUntil: Date?) async {
+  private func commit(_ operation: RelayInboxOperation, item: RelayInboxItem, snoozeUntil: Date?)
+    async
+  {
     if pendingUndo?.item.id == item.id { pendingUndo = nil }
     await queue.enqueue(
       itemId: item.id,
@@ -275,10 +281,10 @@ public final class RelayInboxStore: ObservableObject {
 
   private func apply(_ change: RelayInboxChange) async {
     switch change {
-    case let .upsert(item):
+    case .upsert(let item):
       await queue.observe(itemId: item.id, stateVersion: item.stateVersion)
       insert(item)
-    case let .removed(state):
+    case .removed(let state):
       await queue.observe(itemId: state.id, stateVersion: state.stateVersion)
       if let index = items.firstIndex(where: { $0.id == state.id }) {
         let removed = items.remove(at: index)
@@ -340,7 +346,7 @@ public final class RelayInboxStore: ObservableObject {
     lastError = RelayHTTP.unwrap(error)
   }
 
-  static func decodeItem(_ json: Data) -> RelayInboxItem? {
+  nonisolated static func decodeItem(_ json: Data) -> RelayInboxItem? {
     let decoder = JSONDecoder()
     let transcoder = RelayDateTranscoder()
     decoder.dateDecodingStrategy = .custom { decoder in

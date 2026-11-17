@@ -28,7 +28,7 @@ public final class RelayInboxAPI: Sendable {
           )
         )
       )
-      guard case let .ok(ok) = output else { throw RelayError.invalidResponse("listMyInboxItems") }
+      guard case .ok(let ok) = output else { throw RelayError.invalidResponse("listMyInboxItems") }
       let list = try ok.body.json
       return RelayInboxPage(
         items: list.data.map(RelayInboxItem.init),
@@ -43,7 +43,7 @@ public final class RelayInboxAPI: Sendable {
   public func item(id: String) async throws -> RelayInboxItem {
     try await http.perform(scope: .inboxRead) { client in
       let output = try await client.getMyInboxItem(.init(path: .init(itemId: id)))
-      guard case let .ok(ok) = output else { throw RelayError.invalidResponse("getMyInboxItem") }
+      guard case .ok(let ok) = output else { throw RelayError.invalidResponse("getMyInboxItem") }
       return RelayInboxItem(try ok.body.json)
     }
   }
@@ -51,7 +51,7 @@ public final class RelayInboxAPI: Sendable {
   public func counters() async throws -> RelayInboxCounters {
     try await http.perform(scope: .inboxRead) { client in
       let output = try await client.getMyInboxCounters(.init())
-      guard case let .ok(ok) = output else {
+      guard case .ok(let ok) = output else {
         throw RelayError.invalidResponse("getMyInboxCounters")
       }
       return RelayInboxCounters(try ok.body.json)
@@ -64,7 +64,7 @@ public final class RelayInboxAPI: Sendable {
       let output = try await client.listMyInboxChanges(
         .init(query: .init(since: cursor, limit: limit))
       )
-      guard case let .ok(ok) = output else {
+      guard case .ok(let ok) = output else {
         throw RelayError.invalidResponse("listMyInboxChanges")
       }
       let delta = try ok.body.json
@@ -105,7 +105,7 @@ public final class RelayInboxAPI: Sendable {
       let output = try await client.markAllMyInboxRead(
         .init(headers: .init(idempotencyKey: key), body: .json(.init(category: category)))
       )
-      guard case let .ok(ok) = output else {
+      guard case .ok(let ok) = output else {
         throw RelayError.invalidResponse("markAllMyInboxRead")
       }
       return RelayInboxCounters(try ok.body.json.counters)
@@ -130,7 +130,7 @@ public final class RelayInboxAPI: Sendable {
           body: .json(body)
         )
       )
-      guard case let .ok(ok) = output else {
+      guard case .ok(let ok) = output else {
         throw RelayError.invalidResponse("applyMyInboxIntent")
       }
       let result = try ok.body.json

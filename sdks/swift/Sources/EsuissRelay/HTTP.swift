@@ -88,7 +88,7 @@ final class RelayHTTP: Sendable {
       } catch {
         if Task.isCancelled { throw CancellationError() }
         let relayError = RelayHTTP.unwrap(error)
-        if case let .problem(problem, _) = relayError, problem.status == 401, !refreshed,
+        if case .problem(let problem, _) = relayError, problem.status == 401, !refreshed,
           problem.code == "auth_expired_token" || problem.code == "auth_invalid_token"
         {
           refreshed = true
@@ -112,7 +112,9 @@ final class RelayHTTP: Sendable {
     if let relayError = error as? RelayError { return relayError }
     if let clientError = error as? ClientError { return unwrap(clientError.underlyingError) }
     if error is CancellationError { return .transport("cancelled") }
-    if let urlError = error as? URLError { return .transport("network error \(urlError.code.rawValue)") }
+    if let urlError = error as? URLError {
+      return .transport("network error \(urlError.code.rawValue)")
+    }
     return .invalidResponse(String(describing: type(of: error)))
   }
 }

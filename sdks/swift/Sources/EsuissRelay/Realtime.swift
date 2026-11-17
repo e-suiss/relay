@@ -116,12 +116,12 @@ public actor RelayRealtimeConnection {
             index += 1
             continue
           }
-        case let .retryAfter(seconds):
+        case .retryAfter(let seconds):
           wait = seconds
         case .authExpired:
           _ = try? await tokens.refresh()
           continue
-        case let .refused(reason):
+        case .refused(let reason):
           await set(.stopped(reason))
           task = nil
           return
@@ -165,7 +165,9 @@ public struct WebSocketRealtimeTransport: RelayRealtimeTransport {
   let deviceId: @Sendable () -> String?
   let session: URLSession
 
-  public init(baseURL: URL, session: URLSession = .shared, deviceId: @escaping @Sendable () -> String?) {
+  public init(
+    baseURL: URL, session: URLSession = .shared, deviceId: @escaping @Sendable () -> String?
+  ) {
     self.baseURL = baseURL
     self.session = session
     self.deviceId = deviceId
@@ -186,7 +188,8 @@ public struct WebSocketRealtimeTransport: RelayRealtimeTransport {
     if let device = deviceId() { query.append(URLQueryItem(name: "device_id", value: device)) }
     components.queryItems = query
     guard let url = components.url else { throw RelayRealtimeStop.unavailable }
-    let socket = session.webSocketTask(with: url, protocols: PhoenixFrame.subprotocols(token: token))
+    let socket = session.webSocketTask(
+      with: url, protocols: PhoenixFrame.subprotocols(token: token))
     socket.resume()
     defer { socket.cancel(with: .goingAway, reason: nil) }
     var payload: [String: Any] = [:]
@@ -230,7 +233,9 @@ public struct WebSocketRealtimeTransport: RelayRealtimeTransport {
           joined: joined
         )
       }
-      guard case let .string(text) = message, let frame = PhoenixFrame.decode(text) else { continue }
+      guard case .string(let text) = message, let frame = PhoenixFrame.decode(text) else {
+        continue
+      }
       if frame.event == "phx_reply", frame.ref == "1" {
         let reply = try? JSONSerialization.jsonObject(with: frame.payload) as? [String: Any]
         guard reply?["status"] as? String == "ok" else {
@@ -275,7 +280,9 @@ public struct ServerSentEventsRealtimeTransport: RelayRealtimeTransport {
   let deviceId: @Sendable () -> String?
   let session: URLSession
 
-  public init(baseURL: URL, session: URLSession = .shared, deviceId: @escaping @Sendable () -> String?) {
+  public init(
+    baseURL: URL, session: URLSession = .shared, deviceId: @escaping @Sendable () -> String?
+  ) {
     self.baseURL = baseURL
     self.session = session
     self.deviceId = deviceId
@@ -291,7 +298,9 @@ public struct ServerSentEventsRealtimeTransport: RelayRealtimeTransport {
       url: baseURL.appendingPathComponent("v1/realtime/events"),
       resolvingAgainstBaseURL: false
     )
-    if let device = deviceId() { components?.queryItems = [URLQueryItem(name: "device_id", value: device)] }
+    if let device = deviceId() {
+      components?.queryItems = [URLQueryItem(name: "device_id", value: device)]
+    }
     guard let url = components?.url else { throw RelayRealtimeStop.unavailable }
     var request = URLRequest(url: url)
     request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -362,14 +371,15 @@ struct LongPollRealtimeTransport: RelayRealtimeTransport {
         let current = next
         poll = try await http.perform(scope: .inboxRead) { client in
           let output = try await client.pollRealtimeEvents(.init(query: .init(cursor: current)))
-          guard case let .ok(ok) = output else {
+          guard case .ok(let ok) = output else {
             throw RelayError.invalidResponse("pollRealtimeEvents")
           }
           return try ok.body.json
         }
       } catch let error as RelayError {
-        if case let .problem(problem, retryAfter) = error {
-          throw ServerSentEventsRealtimeTransport.stop(status: problem.status, retryAfter: retryAfter)
+        if case .problem(let problem, let retryAfter) = error {
+          throw ServerSentEventsRealtimeTransport.stop(
+            status: problem.status, retryAfter: retryAfter)
         }
         throw RelayRealtimeStop.closed
       }
@@ -378,7 +388,8 @@ struct LongPollRealtimeTransport: RelayRealtimeTransport {
         await onOpen()
       }
       for event in poll.events {
-        guard let data = try? encoder.encode(event), let envelope = RelayRealtimeEnvelope(json: data)
+        guard let data = try? encoder.encode(event),
+          let envelope = RelayRealtimeEnvelope(json: data)
         else { continue }
         await onEnvelope(envelope)
       }

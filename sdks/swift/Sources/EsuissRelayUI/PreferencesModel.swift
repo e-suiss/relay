@@ -8,7 +8,9 @@ public struct RelayCategoryInfo: Sendable, Equatable {
   public let messageClass: RelayMessageClass
   public let digestAllowed: Bool
 
-  public init(key: String, name: String, messageClass: RelayMessageClass, digestAllowed: Bool = false) {
+  public init(
+    key: String, name: String, messageClass: RelayMessageClass, digestAllowed: Bool = false
+  ) {
     self.key = key
     self.name = name
     self.messageClass = messageClass
@@ -104,7 +106,9 @@ public final class RelayPreferencesModel: ObservableObject {
   /// Turns a cell on, or off; turning a digest category off first asks the three-choice question.
   public func set(_ cell: RelayPreferenceCell, on: Bool) async {
     if on {
-      await write { try await $0.set(category: cell.category, channel: cell.channel, value: .optIn) }
+      await write {
+        try await $0.set(category: cell.category, channel: cell.channel, value: .optIn)
+      }
       return
     }
     if categories[cell.category]?.digestAllowed == true {
@@ -121,12 +125,18 @@ public final class RelayPreferencesModel: ObservableObject {
     switch choice {
     case .instant:
       guard let current = preferences else { return }
-      await write { try await $0.setDigest(category: cell.category, choice: .instant, current: current) }
+      await write {
+        try await $0.setDigest(category: cell.category, choice: .instant, current: current)
+      }
     case .digest:
       guard let current = preferences else { return }
-      await write { try await $0.setDigest(category: cell.category, choice: .digest, current: current) }
+      await write {
+        try await $0.setDigest(category: cell.category, choice: .digest, current: current)
+      }
     case .never:
-      await write { try await $0.set(category: cell.category, channel: cell.channel, value: .optOut) }
+      await write {
+        try await $0.set(category: cell.category, channel: cell.channel, value: .optOut)
+      }
     }
   }
 

@@ -12,7 +12,9 @@ public final class RelayNotificationCenterDelegate: NSObject, UNUserNotification
   let router: RelayPreferencesRouter
   let onOpenURL: (URL) -> Void
 
-  public init(client: RelayClient, router: RelayPreferencesRouter, onOpenURL: @escaping (URL) -> Void) {
+  public init(
+    client: RelayClient, router: RelayPreferencesRouter, onOpenURL: @escaping (URL) -> Void
+  ) {
     self.client = client
     self.router = router
     self.onOpenURL = onOpenURL

@@ -18,7 +18,8 @@ public final class RelayClient: RelayLifecycleSteps {
   let http: RelayHTTP
 
   public convenience init(configuration: RelayConfiguration) {
-    let queueURL = (configuration.storageDirectory
+    let queueURL =
+      (configuration.storageDirectory
       ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0])
       .appendingPathComponent("EsuissRelay/intents.json")
     self.init(

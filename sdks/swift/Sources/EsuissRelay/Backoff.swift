@@ -19,7 +19,8 @@ public struct FullJitterBackoff: Sendable {
   }
 
   /// The wait before attempt `attempt`; a server `Retry-After` is a floor the wait never goes below.
-  public func delay(attempt: Int, random: RelayRandom, retryAfter: TimeInterval? = nil) -> TimeInterval
+  public func delay(attempt: Int, random: RelayRandom, retryAfter: TimeInterval? = nil)
+    -> TimeInterval
   {
     let jittered = random.unit() * ceiling(attempt: attempt)
     guard let retryAfter, retryAfter > 0 else { return jittered }

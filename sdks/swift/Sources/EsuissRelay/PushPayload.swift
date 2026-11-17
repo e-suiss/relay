@@ -54,7 +54,9 @@ public struct RelayPushPayload: Equatable, Sendable {
       topic: data["relay_topic"],
       url: data["relay_url"].flatMap(URL.init(string:)),
       isSyncSignal: sync,
-      counterVersion: (data["counter_version"] ?? data["relay_counter_version"]).flatMap { Int($0) },
+      counterVersion: (data["counter_version"] ?? data["relay_counter_version"]).flatMap {
+        Int($0)
+      },
       neutralTitle: data["relay_neutral_title"],
       neutralBody: data["relay_neutral_body"]
     )

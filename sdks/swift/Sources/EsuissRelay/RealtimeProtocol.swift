@@ -8,7 +8,8 @@ public struct RelayRealtimeEnvelope: Equatable, Sendable {
   public let payload: Data
   public let counters: RelayInboxCounters
 
-  public init(type: String, version: Int, id: String?, payload: Data, counters: RelayInboxCounters) {
+  public init(type: String, version: Int, id: String?, payload: Data, counters: RelayInboxCounters)
+  {
     self.type = type
     self.version = version
     self.id = id
@@ -26,7 +27,8 @@ public struct RelayRealtimeEnvelope: Equatable, Sendable {
       let total = (counters["total"] as? NSNumber)?.intValue,
       let version = (counters["version"] as? NSNumber)?.intValue
     else { return nil }
-    let data = map["d"].flatMap { try? JSONSerialization.data(withJSONObject: $0) } ?? Data("{}".utf8)
+    let data =
+      map["d"].flatMap { try? JSONSerialization.data(withJSONObject: $0) } ?? Data("{}".utf8)
     self.init(
       type: type,
       version: (map["v"] as? NSNumber)?.intValue ?? 1,

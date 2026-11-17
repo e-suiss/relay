@@ -28,7 +28,7 @@ java -jar "$jar" generate \
   --model-package app.suiss.relay.api.model \
   --global-property models,modelDocs=false,modelTests=false \
   --additional-properties serializationLibrary=gson,dateLibrary=string,enumPropertyNaming=UPPERCASE,sourceFolder=src/main/kotlin \
-  --schema-mappings DeviceSignal=kotlin.Any \
+  --schema-mappings DeviceSignal=kotlin.Any,DigestChoices=com.google.gson.JsonObject \
   --skip-validate-spec
 
 target="$sdk/relay/src/generated/kotlin"

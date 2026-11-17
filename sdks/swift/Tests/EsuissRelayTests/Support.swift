@@ -89,7 +89,9 @@ final class MockTransport: ClientTransport, @unchecked Sendable {
     fields[HTTPField.Name("Relay-Version")!] = "2026-11-01"
     fields[.contentType] = reply.status >= 400 ? "application/problem+json" : "application/json"
     for (name, value) in reply.headers { fields[HTTPField.Name(name)!] = value }
-    return (HTTPResponse(status: .init(code: reply.status), headerFields: fields), HTTPBody(reply.body))
+    return (
+      HTTPResponse(status: .init(code: reply.status), headerFields: fields), HTTPBody(reply.body)
+    )
   }
 }
 

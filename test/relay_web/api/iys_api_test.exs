@@ -54,6 +54,7 @@ defmodule RelayWeb.Api.IysApiTest do
                created
 
       assert created["credential_ref_id"] == ctx.credential
+
       assert created["quota"] == %{
                "state" => "unknown",
                "consent_limit" => nil,
@@ -69,6 +70,7 @@ defmodule RelayWeb.Api.IysApiTest do
       assert F.body(get(ctx, "/v1/iys/config"), 200)["version"] == 1
 
       listed = F.body(get(ctx, "/v1/iys/brands"), 200)
+
       assert %{"object" => "list", "has_more" => false, "data" => [%{"brand_code" => @brand}]} =
                listed
     end
@@ -114,6 +116,7 @@ defmodule RelayWeb.Api.IysApiTest do
 
       assert %{"object" => "iys_connection_test", "token" => "ok"} = report
       assert report["brands"] == %{"result" => "ok", "found" => [@brand], "missing" => [4242]}
+
       assert %{"result" => "ok", "status" => "ACTIVE", "consent_limit" => 1000} =
                report["subscription"]
 
@@ -134,6 +137,7 @@ defmodule RelayWeb.Api.IysApiTest do
       assert %{"data" => [failed], "has_more" => false} = F.body(conn, 200)
 
       assert %{"object" => "iys_upload", "state" => "failed", "status" => "rejection"} = failed
+
       assert %{"channel" => "email", "error_code" => "brand_not_mapped", "origin" => "refusal"} =
                failed
 

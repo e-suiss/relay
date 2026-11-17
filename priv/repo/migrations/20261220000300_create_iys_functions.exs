@@ -29,7 +29,7 @@ defmodule Relay.Repo.Migrations.CreateIysFunctions do
     for {signature, owner, grantees} <- @functions do
       execute("REVOKE ALL ON FUNCTION #{signature} FROM PUBLIC")
       Enum.each(grantees, &execute("GRANT EXECUTE ON FUNCTION #{signature} TO #{&1}"))
-      execute("ALTER FUNCTION #{signature} OWNER TO #{owner}")
+      if owner == "relay_owner", do: execute("ALTER FUNCTION #{signature} OWNER TO #{owner}")
     end
   end
 

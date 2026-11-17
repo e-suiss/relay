@@ -72,7 +72,8 @@ defmodule Relay.ScopeTest do
                :subscriber_token_keys,
                :webhook_due_discovery,
                :access_pairing,
-               :iys_scope_discovery
+               :iys_scope_discovery,
+               :iys_sync_overview
              ]
     end
 

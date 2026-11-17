@@ -1107,6 +1107,13 @@ defmodule RelayWeb.Router do
     post "/iys_credentials", IysCredentialController, :create,
       private: %{relay_operation: "registerIysCredential"}
 
+    # PC-32
+    # PC-34
+    get "/iys/sync", IysController, :sync, private: %{relay_operation: "getIysSync"}
+
+    post "/iys/uploads/:upload_id/retry", IysController, :retry,
+      private: %{relay_operation: "retryIysUpload"}
+
     post "/webhook_endpoints/:webhook_endpoint_id/subscribe",
          WebhookEndpointController,
          :subscribe,

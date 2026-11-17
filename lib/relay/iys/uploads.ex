@@ -6,6 +6,7 @@ defmodule Relay.Iys.Uploads do
 
   `run/2` is one attempt of the job. The upload is claimed in its own transaction, which keeps the movements of one recipient, brand and type in order and apart: an earlier open movement of the same key, or one İYS recorded less than two seconds ago, makes the job come back. The request is made outside any transaction. A `200` only marks the upload `uploaded`; it is `confirmed`, and the consent copy gets its `active` or `revoked` row with the İYS transaction identifier, after the status was read back from İYS and agrees. What İYS answers decides the rest:
 
+    * a confirmed movement is also written to the permission cache in the transaction that settles it (`Relay.Iys.Permissions.confirmed/3`), so the lattice reads a rejection Relay wrote before the next pull reports it;
     * the status is already the one sent (`H174`): read back and confirm;
     * a refusal for a recipient İYS holds no record of (`H175`): `skipped`, there is nothing to refuse;
     * a consent older than three business days (`H467`), or a deadline that passed before the upload: `expired`, announced as `iys.consent_expired`;
@@ -21,6 +22,7 @@ defmodule Relay.Iys.Uploads do
   alias Relay.Iys.Calendar
   alias Relay.Iys.Client
   alias Relay.Iys.Consent
+  alias Relay.Iys.Permissions
   alias Relay.Iys.Store
   alias Relay.Scope
 
@@ -365,6 +367,7 @@ defmodule Relay.Iys.Uploads do
   # PC-34
   # WH-15
   defp announce(upload, "failed", detail, now), do: failed(upload, detail["error_code"], now)
+  defp announce(upload, "confirmed", detail, now), do: Permissions.confirmed(upload, detail, now)
   defp announce(upload, "expired", _detail, now), do: expired(upload, now)
   defp announce(_upload, _outcome, _detail, _now), do: :ok
 
@@ -420,6 +423,30 @@ defmodule Relay.Iys.Uploads do
       {:ok, :appended} -> :ok
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  # PC-34
+  @doc "Opens a failed upload again; see `Relay.Iys.retry_upload/5`."
+  @spec retry(Scope.t(), Relay.Id.t(), String.t(), binary(), Relay.Actor.t()) ::
+          Iys.result({:retried, map()} | :not_found | :not_failed | :not_retryable)
+  def retry(%Scope{} = scope, <<_::128>> = id, reason, digest, actor) do
+    runtime = Iys.runtime()
+    now = Relay.Clock.utc_now()
+
+    work = fn _status ->
+      case Store.upload_retry(id, reason, digest, actor, now) do
+        :retried -> requeued(scope, runtime, Store.upload(id))
+        refused -> refused
+      end
+    end
+
+    Store.in_scope(scope, work)
+  end
+
+  defp requeued(scope, runtime, upload) do
+    priority = if upload["consent_status"] == "RET", do: 0, else: 2
+    :queued = queued(runtime.enqueue(scope, upload["id"], priority))
+    {:retried, upload}
   end
 
   defp recipient(nil), do: nil

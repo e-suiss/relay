@@ -330,6 +330,12 @@
     "reason": "PC-30, OP-9: the no-delete triggers reject TRUNCATE on the İYS configuration, brands and uploads"
   },
   {
+    "path": "priv/repo/migrations/20261225000000_create_iys_permission_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "PC-32, OP-9: the no-delete triggers reject TRUNCATE on the İYS permission cache and the synchronisation state"
+  },
+  {
     "path": "priv/repo/migrations/20261221000000_create_refusal_tables.exs",
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",

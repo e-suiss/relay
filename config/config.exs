@@ -75,6 +75,7 @@ config :relay, Oban,
        {"* * * * *", Relay.Channels.Live.SesQueue},
        {"* * * * *", Relay.Webhooks.Sweep},
        {"*/15 * * * *", Relay.Iys.Sweep},
+       {"*/5 * * * *", Relay.Iys.SyncSweep},
        {"53 * * * *", Relay.Access.Pairing.Job}
      ]}
   ]
@@ -113,11 +114,13 @@ config :relay, Relay.Access,
 
 config :relay, Relay.Iys, runtime: Relay.Iys.Live
 
+config :relay, Relay.Policy.IysGate, impl: Relay.Iys.Gate
+
 config :relay, Relay.Preferences, consent_sink: Relay.Iys.Live
 
 config :relay, Relay.Compliance,
   refusals: Relay.Compliance.Refusals,
-  sink: Relay.Compliance.RefusalSink.None,
+  sink: Relay.Iys.Live,
   unsubscribe_key: "unsubscribe-link",
   unsubscribe_verify_keys: [],
   unsubscribe_mailbox: "unsubscribe@localhost"

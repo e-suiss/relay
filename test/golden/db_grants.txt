@@ -264,6 +264,16 @@ table relay.iys_configs relay_archive SELECT
 table relay.iys_configs relay_maint SELECT
 table relay.iys_configs relay_owner INSERT,SELECT,UPDATE
 table relay.iys_configs relay_report SELECT
+table relay.iys_permissions relay_app SELECT
+table relay.iys_permissions relay_archive SELECT
+table relay.iys_permissions relay_maint SELECT
+table relay.iys_permissions relay_owner INSERT,SELECT,UPDATE
+table relay.iys_permissions relay_report SELECT
+table relay.iys_sync_states relay_app SELECT
+table relay.iys_sync_states relay_archive SELECT
+table relay.iys_sync_states relay_maint SELECT
+table relay.iys_sync_states relay_owner INSERT,SELECT,UPDATE
+table relay.iys_sync_states relay_report SELECT
 table relay.iys_uploads relay_app SELECT
 table relay.iys_uploads relay_archive SELECT
 table relay.iys_uploads relay_maint SELECT

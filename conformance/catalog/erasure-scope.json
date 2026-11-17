@@ -829,6 +829,18 @@
       "subject_erasure": "the address is sealed under the tenant data key in the commercial_consent class only while the upload is open and is set to null when it settles; a failed upload keeps it until the tenant data key is destroyed; the row and the keyed address digest are kept as the record of the registry write"
     },
     {
+      "table": "iys_permissions",
+      "personal_columns": [],
+      "tenant_close": "rows kept",
+      "subject_erasure": "holds no address, only its keyed blind index, which is kept as suppression digests are (OP-20): the registry's rejection must keep stopping the address"
+    },
+    {
+      "table": "iys_sync_states",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
       "table": "dsr_log",
       "personal_columns": [],
       "tenant_close": "row kept under the dsr_log retention",

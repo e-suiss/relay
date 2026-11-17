@@ -361,6 +361,10 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.iys_upload_enqueue" => ~w(queued duplicate not_configured brand_not_mapped),
     "relay_fn.iys_upload_claim" => ~w(claimed busy settled overdue not_found),
     "relay_fn.iys_upload_settle" => ~w(settled already_settled not_found),
+    "relay_fn.iys_permissions_apply" => ~w(applied brand_not_found),
+    "relay_fn.iys_permission_mark" => ~w(marked not_found),
+    "relay_fn.iys_sync_record" => ~w(recorded brand_not_found),
+    "relay_fn.iys_upload_retry" => ~w(retried not_found not_failed not_retryable),
     "relay_fn.recipient_locality_set" => ~w(set unchanged not_found),
     "relay_fn.device_time_zone_set" => ~w(set unchanged not_found),
     "relay_fn.refusal_apply" =>

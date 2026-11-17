@@ -584,6 +584,46 @@ groups:
         annotations:
           summary: "More than five alerts paged in the last twelve hours; review the alerts"
           runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaywakeupbudget
+      - alert: RelayIysCopyStale
+        expr: relay_iys_copy_warning_brands > 0
+        labels:
+          severity: warning
+          decision: PC-33
+        annotations:
+          summary: "The local copy of İYS of a brand has not synchronised for six hours"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiyscopystale
+      - alert: RelayIysCopyStopped
+        expr: relay_iys_copy_stopped_brands > 0
+        labels:
+          severity: page
+          decision: PC-33
+        annotations:
+          summary: "The local copy of İYS of a brand is a day old and its marketing is held"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiyscopystopped
+      - alert: RelayIysReconciliationDrift
+        expr: min_over_time(relay_iys_reconciliation_drift[2h]) > 0
+        labels:
+          severity: warning
+          decision: OP-42
+        annotations:
+          summary: "The İYS reconciliation keeps finding movements the local copy does not hold"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiysreconciliationdrift
+      - alert: RelayIysDirectAccessWarning
+        expr: relay_iys_direct_access_warning_brands > 0
+        labels:
+          severity: warning
+          decision: PC-62
+        annotations:
+          summary: "An integrator brand holds more than 80% of the İYS direct access threshold"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiysdirectaccesswarning
+      - alert: RelayIysDirectAccessReached
+        expr: relay_iys_direct_access_reached_brands > 0
+        labels:
+          severity: ticket
+          decision: PC-62
+        annotations:
+          summary: "An integrator brand reached the İYS direct access threshold"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiysdirectaccessreached
   - name: relay-vm
     rules:
       - alert: RelayAtomGrowth

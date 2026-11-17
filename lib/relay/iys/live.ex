@@ -4,6 +4,10 @@ defmodule Relay.Iys.Live do
 
   It is the runtime of `Relay.Iys` (`config :relay, Relay.Iys, runtime: Relay.Iys.Live`): an address waiting for its upload is sealed under the tenant's `data` key for the column that stores it, in the commercial consent class, so destroying the tenant's data key shreds it (TN-27); its blind index is the one subscriber addresses and suppressions use (OP-20); the password is resolved from its secret reference of kind `iys_credential` for one call (TN-26); the upload job enters the `l1` lane with its upload row; İYS's request limits are installation-wide rate limits, because İYS counts by the calling address (PC-34); and the business calendar is the active `business_calendar` version (PC-60).
 
+  For the read path (PC-32) a rejection that came from İYS is applied through `Relay.Compliance.refuse/2` with source `iys`, which is never handed back to the refusal sink, and the address of a recipient is opened for the one request that verifies it.
+
+  It is also the refusal sink of `Relay.Compliance` (`config :relay, Relay.Compliance, sink: Relay.Iys.Live`, PC-38): every refusal notice applied in Relay, from the unsubscribe page, an SMS keyword or a complaint, joins the write path as a rejection on its İYS channel.
+
   It is also the consent sink of the consent copy (`config :relay, Relay.Preferences, consent_sink: Relay.Iys.Live`, E-21): a consent of an İYS channel belongs in the registry when the tenant entered an İYS configuration or the tenant's region is Turkey (PC-27; a region that cannot be read counts as Turkey, the closed side), and a recorded consent goes to the write path with the subscriber's address of the channel. A consent whose subscriber has no such address cannot be written and is announced as `iys.upload_failed`.
   """
 
@@ -11,6 +15,7 @@ defmodule Relay.Iys.Live do
     top_level?: true,
     deps: [
       Relay,
+      Relay.Compliance,
       Relay.Datasets,
       Relay.Iys,
       Relay.Platform,
@@ -23,12 +28,14 @@ defmodule Relay.Iys.Live do
 
   @behaviour Relay.Iys
 
+  alias Relay.Compliance.RefusalSink
   alias Relay.Iys.Calendar
   alias Relay.Iys.Consent
   alias Relay.Preferences.ConsentSink
   alias Relay.Scope
 
   @behaviour ConsentSink
+  @behaviour RefusalSink
 
   @table "iys_uploads"
   @column "address_ct"
@@ -149,6 +156,27 @@ defmodule Relay.Iys.Live do
     end
   end
 
+  # PC-32
+  # PC-38
+  @impl Relay.Iys
+  def refuse(%Scope{} = scope, %{} = attrs) do
+    case Relay.Compliance.refuse(scope, attrs) do
+      {:ok, _applied} -> :ok
+      {:error, %Relay.Error{code: :not_found}} -> :ok
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  # PC-32
+  @impl Relay.Iys
+  def recipient_address(%Scope{} = scope, <<_::128>> = recipient_id, channel) do
+    case address(scope, recipient_id, channel) do
+      {:ok, address} when is_binary(address) -> {:ok, address}
+      {:ok, _missing} -> :none
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   # PC-27
   @impl ConsentSink
   def registry?(%Scope{} = scope, channel) do
@@ -198,8 +226,7 @@ defmodule Relay.Iys.Live do
 
   # PC-28
   # PC-38
-  @doc "Takes an applied refusal notice as the refusal sink does (`config :relay, Relay.Compliance, sink: Relay.Iys.Live`) and sends it through the write path; a notice of a channel İYS does not know or of a scope without an İYS configuration writes nothing."
-  @spec refused(Scope.t(), map()) :: :ok | {:error, term()}
+  @impl RefusalSink
   def refused(%Scope{} = scope, %{channel: _channel, address: _address} = notice) do
     case Relay.Iys.write_refusal(scope, notice) do
       {:ok, _written} -> :ok

@@ -310,5 +310,17 @@
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",
     "reason": "WH-68, OP-9: the no-delete trigger rejects TRUNCATE on the waitpoint completions"
+  },
+  {
+    "path": "priv/repo/migrations/20261221000000_create_refusal_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "INV-6, PC-35, PC-38: the append-only triggers of the refusal records and the unsubscribe token revocation list reject TRUNCATE"
+  },
+  {
+    "path": "priv/repo/migrations/20261221000100_allow_refusal_suppressions.exs",
+    "rule": "set_role",
+    "match": "SET LOCAL ROLE relay_owner",
+    "reason": "PC-38, PC-39: the committed relay_fn.suppression_add is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit, so a refusal notice can suppress an address; the role is reset in the same migration transaction"
   }
 ]

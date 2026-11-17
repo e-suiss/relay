@@ -46,7 +46,8 @@ defmodule Relay.Policy.Live.Inputs do
     "complaint" => :complaint,
     "invalid" => :invalid,
     "soft_bounce" => :soft_bounce,
-    "manual" => :manual
+    "manual" => :manual,
+    "refusal" => :refusal
   }
   @switches %{"on" => :on, "off" => :off}
   @address_kinds %{email: "email", sms: "phone", voice: "phone", whatsapp: "phone"}

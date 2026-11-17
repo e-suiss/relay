@@ -115,3 +115,8 @@ POST /v1/webhook_endpoints/{webhook_endpoint_id}/rotate_key response property `s
 POST /v1/webhook_endpoints/{webhook_endpoint_id}/rotate_key the `secret` response property's maxLength was unset from `512` for the response status `200`
 POST /v1/webhook_endpoints/{webhook_endpoint_id}/rotate_key the `secret` response property's minLength was unset from `32` for the response status `200`
 POST /v1/webhook_endpoints/{webhook_endpoint_id}/rotate_key removed the required property `url` from the response with the `200` status
+POST /v1/suppressions added the new `refusal` enum value to the `reason` response property for the response status `200`
+POST /v1/suppressions added the new `refusal` enum value to the `reason` response property for the response status `201`
+POST /v1/suppressions/{suppression_id}/lift added the new `refusal` enum value to the `reason` response property for the response status `200`
+GET /v1/suppressions added the new `refusal` enum value to the `allOf[subschema #2]/data/items/reason` response property for the response status `200`
+POST /v1/operator/suppressions/{suppression_id}/lift added the new `refusal` enum value to the `reason` response property for the response status `200`

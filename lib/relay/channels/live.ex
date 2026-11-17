@@ -16,6 +16,7 @@ defmodule Relay.Channels.Live do
       Relay,
       Relay.Audit,
       Relay.Channels,
+      Relay.Compliance,
       Relay.Delivery,
       Relay.Datasets,
       Relay.Devices,
@@ -44,6 +45,7 @@ defmodule Relay.Channels.Live do
   alias Relay.Channels.Live.ReportBatcher
   alias Relay.Channels.Live.SettingsCheck
   alias Relay.Channels.Live.Store
+  alias Relay.Channels.Live.Unsubscribe
   alias Relay.Channels.Live.Whatsapp
   alias Relay.Scope
 
@@ -553,12 +555,24 @@ defmodule Relay.Channels.Live do
   # TP-50
   defp content(ctx, account, ticket, target) do
     case renderer().prepare(ctx.scope, ctx.delivery["id"]) do
-      {:rendered, content} -> whatsapp(ctx, account, ticket, target, content)
+      {:rendered, content} -> unsubscribe(ctx, account, ticket, target, content)
       :rendered -> policy(ctx, account, ticket, target, %{})
       {:error, reason} -> {:error, reason}
       _failed_or_done -> :ok
     end
   end
+
+  # CH-38
+  # PC-35
+  defp unsubscribe(%{delivery: %{"channel" => "email"}} = ctx, account, ticket, target, body) do
+    case Unsubscribe.fill(ctx.scope, ctx.delivery, body) do
+      {:ok, content} -> policy(ctx, account, ticket, target, content)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp unsubscribe(ctx, account, ticket, target, content),
+    do: whatsapp(ctx, account, ticket, target, content)
 
   # CH-57
   # CH-58

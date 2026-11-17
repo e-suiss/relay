@@ -8,7 +8,7 @@ defmodule Relay.Agents.A2a do
   """
 
   alias Relay.AgentProtocols
-  alias Relay.Repo
+  alias Relay.Agents.TaskStore
 
   @unspecified "TASK_STATE_UNSPECIFIED"
   @states ~w(TASK_STATE_UNSPECIFIED TASK_STATE_SUBMITTED TASK_STATE_WORKING TASK_STATE_COMPLETED
@@ -38,28 +38,9 @@ defmodule Relay.Agents.A2a do
   @doc "The push notification of a mailbox record inside the caller's scoped transaction: the A2A push endpoint of the active agent that owns the mailbox and the `StreamResponse` to send it. `nil` when the mailbox is no agent's, the agent is not active or has no A2A push endpoint, or the record is unknown."
   @spec push_in(Relay.Id.t(), Relay.Id.t()) :: push() | nil
   def push_in(<<_::128>> = mailbox_id, <<_::128>> = record_id) do
-    sql = """
-    SELECT a.a2a_push_endpoint_id AS endpoint_id, r.id AS record_id, r.mailbox_id, r.epoch, r.seq,
-      r.kind, r.event_type::text AS event_type, r.waitpoint_id, r.created_at,
-      w.state AS waitpoint_state, w.kind AS waitpoint_kind, w.profile AS waitpoint_profile
-    FROM relay.mailbox_records r
-    JOIN relay.mailboxes m ON m.tenant_id = r.tenant_id AND m.environment = r.environment
-      AND m.id = r.mailbox_id
-    JOIN relay.agents a ON a.tenant_id = m.tenant_id AND a.environment = m.environment
-      AND a.id = m.owner_ref
-    LEFT JOIN relay.waitpoints w ON w.tenant_id = r.tenant_id AND w.environment = r.environment
-      AND w.id = r.waitpoint_id
-    WHERE r.id = $1 AND r.mailbox_id = $2 AND m.owner_kind = 'agent' AND a.state = 'active'
-      AND a.a2a_push_endpoint_id IS NOT NULL AND r.kind IN ('message', 'waitpoint_event')
-      AND r.created_at BETWEEN uuid_extract_timestamp($1) - interval '5 minutes'
-        AND uuid_extract_timestamp($1) + interval '5 minutes'
-    """
-
-    %{rows: rows, columns: columns} = Repo.scoped_query!(sql, [record_id, mailbox_id])
-
-    case rows do
-      [row] -> columns |> Enum.zip(row) |> Map.new() |> push()
-      [] -> nil
+    case TaskStore.push_row(mailbox_id, record_id) do
+      nil -> nil
+      row -> push(row)
     end
   end
 

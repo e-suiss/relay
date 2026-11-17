@@ -3,6 +3,8 @@ defmodule RelayWeb.CompletionController do
 
   use RelayWeb, :controller
 
+  alias Relay.Api.WebhookSources
+
   @max_bytes Relay.Limits.fetch!(["webhook", "payload_max_bytes"])
 
   # WH-68
@@ -20,7 +22,7 @@ defmodule RelayWeb.CompletionController do
           headers: conn.req_headers
         }
 
-        {status, body} = Relay.Api.WebhookSources.inbound(notification)
+        {status, body} = WebhookSources.inbound(notification)
         json(put_status(conn, status), body)
 
       _too_large ->
@@ -43,7 +45,7 @@ defmodule RelayWeb.CompletionController do
           headers: conn.req_headers
         }
 
-        {status, body} = Relay.Api.WebhookSources.inbound_task(notification)
+        {status, body} = WebhookSources.inbound_task(notification)
         json(put_status(conn, status), body)
 
       _too_large ->

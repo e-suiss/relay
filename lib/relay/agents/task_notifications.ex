@@ -8,10 +8,8 @@ defmodule Relay.Agents.TaskNotifications do
   """
 
   alias Relay.Agents.A2a
-  alias Relay.Repo
+  alias Relay.Agents.TaskStore
   alias Relay.Scope
-
-  @results [:applied, :duplicate, :stale, :source_not_found]
 
   @type attrs :: %{
           required(:source_id) => Relay.Id.t(),
@@ -42,29 +40,14 @@ defmodule Relay.Agents.TaskNotifications do
       Map.get(attrs, :reconciled, false)
     ]
 
-    Repo.in_scope(scope, fn _status ->
-      [row] = Repo.call!("relay_fn.agent_task_notification_apply", params)
-      Repo.code!(row["result"], @results)
-    end)
+    TaskStore.in_scope(scope, fn _status -> TaskStore.apply_notification(params) end)
   end
 
   # AG-37
   @doc "Reads the recorded state of a task of a source: its `seq`, `state`, when it was last reconciled and when it changed; `nil` for a task no notification named."
   @spec get(Scope.t(), Relay.Id.t(), String.t()) :: {:ok, map() | nil} | {:error, term()}
-  def get(%Scope{} = scope, source_id, task) do
-    sql = """
-    SELECT n.task, n.protocol, n.seq, n.state, n.reconciled_at, n.updated_at
-    FROM relay.agent_task_notifications n
-    WHERE n.source_id = $1 AND n.task = $2
-    """
-
-    Repo.in_scope(scope, fn _status ->
-      case Repo.scoped_query!(sql, [source_id, task]) do
-        %{rows: [row], columns: columns} -> columns |> Enum.zip(row) |> Map.new()
-        %{rows: []} -> nil
-      end
-    end)
-  end
+  def get(%Scope{} = scope, source_id, task),
+    do: TaskStore.in_scope(scope, fn _status -> TaskStore.notification(source_id, task) end)
 
   # AG-42
   # INV-35

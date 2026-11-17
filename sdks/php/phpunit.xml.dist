@@ -6,6 +6,7 @@
          failOnWarning="true"
          failOnRisky="true"
          failOnDeprecation="true"
+         displayDetailsOnPhpunitDeprecations="true"
          beStrictAboutOutputDuringTests="true">
     <testsuites>
         <testsuite name="unit">

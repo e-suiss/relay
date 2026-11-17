@@ -216,7 +216,7 @@ final class ConformanceTest extends TestCase
                 );
                 self::fail('both cursors were accepted');
             } catch (InvalidArgumentException $e) {
-                self::assertStringStartsWith(self::str(self::map($rejection['expect'])['error']), $e->getMessage());
+                self::assertSame(self::map($rejection['expect'])['error'], explode(':', $e->getMessage(), 2)[0]);
             }
             self::assertCount(0, $h->transport->requests);
         }

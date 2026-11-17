@@ -2,7 +2,9 @@ defmodule Relay.Agents.InvitationDeliveryTest do
   use Relay.DataCase, async: false
 
   alias Relay.Agents.Live
+  alias Relay.Api.Waitpoints
   alias Relay.Repo
+  alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
 
@@ -429,7 +431,7 @@ defmodule Relay.Agents.InvitationDeliveryTest do
   describe "E-107 AG-80 the origin of the Access link" do
     test "E-107, AG-80: the Access link is on the origin of an issuer of the tenant's Access environments",
          ctx do
-      issuer = RelayTest.FakeAccess.realm_issuer(ctx.tenant.attrs.access_tenant_id, "b")
+      issuer = FakeAccess.realm_issuer(ctx.tenant.attrs.access_tenant_id, "b")
       link = issuer <> "/v1/approve?request=7f3a"
       waitpoint = create!(ctx, question(ctx, %{"access_link" => link}))
       assert waitpoint.view["access_link"] == link
@@ -454,13 +456,13 @@ defmodule Relay.Agents.InvitationDeliveryTest do
     test "E-107: the origin check compares scheme, host and port" do
       issuers = ["https://access.test/env/a", "https://ACCESS.example:9443"]
 
-      assert Relay.Api.Waitpoints.access_origin?("https://access.test/v1/approve", issuers)
-      assert Relay.Api.Waitpoints.access_origin?("https://access.test:443/x", issuers)
-      assert Relay.Api.Waitpoints.access_origin?("https://access.example:9443/x", issuers)
-      refute Relay.Api.Waitpoints.access_origin?("https://access.example/x", issuers)
-      refute Relay.Api.Waitpoints.access_origin?("http://access.test/v1/approve", issuers)
-      refute Relay.Api.Waitpoints.access_origin?("https://access.test/x", [])
-      refute Relay.Api.Waitpoints.access_origin?(nil, issuers)
+      assert Waitpoints.access_origin?("https://access.test/v1/approve", issuers)
+      assert Waitpoints.access_origin?("https://access.test:443/x", issuers)
+      assert Waitpoints.access_origin?("https://access.example:9443/x", issuers)
+      refute Waitpoints.access_origin?("https://access.example/x", issuers)
+      refute Waitpoints.access_origin?("http://access.test/v1/approve", issuers)
+      refute Waitpoints.access_origin?("https://access.test/x", [])
+      refute Waitpoints.access_origin?(nil, issuers)
     end
   end
 

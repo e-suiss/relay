@@ -31,9 +31,7 @@ def decode_proof(proof: str) -> tuple[dict[str, Any], dict[str, Any]]:
     head, claims, signature = proof.split(".")
     header = json.loads(unb64(head))
     raw = unb64(header["jwk"]["x"])
-    Ed25519PublicKey.from_public_bytes(raw).verify(
-        unb64(signature), f"{head}.{claims}".encode()
-    )
+    Ed25519PublicKey.from_public_bytes(raw).verify(unb64(signature), f"{head}.{claims}".encode())
     return header, json.loads(unb64(claims))
 
 
@@ -107,9 +105,7 @@ def test_e93_token_is_reused_until_expiry() -> None:
 
 def test_e93_client_secret_post_when_basic_is_not_offered() -> None:
     clock = [1_800_000_000.0]
-    transport = StubTransport(
-        *discovery(["client_secret_post"]), token(), answer(200, {})
-    )
+    transport = StubTransport(*discovery(["client_secret_post"]), token(), answer(200, {}))
     relay(transport, clock).get_notification("ntf_01j9zq3k4m5n6p7q8r9s0t1v2w")
     grant = transport.requests[2]
     form = urllib.parse.parse_qs((grant.body or b"").decode())

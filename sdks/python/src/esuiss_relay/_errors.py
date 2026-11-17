@@ -31,9 +31,7 @@ class WaitTimeoutError(RelayError):
 class APIError(RelayError):
     """An RFC 9457 problem answered by Relay."""
 
-    def __init__(
-        self, status: int, problem: Mapping[str, Any], headers: Mapping[str, str]
-    ) -> None:
+    def __init__(self, status: int, problem: Mapping[str, Any], headers: Mapping[str, str]) -> None:
         self.status = status
         self.problem: Mapping[str, Any] = problem
         self.headers: Mapping[str, str] = headers
@@ -42,9 +40,7 @@ class APIError(RelayError):
         self.detail: str | None = _text(problem.get("detail"))
         self.type: str | None = _text(problem.get("type"))
         self.retryable: bool = problem.get("retryable") is True
-        self.request_id: str | None = _text(problem.get("request_id")) or headers.get(
-            "request-id"
-        )
+        self.request_id: str | None = _text(problem.get("request_id")) or headers.get("request-id")
         retry_after = problem.get("retry_after")
         self.retry_after: int | None = (
             retry_after

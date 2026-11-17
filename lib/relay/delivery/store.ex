@@ -397,6 +397,21 @@ defmodule Relay.Delivery.Store do
     Repo.code!(row["attempt_meter"], [:metered, :not_found])
   end
 
+  # PC-4
+  @doc "Records the commercial message declaration an attempt sends to its provider: whether the message is commercial and, when it is, its İYS recipient type."
+  @spec attempt_declare(Relay.Id.t(), pos_integer(), map()) :: :declared | :not_found
+  def attempt_declare(delivery_id, attempt_no, declaration) do
+    [row] =
+      Repo.call!("relay_fn.attempt_declare", [
+        delivery_id,
+        attempt_no,
+        declaration.commercial,
+        declaration.iys_recipient_type
+      ])
+
+    Repo.code!(row["attempt_declare"], [:declared, :not_found])
+  end
+
   # C-31
   @doc "Finishes an attempt; a terminal attempt is never overwritten."
   @spec attempt_finish(map()) ::
@@ -573,6 +588,23 @@ defmodule Relay.Delivery.Store do
 
   defp projection(text),
     do: Repo.code!(text, [:applied, :stale_ignored, :conflict_flagged, :duplicate_ignored])
+
+  # PC-53
+  @doc "Whether a delivery on `channel` among the recipient's `newest` newest notifications reached `delivered`."
+  @spec channel_delivered?(Relay.Id.t(), String.t(), pos_integer()) :: boolean()
+  def channel_delivered?(recipient_id, channel, newest) do
+    sql = """
+    SELECT d.tenant_id, d.environment, d.id
+    FROM (SELECT n.tenant_id, n.environment, n.id FROM relay.notifications n
+      WHERE n.recipient_id = $1 ORDER BY n.created_at DESC LIMIT $3) recent
+    JOIN relay.deliveries d ON d.tenant_id = recent.tenant_id
+      AND d.environment = recent.environment AND d.notification_id = recent.id
+    WHERE d.channel = $2::relay.channel AND d.delivery_rank = 2
+    LIMIT 1
+    """
+
+    one(sql, [recipient_id, channel, newest]) != nil
+  end
 
   defp one(sql, params), do: sql |> all(params) |> List.first()
 

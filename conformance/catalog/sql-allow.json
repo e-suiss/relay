@@ -322,5 +322,11 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "PC-38, PC-39: the committed relay_fn.suppression_add is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit, so a refusal notice can suppress an address; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261222000000_create_sms_destination_stops.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "CH-54, OP-9: the no-delete trigger rejects TRUNCATE on the SMS destination stops"
   }
 ]

@@ -256,6 +256,12 @@ Id_sup:
   pattern: "^sup_[0-7][0-9a-hjkmnp-tv-z]{25}$"
   examples:
     - sup_01j9zq3k4m5n6p7q8r9s0t1v2w
+Id_sds:
+  type: string
+  description: "SMS destination stop identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^sds_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - sds_01j9zq3k4m5n6p7q8r9s0t1v2w
 Id_dev:
   type: string
   description: "Device identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
@@ -686,6 +692,9 @@ EventRequest:
       "$ref": "#/Priority"
     security_subtype:
       "$ref": "#/SecuritySubtype"
+    security_signals:
+      description: "Only with security_subtype otp_oob: the sender's own signals as router inputs."
+      "$ref": "#/SecuritySignals"
     on_expire:
       "$ref": "#/OnExpire"
     timing_precision:
@@ -790,6 +799,9 @@ BatchEventRequest:
       "$ref": "#/Priority"
     security_subtype:
       "$ref": "#/SecuritySubtype"
+    security_signals:
+      description: "Only with security_subtype otp_oob: the sender's own signals as router inputs."
+      "$ref": "#/SecuritySignals"
     on_expire:
       "$ref": "#/OnExpire"
     timing_precision:
@@ -4094,6 +4106,167 @@ SuppressionLift:
       minLength: 1
       maxLength: 2000
   additionalProperties: false
+SmsDestinationPolicy:
+  type: object
+  description: "The country allow-list of the security SMS of a tenant environment (CH-54)."
+  additionalProperties: false
+  required:
+    - object
+    - region_countries
+    - allowed_countries
+  properties:
+    object:
+      type: string
+      const: sms_destination_policy
+    region_countries:
+      type: array
+      description: "The countries of the tenant's region; always allowed."
+      items:
+        "$ref": "#/SmsDestinationCountry"
+    allowed_countries:
+      type: array
+      description: "The countries the tenant added, sorted."
+      maxItems: 250
+      items:
+        "$ref": "#/SmsDestinationCountry"
+SmsDestinationPolicyWrite:
+  type: object
+  description: "Full replacement of the countries the tenant adds to the allow-list; an empty list leaves only the countries of its region."
+  additionalProperties: false
+  required:
+    - allowed_countries
+  properties:
+    allowed_countries:
+      type: array
+      items:
+        type: string
+        maxLength: 2
+SmsDestinationCountry:
+  type: string
+  description: "ISO 3166-1 alpha-2 country code."
+  pattern: "^[A-Z]{2}$"
+SmsDestinationStopKind:
+  type: string
+  enum:
+    - prefix
+    - country
+  description: "prefix: a number block, the E.164 number without its last digits (x-relay-limits sms_destination.block_digits). country: every number of a country."
+  x-relay-choice: true
+  x-relay-choice-note: "CH-54 stops a prefix or a country; the names are chosen by the contract."
+SmsDestinationStopState:
+  type: string
+  enum:
+    - active
+    - lifted
+  description: "active until it is lifted; a stop never ends by itself."
+  x-relay-choice: true
+  x-relay-choice-note: "The state names are chosen by the contract."
+SmsDestinationStop:
+  type: object
+  description: "A stop of security SMS to a number block or a country, opened by the SMS pumping detection (CH-54). It holds no phone number of a recipient."
+  required:
+    - object
+    - id
+    - kind
+    - value
+    - country
+    - rule_id
+    - detail
+    - state
+    - created_at
+    - lifted_at
+    - lifted_by
+    - lift_reason
+  properties:
+    object:
+      type: string
+      const: sms_destination_stop
+    id:
+      "$ref": "#/Id_sds"
+    kind:
+      "$ref": "#/SmsDestinationStopKind"
+    value:
+      type: string
+      description: "The stopped destination: an ISO 3166-1 alpha-2 country code, or the E.164 prefix of a number block."
+      pattern: "^(\\+[1-9][0-9]{1,14}|[A-Z]{2})$"
+    country:
+      type: string
+      description: "ISO 3166-1 alpha-2 country of the destination."
+      pattern: "^[A-Z]{2}$"
+    rule_id:
+      description: "The detection that opened the stop: destination.pumping_prefix or destination.pumping_country."
+      "$ref": "#/RuleId"
+    detail:
+      "$ref": "#/SmsDestinationStopDetail"
+    state:
+      "$ref": "#/SmsDestinationStopState"
+    created_at:
+      "$ref": "#/Timestamp"
+    lifted_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    lifted_by:
+      description: Reference of the actor that lifted the stop.
+      oneOf:
+        - type: string
+          maxLength: 256
+        - type: "null"
+    lift_reason:
+      oneOf:
+        - type: string
+          maxLength: 2000
+        - type: "null"
+  additionalProperties: false
+SmsDestinationStopDetail:
+  type: object
+  description: "What the detection counted when it opened the stop: the sends counted to the destination in the detection window (current), in the baseline window (baseline) and the count that trips the detection (threshold); for a country stopped by escalation, the number of its stopped number blocks (prefix_stops)."
+  properties:
+    current:
+      type: integer
+      minimum: 0
+    baseline:
+      type: integer
+      minimum: 0
+    threshold:
+      type: integer
+      minimum: 0
+    window:
+      type: string
+      maxLength: 32
+    prefix_stops:
+      type: integer
+      minimum: 0
+  additionalProperties: false
+SmsDestinationStopList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/SmsDestinationStop"
+SmsDestinationStopLift:
+  type: object
+  required:
+    - reason
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 2000
+  additionalProperties: false
+SecuritySignals:
+  type: object
+  description: "Signals the sender evaluated itself and hands to the router of an otp_oob notification (E-32, E-33): whether the recipient's mobile application is active (BDDK Bilgi Sistemleri Yönetmeliği m.34/7) and whether the SIM of the number changed recently. Relay never produces these signals; when present they are inputs of the OTP channel chain inside the sender's permitted channels. With sim_changed true the channels bound to the SIM (sms, voice) are tried after WhatsApp when the recipient's WhatsApp reachability is known."
+  properties:
+    mobile_app_active:
+      type: boolean
+    sim_changed:
+      type: boolean
+  additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "E-33 makes the two signals router inputs when the sender supplies them; the field name, the shape and the effect of sim_changed on the order are chosen by the contract. mobile_app_active is carried with the frozen chain inputs and changes no order."
 DryRunDecision:
   type: object
   description: "The decision Relay would make for one channel in dry_run."

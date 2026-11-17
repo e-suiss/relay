@@ -18,9 +18,12 @@ defmodule Relay.Workflow.RouteTree do
     * A leaf that has not been opened is checked before it opens: the channel rule of the security subtype (WF-18, PC-51), the template variant (WF-16, `template.variant_missing`), the gate of a locked category (PC-10, `route.channel_locked`) and an address on the channel (`channel.no_address`). A leaf that fails a check is skipped with its rule and counts as failed, so a `single` moves on in the same evaluation.
     * `single` with `on_failure` moves to its next node only when the current one has failed: every leaf failed permanently, exhausted its retry budget or was skipped. A transient failure and an `unknown` outcome never move it (WF-15, DS-21). With `after_delay` it also moves when the current node is not delivered within the delay.
     * `all` opens every node.
+    * When the facts carry the inputs of an OTP chain (`otp`, an `otp_oob` run), the channels of a `single`, `last_active` or `user_preference` node whose children are all channels are tried in the order `Relay.Workflow.OtpChain.order/2` gives for those inputs, not in the written order (PC-53); a channel the chain leaves out keeps its place behind them and is checked like any other leaf.
     * `last_active` and `user_preference` open one channel: the recipient's last active, or most preferred, channel of the list when it can be sent, else the first one of the list that can. A skipped channel gives way to the next candidate; a permanent failure of the chosen one fails the node.
     * `escalate` opens its first step, waits that step's `after` and then opens the next step unless a stop signal came; a step that fails moves on at once. Only reliable evidence stops it (WF-22, DS-10): an in-app `seen`, `read` or `clicked`, a push SDK receipt, a human click (DS-31) or the customer's event. An e-mail open and a likely bot click never do. `seen` is also met by `read` and `clicked`, and `read` by `clicked`. The timers run whatever the delivery outcome, `unknown` included (DS-21). Once stopped, no further step opens (`escalation.stopped`).
   """
+
+  alias Relay.Workflow.OtpChain
 
   @channels ~w(push web_push email sms voice whatsapp slack teams telegram discord in_app webhook)
   @device_channels ~w(push web_push)
@@ -55,7 +58,8 @@ defmodule Relay.Workflow.RouteTree do
           optional(:last_active_channel) => channel() | nil,
           optional(:preferred_channels) => [channel()],
           optional(:last_active_device) => String.t() | nil,
-          optional(:security_subtype) => String.t() | nil
+          optional(:security_subtype) => String.t() | nil,
+          optional(:otp) => OtpChain.inputs() | nil
         }
   @type state :: %{
           required(:now) => DateTime.t(),
@@ -164,7 +168,8 @@ defmodule Relay.Workflow.RouteTree do
       last_active_channel: Map.get(facts, :last_active_channel),
       preferred_channels: Map.get(facts, :preferred_channels, []),
       last_active_device: Map.get(facts, :last_active_device),
-      security_subtype: Map.get(facts, :security_subtype)
+      security_subtype: Map.get(facts, :security_subtype),
+      otp: Map.get(facts, :otp)
     }
   end
 
@@ -178,7 +183,8 @@ defmodule Relay.Workflow.RouteTree do
     end
   end
 
-  defp eval(%{kind: :single} = node, ctx, acc), do: single(node.children, node, ctx, acc, [])
+  defp eval(%{kind: :single} = node, ctx, acc),
+    do: single(chain(node.children, ctx.facts), node, ctx, acc, [])
 
   defp eval(%{kind: :all} = node, ctx, acc) do
     {results, acc} =
@@ -192,7 +198,7 @@ defmodule Relay.Workflow.RouteTree do
 
   defp eval(%{kind: :pick} = node, ctx, acc) do
     case Enum.find(node.children, &chosen?(&1, ctx.leaves)) do
-      nil -> pick(candidates(node, ctx.facts), ctx, acc)
+      nil -> pick(chain(candidates(node, ctx.facts), ctx.facts), ctx, acc)
       leaf -> eval(leaf, ctx, acc)
     end
   end
@@ -207,6 +213,21 @@ defmodule Relay.Workflow.RouteTree do
         {:succeeded, started, %{acc | stopped: [stop | acc.stopped]}}
     end
   end
+
+  # PC-53
+  # E-33
+  defp chain(children, %{otp: %{} = inputs}) do
+    if Enum.all?(children, &(&1.kind == :leaf)) do
+      order = OtpChain.order(Enum.map(children, & &1.channel), inputs)
+      {chained, others} = Enum.split_with(children, &(&1.channel in order))
+      rank = fn leaf -> Enum.find_index(order, &(&1 == leaf.channel)) end
+      Enum.sort_by(chained, rank) ++ others
+    else
+      children
+    end
+  end
+
+  defp chain(children, _facts), do: children
 
   defp chosen?(leaf, leaves) do
     case Map.fetch(leaves, leaf.at) do

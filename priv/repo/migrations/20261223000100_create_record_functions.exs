@@ -14,6 +14,7 @@ defmodule Relay.Repo.Migrations.CreateRecordFunctions do
   # OP-24
   # DS-44
   # TN-60
+  # INV-21
   # OP-8
   def up do
     Enum.each(statements(), &execute/1)
@@ -47,7 +48,8 @@ defmodule Relay.Repo.Migrations.CreateRecordFunctions do
       dsr_log_record(),
       inbox_takedown(),
       takedown_apply(),
-      takedown_lift()
+      takedown_lift(),
+      templates_guard()
     ]
   end
 
@@ -340,6 +342,49 @@ defmodule Relay.Repo.Migrations.CreateRecordFunctions do
         p_actor_ref, p_on_behalf_of_ref, p_access_record_ref, 'takedown', p_id::text, p_reason,
         p_record_digest);
       RETURN QUERY SELECT 'lifted'::text, COALESCE(v_restored, 0);
+    END
+    $fn$
+    """
+  end
+
+  defp templates_guard do
+    ~S"""
+    CREATE OR REPLACE FUNCTION relay_private.templates_guard() RETURNS trigger
+      LANGUAGE plpgsql
+      SET search_path = pg_catalog, pg_temp
+      SET TimeZone = 'UTC'
+    AS $fn$
+    BEGIN
+      IF NEW.tenant_id = OLD.tenant_id AND NEW.environment = OLD.environment
+        AND NEW.id = OLD.id AND NEW.key = OLD.key
+        AND NEW.subtenant_id IS NOT DISTINCT FROM OLD.subtenant_id AND NEW.owner = OLD.owner
+        AND NEW.owner_product IS NOT DISTINCT FROM OLD.owner_product
+        AND NEW.created_at = OLD.created_at AND OLD.state = 'active'
+        AND (OLD.first_published_at IS NULL
+          OR (NEW.first_published_at = OLD.first_published_at
+            AND NEW.message_class = OLD.message_class
+            AND NEW.template_type = OLD.template_type)) THEN
+        RETURN NEW;
+      END IF;
+      IF NEW.tenant_id = OLD.tenant_id AND NEW.environment = OLD.environment
+        AND NEW.id = OLD.id AND NEW.key = OLD.key
+        AND NEW.subtenant_id IS NOT DISTINCT FROM OLD.subtenant_id AND NEW.owner = OLD.owner
+        AND NEW.owner_product IS NOT DISTINCT FROM OLD.owner_product
+        AND NEW.created_at = OLD.created_at AND NEW.name = OLD.name
+        AND NEW.category_id = OLD.category_id AND NEW.message_class = OLD.message_class
+        AND NEW.template_type = OLD.template_type
+        AND NEW.live_version_id IS NOT DISTINCT FROM OLD.live_version_id
+        AND NEW.live_version_no IS NOT DISTINCT FROM OLD.live_version_no
+        AND NEW.first_published_at IS NOT DISTINCT FROM OLD.first_published_at
+        AND OLD.state = 'archived' AND NEW.state = 'active' AND NEW.archived_at IS NULL
+        AND EXISTS (SELECT 1 FROM relay.takedowns k
+          WHERE k.tenant_id = OLD.tenant_id AND k.environment = OLD.environment
+            AND k.template_id = OLD.id AND k.state = 'active' AND k.restores) THEN
+        RETURN NEW;
+      END IF;
+      RAISE EXCEPTION 'invariant_violation'
+        USING DETAIL = format('%s on %I.%I is not allowed', TG_OP, TG_TABLE_SCHEMA, TG_TABLE_NAME),
+              HINT = 'INV-21';
     END
     $fn$
     """

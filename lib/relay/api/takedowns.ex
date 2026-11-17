@@ -26,21 +26,23 @@ defmodule Relay.Api.Takedowns do
     with {:ok, target_id} <- target(text, prefix) do
       id = Relay.Id.generate()
       digest = ChannelManagement.digest(scope, "takedown.applied", id)
+      missing = Relay.Error.new(not_found, "no such " <> kind)
 
       transact(scope, fn ->
-        case Store.take_down(id, kind, target_id, reason, digest, actor) do
-          {:applied, id} -> {201, view(applied(id, kind, target_id))}
-          {:already_active, existing} -> {200, view(Store.get(existing))}
-          {:not_found, _none} -> refuse(Relay.Error.new(not_found, "no such " <> kind))
-        end
+        id |> Store.take_down(kind, target_id, reason, digest, actor) |> taken(kind, missing)
       end)
     end
   end
 
-  defp applied(id, kind, target_id) do
-    if kind == "message", do: Relay.Inbox.takedown_sync(target_id)
-    Store.get(id)
+  defp taken({:applied, id}, "message", _missing) do
+    row = Store.get(id)
+    :ok = Relay.Inbox.takedown_sync(row["notification_id"])
+    {201, view(row)}
   end
+
+  defp taken({:applied, id}, _kind, _missing), do: {201, view(Store.get(id))}
+  defp taken({:already_active, id}, _kind, _missing), do: {200, view(Store.get(id))}
+  defp taken({:not_found, _none}, _kind, missing), do: refuse(missing)
 
   # TN-60
   # TN-47

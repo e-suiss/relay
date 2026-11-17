@@ -1,6 +1,7 @@
 defmodule RelayWeb.Api.WorkflowRunsTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Keys.Erasure
   alias Relay.Platform.VirtualClock
   alias Relay.Repo
   alias RelayTest.IngestFixture, as: F
@@ -359,7 +360,7 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
       }
 
       assert {:ok, :erased, _cancelled} =
-               Relay.Keys.Erasure.erase_subject(ctx.scope, run["recipient_id"], "dsr-wait", actor)
+               Erasure.erase_subject(ctx.scope, run["recipient_id"], "dsr-wait", actor)
 
       assert {:ok, %{state: "cancelled"}} = Relay.Agents.get_waitpoint(ctx.scope, waitpoint_id)
     end
@@ -386,7 +387,7 @@ defmodule RelayWeb.Api.WorkflowRunsTest do
       }
 
       assert {:ok, :erased, 1} =
-               Relay.Keys.Erasure.erase_subject(ctx.scope, run["recipient_id"], "dsr-run", actor)
+               Erasure.erase_subject(ctx.scope, run["recipient_id"], "dsr-run", actor)
 
       runs = "SELECT state, rule_id FROM relay.workflow_runs"
       deliveries = "SELECT failure_kind, failure_rule_id FROM relay.deliveries"

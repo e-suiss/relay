@@ -226,6 +226,7 @@ defmodule RelayWeb.PreferencePageTest do
       assert String.replace(on, ~w(opt_in Aç), "") == String.replace(off, ~w(opt_out Kapat), "")
 
       form_post(path, %{fields | "value" => "opt_in"})
+
       assert %{"effective" => true, "value" => "opt_in", "source" => "user"} =
                api_cell(ctx, "orders", "email")
     end
@@ -243,7 +244,9 @@ defmodule RelayWeb.PreferencePageTest do
       query = URI.encode_query(%{"category" => "comments", "channel" => "push"})
       choices = html_response(get(build_conn(), path <> "?" <> query), 200)
 
-      for {value, label} <- [{"instant", "Anında al"}, {"digest", "Özet al"}, {"none", "Hiç alma"}] do
+      labels = [{"instant", "Anında al"}, {"digest", "Özet al"}, {"none", "Hiç alma"}]
+
+      for {value, label} <- labels do
         assert choices =~ ~s(class="choice" name="choice" value="#{value}">#{label}</button>)
       end
 

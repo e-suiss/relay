@@ -100,15 +100,11 @@ defmodule Relay.Iys.Client do
 
   defp keep(conn, %{"access_token" => access} = body) do
     token = Redacted.wrap(access)
+    lifetime = integer(body["expires_in"]) || 0
+    refresh = wrapped(body["refresh_token"])
+    refresh_lifetime = integer(body["refresh_expires_in"])
 
-    tokens = %{
-      access: token,
-      expires_in: integer(body["expires_in"]) || 0,
-      refresh: wrapped(body["refresh_token"]),
-      refresh_expires_in: integer(body["refresh_expires_in"])
-    }
-
-    :ok = TokenCache.put(cache(conn), conn.cache_key, tokens)
+    :ok = TokenCache.put(cache(conn), conn.cache_key, token, lifetime, refresh, refresh_lifetime)
     {:ok, token}
   end
 

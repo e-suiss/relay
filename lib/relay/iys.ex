@@ -159,8 +159,8 @@ defmodule Relay.Iys do
     Uploads.write(scope, Map.merge(movement, brand(Map.get(refusal, :brand))))
   end
 
-  defp exposed(%Relay.Redacted{} = address), do: Relay.Redacted.expose(address)
   defp exposed(address) when is_binary(address), do: address
+  defp exposed(address), do: Relay.Redacted.expose(address)
 
   defp brand(code) when is_integer(code), do: %{brand_code: code}
   defp brand(<<_::128>> = subtenant_id), do: %{brand_subtenant_id: subtenant_id}

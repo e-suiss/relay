@@ -111,8 +111,7 @@ defmodule RelayWeb.Api.IysApiTest do
     test "PC-29, PC-34: the connection test reports what İYS answered and writes nothing", ctx do
       assert F.body(get(ctx, "/v1/iys/connection_test"), 404)["code"] == "iys_not_configured"
 
-      brands = [%{"brand_code" => @brand}, %{"brand_code" => 4242}]
-      F.body(put(ctx, body(ctx, %{"brands" => brands})), 200)
+      F.body(put(ctx, body(ctx, %{"brands" => [%{"brand_code" => 4242}]})), 200)
       report = F.body(get(ctx, "/v1/iys/connection_test"), 200)
 
       assert %{"object" => "iys_connection_test", "token" => "ok"} = report

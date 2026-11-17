@@ -35,10 +35,12 @@ defmodule Relay.Iys.TokenCache do
 
   # PC-34
   @doc "Keeps the tokens of a token answer: `access` for `expires_in` seconds less the margin and `refresh`, when there is one, for `refresh_expires_in` seconds less the margin."
-  @spec put(GenServer.server(), key(), map()) :: :ok
-  def put(server, key, %{access: %Redacted{}, expires_in: expires_in} = tokens)
-      when is_integer(expires_in),
-      do: call(server, {:put, key, tokens}, :ok)
+  @spec put(GenServer.server(), key(), Redacted.t(), integer(), Redacted.t() | nil, term()) :: :ok
+  def put(server, key, access, expires_in, refresh, refresh_expires_in)
+      when is_integer(expires_in) do
+    lifetimes = {expires_in, refresh_expires_in}
+    call(server, {:put, key, access, refresh, lifetimes}, :ok)
+  end
 
   # PC-34
   @doc "Blocks `key` for `seconds`: until then `lookup/2` answers `{:blocked, left}`."
@@ -79,15 +81,15 @@ defmodule Relay.Iys.TokenCache do
     {:reply, found(Map.get(state.entries, key), now), state}
   end
 
-  def handle_call({:put, key, tokens}, _from, state) do
+  def handle_call({:put, key, access, refresh, {expires_in, refresh_expires_in}}, _from, state) do
     now = Relay.Clock.monotonic_ms()
 
     entry = %{
-      access: tokens.access,
-      access_until: now + ttl_ms(tokens.expires_in),
-      refresh: Map.get(tokens, :refresh),
-      refresh_until: now + ttl_ms(Map.get(tokens, :refresh_expires_in)),
-      blocked_until: 0
+      access: access,
+      access_until: now + ttl_ms(expires_in),
+      refresh: refresh,
+      refresh_until: now + ttl_ms(refresh_expires_in),
+      blocked_until: nil
     }
 
     {:reply, :ok, %{state | entries: stored(state, key, entry, now)}}
@@ -98,9 +100,9 @@ defmodule Relay.Iys.TokenCache do
 
     entry = %{
       access: nil,
-      access_until: 0,
+      access_until: nil,
       refresh: nil,
-      refresh_until: 0,
+      refresh_until: nil,
       blocked_until: now + seconds * 1000
     }
 
@@ -114,14 +116,16 @@ defmodule Relay.Iys.TokenCache do
 
   defp found(nil, _now), do: :miss
 
-  defp found(%{blocked_until: until}, now) when until > now,
+  defp found(%{blocked_until: until}, now) when is_integer(until) and until > now,
     do: {:blocked, div(until - now, 1000) + 1}
 
-  defp found(%{access: %Redacted{} = access, access_until: until}, now) when until > now,
-    do: {:ok, access}
+  defp found(%{access: access, access_until: until}, now)
+       when access != nil and is_integer(until) and until > now,
+       do: {:ok, access}
 
-  defp found(%{refresh: %Redacted{} = refresh, refresh_until: until}, now) when until > now,
-    do: {:refresh, refresh}
+  defp found(%{refresh: refresh, refresh_until: until}, now)
+       when refresh != nil and is_integer(until) and until > now,
+       do: {:refresh, refresh}
 
   defp found(_expired, _now), do: :miss
 
@@ -149,10 +153,13 @@ defmodule Relay.Iys.TokenCache do
     Map.delete(entries, key)
   end
 
-  defp live(entries, now), do: Map.reject(entries, fn {_key, entry} -> ends(entry) <= now end)
+  defp live(entries, now), do: Map.filter(entries, fn {_key, entry} -> ends(entry) > now end)
 
-  defp ends(entry),
-    do: Enum.max([entry.access_until, entry.refresh_until, entry.blocked_until])
+  defp ends(entry) do
+    [entry.access_until, entry.refresh_until, entry.blocked_until]
+    |> Enum.filter(&is_integer/1)
+    |> Enum.max()
+  end
 
   @impl GenServer
   def handle_info(:sweep, state) do

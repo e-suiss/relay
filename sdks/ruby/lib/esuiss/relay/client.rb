@@ -61,38 +61,51 @@ module Esuiss
       end
 
       def paginate(method:, path:, query:, headers:, request_options:)
+        if query["starting_after"] && query["ending_before"]
+          raise ArgumentError, "both_cursors: starting_after and ending_before cannot be sent together"
+        end
+
+        backward = !query["ending_before"].nil?
         raw = perform(method: method, path: path, query: query, headers: headers, body: nil,
                       idempotent: false, response: :json, request_options: request_options)
-        Page.new(raw) do |cursor|
-          following = query.merge("starting_after" => cursor, "ending_before" => nil)
+        Page.new(raw, backward: backward) do |cursor|
+          following = query.merge(backward ? { "ending_before" => cursor } : { "starting_after" => cursor })
           paginate(method: method, path: path, query: following, headers: headers,
                    request_options: request_options)
         end
       end
 
       def execute(method, url, headers, payload, options)
-        retries = 0
+        retry_number = 1
         renewed = false
-        max = options.fetch(:max_retries, @max_retries)
         loop do
-          request = Request.new(http_method: method, url: url, headers: headers.merge(authorization(method, url)),
-                                body: payload, timeout: options.fetch(:timeout, @timeout))
-          response = @transport.call(request)
-          return response if response.status.between?(200, 299)
+          outcome = attempt(method, url, headers, payload, options)
+          return outcome if outcome.is_a?(Response)
 
-          retry_after = RetryPolicy.retry_after(response.header("retry-after"), @clock.call)
-          error = Errors.from_response(response, retry_after: retry_after)
-          if error.code == "auth_expired_token" && !renewed && @auth
+          if outcome.is_a?(APIError) && outcome.code == "auth_expired_token" && !renewed && @auth
             renewed = true
             @auth.invalidate
             next
           end
-          delay = retries < max ? @retry_policy.delay(error, retries, @random) : nil
-          raise error if delay.nil?
+          decision = @retry_policy.decide(outcome, retry_number, @random,
+                                          max_retries: options.fetch(:max_retries, @max_retries))
+          raise outcome unless decision.retry?
 
-          @sleeper.call(delay)
-          retries += 1
+          @sleeper.call(decision.delay_ms / 1000.0)
+          retry_number += 1
         end
+      end
+
+      def attempt(method, url, headers, payload, options)
+        request = Request.new(http_method: method, url: url, headers: headers.merge(authorization(method, url)),
+                              body: payload, timeout: options.fetch(:timeout, @timeout))
+        response = @transport.call(request)
+        return response if response.status.between?(200, 299)
+
+        retry_after = RetryPolicy.retry_after(response.header("retry-after"), @clock.call)
+        Errors.from_response(response, retry_after: retry_after)
+      rescue ConnectionError => e
+        e
       end
 
       def authorization(method, url)

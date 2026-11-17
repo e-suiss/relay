@@ -7,7 +7,8 @@ class ErrorsTest < Minitest::Test
   FAMILY_CLASSES = {
     "auth" => Esuiss::Relay::AuthenticationError,
     "idempotency" => Esuiss::Relay::IdempotencyError,
-    "quota" => Esuiss::Relay::RateLimitError
+    "quota" => Esuiss::Relay::RateLimitError,
+    "platform" => Esuiss::Relay::ServerError
   }.freeze
 
   def test_x29_generated_table_matches_the_error_catalog
@@ -18,6 +19,14 @@ class ErrorsTest < Minitest::Test
                      retryable: entry.fetch("retryable") == true }, row)
     end
     assert_equal CATALOG.fetch("codes").size, Esuiss::Relay::Generated::ERROR_CODES.size
+  end
+
+  def test_x29_generated_status_defaults_match_the_error_catalog
+    expected = CATALOG.fetch("retryable_defaults").map do |row|
+      { status: row.fetch("status"), code: row["code"], retryable: row.fetch("retryable") == true }
+    end
+
+    assert_equal expected, Esuiss::Relay::Generated::RETRYABLE_DEFAULTS
   end
 
   def test_x29_every_catalog_code_maps_to_a_typed_error_with_its_retryable_flag
@@ -61,7 +70,6 @@ class ErrorsTest < Minitest::Test
   def expected_class(family, status)
     FAMILY_CLASSES.fetch(family) do
       if status >= 500 then Esuiss::Relay::ServerError
-      elsif status == 429 then Esuiss::Relay::RateLimitError
       elsif status == 404 then Esuiss::Relay::NotFoundError
       elsif [409, 412, 428].include?(status) then Esuiss::Relay::ConflictError
       else Esuiss::Relay::ValidationError

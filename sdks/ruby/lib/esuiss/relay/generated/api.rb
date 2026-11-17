@@ -182,6 +182,21 @@ module Esuiss
         "inbox_bulk_operation_not_found" => { family: "resource", status: 404, retryable: false },
         "inbox_announcement_not_found" => { family: "resource", status: 404, retryable: false },
       }.freeze
+      RETRYABLE_DEFAULTS = [
+        { status: 400, code: nil, retryable: false },
+        { status: 401, code: nil, retryable: false },
+        { status: 403, code: nil, retryable: false },
+        { status: 404, code: nil, retryable: false },
+        { status: 413, code: nil, retryable: false },
+        { status: 422, code: nil, retryable: false },
+        { status: 409, code: "resource_conflict", retryable: false },
+        { status: 409, code: "idempotency_key_in_progress", retryable: true },
+        { status: 429, code: "rate_limited", retryable: true },
+        { status: 429, code: "quota_exhausted", retryable: false },
+        { status: 500, code: nil, retryable: true },
+        { status: 503, code: nil, retryable: true },
+        { status: 504, code: nil, retryable: true },
+      ].freeze
     end
   end
 end

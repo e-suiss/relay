@@ -6,28 +6,38 @@ module Esuiss
   module Relay
     # X-29
     # API-65
-    # Retries only problems marked retryable, after max(Retry-After, full jitter).
+    # Retries a retryable problem or a request that got no answer, waiting for Retry-After when the
+    # answer names one and for exponential backoff with full jitter otherwise.
     class RetryPolicy
-      attr_reader :base_delay, :max_delay, :max_retry_after
+      # The outcome of one retry decision: retry? with delay_ms, or the reason not to.
+      Decision = Struct.new(:retry, :delay_ms, :reason, keyword_init: true) do
+        def retry?
+          self[:retry]
+        end
+      end
 
-      def initialize(base_delay: 0.5, max_delay: 8.0, max_retry_after: 60)
-        @base_delay = base_delay
-        @max_delay = max_delay
+      attr_reader :max_retries, :base_ms, :cap_ms, :max_retry_after
+
+      def initialize(max_retries: 3, base_ms: 500, cap_ms: 8000, max_retry_after: 60)
+        @max_retries = max_retries
+        @base_ms = base_ms
+        @cap_ms = cap_ms
         @max_retry_after = max_retry_after
       end
 
-      def ceiling(retry_index)
-        [@max_delay, @base_delay * (2**retry_index)].min
+      def backoff_ms(retry_number, random)
+        (random.rand * [@cap_ms, @base_ms * (2**(retry_number - 1))].min).floor
       end
 
-      def delay(error, retry_index, random)
-        return nil unless error.is_a?(APIError) && error.retryable?
+      def decide(error, retry_number, random, max_retries: @max_retries)
+        return refuse("not_retryable") unless retryable?(error)
+        return refuse("retries_exhausted") if retry_number > max_retries
 
-        retry_after = error.retry_after
-        return nil if retry_after && retry_after > @max_retry_after
+        after = error.is_a?(APIError) ? error.retry_after : nil
+        return Decision.new(retry: true, delay_ms: backoff_ms(retry_number, random)) if after.nil?
+        return refuse("retry_after_too_long") if after > @max_retry_after
 
-        jitter = random.rand * ceiling(retry_index)
-        [retry_after || 0, jitter].max
+        Decision.new(retry: true, delay_ms: after * 1000)
       end
 
       def self.retry_after(value, now)
@@ -38,6 +48,16 @@ module Esuiss
         [(Time.httpdate(text) - now).ceil, 0].max
       rescue ArgumentError
         nil
+      end
+
+      private
+
+      def retryable?(error)
+        error.is_a?(ConnectionError) || (error.is_a?(APIError) && error.retryable?)
+      end
+
+      def refuse(reason)
+        Decision.new(retry: false, reason: reason)
       end
     end
   end

@@ -87,12 +87,27 @@ module RelayCodegen
       @resolver.load(SPEC)
     end
 
-    def api_file
-      errors = YAML.safe_load_file(ERRORS, permitted_classes: [Date, Time], aliases: true)
-      rows = errors.fetch("codes").map do |entry|
+    def errors
+      @errors ||= YAML.safe_load_file(ERRORS, permitted_classes: [Date, Time], aliases: true)
+    end
+
+    def error_rows
+      errors.fetch("codes").map do |entry|
         "        #{entry.fetch('code').inspect} => { family: #{entry.fetch('family').inspect}, " \
           "status: #{Integer(entry.fetch('status'))}, retryable: #{entry.fetch('retryable') == true} },"
       end
+    end
+
+    def default_rows
+      errors.fetch("retryable_defaults").map do |entry|
+        "        { status: #{Integer(entry.fetch('status'))}, code: #{entry['code'].inspect}, " \
+          "retryable: #{entry.fetch('retryable') == true} },"
+      end
+    end
+
+    def api_file
+      rows = error_rows
+      defaults = default_rows
       <<~RUBY
         # frozen_string_literal: true
 
@@ -106,6 +121,9 @@ module RelayCodegen
               ERROR_CODES = {
         #{rows.join("\n")}
               }.freeze
+              RETRYABLE_DEFAULTS = [
+        #{defaults.join("\n")}
+              ].freeze
             end
           end
         end

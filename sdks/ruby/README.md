@@ -5,8 +5,9 @@ Ruby server SDK for Relay. Every operation of the Relay server API is a method o
 
 - DPoP-bound Access tokens obtained with client credentials, a fresh proof on every request
 - An `Idempotency-Key` on every mutating call, the same key on every retry
-- Retries only for problems marked `retryable`, with exponential backoff, full jitter and `Retry-After`
-- Typed errors: `AuthenticationError`, `ValidationError`, `NotFoundError`, `ConflictError`,
+- Retries only for problems marked `retryable` and requests that got no answer, waiting for
+  `Retry-After` or exponential backoff with full jitter
+- Typed errors: `AuthenticationError`, `ValidationError` (with `NotFoundError` and `ConflictError`),
   `RateLimitError`, `IdempotencyError`, `ServerError`
 - Lazy pagination: a list result is an `Enumerable` that fetches the next page only when needed
 - Webhook verification over the raw body (Ed25519 `v1a` and HMAC `v1`)

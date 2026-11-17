@@ -22,6 +22,10 @@ module Esuiss
       def header(name)
         @headers[name.to_s.downcase]
       end
+
+      def replayed?
+        header("idempotency-replayed").to_s.casecmp?("true")
+      end
     end
 
     # The default transport over Net::HTTP. Any object answering `call(request)` with a Response

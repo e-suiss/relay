@@ -34,16 +34,18 @@ class PageTest < Minitest::Test
     assert_equal 2, transport.requests.size
   end
 
-  def test_api56_ending_before_is_dropped_on_the_next_page
-    transport = StubTransport.new(list(%w[ntf_1], "c1"), list(%w[ntf_2], nil))
+  def test_api56_ending_before_walks_backwards_through_previous_cursor
+    first = TestSupport.json(200, { "data" => [{ "id" => "ntf_2" }, { "id" => "ntf_1" }], "has_more" => true,
+                                    "next_cursor" => "c3", "previous_cursor" => "c2" })
+    second = TestSupport.json(200, { "data" => [{ "id" => "ntf_4" }, { "id" => "ntf_3" }], "has_more" => false,
+                                     "next_cursor" => "c5", "previous_cursor" => nil })
+    transport = StubTransport.new(first, second)
     client, = TestSupport.client(transport)
-    client.list_notifications(ending_before: "c0").each_page.to_a
 
-    first, second = transport.requests.map { |r| URI.decode_www_form(URI(r.url).query.to_s).to_h }
+    assert_equal(%w[ntf_1 ntf_2 ntf_3 ntf_4], client.list_notifications(ending_before: "c0").map { |i| i["id"] })
+    queries = transport.requests.map { |r| URI.decode_www_form(URI(r.url).query.to_s).to_h }
 
-    assert_equal "c0", first["ending_before"]
-    refute second.key?("ending_before")
-    assert_equal "c1", second["starting_after"]
+    assert_equal [{ "ending_before" => "c0" }, { "ending_before" => "c2" }], queries
   end
 
   def test_api56_a_page_without_more_has_no_next_page

@@ -112,12 +112,13 @@ class ClientTest < Minitest::Test
     assert_equal "https://relay.test/v1/notifications/a%20b%2Fc", transport.requests.first.url
   end
 
-  def test_x29_transport_errors_are_raised_as_connection_errors
-    transport = StubTransport.new(Esuiss::Relay::ConnectionError.new("down"))
+  def test_x29_transport_errors_are_retried_with_the_same_key_then_raised
+    transport = StubTransport.new(*Array.new(4) { Esuiss::Relay::ConnectionError.new("down") })
     client, sleeps = TestSupport.client(transport)
 
-    assert_raises(Esuiss::Relay::ConnectionError) { client.get_notification("ntf_1") }
-    assert_empty sleeps
+    assert_raises(Esuiss::Relay::ConnectionError) { client.create_event({ "workflow" => "welcome" }) }
+    assert_equal 3, sleeps.size
+    assert_equal 1, transport.requests.map { |r| r.headers["Idempotency-Key"] }.uniq.size
   end
 
   def test_x29_request_options_override_retries_and_headers

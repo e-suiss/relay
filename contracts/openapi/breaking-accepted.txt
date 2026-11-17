@@ -130,3 +130,4 @@ POST /v1/operator/pending_api_clients/assign added the new `agent:send` enum val
 POST /v1/operator/pending_api_clients/assign added the new `agent:waitpoint` enum value to the `scopes/items/` response property for the response status `200`
 POST /v1/operator/pending_api_clients/assign added the new `agents` enum value to the `scopes/items/` response property for the response status `200`
 POST /v1/operator/pending_api_clients/assign added the new `presence:read` enum value to the `scopes/items/` response property for the response status `200`
+POST /v1/waitpoints added the new required request property `surface_policy/recipients`

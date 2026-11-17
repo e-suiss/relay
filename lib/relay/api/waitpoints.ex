@@ -19,6 +19,7 @@ defmodule Relay.Api.Waitpoints do
   alias Relay.Api.Pagination
   alias Relay.Api.Schema
   alias Relay.Api.Views
+  alias Relay.Api.WaitpointPlans
   alias Relay.Scope
 
   @type answer :: {:ok, {100..599, [{String.t(), String.t()}], map()}} | {:error, Relay.Error.t()}
@@ -47,8 +48,15 @@ defmodule Relay.Api.Waitpoints do
   @channels Relay.Api.Contract.documents()["schemas"]["Channel"]["enum"]
   @asking ~w(response_schema responders subject_digest content actions)
   @asking_only ~w(response_schema responders subject_digest content claim_text default_response
-                  actions evidence labels profile)
-  @unserved ~w(condition escalation_policy surface_policy)
+                  actions evidence labels profile escalation_policy surface_policy)
+  @unserved ~w(condition)
+  @plan_refusals [
+    :escalation_policy_not_found,
+    :escalation_policy_archived,
+    :escalation_responder_outside_set,
+    :escalation_tier_limit,
+    :surface_recipient_outside_set
+  ]
   @sealed ~w(content actions evidence)
 
   # AG-6
@@ -211,8 +219,10 @@ defmodule Relay.Api.Waitpoints do
          {:ok, waiter} <- waiter(Map.get(body, "waiter"), caller),
          {:ok, responders} <- responders(scope, Map.get(body, "responders", [])),
          {:ok, digests} <- digests(scope, body["match"]),
+         {:ok, plan} <- WaitpointPlans.prepare(scope, body),
          {:ok, sealed} <- sealed(scope, body) do
-      attrs = attrs(body, waiter, Enum.map(responders, &elem(&1, 0)), digests, sealed)
+      ids = Enum.map(responders, &elem(&1, 0))
+      attrs = Map.merge(attrs(body, waiter, ids, digests, sealed), plan)
       names = for {id, name} when is_binary(name) <- responders, into: %{}, do: {id, name}
       {:ok, %{attrs: attrs, names: names, opened: plain(body)}}
     end
@@ -412,7 +422,10 @@ defmodule Relay.Api.Waitpoints do
 
   # AG-53
   defp message_errors(body) do
-    count = length(Map.get(body, "responders", [])) + length(Map.get(body, "deliver_to", []))
+    tiers = get_in(body, ["escalation_policy", "tiers"]) || []
+    escalations = Enum.sum(for tier <- tiers, do: 1 + Map.get(tier, "repeat", 0))
+    direct = length(Map.get(body, "responders", [])) + length(Map.get(body, "deliver_to", []))
+    count = direct + escalations
 
     if count > @max_messages,
       do: [over("/responders", limit_name("max_messages"), @max_messages, count)],
@@ -593,7 +606,8 @@ defmodule Relay.Api.Waitpoints do
   defp digest_bytes(nil), do: nil
   defp digest_bytes("sha256:" <> hex), do: Base.decode16!(hex, case: :lower)
 
-  defp plain(body), do: Map.take(body, @sealed ++ ["claim_text", "default_response"])
+  defp plain(body),
+    do: Map.take(body, @sealed ++ ["claim_text", "default_response", "surface_policy"])
 
   # C-72
   # AG-9
@@ -631,6 +645,12 @@ defmodule Relay.Api.Waitpoints do
   defp topic_error(nil, at), do: [error(at, "not_found", "no topic has this key")]
   defp topic_error(%{"state" => "active"}, _at), do: []
   defp topic_error(_archived, at), do: [error(at, "not_allowed", "the topic is archived")]
+
+  # AG-12
+  # AG-17
+  # AG-63
+  defp refused(result, attrs) when result in @plan_refusals,
+    do: WaitpointPlans.refusal(result, attrs)
 
   defp refused(:active_exists, _attrs) do
     message = "the waiter already waits for this event type and correlation key"
@@ -738,7 +758,7 @@ defmodule Relay.Api.Waitpoints do
       "expires_at" => w.expires_at,
       "deliver_to" => Enum.map(w.deliver_to_topics, &%{"topic" => &1}),
       "tags" => w.tags,
-      "escalation_policy" => nil,
+      "escalation_policy" => WaitpointPlans.escalation_view(w.escalation_policy_ref),
       "state" => w.state,
       "response" => response(w.response, names),
       "completion" => completion,
@@ -828,7 +848,19 @@ defmodule Relay.Api.Waitpoints do
 
     claim = open_text(scope, w, "claim_text_ct", w.claim_text_ct)
     default = open(scope, w, "default_response_ct", w.default_response_ct)
-    envelope |> put_opened("claim_text", claim) |> put_opened("default_response", default)
+
+    envelope
+    |> put_opened("claim_text", claim)
+    |> put_opened("default_response", default)
+    |> put_opened("surface_policy", surface(scope, w))
+  end
+
+  # AG-63
+  defp surface(scope, w) do
+    case WaitpointPlans.surface_view(scope, w.surface_policy) do
+      {:ok, %{} = policy} -> {:ok, policy}
+      _absent_or_unreadable -> :absent
+    end
   end
 
   defp put_opened(map, key, {:ok, value}), do: Map.put(map, key, value)

@@ -1,5 +1,5 @@
 {
-  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59; WF-52; WF-34; WF-44; WF-62; X-14; WF-56; IN-40; CH-54; TN-52; E-33; OP-24; TN-60; PC-40; PC-27; PC-33; PC-47; AG-48; AG-49; AG-50",
+  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59; WF-52; WF-34; WF-44; WF-62; X-14; WF-56; IN-40; CH-54; TN-52; E-33; OP-24; TN-60; PC-40; PC-27; PC-33; PC-47; AG-17; AG-19; AG-63; INV-35",
   "rules": [
     {
       "id": "admission.aimd.l2",
@@ -104,90 +104,6 @@
       "description": {
         "en": "The request was refused because lane l3 is shedding load.",
         "tr": "İstek, l3 şeridi yük attığı için reddedildi."
-      }
-    },
-    {
-      "id": "agent_ceiling.cancelled",
-      "reason": "cancelled",
-      "kind": "terminal",
-      "outcome": "cancel",
-      "decision": "AG-49",
-      "detail": [
-        "ceiling_decision_id"
-      ],
-      "description": {
-        "en": "Cancelled by the decision of the agent's owner on the notifications held at the agent ceiling.",
-        "tr": "Ajan tavanında bekletilen bildirimler için ajanın sahibinin verdiği kararla iptal edildi."
-      }
-    },
-    {
-      "id": "agent_ceiling.counter_unreadable",
-      "reason": "agent_ceiling",
-      "kind": "gate",
-      "outcome": "pause",
-      "decision": "AG-50",
-      "detail": [
-        "agent_id",
-        "ceiling_event_id"
-      ],
-      "description": {
-        "en": "Held because the agent ceiling counter could not be read; the agent's owner decides whether it is sent.",
-        "tr": "Ajan tavanı sayacı okunamadığı için bekletildi; gönderilip gönderilmeyeceğine ajanın sahibi karar verir."
-      }
-    },
-    {
-      "id": "agent_ceiling.exceeded",
-      "reason": "agent_ceiling",
-      "kind": "gate",
-      "outcome": "pause",
-      "decision": "AG-49",
-      "detail": [
-        "agent_id",
-        "ceiling_event_id"
-      ],
-      "description": {
-        "en": "Held because the agent that sent it reached its notification ceiling; the agent's owner decides whether it is sent.",
-        "tr": "Gönderen ajan bildirim tavanına ulaştığı için bekletildi; gönderilip gönderilmeyeceğine ajanın sahibi karar verir."
-      }
-    },
-    {
-      "id": "agent_ceiling.expired",
-      "reason": "expired",
-      "kind": "terminal",
-      "outcome": "expire",
-      "decision": "AG-49",
-      "detail": [],
-      "description": {
-        "en": "Not sent because the message had expired when the agent's owner released it from the agent ceiling.",
-        "tr": "Ajanın sahibi iletiyi ajan tavanından serbest bıraktığında iletinin süresi dolmuş olduğu için gönderilmedi."
-      }
-    },
-    {
-      "id": "agent_ceiling.released",
-      "reason": "agent_ceiling",
-      "kind": "gate",
-      "outcome": "resume",
-      "decision": "AG-49",
-      "detail": [
-        "decision_ref"
-      ],
-      "description": {
-        "en": "Released by the decision of the agent's owner on the notifications held at the agent ceiling.",
-        "tr": "Ajan tavanında bekletilen bildirimler için ajanın sahibinin verdiği kararla serbest bırakıldı."
-      }
-    },
-    {
-      "id": "agent_ceiling.stopped",
-      "reason": "agent_stopped",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "AG-49",
-      "detail": [
-        "agent_id"
-      ],
-      "description": {
-        "en": "Not sent because the agent's owner stopped the agent.",
-        "tr": "Ajanın sahibi ajanı durdurduğu için gönderilmedi."
       }
     },
     {
@@ -2069,6 +1985,49 @@
       }
     },
     {
+      "id": "waitpoint.escalation_tier_skipped",
+      "reason": "escalation_tier_skipped",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "AG-17",
+      "detail": [
+        "waitpoint_id",
+        "level"
+      ],
+      "description": {
+        "en": "The escalation tier was skipped because it had no reachable responder to invite.",
+        "tr": "Eskalasyon kademesi atlandı, çünkü davet edilecek ulaşılabilir bir yanıtlayan yoktu."
+      }
+    },
+    {
+      "id": "waitpoint.invitation_cancelled",
+      "reason": "waitpoint_closed",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "INV-35",
+      "detail": [
+        "waitpoint_id"
+      ],
+      "description": {
+        "en": "The invitation was cancelled before it was delivered because the waitpoint was resolved, cancelled or expired.",
+        "tr": "Davet teslim edilmeden iptal edildi, çünkü bekleme noktası çözüldü, iptal edildi ya da süresi doldu."
+      }
+    },
+    {
+      "id": "waitpoint.invitation_unreachable",
+      "reason": "invitation_unreachable",
+      "kind": "terminal",
+      "outcome": "fail",
+      "decision": "AG-63",
+      "detail": [
+        "waitpoint_id"
+      ],
+      "description": {
+        "en": "The invitation could not reach the responder on the surfaces it named.",
+        "tr": "Davet, belirtilen yüzeylerde yanıtlayana ulaşamadı."
+      }
+    },
+    {
       "id": "waitpoint.no_match",
       "reason": "waitpoint_unmatched",
       "kind": "gate",
@@ -2080,6 +2039,49 @@
       "description": {
         "en": "The event was kept unmatched because no open waitpoint matched the event.",
         "tr": "Olay eşleşmeden kaydedildi, çünkü olay hiçbir açık bekleme noktasıyla eşleşmedi."
+      }
+    },
+    {
+      "id": "waitpoint.step_cancelled",
+      "reason": "waitpoint_closed",
+      "kind": "terminal",
+      "outcome": "cancel",
+      "decision": "AG-19",
+      "detail": [
+        "waitpoint_id"
+      ],
+      "description": {
+        "en": "The pending escalation tier or surface step was cancelled because the waitpoint was resolved, cancelled or expired.",
+        "tr": "Bekleyen eskalasyon kademesi ya da yüzey adımı iptal edildi, çünkü bekleme noktası çözüldü, iptal edildi ya da süresi doldu."
+      }
+    },
+    {
+      "id": "waitpoint.step_suspended",
+      "reason": "waitpoint_stalled",
+      "kind": "shaper",
+      "outcome": "pause",
+      "decision": "AG-19",
+      "detail": [
+        "waitpoint_id"
+      ],
+      "description": {
+        "en": "The escalation tier or surface step was paused because the waiter's heartbeat stopped; it goes on when the heartbeat returns.",
+        "tr": "Eskalasyon kademesi ya da yüzey adımı duraklatıldı, çünkü bekleyenin heartbeat'i kesildi; heartbeat dönünce sürer."
+      }
+    },
+    {
+      "id": "waitpoint.surface_step_skipped",
+      "reason": "surface_step_skipped",
+      "kind": "gate",
+      "outcome": "skip",
+      "decision": "AG-63",
+      "detail": [
+        "waitpoint_id",
+        "step"
+      ],
+      "description": {
+        "en": "The surface step was skipped because its surface is not registered for the responder, is not permitted or failed for good; the next step was invited without waiting.",
+        "tr": "Yüzey adımı atlandı, çünkü yüzey yanıtlayanda kayıtlı değil, izinli değil ya da kalıcı olarak başarısız oldu; sonraki adım beklemeden davet edildi."
       }
     },
     {

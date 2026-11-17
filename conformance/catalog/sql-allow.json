@@ -388,5 +388,11 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "AG-49: the committed relay_fn.paused_deliveries_expire is dropped as its owner, relay_owner, which relay_migrator may SET but does not inherit, so a notification held at the agent ceiling keeps waiting for the owner's decision past its expires_at; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20261228000000_create_escalation_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "AG-17, AG-19, OP-9: the no-delete and append-only triggers reject TRUNCATE on the escalation policies, their versions, the waitpoint steps and the invitations"
   }
 ]

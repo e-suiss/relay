@@ -75,6 +75,7 @@ defmodule RelayTest.Isolation do
     {"addTopicSubscriptions", %{"subscribers" => ["isolation-subscriber"]}},
     {"removeTopicSubscriptions", %{"subscribers" => ["isolation-subscriber"]}},
     {"replaceRoute", %{"name" => "Isolation", "tree" => "email"}},
+    {"putEscalationPolicy", %{"tiers" => [%{"after" => "PT1M"}]}},
     {"addCampaignRecipients", %{"recipients" => ["iso-campaign"]}},
     {"approveCampaignSamples", %{"samples_digest" => String.duplicate("0", 64)}},
     {"cancelCampaign", %{"reason" => "isolation"}},
@@ -90,7 +91,11 @@ defmodule RelayTest.Isolation do
     {"updateAgent", %{"name" => "Isolation"}},
     {"cancelWaitpoint", %{"reason" => "isolation"}}
   ]
-  @upserts %{"replaceSubscriber" => 201, "publishProducerTemplate" => 200}
+  @upserts %{
+    "replaceSubscriber" => 201,
+    "publishProducerTemplate" => 200,
+    "putEscalationPolicy" => 412
+  }
   @sms %{
     "default_locale" => "tr",
     "sensitivity" => "public",
@@ -128,6 +133,7 @@ defmodule RelayTest.Isolation do
       "mapping_id" => &mapping!/1,
       "category_key" => &category!/1,
       "route_key" => &route!/1,
+      "policy_key" => &escalation_policy!/1,
       "subtenant_id" => &subtenant!/1,
       "suppression_id" => &suppression!/1,
       "sms_destination_stop_id" => &sms_destination_stop!/1,
@@ -479,6 +485,15 @@ defmodule RelayTest.Isolation do
   def category!(scope) do
     key = "iso_" <> random()
     :ok = F.category!(owner(scope), key)
+    key
+  end
+
+  @doc "Creates an escalation policy in `scope` and returns its key."
+  @spec escalation_policy!(Relay.Scope.t()) :: String.t()
+  def escalation_policy!(scope) do
+    key = "iso-" <> random()
+    body = %{"tiers" => [%{"after" => "PT1M"}]}
+    F.body(F.request(:put, "/v1/escalation_policies/" <> key, owner(scope), body), 201)
     key
   end
 

@@ -90,7 +90,8 @@ def test_x29_error_catalog(entry: dict[str, Any]) -> None:
 
 
 def test_x29_error_classes_are_the_five() -> None:
-    kinds = {cls.kind for cls in [APIError, *_subclasses(APIError)]}
+    classes: list[type[APIError]] = [APIError, *_subclasses(APIError)]
+    kinds = {cls.kind for cls in classes}
     assert kinds == set(ERRORS_VECTOR["classes"])
 
 
@@ -158,7 +159,7 @@ def test_x29_idempotency_key_reuse(case: dict[str, Any]) -> None:
         transport = StubTransport(*[_scripted(r) for r in call["responses"]])
         relay = client(transport)
         expect = call["expect"]
-        body = None if call["method"] == "GET" else {}
+        body: dict[str, Any] | None = None if call["method"] == "GET" else {}
         outcome = "success"
         replayed = False
         try:

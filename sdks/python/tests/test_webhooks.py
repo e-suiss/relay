@@ -47,7 +47,7 @@ def test_wh7_both_signatures_in_one_header(case: dict[str, Any]) -> None:
 
 @pytest.mark.parametrize("rejection", VECTOR["rejections"], ids=lambda r: r["name"])
 def test_wh7_rejections(rejection: dict[str, Any]) -> None:
-    case = dict(CASES[rejection["case"]])
+    case: dict[str, Any] = dict(CASES[rejection["case"]])
     body = bytes.fromhex(rejection.get("body_hex", case["body_hex"]))
     if "webhook_id" in rejection:
         case["webhook_id"] = rejection["webhook_id"]

@@ -88,7 +88,9 @@ def test_x30_create_and_await_waitpoint_keeps_the_key(sleeper: Sleeper) -> None:
 
 
 def test_x30_mailbox_lease_and_ack() -> None:
-    lease = {"object": "mailbox_lease", "lease_id": "l1", "lease_expires_at": None, "records": []}
+    lease: dict[str, Any] = {
+        "object": "mailbox_lease", "lease_id": "l1", "lease_expires_at": None, "records": []
+    }
     transport = StubTransport(answer(200, lease), answer(200, {"object": "mailbox_ack"}))
     relay = client(transport)
     assert relay.mailbox_lease(5)["lease_id"] == "l1"

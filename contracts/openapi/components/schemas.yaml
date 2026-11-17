@@ -6691,10 +6691,14 @@ WaitpointResponse:
     responded_at:
       "$ref": "#/Timestamp"
     value:
-      description: "The response value."
+      description: "The response value the responder gave, as it was collected; present on a single waitpoint read while it can be read. Relay carries the response, not its validity: it is never an approval (AG-25, E-49)."
     response_digest:
       "$ref": "#/Sha256Digest"
       description: "sha256 of the RFC 8785 (JCS) form of the value."
+    access_decision_ref:
+      type: string
+      description: "The reference of the decision given on the Access approval surface, on a response of evidence level access_aas_ref (AG-27); the waiter verifies the approval at Access."
+      maxLength: 512
   additionalProperties: false
 Waitpoint:
   type: object

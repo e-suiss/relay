@@ -35,7 +35,8 @@ defmodule Relay.Operators do
       SubscriberSuspension,
       AccessUserHandler,
       AccessSubscriberHandler,
-      AccessAgentHandler
+      AccessAgentHandler,
+      AccessDecisionHandler
     ]
 
   require Logger

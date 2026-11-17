@@ -20,7 +20,7 @@ defmodule Relay.Access do
       Relay.Tenancy,
       Relay.Tenancy.Provisioning
     ],
-    exports: [Client, Pep, ServiceKey, UserHandler, AgentHandler, ConsentHandler]
+    exports: [Client, Pep, ServiceKey, UserHandler, AgentHandler, ConsentHandler, DecisionHandler]
 
   alias Relay.Access.Assignment
   alias Relay.Access.Cache

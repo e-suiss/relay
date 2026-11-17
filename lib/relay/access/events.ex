@@ -9,6 +9,7 @@ defmodule Relay.Access.Events do
   * `api_client.created` registers the client in its tenant's `live` scope as pending, with no environment and no scopes, until a tenant administrator assigns them (E-99, `Relay.Access.Assignment`); a client Relay already knows is left as it is. `api_client.updated` carries nothing Relay keeps and is `processed` with reason `not_applied`. `api_client.suspended`, `api_client.reactivated` and `api_client.revoked` change the API client trace's status and announce the new generation to every node (API-44, TN-24); `api_client.disabled`, which Access emits when it retires a client, suspends it (E-97). A status event of a client that is still pending waits as `deferred` with reason `unknown_client` and is queued again once the client is assigned.
   * `user.suspended`, `user.reactivated` and `user.deleted` go to the configured user event handlers (`config :relay, Relay.Access, user_handlers: [module]`, `Relay.Access.UserHandler`); without one the receipt waits as `deferred` with reason `no_handler`.
   * `agent.suspended`, `agent.reactivated` and `agent.deleted` go, in each environment of the mapped tenant, to the configured agent event handlers (`config :relay, Relay.Access, agent_handlers: [module]`, `Relay.Access.AgentHandler`) with the agent's Access Party reference (E-29, AG-5); without one the receipt waits as `deferred` with reason `no_handler`, and an event that names no subject is `rejected`.
+  * `approval.decided` goes, in each environment of the mapped tenant, to the configured decision handler (`config :relay, Relay.Access, decision_handler: module`, `Relay.Access.DecisionHandler`) with the waitpoint it names, the pairwise `sub` of the person who decided, the decision, its reference on the Access approval surface and the subject digest it was given for (E-15, AG-27). The event is `processed` when an environment recorded the decision, `rejected` with the refusal when the waitpoint refused it or when no environment knows the waitpoint, and waits as `deferred` without a handler.
   * `consent.updated` goes, in each environment of the mapped tenant, to the configured consent handler (`config :relay, Relay.Access, consent_handler: module`, `Relay.Access.ConsentHandler`) with its status and source in lowercase, the evidence it sealed for that environment when the event was received (the receipt keeps only that ciphertext and never the evidence in clear) and its brand: the sub-tenant mapped from the event's organization, or the tenant itself without one (E-80). A consent that cannot be read is `rejected`; without a handler, or while its organization is not mapped yet, it waits as `deferred`.
 
   A receipt whose tenant, sub-tenant or client does not exist yet is `deferred` and queued again when a later event of the same Access tenant is applied; anything else that cannot apply is `rejected` with a reason.
@@ -39,6 +40,8 @@ defmodule Relay.Access.Events do
     "agent.suspended" => ~w(access_tenant_id subject),
     "agent.reactivated" => ~w(access_tenant_id subject),
     "agent.deleted" => ~w(access_tenant_id subject),
+    "approval.decided" =>
+      ~w(access_tenant_id subject waitpoint_id decision decision_ref subject_digest),
     "consent.updated" =>
       ~w(sub access_tenant_id access_organization_id channel status consent_kind recipient_type
          source occurred_at text_version_digest evidence iys_transaction_id sequence)
@@ -255,7 +258,60 @@ defmodule Relay.Access.Events do
   defp handle("consent.updated", payload, receipt),
     do: with_tenant(payload, &consent(payload, receipt, &1))
 
+  defp handle("approval.decided", payload, receipt),
+    do: with_tenant(payload, &decision(payload, receipt, &1))
+
   defp handle(_type, _payload, _receipt), do: {:rejected, "unsupported_type"}
+
+  # E-15
+  # AG-27
+  # AG-62
+  defp decision(payload, receipt, tenant_id) do
+    case {Keyword.get(Relay.Access.config(), :decision_handler), decision_attrs(payload)} do
+      {nil, _attrs} ->
+        {:deferred, "no_handler"}
+
+      {_handler, :error} ->
+        {:rejected, "invalid_decision"}
+
+      {handler, {:ok, attrs}} ->
+        attrs = Map.put(attrs, :source_event_ref, receipt.webhook_id)
+        scopes = Enum.map(Relay.Environment.all(), &Scope.new!(tenant_id, &1))
+        decided(Enum.map(scopes, &handler.handle_decision(&1, attrs)))
+    end
+  end
+
+  defp decided(results) do
+    error = Enum.find(results, &match?({:error, _reason}, &1))
+    rejected = Enum.find(results, &match?({:rejected, _reason}, &1))
+
+    cond do
+      error != nil -> error
+      :ok in results -> :processed
+      rejected != nil -> rejected
+      true -> {:rejected, "unknown_waitpoint"}
+    end
+  end
+
+  defp decision_attrs(payload) do
+    with subject when is_binary(subject) and subject != "" <- text(payload["subject"], 256),
+         waitpoint when is_binary(waitpoint) <- text(payload["waitpoint_id"], 64),
+         ref when is_binary(ref) and ref != "" <- text(payload["decision_ref"], 512),
+         "sha256:" <> hex <- payload["subject_digest"],
+         {:ok, <<_::256>> = digest} <- Base.decode16(hex, case: :lower),
+         true <- Map.has_key?(payload, "decision") do
+      {:ok,
+       %{
+         subject: subject,
+         waitpoint_id: waitpoint,
+         decision_ref: ref,
+         subject_digest: digest,
+         value: payload["decision"]
+       }}
+    else
+      _invalid -> :error
+    end
+  end
 
   # TN-1
   # TN-2

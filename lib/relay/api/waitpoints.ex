@@ -150,7 +150,7 @@ defmodule Relay.Api.Waitpoints do
 
   # AG-46
   # WH-68
-  @doc "Reads a waitpoint with its responders, its response and, for one a completion notification resolved, the completion."
+  @doc "Reads a waitpoint with its responders, its response with the value the responder gave and, for one a completion notification resolved, the completion."
   @spec get(Scope.t(), Relay.Id.t()) :: answer()
   def get(%Scope{} = scope, id) do
     with {:ok, waitpoint} <- load(scope, id),
@@ -166,7 +166,18 @@ defmodule Relay.Api.Waitpoints do
   def load(%Scope{} = scope, id) do
     with {:ok, row} <- found(Relay.Agents.read_waitpoint(scope, id)),
          {:ok, names} <- names(scope, [row]),
-         do: {:ok, %{row: row, names: names, opened: opened(scope, row)}}
+         do: {:ok, %{row: valued(scope, row), names: names, opened: opened(scope, row)}}
+  end
+
+  # AG-25
+  # OP-24
+  defp valued(_scope, %{response: nil} = row), do: row
+
+  defp valued(scope, %{response: %{responder_recipient_id: responder} = response} = row) do
+    case Relay.Agents.open_response_value(scope, responder, response.value_ct) do
+      {:ok, value} -> %{row | response: Map.put(response, :value, value)}
+      :error -> row
+    end
   end
 
   defp found({:ok, nil}), do: {:error, not_found()}
@@ -827,7 +838,12 @@ defmodule Relay.Api.Waitpoints do
       "responded_at" => r.responded_at,
       "response_digest" => digest_text(r.value_digest)
     }
+    |> put_value(r)
+    |> Views.put_unless_nil("access_decision_ref", Map.get(r, :evidence_ref))
   end
+
+  defp put_value(view, %{value: value}), do: Map.put(view, "value", value)
+  defp put_value(view, _sealed), do: view
 
   defp digest_text(nil), do: nil
   defp digest_text(digest), do: "sha256:" <> Base.encode16(digest, case: :lower)

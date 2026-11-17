@@ -9,6 +9,9 @@ defmodule Relay.Agents do
   alias Relay.Agents.Escalation
   alias Relay.Agents.Mailbox
   alias Relay.Agents.Registry
+  alias Relay.Agents.Response
+  alias Relay.Agents.ResponseToken
+  alias Relay.Agents.ResponseValue
   alias Relay.Agents.Waitpoint
   alias Relay.Agents.WakeHint
 
@@ -362,4 +365,49 @@ defmodule Relay.Agents do
   @spec waitpoint_invitations(Relay.Scope.t(), Relay.Id.t()) ::
           {:ok, [map()]} | {:error, term()}
   defdelegate waitpoint_invitations(scope, waitpoint_id), to: Escalation, as: :invitations
+
+  # AG-25
+  # AG-26
+  # AG-27
+  # INV-31
+  @doc "Collects a response given by an identified responder; see `Relay.Agents.Response.collect/4`."
+  @spec collect_response(Relay.Scope.t(), Relay.Id.t(), Response.attrs(), Response.check()) ::
+          {:ok, {atom(), Relay.Id.t() | nil}} | {:invalid, term()} | {:error, term()}
+  defdelegate collect_response(scope, waitpoint_id, attrs, check), to: Response, as: :collect
+
+  # AG-27
+  # INV-31
+  @doc "Collects a response checked with `Relay.Agents.ResponseValue.check/2`; see `Relay.Agents.Response.collect/4`."
+  @spec collect_response(Relay.Scope.t(), Relay.Id.t(), Response.attrs()) ::
+          {:ok, {atom(), Relay.Id.t() | nil}} | {:invalid, term()} | {:error, term()}
+  defdelegate collect_response(scope, waitpoint_id, attrs), to: Response, as: :collect
+
+  # AG-31
+  # AG-35
+  @doc "Takes a channel response sent with a response token; see `Relay.Agents.Response.submit/4`."
+  @spec submit_channel_response(term(), term(), String.t(), Response.check()) ::
+          {:ok, Response.status()} | {:invalid, term()} | {:error, term()}
+  defdelegate submit_channel_response(token, value, via, check), to: Response, as: :submit
+
+  # AG-35
+  @doc "Processes the response of a consumed response token; see `Relay.Agents.Response.process/2`."
+  @spec process_channel_response(Relay.Scope.t(), Relay.Id.t()) ::
+          {:ok, {atom(), String.t() | nil}} | {:error, term()}
+  defdelegate process_channel_response(scope, token_id), to: Response, as: :process
+
+  # AG-31
+  # INV-33
+  @doc "Mints the response token of a responder of a waitpoint for a human channel; see `Relay.Agents.ResponseToken.mint/3`."
+  @spec mint_response_token(Relay.Scope.t(), Relay.Id.t(), Relay.Id.t()) ::
+          {:ok, %{token: String.t(), expires_at: DateTime.t()}} | {:error, term()}
+  defdelegate mint_response_token(scope, waitpoint_id, recipient_id),
+    to: ResponseToken,
+    as: :mint
+
+  # AG-25
+  # OP-24
+  @doc "Opens the sealed value of a response of a responder; see `Relay.Agents.ResponseValue.open/3`."
+  @spec open_response_value(Relay.Scope.t(), Relay.Id.t(), binary() | nil) ::
+          {:ok, term()} | :error
+  defdelegate open_response_value(scope, recipient_id, ct), to: ResponseValue, as: :open
 end

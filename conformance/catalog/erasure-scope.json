@@ -211,6 +211,14 @@
       "subject_erasure": "response value unreadable once the responder's notification_content data key is destroyed"
     },
     {
+      "table": "waitpoint_response_tokens",
+      "personal_columns": [
+        "value_ct"
+      ],
+      "tenant_close": "row kept",
+      "subject_erasure": "the response value waiting to be processed is unreadable once the responder's notification_content data key is destroyed, and is cleared when the response settles"
+    },
+    {
       "table": "waitpoint_response_rejections",
       "personal_columns": [],
       "tenant_close": "no personal fields; archived with its partition",

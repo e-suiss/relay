@@ -514,7 +514,9 @@ defmodule RelayWeb.Api.WaitpointsTest do
       assert respond(ctx, created["id"]) == :resolved
       first = get(ctx, created["id"])["response"]
 
-      assert respond(ctx, created["id"]) == :rejected_closed
+      other = %{value_digest: :crypto.hash(:sha256, "another value")}
+      assert respond(ctx, created["id"], other) == :rejected_closed
+      assert respond(ctx, created["id"]) == :duplicate
       assert get(ctx, created["id"])["response"] == first
       value_digest = Base.encode16(:crypto.hash(:sha256, "value"), case: :lower)
       assert first["response_digest"] == "sha256:" <> value_digest

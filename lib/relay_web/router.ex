@@ -909,6 +909,12 @@ defmodule RelayWeb.Router do
     post "/subscriber/test_recipients/:test_recipient_id/confirm", TesterController, :confirm,
       private: %{relay_operation: "confirmMyTestRecipient"}
 
+    post "/subscriber/waitpoints/:waitpoint_id/response", WaitpointResponseController, :respond,
+      private: %{relay_operation: "respondToMyWaitpoint"}
+
+    post "/channel_responses", WaitpointResponseController, :submit,
+      private: %{relay_operation: "submitChannelResponse"}
+
     get "/subscriber/inbox/items", InboxController, :index,
       private: %{relay_operation: "listMyInboxItems"}
 

@@ -715,6 +715,20 @@
       "subject_erasure": "a tenant's customer reference; not subject data"
     },
     {
+      "table": "refusals",
+      "personal_columns": [
+        "evidence_ct"
+      ],
+      "tenant_close": "tenant keys destroyed; row kept",
+      "subject_erasure": "evidence is encrypted under the commercial_consent subject key: restricted under a statutory retention, otherwise destroyed; row kept as the minimal legal evidence of the refusal"
+    },
+    {
+      "table": "unsubscribe_token_revocations",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "a token identifier and the reason of its revocation; not subject data"
+    },
+    {
       "table": "webhook_sources",
       "personal_columns": [],
       "tenant_close": "row kept",

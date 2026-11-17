@@ -9,7 +9,7 @@ defmodule Relay.Api.Suppressions do
   @type answer :: {:ok, {100..599, [{String.t(), String.t()}], map()}} | {:error, Relay.Error.t()}
 
   @channels ~w(push web_push email sms voice whatsapp slack teams telegram discord in_app webhook)
-  @reasons ~w(hard_bounce complaint invalid soft_bounce manual)
+  @reasons ~w(hard_bounce complaint invalid soft_bounce manual refusal)
   @states ~w(active expired lifted)
   @phone_channels ~w(sms voice whatsapp)
 

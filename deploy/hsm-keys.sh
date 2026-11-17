@@ -23,6 +23,9 @@ exist under their label are left untouched, so the script can be rerun.
   subscriber-token   P-256 key pair that signs subscriber tokens; to rotate it, rerun
                      with KEY_STORE_SUBSCRIBER_TOKEN_LABEL set to a new label, then
                      run Relay.Release.SubscriberTokenKey.rotate/1 with that label
+  unsubscribe-link   P-256 key pair that signs one-click unsubscribe links; a link
+                     has no expiry, so the key is kept for as long as its links
+                     must work
   access-client      P-256 key pair of Relay's Access client: client assertions and
                      DPoP proofs (register its public key with Relay's Access
                      client)
@@ -46,6 +49,7 @@ Environment:
   PKCS11_PIN_FILE               file holding the user PIN
   KEY_STORE_CHECKPOINT_LABEL    default: audit-checkpoint
   KEY_STORE_SUBSCRIBER_TOKEN_LABEL  default: subscriber-token
+  KEY_STORE_UNSUBSCRIBE_LINK_LABEL  default: unsubscribe-link
   KEY_STORE_ACCESS_CLIENT_LABEL default: access-client
   KEY_STORE_ACCESS_SERVICE_LABEL default: access-service
   KEY_STORE_ACCESS_PEP_LABEL    default: access-pep
@@ -67,6 +71,7 @@ USAGE
 : "${KEY_STORE_CURSOR_LABEL:?KEY_STORE_CURSOR_LABEL is required}"
 checkpoint="${KEY_STORE_CHECKPOINT_LABEL:-audit-checkpoint}"
 subscriber_token="${KEY_STORE_SUBSCRIBER_TOKEN_LABEL:-subscriber-token}"
+unsubscribe_link="${KEY_STORE_UNSUBSCRIBE_LINK_LABEL:-unsubscribe-link}"
 access_client="${KEY_STORE_ACCESS_CLIENT_LABEL:-access-client}"
 access_service="${KEY_STORE_ACCESS_SERVICE_LABEL:-access-service}"
 access_pep="${KEY_STORE_ACCESS_PEP_LABEL:-access-pep}"
@@ -100,6 +105,7 @@ create() {
 
 create privkey "$checkpoint" --keypairgen --key-type EC:edwards25519
 create privkey "$subscriber_token" --keypairgen --key-type EC:prime256v1
+create privkey "$unsubscribe_link" --keypairgen --key-type EC:prime256v1
 create privkey "$access_client" --keypairgen --key-type EC:prime256v1
 create privkey "$access_service" --keypairgen --key-type EC:edwards25519
 create privkey "$access_pep" --keypairgen --key-type EC:prime256v1

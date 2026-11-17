@@ -27,7 +27,8 @@ defmodule Relay.Channels.Live.Store do
     one(
       """
       SELECT d.tenant_id, d.environment, d.id, d.channel::text AS channel, d.target_kind,
-        d.target_id, d.recipient_id, d.provider, d.provider_account_id, d.traceparent, d.attempt_count,
+        d.target_id, d.recipient_id, n.subtenant_id, d.provider, d.provider_account_id,
+        d.traceparent, d.attempt_count,
         d.accepted_at, n.message_class::text AS message_class, n.security_subtype, n.expires_at,
         n.subtenant_id,
         n.is_test, e.send_mode::text AS send_mode,

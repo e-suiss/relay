@@ -141,6 +141,7 @@ defmodule RelayWeb.Api.AgentCeilingTest do
         assert {:ok, %{resumed: 1}} = Ceiling.apply_decision(ctx.scope, decision_id)
 
         path = ctx.agent <> "/ceiling_holds?state=released"
+
         assert [%{"notification_id" => ^held, "decision_id" => id}] =
                  F.body(F.request(:get, path, ctx.token), 200)["data"]
 

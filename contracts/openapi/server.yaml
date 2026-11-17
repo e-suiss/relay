@@ -14973,6 +14973,8 @@ paths:
       security:
         - access_bearer:
             - agents
+        - access_bearer:
+            - config
       responses:
         "201":
           description: Decided.
@@ -15056,6 +15058,7 @@ paths:
         - auth_operator_session_required
       x-relay-scopes:
         - agents
+        - config
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: conditional
@@ -15084,6 +15087,8 @@ paths:
       security:
         - access_bearer:
             - agents
+        - access_bearer:
+            - config
       responses:
         "200":
           description: A page of held notifications.
@@ -15146,6 +15151,7 @@ paths:
         - agent_not_found
       x-relay-scopes:
         - agents
+        - config
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -15173,6 +15179,8 @@ paths:
       security:
         - access_bearer:
             - agents
+        - access_bearer:
+            - config
       responses:
         "200":
           description: "The agent's state."
@@ -15253,6 +15261,7 @@ paths:
         - agent_not_found
       x-relay-scopes:
         - agents
+        - config
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false

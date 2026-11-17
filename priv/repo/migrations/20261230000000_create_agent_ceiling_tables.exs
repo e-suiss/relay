@@ -59,7 +59,7 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingTables do
             CHECK (decision IN ('send_all', 'cancel', 'stop')),
         decision_ref text NOT NULL
           CONSTRAINT agent_ceiling_decisions_decision_ref_check
-            CHECK (decision_ref ~ '^[\x20-\x7e]{1,256}$'),
+            CHECK (decision_ref ~ '^[\x20-\x7e]+$' AND char_length(decision_ref) <= 256),
         note text
           CONSTRAINT agent_ceiling_decisions_note_check CHECK (char_length(note) <= 1000),
         applied_count bigint NOT NULL
@@ -154,7 +154,7 @@ defmodule Relay.Repo.Migrations.CreateAgentCeilingTables do
           CONSTRAINT agent_run_states_state_check CHECK (state IN ('active', 'stopped')),
         decision_ref text NOT NULL
           CONSTRAINT agent_run_states_decision_ref_check
-            CHECK (decision_ref ~ '^[\x20-\x7e]{1,256}$'),
+            CHECK (decision_ref ~ '^[\x20-\x7e]+$' AND char_length(decision_ref) <= 256),
         changed_at timestamptz NOT NULL,
         created_at timestamptz NOT NULL,
         updated_at timestamptz NOT NULL,

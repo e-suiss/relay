@@ -7,8 +7,8 @@ defmodule Relay.Api.IsolationTest do
   alias RelayTest.TenantFixture
 
   @routers [RelayWeb.Router, RelayTest.Api.Router]
-  @scopes "publish read subscribers config kill_switch agents"
-  @all ~w(publish read subscribers config kill_switch agents)
+  @scopes "publish read subscribers config kill_switch"
+  @all ~w(publish read subscribers config kill_switch)
 
   setup do
     :ok = FakeAccess.install!()

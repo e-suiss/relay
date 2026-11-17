@@ -12,7 +12,7 @@ defmodule RelayTest.IngestFixture do
   alias Relay.TemplateStore
   alias RelayTest.Api
 
-  @scopes ["publish", "read", "subscribers", "config", "kill_switch", "agents"]
+  @scopes ["publish", "read", "subscribers", "config", "kill_switch"]
 
   @doc "A token for a scope with every server API scope, or the given ones."
   @spec token(Relay.Scope.t(), [String.t()]) :: String.t()

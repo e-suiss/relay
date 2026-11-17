@@ -4,7 +4,6 @@ defmodule RelayWeb.Api.MailboxMessagesTest do
   alias Relay.Repo
   alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F
-  alias RelayTest.OutboxEvents
   alias RelayTest.TenantFixture
 
   @metadata ~w(content_encryption content_marking epoch id mailbox_id object recipient
@@ -77,6 +76,11 @@ defmodule RelayWeb.Api.MailboxMessagesTest do
     {:ok, uuid} = Relay.ExternalId.decode(id, ["mbr"])
     [row] = rows(ctx.scope, @record, [uuid])
     row
+  end
+
+  defp reports(ctx) do
+    sql = "SELECT payload FROM relay.outbox_events WHERE event_type = 'mailbox.abuse_reported'"
+    for [payload] <- rows(ctx.scope, sql), do: Relay.Platform.Envelope.data(payload)
   end
 
   defp lease(agent),
@@ -430,7 +434,7 @@ defmodule RelayWeb.Api.MailboxMessagesTest do
       assert %{"object" => "mailbox_abuse_report", "statement_attached" => true} = report
       assert report["record_id"] == sent["id"]
 
-      assert [data] = OutboxEvents.data(ctx.scope, "mailbox.abuse_reported")
+      assert [data] = reports(ctx)
       assert data["record_id"] == sent["id"]
       assert data["sender_ref"] == ctx.sender.id
       assert data["size"] == byte_size(secret)
@@ -447,7 +451,7 @@ defmodule RelayWeb.Api.MailboxMessagesTest do
       again = F.body(F.request(:post, path, ctx.recipient.mailbox, bare), 200)
       assert again["reported_at"] == report["reported_at"]
       assert again["statement_attached"] == true
-      assert length(OutboxEvents.data(ctx.scope, "mailbox.abuse_reported")) == 1
+      assert length(reports(ctx)) == 1
 
       theirs = F.request(:post, path, ctx.sender.mailbox, %{"record_id" => sent["id"]})
       assert code(theirs, 404) == "mailbox_record_not_found"

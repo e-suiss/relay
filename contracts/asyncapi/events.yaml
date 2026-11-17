@@ -3446,6 +3446,7 @@ components:
                       type: string
                       pattern: "^mbr_[0-7][0-9a-hjkmnp-tv-z]{25}$"
                   additionalProperties: false
+      x-relay-explicit-only: true
       x-relay-surface: webhook
       x-relay-schema-version: 1
       x-relay-stage: 12

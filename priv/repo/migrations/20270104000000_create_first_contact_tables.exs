@@ -173,7 +173,7 @@ defmodule Relay.Repo.Migrations.CreateFirstContactTables do
         content_encryption text NOT NULL
           CONSTRAINT agent_messages_content_encryption_check
             CHECK (content_encryption ~ '^[A-Za-z0-9][A-Za-z0-9._+:/-]{0,63}$'),
-        size integer NOT NULL
+        size bigint NOT NULL
           CONSTRAINT agent_messages_size_check CHECK (size BETWEEN 1 AND 262144),
         first_contact boolean NOT NULL,
         created_at timestamptz NOT NULL,

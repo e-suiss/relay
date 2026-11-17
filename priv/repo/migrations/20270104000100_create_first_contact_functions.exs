@@ -4,7 +4,7 @@ defmodule Relay.Repo.Migrations.CreateFirstContactFunctions do
   @functions [
     "relay_fn.agent_relationship_apply(uuid, uuid, text, bigint, text)",
     "relay_fn.agent_block_set(uuid, uuid, boolean, text)",
-    "relay_fn.agent_message_send(uuid, uuid, uuid, text, integer, bytea, uuid, bytea, text, bytea, bytea, bigint, bigint, text)",
+    "relay_fn.agent_message_send(uuid, uuid, uuid, text, bigint, bytea, uuid, bytea, text, bytea, bytea, bigint, bigint, text)",
     "relay_fn.mailbox_abuse_report(uuid, uuid, uuid, text, text)"
   ]
 
@@ -150,7 +150,7 @@ defmodule Relay.Repo.Migrations.CreateFirstContactFunctions do
       """,
       ~S"""
       CREATE FUNCTION relay_fn.agent_message_send(p_id uuid, p_recipient_agent_id uuid,
-        p_sender_agent_id uuid, p_content_encryption text, p_size integer, p_payload_ct bytea,
+        p_sender_agent_id uuid, p_content_encryption text, p_size bigint, p_payload_ct bytea,
         p_payload_tenant_key_id uuid, p_payload_digest bytea, p_token text, p_token_digest bytea,
         p_token_key_id bytea, p_hour_limit bigint, p_day_recipient_limit bigint,
         p_traceparent text)

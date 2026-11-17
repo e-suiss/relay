@@ -53,6 +53,8 @@ if config_env() == :prod do
 
   config :relay, RelayWeb.Api, trusted_proxies: Relay.Config.Env.cidrs!("RELAY_TRUSTED_PROXIES")
 
+  config :relay, Relay.Api.PreviewSandbox, host: System.get_env("RELAY_PREVIEW_HOST")
+
   config :relay, Relay.Agents.Live,
     response_link: "https://" <> Relay.Config.Env.fetch!("RELAY_HOST") <> "/respond/"
 

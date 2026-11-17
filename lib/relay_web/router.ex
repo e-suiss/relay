@@ -115,6 +115,12 @@ defmodule RelayWeb.Router do
     get "/:token", ExportDownloadController, :show
   end
 
+  # TP-24
+  # TP-39
+  scope "/sandbox", RelayWeb do
+    get "/:token", PreviewSandboxController, :show
+  end
+
   # CH-46
   # CH-87
   scope "/tlsrpt/v1", RelayWeb do

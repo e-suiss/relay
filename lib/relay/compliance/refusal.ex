@@ -124,7 +124,7 @@ defmodule Relay.Compliance.Refusal do
       {is_map_key(@defaults, r.source), "an unknown refusal source"},
       {r.scope in @scopes, "an unknown refusal scope"},
       {r.source not in @exits or r.scope == "category", "an exit of one message is a category"},
-      {(r.scope == "category") == text?(r.category, 128), "only a category refusal names one"},
+      {text?(r.category, 128) == (r.scope == "category"), "only a category refusal names one"},
       {text?(r.ref, 256), "a refusal carries the reference of its request"},
       {text?(r.actor_ref, 256), "a refusal names who recorded it"},
       {match?(%DateTime{}, r.occurred_at), "a refusal has its time"},

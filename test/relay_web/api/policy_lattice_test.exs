@@ -569,7 +569,8 @@ defmodule RelayWeb.Api.PolicyLatticeTest do
                "decision" => "send",
                "reason" => nil,
                "rule_id" => nil,
-               "deferred_until" => nil
+               "deferred_until" => nil,
+               "detail" => %{}
              }
 
       assert deliveries(token, sent) == []

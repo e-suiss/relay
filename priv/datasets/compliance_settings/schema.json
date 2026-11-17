@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "compliance_settings",
+  "description": "Tightening of the compliance table (PC-40, INV-17): per country or region of the table, the consent kinds that are not accepted there although the table's row accepts them. Only soft opt-in and legitimate interest can be refused; nothing here can loosen a row. The installation version holds the installation's refusals (none as shipped) and a tenant version adds the tenant's own.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_ref",
+    "refusals"
+  ],
+  "properties": {
+    "source_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "refusals": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "country",
+          "consent_kinds"
+        ],
+        "properties": {
+          "country": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "consent_kinds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "soft_opt_in",
+                "legitimate_interest"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

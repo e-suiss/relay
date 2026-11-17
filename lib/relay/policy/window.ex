@@ -1,6 +1,6 @@
 defmodule Relay.Policy.Window do
   @moduledoc """
-  When a delivery may go, in the recipient's local time (PC-46, PC-58 (5)). A constraint has a name and one of three forms: `{:quiet, ranges}` blocks inside the ranges (quiet hours), `{:only, ranges}` blocks outside them (a weekly availability schedule, the 10:00–18:00 window of PC-48) and `{:until, instant}` blocks before an instant (`dnd_until`). A range is `%{days: [1..7], from: Time.t(), to: Time.t()}`: it starts on each listed ISO weekday at `from` and ends at `to`, on the next day when `to` is not after `from`, so `22:00`–`07:00` crosses midnight and `00:00`–`00:00` is the whole day.
+  When a delivery may go, in the recipient's local time (PC-46, PC-58 (5)). A constraint has a name and one of three forms: `{:quiet, ranges}` blocks inside the ranges (quiet hours), `{:only, ranges}` blocks outside them (a weekly availability schedule, the 10:00–18:00 window of PC-48) and `{:until, instant}` blocks before an instant (`dnd_until`). A fourth form, `{:in_zone, zone, form}`, reads one of the range forms on the wall clock of its own zone instead of the recipient's: a legal send window is kept in every zone the recipient may be in (PC-47, WF-46). A range is `%{days: [1..7], from: Time.t(), to: Time.t()}`: it starts on each listed ISO weekday at `from` and ends at `to`, on the next day when `to` is not after `from`, so `22:00`–`07:00` crosses midnight and `00:00`–`00:00` is the whole day.
 
   Ranges are wall-clock times. Every instant is mapped to the wall clock of the zone, so a local time skipped by a daylight saving gap never occurs and one repeated by an overlap occurs twice; the earliest allowed instant is the first one whose wall-clock time no constraint blocks. The search runs at minute resolution and skips whole blocked stretches, never past an allowed minute.
   """
@@ -8,7 +8,8 @@ defmodule Relay.Policy.Window do
   alias Relay.Policy.Zone
 
   @type range :: %{days: [1..7], from: Time.t(), to: Time.t()}
-  @type form :: {:quiet, [range()]} | {:only, [range()]} | {:until, DateTime.t()}
+  @type plain :: {:quiet, [range()]} | {:only, [range()]} | {:until, DateTime.t()}
+  @type form :: plain() | {:in_zone, Relay.TimeZone.t(), plain()}
   @type constraint :: {atom(), form()}
 
   @minute_ms 60_000
@@ -21,9 +22,15 @@ defmodule Relay.Policy.Window do
     local = Zone.local(at, zone)
 
     Enum.find_value(constraints, fn {name, form} ->
+      {form, _zone, local} = placed(form, at, zone, local)
       if exit_target(form, at, local) == nil, do: nil, else: name
     end)
   end
+
+  # PC-47
+  # WF-46
+  defp placed({:in_zone, own, form}, at, _zone, _local), do: {form, own, Zone.local(at, own)}
+  defp placed(form, _at, zone, local), do: {form, zone, local}
 
   # PC-46
   # PC-58 (5)
@@ -66,6 +73,8 @@ defmodule Relay.Policy.Window do
   defp latest(at, candidates), do: Enum.max([next_minute(at) | candidates], DateTime)
 
   defp candidate({_name, form}, at, local, zone) do
+    {form, zone, local} = placed(form, at, zone, local)
+
     case exit_target(form, at, local) do
       nil -> []
       :never -> [DateTime.add(at, @lookahead_days + 1, :day)]

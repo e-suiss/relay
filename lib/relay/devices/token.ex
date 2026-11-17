@@ -23,6 +23,7 @@ defmodule Relay.Devices.Token do
           permission: String.t(),
           android_channels: [map()],
           locale: String.t() | nil,
+          time_zone: Relay.TimeZone.t() | nil,
           previous_token: String.t() | nil
         }
 
@@ -79,11 +80,20 @@ defmodule Relay.Devices.Token do
            permission: body["permission"],
            android_channels: body["android_channels"] || [],
            locale: body["locale"],
+           time_zone: time_zone(body["timezone"]),
            previous_token: previous(platform, body["previous_token"])
          }}
 
       errors ->
         failed(errors)
+    end
+  end
+
+  # WF-45
+  defp time_zone(name) do
+    case Relay.TimeZone.new(name) do
+      {:ok, zone} -> zone
+      {:error, _error} -> nil
     end
   end
 

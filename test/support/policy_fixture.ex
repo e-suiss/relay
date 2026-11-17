@@ -1,9 +1,11 @@
 defmodule Relay.Policy.Fixture do
-  @moduledoc "Snapshots for the policy lattice tests: a sendable `transactional` email at noon UTC on Monday 2 November 2026 (15:00 in Istanbul), which each test changes."
+  @moduledoc "Snapshots for the policy lattice tests: a sendable `transactional` email at noon UTC on Monday 2 November 2026 (15:00 in Istanbul), which each test changes. Unless a test gives the `compliance` input, it is what the compliance table asks of an individual recipient of a tenant of the Turkey region: `marketing` on email, SMS and voice needs explicit opt-in and its cell is locked off, as are `marketing` on WhatsApp and on iOS push; nothing else needs consent. The tenant is outside İYS."
 
   alias Relay.Policy.Snapshot
 
-  @nested [:notification, :category, :preferences, :profile, :target]
+  @nested [:notification, :category, :preferences, :profile, :target, :consent]
+  @kinds [:none, :legitimate_interest, :soft_opt_in, :explicit_opt_in]
+  @consent_channels [:email, :sms, :voice]
 
   @doc "The fixed tenant id of the fixture."
   @spec tenant_id() :: Relay.Id.t()
@@ -36,8 +38,45 @@ defmodule Relay.Policy.Fixture do
       {field, value}, acc ->
         Map.put(acc, field, value)
     end)
+    |> then(&Map.put_new_lazy(&1, :compliance, fn -> default_compliance(&1) end))
     |> Snapshot.new!()
   end
+
+  @doc "A compliance input: no consent needed and the cell's default left to the tenant, with `changes` merged in."
+  @spec compliance(keyword()) :: Snapshot.compliance()
+  def compliance(changes \\ []) do
+    Map.merge(
+      %{
+        required: :none,
+        accepted: @kinds,
+        recipient_type: :individual,
+        default: :tenant,
+        legal_windows: [],
+        detail: %{}
+      },
+      Map.new(changes)
+    )
+  end
+
+  defp default_compliance(%{notification: %{message_class: :marketing}} = fields) do
+    cond do
+      fields.channel in @consent_channels ->
+        compliance(
+          required: :explicit_opt_in,
+          accepted: [:explicit_opt_in],
+          default: :locked_off,
+          detail: %{compliance_row: "tr.marketing.individual", compliance_country: "TR"}
+        )
+
+      fields.channel == :whatsapp or match?(%{platform: :ios}, fields.target) ->
+        compliance(default: :locked_off)
+
+      true ->
+        compliance()
+    end
+  end
+
+  defp default_compliance(_fields), do: compliance()
 
   defp base do
     %{
@@ -83,7 +122,9 @@ defmodule Relay.Policy.Fixture do
         email_in_quiet_hours: false,
         digest: nil
       },
-      consent: %{state: :none, ref: nil},
+      consent: %{state: :none, ref: nil, kind: :explicit_opt_in},
+      iys: :out_of_scope,
+      iys_stale_after_ms: 86_400_000,
       suppression: nil,
       kill_switch: :allow,
       tenant_suspended: false,

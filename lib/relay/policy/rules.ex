@@ -9,6 +9,12 @@ defmodule Relay.Policy.Rules do
           | :consent_missing
           | :consent_revoked
           | :consent_expired
+          | :consent_insufficient
+          | :iys_not_configured
+          | :iys_stale
+          | :iys_approval_missing
+          | :iys_rejected
+          | :legal_window_deferred
           | :channel_no_address
           | :channel_address_disabled
           | :channel_no_permission
@@ -44,6 +50,12 @@ defmodule Relay.Policy.Rules do
     consent_missing: {"consent.missing", :consent_missing, :gate, :skip},
     consent_revoked: {"consent.revoked", :consent_revoked, :gate, :skip},
     consent_expired: {"consent.expired", :consent_missing, :gate, :skip},
+    consent_insufficient: {"consent.insufficient", :consent_missing, :gate, :skip},
+    iys_not_configured: {"iys.not_configured", :iys_not_configured, :gate, :skip},
+    iys_stale: {"iys.stale", :iys_stale, :gate, :skip},
+    iys_approval_missing: {"iys.approval_missing", :consent_missing, :gate, :skip},
+    iys_rejected: {"iys.rejected", :consent_revoked, :gate, :skip},
+    legal_window_deferred: {"legal_window.deferred", :legal_window, :shaper, :defer},
     channel_no_address: {"channel.no_address", :no_address, :gate, :skip},
     channel_address_disabled: {"channel.address_disabled", :no_address, :gate, :skip},
     channel_no_permission: {"channel.no_permission", :no_permission, :gate, :skip},

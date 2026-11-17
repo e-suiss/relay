@@ -46,8 +46,7 @@ defmodule RelayWeb.Api.SubscriberController do
     result =
       with {:ok, external_id} <- external_id(external_id),
            {:ok, expected} <- Work.if_match(conn, :optional) do
-        fields = Map.new(~w(email phone name locale timezone legal_type attributes), &{&1, nil})
-        body = Map.merge(fields, conn.assigns.body)
+        body = Map.merge(Map.new(Subscribers.fields(), &{&1, nil}), conn.assigns.body)
         prepared = Subscribers.prepare(conn.assigns.scope, external_id, body, :replace)
         write(conn, prepared, expected)
       end

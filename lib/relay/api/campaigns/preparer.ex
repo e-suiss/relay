@@ -71,7 +71,8 @@ defmodule Relay.Api.Campaigns.Preparer do
            category: category,
            class: class,
            workflow_key: workflow["key"],
-           notification: notification(c, class)
+           notification: notification(c, class),
+           compliance: Live.compliance(scope)
          }}
 
       {:error, reason} ->
@@ -189,7 +190,8 @@ defmodule Relay.Api.Campaigns.Preparer do
       category: ctx.category,
       workflow_key: ctx.workflow_key,
       notification: ctx.notification,
-      frequency: @no_readings
+      frequency: @no_readings,
+      compliance: ctx.compliance
     }
 
     case Live.decide(input) do

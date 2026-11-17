@@ -22,10 +22,17 @@ defmodule Relay.Access.Assignment do
   # API-44
   # API-75
   # TN-24
-  @doc "Assigns the pending Access client `access_client_id` to the environment of `scope` with `scopes`; returns its Access client id."
+  # AG-6
+  @doc "Assigns the pending Access client `access_client_id` to the environment of `scope` with `scopes`; returns its Access client id. The scopes are either server scopes or agent scopes: a set that mixes the two is refused (`Relay.Access.assignable_scopes/1`)."
   @spec assign(Scope.t(), String.t(), [String.t(), ...], Actor.t()) ::
           {:ok, String.t()} | {:error, Relay.Error.t()}
   def assign(%Scope{} = scope, access_client_id, scopes, %Actor{} = actor) do
+    with :ok <- Relay.Access.assignable_scopes(scopes),
+         do: assigned(scope, access_client_id, scopes, actor)
+  end
+
+  # AG-6
+  defp assigned(scope, access_client_id, scopes, actor) do
     environment = Relay.Environment.dump(scope.environment)
     digest = digest(access_client_id, environment, scopes)
 

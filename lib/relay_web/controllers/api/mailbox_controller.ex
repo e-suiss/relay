@@ -71,6 +71,7 @@ defmodule RelayWeb.Api.MailboxController do
     %{
       api_client_id: principal.api_client_id,
       agent: principal.agent,
+      agent_id: principal.agent_id,
       scopes: principal.scopes
     }
   end

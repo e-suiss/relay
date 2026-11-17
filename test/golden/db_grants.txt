@@ -47,6 +47,11 @@ table relay.agent_run_states relay_archive SELECT
 table relay.agent_run_states relay_maint SELECT
 table relay.agent_run_states relay_owner INSERT,SELECT,UPDATE
 table relay.agent_run_states relay_report SELECT
+table relay.agents relay_app SELECT
+table relay.agents relay_archive SELECT
+table relay.agents relay_maint SELECT
+table relay.agents relay_owner INSERT,SELECT,UPDATE
+table relay.agents relay_report SELECT
 table relay.api_client_generation relay_app SELECT
 table relay.api_client_generation relay_archive SELECT
 table relay.api_client_generation relay_maint SELECT

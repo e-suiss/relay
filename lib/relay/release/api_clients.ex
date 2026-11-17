@@ -10,7 +10,6 @@ defmodule Relay.Release.ApiClients do
     deps: [Relay, Relay.Access],
     exports: []
 
-  @scopes ~w(publish read subscribers config kill_switch)
   @switches [operator: :string, tenant: :string, environment: :string, client: :string]
 
   # E-99
@@ -107,8 +106,9 @@ defmodule Relay.Release.ApiClients do
   defp client(client) when is_binary(client) and byte_size(client) in 1..256, do: {:ok, client}
   defp client(_client), do: {:error, :client_required}
 
+  # AG-6
   defp scopes([_ | _] = scopes) do
-    if length(scopes) <= 5 and Enum.all?(scopes, &(&1 in @scopes)),
+    if length(scopes) <= 6 and Relay.Access.assignable_scopes(scopes) == :ok,
       do: {:ok, Enum.uniq(scopes)},
       else: {:error, :invalid_scopes}
   end

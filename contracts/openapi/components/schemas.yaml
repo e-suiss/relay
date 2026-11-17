@@ -6939,6 +6939,218 @@ CeilingDecisionCreate:
       x-relay-choice: true
       x-relay-choice-note: "The bound of note is chosen by the contract."
   additionalProperties: false
+ApiClientScope:
+  type: string
+  description: "A scope an API client can be assigned. A server client holds server scopes (publish, read, subscribers, config, kill_switch, agents). An agent's client holds only the narrow agent scopes: agent:send, agent:waitpoint, agent:mailbox and presence:read. A client never holds scopes of both groups, and no scope covers a whole group."
+  enum:
+    - publish
+    - read
+    - subscribers
+    - config
+    - kill_switch
+    - agents
+    - "agent:send"
+    - "agent:waitpoint"
+    - "agent:mailbox"
+    - "presence:read"
+  x-relay-choice: true
+  x-relay-choice-note: "The spec names the four narrow agent scopes by what they allow and presence:read by name; the other three names are chosen by the contract."
+AgentRecordState:
+  type: string
+  description: "active; suspended while the agent's Access identity is suspended; deleted once the record is deleted or Access deleted the identity. Nothing is delivered to an agent that is not active and its own requests are refused; its mailbox is kept in every state."
+  enum:
+    - active
+    - suspended
+    - deleted
+AgentAccessBinding:
+  type: object
+  description: "The agent's Access identity. party is the Access Party of the agent as Relay sees it: the sub of the agent's Access tokens (pairwise in Relay's sector). Every Instance of the Party authenticates as the agent."
+  required:
+    - party
+  properties:
+    party:
+      type: string
+      pattern: "^[\\x21-\\x7E]{1,256}$"
+  additionalProperties: false
+AgentEndpoints:
+  type: object
+  description: "Where a wake-up hint for the agent goes. A hint only says that something waits; the message stays in the mailbox."
+  properties:
+    webhook_endpoint_id:
+      description: "A webhook endpoint of this environment that receives signed hints."
+      oneOf:
+        - "$ref": "#/Id_whe"
+        - type: "null"
+    a2a_push_endpoint_id:
+      description: "A webhook endpoint of this environment that receives A2A push notifications."
+      oneOf:
+        - "$ref": "#/Id_whe"
+        - type: "null"
+    realtime:
+      type: boolean
+      description: "Whether the agent may be woken over a realtime connection."
+  additionalProperties: false
+Agent:
+  type: object
+  description: "Agent recipient record. It serves delivery only and changes no authority."
+  required:
+    - object
+    - id
+    - name
+    - owner_ref
+    - access
+    - endpoints
+    - mailbox
+    - topics
+    - state
+    - version
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: agent
+    id:
+      "$ref": "#/Id_agt"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    owner_ref:
+      type: string
+      description: "The owner's record of the agent (for Suiss, the Work record), 1 to 256 printable ASCII characters. Events about the agent name it."
+      minLength: 1
+      maxLength: 256
+      pattern: "^[\\x20-\\x7E]+$"
+    access:
+      type: object
+      required:
+        - party
+      properties:
+        party:
+          description: "Null once the record's personal data is erased."
+          oneOf:
+            - type: string
+              maxLength: 256
+            - type: "null"
+      additionalProperties: false
+    endpoints:
+      type: object
+      required:
+        - webhook_endpoint_id
+        - a2a_push_endpoint_id
+        - realtime
+      properties:
+        webhook_endpoint_id:
+          oneOf:
+            - "$ref": "#/Id_whe"
+            - type: "null"
+        a2a_push_endpoint_id:
+          oneOf:
+            - "$ref": "#/Id_whe"
+            - type: "null"
+        realtime:
+          type: boolean
+      additionalProperties: false
+    mailbox:
+      type: object
+      description: "The agent's one mailbox. It is suspended with the agent and never deleted."
+      required:
+        - id
+        - state
+      properties:
+        id:
+          "$ref": "#/Id_mbx"
+        state:
+          type: string
+          enum:
+            - active
+            - suspended
+            - deleted
+      additionalProperties: false
+    topics:
+      type: array
+      description: "Keys of the topics the agent is subscribed to."
+      items:
+        "$ref": "#/TopicKey"
+    state:
+      "$ref": "#/AgentRecordState"
+    suspended_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    deleted_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    version:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+AgentCreate:
+  type: object
+  description: "Register an agent. Only the message fields below enter Relay: nothing of the agent's memory, plan or reasoning is accepted."
+  required:
+    - name
+    - owner_ref
+    - access
+  properties:
+    name:
+      type: string
+      description: "Display name. Do not put personal data here."
+      minLength: 1
+      maxLength: 200
+    owner_ref:
+      type: string
+      description: "The owner's record of the agent (for Suiss, the Work record), 1 to 256 printable ASCII characters. Do not put personal data here."
+      minLength: 1
+      maxLength: 256
+      pattern: "^[\\x20-\\x7E]+$"
+    access:
+      "$ref": "#/AgentAccessBinding"
+    endpoints:
+      "$ref": "#/AgentEndpoints"
+    topics:
+      type: array
+      maxItems: 100
+      uniqueItems: true
+      items:
+        "$ref": "#/TopicKey"
+  additionalProperties: false
+AgentPatch:
+  type: object
+  description: "JSON Merge Patch of an agent."
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 200
+    owner_ref:
+      type: string
+      minLength: 1
+      maxLength: 256
+      pattern: "^[\\x20-\\x7E]+$"
+    endpoints:
+      "$ref": "#/AgentEndpoints"
+    topics:
+      type: array
+      maxItems: 100
+      uniqueItems: true
+      items:
+        "$ref": "#/TopicKey"
+  additionalProperties: false
+AgentList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Agent"
 AgentRunState:
   type: string
   enum:

@@ -122,6 +122,7 @@ defmodule Relay.Access.EventsTest do
     test = self()
     id = {__MODULE__, make_ref()}
     event = [:relay, :access, :event, :unresolved]
+
     handler = fn _event, measurements, meta, _config ->
       send(test, {:unresolved, measurements, meta})
     end
@@ -130,12 +131,13 @@ defmodule Relay.Access.EventsTest do
     on_exit(fn -> :telemetry.detach(id) end)
   end
 
-  defp message_names do
+  defp message_names(retired?) do
     doc = YamlElixir.read_from_file!(@events)
     messages = doc["components"]["messages"]
 
     for {_key, %{"$ref" => "#/components/messages/" <> key}} <-
           doc["channels"]["accessInbound"]["messages"],
+        Map.get(messages[key], "x-relay-retired", false) == retired?,
         do: messages[key]["name"]
   end
 
@@ -469,6 +471,7 @@ defmodule Relay.Access.EventsTest do
   describe "TN-20 E-104 account events" do
     test "TN-20, E-104: an account event that carries a pairwise sub waits for a handler and reaches it once one is configured" do
       member = account_member("suspended", %{"sub" => "pairwise-op"})
+
       id =
         with_user_handlers([], fn ->
           id = deliver!("account.suspended", member)
@@ -566,13 +569,15 @@ defmodule Relay.Access.EventsTest do
       assert revoked["payload"] == %{}
     end
 
-    test "E-104: the consumed Access events are the messages of the accessInbound contract" do
-      names = message_names()
+    test "E-104: the consumed Access events are the messages of the accessInbound contract that are not retired" do
+      names = message_names(false)
       assert Enum.sort(names) == Events.types()
 
-      for type <- ["user.suspended", "api_client.suspended", "api_client.reactivated"] do
-        refute type in names
-      end
+      retired = ~w(api_client.reactivated api_client.revoked api_client.suspended user.deleted
+                   user.reactivated user.suspended)
+
+      assert Enum.sort(message_names(true)) == retired
+      for type <- retired, do: refute(type in names)
 
       for type <- ~w(account.suspended agent.suspended party.disabled relationship.updated) do
         assert type in names
@@ -584,10 +589,10 @@ defmodule Relay.Access.EventsTest do
 
       for type <- Events.types(), type not in @awaited do
         access_name = if type == "instance.terminated", do: "instance-terminated", else: type
-        assert "urn:suiss:access:event:" <> access_name in catalog, type
+        assert ("urn:suiss:access:event:" <> access_name) in catalog, type
       end
 
-      for type <- @awaited, do: refute("urn:suiss:access:event:" <> type in catalog, type)
+      for type <- @awaited, do: refute(("urn:suiss:access:event:" <> type) in catalog, type)
 
       for urn <- catalog do
         assert "urn:suiss:access:event:" <> name = urn

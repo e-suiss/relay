@@ -571,7 +571,7 @@ channels:
   accessInbound:
     address: "/v1/access/events"
     title: accessInbound
-    description: "Events Access pushes to Relay as Security Event Tokens with the Shared Signals Framework push delivery (RFC 8417, RFC 8935), through Relay's platform product subscription: a compact JWS of typ secevent+jwt signed by a key of the Access environment key set, with no shared secret. Each message is the SET's claims; the event is the one member of events. Access's member names tenant, organization and client_id are read as access_tenant_id, access_organization_id and access_client_id, the access_tenant claim names the tenant when the member does not, and members Relay does not read are ignored. An Access type named with hyphens is recorded in Relay's form, each hyphen read as a dot. Messages marked as awaited from Access are types Relay consumes that Access does not emit yet; Relay's stream asks only for the types Access emits (E-104)."
+    description: "Events Access pushes to Relay as Security Event Tokens with the Shared Signals Framework push delivery (RFC 8417, RFC 8935), through Relay's platform product subscription: a compact JWS of typ secevent+jwt signed by a key of the Access environment key set, with no shared secret. Each message is the SET's claims; the event is the one member of events. Access's member names tenant, organization and client_id are read as access_tenant_id, access_organization_id and access_client_id, the access_tenant claim names the tenant when the member does not, and members Relay does not read are ignored. An Access type named with hyphens is recorded in Relay's form, each hyphen read as a dot. Messages marked as awaited from Access are types Relay consumes that Access does not emit yet; Relay's stream asks only for the types Access emits. Messages marked x-relay-retired are types Relay no longer consumes because Access does not emit them (E-104)."
     messages:
       access.tenant.created:
         "$ref": "#/components/messages/access.tenant.created"
@@ -615,6 +615,18 @@ channels:
         "$ref": "#/components/messages/access.consent.updated"
       access.approval.decided:
         "$ref": "#/components/messages/access.approval.decided"
+      access.api_client.suspended:
+        "$ref": "#/components/messages/access.api_client.suspended"
+      access.api_client.reactivated:
+        "$ref": "#/components/messages/access.api_client.reactivated"
+      access.api_client.revoked:
+        "$ref": "#/components/messages/access.api_client.revoked"
+      access.user.suspended:
+        "$ref": "#/components/messages/access.user.suspended"
+      access.user.reactivated:
+        "$ref": "#/components/messages/access.user.reactivated"
+      access.user.deleted:
+        "$ref": "#/components/messages/access.user.deleted"
   accessOutbound:
     address: null
     title: accessOutbound
@@ -925,6 +937,12 @@ operations:
       - "$ref": "#/channels/accessInbound/messages/access.relationship.updated"
       - "$ref": "#/channels/accessInbound/messages/access.consent.updated"
       - "$ref": "#/channels/accessInbound/messages/access.approval.decided"
+      - "$ref": "#/channels/accessInbound/messages/access.api_client.suspended"
+      - "$ref": "#/channels/accessInbound/messages/access.api_client.reactivated"
+      - "$ref": "#/channels/accessInbound/messages/access.api_client.revoked"
+      - "$ref": "#/channels/accessInbound/messages/access.user.suspended"
+      - "$ref": "#/channels/accessInbound/messages/access.user.reactivated"
+      - "$ref": "#/channels/accessInbound/messages/access.user.deleted"
   sendAccessOutbound:
     action: send
     channel:
@@ -7032,6 +7050,217 @@ components:
       x-relay-stage: 12
       x-relay-choice: true
       x-relay-choice-note: "Name and members proposed to Access; Relay follows what Access approves in its own contract."
+    access.api_client.suspended:
+      name: api_client.suspended
+      title: api_client.suspended
+      summary: "Not consumed: Access does not emit this type, so Relay records it and rejects it with reason unsupported_type and applies nothing (E-104). It stays listed only so that the published contract does not break."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:api_client.suspended"
+                  properties:
+                    "urn:suiss:access:event:api_client.suspended":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - access_client_id
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        access_client_id:
+                          type: string
+                          maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+      x-relay-retired: true
+    access.api_client.reactivated:
+      name: api_client.reactivated
+      title: api_client.reactivated
+      summary: "Not consumed: Access does not emit this type, so Relay records it and rejects it with reason unsupported_type and applies nothing (E-104). It stays listed only so that the published contract does not break."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:api_client.reactivated"
+                  properties:
+                    "urn:suiss:access:event:api_client.reactivated":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - access_client_id
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        access_client_id:
+                          type: string
+                          maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+      x-relay-retired: true
+    access.api_client.revoked:
+      name: api_client.revoked
+      title: api_client.revoked
+      summary: "Not consumed: Access does not emit this type, so Relay records it and rejects it with reason unsupported_type and applies nothing (E-104). It stays listed only so that the published contract does not break."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:api_client.revoked"
+                  properties:
+                    "urn:suiss:access:event:api_client.revoked":
+                      type: object
+                      required:
+                        - access_tenant_id
+                        - access_client_id
+                      properties:
+                        access_tenant_id:
+                          type: string
+                          maxLength: 128
+                        access_client_id:
+                          type: string
+                          maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+      x-relay-retired: true
+    access.user.suspended:
+      name: user.suspended
+      title: user.suspended
+      summary: "Not consumed: Access does not emit this type, so Relay records it and rejects it with reason unsupported_type and applies nothing (E-104). It stays listed only so that the published contract does not break."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:user.suspended"
+                  properties:
+                    "urn:suiss:access:event:user.suspended":
+                      type: object
+                      required:
+                        - subject
+                      properties:
+                        subject:
+                          type: string
+                          description: Access subject for the Relay client.
+                          maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+      x-relay-retired: true
+    access.user.reactivated:
+      name: user.reactivated
+      title: user.reactivated
+      summary: "Not consumed: Access does not emit this type, so Relay records it and rejects it with reason unsupported_type and applies nothing (E-104). It stays listed only so that the published contract does not break."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:user.reactivated"
+                  properties:
+                    "urn:suiss:access:event:user.reactivated":
+                      type: object
+                      required:
+                        - subject
+                      properties:
+                        subject:
+                          type: string
+                          maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+      x-relay-retired: true
+    access.user.deleted:
+      name: user.deleted
+      title: user.deleted
+      summary: "Not consumed: Access does not emit this type, so Relay records it and rejects it with reason unsupported_type and applies nothing (E-104). It stays listed only so that the published contract does not break."
+      contentType: application/secevent+jwt
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AccessSecurityEventClaims"
+            - type: object
+              required:
+                - events
+              properties:
+                events:
+                  type: object
+                  required:
+                    - "urn:suiss:access:event:user.deleted"
+                  properties:
+                    "urn:suiss:access:event:user.deleted":
+                      type: object
+                      required:
+                        - subject
+                      properties:
+                        subject:
+                          type: string
+                          maxLength: 256
+                  additionalProperties: false
+      x-relay-surface: access
+      x-relay-stage: 3
+      x-relay-choice: true
+      x-relay-choice-note: "Name proposed to Access; Relay follows the name Access approves in its own contract."
+      x-relay-retired: true
     audit.category.created:
       name: category.created
       title: category.created
@@ -9425,6 +9654,9 @@ x-relay-event-names:
   - topic.created
   - topic.subscribed
   - topic.unsubscribed
+  - user.deleted
+  - user.reactivated
+  - user.suspended
   - virtual_clock.advanced
   - waitpoint.cancelled
   - waitpoint.created

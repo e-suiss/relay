@@ -247,7 +247,11 @@ defmodule Relay.Access.TokenTest do
     test "E-94: access_tenant names the tenant when the member does not and must agree with it" do
       {ed, private} = ed25519()
       keys = keys([ed])
-      agent = %{"urn:suiss:access:event:agent.suspended" => %{"agent" => "AAAAAAAAAAAAAAAAAAAAAA"}}
+
+      agent = %{
+        "urn:suiss:access:event:agent.suspended" => %{"agent" => "AAAAAAAAAAAAAAAAAAAAAA"}
+      }
+
       claims = set_claims(%{"events" => agent, "access_tenant" => "tnt_9"})
 
       assert {:ok, %{type: "agent.suspended", data: data}} =

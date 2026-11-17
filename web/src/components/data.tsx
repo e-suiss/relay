@@ -59,10 +59,7 @@ export function Loadable<T>({
     );
   if (state.kind === "error")
     return (
-      <ErrorNotice
-        error={state.error}
-        {...(onRetry ? { onRetry } : {})}
-      />
+      <ErrorNotice error={state.error} {...(onRetry ? { onRetry } : {})} />
     );
   return <>{children(state.data)}</>;
 }
@@ -161,7 +158,9 @@ export function Mono({ children }: { children: ReactNode }) {
 }
 
 export function Dash({ value }: { value: ReactNode }) {
-  return <>{value === null || value === undefined || value === "" ? "—" : value}</>;
+  return (
+    <>{value === null || value === undefined || value === "" ? "—" : value}</>
+  );
 }
 
 export function KeyValues({

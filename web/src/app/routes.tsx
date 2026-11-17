@@ -2,10 +2,7 @@ import type { ReactNode } from "react";
 import type { MessageKey } from "../i18n/en";
 import { Activity } from "../pages/activity/Activity";
 import { NotificationDetail } from "../pages/activity/NotificationDetail";
-import {
-  RecipientDetail,
-  Recipients,
-} from "../pages/recipients/Recipients";
+import { RecipientDetail, Recipients } from "../pages/recipients/Recipients";
 import { RouteSlot } from "../pages/RouteSlot";
 import { Why } from "../pages/why/Why";
 import type { Params } from "./router";

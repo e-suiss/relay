@@ -56,7 +56,10 @@ function Step({ step }: { step: DecisionStep }) {
       )}
       {entries.length > 0 && (
         <KeyValues
-          items={entries.map(([key, value]) => [key, <code key={key}>{value}</code>])}
+          items={entries.map(([key, value]) => [
+            key,
+            <code key={key}>{value}</code>,
+          ])}
         />
       )}
     </li>
@@ -94,7 +97,9 @@ function DeliveryDecisionView({ decision }: { decision: DeliveryDecision }) {
       )}
       {decision.decisions.length > 0 && (
         <details>
-          <summary>{t("why.chain", { count: decision.decisions.length })}</summary>
+          <summary>
+            {t("why.chain", { count: decision.decisions.length })}
+          </summary>
           <ol className="stack">
             {decision.decisions.map((step, index) => (
               <Step key={`${step.rule_id}-${index}`} step={step} />
@@ -133,7 +138,9 @@ function Decisions({ subscriber }: { subscriber: Subscriber }) {
                     </Mono>
                     <span className="muted">{item.state}</span>
                     {item.close_rule_id && <Mono>{item.close_rule_id}</Mono>}
-                    <Link to={`/activity/notifications/${item.notification_id}`}>
+                    <Link
+                      to={`/activity/notifications/${item.notification_id}`}
+                    >
                       {t("why.openNotification")}
                     </Link>
                   </div>
@@ -207,7 +214,11 @@ export function Preferences({ subscriber }: { subscriber: Subscriber }) {
   );
   type Cell = SubscriberPreferences["cells"][number];
   const cells: Column<Cell>[] = [
-    { key: "category", header: t("why.category"), render: (row) => row.category },
+    {
+      key: "category",
+      header: t("why.category"),
+      render: (row) => row.category,
+    },
     {
       key: "channel",
       header: t("why.channel"),
@@ -248,7 +259,10 @@ export function Preferences({ subscriber }: { subscriber: Subscriber }) {
                   data.channels.length === 0
                     ? "—"
                     : data.channels
-                        .map((item) => `${item.channel}: ${t(`preference.${item.value}`)}`)
+                        .map(
+                          (item) =>
+                            `${item.channel}: ${t(`preference.${item.value}`)}`,
+                        )
                         .join(", "),
                 ],
                 [
@@ -256,7 +270,10 @@ export function Preferences({ subscriber }: { subscriber: Subscriber }) {
                   data.workflows.length === 0
                     ? "—"
                     : data.workflows
-                        .map((item) => `${item.workflow}: ${t(`preference.${item.value}`)}`)
+                        .map(
+                          (item) =>
+                            `${item.workflow}: ${t(`preference.${item.value}`)}`,
+                        )
                         .join(", "),
                 ],
                 [
@@ -264,7 +281,10 @@ export function Preferences({ subscriber }: { subscriber: Subscriber }) {
                   data.scope_keys.length === 0
                     ? "—"
                     : data.scope_keys
-                        .map((item) => `${item.scope_key}: ${t(`preference.${item.value}`)}`)
+                        .map(
+                          (item) =>
+                            `${item.scope_key}: ${t(`preference.${item.value}`)}`,
+                        )
                         .join(", "),
                 ],
                 [
@@ -272,7 +292,9 @@ export function Preferences({ subscriber }: { subscriber: Subscriber }) {
                   data.profile.schedule.length === 0
                     ? "—"
                     : data.profile.schedule
-                        .map((range) => `${range.day} ${range.start}–${range.end}`)
+                        .map(
+                          (range) => `${range.day} ${range.start}–${range.end}`,
+                        )
                         .join(", "),
                 ],
                 [
@@ -280,10 +302,15 @@ export function Preferences({ subscriber }: { subscriber: Subscriber }) {
                   data.profile.quiet_hours.length === 0
                     ? "—"
                     : data.profile.quiet_hours
-                        .map((range) => `${range.day} ${range.start}–${range.end}`)
+                        .map(
+                          (range) => `${range.day} ${range.start}–${range.end}`,
+                        )
                         .join(", "),
                 ],
-                [t("why.dndUntil"), <Time key="d" value={data.profile.dnd_until} />],
+                [
+                  t("why.dndUntil"),
+                  <Time key="d" value={data.profile.dnd_until} />,
+                ],
               ]}
             />
           </div>
@@ -300,8 +327,16 @@ export function Devices({ subscriber }: { subscriber: Subscriber }) {
     { limit: 100 },
   );
   const columns: Column<Device>[] = [
-    { key: "platform", header: t("why.platform"), render: (row) => row.platform },
-    { key: "app", header: t("why.app"), render: (row) => <Mono>{row.app}</Mono> },
+    {
+      key: "platform",
+      header: t("why.platform"),
+      render: (row) => row.platform,
+    },
+    {
+      key: "app",
+      header: t("why.app"),
+      render: (row) => <Mono>{row.app}</Mono>,
+    },
     {
       key: "permission",
       header: t("why.permission"),
@@ -343,7 +378,10 @@ export function Profile({ subscriber }: { subscriber: Subscriber }) {
     <Section title={t("why.profile")}>
       <KeyValues
         items={[
-          [t("why.recipientId"), <Mono key="id">{subscriber.external_id}</Mono>],
+          [
+            t("why.recipientId"),
+            <Mono key="id">{subscriber.external_id}</Mono>,
+          ],
           [
             t("pii.field.email"),
             <MaskedValue

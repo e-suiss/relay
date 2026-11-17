@@ -36,7 +36,9 @@ const empty: Filters = { subscriber: "", workflow: "", status: "", test: "" };
 
 export function DeliveryCounts({ row }: { row: Notification }) {
   const counts = row.delivery_counts;
-  const present = deliveryStatuses.filter((status) => (counts[status] ?? 0) > 0);
+  const present = deliveryStatuses.filter(
+    (status) => (counts[status] ?? 0) > 0,
+  );
   if (present.length === 0) return <>—</>;
   return (
     <span className="row">

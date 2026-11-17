@@ -149,7 +149,10 @@ function DeliveryRow({ delivery }: { delivery: Delivery }) {
       </div>
       <KeyValues
         items={[
-          [t("history.accepted"), <Time key="a" value={delivery.accepted_at} />],
+          [
+            t("history.accepted"),
+            <Time key="a" value={delivery.accepted_at} />,
+          ],
           [
             t("history.deliveredAt"),
             <Time key="d" value={delivery.delivered_at} />,
@@ -165,7 +168,11 @@ function DeliveryRow({ delivery }: { delivery: Delivery }) {
           [
             t("engagement.clicks"),
             clicked
-              ? t(clicked === "human" ? "history.clickHuman" : "history.clickBot")
+              ? t(
+                  clicked === "human"
+                    ? "history.clickHuman"
+                    : "history.clickBot",
+                )
               : "—",
           ],
           [
@@ -214,7 +221,10 @@ export function NotificationDetail({ id }: { id: string }) {
                 t("activity.recipient"),
                 <Mono key="r">{row.external_id ?? row.recipient_id}</Mono>,
               ],
-              [t("sender.label"), <SenderTypeBadge key="s" type={row.sender_type} />],
+              [
+                t("sender.label"),
+                <SenderTypeBadge key="s" type={row.sender_type} />,
+              ],
               [t("activity.class"), row.message_class],
               [t("activity.state"), row.state],
               [

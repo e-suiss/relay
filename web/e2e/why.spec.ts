@@ -8,7 +8,10 @@ const interactionBudget = 3;
 
 function percentile(values: number[], p: number): number {
   const sorted = [...values].sort((a, b) => a - b);
-  const index = Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1);
+  const index = Math.min(
+    sorted.length - 1,
+    Math.ceil((p / 100) * sorted.length) - 1,
+  );
   return sorted[index] ?? Number.POSITIVE_INFINITY;
 }
 
@@ -55,7 +58,9 @@ test.describe("X-12 why didn't I receive", () => {
     await expect(main).not.toContainText(subscriber.phone);
     await expect(main).not.toContainText(subscriber.name);
     await expect(main).toContainText("+90••••••••67");
-    await expect(main.locator("[data-rule-id='consent.missing']").first()).toBeVisible();
+    await expect(
+      main.locator("[data-rule-id='consent.missing']").first(),
+    ).toBeVisible();
     await expectAccessible(page);
   });
 
@@ -66,7 +71,9 @@ test.describe("X-12 why didn't I receive", () => {
       handlers: [
         ...recipientHandlers,
         async (route, url) => {
-          if (url.pathname !== `/v1/operator/subscribers/${subscriber.id}/reveal`)
+          if (
+            url.pathname !== `/v1/operator/subscribers/${subscriber.id}/reveal`
+          )
             return false;
           await route.fulfill({
             status: 200,
@@ -93,13 +100,17 @@ test.describe("X-12 why didn't I receive", () => {
     expect(reveal?.headers["idempotency-key"]).toBeTruthy();
   });
 
-  test("an unknown phone number says no recipient matches", async ({ page }) => {
+  test("an unknown phone number says no recipient matches", async ({
+    page,
+  }) => {
     await mockApi(page, { handlers: recipientHandlers });
     await page.goto("/console/why");
     await page.getByLabel("Phone, email or recipient ID").fill("+905550000000");
     await page.getByRole("button", { name: "Find" }).click();
     await expect(
-      page.getByText("No recipient matches this value in this tenant and environment."),
+      page.getByText(
+        "No recipient matches this value in this tenant and environment.",
+      ),
     ).toBeVisible();
   });
 });

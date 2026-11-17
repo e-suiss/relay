@@ -1,0 +1,62 @@
+name: sdk-react-native
+
+on:
+  pull_request:
+    paths:
+      - sdks/react-native/**
+      - contracts/**
+      - conformance/sdk/**
+      - .github/workflows/sdk-react-native.yml
+  push:
+    branches: [main]
+    paths:
+      - sdks/react-native/**
+      - contracts/**
+      - conformance/sdk/**
+      - .github/workflows/sdk-react-native.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-react-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  react-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: sdks/react-native
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+      # T-78
+      - run: echo "NPM_CONFIG_BEFORE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+      - run: test -f package-lock.json || npm install --package-lock-only --ignore-scripts
+      - run: npm ci
+      - run: npm run generate
+      - run: npx prettier --write . > /dev/null
+      - id: drift
+        run: |
+          git add -N .
+          git diff --output="$RUNNER_TEMP/react-native-sync.patch" -- .
+          if [ -s "$RUNNER_TEMP/react-native-sync.patch" ]; then
+            git diff --stat -- .
+            echo "Lockfile, generated code or formatting differ from the committed files."
+            exit 1
+          fi
+      - if: failure() && steps.drift.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: react-native-sync
+          path: ${{ runner.temp }}/react-native-sync.patch
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --audit-level=high

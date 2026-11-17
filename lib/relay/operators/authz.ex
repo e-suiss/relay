@@ -28,6 +28,7 @@ defmodule Relay.Operators.Authz do
              %{required: role(), granted: [role()]}}
 
   @rank %{installation_operator: 3, tenant_admin: 2, tenant_operator: 1}
+  @server_scopes ~w(publish read subscribers config kill_switch agents)
 
   # TN-23
   @doc "Returns the rank of a role."
@@ -100,6 +101,24 @@ defmodule Relay.Operators.Authz do
   defp installation_role(grants, installation) do
     if installation_operator?(grants, installation), do: [:installation_operator], else: []
   end
+
+  # X-47
+  # TN-23
+  @doc "Returns the highest role the grants give in a tenant scope, or nil."
+  @spec highest([grant()], Relay.Scope.t(), Relay.Id.t()) :: role() | nil
+  def highest(grants, %Relay.Scope{} = scope, installation) do
+    case granted(grants, scope, installation) do
+      [] -> nil
+      roles -> Enum.max_by(roles, &rank/1)
+    end
+  end
+
+  # X-47
+  # AG-6
+  @doc "Returns the server API scopes an operator session holds by its role, a fixed table: every role holds every tenant scope, the operation's own role decides the rest, and no role holds an agent credential's scopes."
+  @spec server_scopes(role() | nil) :: [String.t()]
+  def server_scopes(role) when is_map_key(@rank, role), do: @server_scopes
+  def server_scopes(nil), do: []
 
   # TN-23
   @doc "Returns true if the grants hold the installation operator role."

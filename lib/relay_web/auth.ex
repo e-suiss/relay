@@ -6,6 +6,7 @@ defmodule RelayWeb.Auth do
   * Invalid credentials are limited per client IP (`throttle_invalid/1`); past the limit the answer is `429 rate_limited`.
   * A missing scope is `403 auth_insufficient_scope`, with `required_scope` and `granted_scopes` for a server API client credential (an agent's credential, which holds only the narrow agent scopes of AG-6, gets neither); the other environment's operation is `403 auth_environment_mismatch`.
   * `Relay-Tenant` and `Relay-Environment` belong to operator sessions; with an API client credential they are `422 validation_failed`.
+  * A server operation whose contract also lists `operator_session` accepts the console's operator session cookie when no `Authorization` header is sent (`RelayWeb.Auth.OperatorSession`, X-47): CSRF, tenant context, the operation's role, step-up, and the scopes of the role table; an operator's missing scope is `403 auth_insufficient_scope` too.
   * A webhook portal operation accepts only a Relay webhook portal token as `Authorization: Bearer` (WH-47); its principal names the one consumer the token is scoped to, and the token of an unknown or archived consumer is `401 auth_invalid_token`.
   * A subscriber operation accepts only a Relay subscriber token as `Authorization: Bearer` (`RelayWeb.Auth.Subscriber`); its principal names the subscriber, and the token of a suspended subscriber is `403 auth_subscriber_suspended`.
 
@@ -19,6 +20,7 @@ defmodule RelayWeb.Auth do
   alias Relay.Api.RateLimit
   alias RelayWeb.Api.Response
   alias RelayWeb.Api.Transport
+  alias RelayWeb.Auth.OperatorSession
   alias RelayWeb.Auth.Principal
 
   @bearer ~r/\A[Bb]earer +([A-Za-z0-9\-._~+\/]+=*)\z/
@@ -80,6 +82,24 @@ defmodule RelayWeb.Auth do
   end
 
   def authenticate(conn, operation) do
+    if OperatorSession.present?(conn, operation),
+      do: operator(conn, operation),
+      else: machine(conn, operation)
+  end
+
+  # X-47
+  defp operator(conn, operation) do
+    with {:ok, conn, principal} <- OperatorSession.authenticate(conn, operation),
+         :ok <- environment(principal, operation),
+         :ok <- scopes(principal, operation) do
+      {:ok, conn |> assign(:principal, principal) |> assign(:scope, principal.scope)}
+    else
+      {:error, %Plug.Conn{} = conn, error} -> {:error, conn, error}
+      {:error, error} -> {:error, conn, error}
+    end
+  end
+
+  defp machine(conn, operation) do
     with {:ok, token} <- credential(conn, @dpop, "send an Access token as DPoP"),
          {:ok, proof} <- proof(conn),
          {:ok, principal} <- verify(conn, token, proof, operation),
@@ -145,6 +165,7 @@ defmodule RelayWeb.Auth do
       {:ok, verified} ->
         {:ok,
          %Principal{
+           kind: :subscriber,
            scope: verified.scope,
            scopes: verified.scopes,
            subscriber_id: verified.subscriber_id
@@ -163,7 +184,13 @@ defmodule RelayWeb.Auth do
   defp portal(conn, token) do
     case Relay.Api.WebhookPortal.authenticate(token, RelayWeb.Auth.Access.portal_audiences()) do
       {:ok, portal} ->
-        {:ok, %Principal{scope: portal.scope, scopes: [], consumer_id: portal.consumer_id}}
+        {:ok,
+         %Principal{
+           kind: :portal,
+           scope: portal.scope,
+           scopes: [],
+           consumer_id: portal.consumer_id
+         }}
 
       {:error, %Relay.Error{code: code} = error} when code in @counted ->
         throttled(conn, error)
@@ -230,6 +257,9 @@ defmodule RelayWeb.Auth do
   # AG-6
   defp insufficient(%Principal{agent: true}, _accepted),
     do: Relay.Error.new(:auth_insufficient_scope, "the agent's credential lacks the scope")
+
+  defp insufficient(%Principal{kind: :operator}, _accepted),
+    do: Relay.Error.new(:auth_insufficient_scope, "the operator's role does not give the scope")
 
   defp insufficient(%Principal{subscriber_id: nil, scopes: granted}, [required | _]) do
     Relay.Error.new(:auth_insufficient_scope, "the API client lacks the scope", %{

@@ -6,7 +6,7 @@ defmodule Relay.Channels.Email.Intake do
   |---|---|---|---|---|
   | `hard` | `hard_bounce` suppression, without end | bounce | — | `bounced` |
   | `soft` | counted; a timed `soft_bounce` suppression at the window's count | — | — | `rejected` |
-  | `complaint` | `complaint` suppression, without end | complaint | — | `complained` |
+  | `complaint` | `complaint` suppression, without end, and a refusal notice for every marketing category (PC-37, PC-39) | complaint | — | `complained` |
   | `sender_config` | never suppressed | — | the sending domain's event and the `{tenant, provider}` breaker | `rejected` |
   | `policy` | never suppressed | bounce | — | `rejected` |
   | `content` | never suppressed | — | — | `rejected` |
@@ -21,6 +21,7 @@ defmodule Relay.Channels.Email.Intake do
 
   @type action ::
           {:suppress, String.t(), integer() | nil}
+          | {:refuse, String.t()}
           | :count_soft_bounce
           | {:reputation, :delivered | :bounce | :complaint}
           | {:sender_config, String.t() | nil}
@@ -45,7 +46,12 @@ defmodule Relay.Channels.Email.Intake do
         [:count_soft_bounce, {:evidence, "rejected"}]
 
       :complaint ->
-        [{:suppress, "complaint", nil}, {:reputation, :complaint}, evidence("complained")]
+        [
+          {:suppress, "complaint", nil},
+          {:refuse, "complaint"},
+          {:reputation, :complaint},
+          {:evidence, "complained"}
+        ]
 
       :sender_config ->
         [{:sender_config, result.rule}, {:evidence, "rejected"}]
@@ -63,8 +69,6 @@ defmodule Relay.Channels.Email.Intake do
         [{:reputation, :delivered}, {:evidence, "delivered"}]
     end
   end
-
-  defp evidence(code), do: {:evidence, code}
 
   # CH-40
   @doc "Decides a soft bounce of an address with the times (milliseconds) of its earlier soft bounces and the `soft_bounce` parameters of the `email_reputation` data set: `:count` below the window's count, otherwise the timed suppression's expiry, or `:no_duration` when the parameters name none."

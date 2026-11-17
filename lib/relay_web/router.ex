@@ -78,6 +78,26 @@ defmodule RelayWeb.Router do
     post "/:token", LinkController, :create
   end
 
+  # PC-35
+  # PC-36
+  # X-22
+  scope "/abonelik-iptali", RelayWeb do
+    pipe_through :links
+
+    get "/:token", LinkController, :show
+    post "/:token", LinkController, :create
+  end
+
+  # PC-35
+  # PC-36
+  # X-22
+  scope "/unsubscribe", RelayWeb do
+    pipe_through :links
+
+    get "/:token", LinkController, :show
+    post "/:token", LinkController, :create
+  end
+
   # DS-37
   scope "/exports", RelayWeb do
     pipe_through :downloads

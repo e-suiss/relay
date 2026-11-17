@@ -398,6 +398,11 @@ table relay.recurrences relay_app SELECT
 table relay.recurrences relay_archive SELECT
 table relay.recurrences relay_maint SELECT
 table relay.recurrences relay_owner INSERT,SELECT,UPDATE
+table relay.refusals relay_app SELECT
+table relay.refusals relay_archive SELECT
+table relay.refusals relay_maint SELECT
+table relay.refusals relay_owner INSERT,SELECT
+table relay.refusals relay_report SELECT
 table relay.render_snapshots relay_app SELECT
 table relay.render_snapshots relay_archive SELECT
 table relay.render_snapshots relay_maint SELECT
@@ -519,6 +524,11 @@ table relay.topics relay_archive SELECT
 table relay.topics relay_maint SELECT
 table relay.topics relay_owner INSERT,SELECT,UPDATE
 table relay.topics relay_report SELECT
+table relay.unsubscribe_token_revocations relay_app SELECT
+table relay.unsubscribe_token_revocations relay_archive SELECT
+table relay.unsubscribe_token_revocations relay_maint SELECT
+table relay.unsubscribe_token_revocations relay_owner INSERT,SELECT
+table relay.unsubscribe_token_revocations relay_report SELECT
 table relay.usage_records relay_app SELECT
 table relay.usage_records relay_archive SELECT
 table relay.usage_records relay_maint SELECT

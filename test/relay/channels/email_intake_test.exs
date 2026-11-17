@@ -118,6 +118,40 @@ defmodule Relay.Channels.EmailIntakeTest do
       assert [_announced] = OutboxEvents.data(scope, "email.complained")
     end
 
+    test "PC-37, PC-39, INV-18: a complaint is a refusal notice for every marketing e-mail" do
+      %{scope: scope, delivery_id: id} = DeliveryFixture.sendable!()
+
+      body = %{
+        "RecordType" => "SpamComplaint",
+        "ID" => 11,
+        "MessageID" => "pm-3",
+        "Email" => "reader@example.com",
+        "BouncedAt" => "2026-11-05T11:00:00Z",
+        "Metadata" => %{"relay_delivery_id" => Relay.Id.to_string(id)}
+      }
+
+      events = Relay.Channels.email_events("postmark", body)
+      assert {:ok, [{:recorded, _result, actions}]} = EmailIntake.ingest(scope, events)
+      assert {:refuse, "complaint"} in actions
+      assert [_suppression] = suppressions(scope, "complaint")
+
+      sql = """
+      SELECT f.source, f.scope, f.evidence_ct IS NOT NULL,
+        (SELECT c.status FROM relay.consents c WHERE c.recipient_id = f.recipient_id
+          AND c.writer = 'relay' AND c.source = 'complaint')
+      FROM relay.refusals f
+      """
+
+      {:ok, rows} =
+        Relay.Repo.in_scope(scope, fn _status -> Relay.Repo.scoped_query!(sql, []).rows end)
+
+      assert rows == [["complaint", "all_marketing", true, "revoked"]]
+      assert [revoked] = OutboxEvents.data(scope, "consent.revoked")
+      assert %{"source" => "complaint", "scope" => "all_marketing"} = revoked
+      assert revoked["channel"] == "email"
+      refute inspect(revoked) =~ "reader@example.com"
+    end
+
     test "WH-49 (3): an event taken in directly is a repeat on the provider's webhook" do
       %{scope: scope, delivery_id: id} = DeliveryFixture.sendable!()
       body = bounce(id, "HardBounce", "smtp;550 5.1.1 user unknown")

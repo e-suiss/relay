@@ -110,6 +110,17 @@ config :relay, Relay.Access,
   user_handlers: [Relay.Operators.AccessUserHandler, Relay.Operators.AccessSubscriberHandler],
   consent_handler: Relay.Preferences.AccessConsentHandler
 
+config :relay, Relay.Compliance,
+  refusals: Relay.Compliance.Refusals,
+  sink: Relay.Compliance.RefusalSink.None,
+  unsubscribe_key: "unsubscribe-link",
+  unsubscribe_verify_keys: [],
+  unsubscribe_mailbox: "unsubscribe@localhost"
+
+config :relay, Relay.Channels, unsubscribe: Relay.Compliance.Refusals
+
+config :relay, RelayWeb.Links, handler: RelayWeb.Links.Unsubscribe
+
 config :relay, RelayWeb.Auth, verifier: RelayWeb.Auth.Access
 
 config :relay, RelayWeb.Endpoint,

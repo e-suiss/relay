@@ -2,7 +2,6 @@ import { createElement, Fragment, type ReactNode } from 'react';
 
 type Props = Record<string, unknown> & { children?: ReactNode };
 
-type Style = Record<string, unknown> | undefined | null | false | Style[];
 
 function flatten(style: unknown): Record<string, unknown> {
   if (Array.isArray(style))
@@ -12,11 +11,11 @@ function flatten(style: unknown): Record<string, unknown> {
 }
 
 function common(props: Props): Record<string, unknown> {
-  const state = (props.accessibilityState ?? {}) as Record<string, unknown>;
+  const state = (props.accessibilityState ?? {}) as Record<string, boolean | undefined>;
   const attributes: Record<string, unknown> = {
     'data-testid': props.testID,
     'aria-label': props.accessibilityLabel,
-    'data-style': JSON.stringify(flatten(props.style as Style)),
+    'data-style': JSON.stringify(flatten(props.style)),
   };
   if (props.accessibilityRole !== undefined) attributes.role = props.accessibilityRole;
   if (state.disabled !== undefined) attributes['aria-disabled'] = String(state.disabled);

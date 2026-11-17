@@ -4,7 +4,6 @@ import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RelayClient } from '../src/client';
 import { memoryStore } from '../src/ports';
-import type { InboxItem } from '../src/types';
 import { RelayProvider } from '../src/ui/context';
 import { InboxBell } from '../src/ui/InboxBell';
 import { InboxList } from '../src/ui/InboxList';
@@ -77,7 +76,7 @@ describe('X-32 inbox components', () => {
 
   it('X-6 X-32 unread is told by text, not only by colour, and rows meet the touch target', () => {
     const { relay } = client(() => json(200, {}));
-    relay.inbox.reset([inboxItem() as InboxItem], counters(1, 1), 'c1');
+    relay.inbox.reset([inboxItem()], counters(1, 1), 'c1');
     const { container } = renderWith(relay, <InboxList />);
     expect(screen.getByRole('button', { name: 'Siparişiniz yolda, Unread' })).toBeTruthy();
     expect(screen.getByText('Unread')).toBeTruthy();
@@ -87,7 +86,7 @@ describe('X-32 inbox components', () => {
   it('IN-15 archive waits in the undo buffer and undo sends nothing', async () => {
     vi.useFakeTimers();
     const { relay, requests } = client(() => json(200, {}));
-    relay.inbox.reset([inboxItem() as InboxItem], counters(1, 1), 'c1');
+    relay.inbox.reset([inboxItem()], counters(1, 1), 'c1');
     renderWith(relay, <InboxList undoWindowMs={5000} />);
     fireEvent.click(screen.getByTestId(`relay-inbox-archive-${ITEM_ID}`));
     expect(screen.queryByTestId(`relay-inbox-item-${ITEM_ID}`)).toBeNull();
@@ -108,7 +107,7 @@ describe('X-32 inbox components', () => {
         : json(200, {}),
     );
     relay.inbox.reset(
-      [inboxItem({ read: true, state_version: 2 }) as InboxItem],
+      [inboxItem({ read: true, state_version: 2 })],
       counters(1, 0),
       'c1',
     );

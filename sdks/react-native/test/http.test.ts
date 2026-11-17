@@ -93,7 +93,7 @@ describe('X-29 HTTP core', () => {
   it('X-31 refuses an operation outside the subscriber boundary before any request', async () => {
     const { http, requests } = testHttp(() => json(200, {}));
     await expect(
-      http.request({ method: 'POST', path: '/v1/events' as never, body: {} }),
+      http.request({ method: 'POST', path: '/v1/events', body: {} }),
     ).rejects.toBeInstanceOf(RelayBoundaryError);
     expect(requests).toHaveLength(0);
   });

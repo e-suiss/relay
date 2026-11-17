@@ -44,7 +44,7 @@ function stateFields(source: Readonly<Record<string, unknown>>): StateFields {
   for (const key of STATE_KEYS) {
     if (key in source) fields[key] = source[key];
   }
-  return fields as StateFields;
+  return fields;
 }
 
 /** Whether an item belongs to a tab at `now`. */

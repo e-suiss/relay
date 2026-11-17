@@ -29,7 +29,8 @@ defmodule Relay.Api do
       Relay.Rules,
       Relay.Topics,
       Relay.Inbox,
-      Relay.Webhooks
+      Relay.Webhooks,
+      Relay.Iys
     ],
     exports: [
       Contract,
@@ -91,6 +92,8 @@ defmodule Relay.Api do
       WebhookConsumers,
       WebhookEventTypes,
       WebhookCredentials,
+      Iys,
+      IysCredentials,
       WebhookExplicitTypes,
       WebhookEvents,
       WebhookMessages,

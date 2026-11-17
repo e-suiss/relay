@@ -1,0 +1,63 @@
+{
+  "source_ref": "TR: Law no. 2429 on national and general holidays (1 January, 23 April, 1 May, 19 May, 15 July, 30 August, 29 October; 28 October from 13:00 and the eve of each religious holiday are half days); the religious holidays (Ramazan Bayramı three days, Kurban Bayramı four days) from the religious days lists of the Presidency of Religious Affairs for 2026, 2027 and 2028, https://vakithesaplama.diyanet.gov.tr/dinigunler.php?yil=2026, https://vakithesaplama.diyanet.gov.tr/icerik.php?icerik=154 and https://vakithesaplama.diyanet.gov.tr/icerik.php?icerik=185, read on 2026-11-17. PC-31, PC-60.",
+  "countries": {
+    "TR": {
+      "coverage_start": "2026-01-01",
+      "coverage_end": "2028-12-31",
+      "holidays": [
+        "2026-01-01",
+        "2026-03-20",
+        "2026-03-21",
+        "2026-03-22",
+        "2026-04-23",
+        "2026-05-01",
+        "2026-05-19",
+        "2026-05-27",
+        "2026-05-28",
+        "2026-05-29",
+        "2026-05-30",
+        "2026-07-15",
+        "2026-08-30",
+        "2026-10-29",
+        "2027-01-01",
+        "2027-03-09",
+        "2027-03-10",
+        "2027-03-11",
+        "2027-04-23",
+        "2027-05-01",
+        "2027-05-16",
+        "2027-05-17",
+        "2027-05-18",
+        "2027-05-19",
+        "2027-07-15",
+        "2027-08-30",
+        "2027-10-29",
+        "2028-01-01",
+        "2028-02-26",
+        "2028-02-27",
+        "2028-02-28",
+        "2028-04-23",
+        "2028-05-01",
+        "2028-05-05",
+        "2028-05-06",
+        "2028-05-07",
+        "2028-05-08",
+        "2028-05-19",
+        "2028-07-15",
+        "2028-08-30",
+        "2028-10-29"
+      ],
+      "half_days": [
+        "2026-03-19",
+        "2026-05-26",
+        "2026-10-28",
+        "2027-03-08",
+        "2027-05-15",
+        "2027-10-28",
+        "2028-02-25",
+        "2028-05-04",
+        "2028-10-28"
+      ]
+    }
+  }
+}

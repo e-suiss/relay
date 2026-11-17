@@ -20,6 +20,7 @@ defmodule Relay.Application do
       Relay.Observability,
       Relay.Realtime,
       Relay.Webhooks,
+      Relay.Iys,
       RelayWeb
     ]
 
@@ -67,6 +68,7 @@ defmodule Relay.Application do
         Relay.Connectors.children() ++
         Relay.Realtime.children() ++
         Relay.Webhooks.children() ++
+        Relay.Iys.children() ++
         Relay.Platform.Leadership.children(roles) ++ [RelayWeb.Endpoint.supervised()]
 
     # T-45

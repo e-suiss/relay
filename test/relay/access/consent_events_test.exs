@@ -43,7 +43,7 @@ defmodule Relay.Access.ConsentEventsTest do
       %{
         "sub" => ctx.sub,
         "access_tenant_id" => ctx.access_tenant,
-        "channel" => "email",
+        "channel" => "whatsapp",
         "status" => "REVOKED",
         "source" => "ACCESS",
         "occurred_at" => "2026-11-01T10:00:00Z",
@@ -91,7 +91,7 @@ defmodule Relay.Access.ConsentEventsTest do
 
       assert receipt_of(id)["state"] == "processed"
       assert [%{"status" => "revoked", "source" => "access"} = shown] = consents(ctx)
-      assert shown["channel"] == "email"
+      assert shown["channel"] == "whatsapp"
       assert rows(ctx) == [["revoked", "access", 2, false, false]]
     end
 

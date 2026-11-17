@@ -4576,6 +4576,114 @@ paths:
       x-relay-stage: 10
       x-relay-choice: true
       x-relay-choice-note: "WH-19 keeps destination credentials as secret references only; registering one is an operator action like every other secret (TN-26). The path and shapes are chosen by the contract."
+  "/v1/operator/iys_credentials":
+    post:
+      operationId: registerIysCredential
+      tags:
+        - channels
+      summary: Register an İYS credential
+      description: "Registers the password of the İYS API user of the selected tenant environment (PC-29). The password is named by reference only, is resolved once to record its fingerprint, and needs a tenant administrator with step-up (TN-21, TN-26). The answer carries the identifier the İYS configuration names as credential_ref_id; the password itself is never returned. Registering a password that is already registered returns its reference. Audited as secret_ref.registered."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/IysCredentialCreate"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "201":
+          description: Created.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/IysCredential"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - resource_conflict
+        - auth_delegation_required
+      x-relay-role: tenant_admin
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "PC-29 keeps the İYS password as a secret reference only; registering one is an operator action like every other secret (TN-26). The path and shapes are chosen by the contract."
   "/v1/operator/webhook_endpoints/{webhook_endpoint_id}/subscribe":
     post:
       operationId: subscribeWebhookEndpointExplicitType
@@ -5774,6 +5882,43 @@ components:
       default: destination
       x-relay-choice: true
       x-relay-choice-note: "WH-68 keeps the v1 secret of a completion source as a reference; registering it through the operator's credential operation, told apart by kind, is chosen by the contract."
+    IysCredentialCreate:
+      type: object
+      required:
+        - secret_ref
+      properties:
+        secret_ref:
+          "$ref": "./components/schemas.yaml#/SecretRef"
+      additionalProperties: false
+    IysCredential:
+      type: object
+      description: "A registered İYS credential: only its identifier, fingerprint, version and state are ever shown (INV-51)."
+      required:
+        - object
+        - id
+        - fingerprint
+        - version
+        - state
+      properties:
+        object:
+          type: string
+          const: iys_credential
+        id:
+          "$ref": "./components/schemas.yaml#/Id_sec"
+        fingerprint:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        version:
+          type: integer
+          minimum: 1
+        state:
+          type: string
+          enum:
+            - active
+            - retired
+      additionalProperties: false
+      x-relay-choice: true
+      x-relay-choice-note: "The shape follows the other registered secrets of the operator family (TN-26)."
     WebhookEndpointSubscribe:
       type: object
       required:

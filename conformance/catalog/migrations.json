@@ -236,5 +236,12 @@
   {"file": "20261217900200_rebuild_reference_check_for_webhook_sources.exs", "sha256": "b45f2020bfba794e4fc7b556b280c8dfdee3e4e0e270fea05a6ab8a16d4661df"},
   {"file": "20261218000000_create_waitpoint_completions.exs", "sha256": "6ef18cce2cdacf450457c9f93dcd38c96d8bc6deb57373d2ed54c5676853ac20"},
   {"file": "20261218000100_create_waitpoint_completion_function.exs", "sha256": "604701a479c25e8a2cc1098047d1756f0bb50249a5b9498ebf3b825b7b64c34f"},
-  {"file": "20261218000200_rebuild_reference_check_for_waitpoint_completions.exs", "sha256": "70dfe6a6d5ec92ad3f14b3043dcb6b384ec51dc8aa3ebd3c63b3dc5141c686f8"}
+  {"file": "20261218000200_rebuild_reference_check_for_waitpoint_completions.exs", "sha256": "70dfe6a6d5ec92ad3f14b3043dcb6b384ec51dc8aa3ebd3c63b3dc5141c686f8"},
+  {"file": "20261220000000_allow_pending_iys_consents.exs", "sha256": "25c6cfc61fd8eb741a5b869fe79c39539b6b12c66e18164decc070cb0a1f2a75"},
+  {"file": "20261220000100_allow_iys_credential_secrets.exs", "sha256": "acdd3d4035909fda1e50130bb0c45b7948bee833e5031b3602002cd49ab55f74"},
+  {"file": "20261220000200_create_iys_tables.exs", "sha256": "ad0e8018f2dc8245e6fa84e552a4c9714d31cd2a49950e13846b429d61d6dffa"},
+  {"file": "20261220000300_create_iys_functions.exs", "sha256": "f81834cba2b08a3a8eb800667dab537056f4db3d3ad15aa57f9b0a83171398ea"},
+  {"file": "20261220000400_register_business_calendar.exs", "sha256": "bbf387adc93ea132ed74c2caa48a9f6158a1dba987ec8a1e7f91367b733339e2"},
+  {"file": "20261220000500_validate_iys_checks.exs", "sha256": "d0c4ad06480e8626f8cb391fffed43bb1102452d5c97ec44e2796f85c9f55e90"},
+  {"file": "20261220000600_rebuild_reference_check_for_iys.exs", "sha256": "d300040b0dbbb6a381710081fbc864ef598606d8ab2c7c0d81349598c738df96"}
 ]

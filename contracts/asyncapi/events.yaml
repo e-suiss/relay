@@ -149,6 +149,12 @@ channels:
         "$ref": "#/components/messages/webhook.subscription.unsubscribed"
       webhook.sms.opted_out:
         "$ref": "#/components/messages/webhook.sms.opted_out"
+      webhook.iys.consent_expired:
+        "$ref": "#/components/messages/webhook.iys.consent_expired"
+      webhook.iys.quota_warning:
+        "$ref": "#/components/messages/webhook.iys.quota_warning"
+      webhook.iys.upload_failed:
+        "$ref": "#/components/messages/webhook.iys.upload_failed"
       webhook.preference.changed:
         "$ref": "#/components/messages/webhook.preference.changed"
       webhook.export.completed:
@@ -416,6 +422,8 @@ channels:
         "$ref": "#/components/messages/audit.webhook_message.cancelled"
       audit.operations_contacts.replaced:
         "$ref": "#/components/messages/audit.operations_contacts.replaced"
+      audit.iys_config.replaced:
+        "$ref": "#/components/messages/audit.iys_config.replaced"
       audit.topic.created:
         "$ref": "#/components/messages/audit.topic.created"
       audit.topic.archived:
@@ -611,6 +619,9 @@ operations:
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.consent.rejected"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.subscription.unsubscribed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.sms.opted_out"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.iys.consent_expired"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.iys.quota_warning"
+      - "$ref": "#/channels/tenantWebhooks/messages/webhook.iys.upload_failed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.preference.changed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.export.completed"
       - "$ref": "#/channels/tenantWebhooks/messages/webhook.export.failed"
@@ -749,6 +760,7 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.webhook_message.resent"
       - "$ref": "#/channels/auditLog/messages/audit.webhook_message.cancelled"
       - "$ref": "#/channels/auditLog/messages/audit.operations_contacts.replaced"
+      - "$ref": "#/channels/auditLog/messages/audit.iys_config.replaced"
       - "$ref": "#/channels/auditLog/messages/audit.topic.created"
       - "$ref": "#/channels/auditLog/messages/audit.topic.archived"
       - "$ref": "#/channels/auditLog/messages/audit.topic.subscribed"
@@ -1265,6 +1277,144 @@ components:
       x-relay-stage: 10
       x-relay-choice: true
       x-relay-choice-note: "WH-53 names the event; the fields of its thin payload are chosen by the contract."
+    webhook.iys.consent_expired:
+      name: iys.consent_expired
+      title: iys.consent_expired
+      summary: "An approval was not recorded in İYS within three business days and is no longer valid (PC-30, PC-34)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: iys.consent_expired
+                data:
+                  type: object
+                  required:
+                    - upload_id
+                    - channel
+                    - expired_at
+                  properties:
+                    upload_id:
+                      "$ref": "../openapi/components/schemas.yaml#/Id_iyu"
+                    recipient_id:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                        - type: "null"
+                    brand_code:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/IysCode"
+                        - type: "null"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    consent_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                    expired_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "PC-34 sends the İYS events of the write path to the tenant; the event name and the fields of its thin payload are chosen by the contract."
+    webhook.iys.quota_warning:
+      name: iys.quota_warning
+      title: iys.quota_warning
+      summary: "The consent quota of the tenant's İYS subscription nears its limit or is full (PC-34)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: iys.quota_warning
+                data:
+                  type: object
+                  required:
+                    - state
+                    - observed_at
+                  properties:
+                    state:
+                      type: string
+                      enum:
+                        - warning
+                        - full
+                    consent_limit:
+                      oneOf:
+                        - type: integer
+                          minimum: 0
+                        - type: "null"
+                    used_consent_limit:
+                      oneOf:
+                        - type: integer
+                          minimum: 0
+                        - type: "null"
+                    observed_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "PC-34 warns the tenant when the consent quota nears its limit; the event name and the fields of its thin payload are chosen by the contract."
+    webhook.iys.upload_failed:
+      name: iys.upload_failed
+      title: iys.upload_failed
+      summary: "A consent or a refusal could not be written to İYS and waits for the operator (PC-30, PC-34)."
+      contentType: application/cloudevents+json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/CloudEventEnvelope"
+            - type: object
+              properties:
+                type:
+                  const: iys.upload_failed
+                data:
+                  type: object
+                  required:
+                    - channel
+                    - status
+                    - error_code
+                    - failed_at
+                  properties:
+                    upload_id:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/Id_iyu"
+                        - type: "null"
+                    recipient_id:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/RecipientId"
+                        - type: "null"
+                    brand_code:
+                      oneOf:
+                        - "$ref": "../openapi/components/schemas.yaml#/IysCode"
+                        - type: "null"
+                    channel:
+                      "$ref": "../openapi/components/schemas.yaml#/Channel"
+                    status:
+                      type: string
+                      enum:
+                        - approval
+                        - rejection
+                    error_code:
+                      type: string
+                      maxLength: 64
+                    failed_at:
+                      "$ref": "../openapi/components/schemas.yaml#/Timestamp"
+                  additionalProperties: false
+      x-relay-surface: webhook
+      x-relay-schema-version: 1
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: "PC-30 announces a permanent upload failure to the tenant; the event name and the fields of its thin payload are chosen by the contract."
     webhook.preference.changed:
       name: preference.changed
       title: preference.changed
@@ -6410,6 +6560,24 @@ components:
       x-relay-stage: 10
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.iys_config.replaced:
+      name: iys_config.replaced
+      title: iys_config.replaced
+      summary: "The İYS configuration of the tenant environment and its brand set were replaced (PC-29)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: iys_config
+      x-relay-surface: audit
+      x-relay-stage: 11
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.topic.created:
       name: topic.created
       title: topic.created
@@ -7760,6 +7928,10 @@ x-relay-event-names:
   - inbox.items_bulk_updated
   - inbox_announcement.published
   - inbox_announcement.retracted
+  - iys.consent_expired
+  - iys.quota_warning
+  - iys.upload_failed
+  - iys_config.replaced
   - killswitch.auto_paused
   - killswitch.bulk_cancelled
   - killswitch.engaged

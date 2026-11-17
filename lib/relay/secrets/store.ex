@@ -98,4 +98,5 @@ defmodule Relay.Secrets.Store do
   defp kind("channel_identity"), do: :channel_identity
   defp kind("webhook_signing"), do: :webhook_signing
   defp kind("webhook_destination"), do: :webhook_destination
+  defp kind("iys_credential"), do: :iys_credential
 end

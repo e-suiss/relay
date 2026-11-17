@@ -1,0 +1,48 @@
+name: iys-sandbox
+
+on:
+  schedule:
+    - cron: "43 2 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iys-sandbox
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      MIX_ENV: test
+      IYS_SANDBOX_USERNAME: ${{ secrets.IYS_SANDBOX_USERNAME }}
+      IYS_SANDBOX_PASSWORD: ${{ secrets.IYS_SANDBOX_PASSWORD }}
+      IYS_SANDBOX_IYS_CODE: ${{ secrets.IYS_SANDBOX_IYS_CODE }}
+      IYS_SANDBOX_BRAND_CODE: ${{ secrets.IYS_SANDBOX_BRAND_CODE }}
+    steps:
+      - id: account
+        shell: bash
+        run: |
+          if [ -n "$IYS_SANDBOX_USERNAME" ] && [ -n "$IYS_SANDBOX_PASSWORD" ] \
+            && [ -n "$IYS_SANDBOX_IYS_CODE" ] && [ -n "$IYS_SANDBOX_BRAND_CODE" ]; then
+            echo "state=ready" >> "$GITHUB_OUTPUT"
+          else
+            echo "state=pending" >> "$GITHUB_OUTPUT"
+            echo "account pending" >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice title=iys-sandbox::account pending"
+          fi
+      - if: steps.account.outputs.state == 'ready'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: steps.account.outputs.state == 'ready'
+        uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - if: steps.account.outputs.state == 'ready'
+        run: docker compose -f deploy/compose.yaml up -d --wait postgres valkey
+      - if: steps.account.outputs.state == 'ready'
+        run: mix deps.get --check-locked
+      - if: steps.account.outputs.state == 'ready'
+        run: mix test --only iys_sandbox --warnings-as-errors test/relay/iys/sandbox_contract_test.exs

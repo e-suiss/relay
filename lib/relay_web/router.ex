@@ -600,6 +600,17 @@ defmodule RelayWeb.Router do
     put "/operations_contacts", OperationsContactController, :replace,
       private: %{relay_operation: "replaceOperationsContacts"}
 
+    # PC-29
+    # PC-30
+    get "/iys/config", IysController, :show, private: %{relay_operation: "getIysConfig"}
+    put "/iys/config", IysController, :replace, private: %{relay_operation: "replaceIysConfig"}
+    get "/iys/brands", IysController, :brands, private: %{relay_operation: "listIysBrands"}
+
+    get "/iys/connection_test", IysController, :test,
+      private: %{relay_operation: "testIysConnection"}
+
+    get "/iys/uploads", IysController, :uploads, private: %{relay_operation: "listIysUploads"}
+
     get "/topics", TopicController, :index, private: %{relay_operation: "listTopics"}
     post "/topics", TopicController, :create, private: %{relay_operation: "createTopic"}
     get "/topics/:topic_key", TopicController, :show, private: %{relay_operation: "getTopic"}
@@ -1046,6 +1057,9 @@ defmodule RelayWeb.Router do
 
     post "/webhook_credentials", WebhookCredentialController, :create,
       private: %{relay_operation: "registerWebhookCredential"}
+
+    post "/iys_credentials", IysCredentialController, :create,
+      private: %{relay_operation: "registerIysCredential"}
 
     post "/webhook_endpoints/:webhook_endpoint_id/subscribe",
          WebhookEndpointController,

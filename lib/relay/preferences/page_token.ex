@@ -33,7 +33,7 @@ defmodule Relay.Preferences.PageToken do
   @spec issue(Scope.t(), Relay.Id.t()) :: {:ok, String.t(), claims()} | {:error, Relay.Error.t()}
   def issue(%Scope{} = scope, <<_::128>> = recipient_id) do
     label = signing_key()
-    now = DateTime.truncate(Relay.Clock.utc_now(), :second)
+    now = DateTime.from_unix!(DateTime.to_unix(Relay.Clock.utc_now()))
 
     claims = %{
       scope: scope,

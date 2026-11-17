@@ -1,0 +1,88 @@
+name: sdk-kotlin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sdks/kotlin/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - ".github/workflows/sdk-kotlin.yml"
+  pull_request:
+    paths:
+      - "sdks/kotlin/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - ".github/workflows/sdk-kotlin.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-kotlin-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  KTLINT_VERSION: 1.8.0
+  KTLINT_SHA256: a3fd620207d5c40da6ca789b95e7f823c54e854b7fade7f613e91096a3706d75
+  DETEKT_VERSION: 1.23.8
+  DETEKT_SHA256: 2ce2ff952e150baf28a29cda70a363b0340b3e81a55f43e51ec5edffc3d066c1
+
+jobs:
+  kotlin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      REDOCLY_TELEMETRY: "off"
+      RELAY_TOOL_CACHE: ${{ github.workspace }}/../tools
+    defaults:
+      run:
+        working-directory: sdks/kotlin
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+      # T-78
+      - run: echo "NPM_CONFIG_BEFORE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+      - run: echo "JAVA_HOME=$JAVA_HOME_21_X64" >> "$GITHUB_ENV"
+      # X-48
+      - name: Regenerate from the contract
+        run: sh scripts/generate.sh
+      - name: Lint tools
+        run: |
+          mkdir -p "$RELAY_TOOL_CACHE"
+          curl -fsSL -o "$RELAY_TOOL_CACHE/ktlint" "https://github.com/pinterest/ktlint/releases/download/$KTLINT_VERSION/ktlint"
+          curl -fsSL -o "$RELAY_TOOL_CACHE/detekt.jar" "https://github.com/detekt/detekt/releases/download/v$DETEKT_VERSION/detekt-cli-$DETEKT_VERSION-all.jar"
+          echo "$KTLINT_SHA256  $RELAY_TOOL_CACHE/ktlint" | sha256sum -c -
+          echo "$DETEKT_SHA256  $RELAY_TOOL_CACHE/detekt.jar" | sha256sum -c -
+          chmod +x "$RELAY_TOOL_CACHE/ktlint"
+      - name: ktlint
+        run: '"$RELAY_TOOL_CACHE/ktlint" --relative "relay/src/main/**/*.kt" "relay/src/test/**/*.kt" "*.kts" "relay/*.kts"'
+      - name: detekt
+        run: java -jar "$RELAY_TOOL_CACHE/detekt.jar" --input relay/src/main/kotlin,relay/src/test/kotlin --config detekt.yml --build-upon-default-config
+      - name: Build and test
+        run: ./gradlew --no-daemon --stacktrace :relay:testDebugUnitTest :relay:assembleRelease
+      - name: Write dependency locks and verification metadata
+        if: always()
+        run: ./gradlew --no-daemon --write-locks --write-verification-metadata sha256 :relay:testDebugUnitTest :relay:assembleRelease
+      - name: Generated code and lockfiles match the repository
+        if: always()
+        run: |
+          status=$(git status --porcelain -- . ':!build' ':!relay/build' ':!.gradle' ':!.kotlin')
+          if [ -n "$status" ]; then
+            echo "$status"
+            git diff --stat -- .
+            exit 1
+          fi
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sdk-kotlin-regenerated
+          path: |
+            sdks/kotlin/gradle/verification-metadata.xml
+            sdks/kotlin/relay/gradle.lockfile
+            sdks/kotlin/relay/src/generated
+          if-no-files-found: ignore

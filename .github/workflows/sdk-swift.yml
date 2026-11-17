@@ -1,0 +1,78 @@
+name: sdk-swift
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sdks/swift/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - ".github/workflows/sdk-swift.yml"
+  pull_request:
+    paths:
+      - "sdks/swift/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - ".github/workflows/sdk-swift.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-swift-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swift:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.1.1.app/Contents/Developer
+      REDOCLY_TELEMETRY: "off"
+    defaults:
+      run:
+        working-directory: sdks/swift
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+      # T-78
+      - run: echo "NPM_CONFIG_BEFORE=$(date -u -v-7d +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+      - run: swift --version
+      - name: Resolve pinned packages
+        run: |
+          for dir in . Generator; do
+            if [ -f "$dir/Package.resolved" ]; then
+              swift package --package-path "$dir" resolve --force-resolved-versions
+            else
+              swift package --package-path "$dir" resolve
+            fi
+          done
+      # X-48
+      - name: Regenerate from the contract
+        run: sh scripts/generate.sh
+      - name: Generated code and lockfiles match the repository
+        run: |
+          status=$(git status --porcelain -- . ':!.build' ':!Generator/.build')
+          if [ -n "$status" ]; then
+            echo "$status"
+            git diff --stat -- .
+            exit 1
+          fi
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sdk-swift-regenerated
+          path: |
+            sdks/swift/Package.resolved
+            sdks/swift/Generator/Package.resolved
+            sdks/swift/Sources/EsuissRelayAPI
+          if-no-files-found: ignore
+      - name: Format
+        run: swift format lint --strict --recursive --parallel Package.swift Sources/EsuissRelay Sources/EsuissRelayUI Sources/EsuissRelayNotificationService Tests
+      - name: Build
+        run: swift build --force-resolved-versions
+      - name: Test
+        run: swift test --force-resolved-versions

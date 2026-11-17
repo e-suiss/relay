@@ -1,7 +1,6 @@
 import { RelayHttp, TokenManager } from './http';
 import { resolveLocale, type RelayLocale } from './i18n';
-import type { FlushResult } from './inbox/queue';
-import { IntentQueue } from './inbox/queue';
+import { IntentQueue, type FlushResult } from './inbox/queue';
 import { InboxStore } from './inbox/store';
 import { InboxSync } from './inbox/sync';
 import {

@@ -1,5 +1,5 @@
 import { translate, type RelayLocale } from '../i18n';
-import type { Clock, KeyValueStore, Logger } from '../ports';
+import type { Clock, KeyValueStore, Logger, TimerHandle } from '../ports';
 import { DurableList } from '../queue';
 import type { InboxCounters } from '../types';
 import type { PushAdapter, PushContentSource } from './adapter';
@@ -117,7 +117,7 @@ export class PushHandler {
 
   private async fetchContent(deliveryId: string) {
     const timeout = this.options.fetchTimeoutMs ?? 8_000;
-    let handle: unknown;
+    let handle: TimerHandle | undefined;
     const expired = new Promise<null>((resolve) => {
       handle = this.options.clock.setTimeout(() => {
         resolve(null);
@@ -129,7 +129,7 @@ export class PushHandler {
       this.options.logger.debug('relay.push.content_unavailable');
       return null;
     } finally {
-      this.options.clock.clearTimeout(handle);
+      if (handle !== undefined) this.options.clock.clearTimeout(handle);
     }
   }
 

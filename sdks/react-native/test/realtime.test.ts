@@ -41,7 +41,7 @@ class FakeSocket implements WebSocketLike {
   ) {}
 
   send(data: string) {
-    this.sent.push(JSON.parse(data));
+    this.sent.push(JSON.parse(data) as unknown);
   }
 
   close() {

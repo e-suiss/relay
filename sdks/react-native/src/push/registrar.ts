@@ -140,10 +140,10 @@ export class DeviceRegistrar {
 
   // CH-65
   /** The DND access, Critical Alerts and time-sensitive permissions, read locally; the contract has no field to report them yet. */
-  async interruptionCapabilities(): Promise<InterruptionCapabilities> {
+  interruptionCapabilities(): Promise<InterruptionCapabilities> {
     return this.adapter.getInterruptionCapabilities
       ? this.adapter.getInterruptionCapabilities()
-      : UNSUPPORTED;
+      : Promise.resolve(UNSUPPORTED);
   }
 
   private isAndroid(): boolean {

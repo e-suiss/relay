@@ -3081,6 +3081,54 @@
   },
   {
     "acceptance": "pending",
+    "id": "E-104",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-105",
+    "section": "§7",
+    "status": "policy_default",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-106",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-107",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-108",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
+    "id": "E-109",
+    "section": "§7",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": null
+  },
+  {
+    "acceptance": "pending",
     "id": "X-1",
     "section": "§8",
     "status": "canonical_invariant",

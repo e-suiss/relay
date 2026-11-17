@@ -39,7 +39,9 @@ defmodule RelayWeb.MetricsTest do
     {[:relay, :frequency_counter, :unavailable], %{count: 1}, %{op: :read},
      "relay_frequency_counter_unavailable_total "},
     {[:relay, :push, :signing_unavailable], %{count: 1}, %{provider: :apns, code: :key_error},
-     "relay_push_signing_unavailable_total "}
+     "relay_push_signing_unavailable_total "},
+    {[:relay, :access, :event, :unresolved], %{count: 1}, %{kind: :suspended},
+     ~s(relay_access_event_unresolved_total{kind="suspended"})}
   ]
 
   defp with_metrics(config, fun) do

@@ -659,6 +659,14 @@ groups:
         annotations:
           summary: "Agent notifications are held because the agent ceiling counter cannot be read"
           runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentceilingcounterunreadable
+      - alert: RelayAccessAccountUnresolved
+        expr: sum(increase(relay_access_event_unresolved_total[1h])) > 0
+        labels:
+          severity: ticket
+          decision: E-104
+        annotations:
+          summary: "Access account events named a person Relay cannot map to a pairwise sub and were not applied"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayaccessaccountunresolved
   - name: relay-vm
     rules:
       - alert: RelayAtomGrowth

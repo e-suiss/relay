@@ -21,7 +21,11 @@ import { formatMicros } from "../reports/Reports";
 
 type ProviderAccount = ServerSchemas["ProviderAccount"];
 
-function Breaker({ state }: { state: ProviderAccountStatus["circuit_breaker"]["provider"] }) {
+function Breaker({
+  state,
+}: {
+  state: ProviderAccountStatus["circuit_breaker"]["provider"];
+}) {
   const { t } = useI18n();
   const tone = state === "closed" ? "ok" : state === "open" ? "bad" : "warn";
   return (
@@ -54,7 +58,9 @@ function AccountStatus({ account }: { account: ProviderAccount }) {
               {t("channels.deprecated", {
                 apis: data.adapter.deprecations
                   .map((item) =>
-                    item.sunset_on ? `${item.api} (${item.sunset_on})` : item.api,
+                    item.sunset_on
+                      ? `${item.api} (${item.sunset_on})`
+                      : item.api,
                   )
                   .join(", "),
               })}
@@ -70,7 +76,10 @@ function AccountStatus({ account }: { account: ProviderAccount }) {
                 t("channels.breakerAccount"),
                 <Breaker key="a" state={data.circuit_breaker.account} />,
               ],
-              [t("channels.adapterVersion"), data.adapter.adapter_version ?? "—"],
+              [
+                t("channels.adapterVersion"),
+                data.adapter.adapter_version ?? "—",
+              ],
             ]}
           />
         </div>
@@ -90,7 +99,9 @@ function AccountRow({ account }: { account: ProviderAccount }) {
         </strong>
         <Mono>{account.provider}</Mono>
         <span>{t(`channels.verification.${account.verification_state}`)}</span>
-        {account.verification_rule_id && <Mono>{account.verification_rule_id}</Mono>}
+        {account.verification_rule_id && (
+          <Mono>{account.verification_rule_id}</Mono>
+        )}
         <span>{t(`channels.health.${account.health}`)}</span>
         {!account.in_installation && (
           <span className="badge tone-warn">
@@ -113,8 +124,14 @@ function AccountRow({ account }: { account: ProviderAccount }) {
           [t("channels.role"), account.role],
           [t("activity.state"), account.state],
           [t("channels.traffic"), account.traffic],
-          [t("channels.verifiedAt"), <Time key="v" value={account.verified_at} />],
-          [t("channels.healthAt"), <Time key="h" value={account.health_checked_at} />],
+          [
+            t("channels.verifiedAt"),
+            <Time key="v" value={account.verified_at} />,
+          ],
+          [
+            t("channels.healthAt"),
+            <Time key="h" value={account.health_checked_at} />,
+          ],
         ]}
       />
       {open && <AccountStatus account={account} />}
@@ -125,7 +142,12 @@ function AccountRow({ account }: { account: ProviderAccount }) {
 // CH-18
 export function CostQuote() {
   const { t } = useI18n();
-  const ids = { channel: useId(), country: useId(), quantity: useId(), category: useId() };
+  const ids = {
+    channel: useId(),
+    country: useId(),
+    quantity: useId(),
+    category: useId(),
+  };
   const [draft, setDraft] = useState({
     channel: "sms",
     country: "TR",
@@ -144,7 +166,11 @@ export function CostQuote() {
     setAsked(draft);
   };
   const columns: Column<ChannelCostQuote["data"][number]>[] = [
-    { key: "provider", header: t("history.provider"), render: (row) => row.provider },
+    {
+      key: "provider",
+      header: t("history.provider"),
+      render: (row) => row.provider,
+    },
     {
       key: "routable",
       header: t("channels.routable"),
@@ -156,7 +182,9 @@ export function CostQuote() {
       render: (row) =>
         row.priced
           ? `${formatMicros(
-              row.unit_price_micros === null ? null : String(row.unit_price_micros),
+              row.unit_price_micros === null
+                ? null
+                : String(row.unit_price_micros),
               row.currency,
             )} / ${row.unit ?? "—"}`
           : t("channels.notPriced"),

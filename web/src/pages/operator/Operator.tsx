@@ -48,7 +48,9 @@ function CriticalView({ tenant }: { tenant: Tenant }) {
           items={[
             [
               t("operator.critical"),
-              data.enabled ? t("operator.criticalOpen") : t("operator.criticalClosed"),
+              data.enabled
+                ? t("operator.criticalOpen")
+                : t("operator.criticalClosed"),
             ],
             [
               t("operator.criticalTemplates"),
@@ -64,7 +66,13 @@ function CriticalView({ tenant }: { tenant: Tenant }) {
 
 const grounds = ["abuse", "security", "legal", "other"] as const;
 
-function TenantActions({ tenant, onDone }: { tenant: Tenant; onDone: () => void }) {
+function TenantActions({
+  tenant,
+  onDone,
+}: {
+  tenant: Tenant;
+  onDone: () => void;
+}) {
   const { t } = useI18n();
   const act = useAction();
   const reasonId = useId();
@@ -141,7 +149,9 @@ function TenantRow({ tenant, onDone }: { tenant: Tenant; onDone: () => void }) {
         <span
           className={`badge tone-${tenant.status === "active" ? "ok" : "bad"}`}
         >
-          <span className="badge-label">{t(`operator.status.${tenant.status}`)}</span>
+          <span className="badge-label">
+            {t(`operator.status.${tenant.status}`)}
+          </span>
         </span>
         <button
           type="button"
@@ -268,7 +278,8 @@ export function PlatformKillSwitch() {
       header: t("killSwitch.target"),
       render: (row) => (
         <Mono>
-          {row.channel ?? t("common.all")} · {row.target_kind} {row.target_ref ?? ""}
+          {row.channel ?? t("common.all")} · {row.target_kind}{" "}
+          {row.target_ref ?? ""}
         </Mono>
       ),
     },
@@ -324,7 +335,9 @@ export function Regions() {
         {(data) => (
           <div className="stack">
             <p>
-              <span className={`badge tone-${data.status === "ok" ? "ok" : "warn"}`}>
+              <span
+                className={`badge tone-${data.status === "ok" ? "ok" : "warn"}`}
+              >
                 <span className="badge-label">
                   {data.region} · {t(`operator.region.${data.status}`)}
                 </span>

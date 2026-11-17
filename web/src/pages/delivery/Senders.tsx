@@ -26,9 +26,17 @@ function DomainWizard({ account }: { account: ProviderAccount }) {
     `/v1/provider_accounts/${encodeURIComponent(account.id)}/email_domains`,
   );
   const records: Column<DnsRecord>[] = [
-    { key: "purpose", header: t("senders.purpose"), render: (row) => row.purpose },
+    {
+      key: "purpose",
+      header: t("senders.purpose"),
+      render: (row) => row.purpose,
+    },
     { key: "type", header: t("senders.type"), render: (row) => row.type },
-    { key: "name", header: t("senders.name"), render: (row) => <Mono>{row.name}</Mono> },
+    {
+      key: "name",
+      header: t("senders.name"),
+      render: (row) => <Mono>{row.name}</Mono>,
+    },
     {
       key: "value",
       header: t("senders.value"),
@@ -40,13 +48,21 @@ function DomainWizard({ account }: { account: ProviderAccount }) {
       {(data) => (
         <div className="stack">
           {data.data.map((check) => (
-            <div key={check.stream} className="stack panel" data-domain={check.domain}>
+            <div
+              key={check.stream}
+              className="stack panel"
+              data-domain={check.domain}
+            >
               <div className="row">
                 <strong>{check.domain}</strong>
                 <span className="muted">{check.stream}</span>
-                <span className={`badge tone-${check.verified ? "ok" : "warn"}`}>
+                <span
+                  className={`badge tone-${check.verified ? "ok" : "warn"}`}
+                >
                   <span className="badge-label">
-                    {check.verified ? t("senders.verified") : t("senders.notVerified")}
+                    {check.verified
+                      ? t("senders.verified")
+                      : t("senders.notVerified")}
                   </span>
                 </span>
                 <span className="muted">
@@ -64,7 +80,9 @@ function DomainWizard({ account }: { account: ProviderAccount }) {
                 <ul>
                   {check.findings.map((finding) => (
                     <li key={`${finding.code}/${finding.subject}`}>
-                      <strong>{t(`senders.severity.${finding.severity}`)}</strong>{" "}
+                      <strong>
+                        {t(`senders.severity.${finding.severity}`)}
+                      </strong>{" "}
                       <code>{finding.code}</code> {finding.subject}
                     </li>
                   ))}
@@ -110,8 +128,11 @@ function EmailDomains() {
     <Section title={t("senders.domains")}>
       <Loadable state={accounts.state} onRetry={accounts.reload}>
         {(page) => {
-          const email = page.data.filter((account) => account.channel === "email");
-          if (email.length === 0) return <p className="muted">{t("common.empty")}</p>;
+          const email = page.data.filter(
+            (account) => account.channel === "email",
+          );
+          if (email.length === 0)
+            return <p className="muted">{t("common.empty")}</p>;
           return (
             <ul className="plain stack">
               {email.map((account) => (
@@ -127,7 +148,9 @@ function EmailDomains() {
 
 function summary(plan: LooseRecord): string {
   return Object.entries(plan)
-    .filter(([, value]) => typeof value === "string" || typeof value === "number")
+    .filter(
+      ([, value]) => typeof value === "string" || typeof value === "number",
+    )
     .map(([key, value]) => `${key}: ${String(value)}`)
     .join(" · ");
 }
@@ -164,8 +187,16 @@ export function Senders() {
       render: (row) => <ChannelLabel channel={row.channel} />,
     },
     { key: "kind", header: t("waitpoints.kind"), render: (row) => row.kind },
-    { key: "value", header: t("senders.value"), render: (row) => <Mono>{row.value}</Mono> },
-    { key: "country", header: t("reports.country"), render: (row) => row.country ?? "—" },
+    {
+      key: "value",
+      header: t("senders.value"),
+      render: (row) => <Mono>{row.value}</Mono>,
+    },
+    {
+      key: "country",
+      header: t("reports.country"),
+      render: (row) => row.country ?? "—",
+    },
     {
       key: "approval",
       header: t("senders.approval"),
@@ -192,7 +223,11 @@ export function Senders() {
       render: (row) => <ChannelLabel channel={row.channel} />,
     },
     { key: "kind", header: t("waitpoints.kind"), render: (row) => row.kind },
-    { key: "app", header: t("why.app"), render: (row) => <Mono>{row.app_ref}</Mono> },
+    {
+      key: "app",
+      header: t("why.app"),
+      render: (row) => <Mono>{row.app_ref}</Mono>,
+    },
     { key: "state", header: t("activity.state"), render: (row) => row.state },
   ];
   return (

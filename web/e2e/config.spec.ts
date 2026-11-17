@@ -56,7 +56,11 @@ const fixed: Record<string, unknown> = {
       deprecation_warning: true,
       deprecations: [{ api: "SendRawEmail v1", sunset_on: "2027-03-01" }],
     },
-    circuit_breaker: { provider: "closed", account: "open", observed_by: "node" },
+    circuit_breaker: {
+      provider: "closed",
+      account: "open",
+      observed_by: "node",
+    },
   },
   [`/v1/provider_accounts/${account.id}/email_domains`]: {
     object: "list",
@@ -75,7 +79,13 @@ const fixed: Record<string, unknown> = {
             value: "relay.dkim.example.net",
           },
         ],
-        findings: [{ severity: "error", code: "dkim_missing", subject: "mail.example.com" }],
+        findings: [
+          {
+            severity: "error",
+            code: "dkim_missing",
+            subject: "mail.example.com",
+          },
+        ],
         spf: { record: null, lookups: 0, void_lookups: 0 },
         dmarc: null,
       },
@@ -138,7 +148,12 @@ const fixed: Record<string, unknown> = {
     username: "relay",
     credential_ref_id: "sec_01hzx3k5v7m9p2q4r6s8t0w2y4",
     brands: [],
-    quota: { state: "ok", consent_limit: 1000, used_consent_limit: 10, checked_at: null },
+    quota: {
+      state: "ok",
+      consent_limit: 1000,
+      used_consent_limit: 10,
+      checked_at: null,
+    },
     blocked_code: null,
     blocked_at: null,
     version: 1,
@@ -232,19 +247,27 @@ test.describe("CH-36 channels and senders", () => {
     await page.goto("/console/channels");
     await expect(page.getByText("Sends data abroad")).toBeVisible();
     await page.getByRole("button", { name: "Show status" }).click();
-    await expect(page.getByText("This provider sends data abroad: US.")).toBeVisible();
-    await expect(page.getByText(/SendRawEmail v1 \(2027-03-01\)/)).toBeVisible();
+    await expect(
+      page.getByText("This provider sends data abroad: US."),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/SendRawEmail v1 \(2027-03-01\)/),
+    ).toBeVisible();
     await expect(page.getByText("Open (not sending)")).toBeVisible();
     await page.getByRole("button", { name: "Show cost" }).click();
     await expect(page.getByText("0.2500 TRY / segment")).toBeVisible();
     await expectAccessible(page);
   });
 
-  test("the domain wizard lists the DNS records and findings", async ({ page }) => {
+  test("the domain wizard lists the DNS records and findings", async ({
+    page,
+  }) => {
     await mockApi(page, { handlers: [handler] });
     await page.goto("/console/senders");
     await page.getByRole("button", { name: "Check DNS records" }).click();
-    await expect(page.getByText("relay._domainkey.mail.example.com")).toBeVisible();
+    await expect(
+      page.getByText("relay._domainkey.mail.example.com"),
+    ).toBeVisible();
     await expect(page.getByText("dkim_missing")).toBeVisible();
     await expectAccessible(page);
   });
@@ -277,11 +300,15 @@ test.describe("WH-39 webhooks, compliance and settings", () => {
   }) => {
     await mockApi(page, { handlers: [handler] });
     await page.goto("/console/compliance");
-    await expect(page.getByText("Locked: recipients cannot turn it off")).toBeVisible();
+    await expect(
+      page.getByText("Locked: recipients cannot turn it off"),
+    ).toBeVisible();
     await expect(page.getByRole("cell", { name: "DE" })).toBeVisible();
     await expectAccessible(page);
     await page.goto("/console/settings");
-    await expect(page.getByText("Administers one tenant and environment.")).toBeVisible();
+    await expect(
+      page.getByText("Administers one tenant and environment."),
+    ).toBeVisible();
     await expectAccessible(page);
   });
 });
@@ -298,14 +325,15 @@ test.describe("X-7 operator screens", () => {
       ],
     });
     await page.goto("/console/operator/tenants");
-    await expect(page.getByText("ten_01hzx3k5v7m9p2q4r6s8t0w2y4").last()).toBeVisible();
+    await expect(
+      page.getByText("ten_01hzx3k5v7m9p2q4r6s8t0w2y4").last(),
+    ).toBeVisible();
     await expectAccessible(page);
     await page.goto("/console/operator/regions");
     await expect(page.getByText("Unavailable")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Open the job queue panel" })).toHaveAttribute(
-      "href",
-      "/v1/operator/queues",
-    );
+    await expect(
+      page.getByRole("link", { name: "Open the job queue panel" }),
+    ).toHaveAttribute("href", "/v1/operator/queues");
     await expectAccessible(page);
   });
 
@@ -313,7 +341,9 @@ test.describe("X-7 operator screens", () => {
     await mockApi(page, { handlers: [handler] });
     await page.goto("/console/activity");
     await expect(
-      page.getByRole("navigation", { name: "Console sections" }).getByText("Tenants"),
+      page
+        .getByRole("navigation", { name: "Console sections" })
+        .getByText("Tenants"),
     ).toHaveCount(0);
   });
 });

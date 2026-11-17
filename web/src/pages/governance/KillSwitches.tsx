@@ -261,9 +261,12 @@ export function ReleaseButton({
 
   const submit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    mutate<KillSwitch>("POST", path, { reason }, key).then(onDone, (failure: unknown) => {
-      if (!stepUp(failure)) setError(problemText(failure));
-    });
+    mutate<KillSwitch>("POST", path, { reason }, key).then(
+      onDone,
+      (failure: unknown) => {
+        if (!stepUp(failure)) setError(problemText(failure));
+      },
+    );
   };
 
   return (

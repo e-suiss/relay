@@ -37,14 +37,20 @@ function Iys() {
                 [t("compliance.mode"), data.mode],
                 [t("compliance.api"), data.api],
                 [t("compliance.iysCode"), <Mono key="c">{data.iys_code}</Mono>],
-                [t("compliance.quota"), t(`compliance.quotaState.${data.quota.state}`)],
+                [
+                  t("compliance.quota"),
+                  t(`compliance.quotaState.${data.quota.state}`),
+                ],
                 [
                   t("compliance.quotaUse"),
                   data.quota.consent_limit === null
                     ? "—"
                     : `${String(data.quota.used_consent_limit ?? 0)} / ${String(data.quota.consent_limit)}`,
                 ],
-                [t("compliance.checked"), <Time key="q" value={data.quota.checked_at} />],
+                [
+                  t("compliance.checked"),
+                  <Time key="q" value={data.quota.checked_at} />,
+                ],
                 [t("compliance.brands"), data.brands.length],
               ]}
             />
@@ -59,7 +65,11 @@ function Refusals() {
   const { t } = useI18n();
   const settings = useGet<ComplianceSettings>("/v1/compliance_settings");
   const columns: Column<Refusal>[] = [
-    { key: "country", header: t("reports.country"), render: (row) => row.country },
+    {
+      key: "country",
+      header: t("reports.country"),
+      render: (row) => row.country,
+    },
     {
       key: "kinds",
       header: t("compliance.refusedKinds"),
@@ -101,9 +111,17 @@ export function Compliance() {
       header: t("why.channel"),
       render: (row) => <ChannelLabel channel={row.channel} />,
     },
-    { key: "status", header: t("compliance.consentStatus"), render: (row) => row.status },
+    {
+      key: "status",
+      header: t("compliance.consentStatus"),
+      render: (row) => row.status,
+    },
     { key: "state", header: t("activity.state"), render: (row) => row.state },
-    { key: "attempts", header: t("history.attempts"), render: (row) => row.attempts },
+    {
+      key: "attempts",
+      header: t("history.attempts"),
+      render: (row) => row.attempts,
+    },
     {
       key: "error",
       header: t("history.failure"),
@@ -116,9 +134,17 @@ export function Compliance() {
     },
   ];
   const categories: Column<Category>[] = [
-    { key: "key", header: t("topics.key"), render: (row) => <Mono>{row.key}</Mono> },
+    {
+      key: "key",
+      header: t("topics.key"),
+      render: (row) => <Mono>{row.key}</Mono>,
+    },
     { key: "name", header: t("agents.name"), render: (row) => row.name },
-    { key: "class", header: t("activity.class"), render: (row) => row.message_class },
+    {
+      key: "class",
+      header: t("activity.class"),
+      render: (row) => row.message_class,
+    },
     {
       key: "locked",
       header: t("compliance.locked"),

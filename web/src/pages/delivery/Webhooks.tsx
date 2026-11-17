@@ -44,12 +44,18 @@ function EndpointHealth({ endpoint }: { endpoint: Endpoint }) {
                 ? `p50 ${data.latency_ms.p50} · p95 ${data.latency_ms.p95} · p99 ${data.latency_ms.p99} ms`
                 : "—",
             ],
-            [t("webhooks.breaker"), t(`channels.breaker.${data.breaker.state}`)],
+            [
+              t("webhooks.breaker"),
+              t(`channels.breaker.${data.breaker.state}`),
+            ],
             [
               t("webhooks.backlog"),
               `${data.backlog.waiting} / ${data.backlog.held}`,
             ],
-            [t("webhooks.failingSince"), <Time key="f" value={data.failing_since} />],
+            [
+              t("webhooks.failingSince"),
+              <Time key="f" value={data.failing_since} />,
+            ],
             [t("webhooks.disableAt"), <Time key="d" value={data.disable_at} />],
           ]}
         />
@@ -187,14 +193,21 @@ export function Webhooks() {
       header: t("activity.created"),
       render: (row) => <Time value={row.created_at} />,
     },
-    { key: "type", header: t("history.event"), render: (row) => row.event_type },
+    {
+      key: "type",
+      header: t("history.event"),
+      render: (row) => row.event_type,
+    },
     { key: "state", header: t("activity.state"), render: (row) => row.state },
-    { key: "attempts", header: t("history.attempts"), render: (row) => row.attempt_count },
+    {
+      key: "attempts",
+      header: t("history.attempts"),
+      render: (row) => row.attempt_count,
+    },
     {
       key: "status",
       header: t("webhooks.lastStatus"),
-      render: (row) =>
-        row.last_response_status === null ? "—" : row.last_response_status,
+      render: (row) => row.last_response_status ?? "—",
     },
     {
       key: "reason",
@@ -204,7 +217,8 @@ export function Webhooks() {
     {
       key: "actions",
       header: t("common.actions"),
-      render: (row) => (finalStates.includes(row.state) ? <Resend message={row} /> : "—"),
+      render: (row) =>
+        finalStates.includes(row.state) ? <Resend message={row} /> : "—",
     },
   ];
   return (

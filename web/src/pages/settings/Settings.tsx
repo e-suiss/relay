@@ -19,9 +19,17 @@ function Roles() {
   const { t } = useI18n();
   const roles = useGet<Page<Role>>("/v1/operator/roles");
   const columns: Column<Role>[] = [
-    { key: "key", header: t("settings.role"), render: (row) => <Mono>{row.key}</Mono> },
+    {
+      key: "key",
+      header: t("settings.role"),
+      render: (row) => <Mono>{row.key}</Mono>,
+    },
     { key: "scope", header: t("killSwitch.scope"), render: (row) => row.scope },
-    { key: "description", header: t("settings.description"), render: (row) => row.description },
+    {
+      key: "description",
+      header: t("settings.description"),
+      render: (row) => row.description,
+    },
   ];
   return (
     <Section title={t("settings.roles")}>
@@ -48,8 +56,16 @@ export function Settings() {
       header: t("settings.accessClient"),
       render: (row) => <Mono>{row.access_client_id}</Mono>,
     },
-    { key: "env", header: t("context.environment"), render: (row) => t(`env.${row.environment}`) },
-    { key: "scopes", header: t("settings.scopes"), render: (row) => row.scopes.join(", ") },
+    {
+      key: "env",
+      header: t("context.environment"),
+      render: (row) => t(`env.${row.environment}`),
+    },
+    {
+      key: "scopes",
+      header: t("settings.scopes"),
+      render: (row) => row.scopes.join(", "),
+    },
     { key: "status", header: t("activity.state"), render: (row) => row.status },
     {
       key: "used",
@@ -72,7 +88,11 @@ export function Settings() {
       header: t("settings.operator"),
       render: (row) => <Mono>{row.operator_id}</Mono>,
     },
-    { key: "role", header: t("settings.role"), render: (row) => <Mono>{row.role}</Mono> },
+    {
+      key: "role",
+      header: t("settings.role"),
+      render: (row) => <Mono>{row.role}</Mono>,
+    },
     {
       key: "env",
       header: t("context.environment"),

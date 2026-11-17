@@ -960,8 +960,7 @@ defmodule RelayWeb.Router do
 
     # AG-44
     # IN-37
-    post "/agui/events", McpController, :publish,
-      private: %{relay_operation: "publishAgUiEvent"}
+    post "/agui/events", McpController, :publish, private: %{relay_operation: "publishAgUiEvent"}
 
     get "/mailbox", MailboxController, :show, private: %{relay_operation: "getMailbox"}
 

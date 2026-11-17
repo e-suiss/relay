@@ -15,7 +15,6 @@ defmodule Relay.Api.WaitpointResponses do
 
   @session_channel "in_app"
   @link "link"
-  @rule "waitpoint.response_"
 
   # AG-25
   # AG-26
@@ -102,7 +101,7 @@ defmodule Relay.Api.WaitpointResponses do
   defp status_view(%{state: :not_awaited, waitpoint_id: id, outcome: outcome}),
     do: Views.put_unless_nil(receipt_base(id, :not_awaited), "rule_id", rule(outcome))
 
-  defp rule("rejected_" <> reason), do: @rule <> reason
+  defp rule("rejected_" <> reason), do: "waitpoint.response_" <> reason
   defp rule(_outcome), do: nil
 
   defp receipt(scope, waitpoint_id, response) do

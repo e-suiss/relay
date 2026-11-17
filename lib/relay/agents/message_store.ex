@@ -1,6 +1,6 @@
 defmodule Relay.Agents.MessageStore do
   @moduledoc """
-  Data access for the messages of a mailbox: `relay_fn.mailbox_message_append`, which writes a message record with its trust label and the event that announces it, the read of the sealed content of records and the tenant's link allow list. Every function runs inside `Relay.Repo.in_scope/3`.
+  Data access for the messages of a mailbox: `relay_fn.mailbox_message_append`, which writes a message record with its trust label and the event that announces it, or holds a `blocked` message without an event, the read of the sealed content of records and the tenant's link allow list. Every function runs inside `Relay.Repo.in_scope/3`.
   """
 
   alias Relay.Repo
@@ -24,7 +24,9 @@ defmodule Relay.Agents.MessageStore do
   # AG-38
   # AG-69
   # INV-12
-  @doc "Appends a message record with its trust label, its sealed payload and its sealed referenced content, and the outbox event that announces it: `mailbox.record_appended`, or `mailbox.record_flagged` for a `spam` or `blocked` message."
+  # AG-61
+  # AG-84
+  @doc "Appends a message record with its trust label, its sealed payload and its sealed referenced content, and the outbox event that announces it: `mailbox.record_appended`, or `mailbox.record_flagged` for a `spam` message. A `blocked` message is recorded held with its sealed payload alone: it takes its position, is never leased or read and has no event."
   @spec append(map()) ::
           {:appended, pos_integer(), pos_integer()} | :mailbox_not_found | :mailbox_inactive
   def append(record) do

@@ -3525,7 +3525,7 @@ components:
     webhook.mailbox.record_flagged:
       name: mailbox.record_flagged
       title: mailbox.record_flagged
-      summary: "A message with the trust label spam or blocked was appended to a mailbox."
+      summary: "A message with the trust label spam was appended to a mailbox. A blocked message is recorded held and is announced by no event."
       contentType: application/cloudevents+json
       payload:
         schemaFormat: "application/schema+json;version=2020-12"
@@ -3570,7 +3570,7 @@ components:
       x-relay-schema-version: 1
       x-relay-stage: 12
       x-relay-choice: true
-      x-relay-choice-note: "AG-38 asks for an explicit subscription before a spam or blocked message wakes an agent. The contract gives such a record an event type of its own that * does not cover (x-relay-explicit-only), so mailbox.record_appended, the hint that wakes an agent, is never produced for it; the name and the fields are chosen by the contract. The data of both events carries trust_label, so the label is known before the record is read."
+      x-relay-choice-note: "AG-38 asks for an explicit subscription before a spam or blocked message wakes an agent. The contract gives the record of a spam message an event type of its own that * does not cover (x-relay-explicit-only), so mailbox.record_appended, the hint that wakes an agent, is never produced for it; the name and the fields are chosen by the contract. A blocked message is held, is handed out by no lease or read and produces no event at all, this one included, so its sender learns nothing (AG-61). The data of both events carries trust_label, so the label is known before the record is read."
     webhook.mailbox.request_received:
       name: mailbox.request_received
       title: mailbox.request_received

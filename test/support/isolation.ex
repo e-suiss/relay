@@ -49,6 +49,7 @@ defmodule RelayTest.Isolation do
     {"replaceTemplateEmailTracking", %{"open_pixel" => false, "wrap_links" => false}},
     {"liftSuppression", %{"reason" => "isolation"}},
     {"liftSmsDestinationStop", %{"reason" => "isolation"}},
+    {"resumeAgent", %{"decision_ref" => "isolation"}},
     {"registerSubscriberDevice",
      %{
        "platform" => "fcm",
@@ -127,6 +128,7 @@ defmodule RelayTest.Isolation do
       "subtenant_id" => &subtenant!/1,
       "suppression_id" => &suppression!/1,
       "sms_destination_stop_id" => &sms_destination_stop!/1,
+      "agent_id" => &agent!/1,
       "device_id" => &device!/1,
       "whatsapp_template_id" => &whatsapp_template!/1,
       "template_key" => &template!/1,
@@ -163,6 +165,11 @@ defmodule RelayTest.Isolation do
     @bodies
     |> Map.new()
     |> Map.put("replaceWorkflowDraft", %{"definition" => F.definition()})
+    |> Map.put("createAgentCeilingDecision", %{
+      "decision" => "cancel",
+      "ceiling_event_id" => Relay.ExternalId.encode("oev", Relay.Id.generate()),
+      "decision_ref" => "isolation"
+    })
     |> Map.put("replaceTemplateDraft", %{"definition" => @sms})
     |> Map.put("publishProducerTemplate", %{
       "name" => "Isolation",
@@ -498,6 +505,22 @@ defmodule RelayTest.Isolation do
       })
 
     Relay.ExternalId.encode("sds", id)
+  end
+
+  @doc "Registers an API client in `scope`, which names an agent sender, and returns its agent identifier."
+  @spec agent!(Relay.Scope.t()) :: String.t()
+  def agent!(scope) do
+    id = Relay.Id.generate()
+    {:ok, actor} = Relay.Actor.new(:access, "access", "access")
+    digest = :crypto.strong_rand_bytes(32)
+    params = [id, "app_" <> random(), nil, ["publish"], "evt_isolation", digest]
+
+    {:ok, [%{"result" => "created"}]} =
+      Relay.Repo.in_scope(scope, fn _status ->
+        Relay.Repo.call!("relay_fn.api_client_upsert", params ++ Relay.Actor.params(actor))
+      end)
+
+    Relay.ExternalId.encode("agt", id)
   end
 
   @doc "Adds the subscriber `subscriber!/1` creates to the test recipient list of `scope` and returns the entry's identifier."

@@ -369,7 +369,13 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.device_time_zone_set" => ~w(set unchanged not_found),
     "relay_fn.refusal_apply" =>
       ~w(applied reapplied exists recipient_not_found subtenant_not_found evidence_key_invalid category_not_found not_allowed),
-    "relay_fn.unsubscribe_token_revoke" => ~w(revoked already_revoked)
+    "relay_fn.unsubscribe_token_revoke" => ~w(revoked already_revoked),
+    "relay_fn.agent_ceiling_pass" =>
+      ~w(passed already_passed held released cancelled expired not_found),
+    "relay_fn.agent_ceiling_hold" => ~w(held passed released cancelled expired not_found),
+    "relay_fn.agent_ceiling_decide" =>
+      ~w(decided exists conflict step_up_required agent_not_found ceiling_event_not_found),
+    "relay_fn.agent_resume" => ~w(resumed unchanged agent_not_found)
   }
 
   defp functions do

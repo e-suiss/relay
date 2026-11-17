@@ -361,3 +361,27 @@ Every alert rule in `alerts.yaml` links here with its `runbook_url`. Each entry 
 - **Meaning:** A brand that connects through an integrator reached the direct access threshold.
 - **Check:** As for RelayIysDirectAccessWarning.
 - **Action:** Have the tenant move the brand to its own İYS access and replace the İYS configuration with mode `own`.
+
+## RelayAgentSilentWaitpoints
+
+- **Meaning:** For half an hour more than 50 waitpoints have been open or stalled without any state change for a day. Silence is not an error, so no error counter shows it: the people or agents asked are not answering, or the waiters stopped sending heartbeats.
+- **Check:** Read `relay_agents_waitpoints_silent` and `relay_agents_waitpoints_stalled`. List the oldest with `GET /v1/waitpoints?state=open` and `state=stalled` in the tenants that open the most, and see whether their notifications were delivered and whether their escalation steps ran.
+- **Action:** Tell the tenant that owns the waiters. A waitpoint expires by itself at its deadline; nothing is cancelled or answered on the tenant's behalf.
+
+## RelayAgentAutoAccept
+
+- **Meaning:** At least 50 waitpoints were answered in the last hour and the median time from opening to answer is under two seconds: answers are being given without reading, by a script or by a person who accepts everything.
+- **Check:** Read `relay_agents_response_median_milliseconds`, `relay_agents_responses_hour` and `relay_agents_responses_evidence` by level. Find the responders and surfaces the answers come from in the tenant's waitpoint records.
+- **Action:** Tell the tenant. A response is never an authorisation, so nothing is revoked by Relay; the tenant reviews the decisions taken on those answers and how the question is asked.
+
+## RelayAgentResponseRateDrop
+
+- **Meaning:** The share of opened waitpoints that got an answer in the last day is 20 points below that of the seven days before, while at least twice as many waitpoints were opened: responders are being flooded.
+- **Check:** Compare `relay_agents_response_rate_percent` with `relay_agents_response_rate_previous_percent` and `relay_agents_waitpoints_opened_day` with `relay_agents_waitpoints_opened_daily_average`. Find the waiter that opens the extra waitpoints.
+- **Action:** Tell the tenant that owns the waiter. Its limits of concurrently open waitpoints and its agent ceiling bound the flood; the tenant may lower both.
+
+## RelayAgentCeilingCounterUnreadable
+
+- **Meaning:** Agent notifications were held with `agent_ceiling.counter_unreadable` in the last 15 minutes: neither Valkey nor the PostgreSQL fallback could read the agent ceiling counter. The ceiling fails closed, so those notifications wait for their owner's decision; notifications of human and system senders are not affected.
+- **Check:** Check Valkey, the limit backend of the nodes and the database. Read `relay_agents_ceiling_held` and `relay_agents_ceiling_open_events`.
+- **Action:** Restore the counter backend. The held notifications are not released by themselves: each agent's owner got `agent.ceiling_exceeded` and decides with `POST /v1/agents/{agent_id}/ceiling_decisions`; a release needs a step-up on the operator surface.

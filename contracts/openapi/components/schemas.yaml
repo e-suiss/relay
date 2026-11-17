@@ -422,6 +422,7 @@ ScopeName:
     - subscribers
     - config
     - kill_switch
+    - agents
 Metadata:
   type: object
   description: "Opaque key-value pairs returned in events and webhooks. At most 16 keys; values are strings of at most 512 characters. Do not put personal data here."
@@ -6635,6 +6636,67 @@ CeilingDecision:
     decided_at:
       "$ref": "#/Timestamp"
   additionalProperties: false
+CeilingHoldState:
+  type: string
+  enum:
+    - held
+    - released
+    - cancelled
+    - expired
+  description: "held until the owner decides; released by send_all, cancelled by cancel or stop; expired when it was released past its expires_at."
+  x-relay-choice: true
+  x-relay-choice-note: "The state names are chosen by the contract."
+CeilingHold:
+  type: object
+  description: "A notification of an agent that reached the agent ceiling and was held (AG-49). It is kept until the owner decides and is never deleted."
+  required:
+    - object
+    - notification_id
+    - agent_id
+    - ceiling_event_id
+    - rule_id
+    - state
+    - held_at
+    - expires_at
+    - decision_id
+    - decided_at
+  properties:
+    object:
+      type: string
+      const: ceiling_hold
+    notification_id:
+      "$ref": "#/Id_ntf"
+    agent_id:
+      "$ref": "#/Id_agt"
+    ceiling_event_id:
+      "$ref": "#/Id_oev"
+    rule_id:
+      "$ref": "#/RuleId"
+    state:
+      "$ref": "#/CeilingHoldState"
+    held_at:
+      "$ref": "#/Timestamp"
+    expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    decision_id:
+      oneOf:
+        - "$ref": "#/Id_acd"
+        - type: "null"
+    decided_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+CeilingHoldList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/CeilingHold"
 AgentResume:
   type: object
   description: "Lifting a stop decision."

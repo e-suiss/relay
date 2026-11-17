@@ -777,6 +777,16 @@ defmodule RelayWeb.Router do
     post "/sms_destination_stops/:sms_destination_stop_id/lift", SmsDestinationController, :lift,
       private: %{relay_operation: "liftSmsDestinationStop"}
 
+    # AG-49
+    get "/agents/:agent_id/ceiling_holds", AgentCeilingController, :holds,
+      private: %{relay_operation: "listAgentCeilingHolds"}
+
+    post "/agents/:agent_id/ceiling_decisions", AgentCeilingController, :decide,
+      private: %{relay_operation: "createAgentCeilingDecision"}
+
+    post "/agents/:agent_id/resume", AgentCeilingController, :resume,
+      private: %{relay_operation: "resumeAgent"}
+
     get "/event_type_mappings", MappingController, :index,
       private: %{relay_operation: "listEventTypeMappings"}
 
@@ -1065,6 +1075,11 @@ defmodule RelayWeb.Router do
 
     post "/suppressions/:suppression_id/lift", SuppressionController, :lift,
       private: %{relay_operation: "liftSuppressionAsOperator"}
+
+    # AG-49
+    # TN-21
+    post "/agents/:agent_id/ceiling_decisions", AgentCeilingController, :decide,
+      private: %{relay_operation: "createAgentCeilingDecisionAsOperator"}
 
     post "/provider_accounts", ChannelController, :create_account,
       private: %{relay_operation: "createProviderAccount"}

@@ -56,6 +56,7 @@ defmodule Relay.ExternalId do
     {"cns", "consents"},
     {"sup", "suppressions"},
     {"sds", "sms_destination_stops"},
+    {"acd", "agent_ceiling_decisions"},
     {"dev", "devices"},
     {"pva", "provider_accounts"},
     {"chi", "channel_identities"},

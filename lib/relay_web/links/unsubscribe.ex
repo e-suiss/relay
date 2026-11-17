@@ -1,6 +1,6 @@
 defmodule RelayWeb.Links.Unsubscribe do
   @moduledoc """
-  The link handler of a running installation (`config :relay, RelayWeb.Links, handler: RelayWeb.Links.Unsubscribe`): Relay's own links are the one-click unsubscribe links of bulk e-mail (PC-35, PC-36). A link takes its recipient out of the category of its message as a preference; the refusal its page offers is a refusal notice for every marketing e-mail of the brand (`Relay.Compliance.Refusals`).
+  The link handler of a running installation (`config :relay, RelayWeb.Links, handler: RelayWeb.Links.Unsubscribe`): Relay's own links are the one-click unsubscribe links of bulk e-mail (PC-35, PC-36). A link takes its recipient out of the category of its message as a preference; the refusal its page offers is a refusal notice for every marketing e-mail of the brand (`Relay.Compliance.Refusals`). Its "manage my preferences" step leads to the recipient's hosted preference page with a new page token (X-51).
   """
 
   @behaviour RelayWeb.Links
@@ -26,4 +26,15 @@ defmodule RelayWeb.Links.Unsubscribe do
   # PC-38
   @impl RelayWeb.Links
   def refuse(token, evidence), do: Refusals.refuse_link(token, evidence)
+
+  # X-51
+  # PC-36
+  @impl RelayWeb.Links
+  def preferences_link(token) do
+    with {:ok, scope, recipient_id, locale} <- Refusals.link_recipient(token),
+         to = %{locale: locale, root: Relay.Channels.public_root()},
+         {:ok, url, _expires_at} <- Relay.Api.PreferencePage.url(scope, recipient_id, to) do
+      {:ok, url}
+    end
+  end
 end

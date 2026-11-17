@@ -16,6 +16,7 @@ defmodule Relay.Preferences do
     exports: [AccessConsentHandler, ConsentSink]
 
   alias Relay.Actor
+  alias Relay.Preferences.PageToken
   alias Relay.Preferences.Store
   alias Relay.Scope
 
@@ -107,14 +108,46 @@ defmodule Relay.Preferences do
   # PC-57 (5)
   # PC-12
   @doc "A recipient's preferences inside the caller's scoped transaction: its category × channel `cells`, its channel, workflow and scope key `switches` and its `profile` (`nil` when it has none)."
-  @spec preferences(Relay.Id.t()) :: %{cells: [map()], switches: [map()], profile: map() | nil}
+  @spec preferences(Relay.Id.t()) :: %{
+          cells: [map()],
+          switches: [map()],
+          profile: map() | nil,
+          categories: %{String.t() => map()}
+        }
   def preferences(recipient_id) do
     %{
       cells: Store.cells(recipient_id),
       switches: Store.switches(recipient_id),
-      profile: Store.profile(recipient_id)
+      profile: Store.profile(recipient_id),
+      categories: Store.category_labels()
     }
   end
+
+  # X-44
+  # PC-21
+  @doc "The current consent of a subscriber per brand and channel, inside the caller's scoped transaction."
+  @spec consents(Relay.Id.t()) :: [map()]
+  defdelegate consents(recipient_id), to: Store
+
+  # X-51
+  # PC-18
+  @doc "Signs a hosted preference page token for a subscriber of `scope`; see `Relay.Preferences.PageToken.issue/2`. Never runs inside a transaction."
+  @spec issue_page_token(Scope.t(), Relay.Id.t()) ::
+          {:ok, String.t(), PageToken.claims()} | {:error, Relay.Error.t()}
+  defdelegate issue_page_token(scope, recipient_id), to: PageToken, as: :issue
+
+  # X-51
+  # PC-18
+  @doc "Verifies a hosted preference page token; see `Relay.Preferences.PageToken.verify/1`."
+  @spec verify_page_token(term()) ::
+          {:ok, PageToken.claims()}
+          | {:error, :invalid | :expired | :unavailable}
+  defdelegate verify_page_token(token), to: PageToken, as: :verify
+
+  # X-51
+  @doc "The lifetime of a hosted preference page token in seconds."
+  @spec page_token_lifetime_s() :: pos_integer()
+  defdelegate page_token_lifetime_s(), to: PageToken, as: :lifetime_s
 
   @doc "A recipient's preferences; see `preferences/1`."
   @spec get_preferences(Scope.t(), Relay.Id.t()) :: result(map() | nil)

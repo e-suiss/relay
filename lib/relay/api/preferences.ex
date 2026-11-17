@@ -21,13 +21,18 @@ defmodule Relay.Api.Preferences do
 
   # PC-57 (5)
   # PC-12
-  @doc "The API view of a recipient's preferences."
+  # X-18
+  # X-51
+  @doc "The API view of a recipient's preferences, the one read every preference surface renders from. `preferences` is `Relay.Preferences.preferences/1` with the recipient's current devices under `:devices`."
   @spec view(Relay.Id.t(), map()) :: map()
-  def view(recipient_id, %{cells: cells, switches: switches, profile: profile}) do
+  def view(recipient_id, %{cells: cells, switches: switches, profile: profile} = preferences) do
+    labels = Map.get(preferences, :categories, %{})
+    devices = Map.get(preferences, :devices, [])
+
     %{
       "object" => "subscriber_preferences",
       "subscriber_id" => Views.id("sub", recipient_id),
-      "cells" => Enum.map(cells, &cell/1),
+      "cells" => Enum.map(cells, &cell(&1, labels, devices)),
       "channels" => for(%{"level" => "channel"} = s <- switches, do: channel(s)),
       "workflows" => for(%{"level" => "workflow"} = s <- switches, do: workflow(s)),
       "scope_keys" => for(%{"level" => "scope_key"} = s <- switches, do: scope_key(s)),
@@ -35,15 +40,48 @@ defmodule Relay.Api.Preferences do
     }
   end
 
-  defp cell(c) do
+  defp cell(c, labels, devices) do
+    label = Map.get(labels, c["category_key"], %{})
+    class = c["message_class"]
+
     %{
       "category" => c["category_key"],
+      "category_name" => label["name"] || c["category_key"],
       "channel" => c["channel"],
       "value" => c["value"],
       "effective" => c["effective"],
-      "source" => c["source"]
+      "source" => c["source"],
+      "locked" => c["locked"] == true,
+      "lock_beneficiary" => beneficiary(c["locked"], class),
+      "digest_allowed" => digestible?(class, label),
+      "disabled_by_admin" => c["source"] == "tenant",
+      "disabled_in_device_settings" => device_off?(c["channel"], class, devices)
     }
   end
+
+  # PC-17
+  defp digestible?("social", _label), do: true
+  defp digestible?("operational", label), do: label["digest_allowed"] == true
+  defp digestible?(_class, _label), do: false
+
+  # PC-6
+  # X-51
+  defp beneficiary(true, "security"), do: "subscriber"
+  defp beneficiary(true, _class), do: "tenant"
+  defp beneficiary(_locked, _class), do: nil
+
+  # PC-16
+  # X-51
+  defp device_off?(channel, class, devices) when channel in ["push", "web_push"] do
+    serving = &(Atom.to_string(Relay.Devices.channel(&1["platform"])) == channel)
+
+    case Enum.filter(devices, serving) do
+      [] -> false
+      own -> not Enum.any?(own, &Relay.Devices.permitted?(&1["permission"], class))
+    end
+  end
+
+  defp device_off?(_channel, _class, _devices), do: false
 
   defp channel(s), do: %{"channel" => s["channel"], "value" => s["value"]}
   defp workflow(s), do: %{"workflow" => s["key"], "value" => s["value"]}
@@ -79,10 +117,22 @@ defmodule Relay.Api.Preferences do
   @doc "Reads a subscriber's preferences."
   @spec get(Relay.Scope.t(), Relay.Id.t()) :: answer()
   def get(scope, recipient_id) do
-    case Relay.Preferences.get_preferences(scope, recipient_id) do
+    case Relay.Api.Store.in_scope(scope, fn _status -> read(recipient_id) end) do
       {:ok, %{} = preferences} -> {:ok, {200, [], view(recipient_id, preferences)}}
       {:ok, nil} -> {:error, subscriber_not_found()}
       {:error, _reason} -> {:error, Relay.Error.new(:service_unavailable, "try again")}
+    end
+  end
+
+  # PC-57 (5)
+  # X-51
+  @doc "A subscriber's preferences with its current devices inside the caller's scoped transaction, ready for `view/2`; `nil` when it is not an active subscriber."
+  @spec read(Relay.Id.t()) :: map() | nil
+  def read(recipient_id) do
+    if Relay.Preferences.subscriber?(recipient_id) do
+      recipient_id
+      |> Relay.Preferences.preferences()
+      |> Map.put(:devices, Relay.Devices.current(recipient_id))
     end
   end
 
@@ -96,7 +146,7 @@ defmodule Relay.Api.Preferences do
          :ok <- subscriber(recipient_id),
          :ok <- write(recipient_id, writes, writer, actor_ref),
          :ok <- profile(recipient_id, body["profile"]) do
-      {:ok, {200, [], view(recipient_id, Relay.Preferences.preferences(recipient_id))}}
+      {:ok, {200, [], view(recipient_id, read(recipient_id))}}
     end
   end
 

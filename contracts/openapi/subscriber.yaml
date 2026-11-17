@@ -135,8 +135,7 @@ paths:
       tags:
         - preferences
       summary: Get my preferences
-      description: "Returns the token subscriber's preferences in the same shape as the server API: one cell for every active category other than system and every channel, the channel, workflow and scope key switches and the profile."
-      parameters:
+      description: "Returns the token subscriber's preferences in the same shape as the server API: one cell for every active category other than system and every channel, the channel, workflow and scope key switches and the profile. It is the one read every preference surface renders from (X-18, PC-18): the embeddable preference component, the hosted page of createPreferencePageLink and the app's own notification settings screen. On iOS that screen is the deep link target of the notification settings: the app asks for the providesAppNotificationSettings authorization option, and when the system calls userNotificationCenter(_:openSettingsFor:) (from the Settings app or from a notification) the mobile SDK opens its preference screen, which reads this operation and writes with updateMyPreferences. Each cell carries whether it is locked and whom the lock serves, whether the tenant turned it off and whether the device settings turn it off; closing a cell whose category allows a digest offers Instant, Digest and Never with none preselected (PC-17)."      parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
       security:

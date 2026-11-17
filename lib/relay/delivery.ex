@@ -135,6 +135,15 @@ defmodule Relay.Delivery do
     Store.in_scope(scope, fn _status -> Store.attempt_meter(delivery_id, attempt_no, meter) end)
   end
 
+  # PC-4
+  @doc "Records the commercial message declaration of a started attempt (`commercial`, `iys_recipient_type`), the service provider's statement the provider is given with the send."
+  @spec declare_attempt(Scope.t(), Relay.Id.t(), pos_integer(), map()) :: result(atom())
+  def declare_attempt(scope, delivery_id, attempt_no, declaration) do
+    Store.in_scope(scope, fn _status ->
+      Store.attempt_declare(delivery_id, attempt_no, declaration)
+    end)
+  end
+
   # T-29
   @doc "Finishes an attempt; a succeeded attempt of a replay marks its dead letter replayed."
   @spec finish_attempt(Scope.t(), map()) :: result({atom(), atom() | nil})
@@ -316,6 +325,12 @@ defmodule Relay.Delivery do
   @doc "Reads a notification; another tenant's or environment's notification is not found (TN-15)."
   @spec notification(Scope.t(), Relay.Id.t()) :: result(map() | nil)
   def notification(scope, id), do: Store.in_scope(scope, fn _status -> Store.notification(id) end)
+
+  # PC-53
+  @doc "Whether the recipient is known to be reachable on `channel`, inside the caller's scoped transaction: a delivery on it among the recipient's 200 newest notifications reached `delivered`."
+  @spec channel_reached?(Relay.Id.t(), String.t()) :: boolean()
+  def channel_reached?(recipient_id, channel),
+    do: Store.channel_delivered?(recipient_id, channel, 200)
 
   @doc "Reads a delivery; another tenant's or environment's delivery is not found (TN-15)."
   @spec delivery(Scope.t(), Relay.Id.t()) :: result(map() | nil)

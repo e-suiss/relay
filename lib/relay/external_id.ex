@@ -55,6 +55,7 @@ defmodule Relay.ExternalId do
     {"ctg", "categories"},
     {"cns", "consents"},
     {"sup", "suppressions"},
+    {"sds", "sms_destination_stops"},
     {"dev", "devices"},
     {"pva", "provider_accounts"},
     {"chi", "channel_identities"},

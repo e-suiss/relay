@@ -11,6 +11,7 @@ defmodule Relay.Channels do
   alias Relay.Channels.Adapter
   alias Relay.Channels.Ambiguity
   alias Relay.Channels.Breaker
+  alias Relay.Channels.Commercial
   alias Relay.Channels.Email
   alias Relay.Channels.Email.Bounce
   alias Relay.Channels.Email.ClickSignals
@@ -829,6 +830,29 @@ defmodule Relay.Channels do
     end)
   end
 
+  # PC-53
+  # CH-13
+  @doc "The channels among `channels` that no provider of the scope can take a send on right now, an input of the OTP channel chain: a channel without a usable route, or one whose every usable account has its provider breaker open on this node. A route that cannot be read reports no channel."
+  @spec unhealthy_channels(
+          Relay.Scope.t(),
+          [String.t()],
+          ChannelDeclarations.t(),
+          Routing.policy()
+        ) :: [String.t()]
+  def unhealthy_channels(scope, channels, %ChannelDeclarations{} = declarations, policy) do
+    read = fn _status ->
+      Enum.filter(channels, fn channel ->
+        {{usable, _excluded}, _senders} = route_here(channel, declarations, policy)
+        not Enum.any?(usable, &(Breaker.provider_state(&1["provider"]) != :open))
+      end)
+    end
+
+    case Store.in_scope(scope, read) do
+      {:ok, unhealthy} -> unhealthy
+      {:error, _reason} -> []
+    end
+  end
+
   # API-23
   # CH-14
   # CH-6
@@ -986,6 +1010,20 @@ defmodule Relay.Channels do
           result([map()])
   def email_reports(scope, domain, from, to, limit),
     do: Store.in_scope(scope, fn _status -> ReportStore.reports(domain, from, to, limit) end)
+
+  # PC-4
+  @doc "The commercial message declaration of a send of `message_class` to a recipient whose consent copy has `recipient_type`; see `Relay.Channels.Commercial.declaration/2`."
+  @spec commercial_declaration(String.t() | nil, String.t() | nil) :: Commercial.t()
+  defdelegate commercial_declaration(message_class, recipient_type),
+    to: Commercial,
+    as: :declaration
+
+  # PC-4
+  @doc "The consent copy's `recipient_type` of a brand and channel among a recipient's current consents; see `Relay.Channels.Commercial.recipient_type/3`."
+  @spec consent_recipient_type([map()], String.t(), Relay.Id.t() | nil) :: String.t() | nil
+  defdelegate consent_recipient_type(consents, channel, brand),
+    to: Commercial,
+    as: :recipient_type
 
   # CH-2
   @doc "Builds the request of one provider call; see `Relay.Channels.Request`."

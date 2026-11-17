@@ -21,7 +21,7 @@ defmodule Relay.Channels.Live.Store do
   end
 
   # T-15
-  @doc "Reads what the channel step needs of a delivery: its channel, target kind and target (the one device of a test send), recipient, requested provider, class and security subtype, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity, the category key, the sender's `interruption` and the Access client of the event's API client (the sender of a critical Grant question, CH-84), and for the channel overrides the event's sealed request overrides with their key and the pinned version's workflow overrides and channel steps (over the whole step tree), and the workflow's key for its send mode, and whether the notification also has an `in_app` delivery its realtime connection carries (IN-40); `nil` when there is no such delivery."
+  @doc "Reads what the channel step needs of a delivery: its channel, target kind and target (the one device of a test send), recipient, the notification's sub-tenant, requested provider, class and security subtype, `expires_at`, test flag, the requested send mode and priority of its event, its workflow's category, the notification's subject and, for the push policy, the pinned locale, the template's key and sensitivity, the category key, the sender's `interruption` and the Access client of the event's API client (the sender of a critical Grant question, CH-84), and for the channel overrides the event's sealed request overrides with their key and the pinned version's workflow overrides and channel steps (over the whole step tree), and the workflow's key for its send mode, and whether the notification also has an `in_app` delivery its realtime connection carries (IN-40); `nil` when there is no such delivery."
   @spec delivery(Relay.Id.t()) :: map() | nil
   def delivery(delivery_id) do
     one(
@@ -30,6 +30,7 @@ defmodule Relay.Channels.Live.Store do
         d.target_id, d.recipient_id, n.subtenant_id, d.provider, d.provider_account_id,
         d.traceparent, d.attempt_count,
         d.accepted_at, n.message_class::text AS message_class, n.security_subtype, n.expires_at,
+        n.subtenant_id,
         n.is_test, e.send_mode::text AS send_mode,
         e.priority, n.subject_type, n.subject_id, p.locale, t.key AS template_key,
         v.sensitivity, c.key AS category_key, wv.definition->>'category' AS category,

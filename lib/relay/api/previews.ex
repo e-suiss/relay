@@ -45,7 +45,7 @@ defmodule Relay.Api.Previews do
         "template_key" => at.key,
         "version" => read.label,
         "sample" => sample,
-        "renders" => Enum.map(channels, &render(read, &1, locale, data))
+        "renders" => Enum.map(channels, &public(render(read, &1, locale, data)))
       }
 
       {:ok, {200, @headers, preview}}
@@ -269,7 +269,8 @@ defmodule Relay.Api.Previews do
        when is_binary(html) do
     raw = cell["html_kind"] == "raw_html" or read.definition["allow_raw"] == true
     content = if raw, do: Map.put(content, "html", nil), else: content
-    render = Map.put(render, "content", content)
+    digest = Base.encode16(:crypto.hash(:sha256, html), case: :lower)
+    render = render |> Map.put("content", content) |> Map.put(:html_digest, digest)
 
     case PreviewSandbox.put(read.scope, html) do
       {:ok, url} -> Map.put(render, "sandbox_url", url)
@@ -279,6 +280,11 @@ defmodule Relay.Api.Previews do
   end
 
   defp sandboxed(render, _read, _channel, _cell), do: render
+
+  defp public(render), do: Map.delete(render, :html_digest)
+
+  defp public_step(%{"render" => %{} = render} = step), do: %{step | "render" => public(render)}
+  defp public_step(step), do: step
 
   defp sandbox_warning(render, false, _code), do: Map.put(render, "sandbox_url", nil)
 
@@ -390,9 +396,9 @@ defmodule Relay.Api.Previews do
   end
 
   # API-60
-  @doc "Previews a workflow version step by step with sample or given data, for a given subscriber or a recipient with no preferences."
-  @spec workflow(Relay.Scope.t(), String.t(), map(), Relay.Id.t() | nil) :: answer()
-  def workflow(scope, key, body, subtenant_id) do
+  @doc "Previews a workflow version step by step with sample or given data, for a given subscriber or a recipient with no preferences. With `html_digests: true` each e-mail render that has HTML also carries `:html_digest`, the SHA-256 of that HTML, for a caller that must notice a change of the HTML the answer leaves out (WF-62); it is never part of an HTTP answer."
+  @spec workflow(Relay.Scope.t(), String.t(), map(), Relay.Id.t() | nil, keyword()) :: answer()
+  def workflow(scope, key, body, subtenant_id, opts \\ []) do
     with {:ok, wf} <- read_workflow(scope, key, body["version"]),
          {:ok, locale} <- locale(body["locale"]),
          {:ok, recipient_locale} <- recipient(scope, body["to"]),
@@ -407,6 +413,11 @@ defmodule Relay.Api.Previews do
         "sample" => sample,
         "steps" => Enum.map(steps, &step(&1, wf.schema, locale, data))
       }
+
+      preview =
+        if Keyword.get(opts, :html_digests, false),
+          do: preview,
+          else: Map.update!(preview, "steps", fn steps -> Enum.map(steps, &public_step/1) end)
 
       {:ok, {200, @headers, preview}}
     end

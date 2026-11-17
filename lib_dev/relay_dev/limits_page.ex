@@ -3,6 +3,8 @@ defmodule RelayDev.LimitsPage do
   The "limits, retry schedules, guarantees" page of the documentation, rendered as Markdown from the sources the server itself reads: the contract's `x-relay-limits` (`Relay.Limits`), the newest shipped version of the `channel_parameters` data set (`Relay.ChannelParameters`), the webhook retry schedule of the contract and the error catalog (`Relay.Api.ErrorCatalog`). There is no hand-written copy; the documentation site renders this page with `mix relay.docs.limits`.
   """
 
+  alias Relay.Api.ErrorCatalog
+
   @agent_groups ~w(waitpoint mailbox agent_ceiling agent_operations first_contact encrypted_envelope)
   @guarantee "Relay provides at-least-once delivery with durable idempotency, giving effectively-once processing."
   @parameters "priv/datasets/channel_parameters"
@@ -194,8 +196,8 @@ defmodule RelayDev.LimitsPage do
 
   defp errors do
     entries =
-      Enum.map(Relay.Api.ErrorCatalog.codes(), fn code ->
-        {:ok, entry} = Relay.Api.ErrorCatalog.fetch(code)
+      Enum.map(ErrorCatalog.codes(), fn code ->
+        {:ok, entry} = ErrorCatalog.fetch(code)
         entry
       end)
 
@@ -210,7 +212,7 @@ defmodule RelayDev.LimitsPage do
       "",
       "| Status | Code | Retryable | Retry-After |",
       "|---|---|---|---|",
-      Enum.map(Relay.Api.ErrorCatalog.retryable_defaults(), &default_row/1),
+      Enum.map(ErrorCatalog.retryable_defaults(), &default_row/1),
       "",
       "### Error codes",
       "",

@@ -34,6 +34,20 @@ defmodule RelayWeb.Api.McpController do
     end
   end
 
+  # AG-44
+  # IN-37
+  # E-53
+  @doc "Appends an AG-UI event to a subscriber's opaque stream; the payload is carried as given."
+  @spec publish(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def publish(conn, _params) do
+    %{scope: scope, body: body} = conn.assigns
+
+    case Relay.Api.OpaqueStreams.publish(scope, body) do
+      {:ok, {status, _headers, answer}} -> Response.json(conn, status, answer)
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
+
   # sobelow_skip ["XSS.SendResp"]
   defp reply(conn, status, body) do
     conn

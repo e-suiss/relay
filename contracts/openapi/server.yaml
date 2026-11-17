@@ -14792,6 +14792,104 @@ paths:
       x-relay-idempotency: required
       x-relay-step-up: false
       x-relay-stage: 12
+  "/v1/agui/events":
+    post:
+      operationId: publishAgUiEvent
+      tags:
+        - agents
+      summary: "Publish an AG-UI event"
+      description: "Appends one AG-UI event to the opaque stream of a subscriber's realtime channel (AG-44, IN-37, E-53). The payload is text, carried to the subscriber's clients exactly as it was given: Relay does not parse it, change it or read it for any decision. The event takes the next position of the subscriber's stream, so a client reads it with the cursor, order and recovery rules of the inbox stream, on a connection whose token holds agui:read. The operation takes no idempotency key: a request sent again appends the event again, and a client tells the two apart by their identifiers. The payload is at most the published limit realtime.opaque_payload_max_bytes."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/OpaqueEventRequest"
+      security:
+        - access_bearer:
+            - publish
+        - access_bearer:
+            - "agent:send"
+      responses:
+        "202":
+          description: "The event was appended."
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/OpaqueEvent"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - subscriber_not_found
+      x-relay-scopes:
+        - publish
+        - "agent:send"
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 12
   "/v1/mcp":
     post:
       operationId: callMcp
@@ -27037,6 +27135,7 @@ x-relay-limits:
       max: 5
     max_connections_per_subscriber: 10
     max_changes_per_read: 500
+    opaque_payload_max_bytes: 65536
     connection_ttl_seconds: 45
     heartbeat_seconds: 15
     keepalive_seconds: 25

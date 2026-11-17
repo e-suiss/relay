@@ -6015,6 +6015,49 @@ A2aStreamResponse:
     message:
       type: object
   additionalProperties: false
+OpaqueEventRequest:
+  type: object
+  description: "An AG-UI event for a subscriber: the recipient and the payload as text. Relay carries the payload without reading it."
+  required:
+    - recipient_id
+    - payload
+  properties:
+    recipient_id:
+      "$ref": "#/Id_sub"
+    payload:
+      type: string
+      minLength: 1
+      maxLength: 65536
+  additionalProperties: false
+OpaqueEvent:
+  type: object
+  description: "An appended opaque event: its durable handle and its position in the subscriber's stream."
+  required:
+    - object
+    - stream
+    - id
+    - mailbox_id
+    - cursor
+    - payload_digest
+  properties:
+    object:
+      type: string
+      const: opaque_event
+    stream:
+      type: string
+      const: ag_ui
+    id:
+      "$ref": "#/Id_mbr"
+    mailbox_id:
+      type: string
+      pattern: "^mbx_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+    cursor:
+      type: string
+      maxLength: 512
+    payload_digest:
+      type: string
+      pattern: "^sha256:[0-9a-f]{64}$"
+  additionalProperties: false
 McpRequest:
   type: object
   description: "One JSON-RPC 2.0 request of the Model Context Protocol. A request without id is a notification and gets no response body."

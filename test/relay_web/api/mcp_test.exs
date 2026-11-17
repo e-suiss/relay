@@ -186,7 +186,7 @@ defmodule RelayWeb.Api.McpTest do
                   leaseMailboxRecords ackMailboxRecords addTopicSubscriptions)
 
       for tool <- Mcp.tools() do
-        refute tool.name =~ ~r/respon|answer|approv|decid|complete|resolve/
+        refute tool.name =~ ~r/respond|answer|approv|decid|complete|resolve|cancel/
         assert tool.descriptor["inputSchema"]["additionalProperties"] == false
       end
     end

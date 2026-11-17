@@ -53,13 +53,21 @@ defmodule Relay.Tenancy.KillSwitch.AuthzTest do
   end
 
   describe "TN-70 stage two actor and relaxation" do
-    test "TN-70: only the installation operator acts in stage two" do
-      for kind <- [:tenant_admin, :tenant_operator] do
-        assert Authz.authorize(%{kind: kind, ref: "x"}, :engage, spec(scope_kind: :campaign)) ==
-                 {:error, :actor_not_supported}
-      end
+    test "TN-41: the tenant roles act within the rank of the scope" do
+      operator = %{kind: :tenant_operator, ref: "x"}
+      admin = %{kind: :tenant_admin, ref: "x"}
 
+      assert Authz.authorize(operator, :engage, spec(scope_kind: :campaign)) == :ok
+      assert Authz.authorize(operator, :engage, spec(scope_kind: :tenant)) == {:error, :forbidden}
+      assert Authz.authorize(admin, :engage, spec(scope_kind: :tenant)) == :ok
+      assert Authz.authorize(admin, :engage, spec()) == {:error, :forbidden}
       assert Authz.authorize(@operator, :engage, spec()) == :ok
+
+      assert Authz.authorize(admin, :release, spec(scope_kind: :tenant)) ==
+               {:error, :relax_approval_required}
+
+      assert Authz.authorize(admin, :release, spec(scope_kind: :tenant, relax_approval: "su")) ==
+               :ok
     end
 
     test "API-79 (6): an API client engages or tightens only a campaign or workflow kill switch" do

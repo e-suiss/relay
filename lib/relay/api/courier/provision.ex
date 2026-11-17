@@ -5,6 +5,7 @@ defmodule Relay.Api.Courier.Provision do
 
   alias Relay.Actor
   alias Relay.Api.Courier.Catalog
+  alias Relay.Api.Store
   alias Relay.TemplateStore
 
   @actor %Actor{kind: :system, ref: "relay:access_courier", on_behalf_of_ref: "relay"}
@@ -36,7 +37,7 @@ defmodule Relay.Api.Courier.Provision do
       workflow(scope, entry)
     end
 
-    case Relay.Repo.in_scope(scope, work) do
+    case Store.in_scope(scope, work) do
       {:ok, {:pending, version_id}} -> gate(scope, version_id)
       {:ok, :exists} -> :ok
       {:error, _reason} -> {:error, unavailable()}
@@ -48,7 +49,7 @@ defmodule Relay.Api.Courier.Provision do
       nil -> template_create(entry)
       %{"owner_product" => @product, "live_version_id" => <<_::128>>} -> :ok
       %{"owner_product" => @product, "version" => version} -> template_publish(key, version)
-      _other -> Relay.Repo.rollback(:template_conflict)
+      _other -> Store.rollback(:template_conflict)
     end
   end
 
@@ -66,7 +67,7 @@ defmodule Relay.Api.Courier.Provision do
 
     case TemplateStore.template_create(attrs, digest("template.created", entry.key), @actor) do
       {:created, _id, _version_id, version} -> template_publish(entry.key, version)
-      {other, _id, _version_id, _version} -> Relay.Repo.rollback({:template, other})
+      {other, _id, _version_id, _version} -> Store.rollback({:template, other})
     end
   end
 
@@ -76,7 +77,7 @@ defmodule Relay.Api.Courier.Provision do
 
     case TemplateStore.template_publish(at, @gate, version, digest, @actor) do
       {:published, _version_id, _version_no, _version} -> :ok
-      {other, _version_id, _version_no, _version} -> Relay.Repo.rollback({:template, other})
+      {other, _version_id, _version_no, _version} -> Store.rollback({:template, other})
     end
   end
 
@@ -86,7 +87,7 @@ defmodule Relay.Api.Courier.Provision do
     case Relay.Workflow.create(scope, entry.key, definition, @actor) do
       {:ok, {:created, _id, _draft}} -> publication(scope, entry.key)
       {:ok, {:key_conflict, _id, _other}} -> :exists
-      {:ok, {other, _id, _detail}} -> Relay.Repo.rollback({:workflow, other})
+      {:ok, {other, _id, _detail}} -> Store.rollback({:workflow, other})
     end
   end
 
@@ -96,7 +97,7 @@ defmodule Relay.Api.Courier.Provision do
 
     case Relay.Workflow.request_publication(scope, key, nil, nil, @actor) do
       {:ok, {:pending, version_id}} -> {:pending, version_id}
-      {:ok, other} -> Relay.Repo.rollback({:publication, other})
+      {:ok, other} -> Store.rollback({:publication, other})
     end
   end
 

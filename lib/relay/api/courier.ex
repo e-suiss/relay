@@ -10,6 +10,7 @@ defmodule Relay.Api.Courier do
   alias Relay.Api.Courier.Provision
   alias Relay.Api.Events
   alias Relay.Api.Schema
+  alias Relay.Api.Store
 
   @source "urn:suiss:access:environment:"
   @kinds ~w(email phone device)
@@ -20,6 +21,7 @@ defmodule Relay.Api.Courier do
     "call" => {"voice", "phone"}
   }
   @iys_sources %{"self_service" => "web", "app" => "app"}
+  @root JSV.build!(Catalog.schema())
 
   @type outcome ::
           :not_courier
@@ -45,7 +47,7 @@ defmodule Relay.Api.Courier do
   end
 
   defp take(ctx, event, iys?) do
-    with :ok <- Schema.validate(root(), Map.drop(event, ["traceparent", "tracestate"])),
+    with :ok <- Schema.validate(@root, Map.drop(event, ["traceparent", "tracestate"])),
          {:ok, environment} <- environment(event),
          {:ok, tenant} <- tenant(event["accesstenant"], environment) do
       case Catalog.lookup(event["type"]) do
@@ -57,17 +59,6 @@ defmodule Relay.Api.Courier do
     end
   end
 
-  defp root do
-    case :persistent_term.get({__MODULE__, :root}, nil) do
-      nil ->
-        root = JSV.build!(Catalog.schema())
-        :persistent_term.put({__MODULE__, :root}, root)
-        root
-
-      root ->
-        root
-    end
-  end
 
   # E-108
   defp environment(%{"source" => source, "accessenvironment" => environment}) do
@@ -249,7 +240,7 @@ defmodule Relay.Api.Courier do
 
     queue = fn _status -> Relay.Access.queue_iys_report(target, report) end
 
-    case Relay.Repo.in_scope(target, queue) do
+    case Store.in_scope(target, queue) do
       {:ok, :ok} -> :ok
       _failed -> {:error, waiting("the İYS report could not be queued")}
     end

@@ -15,7 +15,9 @@ defmodule Relay.Repo.Migrations.AddIysUploadAccessRecord do
         AND (access_record IS NULL OR origin = 'access')) NOT VALID
     """)
 
+    execute("SET LOCAL ROLE relay_owner")
     execute(enqueue())
+    execute("RESET ROLE")
   end
 
   def down, do: :ok

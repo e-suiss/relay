@@ -1,6 +1,7 @@
 defmodule RelayWeb.Api.AccessIysConsentTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Access.IysReport
   alias Relay.Datasets
   alias Relay.Repo
   alias RelayTest.FakeAccess
@@ -113,7 +114,7 @@ defmodule RelayWeb.Api.AccessIysConsentTest do
     [[upload_id]] = F.jobs("Relay.Access.IysReport", ctx.target, "upload_id")
     assert upload_id == Relay.Id.to_string(upload["id"])
     args = Map.put(Relay.Scope.to_job_args(ctx.target), "upload_id", upload_id)
-    assert Relay.Access.IysReport.perform(%Oban.Job{args: args}) == :ok
+    assert IysReport.perform(%Oban.Job{args: args}) == :ok
     assert_received {:fake_access, :iys_status, report}
     report
   end
@@ -186,7 +187,7 @@ defmodule RelayWeb.Api.AccessIysConsentTest do
           ["Relay.Access.IysReport", record]
         ).rows
 
-      assert Relay.Access.IysReport.perform(%Oban.Job{args: args}) == :ok
+      assert IysReport.perform(%Oban.Job{args: args}) == :ok
       assert_received {:fake_access, :iys_status, report}
       assert report["status"] == "failed"
       assert report["reason"] == "not_configured"

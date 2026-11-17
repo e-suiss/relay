@@ -69,13 +69,8 @@ final class ClientCredentials implements Authorizer
         $this->transport = $transport ?? new CurlTransport();
         $this->now = $now ?? static fn (): float => microtime(true);
         $keypair = sodium_crypto_sign_keypair();
-        $secretKey = sodium_crypto_sign_secretkey($keypair);
-        $publicKey = sodium_crypto_sign_publickey($keypair);
-        if ($secretKey === '' || $publicKey === '') {
-            throw new TokenException('dpop_key_failed', 'no DPoP key could be made');
-        }
-        $this->secretKey = $secretKey;
-        $this->publicKey = $publicKey;
+        $this->secretKey = sodium_crypto_sign_secretkey($keypair);
+        $this->publicKey = sodium_crypto_sign_publickey($keypair);
     }
 
     // API-65
@@ -142,8 +137,9 @@ final class ClientCredentials implements Authorizer
 
     private function token(string $url): string
     {
-        if ($this->token !== null && ($this->now)() < $this->expiresAt) {
-            return $this->token;
+        $token = $this->token;
+        if ($token !== null && ($this->now)() < $this->expiresAt) {
+            return $token;
         }
         $resource = $this->resource ?? $this->discoverResource($url);
         $this->resource = $resource;

@@ -107,6 +107,7 @@ defmodule Relay.Api do
       WebhookPortal,
       WebhookSources,
       OperationsContacts,
+      Mailbox,
       Waitpoints
     ]
 end

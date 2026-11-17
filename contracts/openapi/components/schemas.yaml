@@ -5842,6 +5842,248 @@ Sha256Digest:
   type: string
   description: "SHA-256 digest: sha256: and 64 lowercase hexadecimal characters."
   pattern: "^sha256:[0-9a-f]{64}$"
+MailboxCursor:
+  type: string
+  description: "Opaque position in a mailbox stream: the stream epoch and the sequence number after which a reader continues."
+  minLength: 1
+  maxLength: 64
+MailboxLeaseId:
+  type: string
+  description: "Identifier of one lease request: 32 lowercase hexadecimal characters. Only the lease that holds a record acknowledges it."
+  pattern: "^[0-9a-f]{32}$"
+MailboxRecordState:
+  type: string
+  description: "Delivery state of a record on the agent face: available (waiting to be leased), leased, acked or dead_lettered (past the redelivery count; kept, never deleted)."
+  enum:
+    - available
+    - leased
+    - acked
+    - dead_lettered
+Mailbox:
+  type: object
+  description: "The durable mailbox of the calling agent or API client (AG-20, AG-64): one per owner, opened lazily. cursor is the head of the stream and acked_cursor the position up to which every record is acknowledged or dead-lettered; a reader that wakes up continues from acked_cursor. lease_duration and max_redeliveries are the tenant's settings in force, within the published limits (AG-22)."
+  required:
+    - object
+    - id
+    - owner
+    - state
+    - cursor
+    - acked_cursor
+    - lease_duration
+    - max_redeliveries
+    - created_at
+  properties:
+    object:
+      type: string
+      const: mailbox
+    id:
+      "$ref": "#/Id_mbx"
+    owner:
+      type: string
+      description: "The owner: an agent (agt_) or API client (cli_) identifier."
+      pattern: "^(agt|cli)_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+    state:
+      type: string
+      description: "active, or suspended while the owner is suspended in Access: a suspended mailbox is read but hands out no lease, and its records stay (AG-23)."
+      enum:
+        - active
+        - suspended
+    cursor:
+      "$ref": "#/MailboxCursor"
+    acked_cursor:
+      "$ref": "#/MailboxCursor"
+    lease_duration:
+      "$ref": "#/Duration"
+    max_redeliveries:
+      type: integer
+      minimum: 1
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+MailboxRecord:
+  type: object
+  description: "A durable mailbox record (C-68). id is the durable handle a wake hint carries and the identifier a reader deduplicates by: delivery is at least once (AG-21). epoch and seq are the record's position in the mailbox stream; seq follows commit order, so reading in seq order is the guaranteed order (AG-24). A waitpoint_event record names its waitpoint, whose state and response are read from the waitpoint."
+  required:
+    - object
+    - id
+    - mailbox_id
+    - epoch
+    - seq
+    - kind
+    - event_type
+    - waitpoint_id
+    - payload_digest
+    - state
+    - delivery_count
+    - lease_expires_at
+    - acked_at
+    - dead_lettered_at
+    - created_at
+  properties:
+    object:
+      type: string
+      const: mailbox_record
+    id:
+      "$ref": "#/Id_mbr"
+    mailbox_id:
+      "$ref": "#/Id_mbx"
+    epoch:
+      type: integer
+      minimum: 1
+    seq:
+      type: integer
+      minimum: 1
+    kind:
+      type: string
+      enum:
+        - message
+        - waitpoint_event
+    event_type:
+      type: string
+      maxLength: 128
+    waitpoint_id:
+      oneOf:
+        - "$ref": "#/Id_wp"
+        - type: "null"
+    payload_digest:
+      "$ref": "#/Sha256Digest"
+    state:
+      "$ref": "#/MailboxRecordState"
+    delivery_count:
+      type: integer
+      minimum: 0
+      description: "How many times the record was handed out with a lease."
+    lease_expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    acked_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    dead_lettered_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+MailboxLeaseRequest:
+  type: object
+  description: "A lease request: at most max records, oldest first. max is at most the published limit mailbox.lease_max_records; a larger value is refused with the limit in the error."
+  properties:
+    max:
+      type: integer
+      minimum: 1
+      default: 1
+  additionalProperties: false
+MailboxLease:
+  type: object
+  description: "The records one lease request took, in stream order, and the lease that holds them until lease_expires_at. A record that is not acknowledged with this lease_id by then is handed out again; past the redelivery count it moves to the dead letters instead (AG-20, AG-22). The lease runs on Relay's clock, never the caller's; in the test environment the virtual clock moves it. lease_expires_at is null when no record was taken."
+  required:
+    - object
+    - lease_id
+    - lease_expires_at
+    - records
+  properties:
+    object:
+      type: string
+      const: mailbox_lease
+    lease_id:
+      "$ref": "#/MailboxLeaseId"
+    lease_expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    records:
+      type: array
+      items:
+        "$ref": "#/MailboxRecord"
+  additionalProperties: false
+MailboxAckRequest:
+  type: object
+  description: "Acknowledges records of one lease."
+  required:
+    - lease_id
+    - record_ids
+  properties:
+    lease_id:
+      "$ref": "#/MailboxLeaseId"
+    record_ids:
+      type: array
+      minItems: 1
+      maxItems: 100
+      uniqueItems: true
+      items:
+        "$ref": "#/Id_mbr"
+  additionalProperties: false
+MailboxAck:
+  type: object
+  description: "The outcome of an acknowledgement, one result for each record: acked, already_acked, lease_lost (the lease ran out and another lease holds the record, or the record is dead-lettered) or not_found."
+  required:
+    - object
+    - results
+    - acked_cursor
+  properties:
+    object:
+      type: string
+      const: mailbox_ack
+    results:
+      type: array
+      items:
+        type: object
+        required:
+          - record_id
+          - result
+        properties:
+          record_id:
+            "$ref": "#/Id_mbr"
+          result:
+            type: string
+            enum:
+              - acked
+              - already_acked
+              - lease_lost
+              - not_found
+        additionalProperties: false
+    acked_cursor:
+      "$ref": "#/MailboxCursor"
+  additionalProperties: false
+MailboxRecords:
+  type: object
+  description: "Records after a position, in stream order (AG-24). cursor is the position to continue from. resync_required says the position given no longer holds (another epoch, or outside the stream): the reader starts over from cursor, which is then the acknowledged position."
+  required:
+    - object
+    - records
+    - cursor
+    - has_more
+    - resync_required
+  properties:
+    object:
+      type: string
+      const: mailbox_records
+    records:
+      type: array
+      maxItems: 100
+      items:
+        "$ref": "#/MailboxRecord"
+    cursor:
+      "$ref": "#/MailboxCursor"
+    has_more:
+      type: boolean
+    resync_required:
+      type: boolean
+  additionalProperties: false
+MailboxRecordList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/MailboxRecord"
+  description: "A page of mailbox records."
 CorrelationId:
   type: string
   description: "The sender's correlation identifier, 1 to 128 printable ASCII characters. Returned in outgoing events as the correlationid extension."

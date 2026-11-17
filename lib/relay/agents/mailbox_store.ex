@@ -7,7 +7,7 @@ defmodule Relay.Agents.MailboxStore do
 
   @setting "mailbox.lease"
   @mailbox_columns "m.id, m.owner_kind, m.owner_ref, m.state, m.stream_key, m.created_at"
-  @record_columns "r.id, r.mailbox_id, r.epoch, r.seq, r.kind, r.event_type::text AS event_type, r.waitpoint_id, r.payload_digest::bytea AS payload_digest, r.delivery_state, r.delivery_count, r.lease_until, r.acked_at, r.dead_lettered_at, r.created_at"
+  @record_columns "r.id, r.mailbox_id, r.epoch, r.seq, r.kind, r.event_type::text AS event_type, r.waitpoint_id, r.trust_label, r.payload_digest::bytea AS payload_digest, r.delivery_state, r.delivery_count, r.lease_until, r.acked_at, r.dead_lettered_at, r.created_at"
   @agent_face "r.kind IN ('message', 'waitpoint_event')"
 
   @type id :: Relay.Id.t()

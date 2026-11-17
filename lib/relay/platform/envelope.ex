@@ -21,7 +21,7 @@ defmodule Relay.Platform.Envelope do
     "response_id" => "wpr",
     "webhook_source_id" => "whs"
   }
-  @record_appended "mailbox.record_appended"
+  @record_events ["mailbox.record_appended", "mailbox.record_flagged"]
 
   @type context :: %{
           required(:issuer) => String.t(),
@@ -72,10 +72,12 @@ defmodule Relay.Platform.Envelope do
   # API-72
   # C-71
   # AG-21
-  @doc "The thin data of an outbox event: `data/1` of its payload. A mailbox record takes the position of the outbox event written with it, so the data of `mailbox.record_appended` also carries that `epoch` and `seq`."
+  # AG-38
+  @doc "The thin data of an outbox event: `data/1` of its payload. A mailbox record takes the position of the outbox event written with it, so the data of `mailbox.record_appended` and of `mailbox.record_flagged` also carries that `epoch` and `seq`."
   @spec event_data(OutboxStore.event()) :: map()
-  def event_data(%{event_type: @record_appended, payload: payload, epoch: epoch, seq: seq}),
-    do: payload |> data() |> Map.merge(%{"epoch" => epoch, "seq" => seq})
+  def event_data(%{event_type: type, payload: payload, epoch: epoch, seq: seq})
+      when type in @record_events,
+      do: payload |> data() |> Map.merge(%{"epoch" => epoch, "seq" => seq})
 
   def event_data(%{payload: payload}), do: data(payload)
 

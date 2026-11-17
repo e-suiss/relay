@@ -25,6 +25,7 @@ defmodule Relay.Tenancy.SettingKeys do
     "agents.ceiling.per_day" => :agent_ceiling_day,
     "timing.jitter" => :timing,
     "mailbox.lease" => :mailbox_lease,
+    "agent.link_origins" => :link_origins,
     "brand.logo_url" => {:brand, :url, 2048},
     "brand.primary_color" => {:brand, :color, 7},
     "brand.secondary_color" => {:brand, :color, 7},
@@ -53,6 +54,8 @@ defmodule Relay.Tenancy.SettingKeys do
       {Relay.Limits.fetch!(["mailbox", "redeliveries", "min"]),
        Relay.Limits.fetch!(["mailbox", "redeliveries", "max"])}
   }
+  @link_origins Relay.Limits.fetch!(["mailbox", "message", "link_origins_max"])
+  @link_origin ~r/\Ahttps:\/\/[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?(?::[0-9]{1,5})?\z/
   @allowed_countries Relay.Limits.fetch!(["sms_destination", "max_allowed_countries"])
   @agent_ceiling_hour Relay.Limits.fetch!(["agent_ceiling", "per_hour"])
   @agent_ceiling_day Relay.Limits.fetch!(["agent_ceiling", "per_day"])
@@ -146,6 +149,7 @@ defmodule Relay.Tenancy.SettingKeys do
              :inbox_retention,
              :webhook_retention,
              :mailbox_lease,
+             :link_origins,
              :retention_days
            ] ->
         check(kind, value)
@@ -251,6 +255,16 @@ defmodule Relay.Tenancy.SettingKeys do
 
   defp check(:mailbox_lease, _value), do: mailbox_lease_error()
 
+  # AG-40
+  # AG-41
+  defp check(:link_origins, [_ | _] = value) when length(value) <= @link_origins do
+    if Enum.all?(value, &link_origin?/1) and Enum.uniq(value) == value,
+      do: {:ok, value},
+      else: link_origins_error()
+  end
+
+  defp check(:link_origins, _value), do: link_origins_error()
+
   # OP-19
   # DS-44
   defp check(:retention_days, value) when is_integer(value) and value in 1..@retention_max//1,
@@ -273,6 +287,19 @@ defmodule Relay.Tenancy.SettingKeys do
 
   defp ceiling(_value, max) do
     message = "an agent ceiling is an integer from 1 to #{max}"
+    {:error, Relay.Error.new(:invalid_setting, message)}
+  end
+
+  defp link_origin?(origin) when is_binary(origin),
+    do: Regex.match?(@link_origin, origin) and not String.ends_with?(origin, ":443")
+
+  defp link_origin?(_other), do: false
+
+  defp link_origins_error do
+    message =
+      "the link allow list is 1 to #{@link_origins} different origins, each https:// with a " <>
+        "lowercase host and an optional port other than 443"
+
     {:error, Relay.Error.new(:invalid_setting, message)}
   end
 

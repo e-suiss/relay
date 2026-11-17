@@ -6,7 +6,7 @@ defmodule Relay.Agents.Mailbox do
 
   `read/4` reads after a position in sequence order and takes no lease; without a position it starts after the acknowledged position, below which every record is acknowledged or dead-lettered (AG-24). `record/3` reads one record by its identifier, the durable handle every hint carries.
 
-  A suspended mailbox hands out no lease and is still read; nothing is ever removed from a mailbox (AG-23, INV-47). The payload of a record stays sealed in the record; this face reads positions and delivery state.
+  A suspended mailbox hands out no lease and is still read; nothing is ever removed from a mailbox (AG-23, INV-47). The payload of a record stays sealed in the record; this module reads positions and delivery state, and `Relay.Agents.Messages` gives a record its structured message.
   """
 
   alias Relay.Agents.MailboxStore

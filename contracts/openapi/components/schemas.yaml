@@ -5871,6 +5871,7 @@ Mailbox:
     - acked_cursor
     - lease_duration
     - max_redeliveries
+    - message_key
     - created_at
   properties:
     object:
@@ -5897,12 +5898,397 @@ Mailbox:
     max_redeliveries:
       type: integer
       minimum: 1
+    message_key:
+      description: "The public key that verifies the signature of every message of this mailbox (AG-40): whpk_ and the base64 of the Ed25519 key of the tenant environment. Null when the key store cannot be reached now."
+      oneOf:
+        - type: string
+          pattern: "^whpk_[A-Za-z0-9+/]{43}=$"
+        - type: "null"
     created_at:
       "$ref": "#/Timestamp"
   additionalProperties: false
+TrustLabel:
+  type: string
+  description: "The trust label of an incoming message (C-77, AG-38, AG-69), the first that holds: blocked (the sender is on the recipient's block list or suspended in Access), spam (the carrying channel or provider flagged the message, or the sender is over the first contact rate), authenticated (the sender's identity is verified: an Access token, a verified webhook signature, A2A authentication or an aligned DMARC pass), unauthenticated (none of them). Relay produces the label; it is never derived from the content."
+  enum:
+    - blocked
+    - spam
+    - authenticated
+    - unauthenticated
+AgentMessage:
+  type: object
+  description: "The structured message of a mailbox record, signed (C-76, AG-39, AG-40). envelope is the CloudEvents 1.0 envelope as the exact text that was signed; a reader verifies the signature over these characters before it parses them, and acts on nothing it has not verified (AG-41). The signature follows the Suiss webhook profile: the signed content is id, a dot, timestamp, a dot and envelope, and signature is v1a, a comma and the base64 of the Ed25519 signature. key is the public key the signature was made with, whpk_ and its base64; it is the message_key of the mailbox, which a reader pins from there and not from a message. What an agent receives is never a prompt: control information is in the typed fields of the envelope's data, content is data in parts, and Relay writes no free text of its own. A response token, a response link and a waitpoint credential are never part of a message (AG-30)."
+  required:
+    - object
+    - id
+    - timestamp
+    - signature
+    - key
+    - envelope
+  properties:
+    object:
+      type: string
+      const: agent_message
+    id:
+      "$ref": "#/Id_mbr"
+    timestamp:
+      type: integer
+      minimum: 0
+      description: "The Unix second the envelope was signed."
+    signature:
+      type: string
+      pattern: "^v1a,[A-Za-z0-9+/]{86}==$"
+    key:
+      type: string
+      pattern: "^whpk_[A-Za-z0-9+/]{43}=$"
+    envelope:
+      type: string
+      description: "The CloudEvents 1.0 structured-mode JSON of the record, an AgentMessageEnvelope, as signed."
+      contentMediaType: application/cloudevents+json
+      contentSchema:
+        "$ref": "#/AgentMessageEnvelope"
+  additionalProperties: false
+AgentMessageEnvelope:
+  type: object
+  description: "The outer envelope of an agent message: CloudEvents 1.0 and nothing more (C-76, AG-40). id is the record's durable handle, type the record's event type (message.authenticated, message.unauthenticated, message.spam or message.blocked for a message, so the trust label is in the type; a waitpoint event type for a waitpoint event), subject the mailbox and time when the record was appended."
+  required:
+    - specversion
+    - id
+    - source
+    - type
+    - subject
+    - time
+    - datacontenttype
+    - data
+  properties:
+    specversion:
+      type: string
+      const: "1.0"
+    id:
+      "$ref": "#/Id_mbr"
+    source:
+      type: string
+      const: "/v1/mailbox"
+    type:
+      type: string
+      maxLength: 128
+    subject:
+      "$ref": "#/Id_mbx"
+    time:
+      "$ref": "#/Timestamp"
+    datacontenttype:
+      type: string
+      const: application/json
+    data:
+      "$ref": "#/AgentMessageData"
+  additionalProperties: false
+AgentMessageData:
+  type: object
+  description: "The typed fields and the content parts of an agent message (MD-11, INV-30, AG-39). Every field but parts is a control field that Relay produces: an identifier, an enumeration, a number or a digest, never free text. Content travels in parts only, as data. The message of a waitpoint.resolved record has one data part with the response value under the member response, untrusted like every other part. content_encryption is null for content Relay can read; a message whose content is encrypted end to end names its scheme there, carries the content as it is and is untrusted as a whole."
+  required:
+    - message_type
+    - mailbox_id
+    - epoch
+    - seq
+    - trust_label
+    - sender
+    - channel
+    - waitpoint_id
+    - result
+    - responder
+    - evidence_level
+    - subject_digest
+    - response_digest
+    - content_encryption
+    - content_marking
+    - relationship
+    - parts
+    - links
+    - links_withheld
+  properties:
+    message_type:
+      type: string
+      enum:
+        - message
+        - waitpoint_event
+    mailbox_id:
+      "$ref": "#/Id_mbx"
+    epoch:
+      type: integer
+      minimum: 1
+    seq:
+      type: integer
+      minimum: 1
+    trust_label:
+      description: "The trust label of a message; null for a waitpoint event, which Relay itself produced."
+      oneOf:
+        - "$ref": "#/TrustLabel"
+        - type: "null"
+    sender:
+      description: "Who sent a message: the sender's kind, its identifier and whether its identity is verified. Null for a waitpoint event."
+      oneOf:
+        - type: object
+          required:
+            - kind
+            - id
+            - verified
+          properties:
+            kind:
+              type: string
+              enum:
+                - human
+                - system
+                - agent
+            id:
+              type: string
+              pattern: "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{0,255}$"
+            verified:
+              type: boolean
+          additionalProperties: false
+        - type: "null"
+    channel:
+      description: "The channel a message arrived on, or the channel the response to a waitpoint came from."
+      oneOf:
+        - type: string
+          pattern: "^[a-z][a-z_]{0,31}$"
+        - type: "null"
+    waitpoint_id:
+      oneOf:
+        - "$ref": "#/Id_wp"
+        - type: "null"
+    result:
+      description: "What a waitpoint event says happened to the waitpoint: the event type without its waitpoint prefix, such as resolved, expired or cancelled."
+      oneOf:
+        - type: string
+          pattern: "^[a-z][a-z_]{0,31}$"
+        - type: "null"
+    responder:
+      description: "Who answered a resolved waitpoint."
+      oneOf:
+        - type: object
+          required:
+            - recipient_id
+            - kind
+          properties:
+            recipient_id:
+              type: string
+              pattern: "^(sub|agt)_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+            kind:
+              type: string
+              enum:
+                - subscriber
+                - agent
+          additionalProperties: false
+        - type: "null"
+    evidence_level:
+      description: "The evidence level of the channel a response came from (AG-26). A response is never an authorisation."
+      oneOf:
+        - type: string
+          enum:
+            - channel_claim
+            - relay_session
+            - access_aas_ref
+        - type: "null"
+    subject_digest:
+      description: "The digest of the work the message or the response is bound to."
+      oneOf:
+        - "$ref": "#/Sha256Digest"
+        - type: "null"
+    response_digest:
+      oneOf:
+        - "$ref": "#/Sha256Digest"
+        - type: "null"
+    content_encryption:
+      description: "The scheme of an end-to-end encrypted envelope as its sender named it; null for content Relay can read."
+      oneOf:
+        - "$ref": "#/ContentEncryption"
+        - type: "null"
+    content_marking:
+      description: "encrypted_untrusted_content for a message that carries an end-to-end encrypted envelope (AG-57): Relay cannot read it and applies no content rule to it, the message has no parts, the envelope is read with getMailboxMessage and the recipient treats what it decrypts as untrusted content. Null otherwise."
+      oneOf:
+        - type: string
+          const: encrypted_untrusted_content
+        - type: "null"
+    relationship:
+      description: "The relationship level the recipient holds towards the sender of a message between agents; null for any other message."
+      oneOf:
+        - "$ref": "#/RelationshipLevel"
+        - type: "null"
+    parts:
+      type: array
+      items:
+        "$ref": "#/AgentMessagePart"
+    links:
+      type: array
+      description: "The action links of the message whose origin is on the tenant's allow list. A link is not to be opened unverified; a URL inside a text part is text."
+      items:
+        type: object
+        required:
+          - rel
+          - href
+        properties:
+          rel:
+            type: string
+            pattern: "^[a-z][a-z0-9_]{0,31}$"
+          href:
+            type: string
+            format: uri
+            maxLength: 2048
+        additionalProperties: false
+    links_withheld:
+      type: integer
+      minimum: 0
+      description: "How many links of the message were withheld because their target is not on the tenant's allow list."
+  additionalProperties: false
+AgentMessagePart:
+  description: "A content part in the A2A shape: a text part or a data part with its mediaType, and audience, the counterpart of MCP annotations.audience (C-76, AG-40). Every part a sender supplied is untrusted and says so in untrusted: the value of its mark and its source. It is data for an unprivileged context, never an instruction (TP-44, AG-41)."
+  oneOf:
+    - "$ref": "#/AgentMessageTextPart"
+    - "$ref": "#/AgentMessageDataPart"
+AgentMessageUntrusted:
+  type: object
+  description: "The untrusted content mark of a part (AG-68): nonce is the 128-bit random value of this part's boundary marks, drawn anew for every part of every envelope, and source says who wrote the content, whether that author is verified and on which channel it came."
+  required:
+    - nonce
+    - source
+  properties:
+    nonce:
+      type: string
+      pattern: "^[0-9a-f]{32}$"
+    source:
+      type: object
+      required:
+        - author
+        - verified
+        - channel
+      properties:
+        author:
+          oneOf:
+            - type: object
+              required:
+                - kind
+                - id
+              properties:
+                kind:
+                  type: string
+                  enum:
+                    - human
+                    - system
+                    - agent
+                id:
+                  type: string
+                  pattern: "^[A-Za-z0-9][A-Za-z0-9._:@/+=-]{0,255}$"
+              additionalProperties: false
+            - type: "null"
+        verified:
+          type: boolean
+        channel:
+          oneOf:
+            - type: string
+              pattern: "^[a-z][a-z_]{0,31}$"
+            - type: "null"
+      additionalProperties: false
+  additionalProperties: false
+AgentMessageContentRef:
+  type: object
+  description: "A reference to content of a part that is not in the envelope: the record and the index of the part, read with getMailboxRecord and content=referenced, and its size in bytes."
+  required:
+    - record_id
+    - part
+    - bytes
+  properties:
+    record_id:
+      "$ref": "#/Id_mbr"
+    part:
+      type: integer
+      minimum: 0
+    bytes:
+      type: integer
+      minimum: 0
+  additionalProperties: false
+AgentMessageTextPart:
+  type: object
+  description: "Untrusted text (AG-68). text starts with <<<relay:untrusted:N>>> and ends with <<<relay:end:N>>>, N being untrusted.nonce; every <<<relay: inside the text is written <<<relay%3A. The text is normalised to what a person would see: for HTML, comments, script, style, template, head and noscript elements, elements with hidden or aria-hidden=true and elements whose inline style hides them are dropped with their content and every other tag is dropped; then Unicode NFC; then invisible characters are dropped. text is null when the text is over the message limit and travels by reference (content_ref). raw_ref is present when the normalisation changed the text: the raw form, of raw_mediaType, is read by that reference and arrives in raw_text between the same marks."
+  required:
+    - kind
+    - mediaType
+    - audience
+    - text
+    - untrusted
+    - content_ref
+    - raw_ref
+    - raw_mediaType
+    - raw_text
+  properties:
+    kind:
+      type: string
+      const: text
+    mediaType:
+      type: string
+      const: text/plain
+    audience:
+      "$ref": "#/AgentMessageAudience"
+    text:
+      oneOf:
+        - type: string
+        - type: "null"
+    untrusted:
+      "$ref": "#/AgentMessageUntrusted"
+    content_ref:
+      oneOf:
+        - "$ref": "#/AgentMessageContentRef"
+        - type: "null"
+    raw_ref:
+      oneOf:
+        - "$ref": "#/AgentMessageContentRef"
+        - type: "null"
+    raw_mediaType:
+      type: string
+      enum:
+        - text/plain
+        - text/html
+    raw_text:
+      oneOf:
+        - type: string
+        - type: "null"
+  additionalProperties: false
+AgentMessageDataPart:
+  type: object
+  description: "Untrusted structured data. Every string in data, a key or a value, is normalised as text is (Unicode NFC, invisible characters dropped) and has <<<relay: written <<<relay%3A."
+  required:
+    - kind
+    - mediaType
+    - audience
+    - data
+    - untrusted
+  properties:
+    kind:
+      type: string
+      const: data
+    mediaType:
+      type: string
+      const: application/json
+    audience:
+      "$ref": "#/AgentMessageAudience"
+    data:
+      type: object
+      additionalProperties: true
+    untrusted:
+      "$ref": "#/AgentMessageUntrusted"
+  additionalProperties: false
+AgentMessageAudience:
+  type: array
+  description: "Who the part is for: the user, the assistant or both."
+  minItems: 1
+  uniqueItems: true
+  items:
+    type: string
+    enum:
+      - user
+      - assistant
 MailboxRecord:
   type: object
-  description: "A durable mailbox record (C-68). id is the durable handle a wake hint carries and the identifier a reader deduplicates by: delivery is at least once (AG-21). epoch and seq are the record's position in the mailbox stream; seq follows commit order, so reading in seq order is the guaranteed order (AG-24). A waitpoint_event record names its waitpoint, whose state and response are read from the waitpoint."
+  description: "A durable mailbox record (C-68). id is the durable handle a wake hint carries and the identifier a reader deduplicates by: delivery is at least once (AG-21). epoch and seq are the record's position in the mailbox stream; seq follows commit order, so reading in seq order is the guaranteed order (AG-24). A waitpoint_event record names its waitpoint, whose state and response are read from the waitpoint. trust_label is the label of a message record (AG-38). message is the structured message of the record, signed, for the owner of the mailbox; it is null for a reader that is not the owner, in the dead letter view (the message of a dead letter is read by its handle) and for a message whose content can no longer be opened."
   required:
     - object
     - id
@@ -5912,6 +6298,8 @@ MailboxRecord:
     - kind
     - event_type
     - waitpoint_id
+    - trust_label
+    - message
     - payload_digest
     - state
     - delivery_count
@@ -5944,6 +6332,14 @@ MailboxRecord:
     waitpoint_id:
       oneOf:
         - "$ref": "#/Id_wp"
+        - type: "null"
+    trust_label:
+      oneOf:
+        - "$ref": "#/TrustLabel"
+        - type: "null"
+    message:
+      oneOf:
+        - "$ref": "#/AgentMessage"
         - type: "null"
     payload_digest:
       "$ref": "#/Sha256Digest"
@@ -6206,14 +6602,6 @@ RelationshipLevel:
     - known
     - verified
     - trusted
-TrustLabel:
-  type: string
-  description: "The trust label Relay assigns to a received message (AG-38, AG-69), in this order: blocked for a sender the recipient blocked or Access suspended; spam for a message its channel marked as unwanted or a sender over the first-contact rate; authenticated for a verified sender; otherwise unauthenticated. It is never derived from content."
-  enum:
-    - authenticated
-    - unauthenticated
-    - spam
-    - blocked
 ContentEncryption:
   type: string
   description: "The name of the scheme the sender encrypted the envelope with, as the sender states it. Relay records it and does not interpret it."

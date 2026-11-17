@@ -372,6 +372,51 @@ defmodule RelayWeb.Api.AgentsTest do
       end
     end
 
+    test "AG-6, E-29: an agent reads its own mailbox only with agent:mailbox", ctx do
+      bound = party()
+      created = agent!(ctx, %{"access" => %{"party" => bound}})
+
+      reader = credential(ctx, bound, ["agent:mailbox"])
+      view = F.body(F.request(:get, "/v1/mailbox", reader), 200)
+      assert view["id"] == created["mailbox"]["id"]
+      assert view["owner"] == created["id"]
+
+      waiter = credential(ctx, bound, ["agent:waitpoint"])
+      assert code(F.request(:get, "/v1/mailbox", waiter), 403) == "auth_insufficient_scope"
+    end
+
+    test "AG-6, E-29: an agent opens and keeps alive only its own waitpoints", ctx do
+      bound = party()
+      created = agent!(ctx, %{"access" => %{"party" => bound}})
+      other = agent!(ctx)
+      waiter = credential(ctx, bound, ["agent:waitpoint"])
+      expires_at = ctx.scope |> Relay.Clock.business_now() |> DateTime.add(3_600, :second)
+
+      body = %{
+        "kind" => "event",
+        "match" => %{"type" => "refund.decided", "correlation_key" => party()},
+        "expires_at" => DateTime.to_iso8601(expires_at),
+        "heartbeat_interval" => "PT1M"
+      }
+
+      opened = F.body(F.request(:post, "/v1/waitpoints", waiter, body), 201)
+      assert opened["waiter"] == %{"kind" => "agent", "id" => created["id"]}
+      F.body(F.request(:post, "/v1/waitpoints/#{opened["id"]}/heartbeat", waiter), 200)
+
+      foreign = Map.put(body, "waiter", %{"kind" => "agent", "id" => other["id"]})
+      problem = F.body(F.request(:post, "/v1/waitpoints", waiter, foreign), 422)
+      assert [%{"pointer" => "/waiter/id", "code" => "not_allowed"}] = problem["errors"]
+
+      path = "/v1/waitpoints/" <> opened["id"]
+      assert code(F.request(:get, path, waiter), 403) == "auth_insufficient_scope"
+      cancelled = F.request(:post, path <> "/cancel", waiter, %{})
+      assert code(cancelled, 403) == "auth_insufficient_scope"
+
+      mailbox_only = credential(ctx, bound, ["agent:mailbox"])
+      refused = F.request(:post, "/v1/waitpoints", mailbox_only, body)
+      assert code(refused, 403) == "auth_insufficient_scope"
+    end
+
     test "AG-6, E-29: agent scopes without a bound agent record grant nothing", ctx do
       F.workflow!(ctx.scope, ctx.token, "order-shipped")
       unbound = credential(ctx, party(), ["agent:send"])

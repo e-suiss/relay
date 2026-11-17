@@ -22,7 +22,10 @@ defmodule Relay.Api.Waitpoints do
   alias Relay.Scope
 
   @type answer :: {:ok, {100..599, [{String.t(), String.t()}], map()}} | {:error, Relay.Error.t()}
-  @type caller :: %{api_client: Relay.Id.t() | nil}
+  @type caller :: %{
+          required(:api_client) => Relay.Id.t() | nil,
+          optional(:agent) => Relay.Id.t() | nil
+        }
 
   @dialect "https://json-schema.org/draft/2020-12/schema"
   @max_wait Relay.Limits.seconds!(["waitpoint", "max_wait"])
@@ -51,11 +54,11 @@ defmodule Relay.Api.Waitpoints do
   # AG-6
   # AG-46
   @doc "Who calls: the API client of the credential, when the credential names one."
-  @spec caller(String.t() | nil) :: caller()
-  def caller(api_client_id) do
+  @spec caller(String.t() | nil, Relay.Id.t() | nil) :: caller()
+  def caller(api_client_id, agent_id \\ nil) do
     case Relay.ExternalId.decode(api_client_id, ["cli"]) do
-      {:ok, id} -> %{api_client: id}
-      {:error, _error} -> %{api_client: nil}
+      {:ok, id} -> %{api_client: id, agent: agent_id}
+      {:error, _error} -> %{api_client: nil, agent: agent_id}
     end
   end
 
@@ -416,6 +419,21 @@ defmodule Relay.Api.Waitpoints do
       else: []
   end
 
+  # AG-6
+  # E-29
+  defp waiter(nil, %{agent: <<_::128>> = id}), do: {:ok, {:agent, id}}
+
+  defp waiter(%{"kind" => "agent", "id" => text}, %{agent: <<_::128>> = id}) do
+    case waiter_id(:agent, text, "agt") do
+      {:ok, {:agent, ^id}} = own -> own
+      {:ok, _other} -> {:error, invalid([error("/waiter/id", "not_allowed", "not the caller")])}
+      {:error, _error} = error -> error
+    end
+  end
+
+  defp waiter(%{"kind" => _other}, %{agent: <<_::128>>}),
+    do: {:error, invalid([error("/waiter", "not_allowed", "an agent waits for itself")])}
+
   # AG-64
   defp waiter(nil, %{api_client: nil}),
     do: {:error, invalid([error("/waiter", "required", "the credential names no API client")])}
@@ -676,6 +694,11 @@ defmodule Relay.Api.Waitpoints do
   # INV-32
   @doc "Records the waiter's heartbeat inside the request's transaction; a stalled waitpoint is open again. An API client's own waitpoint takes it only from that client."
   @spec heartbeat(map(), caller()) :: answer()
+  def heartbeat(%{row: %{waiter_kind: kind, waiter_ref: waiter}}, %{agent: <<_::128>> = agent})
+      when kind != "agent" or waiter != agent do
+    {:error, heartbeat_refused("only the waiter sends its heartbeat")}
+  end
+
   def heartbeat(%{row: %{waiter_kind: "api_client", waiter_ref: waiter}}, %{api_client: caller})
       when waiter != caller do
     {:error, heartbeat_refused("only the waiter sends its heartbeat")}

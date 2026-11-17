@@ -398,6 +398,13 @@ WaitpointId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_wp"
+MailboxRecordId:
+  name: record_id
+  in: path
+  description: "Mailbox record identifier: the durable handle of a record."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_mbr"
 EscalationPolicyKey:
   name: policy_key
   in: path

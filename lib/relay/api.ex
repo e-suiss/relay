@@ -108,6 +108,7 @@ defmodule Relay.Api do
       WebhookSources,
       OperationsContacts,
       Agents,
+      Mailbox,
       Waitpoints
     ]
 end

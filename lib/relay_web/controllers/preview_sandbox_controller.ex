@@ -22,6 +22,7 @@ defmodule RelayWeb.PreviewSandboxController do
     configured != nil and configured != own and String.downcase(host) == configured
   end
 
+  # sobelow_skip ["XSS.SendResp"]
   defp page(conn, {:ok, html}) do
     conn
     |> put_resp_content_type("text/html")

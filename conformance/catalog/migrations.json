@@ -285,5 +285,10 @@
   {"file": "20270101000100_allow_evidence_level_rejections.exs", "sha256": "f2c44ae45d1b9ab135b71ab4aee41e3b70ed47831de7a423cf3dffd7455293c8"},
   {"file": "20270101000200_create_response_collection_functions.exs", "sha256": "b45f622e9e9ff5900cab1039240cdb10d1712adb97b87b2b392ddbcd471c243c"},
   {"file": "20270101000300_validate_evidence_level_rejections.exs", "sha256": "a4ad9a43d7ff64ed8293d0573186e5bbd5931c1d5a27d7dc2f1ee455a3543a56"},
-  {"file": "20270101000400_rebuild_reference_check_for_response_tokens.exs", "sha256": "12bedc700b16d40a6e40dfe4b60862071d02e5db584a986081ecf46e2a8f45e5"}
+  {"file": "20270104000000_create_first_contact_tables.exs", "sha256": "98331633d438717324aff7982b7e05beb4093976ab5b6b2d140a8b9abff469b2"},
+  {"file": "20270104000100_create_first_contact_functions.exs", "sha256": "9cf8597a7b8ddb15315d970b6d2746071f2a8b320ab049ce5c5b44b05b54bca9"},
+  {"file": "20270104000200_validate_mailbox_record_kind_checks.exs", "sha256": "e66572c217c7528b3837d4e45016723fd6fe54de37a6e1dbf703e21da7677f0d"},
+  {"file": "20270104000300_register_encrypted_transport.exs", "sha256": "947b83161fdcc41b7372ac00cf5a9d8e5c5a80c7c2bb5ffdb0bcd5d09138f0fb"},
+  {"file": "20270104000400_rebuild_reference_check_for_first_contact.exs", "sha256": "805a172b2ecee51c3c3115880c99330f7cadbc1dfa59141b6e2025dafc8fc094"},
+  {"file": "20270104900000_rebuild_reference_check_for_response_tokens.exs", "sha256": "8011de0073a4c3d3b953fb88cfcde8548f982cc4007105e1d5f33691990733d9"}
 ]

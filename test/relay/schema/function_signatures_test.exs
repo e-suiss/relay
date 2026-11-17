@@ -397,7 +397,12 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.agent_ceiling_hold" => ~w(held passed released cancelled expired not_found),
     "relay_fn.agent_ceiling_decide" =>
       ~w(decided exists conflict step_up_required agent_not_found ceiling_event_not_found),
-    "relay_fn.agent_resume" => ~w(resumed unchanged agent_not_found)
+    "relay_fn.agent_resume" => ~w(resumed unchanged agent_not_found),
+    "relay_fn.agent_relationship_apply" => ~w(applied stale agent_not_found),
+    "relay_fn.agent_block_set" => ~w(blocked lifted unchanged sender_not_found),
+    "relay_fn.agent_message_send" =>
+      ~w(sent self sender_not_found recipient_not_found recipient_inactive token_required token_invalid token_replayed rate_limited),
+    "relay_fn.mailbox_abuse_report" => ~w(reported already_reported not_found)
   }
 
   defp functions do

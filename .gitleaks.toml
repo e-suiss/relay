@@ -6,6 +6,10 @@ description = "Published C2SP and golang.org/x/mod sumdb test vectors"
 paths = ['''^test/vectors/c2sp/''']
 
 [[allowlists]]
+description = "Published RFC 9578 Privacy Pass test vectors: public keys, challenges and tokens"
+paths = ['''^conformance/vectors/privacy_pass_rfc9578\.json$''']
+
+[[allowlists]]
 description = "Published RFC 8463 DKIM test key and signed message"
 paths = ['''^test/fixtures/email/dkim/''']
 

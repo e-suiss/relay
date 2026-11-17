@@ -406,5 +406,11 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "AG-11, AG-28, AG-62: the committed relay_fn.waitpoint_respond is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20270104000000_create_first_contact_tables.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "AG-59, AG-61, AG-73, OP-9: the no-delete and append-only triggers reject TRUNCATE on the relationship copy, the block list, the message metadata, the spent first-contact tokens and the abuse reports"
   }
 ]

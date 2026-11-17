@@ -979,6 +979,21 @@ defmodule RelayWeb.Router do
 
     get "/mailbox/dead_letters", MailboxController, :dead_letters,
       private: %{relay_operation: "listMailboxDeadLetters"}
+
+    post "/mailbox/messages", MailboxMessageController, :create,
+      private: %{relay_operation: "sendMailboxMessage"}
+
+    get "/mailbox/requests", MailboxMessageController, :requests,
+      private: %{relay_operation: "listMailboxRequests"}
+
+    get "/mailbox/envelopes", MailboxMessageController, :envelope,
+      private: %{relay_operation: "getMailboxEnvelope"}
+
+    post "/mailbox/blocks", MailboxMessageController, :block,
+      private: %{relay_operation: "setMailboxSenderBlock"}
+
+    post "/mailbox/abuse_reports", MailboxMessageController, :report,
+      private: %{relay_operation: "reportMailboxAbuse"}
   end
 
   # WH-14

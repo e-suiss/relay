@@ -165,15 +165,15 @@ defmodule Relay.TenantLifecycle.Closure do
 
       live
       |> Store.in_scope(fn _status ->
-        case Store.confirm(closure["id"], confirmation_ref, record_digest, actor) do
-          result when result in [:confirmed, :already_confirmed] -> {:ok, Store.get()}
-          :not_ready -> {:error, conflict("the export is not ready")}
-          :not_found -> {:error, not_found()}
-        end
+        confirmed(Store.confirm(closure["id"], confirmation_ref, record_digest, actor))
       end)
       |> outcome()
     end
   end
+
+  defp confirmed(result) when result in [:confirmed, :already_confirmed], do: {:ok, Store.get()}
+  defp confirmed(:not_ready), do: {:error, conflict("the export is not ready")}
+  defp confirmed(:not_found), do: {:error, not_found()}
 
   defp confirmation(ref) when is_binary(ref) and ref != "" do
     if String.length(ref) <= 256,

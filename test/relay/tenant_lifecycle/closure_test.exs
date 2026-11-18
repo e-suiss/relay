@@ -5,6 +5,8 @@ defmodule Relay.TenantLifecycle.ClosureTest do
     only: [tenant!: 0, scoped: 3, recipient!: 1, subject_key!: 3, rows!: 2]
 
   alias Relay.TenantLifecycle
+  alias Relay.TenantLifecycle.Closure
+  alias Relay.TenantLifecycle.ClosureJob
   alias Relay.TenantLifecycle.ExportStore.S3
 
   @actor %Relay.Actor{
@@ -70,7 +72,7 @@ defmodule Relay.TenantLifecycle.ClosureTest do
 
   defp exported(tenant) do
     assert [[args]] = job_args(tenant.id)
-    assert :ok = Relay.TenantLifecycle.ClosureJob.perform(%Oban.Job{args: args})
+    assert :ok = ClosureJob.perform(%Oban.Job{args: args})
     {:ok, closure} = TenantLifecycle.closure(tenant.id)
     closure
   end
@@ -242,10 +244,10 @@ defmodule Relay.TenantLifecycle.ClosureTest do
       columns = ["id", "state"]
       rows = [["sub_1", "active"], ["sub_2", "deleted"]]
 
-      assert IO.iodata_to_binary(Relay.TenantLifecycle.Closure.encode("jsonl", columns, rows)) ==
+      assert IO.iodata_to_binary(Closure.encode("jsonl", columns, rows)) ==
                ~s({"id":"sub_1","state":"active"}\n{"id":"sub_2","state":"deleted"}\n)
 
-      assert IO.iodata_to_binary(Relay.TenantLifecycle.Closure.encode("csv", columns, rows)) ==
+      assert IO.iodata_to_binary(Closure.encode("csv", columns, rows)) ==
                "id,state\r\nsub_1,active\r\nsub_2,deleted\r\n"
     end
   end

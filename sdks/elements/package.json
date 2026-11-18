@@ -1,0 +1,62 @@
+{
+  "name": "@esuiss/relay-elements",
+  "version": "0.1.0",
+  "description": "Relay's inbox, toast, preference center and webhook portal as framework-agnostic web components for Vue, Angular, Svelte, Phoenix LiveView and plain HTML.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": [
+    "./dist/auto.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/e-suiss/relay.git",
+    "directory": "sdks/elements"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./auto": {
+      "types": "./dist/auto.d.ts",
+      "import": "./dist/auto.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "demo": "vite",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@esuiss/relay-react": "file:../react",
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.0",
+    "@types/node": "24.19.2",
+    "eslint": "10.14.0",
+    "globals": "17.14.0",
+    "happy-dom": "21.0.4",
+    "prettier": "3.9.10",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.2",
+    "vite": "8.2.6",
+    "vitest": "5.1.0"
+  }
+}

@@ -1,0 +1,185 @@
+name: sdk-php
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - sdks/php/**
+      - contracts/**
+      - conformance/sdk/**
+      - conformance/webhooks/**
+      - .github/workflows/sdk-php.yml
+  pull_request:
+    paths:
+      - sdks/php/**
+      - contracts/**
+      - conformance/sdk/**
+      - conformance/webhooks/**
+      - .github/workflows/sdk-php.yml
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-php-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: sdks/php
+
+jobs:
+  dependencies:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: "8.2"
+          extensions: curl, sodium
+          coverage: none
+          tools: composer:2.11.1
+      - id: lock
+        run: |
+          if [ -f composer.lock ]; then
+            echo "created=false" >> "$GITHUB_OUTPUT"
+          else
+            composer update --no-install --no-plugins --no-scripts --no-interaction
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.lock.outputs.created == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: composer-lock
+          path: sdks/php/composer.lock
+      - if: steps.lock.outputs.created == 'true'
+        run: |
+          echo "::error::composer.lock is missing; commit the uploaded composer-lock artifact"
+          exit 1
+      - run: composer validate --strict
+      - run: composer install --no-interaction --no-progress --no-plugins --no-scripts
+      - run: composer audit --locked
+      # T-78
+      - run: |
+          cutoff=$(date -u -d '7 days ago' +%s)
+          status=0
+          while read -r name time; do
+            if [ "$(date -u -d "$time" +%s)" -gt "$cutoff" ]; then
+              echo "::error::$name was published at $time, less than 7 days ago"
+              status=1
+            fi
+          done < <(jq -r '(.packages + .["packages-dev"])[] | "\(.name) \(.time)"' composer.lock)
+          exit "$status"
+
+  generate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      # X-53
+      - id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT" in
+            pull_request) base="$PR_BASE" ;;
+            push) base="$BEFORE" ;;
+            *) base="" ;;
+          esac
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "check=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$base" HEAD | grep -qE '^(sdks/php/|\.github/workflows/sdk-php\.yml$)'; then
+            echo "check=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "check=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.scope.outputs.check == 'true'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: "8.2"
+          extensions: curl, sodium
+          coverage: none
+          tools: composer:2.11.1
+      - if: steps.scope.outputs.check == 'true'
+        run: ./regenerate.sh
+      - if: steps.scope.outputs.check == 'true'
+        id: diff
+        run: |
+          git add -N src/Generated
+          if git diff --quiet -- src/Generated; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git diff --stat -- src/Generated
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.diff.outputs.changed == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: php-generated
+          path: sdks/php/src/Generated
+      - if: steps.diff.outputs.changed == 'true'
+        run: |
+          echo "::error::src/Generated is not what codegen/generate.php produces from the contract; commit the php-generated artifact"
+          exit 1
+
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: "8.2"
+          extensions: curl, sodium
+          coverage: none
+          tools: composer:2.11.1
+      - run: composer install --no-interaction --no-progress --no-plugins --no-scripts
+      - run: vendor/bin/php-cs-fixer check --diff --show-progress=none
+      - run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.2", "8.5"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, sodium
+          coverage: none
+          ini-values: zend.assertions=1
+          tools: composer:2.11.1
+      - run: composer install --no-interaction --no-progress --no-plugins --no-scripts
+      - run: vendor/bin/phpunit --testsuite unit
+
+  live:
+    if: github.event_name == 'schedule' && vars.RELAY_SDK_LIVE_BASE_URL != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      RELAY_SDK_LIVE_BASE_URL: ${{ vars.RELAY_SDK_LIVE_BASE_URL }}
+      RELAY_SDK_LIVE_ISSUER: ${{ vars.RELAY_SDK_LIVE_ISSUER }}
+      RELAY_SDK_LIVE_CLIENT_ID: ${{ vars.RELAY_SDK_LIVE_CLIENT_ID }}
+      RELAY_SDK_LIVE_CLIENT_SECRET: ${{ secrets.RELAY_SDK_LIVE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: "8.5"
+          extensions: curl, sodium
+          coverage: none
+          tools: composer:2.11.1
+      - run: composer install --no-interaction --no-progress --no-plugins --no-scripts
+      - run: vendor/bin/phpunit --testsuite live

@@ -17,6 +17,8 @@
 "prefs.on" = "Açık";
 "prefs.off" = "Kapalı";
 "prefs.lockedOn" = "Açık (kilitli)";
+"prefs.lockedSubscriber" = "Kilitli: hesabınızı korur";
+"prefs.lockedTenant" = "Kilitli: hizmet için gerekli";
 "prefs.adminDisabled" = "Yöneticiniz kapattı";
 "prefs.deviceDisabled" = "Cihaz ayarlarından kapalı";
 "prefs.openSettings" = "Ayarları aç";

@@ -1,6 +1,6 @@
 def esc: tostring | @html;
 
-def label:
+def caption:
   {
     "operational": "Operational",
     "degraded": "Degraded performance",
@@ -35,11 +35,11 @@ def updates:
   .updates
   | sort_by(.at)
   | reverse
-  | map("<li><time datetime=\"\(.at | esc)\">\(.at | esc)</time> <strong>\(.status | label | esc)</strong>: \(.body | esc)</li>")
+  | map("<li><time datetime=\"\(.at | esc)\">\(.at | esc)</time> <strong>\(.status | caption | esc)</strong>: \(.body | esc)</li>")
   | join("\n");
 
 def incident:
-  "<article id=\"\(.id | esc)\">\n<h3>\(.title | esc)</h3>\n<p class=\"muted\">\(.status | label | esc) · \(.impact | label | esc) · \(.components | join(", ") | esc) · \(.regions | join(", ") | esc) · since <time datetime=\"\(.started_at | esc)\">\(.started_at | esc)</time>\(if .resolved_at then " · resolved <time datetime=\"\(.resolved_at | esc)\">\(.resolved_at | esc)</time>" else "" end)</p>\n<ul>\n\(updates)\n</ul>\n</article>";
+  "<article id=\"\(.id | esc)\">\n<h3>\(.title | esc)</h3>\n<p class=\"muted\">\(.status | caption | esc) · \(.impact | caption | esc) · \(.components | join(", ") | esc) · \(.regions | join(", ") | esc) · since <time datetime=\"\(.started_at | esc)\">\(.started_at | esc)</time>\(if .resolved_at then " · resolved <time datetime=\"\(.resolved_at | esc)\">\(.resolved_at | esc)</time>" else "" end)</p>\n<ul>\n\(updates)\n</ul>\n</article>";
 
 . as $site
 | ($incidents[0] | map(valid) | sort_by(.started_at) | reverse) as $all
@@ -73,12 +73,12 @@ def incident:
       "<body>",
       "<header><h1>\($site.name | esc)</h1><p>\($site.description | esc)</p></header>",
       "<main>",
-      "<p class=\"banner \($overall)\" role=\"status\">\(if $overall == "operational" then "All systems operational" else ($overall | label | esc) end)</p>",
+      "<p class=\"banner \($overall)\" role=\"status\">\(if $overall == "operational" then "All systems operational" else ($overall | caption | esc) end)</p>",
       "<h2>Components</h2>",
       "<table>",
       "<tr><th scope=\"col\">Component</th>\($regions | map("<th scope=\"col\">\(. | ascii_upcase | esc)</th>") | join(""))</tr>",
       ($site.components[] as $c
-        | "<tr><th scope=\"row\">\($c.name | esc)</th>\($regions | map(. as $r | if ($c.regions | index($r)) != null then state($c.id; $r) as $s | "<td class=\"state \($s)\">\($s | label | esc)</td>" else "<td>-</td>" end) | join(""))</tr>"),
+        | "<tr><th scope=\"row\">\($c.name | esc)</th>\($regions | map(. as $r | if ($c.regions | index($r)) != null then state($c.id; $r) as $s | "<td class=\"state \($s)\">\($s | caption | esc)</td>" else "<td>-</td>" end) | join(""))</tr>"),
       "</table>",
       "<h2>Current incidents</h2>",
       (if ($open | length) == 0 then "<p>No current incidents.</p>" else ($open[] | incident) end),

@@ -56,3 +56,7 @@ description = "Synthetic caller idempotency key of the PHP SDK tests"
 condition = "AND"
 paths = ['''^sdks/php/tests/''']
 regexes = ['''^order-4821-wait$''']
+
+[[allowlists]]
+description = "Synthetic one-time token of the shadow content masking vectors"
+paths = ['''^conformance/vectors/shadow-content/''']

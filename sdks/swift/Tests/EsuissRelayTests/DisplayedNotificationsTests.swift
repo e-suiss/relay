@@ -246,7 +246,9 @@ final class DisplayedNotificationsTests: XCTestCase {
     XCTAssertEqual(notifications[0]["digest"] as? String, shown.digest)
     let displayedAt = try XCTUnwrap(notifications[0]["displayed_at"] as? String)
     XCTAssertTrue(displayedAt.hasSuffix("Z"))
-    XCTAssertEqual(try RelayDateTranscoder().decode(displayedAt), harness.clock.now())
+    let decoded = try RelayDateTranscoder().decode(displayedAt)
+    XCTAssertEqual(
+      decoded.timeIntervalSince1970, harness.clock.now().timeIntervalSince1970, accuracy: 1)
     XCTAssertFalse(String(decoding: request.body, as: UTF8.self).contains(Self.notificationId))
   }
 

@@ -107,6 +107,7 @@ defmodule Relay.Migration.Compare do
   @doc "The lowercase hex SHA-256 of a text, `nil` for `nil`."
   @spec digest(String.t() | nil) :: String.t() | nil
   def digest(nil), do: nil
+
   def digest(text) when is_binary(text),
     do: Base.encode16(:crypto.hash(:sha256, text), case: :lower)
 

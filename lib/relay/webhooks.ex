@@ -11,7 +11,7 @@ defmodule Relay.Webhooks do
   The signer and the sealer are ports: `config :relay, Relay.Webhooks, signer: Module, sealer: Module`, by default `Relay.Webhooks.Signer.KeyStore` and `Relay.Webhooks.Live`. The same configuration holds the installation's egress policy (`Relay.Webhooks.Egress.Policy`): `deployment: :saas | :self_hosted` (`:saas` when absent), `extra_ports: [port]` for HTTPS ports besides 443 (WH-40 (2)), `allow_list: [entry]` for the internal targets of a self-hosted installation (WH-44), and `resolver: Module` for the DNS port.
   """
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Ingest], exports: []
+  use Boundary, top_level?: true, deps: [Relay], exports: []
 
   alias Relay.Actor
   alias Relay.Scope

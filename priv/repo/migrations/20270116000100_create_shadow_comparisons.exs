@@ -17,8 +17,7 @@ defmodule Relay.Repo.Migrations.CreateShadowComparisons do
      ~w(relay_app)},
     {"relay_fn.shadow_difference_create(uuid, text, text, text, text, text, text, timestamptz, bytea, #{@actor})",
      ~w(relay_app)},
-    {"relay_fn.shadow_difference_renew(uuid, timestamptz, text, bytea, #{@actor})",
-     ~w(relay_app)}
+    {"relay_fn.shadow_difference_renew(uuid, timestamptz, text, bytea, #{@actor})", ~w(relay_app)}
   ]
 
   # OP-52

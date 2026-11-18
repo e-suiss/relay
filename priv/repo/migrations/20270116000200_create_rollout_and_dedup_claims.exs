@@ -54,7 +54,9 @@ defmodule Relay.Repo.Migrations.CreateRolloutAndDedupClaims do
     end
 
     execute(
-      "ALTER TABLE relay.webhook_endpoints ADD COLUMN IF NOT EXISTS shadow boolean NOT NULL DEFAULT false"
+      """
+      ALTER TABLE relay.webhook_endpoints ADD COLUMN IF NOT EXISTS shadow boolean NOT NULL DEFAULT false
+      """
     )
 
     Enum.each(functions(), &execute/1)
@@ -90,10 +92,10 @@ defmodule Relay.Repo.Migrations.CreateRolloutAndDedupClaims do
         basis_points jsonb NOT NULL
           CONSTRAINT rollout_configs_basis_points_check
             CHECK (jsonb_typeof(basis_points) = 'object'
-              AND octet_length(basis_points::text) <= 16384),
+              AND pg_column_size(basis_points) <= 16384),
         steps jsonb NOT NULL
           CONSTRAINT rollout_configs_steps_check
-            CHECK (jsonb_typeof(steps) = 'object' AND octet_length(steps::text) <= 32768),
+            CHECK (jsonb_typeof(steps) = 'object' AND pg_column_size(steps) <= 32768),
         generation bigint NOT NULL
           CONSTRAINT rollout_configs_generation_check CHECK (generation >= 1),
         created_at timestamptz NOT NULL,

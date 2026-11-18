@@ -89,7 +89,8 @@ defmodule RelayTest.Isolation do
     {"replayWebhookEndpointEvents", %{"since" => "2026-01-01T00:00:00Z"}},
     {"cancelWebhookEndpointRetries", %{}},
     {"updateAgent", %{"name" => "Isolation"}},
-    {"cancelWaitpoint", %{"reason" => "isolation"}}
+    {"cancelWaitpoint", %{"reason" => "isolation"}},
+    {"setWebhookEndpointShadow", %{"shadow" => true}}
   ]
   @upserts %{
     "replaceSubscriber" => 201,
@@ -162,7 +163,8 @@ defmodule RelayTest.Isolation do
       "webhook_attempt_id" => &webhook_attempt!/1,
       "agent_id" => &agent!/1,
       "record_id" => &mailbox_record!/1,
-      "waitpoint_id" => &waitpoint!/1
+      "waitpoint_id" => &waitpoint!/1,
+      "shadow_difference_id" => &shadow_difference!/1
     }
   end
 
@@ -182,6 +184,10 @@ defmodule RelayTest.Isolation do
       "decision_ref" => "isolation"
     })
     |> Map.put("replaceTemplateDraft", %{"definition" => @sms})
+    |> Map.put("renewShadowDifference", %{
+      "expires_at" => DateTime.to_iso8601(DateTime.add(DateTime.utc_now(), 86_400, :second)),
+      "reason" => "isolation"
+    })
     |> Map.put("publishProducerTemplate", %{
       "name" => "Isolation",
       "category" => "security",
@@ -664,6 +670,21 @@ defmodule RelayTest.Isolation do
     }
 
     F.body(F.request(:post, "/v1/campaigns", owner(scope), body), 201)["id"]
+  end
+
+  @doc "Records an intentional shadow difference in `scope` and returns its identifier."
+  @spec shadow_difference!(Relay.Scope.t()) :: String.t()
+  def shadow_difference!(scope) do
+    expires_at = DateTime.to_iso8601(DateTime.add(DateTime.utc_now(), 86_400, :second))
+
+    body = %{
+      "layer" => "content",
+      "owner" => "isolation",
+      "reason" => "isolation",
+      "expires_at" => expires_at
+    }
+
+    F.body(F.request(:post, "/v1/shadow/differences", owner(scope), body), 201)["id"]
   end
 
   @doc "Publishes a tenant-wide inbox announcement in `scope` and returns its identifier."

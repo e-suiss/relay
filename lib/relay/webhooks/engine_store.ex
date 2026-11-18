@@ -50,6 +50,17 @@ defmodule Relay.Webhooks.EngineStore do
     )
   end
 
+  # OP-51
+  # OP-94
+  @doc "The tenant settings of `keys` that are set, by key."
+  @spec settings([String.t()]) :: %{String.t() => term()}
+  def settings(keys) do
+    for row <- Repo.call!("relay_fn.setting_resolve", [nil, keys]),
+        row["value"] != nil,
+        into: %{},
+        do: {row["key"], row["value"]}
+  end
+
   # OP-52 (1)
   # OP-94
   @doc "What tells whether an event about a delivery comes from a shadow send: the delivery's channel, its event's requested send mode, its workflow's key and category and the provider of its latest attempt; `nil` when there is no such delivery."

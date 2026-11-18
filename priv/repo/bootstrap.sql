@@ -145,6 +145,7 @@ DECLARE
     "relay_ops.report_rollup_scopes": ["relay_worker"],
     "relay_ops.reference_check": [],
     "relay_ops.retention_due": ["relay_worker"],
+    "relay_ops.shadow_keys_due": ["relay_worker"],
     "relay_ops.singleton_acquire": ["relay_worker"],
     "relay_ops.singleton_save": ["relay_worker"],
     "relay_ops.subscriber_tenants": ["relay_worker"],

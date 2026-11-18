@@ -169,7 +169,7 @@ defmodule RelayWeb.Api.MigrationTest do
           201
         )
 
-      renew = %{"expires_at" => expires(30), "reason" => "still needed"}
+      renew = %{"expires_at" => expires(29), "reason" => "still needed"}
       path = "/v1/shadow/differences/#{created["id"]}/renew"
       renewed = F.body(F.request(:post, path, ctx.token, renew), 200)
       assert renewed["renewals"] == 1
@@ -320,6 +320,7 @@ defmodule RelayWeb.Api.MigrationTest do
 
       path = "/v1/subscriber/displayed_notifications"
       answer = F.body(F.request(:post, path, subscriber.token, body), 202)
+
       assert %{"object" => "displayed_notifications", "accepted" => 3, "duplicates" => 1} =
                answer
     end
@@ -332,7 +333,8 @@ defmodule RelayWeb.Api.MigrationTest do
     form = %{
       "grant_type" => @grant,
       "subject_token" => token,
-      "subject_token_type" => @subject_type
+      "subject_token_type" => @subject_type,
+      "scope" => "devices:write"
     }
 
     headers = FakeAccess.exchange_headers(token)

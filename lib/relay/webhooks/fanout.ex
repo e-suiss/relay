@@ -14,6 +14,7 @@ defmodule Relay.Webhooks.Fanout do
 
   @disabled "webhook_endpoint.disabled"
   @tested "webhook_endpoint.tested"
+  @modes ~w(live shadow dry_run off)
 
   @typedoc "One of Relay's own events as the outbox handed it over: its identifier and type, its data with external identifiers, its stream as subject with epoch and sequence number, when it happened and its trace context."
   @type event :: %{
@@ -66,10 +67,20 @@ defmodule Relay.Webhooks.Fanout do
 
   defp mode(row) do
     category = row["category"] || ""
-    workflow = row["workflow_key"]
-    keys = Relay.Ingest.send_mode_keys(workflow, category, row["channel"])
-    settings = Relay.Ingest.settings(keys)
-    Relay.Ingest.send_mode(row["send_mode"], settings, workflow, category, row["channel"], nil)
+    channel = row["channel"]
+    own = if row["workflow_key"], do: ["send_mode.workflow." <> row["workflow_key"]], else: []
+
+    keys =
+      own ++
+        [
+          "send_mode.category." <> category <> ".channel." <> channel,
+          "send_mode.channel." <> channel,
+          "send_mode"
+        ]
+
+    settings = EngineStore.settings(keys)
+    modes = [row["send_mode"] | Enum.map(keys, &Map.get(settings, &1))]
+    if Enum.find(modes, "live", &(&1 in )) == "shadow", do: :shadow, else: :live
   end
 
   defp recorded(%{id: id, type: type} = event, endpoints, data, version) do

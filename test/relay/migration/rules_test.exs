@@ -91,8 +91,10 @@ defmodule Relay.Migration.RulesTest do
 
       day_ago = DateTime.to_iso8601(DateTime.add(@now, -86_400))
       steps = %{"orders" => %{"basis_points" => 100, "changed_at" => day_ago}}
+
       assert {:ok, %{"orders" => %{"basis_points" => 500}}} =
                Ramp.check(steps, %{"orders" => 500}, @now)
+
       assert {:error, [_error]} = Ramp.check(steps, %{"orders" => 501}, @now)
       assert Ramp.ceiling(2500) == 10_000
     end
@@ -104,8 +106,10 @@ defmodule Relay.Migration.RulesTest do
       assert {:error, [%{detail: detail}]} = Ramp.check(steps, %{"orders" => 600}, @now)
       assert detail =~ "one day"
       assert {:ok, %{"orders" => %{"basis_points" => 0}}} = Ramp.check(steps, %{}, @now)
+
       assert {:ok, %{"orders" => %{"basis_points" => 100}}} =
                Ramp.check(steps, %{"orders" => 100}, @now)
+
       assert {:ok, ^steps} = Ramp.check(steps, %{"orders" => 500}, @now)
     end
   end
@@ -164,6 +168,7 @@ defmodule Relay.Migration.RulesTest do
 
     test "OP-94: a side that never came is a recipient set difference once the grace ends" do
       assert %{state: :pending} = Compare.compare(@legacy, nil, nil)
+
       assert %{state: :differs, differing: ["recipients"]} =
                Compare.compare(nil, @relay, nil, true)
     end
@@ -175,6 +180,7 @@ defmodule Relay.Migration.RulesTest do
                Compare.relay_side(row)
 
       deferred = %{"decision" => "defer", "decision_rule_id" => "quiet_hours.deferred"}
+
       assert %{"decision" => "deferred", "timing" => "quiet_hours"} =
                Compare.relay_side(deferred)
     end

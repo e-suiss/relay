@@ -22,11 +22,11 @@
     {
       "channel": "push",
       "content": {
-        "body": "Takip: ntf_01j9zq3k4m5n6p7q8r9s0t1v2w token AbCdEfGhIjKlMnOpQrSt12 <img src=x width=1>",
+        "body": "Takip: ntf_01j9zq3k4m5n6p7q8r9s0t1v2w kod AbCdEfGhIjKlMnOpQrSt12 <img src=x width=1>",
         "title": "Paket yolda"
       },
-      "canonical": "{\"channel\":\"push\",\"fields\":{\"title\":\"Paket yolda\",\"body\":\"Takip: <id> token <token>\"}}",
-      "digest": "8b82dc008ab88363923ae4bb1a2b35cc994cd7a1381dcf299559574d422f4f33"
+      "canonical": "{\"channel\":\"push\",\"fields\":{\"title\":\"Paket yolda\",\"body\":\"Takip: <id> kod <token>\"}}",
+      "digest": "c34b933b23a6073edf9ee20d980a00d26c1523d9e59b0d234a1796f482bf9f9d"
     },
     {
       "channel": "sms",

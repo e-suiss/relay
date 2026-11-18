@@ -314,8 +314,8 @@
   {"file": "20270111000400_create_kill_switch_effects.exs", "sha256": "63a2f9fe1285bdfc13a4451f18439c5cf2f3d180032f9e67fe4499291136cf47"},
   {"file": "20270111000500_rebuild_reference_check_for_kill_switch_effects.exs", "sha256": "0677e448cb0720bbe649349d9fddc6f33f7be282da2c8311e5ef514791fb40e6"},
   {"file": "20270116000000_add_shadow_retention_class.exs", "sha256": "b4eee6bccc9da26c777b75360b746a8ab014b87165a95ca3c712d824cb9a815a"},
-  {"file": "20270116000100_create_shadow_comparisons.exs", "sha256": "18296f90a6b51bb13a19b3328a553d789d64314ef7ccd1afd031b9afb52575d7"},
-  {"file": "20270116000200_create_rollout_and_dedup_claims.exs", "sha256": "07d05d269627716b25fb2a4fa6fc487c9980a7457549c70567ac90144fb85f7c"},
+  {"file": "20270116000100_create_shadow_comparisons.exs", "sha256": "4c2de751ed4ed61ceedf9183ada7fe9e100add302a407b64ff410119b952d4bf"},
+  {"file": "20270116000200_create_rollout_and_dedup_claims.exs", "sha256": "d3e14d2b0f0252a18acfb760abbf8f8d16829abb611faeca47273cd1fb709fd3"},
   {"file": "20270116000300_index_events_by_correlation_id.exs", "sha256": "7ccf4dbd56fa6c6f806640fe40e64c8925c461a10eadb10d53cffe2d4490468d"},
   {"file": "20270116000400_rebuild_reference_check_for_shadow_comparisons.exs", "sha256": "45e0f66eae7a7cd80a5f5baae89d370ddb848031f861e56fb609338d62a87442"}
 ]

@@ -77,6 +77,7 @@ defmodule Relay.Api do
       DeliveryWindows,
       ComplianceSettings,
       Previews,
+      PreviewSandbox,
       Discovery,
       WhatsappTemplates,
       WhatsappWebhooks,

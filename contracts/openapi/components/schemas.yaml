@@ -15340,3 +15340,164 @@ TenantSettingsUpdate:
             - type: "null"
       additionalProperties: false
   additionalProperties: false
+Id_fij:
+  type: string
+  description: "Fault injection identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^fij_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - fij_01j9zq3k4m5n6p7q8r9s0t1v2w
+FaultInjectionKind:
+  type: string
+  description: "provider_auth_error, rate_limited_429, concurrency_exhausted, bounce_spike and template_paused answer the provider call with that failure; added_latency waits delay_ms before the real call; delayed_delivery_report holds provider delivery reports for delay_ms; iys_pull_stalled skips the İYS pull."
+  enum:
+    - provider_auth_error
+    - rate_limited_429
+    - concurrency_exhausted
+    - bounce_spike
+    - template_paused
+    - delayed_delivery_report
+    - iys_pull_stalled
+    - added_latency
+FaultInjection:
+  type: object
+  description: "A fault injection for game days and chaos tests. It acts only in the test environment, or in live on an installation running in chaos mode, and stops by itself at expires_at."
+  required:
+    - object
+    - id
+    - scope_kind
+    - tenant_id
+    - environment
+    - channel
+    - provider
+    - kind
+    - rate_percent
+    - delay_ms
+    - reason
+    - created_by
+    - expires_at
+    - status
+    - cleared_at
+    - created_at
+  properties:
+    object:
+      type: string
+      const: fault_injection
+    id:
+      "$ref": "#/Id_fij"
+    scope_kind:
+      type: string
+      enum:
+        - installation
+        - tenant
+    tenant_id:
+      oneOf:
+        - "$ref": "#/Id_ten"
+        - type: "null"
+    environment:
+      type: string
+      enum:
+        - live
+        - test
+    channel:
+      oneOf:
+        - "$ref": "#/Channel"
+        - type: "null"
+    provider:
+      oneOf:
+        - type: string
+          maxLength: 64
+        - type: "null"
+    kind:
+      "$ref": "#/FaultInjectionKind"
+    rate_percent:
+      type: integer
+      minimum: 0
+      maximum: 100
+    delay_ms:
+      oneOf:
+        - type: integer
+          minimum: 1
+          maximum: 3600000
+        - type: "null"
+    reason:
+      type: string
+      maxLength: 2000
+    created_by:
+      type: string
+      maxLength: 256
+    expires_at:
+      "$ref": "#/Timestamp"
+    status:
+      type: string
+      description: "active until cleared; an active record past expires_at no longer acts."
+      enum:
+        - active
+        - cleared
+    cleared_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+FaultInjectionList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/FaultInjection"
+FaultInjectionEngage:
+  type: object
+  description: "Accepted only for the test environment, or for live on an installation running with RELAY_CHAOS_MODE=true. Engaging the dimensions of a record in force answers that record."
+  required:
+    - environment
+    - kind
+    - rate_percent
+    - ttl
+    - reason
+  properties:
+    tenant_id:
+      "$ref": "#/Id_ten"
+      description: "Narrows the record to one tenant; omit for the whole installation."
+    environment:
+      type: string
+      enum:
+        - live
+        - test
+    channel:
+      "$ref": "#/Channel"
+    provider:
+      type: string
+      pattern: "^[a-z][a-z0-9_]{0,63}$"
+      description: "Provider adapter name, such as apns or fake."
+    kind:
+      "$ref": "#/FaultInjectionKind"
+    rate_percent:
+      type: integer
+      minimum: 0
+      maximum: 100
+    delay_ms:
+      type: integer
+      minimum: 1
+      maximum: 3600000
+      description: "Required for added_latency (at most 10000) and delayed_delivery_report; not allowed otherwise."
+    ttl:
+      "$ref": "#/Duration"
+      description: "Time to live, at most PT1H."
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 2000
+  additionalProperties: false
+FaultInjectionClear:
+  type: object
+  required:
+    - reason
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 2000
+  additionalProperties: false

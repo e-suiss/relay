@@ -39,6 +39,18 @@ defmodule Relay.Config.Env do
     value
   end
 
+  # OP-92
+  @doc "Reads an optional on/off environment variable: unset or `false` is false, `true` is true and any other value stops the node."
+  @spec flag!(String.t()) :: boolean()
+  def flag!(name) do
+    case System.get_env(name) do
+      nil -> false
+      "false" -> false
+      "true" -> true
+      _ -> raise Error, "environment variable #{name} must be true or false"
+    end
+  end
+
   # sobelow_skip ["Traversal.FileModule"]
   @doc "Reads a secret from the file named by a required environment variable."
   @spec file!(String.t()) :: String.t()

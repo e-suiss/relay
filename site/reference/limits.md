@@ -542,6 +542,7 @@ Every error is an RFC 9457 problem document whose `type` is `/v1/errors/<code>` 
 | `event_type_mapping_not_found` | 404 | no |  | CloudEvents type mapping not found |
 | `event_type_not_mapped` | 422 | no |  | CloudEvents type is not mapped |
 | `export_not_found` | 404 | no |  | Export not found |
+| `fault_injection_not_found` | 404 | no |  | Fault injection not found |
 | `first_contact_token_required` | 403 | no |  | First-contact token required |
 | `idempotency_key_in_progress` | 409 | yes | 1 s | A request with this Idempotency-Key is in progress |
 | `idempotency_key_invalid` | 400 | no |  | Idempotency-Key is invalid |

@@ -77,7 +77,7 @@ services:
   toxiproxy:
     image: ghcr.io/shopify/toxiproxy:2.12.0@sha256:9378ed52a28bc50edc1350f936f518f31fa95f0d15917d6eb40b8e376d1a214e
     profiles: [chaos]
-    ports: ["8474:8474"]
+    ports: ["8474:8474", "25432:25432", "26379:26379"]
 
   otel-collector:
     image: otel/opentelemetry-collector:0.161.0@sha256:b6d2b9a85b1029d05b5ad913150c1f014eed4ae99be81a1813ca5ade4a191913

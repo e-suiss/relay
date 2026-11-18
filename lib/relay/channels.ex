@@ -1171,6 +1171,25 @@ defmodule Relay.Channels do
   def machine_open(signals, request),
     do: ClickSignals.machine_open(signals, request)
 
+  # OP-92
+  # OP-49
+  @doc "The outcome a fault injection of `kind` answers in place of the provider (`Relay.FaultInjection`): `provider_auth_error` is `auth`, `rate_limited_429` a `transient` `rate_limited` 429 with a one second `Retry-After`, `concurrency_exhausted` a `transient` 503, `bounce_spike` `permanent_target` and `template_paused` `permanent_content`; the raw code is `chaos:<kind>`."
+  @spec fault_outcome(atom()) :: Outcome.t()
+  def fault_outcome(:provider_auth_error), do: failed_outcome("auth", "chaos:provider_auth_error")
+
+  def fault_outcome(:rate_limited_429) do
+    outcome = failed_outcome("transient", "chaos:rate_limited_429")
+    %{outcome | condition: "rate_limited", status: 429, retry_after_ms: 1_000}
+  end
+
+  def fault_outcome(:concurrency_exhausted),
+    do: %{failed_outcome("transient", "chaos:concurrency_exhausted") | status: 503}
+
+  def fault_outcome(:bounce_spike), do: failed_outcome("permanent_target", "chaos:bounce_spike")
+
+  def fault_outcome(:template_paused),
+    do: failed_outcome("permanent_content", "chaos:template_paused")
+
   # CH-7
   @doc "A failed outcome of a class with a raw code, for a call Relay could not make or classify; a `transient` one has the `server_error` condition."
   @spec failed_outcome(String.t(), String.t()) :: Outcome.t()

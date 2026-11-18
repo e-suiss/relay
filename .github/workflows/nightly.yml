@@ -28,6 +28,10 @@ jobs:
           version-file: .tool-versions
           version-type: strict
       - run: docker compose -f deploy/compose.yaml --profile chaos up -d --wait
+      # OP-93
+      - run: |
+          curl -fsS -X POST http://localhost:8474/proxies -H 'content-type: application/json' \
+            -d '{"name":"valkey","listen":"0.0.0.0:26379","upstream":"valkey:6379","enabled":true}'
       - run: mix deps.get --check-locked
       - run: mix hex.audit
       - run: mix deps.audit
@@ -40,6 +44,9 @@ jobs:
         working-directory: native/archive_port
       - run: native/build.sh
       - run: mix test --include integration --include nightly
+        env:
+          TOXIPROXY_URL: http://localhost:8474
+          CHAOS_VALKEY_URL: redis://localhost:26379
       - shell: bash
         run: mix run bench/fanout_100k.exs | tee fanout-bench.txt
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -114,6 +121,9 @@ jobs:
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/live-destinations.yml
 
+  region-acceptance:
+    uses: ./.github/workflows/region-acceptance.yml
+
   load:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
@@ -135,3 +145,32 @@ jobs:
         with:
           name: load-${{ github.run_id }}
           path: load/output
+
+  load-accept:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      issues: write
+    env:
+      MIX_ENV: dev
+      SOFTHSM2_CONF: ${{ github.workspace }}/deploy/softhsm/softhsm2.conf
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/dev-plane
+      # OP-93
+      - run: load/accept.sh 50 30
+      - run: load/budget.sh "$(ls -d load/output/*-accept | tail -n 1)/report.json" accept
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      - if: failure()
+        run: tail -n 200 "$RUNNER_TEMP/relay.log"
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: load-accept-${{ github.run_id }}
+          path: |
+            load/output
+            !load/output/**/targets.txt
+          if-no-files-found: ignore

@@ -10576,6 +10576,22 @@
   },
   {
     "acceptance": "pending",
+    "id": "OP-92",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-93",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
     "id": "OQ-1",
     "section": "§22",
     "status": "open_question",

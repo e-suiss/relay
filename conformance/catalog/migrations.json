@@ -319,5 +319,6 @@
   {"file": "20270113000200_create_tenant_closures.exs", "sha256": "c42bc1058147c9a9e44b314c34884d06cad4cf49a1b007d1cd954abc2a82d2ae"},
   {"file": "20270114000000_create_access_tenant_region_refused.exs", "sha256": "3284fd77f3d85b9c04431dc3707a6cd7632524b4900f3af0308447596aec3c1a"},
   {"file": "20270114000100_index_access_event_receipts_region.exs", "sha256": "fe5f97a38d78a5f9a4bc275618b0a9071cdd0d142c3de1a13999609a23616092"},
-  {"file": "20270114000200_tune_hot_leaf_autovacuum.exs", "sha256": "eb3948c46bc08e0adf57392c2bdc34d4fb6686da0c5dedd26ac6899282af1194"}
+  {"file": "20270114000200_tune_hot_leaf_autovacuum.exs", "sha256": "eb3948c46bc08e0adf57392c2bdc34d4fb6686da0c5dedd26ac6899282af1194"},
+  {"file": "20270115000000_create_fault_injections.exs", "sha256": "fb956e7f8fb96d7027f239cc2032dcda7792e66f01173cf18a189a5b1d549c69"}
 ]

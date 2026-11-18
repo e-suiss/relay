@@ -114,12 +114,18 @@ defmodule RelayDev.Access do
   # E-93
   @doc "A DPoP proof of the stand-in's DPoP key for one request: `method`, `url` (its query is left out) and the token it carries."
   @spec proof(String.t(), String.t(), String.t()) :: String.t()
-  def proof(method, url, token) do
+  def proof(method, url, token),
+    do: proof_at(method, url, token, DateTime.to_unix(Relay.Clock.utc_now()))
+
+  # OP-93
+  @doc "A DPoP proof like `proof/3` whose `iat` is the Unix time `iat`, for a request sent at that time, such as one of a pre-built open-loop load run."
+  @spec proof_at(String.t(), String.t(), String.t(), integer()) :: String.t()
+  def proof_at(method, url, token, iat) do
     claims = %{
       "htm" => String.upcase(method),
       "htu" => url |> String.split(["?", "#"]) |> hd(),
       "ath" => b64(:crypto.hash(:sha256, token)),
-      "iat" => DateTime.to_unix(Relay.Clock.utc_now()),
+      "iat" => iat,
       "jti" => b64(:crypto.strong_rand_bytes(16))
     }
 

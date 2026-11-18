@@ -129,6 +129,17 @@ defmodule RelayWeb.Telemetry do
         measurement: :paused,
         tags: [:platform],
         description: "Queued jobs a kill switch sweep paused"
+      ),
+      last_value("relay.fault_injection.active",
+        event_name: [:relay, :fault_injection, :active],
+        measurement: :count,
+        tags: [:target_environment, :chaos_mode],
+        description: "Fault injections in force by target environment and the node's chaos mode"
+      ),
+      counter("relay.fault_injection.injected.total",
+        event_name: [:relay, :fault_injection, :injected],
+        tags: [:kind],
+        description: "Faults injected into the delivery path by kind"
       )
     ]
   end

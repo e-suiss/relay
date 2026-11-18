@@ -49,6 +49,8 @@ config :relay, Relay.Platform.Capacity, sampler: false
 
 config :relay, Relay.Tenancy.KillSwitch.Cache, enabled: false
 
+config :relay, Relay.FaultInjection, cache: false
+
 config :logger, level: :warning
 
 config :relay, Relay.NetworkGuard, enabled: true
@@ -112,3 +114,7 @@ config :relay, Relay.Platform.Maintenance.ArchiveTask,
     secret_access_key: "relay-dev-secret",
     prefix: ""
   ]
+
+if valkey_url = System.get_env("CHAOS_VALKEY_URL") do
+  config :relay, Relay.Platform.Valkey, url: valkey_url
+end

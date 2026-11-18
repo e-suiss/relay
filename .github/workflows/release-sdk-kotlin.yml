@@ -1,0 +1,64 @@
+name: release-sdk-kotlin
+
+# X-50
+on:
+  push:
+    tags: ["sdk-kotlin-v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-sdk-kotlin
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: sdk-kotlin-release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    defaults:
+      run:
+        working-directory: sdks/kotlin
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - run: echo "JAVA_HOME=$JAVA_HOME_21_X64" >> "$GITHUB_ENV"
+      - name: Version from the tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#sdk-kotlin-v}"
+          echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Test and stage the signed publication
+        env:
+          RELAY_SIGNING_KEY: ${{ secrets.MAVEN_SIGNING_KEY }}
+          RELAY_SIGNING_PASSWORD: ${{ secrets.MAVEN_SIGNING_PASSWORD }}
+        run: ./gradlew --no-daemon -PrelayVersion="$VERSION" :relay:testDebugUnitTest :relay:publishReleasePublicationToStagingRepository
+      - name: Bundle
+        run: |
+          cd relay/build/staging
+          zip -r "$GITHUB_WORKSPACE/esuiss-relay-android-$VERSION.zip" .
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: esuiss-relay-android-${{ env.VERSION }}.zip
+      - name: Upload to Maven Central
+        env:
+          CENTRAL_USER: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        run: |
+          auth=$(printf '%s:%s' "$CENTRAL_USER" "$CENTRAL_PASSWORD" | base64 -w0)
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $auth" \
+            -F "bundle=@$GITHUB_WORKSPACE/esuiss-relay-android-$VERSION.zip" \
+            "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC"
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" "$GITHUB_WORKSPACE/esuiss-relay-android-$VERSION.zip" --title "esuiss-relay-android $VERSION" --notes "app.suiss:esuiss-relay-android $VERSION."

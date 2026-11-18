@@ -1854,6 +1854,46 @@ module Esuiss
           )
         end
 
+        # List the seed recipients of the test plane
+        def list_seed_recipients(request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/test/seed-recipients",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # Reset the seed recipients of the test plane
+        def reset_seed_recipients(idempotency_key: nil, request_options: {})
+          perform(
+            method: :post,
+            path: "/v1/test/seed-recipients/reset",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: true,
+            idempotency_key: idempotency_key,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # List the test inbox
+        def list_test_inbox_messages(limit: nil, starting_after: nil, ending_before: nil, request_options: {})
+          paginate(
+            method: :get,
+            path: "/v1/test/inbox",
+            query: { "limit" => limit, "starting_after" => starting_after, "ending_before" => ending_before },
+            headers: {},
+            request_options: request_options
+          )
+        end
+
         # Get the Relay discovery document
         def get_relay_configuration(request_options: {})
           perform(

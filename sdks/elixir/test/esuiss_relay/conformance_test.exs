@@ -49,7 +49,7 @@ defmodule EsuissRelay.ConformanceTest do
       assert error.code == expect["code"], name
       assert error.status == expect["status"], name
       assert error.retryable == expect["retryable"], name
-      assert Exception.exception?(error)
+      assert is_exception(error)
 
       if expect["request_id"], do: assert(error.request_id == expect["request_id"], name)
       if expect["retry_after_s"], do: assert(error.retry_after == expect["retry_after_s"], name)

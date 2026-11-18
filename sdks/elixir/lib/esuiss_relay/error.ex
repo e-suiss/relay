@@ -282,10 +282,14 @@ defmodule EsuissRelay.Error do
   defp body_retry_after(seconds) when is_integer(seconds) and seconds >= 0, do: seconds
   defp body_retry_after(_seconds), do: nil
 
+  @http_date ~r/\A[A-Z][a-z]{2}, [0-9]{2} [A-Z][a-z]{2} [0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2} GMT\z/
+
   defp parse_retry_after(value, now) do
-    if Regex.match?(~r/\A[0-9]+\z/, value),
-      do: String.to_integer(value),
-      else: http_date(value, now)
+    cond do
+      Regex.match?(~r/\A[0-9]+\z/, value) -> String.to_integer(value)
+      Regex.match?(@http_date, value) -> http_date(value, now)
+      true -> nil
+    end
   end
 
   @unix_epoch 62_167_219_200

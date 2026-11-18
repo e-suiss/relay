@@ -709,6 +709,19 @@ codes:
     choice: false
     description: A required upstream, such as Access, did not answer in time.
     type: "{base_url}/v1/errors/upstream_timeout"
+  - code: wrong_region
+    family: request
+    status: 421
+    title: Wrong region
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: false
+    description: The token or request belongs to a tenant of another data region. Each region has its own base URL and Relay never forwards a request between regions; send it to the base URL of the tenant's region.
+    type: "{base_url}/v1/errors/wrong_region"
   - code: event_not_found
     family: resource
     status: 404

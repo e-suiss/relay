@@ -28,5 +28,12 @@ defmodule RelayWeb.Realtime.TransportTest do
       assert Session.close_code("connection_limit") == 1008
       assert Session.close_code("overloaded") == 1013
     end
+
+    test "IN-34: a drained connection closes with 1012 and its own reconnect hint" do
+      state = {:socket, :inner}
+
+      assert {:stop, {:shutdown, :draining}, {1012, "retry-after=4"}, ^state} =
+               Transport.handle_info({:relay_realtime_drain, 4}, state)
+    end
   end
 end

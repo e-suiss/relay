@@ -54,6 +54,7 @@ defmodule Relay.Application do
         RelayWeb.Metrics.children() ++
         [
           Relay.Repo,
+          Relay.Datasets.region_check_child(),
           {Phoenix.PubSub, name: Relay.PubSub},
           {Task.Supervisor, name: Relay.TaskSupervisor},
           Relay.TenantWorker
@@ -73,7 +74,8 @@ defmodule Relay.Application do
         Relay.Webhooks.children() ++
         Relay.Iys.children() ++
         Relay.Migration.children() ++
-        Relay.Platform.Leadership.children(roles) ++ [RelayWeb.Endpoint.supervised()]
+        Relay.Platform.Leadership.children(roles) ++
+        [RelayWeb.Endpoint.supervised()] ++ Relay.Platform.drain_children()
 
     # T-45
     Supervisor.start_link(children,

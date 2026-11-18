@@ -194,6 +194,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -232,6 +234,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -369,6 +372,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -405,6 +410,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -486,6 +492,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -502,6 +510,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -584,6 +593,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -606,6 +617,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -696,6 +708,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -716,6 +730,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -834,6 +849,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -848,6 +865,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -933,6 +951,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -949,6 +969,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -1032,6 +1053,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -1054,6 +1077,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -1138,6 +1162,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -1154,6 +1180,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -1228,6 +1255,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -1244,6 +1273,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -1339,6 +1369,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -1355,6 +1387,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -1444,6 +1477,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -1464,6 +1499,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -1546,6 +1582,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -1560,6 +1598,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -1635,6 +1674,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -1651,6 +1692,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -1770,6 +1812,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -1792,6 +1836,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -1888,6 +1933,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -1914,6 +1961,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -2003,6 +2051,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -2021,6 +2071,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -2225,6 +2276,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -2261,6 +2314,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -2345,6 +2399,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -2361,6 +2417,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -2444,6 +2501,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -2464,6 +2523,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -2554,6 +2614,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -2572,6 +2634,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -2655,6 +2718,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -2671,6 +2736,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -2749,6 +2815,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -2765,6 +2833,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -2881,6 +2950,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -2901,6 +2972,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -2990,6 +3062,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -3006,6 +3080,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -3095,6 +3170,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -3115,6 +3192,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -3198,6 +3276,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -3214,6 +3294,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -3295,6 +3376,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -3317,6 +3400,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -3398,6 +3482,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -3414,6 +3500,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -3495,6 +3582,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -3517,6 +3606,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -3601,6 +3691,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -3615,6 +3707,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -3702,6 +3795,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -3722,6 +3817,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -3807,6 +3903,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -3823,6 +3921,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -3907,6 +4006,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -3933,6 +4034,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -4023,6 +4125,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -4041,6 +4145,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -4122,6 +4227,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -4136,6 +4243,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -4221,6 +4329,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -4241,6 +4351,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -4326,6 +4437,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -4342,6 +4455,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -4426,6 +4540,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -4452,6 +4568,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -4550,6 +4667,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -4576,6 +4695,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -4673,6 +4793,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -4699,6 +4821,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -4788,6 +4911,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -4804,6 +4929,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -4879,6 +5005,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -4895,6 +5023,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -4971,6 +5100,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -4987,6 +5118,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -5069,6 +5201,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -5087,6 +5221,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -5170,6 +5305,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -5190,6 +5327,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -5284,6 +5422,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -5304,6 +5444,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -5397,6 +5538,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -5411,6 +5554,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -5497,6 +5641,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -5517,6 +5663,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -5607,6 +5754,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -5623,6 +5772,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -5708,6 +5858,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -5734,6 +5886,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -5837,6 +5990,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -5863,6 +6018,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -5964,6 +6120,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -5990,6 +6148,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -6078,6 +6237,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -6094,6 +6255,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -6170,6 +6332,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -6186,6 +6350,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -6266,6 +6431,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -6292,6 +6459,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -6382,6 +6550,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -6398,6 +6568,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -6477,6 +6648,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -6497,6 +6670,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -6586,6 +6760,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -6608,6 +6784,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -6705,6 +6882,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -6719,6 +6898,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -6805,6 +6985,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -6825,6 +7007,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -6910,6 +7093,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -6926,6 +7111,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -7011,6 +7197,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -7037,6 +7225,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -7133,6 +7322,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -7159,6 +7350,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -7254,6 +7446,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -7280,6 +7474,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -7368,6 +7563,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -7384,6 +7581,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -7460,6 +7658,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -7476,6 +7676,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -7556,6 +7757,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -7582,6 +7785,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -7672,6 +7876,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -7686,6 +7892,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -7772,6 +7979,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -7792,6 +8001,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -7877,6 +8087,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -7893,6 +8105,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -7978,6 +8191,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -8004,6 +8219,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -8100,6 +8316,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -8126,6 +8344,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -8221,6 +8440,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -8247,6 +8468,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -8335,6 +8557,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -8351,6 +8575,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -8427,6 +8652,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -8443,6 +8670,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -8523,6 +8751,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -8549,6 +8779,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -8638,6 +8869,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -8654,6 +8887,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -8738,6 +8972,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -8760,6 +8996,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -8841,6 +9078,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -8857,6 +9096,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -8939,6 +9179,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -8959,6 +9201,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -9041,6 +9284,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -9057,6 +9302,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -9137,6 +9383,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -9157,6 +9405,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -9240,6 +9489,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -9254,6 +9505,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -9339,6 +9591,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -9361,6 +9615,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -9447,6 +9702,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -9463,6 +9720,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -9547,6 +9805,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -9573,6 +9833,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -9665,6 +9926,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -9687,6 +9950,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -9769,6 +10033,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -9783,6 +10049,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -9870,6 +10137,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -9890,6 +10159,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -9977,6 +10247,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -9993,6 +10265,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -10077,6 +10350,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -10103,6 +10378,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -10195,6 +10471,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -10213,6 +10491,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -10294,6 +10573,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -10308,6 +10589,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -10383,6 +10665,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -10399,6 +10683,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -10515,6 +10800,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -10537,6 +10824,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -10623,6 +10911,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -10639,6 +10929,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -10723,6 +11014,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -10745,6 +11038,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -10829,6 +11123,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -10845,6 +11141,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -10929,6 +11226,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -10951,6 +11250,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -11055,6 +11355,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -11069,6 +11371,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -11185,6 +11488,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "413":
@@ -11203,6 +11508,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -11295,6 +11601,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -11315,6 +11623,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -11398,6 +11707,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -11414,6 +11725,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -11496,6 +11808,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -11518,6 +11832,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -11609,6 +11924,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -11623,6 +11940,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -11709,6 +12027,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -11729,6 +12049,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -11810,6 +12131,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -11824,6 +12147,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -11935,6 +12259,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -11955,6 +12281,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -12045,6 +12372,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -12061,6 +12390,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -12151,6 +12481,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -12171,6 +12503,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -12254,6 +12587,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -12270,6 +12605,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -12349,6 +12685,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -12371,6 +12709,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -12457,6 +12796,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -12471,6 +12812,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -12554,6 +12896,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -12574,6 +12918,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -12659,6 +13004,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -12675,6 +13022,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -12752,6 +13100,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -12770,6 +13120,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -12852,6 +13203,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -12868,6 +13221,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -12951,6 +13305,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -12973,6 +13329,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -13067,6 +13424,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -13089,6 +13448,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -13177,6 +13537,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -13193,6 +13555,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -13276,6 +13639,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -13290,6 +13655,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -13373,6 +13739,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -13395,6 +13763,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -13487,6 +13856,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -13503,6 +13874,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -13587,6 +13959,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -13609,6 +13983,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -13703,6 +14078,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -13726,6 +14103,7 @@ paths:
         - auth_insufficient_role
         - auth_missing_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_tenant_suspended
         - auth_csrf_failed
@@ -13819,6 +14197,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -13842,6 +14222,7 @@ paths:
         - auth_insufficient_role
         - auth_missing_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_tenant_suspended
         - auth_csrf_failed
@@ -13929,6 +14310,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -13952,6 +14335,7 @@ paths:
         - auth_insufficient_role
         - auth_missing_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_tenant_suspended
         - auth_csrf_failed
@@ -14078,6 +14462,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -14092,6 +14478,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -14176,6 +14563,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -14196,6 +14585,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -14278,6 +14668,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -14292,6 +14684,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -14365,6 +14758,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -14379,6 +14774,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -14457,6 +14853,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -14473,6 +14871,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -14552,6 +14951,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -14566,6 +14967,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -14794,6 +15196,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -14808,6 +15212,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -14890,6 +15295,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -14912,6 +15319,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -14998,6 +15406,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -15014,6 +15424,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -15099,6 +15510,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -15121,6 +15534,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -15208,6 +15622,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -15230,6 +15646,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -15311,6 +15728,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -15327,6 +15746,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -15407,6 +15827,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -15429,6 +15851,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -15516,6 +15939,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -15538,6 +15963,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -15619,6 +16045,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -15641,6 +16069,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -15735,6 +16164,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -15757,6 +16188,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -15835,6 +16267,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -15851,6 +16285,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -15938,6 +16373,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -15954,6 +16391,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -16038,6 +16476,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -16054,6 +16494,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -16134,6 +16575,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -16156,6 +16599,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -16233,6 +16677,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -16249,6 +16695,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -16318,6 +16765,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -16334,6 +16783,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -16409,6 +16859,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -16431,6 +16883,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -16513,6 +16966,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -16535,6 +16990,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -16622,6 +17078,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -16636,6 +17094,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -16711,6 +17170,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -16727,6 +17188,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -16847,6 +17309,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -16871,6 +17335,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -16959,6 +17424,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -16975,6 +17442,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -17056,6 +17524,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -17080,6 +17550,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -17168,6 +17639,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -17182,6 +17655,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -17271,6 +17745,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -17291,6 +17767,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -17380,6 +17857,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -17396,6 +17875,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -17485,6 +17965,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -17511,6 +17993,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -17604,6 +18087,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -17622,6 +18107,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -17710,6 +18196,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -17732,6 +18220,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -17824,6 +18313,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -17840,6 +18331,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -17928,6 +18420,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -17950,6 +18444,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -18044,6 +18539,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -18058,6 +18555,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -18145,6 +18643,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -18165,6 +18665,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -18251,6 +18752,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -18267,6 +18770,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -18354,6 +18858,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -18378,6 +18884,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -18468,6 +18975,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -18490,6 +18999,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -18586,6 +19096,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -18600,6 +19112,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_insufficient_scope
@@ -18684,6 +19197,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -18704,6 +19219,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_insufficient_scope
@@ -18787,6 +19303,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -18803,6 +19321,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_insufficient_scope
@@ -18881,6 +19400,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -18903,6 +19424,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_insufficient_scope
@@ -18990,6 +19512,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -19012,6 +19536,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -19108,6 +19633,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -19122,6 +19649,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -19207,6 +19735,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -19227,6 +19757,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -19311,6 +19842,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -19327,6 +19860,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -19406,6 +19940,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -19428,6 +19964,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -19515,6 +20052,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -19531,6 +20070,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -19647,6 +20187,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -19669,6 +20211,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -19755,6 +20298,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -19771,6 +20316,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -19848,6 +20394,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -19862,6 +20410,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -19957,6 +20506,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -19971,6 +20522,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -20056,6 +20608,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -20076,6 +20630,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -20165,6 +20720,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -20181,6 +20738,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -20266,6 +20824,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -20290,6 +20850,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -20383,6 +20944,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -20405,6 +20968,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -20498,6 +21062,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -20520,6 +21086,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -20608,6 +21175,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -20624,6 +21193,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -20701,6 +21271,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -20717,6 +21289,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -20796,6 +21369,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -20818,6 +21393,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -20909,6 +21485,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -20931,6 +21509,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -21018,6 +21597,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -21034,6 +21615,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -21119,6 +21701,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -21141,6 +21725,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -21237,6 +21822,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -21259,6 +21846,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -21355,6 +21943,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -21377,6 +21967,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -21473,6 +22064,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -21495,6 +22088,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -21591,6 +22185,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -21613,6 +22209,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -21719,6 +22316,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -21735,6 +22334,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -21825,6 +22425,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -21839,6 +22441,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -21953,6 +22556,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -21967,6 +22572,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -22042,6 +22648,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -22058,6 +22666,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -22136,6 +22745,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -22152,6 +22763,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -22229,6 +22841,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -22245,6 +22859,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -22325,6 +22940,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -22347,6 +22964,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -22438,6 +23056,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -22460,6 +23080,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -22544,6 +23165,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -22558,6 +23181,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -22640,6 +23264,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -22660,6 +23286,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -22742,6 +23369,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -22758,6 +23387,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -22841,6 +23471,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -22861,6 +23493,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -22944,6 +23577,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -22958,6 +23593,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -23031,6 +23667,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -23047,6 +23685,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -23137,6 +23776,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -23151,6 +23792,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_insufficient_scope
@@ -23267,6 +23909,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -23287,6 +23931,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -23375,6 +24020,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -23391,6 +24038,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -23480,6 +24128,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -23500,6 +24150,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -23663,6 +24314,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -23677,6 +24330,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -24105,6 +24759,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -24119,6 +24775,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -24233,6 +24890,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -24253,6 +24912,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -24338,6 +24998,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -24354,6 +25016,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -24431,6 +25094,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -24445,6 +25110,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -24520,6 +25186,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -24536,6 +25204,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -24621,6 +25290,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -24647,6 +25318,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -24740,6 +25412,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -24758,6 +25432,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -24838,6 +25513,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -24852,6 +25529,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -24927,6 +25605,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -24941,6 +25621,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -25015,6 +25696,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "429":
@@ -25027,6 +25710,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -25129,6 +25813,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -25143,6 +25829,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -25220,6 +25907,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -25234,6 +25923,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -25348,6 +26038,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -25368,6 +26060,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -25452,6 +26145,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -25468,6 +26163,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -25543,6 +26239,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -25557,6 +26255,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -25642,6 +26341,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "413":
@@ -25660,6 +26361,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -25744,6 +26446,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -25760,6 +26464,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -26036,6 +26741,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -26050,6 +26757,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -26132,6 +26840,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "413":
@@ -26150,6 +26860,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -26233,6 +26944,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -26249,6 +26962,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -26331,6 +27045,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -26353,6 +27069,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -26440,6 +27157,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -26458,6 +27177,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -26539,6 +27259,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -26557,6 +27279,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -26642,6 +27365,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -26664,6 +27389,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -26752,6 +27478,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -26770,6 +27498,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -26860,6 +27589,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -26882,6 +27613,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -26966,6 +27698,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -26980,6 +27714,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -27056,6 +27791,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -27070,6 +27807,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -27146,6 +27884,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -27160,6 +27900,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -27237,6 +27978,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -27251,6 +27994,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -27336,6 +28080,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -27358,6 +28104,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -27447,6 +28194,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -27463,6 +28212,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -27548,6 +28298,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -27574,6 +28326,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -27668,6 +28421,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -27684,6 +28439,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -27765,6 +28521,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -27779,6 +28537,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -27854,6 +28613,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -27870,6 +28631,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -27955,6 +28717,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -27981,6 +28745,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -28075,6 +28840,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -28091,6 +28858,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -28163,6 +28931,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
         "429":
@@ -28178,6 +28948,7 @@ paths:
         - internal_error
         - service_unavailable
         - auth_invalid_token
+        - wrong_region
         - provider_account_not_found
       x-relay-weight: 0
       x-relay-weight-note: "Provider inbound channel; not counted against tenant limits."
@@ -28214,6 +28985,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "404":
           "$ref": "./components/responses.yaml#/NotFound"
         "413":
@@ -28229,6 +29002,7 @@ paths:
       x-relay-errors:
         - auth_missing_credentials
         - auth_invalid_token
+        - wrong_region
         - malformed_request
         - unsupported_media_type
         - payload_too_large
@@ -28335,6 +29109,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "409":
@@ -28355,6 +29131,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -28459,6 +29236,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -28473,6 +29252,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -28550,6 +29330,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -28564,6 +29346,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -28647,6 +29430,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -28667,6 +29452,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -28873,6 +29659,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -28889,6 +29677,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -28966,6 +29755,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -28988,6 +29779,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -29075,6 +29867,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -29091,6 +29885,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -29177,6 +29972,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "413":
@@ -29195,6 +29992,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -29277,6 +30075,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -29291,6 +30091,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -29367,6 +30168,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -29381,6 +30184,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -29457,6 +30261,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -29473,6 +30279,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -29552,6 +30359,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -29568,6 +30377,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -29646,6 +30456,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -29664,6 +30476,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -29743,6 +30556,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "404":
@@ -29761,6 +30576,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -29842,6 +30658,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -29856,6 +30674,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -29933,6 +30752,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -29947,6 +30768,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -30024,6 +30846,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -30038,6 +30862,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending
@@ -30115,6 +30940,8 @@ paths:
           "$ref": "./components/responses.yaml#/BadRequest"
         "401":
           "$ref": "./components/responses.yaml#/Unauthorized"
+        "421":
+          "$ref": "./components/responses.yaml#/MisdirectedRequest"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
         "422":
@@ -30129,6 +30956,7 @@ paths:
         - auth_missing_credentials
         - auth_malformed_credentials
         - auth_invalid_token
+        - wrong_region
         - auth_expired_token
         - auth_revoked_client
         - auth_client_pending

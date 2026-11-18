@@ -27,6 +27,7 @@ defmodule Relay.Config do
     Relay.BulkRepo,
     Relay.ReportRepo,
     Relay.Platform.LoadShed,
+    Relay.Platform.Drain,
     Relay.Platform.Capacity,
     Relay.Platform.MaintRepo,
     Relay.Platform.ArchiveRepo,
@@ -70,6 +71,9 @@ defmodule Relay.Config do
     Relay.Preferences,
     RelayWeb.Links,
     Relay.Api.PreviewSandbox,
+    Relay.Api.Discovery,
+    Relay.Region,
+    Relay.Platform.PoolRule,
     Relay.TenantLifecycle,
     Oban
   ]
@@ -93,6 +97,9 @@ defmodule Relay.Config do
     "RELAY_PREVIEW_HOST",
     "RELAY_CONNECTORS_FILE",
     "RELAY_EMAIL_RETURN_PATH_TARGET",
+    "RELAY_EGRESS_IPS",
+    "RELAY_NODE_COUNT",
+    "RELAY_DATABASE_POOLER",
     "RELAY_CHAOS_MODE"
   ]
   @audit_keys [:log_host, :checkpoint_key, :publishers]

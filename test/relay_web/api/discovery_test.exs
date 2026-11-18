@@ -77,6 +77,25 @@ defmodule RelayWeb.Api.DiscoveryTest do
       assert full["issuer"] == base
     end
 
+    test "OP-90: the region's fixed egress addresses are published, each once, empty when none" do
+      assert Discovery.configuration("https://relay.example.com", [])["egress_ips"] == []
+      previous = Application.get_env(:relay, Discovery)
+
+      on_exit(fn ->
+        if previous,
+          do: Application.put_env(:relay, Discovery, previous),
+          else: Application.delete_env(:relay, Discovery)
+      end)
+
+      ips = ["192.0.2.10", "2001:db8::/64", "192.0.2.10"]
+      Application.put_env(:relay, Discovery, egress_ips: ips)
+      document = Discovery.configuration("https://relay.example.com", [])
+      assert document["egress_ips"] == ["192.0.2.10", "2001:db8::/64"]
+      schema = Schema.response_schema("getRelayConfiguration", "200", "application/json")
+      root = Schema.build(schema)
+      assert :ok == Schema.validate(root, document)
+    end
+
     test "E-81: every capability names contract operations" do
       for capability <- Discovery.capabilities(), id <- capability.operations do
         assert {:ok, _operation} = Contract.operation(id), id

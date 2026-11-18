@@ -725,3 +725,4 @@ Every error is an RFC 9457 problem document whose `type` is `/v1/errors/<code>` 
 | `workflow_not_found` | 404 | no |  | Workflow not found |
 | `workflow_not_published` | 422 | no |  | Workflow is not published |
 | `workflow_version_not_found` | 404 | no |  | Workflow version not found |
+| `wrong_region` | 421 | no |  | Wrong region |

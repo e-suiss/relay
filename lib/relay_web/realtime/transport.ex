@@ -12,8 +12,10 @@ defmodule RelayWeb.Realtime.Transport do
   @impl true
   def child_spec(opts), do: Socket.child_spec(opts)
 
+  # IN-34
+  # OP-87
   @impl true
-  def drainer_spec(opts), do: Socket.drainer_spec(opts)
+  def drainer_spec(_opts), do: RelayWeb.Realtime.Drainer.child_spec([])
 
   # IN-34
   # IN-52
@@ -34,7 +36,10 @@ defmodule RelayWeb.Realtime.Transport do
     {:ok, state}
   end
 
-  def init({:socket, state}), do: wrap(Socket.init(state))
+  def init({:socket, state}) do
+    :ok = Relay.Realtime.Drain.track()
+    wrap(Socket.init(state))
+  end
 
   @impl true
   def handle_in(_message, {:overloaded, _retry_after} = state), do: {:ok, state}
@@ -46,6 +51,9 @@ defmodule RelayWeb.Realtime.Transport do
 
   def handle_info({:relay_realtime_close, code, reason}, {:socket, _state} = state),
     do: {:stop, {:shutdown, :closed}, {code, reason}, state}
+
+  def handle_info({:relay_realtime_drain, retry_after}, {:socket, _state} = state),
+    do: {:stop, {:shutdown, :draining}, {1012, "retry-after=#{retry_after}"}, state}
 
   def handle_info(_message, {:overloaded, _retry_after} = state), do: {:ok, state}
   def handle_info(message, {:socket, state}), do: wrap(Socket.handle_info(message, state))

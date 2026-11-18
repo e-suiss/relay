@@ -109,8 +109,44 @@ defmodule Relay.Platform.PartitionStorageTest do
              end)
 
     assert created == "created"
-    assert options == ["autovacuum_vacuum_scale_factor=0.02", "fillfactor=90"]
+
+    assert options == [
+             "autovacuum_analyze_scale_factor=0.02",
+             "autovacuum_vacuum_cost_limit=2000",
+             "autovacuum_vacuum_scale_factor=0.02",
+             "autovacuum_vacuum_threshold=1000",
+             "fillfactor=90"
+           ]
+
     assert toast == ["autovacuum_vacuum_scale_factor=0.05"]
+    GenServer.stop(conn)
+  end
+
+  test "OP-81, OP-31: the queue table and every leaf of the hot ledger tables carry the measured autovacuum values" do
+    conn = admin()
+
+    expected = [
+      "autovacuum_analyze_scale_factor=0.02",
+      "autovacuum_vacuum_cost_limit=2000",
+      "autovacuum_vacuum_scale_factor=0.01",
+      "autovacuum_vacuum_threshold=1000"
+    ]
+
+    %{rows: [[queue]]} =
+      Postgrex.query!(
+        conn,
+        "SELECT reloptions FROM pg_class WHERE oid = 'relay_queue.oban_jobs'::regclass",
+        []
+      )
+
+    assert Enum.sort(queue) == expected
+
+    for table <- ~w(delivery_events delivery_attempts outbox_events webhook_attempts) do
+      {leaf, _upper} = newest_leaf(conn, table)
+      {options, _toast} = options(conn, leaf)
+      assert options == expected, table
+    end
+
     GenServer.stop(conn)
   end
 

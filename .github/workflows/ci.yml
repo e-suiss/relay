@@ -97,6 +97,8 @@ jobs:
       - run: docker run --rm --entrypoint amtool -v "$PWD/deploy/observability:/etc/alertmanager:ro" prom/alertmanager:v0.35.0@sha256:e638797febd034838eca8b98cdbd46f951e9bf7f178777aa8669167406a9946c check-config /etc/alertmanager/alertmanager.yaml
       - run: helm lint --strict deploy/helm/relay -f deploy/helm/ci-values.yaml
       - run: helm template relay deploy/helm/relay -f deploy/helm/ci-values.yaml > /dev/null
+      - run: helm lint --strict deploy/helm/relay -f deploy/helm/ci-values.yaml -f deploy/helm/ci-values-optional.yaml
+      - run: helm template relay deploy/helm/relay -f deploy/helm/ci-values.yaml -f deploy/helm/ci-values-optional.yaml > /dev/null
       - run: if helm template relay deploy/helm/relay > /dev/null 2>&1; then exit 1; fi
       - run: mix deps.get --check-locked
       - run: mix deps.unlock --check-unused

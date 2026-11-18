@@ -1,6 +1,6 @@
 defmodule Relay.Api.Discovery do
   @moduledoc """
-  The Relay discovery document (`GET /.well-known/relay-configuration`) and the product event key set (`GET /.well-known/relay-jwks.json`). The document is one per installation and carries no tenant data: the installation's base URL as `issuer`, the API base, the data region, the bound Access issuer, Relay's own Access `client_id` (the sector of subscriber `sub` values, E-90), the dated contract versions, the key set's address and the capabilities served now.
+  The Relay discovery document (`GET /.well-known/relay-configuration`) and the product event key set (`GET /.well-known/relay-jwks.json`). The document is one per installation and carries no tenant data: the installation's base URL as `issuer`, the API base, the data region, the bound Access issuer, Relay's own Access `client_id` (the sector of subscriber `sub` values, E-90), the dated contract versions, the key set's address, the capabilities served now and the fixed egress addresses of the region (`egress_ips`, OP-90).
 
   A capability names the contract operations that serve it; it and its endpoint appear in the document only while every one of them is served, so the document never promises an operation that is not routed. The product event capability appears only while the key set holds a key; no product event key is in use yet, so the set is empty.
   """
@@ -43,7 +43,8 @@ defmodule Relay.Api.Discovery do
   # E-81
   # API-52
   # INV-41
-  @doc "The discovery document for the installation at `base_url`, listing the capabilities whose operations are all in `served`."
+  # OP-90
+  @doc "The discovery document for the installation at `base_url`, listing the capabilities whose operations are all in `served` and the region's fixed egress addresses."
   @spec configuration(String.t(), Enumerable.t()) :: map()
   def configuration(base_url, served) when is_binary(base_url) do
     issuer = String.trim_trailing(base_url, "/")
@@ -63,8 +64,18 @@ defmodule Relay.Api.Discovery do
       "contract_version" => versions.latest,
       "contract_versions_supported" => versions.supported,
       "jwks_uri" => issuer <> @jwks_path,
-      "capabilities" => Enum.map(offered, & &1.urn) ++ product_events
+      "capabilities" => Enum.map(offered, & &1.urn) ++ product_events,
+      "egress_ips" => egress_ips()
     })
+  end
+
+  # OP-90
+  # CH-51
+  # WH-42
+  @doc "The region's fixed egress addresses of `RELAY_EGRESS_IPS` (`config :relay, Relay.Api.Discovery, egress_ips: [...]`), each once, in the configured order."
+  @spec egress_ips() :: [String.t()]
+  def egress_ips do
+    :relay |> Application.get_env(__MODULE__, []) |> Keyword.get(:egress_ips, []) |> Enum.uniq()
   end
 
   # E-89

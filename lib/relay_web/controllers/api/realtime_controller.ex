@@ -35,6 +35,7 @@ defmodule RelayWeb.Api.RealtimeController do
       |> put_resp_header("cache-control", "no-store")
       |> put_resp_header("x-accel-buffering", "no")
       |> send_chunked(200)
+      |> tracked()
       |> send_events(session, envelopes)
     else
       {:error, error} -> Response.problem(conn, error)
@@ -132,7 +133,23 @@ defmodule RelayWeb.Api.RealtimeController do
   defp loop(conn, session) do
     receive do
       :relay_realtime_keepalive -> keepalive(conn, session)
+      {:relay_realtime_drain, retry_after} -> drained(conn, session, retry_after)
       message -> handled(conn, Session.handle(session, message), session)
+    end
+  end
+
+  # IN-34
+  defp tracked(conn) do
+    :ok = Relay.Realtime.Drain.track()
+    conn
+  end
+
+  # IN-34
+  # OP-87
+  defp drained(conn, session, retry_after) do
+    case chunk(conn, "retry: #{retry_after * 1_000}\n\n") do
+      {:ok, conn} -> finish(conn, session)
+      {:error, _reason} -> finish(conn, session)
     end
   end
 

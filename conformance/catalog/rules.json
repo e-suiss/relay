@@ -10496,6 +10496,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "OP-75",
+    "section": "§20",
+    "status": "policy_default",
+    "title": "Region opening order and the region code from RELAY_REGION",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
     "id": "OP-79",
     "section": "§20",
     "status": "policy_default",
@@ -10512,6 +10520,22 @@
   },
   {
     "acceptance": "pending",
+    "id": "OP-81",
+    "section": "§20",
+    "status": "policy_default",
+    "title": "Database alarm and hot leaf autovacuum values",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-87",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "Shutdown and drain order",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
     "id": "OP-84",
     "section": "§20",
     "status": "frozen_technical",
@@ -10524,6 +10548,38 @@
     "section": "§20",
     "status": "frozen_technical",
     "title": "Bring your own key: tenant key label in the region HSM wraps the tenant's keys",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-88",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "Queue-based scaling, boot pooling rule, pool wait load shedding",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-89",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "postgres_exporter and database and container memory alarms",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-90",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "Region check at boot, wrong_region, published egress addresses",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-91",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "Postgres HA example with CloudNativePG",
     "verify_stage": 15
   },
   {

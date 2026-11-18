@@ -5,6 +5,7 @@ defmodule Relay.Access.EventsTest do
   alias Relay.Access.Events
   alias Relay.Access.Pairing.Streams
   alias Relay.Api.Schema
+  alias RelayTest.Api
   alias RelayTest.FakeAccess
   alias RelayTest.TenantFixture
 
@@ -309,6 +310,27 @@ defmodule Relay.Access.EventsTest do
 
       assert %{"state" => "rejected", "reason" => "region_mismatch"} = receipt_of(jti)
       assert ClientStore.tenant(access_tenant) == nil
+    end
+
+    test "OP-90, INV-41, API-7: a server token of a tenant Access placed in another region is 421 wrong_region and is not forwarded" do
+      access_tenant = "tnt_elsewhere" <> FakeAccess.random()
+      refute ClientStore.region_refused?(access_tenant)
+      jti = deliver!("tenant.created", tenant_member(access_tenant))
+      assert %{"state" => "rejected", "reason" => "region_mismatch"} = receipt_of(jti)
+      assert ClientStore.region_refused?(access_tenant)
+
+      token = FakeAccess.server_token(access_tenant, "app_" <> FakeAccess.random(), "read")
+      path = "/v1/virtual_clock"
+      conn = :get |> Api.conn(path, nil, Api.auth(token, :get, path)) |> Api.call()
+
+      assert conn.status == 421
+      Api.assert_contract(conn)
+      assert Jason.decode!(conn.resp_body)["code"] == "wrong_region"
+      assert Plug.Conn.get_resp_header(conn, "location") == []
+
+      other = FakeAccess.server_token("tnt_nobody" <> FakeAccess.random(), "app_x", "read")
+      conn = :get |> Api.conn(path, nil, Api.auth(other, :get, path)) |> Api.call()
+      assert Jason.decode!(conn.resp_body)["code"] == "auth_invalid_token"
     end
 
     test "E-94, E-80, E-95: an organization event with Access's member names is recorded and not applied" do

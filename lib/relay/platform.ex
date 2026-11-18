@@ -10,6 +10,7 @@ defmodule Relay.Platform do
   alias Relay.Platform.Capacity
   alias Relay.Platform.Concurrency
   alias Relay.Platform.ConnectionSet
+  alias Relay.Platform.Drain
   alias Relay.Platform.Fairness.Job
   alias Relay.Platform.Fairness.Queueing
   alias Relay.Platform.Fanout
@@ -30,14 +31,19 @@ defmodule Relay.Platform do
 
   # T-63 (6)
   # TN-66 (4)
-  @doc "Checks the dependencies a node needs to serve traffic: PostgreSQL, the key store and Valkey."
+  # OP-87
+  @doc "Checks the dependencies a node needs to serve traffic: PostgreSQL, the key store and Valkey. A node that has started to drain is not ready, whatever its dependencies (`draining`)."
   @spec readiness() :: :ok | {:error, Relay.Error.t()}
   def readiness do
-    with {:database, :ok} <- {:database, Store.ping()},
+    with {:draining, false} <- {:draining, Drain.draining?()},
+         {:database, :ok} <- {:database, Store.ping()},
          {:key_store, :ok} <- {:key_store, Relay.Keys.ping()},
          {:valkey, :ok} <- {:valkey, Valkey.ping()} do
       :ok
     else
+      {:draining, true} ->
+        {:error, Relay.Error.new(:draining, "the node is draining")}
+
       {:valkey, {:error, %Relay.Error{code: code}}} ->
         {:error, Relay.Error.new(:not_ready, "Valkey unavailable", %{reason: code})}
 
@@ -80,8 +86,9 @@ defmodule Relay.Platform do
   # OP-11
   # OP-69 (1)
   # T-32 (3)
+  # OP-30
   # T-34
-  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the Valkey adapter, its guard, the limit backend selector, the node's credit block table, the node-local API filter table, the concurrency slot keeper, the signal hub, the load shedding watcher, the lane capacity sampler, the report pool with its own role check and the job queue; a worker node also runs the queue maintenance connection, the bulk write pool with its own role check and the outbox dispatcher. A failed role or ownership check stops the node."
+  @doc "Supervised children of the platform: the database role check, the `relay_ops` ownership check, the query statistics check, the connection pooling rule check, the Valkey adapter, its guard, the limit backend selector, the node's credit block table, the node-local API filter table, the concurrency slot keeper, the signal hub, the load shedding watcher, the lane capacity sampler, the report pool with its own role check and the job queue; a worker node also runs the queue maintenance connection, the bulk write pool with its own role check and the outbox dispatcher. A failed role or ownership check stops the node."
   @spec children() :: [Supervisor.child_spec() | {module(), term()} | module()]
   def children do
     valkey = Application.fetch_env!(:relay, Valkey)
@@ -91,6 +98,7 @@ defmodule Relay.Platform do
       Store.role_check_child(),
       Store.ops_owner_check_child(),
       Store.query_stats_check_child(),
+      Store.pool_rule_check_child(),
       {Keyword.fetch!(valkey, :adapter), Keyword.delete(valkey, :adapter)},
       Valkey.Guard,
       Backend,
@@ -112,6 +120,21 @@ defmodule Relay.Platform do
       [{Oban, Queue.configured_options()}] ++
       if(worker? and outbox_dispatcher?(), do: [OutboxDispatcher], else: [])
   end
+
+  # OP-87
+  # T-5
+  @doc "The drain coordinator, to be started after every other child of the application so that it stops first; none when `config :relay, Relay.Platform.Drain, enabled: false`."
+  @spec drain_children() :: [Supervisor.child_spec()]
+  def drain_children do
+    if :relay |> Application.get_env(Drain, []) |> Keyword.get(:enabled, true),
+      do: [Drain.child_spec([])],
+      else: []
+  end
+
+  # OP-87
+  @doc "True once this node has started to drain."
+  @spec draining?() :: boolean()
+  def draining?, do: Drain.draining?()
 
   # INV-53
   @doc "Wakes the outbox dispatchers; call it after a transaction that appended outbox rows commits."

@@ -61,7 +61,9 @@ defmodule RelayWeb.Api.OnboardingTest do
       assert [_ | _] = shown["deliveries"]
 
       for delivery <- shown["deliveries"] do
-        assert is_binary(delivery["rule_id"]), "no rule_id on #{delivery["channel"]}"
+        assert delivery["gates"] in ["passed", "stopped", "deferred"]
+        assert Map.has_key?(delivery, "rule_id"), "no rule_id on #{delivery["channel"]}"
+        assert is_binary(delivery["rule_id"]) or delivery["gates"] == "passed"
       end
 
       in_app = Enum.find(shown["deliveries"], &(&1["channel"] == "in_app"))

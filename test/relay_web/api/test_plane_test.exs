@@ -104,8 +104,8 @@ defmodule RelayWeb.Api.TestPlaneTest do
       {:ok, consents} = Relay.Preferences.get_consents(ctx.scope, opted_out)
       assert length(consents) == 2
 
-      patch = %{"timezone" => "Europe/Berlin"}
-      F.body(F.request(:patch, "/v1/subscribers/seed_fallback_timezone", ctx.token, patch), 200)
+      put = %{"timezone" => "Europe/Berlin"}
+      F.body(F.request(:put, "/v1/subscribers/seed_fallback_timezone", ctx.token, put), 200)
       assert get(ctx.token, "/v1/subscribers/seed_fallback_timezone")["timezone"] != nil
 
       reset = F.request(:post, "/v1/test/seed-recipients/reset", ctx.token)
@@ -159,12 +159,8 @@ defmodule RelayWeb.Api.TestPlaneTest do
     test "X-52 X-26: a test plane message shows its decision and its rendered output", ctx do
       seed!(ctx.scope)
 
-      event = %{
-        "workflow" => "welcome",
-        "to" => [%{"id" => "user-" <> TenantFixture.random(), "email" => "ada@example.com"}],
-        "data" => %{"first_name" => "Ada"}
-      }
-
+      data = %{"first_name" => "Ada"}
+      event = %{"workflow" => "welcome", "to" => ["seed_bounced"], "data" => data}
       accepted = F.body(F.request(:post, "/v1/events", ctx.token, event), 202)
       [%{"notification_id" => notification}] = accepted["notifications"]
       run_sends(ctx.scope)
@@ -172,9 +168,14 @@ defmodule RelayWeb.Api.TestPlaneTest do
       shown = message(ctx.token, notification)
       assert shown["object"] == "test_inbox_message"
       assert shown["workflow"]["key"] == "welcome"
-      assert Enum.all?(shown["deliveries"], &is_binary(&1["rule_id"]))
+      deliveries = Map.new(shown["deliveries"], &{&1["channel"], &1})
 
-      inbox = Enum.find(shown["deliveries"], &(&1["channel"] == "in_app"))
+      assert %{"gates" => "stopped", "rule_id" => rule_id, "render" => nil} = deliveries["email"]
+      assert is_binary(rule_id)
+      assert Enum.any?(deliveries["email"]["decisions"], &(&1["rule_id"] == rule_id))
+
+      inbox = deliveries["in_app"]
+      assert inbox["gates"] == "passed"
       assert %{"output" => %{"body" => body}, "digest_only" => nil} = inbox["render"]
       assert body =~ "Ada"
     end

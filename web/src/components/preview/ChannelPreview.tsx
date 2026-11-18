@@ -450,10 +450,7 @@ export function ChannelPreview({
   const [narrow, setNarrow] = useState(false);
   const darkId = useId();
   const narrowId = useId();
-  const fields: Fields =
-    render.content === null || render.content === undefined
-      ? {}
-      : render.content;
+  const fields: Fields = render.content ?? {};
   return (
     <article
       className={`preview panel stack${dark ? " preview-dark" : ""}`}

@@ -108,9 +108,7 @@ export function setCell(
   const rest = Object.fromEntries(
     Object.entries(cells).filter(([name]) => name !== channel),
   ) as Cells;
-  return Object.keys(next).length === 0
-    ? rest
-    : { ...rest, [channel]: next };
+  return Object.keys(next).length === 0 ? rest : { ...rest, [channel]: next };
 }
 
 export function cellText(cell: Cell, name: string): string {

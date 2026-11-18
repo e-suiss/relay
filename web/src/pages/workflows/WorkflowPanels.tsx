@@ -7,7 +7,6 @@ import {
 } from "react";
 import { idempotencyKey } from "../../api/client";
 import { useFetch, useGet, useMutation, usePaged } from "../../api/hooks";
-import type { ChannelRender } from "../../api/pending";
 import type {
   Channel,
   Notification,
@@ -559,7 +558,7 @@ export function PreviewPanel({ workflowKey }: { workflowKey: string }) {
                 )}
               </div>
               {step.render !== null && (
-                <ChannelPreview render={step.render as ChannelRender} />
+                <ChannelPreview render={step.render} />
               )}
             </li>
           ))}

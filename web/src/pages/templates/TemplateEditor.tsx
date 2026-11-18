@@ -1,11 +1,7 @@
 import { useEffect, useId, useState, type SyntheticEvent } from "react";
 import { ApiError, etag, idempotencyKey } from "../../api/client";
 import { useGet, useMutation } from "../../api/hooks";
-import type {
-  ChannelRender,
-  GateFinding,
-  TemplatePublicationCheck,
-} from "../../api/pending";
+import type { GateFinding, TemplatePublicationCheck } from "../../api/pending";
 import type { Page, ServerSchemas } from "../../api/types";
 import { Link } from "../../app/router";
 import { Loadable, Mono, Section } from "../../components/data";
@@ -699,7 +695,7 @@ function TemplatePreviewPanel({ templateKey }: { templateKey: string }) {
           {result.renders.map((render, index) => (
             <ChannelPreview
               key={`${render.channel}-${render.locale}-${index}`}
-              render={render as ChannelRender}
+              render={render}
             />
           ))}
         </div>

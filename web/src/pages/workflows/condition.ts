@@ -152,11 +152,8 @@ function ruleFrom(node: unknown): Rule | null {
   }
   const kind = scalarKind(right);
   if (kind === null) return null;
-  return {
-    ...base,
-    kind,
-    value: right === null ? "" : String(right),
-  };
+  const text = typeof right === "string" ? right : JSON.stringify(right);
+  return { ...base, kind, value: right === null ? "" : text };
 }
 
 // WF-60

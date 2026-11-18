@@ -2080,6 +2080,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/test/seed-recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the seed recipients of the test plane
+         * @description The seven ready-made recipients every test plane has: seed_no_consent (no marketing consent), seed_opted_out (consent revoked on e-mail and SMS), seed_quiet_hours (quiet hours cover the whole day, e-mail included), seed_capped (global frequency cap full), seed_bounced (e-mail suppressed after a hard bounce), seed_no_device (no push device) and seed_fallback_timezone (no time zone). The external id is the seed name; the e-mail address is <seed>@seed.relay.test and the phone number +9905551000NN in seed order, both in the fake provider's table and refused on the live plane. They are set up when the tenant is created and by resetSeedRecipients; set_up is false until that job ran. Test environment only; a live client gets auth_environment_mismatch. The list is fixed and not paginated.
+         */
+        get: operations["listSeedRecipients"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/test/seed-recipients/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset the seed recipients of the test plane
+         * @description Queues the setup of the test plane again: each seed recipient gets back what its profile defines (addresses, locale, time zone, delivery profile, its consent state, its suppression, its full frequency cap), so a manual change is undone; the sample workflow is created only when the plane has none. Idempotent; the answer comes before the job runs. Test environment only; a live client gets auth_environment_mismatch.
+         */
+        post: operations["resetSeedRecipients"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/test/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the test inbox
+         * @description Every notification of the test plane, newest first, with its decision chain (each delivery's status, rule_id and the rule dictionary's sentence) and, for each delivery that was rendered, the rendered output kept sealed with it for the test plane's retention. A security_subtype or retention none message was kept as its digest only: output is null and digest_only names the reason. The live plane keeps no rendered content for this purpose and has no test inbox; a live client gets auth_environment_mismatch. Rendered e-mail HTML is shown only in the sandboxed preview.
+         */
+        get: operations["listTestInboxMessages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/access/events": {
         parameters: {
             query?: never;
@@ -7196,9 +7256,75 @@ export interface components {
             /** @description The push, Web Push, WhatsApp or messaging target sim:<result>. */
             token: string;
             description: string;
+            /** @description The seed recipient addresses that give this result: <seed>@seed.relay.test and +9905551000NN. */
+            seed_recipients?: string[];
         };
         SimulatedResultList: components["schemas"]["ListEnvelope"] & {
             data?: components["schemas"]["SimulatedResult"][];
+        };
+        /** @description One seed recipient of the test plane. Its external id is the seed name; its addresses are in the fake provider's table. */
+        SeedRecipient: {
+            /** @constant */
+            object: "seed_recipient";
+            /** @enum {string} */
+            external_id: "seed_no_consent" | "seed_opted_out" | "seed_quiet_hours" | "seed_capped" | "seed_bounced" | "seed_no_device" | "seed_fallback_timezone";
+            /** @description <seed>@seed.relay.test */
+            email: string;
+            phone: string;
+            /** @description The fake provider's result for the e-mail address. */
+            email_result: string;
+            description: string;
+            /** @description false until the setup job of the test plane ran. */
+            set_up: boolean;
+        };
+        SeedRecipientList: components["schemas"]["ListEnvelope"] & {
+            data?: components["schemas"]["SeedRecipient"][];
+        };
+        SeedReset: {
+            /** @constant */
+            object: "seed_reset";
+            /** @enum {string} */
+            status: "queued";
+        };
+        /** @description The rendered output of a delivery kept sealed in the test plane. A security_subtype or retention none render is kept as its digest only: output is null and digest_only names the reason. output is also null once its key is erased. */
+        TestRender: {
+            content_digest: string;
+            digest_only: ("security_subtype" | "retention_none") | null;
+            locale: components["schemas"]["Locale"] | null;
+            output: Record<string, never> | null;
+            rendered_at: components["schemas"]["Timestamp"];
+        };
+        /** @description A delivery of a test plane message: its decision chain and its render. */
+        TestInboxDelivery: {
+            delivery_id: components["schemas"]["Id_dlv"];
+            channel: components["schemas"]["Channel"];
+            status: components["schemas"]["DeliveryStatus"];
+            reason?: string | null;
+            rule_id?: components["schemas"]["RuleId"] | null;
+            /** @enum {string} */
+            gates: "passed" | "stopped" | "deferred";
+            deferred_until?: components["schemas"]["Timestamp"] | null;
+            decisions: components["schemas"]["DecisionStep"][];
+            render: components["schemas"]["TestRender"] | null;
+        };
+        /** @description One message of the test inbox: a test plane notification with its decisions and renders. */
+        TestInboxMessage: {
+            /** @constant */
+            object: "test_inbox_message";
+            notification_id: components["schemas"]["Id_ntf"];
+            event_id?: components["schemas"]["Id_evt"] | null;
+            /** @description The recipient: sub_… for a subscriber, agt_… for an agent. */
+            recipient_id: string;
+            workflow: components["schemas"]["WorkflowRef"];
+            message_class?: components["schemas"]["MessageClass"];
+            /** @enum {string} */
+            state: "active" | "cancelled" | "expired";
+            close_rule_id?: components["schemas"]["RuleId"] | null;
+            created_at: components["schemas"]["Timestamp"];
+            deliveries: components["schemas"]["TestInboxDelivery"][];
+        };
+        TestInboxMessageList: components["schemas"]["ListEnvelope"] & {
+            data?: components["schemas"]["TestInboxMessage"][];
         };
         /** @description A Security Event Token (RFC 8417) Access pushed: a compact JWS of typ secevent+jwt whose claims are iss, aud, iat, jti, sub_id, events with one member keyed urn:suiss:access:event:<type>, and access_tenant on a platform product subscription. Event types and their members are in the event catalog. */
         AccessSecurityEventToken: string;
@@ -18765,6 +18891,170 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SimulatedResultList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listSeedRecipients: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+                "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+                /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+                "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The seed recipients in seed order. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeedRecipientList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    resetSeedRecipients: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /**
+                 * @description Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
+                 * @example 01j9zq3k-order-4821-shipped
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+                "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+                /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+                "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+                /** @description CSRF token of the operator session; required on mutating requests authenticated by the session cookie. */
+                "Relay-Csrf-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The reset is queued. */
+            202: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeedReset"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listTestInboxMessages: {
+        parameters: {
+            query?: {
+                /** @description Page size, 1 to 100. */
+                limit?: components["parameters"]["Limit"];
+                /** @description Cursor from next_cursor. */
+                starting_after?: components["parameters"]["StartingAfter"];
+                /** @description Cursor from previous_cursor. */
+                ending_before?: components["parameters"]["EndingBefore"];
+            };
+            header?: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+                "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+                /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+                "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the test inbox. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestInboxMessageList"];
                 };
             };
             400: components["responses"]["BadRequest"];

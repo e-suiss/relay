@@ -39,7 +39,10 @@ defmodule RelayWeb.Links do
   @doc "Applies the refusal the page of an unsubscribe link offers: no commercial e-mail of the brand at all (PC-36)."
   @callback refuse(token :: String.t(), evidence()) :: :ok | {:error, :invalid | :unavailable}
 
-  @optional_callbacks refuse: 2
+  @doc "The address of the hosted preference page of the link's recipient, with a new page token (X-51)."
+  @callback preferences_link(token :: String.t()) :: {:ok, String.t()} | {:error, term()}
+
+  @optional_callbacks refuse: 2, preferences_link: 1
 
   # CH-76
   @doc "The configured handler; `RelayWeb.Links.Unconfigured` when there is none."
@@ -57,5 +60,29 @@ defmodule RelayWeb.Links do
     :relay
     |> Application.get_env(__MODULE__, [])
     |> Keyword.get(:preferences_url)
+  end
+
+  # X-44
+  @doc "Where the subscriber changes its consents in Access (`config :relay, RelayWeb.Links, consent_url: \"https://...\"`), linked from the hosted preference page; `nil` when no address is configured."
+  @spec consent_url() :: String.t() | nil
+  def consent_url do
+    :relay
+    |> Application.get_env(__MODULE__, [])
+    |> Keyword.get(:consent_url)
+  end
+
+  # X-51
+  # PC-36
+  @doc "The hosted preference page of the recipient of a link, for the page of an applied unsubscribe link when no `preferences_url` is configured: the handler's `preferences_link/1` when it has one, else `nil`."
+  @spec preferences_link(String.t()) :: String.t() | nil
+  def preferences_link(token) do
+    handler = handler()
+
+    with true <- function_exported?(handler, :preferences_link, 1),
+         {:ok, url} <- handler.preferences_link(token) do
+      url
+    else
+      _none -> nil
+    end
   end
 end

@@ -38,6 +38,33 @@ defmodule RelayDev.SeedTest do
       assert Seeder.perform(%Oban.Job{args: args}) == :ok
     end
 
+    test "T-65 X-43: with the tenant hook on, the queued setup and two dev seeds all succeed",
+         ctx do
+      previous = Application.get_env(:relay, Relay.Tenancy.Provisioning)
+      Application.put_env(:relay, Relay.Tenancy.Provisioning, test_plane: Relay.Api.TestPlane)
+      on_exit(fn -> Application.put_env(:relay, Relay.Tenancy.Provisioning, previous) end)
+
+      assert {:ok, first} = RelayDev.Seed.run()
+      assert first == ctx.report
+
+      %{rows: queued} =
+        Relay.Repo.query!(
+          "SELECT args FROM relay_queue.oban_jobs WHERE worker = $1 AND args->>'tenant_id' = $2",
+          ["Relay.Api.TestPlane.Seeder", Relay.Scope.tenant_text(ctx.plane)]
+        )
+
+      assert queued != []
+      for [args] <- queued, do: assert(Seeder.perform(%Oban.Job{args: args}) == :ok)
+
+      assert {:ok, ^first} = RelayDev.Seed.run()
+      assert {:ok, ^first} = RelayDev.Seed.run()
+
+      external = "seed_fallback_timezone"
+      shown = F.body(F.request(:get, "/v1/subscribers/" <> external, F.token(ctx.plane)), 200)
+      assert shown["timezone"] == nil
+      assert shown["locale"] == "tr-TR"
+    end
+
     test "T-65: the sample workflow is published in the test plane", ctx do
       assert {:ok, {:ok, %{"version_no" => 1}}} =
                Relay.Workflow.resolve_published(ctx.plane, "welcome")

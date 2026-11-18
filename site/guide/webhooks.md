@@ -26,11 +26,19 @@ Always verify the raw body exactly as it arrived, before parsing it. Every serve
 
 <<< @/examples/typescript/webhook.ts#verify [TypeScript]
 
+<<< @/examples/python/webhook.py#verify [Python]
+
+<<< @/examples/go/snippets.go#verify [Go]
+
 <<< @/examples/dotnet/Webhooks.cs#verify [.NET]
 
 <<< @/examples/java/snippets/Webhooks.java#verify [Java]
 
 <<< @/examples/elixir/webhooks.ex#verify{elixir} [Elixir]
+
+<<< @/examples/php/Snippets.php#verify [PHP]
+
+<<< @/examples/ruby/snippets.rb#verify [Ruby]
 
 :::
 

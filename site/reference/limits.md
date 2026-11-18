@@ -82,6 +82,16 @@ Durations are ISO 8601 durations.
 | `idempotency_key_length.max` | 255 |
 | `idempotency_key_length.min` | 8 |
 
+### import
+
+| Limit | Value |
+|---|---|
+| `import.max_alias_lifetime` | P90D |
+| `import.max_body_bytes` | 33554432 |
+| `import.max_line_bytes` | 65536 |
+| `import.max_lines` | 100000 |
+| `import.max_report_items` | 1000 |
+
 ### inbox
 
 | Limit | Value |
@@ -541,6 +551,8 @@ Every error is an RFC 9457 problem document whose `type` is `/v1/errors/<code>` 
 | `idempotency_key_invalid` | 400 | no |  | Idempotency-Key is invalid |
 | `idempotency_key_missing` | 400 | no |  | Idempotency-Key is missing |
 | `idempotency_key_reuse` | 422 | no |  | Idempotency-Key was used with a different body |
+| `import_not_found` | 404 | no |  | Import not found |
+| `import_order_violation` | 409 | no |  | Import order violated |
 | `inbox_announcement_not_found` | 404 | no |  | Inbox announcement not found |
 | `inbox_bulk_operation_not_found` | 404 | no |  | Inbox bulk operation not found |
 | `inbox_item_conflict` | 409 | no |  | Inbox item changed |
@@ -588,6 +600,7 @@ Every error is an RFC 9457 problem document whose `type` is `/v1/errors/<code>` 
 | `recipient_invalid` | 422 | no |  | Recipient is invalid |
 | `recipient_not_found` | 422 | no |  | Recipient not found |
 | `recurrence_closed` | 409 | no |  | Recurrence rule is over |
+| `recurrence_handoff_mismatch` | 422 | no |  | Handover does not match the rule |
 | `recurrence_limit_reached` | 422 | no |  | Recurrence rule limit reached |
 | `recurrence_not_found` | 404 | no |  | Recurrence rule not found |
 | `resource_conflict` | 409 | no |  | Resource conflict |

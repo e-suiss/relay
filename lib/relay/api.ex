@@ -94,6 +94,7 @@ defmodule Relay.Api do
       ProviderInvoices,
       Reports,
       Exports,
+      Imports,
       Recurrences,
       EmailTracking,
       TimingSettings,

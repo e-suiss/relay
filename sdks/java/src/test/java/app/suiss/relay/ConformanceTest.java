@@ -28,18 +28,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class ConformanceTest {
   private static final Path ROOT = Path.of(System.getProperty("relay.conformance"));
-
-  @BeforeEach
-  void vectorsPresent() {
-    Assumptions.assumeTrue(Files.isDirectory(ROOT.resolve("sdk/vectors/1")));
-  }
 
   private static JsonNode vectors(String name) {
     try {

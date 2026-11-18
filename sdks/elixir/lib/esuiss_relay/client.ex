@@ -144,6 +144,7 @@ defmodule EsuissRelay.Client do
          query_opts[:ending_before] != nil do
       raise ArgumentError, "starting_after and ending_before together (both_cursors)"
     end
+
     body = if operation.body == :required, do: body, else: Keyword.get(request_opts, :body)
 
     if operation.body == :required and is_nil(body) do
@@ -270,9 +271,19 @@ defmodule EsuissRelay.Client do
           again(client, operation, request, {retry, max}, decision, {:error, error})
 
         {:error, reason} ->
-          safe = operation.method == :get or List.keymember?(request.headers, "idempotency-key", 0)
+          safe =
+            operation.method == :get or List.keymember?(request.headers, "idempotency-key", 0)
+
           decision = decide(client, retry + 1, max, safe, nil)
-          again(client, operation, request, {retry, max}, decision, {:error, Error.connection(reason)})
+
+          again(
+            client,
+            operation,
+            request,
+            {retry, max},
+            decision,
+            {:error, Error.connection(reason)}
+          )
       end
     end
   end
@@ -302,7 +313,8 @@ defmodule EsuissRelay.Client do
         ) ::
           {:retry, non_neg_integer()}
           | {:stop, :not_retryable | :retries_exhausted | :retry_after_too_long}
-  def retry_decision(client, retry, max, :network_error), do: decide(client, retry, max, true, nil)
+  def retry_decision(client, retry, max, :network_error),
+    do: decide(client, retry, max, true, nil)
 
   def retry_decision(client, retry, max, {:response, response}) do
     error = Error.from_transport(response, client.clock.())
@@ -369,11 +381,21 @@ defmodule EsuissRelay.Client do
   end
 
   defp decode_body(_client, %Operation{response: :none}, _path_values, _opts, _response), do: nil
-  defp decode_body(_client, %Operation{response: :text}, _path_values, _opts, response), do: response.body
+
+  defp decode_body(_client, %Operation{response: :text}, _path_values, _opts, response),
+    do: response.body
+
   defp decode_body(_client, _operation, _path_values, _opts, %{body: ""}), do: nil
 
   defp decode_body(client, %Operation{paginated: true} = operation, path_values, opts, response),
-    do: Page.new(client, operation, path_values, Keyword.delete(opts, :raw), JSON.decode!(response.body))
+    do:
+      Page.new(
+        client,
+        operation,
+        path_values,
+        Keyword.delete(opts, :raw),
+        JSON.decode!(response.body)
+      )
 
   defp decode_body(_client, _operation, _path_values, _opts, response),
     do: JSON.decode!(response.body)

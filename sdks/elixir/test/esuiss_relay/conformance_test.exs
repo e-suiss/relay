@@ -53,7 +53,9 @@ defmodule EsuissRelay.ConformanceTest do
 
       if expect["request_id"], do: assert(error.request_id == expect["request_id"], name)
       if expect["retry_after_s"], do: assert(error.retry_after == expect["retry_after_s"], name)
-      if expect["field_errors"], do: assert(length(error.problem["errors"]) == expect["field_errors"])
+
+      if expect["field_errors"],
+        do: assert(length(error.problem["errors"]) == expect["field_errors"])
     end
   end
 
@@ -149,7 +151,10 @@ defmodule EsuissRelay.ConformanceTest do
 
   defp run_call(call) do
     {client, stub} = Stub.client(Enum.map(call["responses"], &response/1))
-    opts = if call["caller_idempotency"], do: [idempotency_key: call["caller_idempotency"]], else: []
+
+    opts =
+      if call["caller_idempotency"], do: [idempotency_key: call["caller_idempotency"]], else: []
+
     result = Client.call(client, operation(call), [], nil, [{:raw, true} | opts])
     keys = stub |> Stub.requests() |> Enum.map(&Client.header(&1.headers, "idempotency-key"))
     {result, keys}
@@ -199,7 +204,8 @@ defmodule EsuissRelay.ConformanceTest do
     "ending_before" => :ending_before
   }
 
-  defp page_opts(params), do: Enum.map(params, fn {key, value} -> {Map.fetch!(@page_params, key), value} end)
+  defp page_opts(params),
+    do: Enum.map(params, fn {key, value} -> {Map.fetch!(@page_params, key), value} end)
 
   test "API-56: every pagination vector reads lazily in its direction with the published queries" do
     vectors = vectors("pagination")
@@ -249,7 +255,13 @@ defmodule EsuissRelay.ConformanceTest do
               Map.delete(acc, name)
 
             {name, value}, acc ->
-              Map.put(acc, name, value |> String.replace("{v1a}", base["v1a"]) |> String.replace("{v1}", base["v1"]))
+              Map.put(
+                acc,
+                name,
+                value
+                |> String.replace("{v1a}", base["v1a"])
+                |> String.replace("{v1}", base["v1"])
+              )
           end
         )
 

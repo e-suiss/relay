@@ -48,7 +48,8 @@ defmodule EsuissRelay.Error do
           | EsuissRelay.ApiError.t()
           | EsuissRelay.ConnectionError.t()
 
-  @type category :: :auth | :validation | :rate_limit | :idempotency | :server | :connection | :api
+  @type category ::
+          :auth | :validation | :rate_limit | :idempotency | :server | :connection | :api
 
   @fields [
     :class,
@@ -137,8 +138,11 @@ defmodule EsuissRelay.Error do
           :auth | :validation | :rate_limit | :idempotency | :server | :api
   def category(status, code) do
     case family(code) do
-      nil -> by_status_category(status)
-      family -> Map.get(@family_categories, family, if(status >= 500, do: :server, else: :validation))
+      nil ->
+        by_status_category(status)
+
+      family ->
+        Map.get(@family_categories, family, if(status >= 500, do: :server, else: :validation))
     end
   end
 
@@ -216,7 +220,13 @@ defmodule EsuissRelay.Error do
   @spec from_transport(EsuissRelay.Transport.response(), integer()) :: t()
   def from_transport(%{status: status, headers: headers, body: body}, now) do
     problem = problem(body)
-    from_response(status, header(headers, "request-id"), problem, retry_after(headers, problem, now))
+
+    from_response(
+      status,
+      header(headers, "request-id"),
+      problem,
+      retry_after(headers, problem, now)
+    )
   end
 
   @doc "Builds the typed error of an HTTP error answer from its parts."

@@ -8,22 +8,22 @@ defmodule EsuissRelay.LiveSmokeTest do
   defp env(name), do: System.fetch_env!(name)
 
   test "X-48: the SDK sends an event, pages notifications and verifies a webhook on a live test plane" do
-    key = DpopKey.from_seed(Base.decode64!(env("RELAY_LIVE_DPOP_SEED")))
+    key = DpopKey.from_seed(Base.decode64!(env("SDK_LIVE_DPOP_SEED")))
 
     client =
       Client.new(
-        base_url: env("RELAY_LIVE_BASE_URL"),
-        credentials: Credentials.Static.new(env("RELAY_LIVE_TOKEN"), key)
+        base_url: env("SDK_LIVE_BASE_URL"),
+        credentials: Credentials.Static.new(env("SDK_LIVE_TOKEN"), key)
       )
 
-    event = %{"workflow" => env("RELAY_LIVE_WORKFLOW"), "to" => [env("RELAY_LIVE_RECIPIENT")]}
+    event = %{"workflow" => env("SDK_LIVE_WORKFLOW"), "to" => [env("SDK_LIVE_RECIPIENT")]}
     assert {:ok, %{"id" => id}} = Api.create_event(client, event)
     assert is_binary(id)
 
     assert {:ok, page} = Api.list_notifications(client, limit: 2)
     assert length(Enum.take(page, 6)) <= 6
 
-    vectors = env("RELAY_LIVE_WEBHOOK_VECTORS") |> File.read!() |> JSON.decode!()
+    vectors = env("SDK_LIVE_WEBHOOK_VECTORS") |> File.read!() |> JSON.decode!()
     [vector | _rest] = vectors["cases"]
     timestamp = vector["webhook_timestamp"]
 

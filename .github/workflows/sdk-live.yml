@@ -27,10 +27,10 @@ jobs:
       DOTNET_NOLOGO: "true"
       DOTNET_CLI_TELEMETRY_OPTOUT: "true"
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
-      RELAY_LIVE_BASE_URL: http://localhost:4000
-      RELAY_LIVE_WORKFLOW: welcome
-      RELAY_LIVE_RECIPIENT: dev-sample-recipient
-      RELAY_LIVE_WEBHOOK_VECTORS: ${{ github.workspace }}/conformance/webhooks/vectors/1/signature.json
+      SDK_LIVE_BASE_URL: http://localhost:4000
+      SDK_LIVE_WORKFLOW: welcome
+      SDK_LIVE_RECIPIENT: dev-sample-recipient
+      SDK_LIVE_WEBHOOK_VECTORS: ${{ github.workspace }}/conformance/webhooks/vectors/1/signature.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
@@ -65,7 +65,7 @@ jobs:
           mix relay.dev.seed
           nohup mix phx.server > "$RUNNER_TEMP/relay.log" 2>&1 &
           for i in $(seq 1 120); do
-            curl -fsS "$RELAY_LIVE_BASE_URL/livez" > /dev/null 2>&1 && break
+            curl -fsS "$SDK_LIVE_BASE_URL/livez" > /dev/null 2>&1 && break
             [ "$i" -lt 120 ] || { cat "$RUNNER_TEMP/relay.log"; exit 1; }
             sleep 2
           done
@@ -78,9 +78,9 @@ jobs:
           echo "::add-mask::$token"
           echo "::add-mask::$seed"
           {
-            echo "RELAY_LIVE_DPOP_SEED=$seed"
-            echo "RELAY_LIVE_DPOP_X=$x"
-            echo "RELAY_LIVE_TOKEN=$token"
+            echo "SDK_LIVE_DPOP_SEED=$seed"
+            echo "SDK_LIVE_DPOP_X=$x"
+            echo "SDK_LIVE_TOKEN=$token"
           } >> "$GITHUB_ENV"
       - name: toolchain java
         uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0

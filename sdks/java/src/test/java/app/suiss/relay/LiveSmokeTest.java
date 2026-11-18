@@ -22,17 +22,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
-@EnabledIfEnvironmentVariable(named = "RELAY_LIVE_BASE_URL", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "SDK_LIVE_BASE_URL", matches = ".+")
 class LiveSmokeTest {
-  private static final byte[] PKCS8_PREFIX = HexFormat.of().parseHex("302e020100300506032b657004220420");
+  private static final byte[] PKCS8_PREFIX =
+      HexFormat.of().parseHex("302e020100300506032b657004220420");
 
   private static String env(String name) {
     return System.getenv(name);
   }
 
   private static DpopKey key() throws Exception {
-    byte[] seed = Base64.getDecoder().decode(env("RELAY_LIVE_DPOP_SEED"));
-    byte[] x = Base64.getUrlDecoder().decode(env("RELAY_LIVE_DPOP_X"));
+    byte[] seed = Base64.getDecoder().decode(env("SDK_LIVE_DPOP_SEED"));
+    byte[] x = Base64.getUrlDecoder().decode(env("SDK_LIVE_DPOP_X"));
     byte[] pkcs8 = new byte[PKCS8_PREFIX.length + seed.length];
     System.arraycopy(PKCS8_PREFIX, 0, pkcs8, 0, PKCS8_PREFIX.length);
     System.arraycopy(seed, 0, pkcs8, PKCS8_PREFIX.length, seed.length);
@@ -43,16 +44,17 @@ class LiveSmokeTest {
   }
 
   @Test
-  @DisplayName("X-48: the SDK sends an event, pages notifications and verifies a webhook on a live test plane")
+  @DisplayName(
+      "X-48: the SDK sends an event, pages notifications and verifies a webhook on a live test plane")
   void smoke() throws Exception {
     RelayClient relay =
         RelayClient.builder()
-            .baseUrl(env("RELAY_LIVE_BASE_URL"))
-            .credentials(DpopCredentials.of(key(), env("RELAY_LIVE_TOKEN")))
+            .baseUrl(env("SDK_LIVE_BASE_URL"))
+            .credentials(DpopCredentials.of(key(), env("SDK_LIVE_TOKEN")))
             .build();
 
-    ObjectNode event = Json.object().put("workflow", env("RELAY_LIVE_WORKFLOW"));
-    event.putArray("to").add(env("RELAY_LIVE_RECIPIENT"));
+    ObjectNode event = Json.object().put("workflow", env("SDK_LIVE_WORKFLOW"));
+    event.putArray("to").add(env("SDK_LIVE_RECIPIENT"));
     JsonNode accepted = relay.api().createEvent(event);
     assertTrue(accepted.hasNonNull("id"), accepted.toString());
 
@@ -68,7 +70,7 @@ class LiveSmokeTest {
     }
 
     JsonNode vectors =
-        Json.mapper().readTree(Files.readAllBytes(Path.of(env("RELAY_LIVE_WEBHOOK_VECTORS"))));
+        Json.mapper().readTree(Files.readAllBytes(Path.of(env("SDK_LIVE_WEBHOOK_VECTORS"))));
     JsonNode vector = vectors.path("cases").get(0);
     long timestamp = vector.path("webhook_timestamp").asLong();
     WebhookVerifier verifier =

@@ -10,20 +10,20 @@ public sealed class LiveSmokeTests
     [Fact]
     public async Task X_48_live_smoke_sends_an_event_pages_notifications_and_verifies_a_webhook()
     {
-        var baseUrl = Env("RELAY_LIVE_BASE_URL");
-        Assert.SkipUnless(!string.IsNullOrEmpty(baseUrl), "RELAY_LIVE_BASE_URL is not set");
+        var baseUrl = Env("SDK_LIVE_BASE_URL");
+        Assert.SkipUnless(!string.IsNullOrEmpty(baseUrl), "SDK_LIVE_BASE_URL is not set");
 
-        var key = DpopKey.FromSeed(Convert.FromBase64String(Env("RELAY_LIVE_DPOP_SEED")!));
+        var key = DpopKey.FromSeed(Convert.FromBase64String(Env("SDK_LIVE_DPOP_SEED")!));
         using var client = new RelayClient(new RelayClientOptions
         {
             BaseUrl = new Uri(baseUrl!),
-            Credentials = new DpopTokenCredentials(Env("RELAY_LIVE_TOKEN")!, key),
+            Credentials = new DpopTokenCredentials(Env("SDK_LIVE_TOKEN")!, key),
         });
 
         var evt = new JsonObject
         {
-            ["workflow"] = Env("RELAY_LIVE_WORKFLOW"),
-            ["to"] = new JsonArray(Env("RELAY_LIVE_RECIPIENT")),
+            ["workflow"] = Env("SDK_LIVE_WORKFLOW"),
+            ["to"] = new JsonArray(Env("SDK_LIVE_RECIPIENT")),
         };
         var accepted = await client.Api.CreateEventAsync(evt, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(accepted["id"]);
@@ -38,7 +38,7 @@ public sealed class LiveSmokeTests
             }
         }
 
-        var vectors = JsonNode.Parse(await File.ReadAllTextAsync(Env("RELAY_LIVE_WEBHOOK_VECTORS")!, TestContext.Current.CancellationToken))!;
+        var vectors = JsonNode.Parse(await File.ReadAllTextAsync(Env("SDK_LIVE_WEBHOOK_VECTORS")!, TestContext.Current.CancellationToken))!;
         var vector = vectors["cases"]![0]!;
         var timestamp = vector["webhook_timestamp"]!.GetValue<long>();
         var verifier = new WebhookVerifier([vectors["keys"]!["ed25519_public_key"]!.GetValue<string>()]);

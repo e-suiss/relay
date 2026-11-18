@@ -90,6 +90,7 @@ defmodule Relay.Api do
       TestSends,
       TestPlane,
       PushContent,
+      Subtenants,
       ProviderInvoices,
       Reports,
       Exports,

@@ -462,6 +462,8 @@ defmodule RelayWeb.Router do
     post "/categories/:category_key/archive", CategoryController, :archive,
       private: %{relay_operation: "archiveCategory"}
 
+    get "/subtenants", SubtenantController, :index, private: %{relay_operation: "listSubtenants"}
+
     get "/categories/:category_key/subtenants/:subtenant_id", CategoryController, :setting,
       private: %{relay_operation: "getCategorySubtenantSetting"}
 

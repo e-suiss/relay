@@ -106,6 +106,40 @@ defmodule Relay.Tenancy.Store do
     Repo.code!(row["subtenant_archive"], [:archived, :already_archived, :not_found])
   end
 
+  # TN-3
+  # X-4
+  @doc "Lists the sub-tenants of the established scope newest first from a decoded cursor; at most `limit + 1` rows, each with `cursor_at`."
+  @spec subtenants(map() | nil, pos_integer()) :: [map()]
+  def subtenants(cursor, limit) do
+    {condition, order, params} =
+      case cursor do
+        nil ->
+          {"", "DESC", []}
+
+        %{direction: :after, sort_ts_us: ts, id: id} ->
+          {" AND (s.created_at, s.id) < ($1, $2)", "DESC", [from_us(ts), id]}
+
+        %{direction: :before, sort_ts_us: ts, id: id} ->
+          {" AND (s.created_at, s.id) > ($1, $2)", "ASC", [from_us(ts), id]}
+      end
+
+    %Postgrex.Result{columns: columns, rows: rows} =
+      Repo.scoped_query!(
+        """
+        SELECT s.id, s.access_organization_id, s.name, s.state, s.archived_at, s.created_at,
+          s.updated_at, s.created_at AS cursor_at
+        FROM relay.subtenants s WHERE TRUE#{condition}
+        ORDER BY s.created_at #{order}, s.id #{order} LIMIT #{limit + 1}
+        """,
+        params
+      )
+
+    rows = Enum.map(rows, &(columns |> Enum.zip(&1) |> Map.new()))
+    if order == "ASC", do: Enum.reverse(rows), else: rows
+  end
+
+  defp from_us(us), do: DateTime.from_unix!(us, :microsecond)
+
   @doc "Rolls the current transaction back with `value`."
   @spec rollback(term()) :: no_return()
   def rollback(value), do: Repo.rollback(value)

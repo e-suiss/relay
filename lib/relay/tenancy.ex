@@ -181,6 +181,14 @@ defmodule Relay.Tenancy do
   def upsert_subtenant(scope, attrs, actor),
     do: within(scope, fn _status -> Store.subtenant_upsert(attrs, attrs.record_digest, actor) end)
 
+  # TN-3
+  # X-4
+  @doc "Lists the sub-tenants of a scope from a decoded cursor; see `Relay.Tenancy.Store.subtenants/2`."
+  @spec list_subtenants(Scope.t(), map() | nil, pos_integer()) ::
+          {:ok, [map()]} | {:error, term()}
+  def list_subtenants(scope, cursor, limit),
+    do: within(scope, fn _status -> Store.subtenants(cursor, limit) end)
+
   @doc "Archives a sub-tenant."
   @spec archive_subtenant(Scope.t(), Relay.Id.t(), binary(), Actor.t()) ::
           {:ok, atom()} | {:error, term()}

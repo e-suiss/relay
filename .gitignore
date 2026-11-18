@@ -11,6 +11,7 @@ esuiss_relay-*.tar
 /bench/output/
 /deploy/softhsm/tokens/
 /deploy/softhsm/pin
+/deploy/tls/
 /.elixir_ls/
 /load/bin/
 /load/output/

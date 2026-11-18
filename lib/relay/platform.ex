@@ -9,8 +9,8 @@ defmodule Relay.Platform do
   alias Relay.Platform.Backend
   alias Relay.Platform.Capacity
   alias Relay.Platform.Concurrency
-  alias Relay.Platform.Drain
   alias Relay.Platform.ConnectionSet
+  alias Relay.Platform.Drain
   alias Relay.Platform.Fairness.Job
   alias Relay.Platform.Fairness.Queueing
   alias Relay.Platform.Fanout

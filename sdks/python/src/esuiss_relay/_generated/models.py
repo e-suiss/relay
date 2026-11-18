@@ -4640,7 +4640,21 @@ DeviceRegistration = _t.TypedDict(
         "android_channels": _t.NotRequired[list["AndroidChannel"]],
         "locale": _t.NotRequired["Locale"],
         "timezone": _t.NotRequired["TimeZone"],
+        "interruption_permissions": _t.NotRequired["DeviceInterruptionPermissions"],
         "previous_token": _t.NotRequired["DeviceToken"],
+    },
+)
+
+
+DeviceInterruptionPermission: _t.TypeAlias = _t.Literal["granted", "denied", "not_determined"]
+
+
+DeviceInterruptionPermissions = _t.TypedDict(
+    "DeviceInterruptionPermissions",
+    {
+        "critical_alerts": _t.NotRequired["DeviceInterruptionPermission"],
+        "time_sensitive": _t.NotRequired["DeviceInterruptionPermission"],
+        "dnd_access": _t.NotRequired["DeviceInterruptionPermission"],
     },
 )
 
@@ -4667,6 +4681,7 @@ Device = _t.TypedDict(
         "android_channels": list["AndroidChannel"],
         "locale": _t.Union["Locale", None],
         "timezone": _t.NotRequired[_t.Union["TimeZone", None]],
+        "interruption_permissions": _t.NotRequired[_t.Union["DeviceInterruptionPermissions", None]],
         "state": "DeviceState",
         "disabled_reason": _t.Union["DeviceDisabledReason", None],
         "registered_at": "Timestamp",

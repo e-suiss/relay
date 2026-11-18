@@ -935,24 +935,25 @@ type DeliveryWindowsReplace struct {
 
 // Device: A push target of a subscriber.
 type Device struct {
-	Object           string                `json:"object"`
-	ID               IDDev                 `json:"id"`
-	SubscriberID     IDSub                 `json:"subscriber_id"`
-	Platform         DevicePlatform        `json:"platform"`
-	App              DeviceAppID           `json:"app"`
-	TokenFingerprint string                `json:"token_fingerprint"`
-	ApnsEnvironment  *ApnsEnvironment      `json:"apns_environment"`
-	Permission       DevicePermission      `json:"permission"`
-	AndroidChannels  []AndroidChannel      `json:"android_channels"`
-	Locale           *Locale               `json:"locale"`
-	Timezone         *TimeZone             `json:"timezone,omitempty"`
-	State            DeviceState           `json:"state"`
-	DisabledReason   *DeviceDisabledReason `json:"disabled_reason"`
-	RegisteredAt     Timestamp             `json:"registered_at"`
-	LastSeenAt       Timestamp             `json:"last_seen_at"`
-	DeletedAt        *Timestamp            `json:"deleted_at"`
-	CreatedAt        Timestamp             `json:"created_at"`
-	UpdatedAt        Timestamp             `json:"updated_at"`
+	Object                  string                         `json:"object"`
+	ID                      IDDev                          `json:"id"`
+	SubscriberID            IDSub                          `json:"subscriber_id"`
+	Platform                DevicePlatform                 `json:"platform"`
+	App                     DeviceAppID                    `json:"app"`
+	TokenFingerprint        string                         `json:"token_fingerprint"`
+	ApnsEnvironment         *ApnsEnvironment               `json:"apns_environment"`
+	Permission              DevicePermission               `json:"permission"`
+	AndroidChannels         []AndroidChannel               `json:"android_channels"`
+	Locale                  *Locale                        `json:"locale"`
+	Timezone                *TimeZone                      `json:"timezone,omitempty"`
+	InterruptionPermissions *DeviceInterruptionPermissions `json:"interruption_permissions,omitempty"`
+	State                   DeviceState                    `json:"state"`
+	DisabledReason          *DeviceDisabledReason          `json:"disabled_reason"`
+	RegisteredAt            Timestamp                      `json:"registered_at"`
+	LastSeenAt              Timestamp                      `json:"last_seen_at"`
+	DeletedAt               *Timestamp                     `json:"deleted_at"`
+	CreatedAt               Timestamp                      `json:"created_at"`
+	UpdatedAt               Timestamp                      `json:"updated_at"`
 }
 
 // DeviceAppID: The app the token belongs to: an iOS bundle id, an Android package name, a Firebase or HMS app id, or the tenant's name for a web app.
@@ -960,6 +961,16 @@ type DeviceAppID = string
 
 // DeviceDisabledReason: Why a device was disabled: unregistered (the push service reported the token invalid), logout (the app removed it), removed (the tenant removed it), replaced (the app registered a new token for it), ...
 type DeviceDisabledReason = string
+
+// DeviceInterruptionPermission: One interruption permission as the app reads it from the operating system.
+type DeviceInterruptionPermission = string
+
+// DeviceInterruptionPermissions: The interruption permissions the device reports on every app start (CH-65): on iOS critical_alerts (the Critical Alerts entitlement and the user's grant) and time_sensitive; on Android dnd_access (Do ...
+type DeviceInterruptionPermissions struct {
+	CriticalAlerts *DeviceInterruptionPermission `json:"critical_alerts,omitempty"`
+	TimeSensitive  *DeviceInterruptionPermission `json:"time_sensitive,omitempty"`
+	DndAccess      *DeviceInterruptionPermission `json:"dnd_access,omitempty"`
+}
 
 // DevicePermission: The operating system's notification permission as the app reports it.
 type DevicePermission = string
@@ -969,16 +980,17 @@ type DevicePlatform = string
 
 // DeviceRegistration: Registers a push token for the subscriber, or refreshes it: the mobile SDK sends it on every app start.
 type DeviceRegistration struct {
-	Platform        DevicePlatform   `json:"platform"`
-	Token           DeviceToken      `json:"token"`
-	Keys            *WebPushKeys     `json:"keys,omitempty"`
-	App             DeviceAppID      `json:"app"`
-	ApnsEnvironment *ApnsEnvironment `json:"apns_environment,omitempty"`
-	Permission      DevicePermission `json:"permission"`
-	AndroidChannels []AndroidChannel `json:"android_channels,omitempty"`
-	Locale          *Locale          `json:"locale,omitempty"`
-	Timezone        *TimeZone        `json:"timezone,omitempty"`
-	PreviousToken   *DeviceToken     `json:"previous_token,omitempty"`
+	Platform                DevicePlatform                 `json:"platform"`
+	Token                   DeviceToken                    `json:"token"`
+	Keys                    *WebPushKeys                   `json:"keys,omitempty"`
+	App                     DeviceAppID                    `json:"app"`
+	ApnsEnvironment         *ApnsEnvironment               `json:"apns_environment,omitempty"`
+	Permission              DevicePermission               `json:"permission"`
+	AndroidChannels         []AndroidChannel               `json:"android_channels,omitempty"`
+	Locale                  *Locale                        `json:"locale,omitempty"`
+	Timezone                *TimeZone                      `json:"timezone,omitempty"`
+	InterruptionPermissions *DeviceInterruptionPermissions `json:"interruption_permissions,omitempty"`
+	PreviousToken           *DeviceToken                   `json:"previous_token,omitempty"`
 }
 
 // DeviceState: active: registered and seen recently.

@@ -28,18 +28,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class ConformanceTest {
   private static final Path ROOT = Path.of(System.getProperty("relay.conformance"));
-
-  @BeforeEach
-  void vectorsPresent() {
-    Assumptions.assumeTrue(Files.isDirectory(ROOT.resolve("sdk/vectors/1")));
-  }
 
   private static JsonNode vectors(String name) {
     try {
@@ -345,7 +338,7 @@ class ConformanceTest {
       headers.put("webhook-timestamp", List.of(Long.toString(timestamp)));
       headers.put("webhook-signature", List.of(base.path("v1a").asText()));
       for (Map.Entry<String, JsonNode> h : c.path("headers").properties()) {
-        headers.remove(h.getKey());
+        headers.keySet().removeIf(header -> header.equalsIgnoreCase(h.getKey()));
         if (!h.getValue().isNull()) {
           String value =
               h.getValue()

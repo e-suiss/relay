@@ -103,6 +103,58 @@ public struct RelayPreferences: Equatable, Sendable {
   }
 }
 
+// X-44
+/// The status of a commercial consent as Access records it.
+public enum RelayConsentStatus: String, Sendable, Equatable, CaseIterable {
+  case notGiven = "none"
+  case pending
+  case pendingIys = "pending_iys"
+  case active
+  case revoked
+  case expired
+}
+
+// X-44
+// PC-59
+/// A read-only copy of one commercial consent of the subscriber for a brand and channel.
+public struct RelayConsent: Identifiable, Equatable, Hashable, Sendable {
+  public let id: String
+  public let brand: String?
+  public let channel: String
+  public let status: RelayConsentStatus
+  public let kind: String?
+  public let recipientType: String?
+  public let source: String
+  public let occurredAt: Date
+
+  public init(
+    id: String,
+    brand: String? = nil,
+    channel: String,
+    status: RelayConsentStatus,
+    kind: String? = nil,
+    recipientType: String? = nil,
+    source: String,
+    occurredAt: Date
+  ) {
+    self.id = id
+    self.brand = brand
+    self.channel = channel
+    self.status = status
+    self.kind = kind
+    self.recipientType = recipientType
+    self.source = source
+    self.occurredAt = occurredAt
+  }
+}
+
+/// A page of consents.
+public struct RelayConsentPage: Equatable, Sendable {
+  public let consents: [RelayConsent]
+  public let hasMore: Bool
+  public let nextCursor: String?
+}
+
 // X-31
 /// The subscriber's own preferences (scope `preferences`): category × channel and channel switches
 /// and the digest choice. Identity, contact data and consents are never written from the device.
@@ -118,6 +170,27 @@ public final class RelayPreferencesAPI: Sendable {
       let output = try await client.getMyPreferences(.init())
       guard case .ok(let ok) = output else { throw RelayError.invalidResponse("getMyPreferences") }
       return RelayPreferences(try ok.body.json)
+    }
+  }
+
+  // X-44
+  // PC-59
+  /// A page of the subscriber's commercial consents, newest first. It is a read-only copy of what
+  /// Access holds; consent is changed in Access, never through Relay.
+  public func consents(limit: Int? = nil, startingAfter: String? = nil) async throws
+    -> RelayConsentPage
+  {
+    try await http.perform(scope: .preferences) { client in
+      let output = try await client.listMyConsents(
+        .init(query: .init(limit: limit, startingAfter: startingAfter))
+      )
+      guard case .ok(let ok) = output else { throw RelayError.invalidResponse("listMyConsents") }
+      let list = try ok.body.json
+      return RelayConsentPage(
+        consents: (list.value2.data ?? []).map(RelayConsent.init),
+        hasMore: list.value1.hasMore,
+        nextCursor: list.value1.nextCursor
+      )
     }
   }
 
@@ -223,5 +296,20 @@ extension RelayPreferences {
     case .optOut: return .optOut
     case .unset: return .unset
     }
+  }
+}
+
+extension RelayConsent {
+  init(_ consent: Components.Schemas.Consent) {
+    self.init(
+      id: consent.id,
+      brand: consent.brand,
+      channel: consent.channel.rawValue,
+      status: RelayConsentStatus(rawValue: consent.status.rawValue) ?? .notGiven,
+      kind: consent.consentKind?.rawValue,
+      recipientType: consent.recipientType?.rawValue,
+      source: consent.source,
+      occurredAt: consent.occurredAt
+    )
   }
 }

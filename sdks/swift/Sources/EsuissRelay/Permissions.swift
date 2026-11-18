@@ -42,6 +42,56 @@ public struct RelayNotificationSettings: Sendable, Equatable {
     self.criticalAlerts = criticalAlerts
     self.timeSensitive = timeSensitive
   }
+
+  // CH-65
+  /// The interruption permissions the device reports with its registration. A setting the
+  /// platform does not report is left out, so the server keeps the level it has.
+  public var interruptionPermissions: RelayInterruptionPermissions {
+    RelayInterruptionPermissions(
+      criticalAlerts: RelayInterruptionPermission.of(criticalAlerts, permission: permission),
+      timeSensitive: RelayInterruptionPermission.of(timeSensitive, permission: permission)
+    )
+  }
+}
+
+// CH-65
+/// One interruption permission as Relay records it.
+public enum RelayInterruptionPermission: String, Sendable, Equatable {
+  case granted
+  case denied
+  case notDetermined = "not_determined"
+
+  /// Maps a platform setting; `nil` when the platform does not report it.
+  public static func of(_ state: RelaySettingState, permission: RelayPermission)
+    -> RelayInterruptionPermission?
+  {
+    switch state {
+    case .enabled:
+      return .granted
+    case .disabled:
+      return permission == .notDetermined ? .notDetermined : .denied
+    case .notSupported:
+      return nil
+    }
+  }
+}
+
+// CH-65
+/// The iOS interruption permissions of a device: Critical Alerts and Time Sensitive.
+public struct RelayInterruptionPermissions: Sendable, Equatable {
+  public var criticalAlerts: RelayInterruptionPermission?
+  public var timeSensitive: RelayInterruptionPermission?
+
+  public init(
+    criticalAlerts: RelayInterruptionPermission? = nil,
+    timeSensitive: RelayInterruptionPermission? = nil
+  ) {
+    self.criticalAlerts = criticalAlerts
+    self.timeSensitive = timeSensitive
+  }
+
+  /// Whether nothing is known, so nothing is reported.
+  public var isEmpty: Bool { criticalAlerts == nil && timeSensitive == nil }
 }
 
 /// Reads the device's notification settings; tests replace it.

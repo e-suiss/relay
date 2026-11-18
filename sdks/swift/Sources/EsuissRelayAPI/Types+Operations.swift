@@ -432,6 +432,423 @@ public enum Operations {
             }
         }
     }
+    /// List my consents
+    ///
+    /// Read-only copy of the commercial consents Access holds for the token subscriber: the current record of each brand and channel, from Relay's consent copy, newest first (X-44, PC-59). The preference component and the hosted preference page show it next to the notification preferences and link to Access to change it; Relay never writes consent through this API and never touches Access's session or token.
+    ///
+    /// - Remark: HTTP `GET /v1/subscriber/consents`.
+    /// - Remark: Generated from `#/paths//v1/subscriber/consents/get(listMyConsents)`.
+    public enum ListMyConsents {
+        public static let id: Swift.String = "listMyConsents"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/query`.
+            public struct Query: Sendable, Hashable {
+                /// Page size, 1 to 100.
+                ///
+                /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/query/limit`.
+                public var limit: Components.Parameters.Limit?
+                /// Cursor from next_cursor.
+                ///
+                /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/query/starting_after`.
+                public var startingAfter: Components.Parameters.StartingAfter?
+                /// Cursor from previous_cursor.
+                ///
+                /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/query/ending_before`.
+                public var endingBefore: Components.Parameters.EndingBefore?
+                /// Creates a new `Query`.
+                ///
+                /// - Parameters:
+                ///   - limit: Page size, 1 to 100.
+                ///   - startingAfter: Cursor from next_cursor.
+                ///   - endingBefore: Cursor from previous_cursor.
+                public init(
+                    limit: Components.Parameters.Limit? = nil,
+                    startingAfter: Components.Parameters.StartingAfter? = nil,
+                    endingBefore: Components.Parameters.EndingBefore? = nil
+                ) {
+                    self.limit = limit
+                    self.startingAfter = startingAfter
+                    self.endingBefore = endingBefore
+                }
+            }
+            public var query: Operations.ListMyConsents.Input.Query
+            /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/header`.
+            public struct Headers: Sendable, Hashable {
+                /// Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                ///
+                /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/header/Relay-Version`.
+                public var relayVersion: Components.Parameters.RelayVersion?
+                /// Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true.
+                ///
+                /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/header/Relay-Beta`.
+                public var relayBeta: Components.Parameters.RelayBeta?
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ListMyConsents.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - relayVersion: Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                ///   - relayBeta: Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true.
+                ///   - accept:
+                public init(
+                    relayVersion: Components.Parameters.RelayVersion? = nil,
+                    relayBeta: Components.Parameters.RelayBeta? = nil,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ListMyConsents.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.relayVersion = relayVersion
+                    self.relayBeta = relayBeta
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.ListMyConsents.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - query:
+            ///   - headers:
+            public init(
+                query: Operations.ListMyConsents.Input.Query = .init(),
+                headers: Operations.ListMyConsents.Input.Headers = .init()
+            ) {
+                self.query = query
+                self.headers = headers
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/responses/200/headers`.
+                public struct Headers: Sendable, Hashable {
+                    /// RFC 9745 deprecation date of the API version or field in use.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/responses/200/headers/Deprecation`.
+                    public var deprecation: Components.Headers.Deprecation?
+                    /// Link with rel="deprecation" to the deprecation notice.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/responses/200/headers/Link`.
+                    public var link: Components.Headers.Link?
+                    /// Remaining quota of the most restrictive API rate limit policy (IETF draft format).
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/responses/200/headers/RateLimit`.
+                    public var rateLimit: Components.Headers.RateLimit?
+                    /// API rate limit policies of this tenant and environment.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/responses/200/headers/RateLimit-Policy`.
+                    public var rateLimitPolicy: Components.Headers.RateLimitPolicy?
+                    /// Dated API version that served the request.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/responses/200/headers/Relay-Version`.
+                    public var relayVersion: Components.Headers.RelayVersion
+                    /// Identifier of this request; present on every response.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/responses/200/headers/Request-Id`.
+                    public var requestId: Components.Headers.RequestId
+                    /// RFC 8594 sunset date of the API version in use.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/responses/200/headers/Sunset`.
+                    public var sunset: Components.Headers.Sunset?
+                    /// Limit of the most restrictive policy.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/responses/200/headers/X-RateLimit-Limit`.
+                    public var xRateLimitLimit: Components.Headers.XRateLimitLimit?
+                    /// Remaining weight in the most restrictive policy.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/responses/200/headers/X-RateLimit-Remaining`.
+                    public var xRateLimitRemaining: Components.Headers.XRateLimitRemaining?
+                    /// Seconds until the most restrictive policy resets (delta seconds).
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/responses/200/headers/X-RateLimit-Reset`.
+                    public var xRateLimitReset: Components.Headers.XRateLimitReset?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - deprecation: RFC 9745 deprecation date of the API version or field in use.
+                    ///   - link: Link with rel="deprecation" to the deprecation notice.
+                    ///   - rateLimit: Remaining quota of the most restrictive API rate limit policy (IETF draft format).
+                    ///   - rateLimitPolicy: API rate limit policies of this tenant and environment.
+                    ///   - relayVersion: Dated API version that served the request.
+                    ///   - requestId: Identifier of this request; present on every response.
+                    ///   - sunset: RFC 8594 sunset date of the API version in use.
+                    ///   - xRateLimitLimit: Limit of the most restrictive policy.
+                    ///   - xRateLimitRemaining: Remaining weight in the most restrictive policy.
+                    ///   - xRateLimitReset: Seconds until the most restrictive policy resets (delta seconds).
+                    public init(
+                        deprecation: Components.Headers.Deprecation? = nil,
+                        link: Components.Headers.Link? = nil,
+                        rateLimit: Components.Headers.RateLimit? = nil,
+                        rateLimitPolicy: Components.Headers.RateLimitPolicy? = nil,
+                        relayVersion: Components.Headers.RelayVersion,
+                        requestId: Components.Headers.RequestId,
+                        sunset: Components.Headers.Sunset? = nil,
+                        xRateLimitLimit: Components.Headers.XRateLimitLimit? = nil,
+                        xRateLimitRemaining: Components.Headers.XRateLimitRemaining? = nil,
+                        xRateLimitReset: Components.Headers.XRateLimitReset? = nil
+                    ) {
+                        self.deprecation = deprecation
+                        self.link = link
+                        self.rateLimit = rateLimit
+                        self.rateLimitPolicy = rateLimitPolicy
+                        self.relayVersion = relayVersion
+                        self.requestId = requestId
+                        self.sunset = sunset
+                        self.xRateLimitLimit = xRateLimitLimit
+                        self.xRateLimitRemaining = xRateLimitRemaining
+                        self.xRateLimitReset = xRateLimitReset
+                    }
+                }
+                /// Received HTTP response headers
+                public var headers: Operations.ListMyConsents.Output.Ok.Headers
+                /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/subscriber/consents/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.ConsentList)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.ConsentList {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.ListMyConsents.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                public init(
+                    headers: Operations.ListMyConsents.Output.Ok.Headers,
+                    body: Operations.ListMyConsents.Output.Ok.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// A page of consents.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/consents/get(listMyConsents)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.ListMyConsents.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.ListMyConsents.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Malformed request, missing or invalid Idempotency-Key, or unsupported version.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/consents/get(listMyConsents)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Components.Responses.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Components.Responses.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Missing, malformed, invalid, expired or revoked credentials, or step-up required.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/consents/get(listMyConsents)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Components.Responses.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Components.Responses.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Insufficient scope or role, environment mismatch, suspended tenant or unconfigured channel.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/consents/get(listMyConsents)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Components.Responses.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Components.Responses.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Validation failed, unknown field, idempotency key reuse or a contract error such as an unmapped CloudEvents type.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/consents/get(listMyConsents)/responses/422`.
+            ///
+            /// HTTP response code: `422 unprocessableContent`.
+            case unprocessableContent(Components.Responses.UnprocessableContent)
+            /// The associated value of the enum case if `self` is `.unprocessableContent`.
+            ///
+            /// - Throws: An error if `self` is not `.unprocessableContent`.
+            /// - SeeAlso: `.unprocessableContent`.
+            public var unprocessableContent: Components.Responses.UnprocessableContent {
+                get throws {
+                    switch self {
+                    case let .unprocessableContent(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unprocessableContent",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Rate limited (retryable, with Retry-After) or quota exhausted (not retryable).
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/consents/get(listMyConsents)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Components.Responses.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            public var tooManyRequests: Components.Responses.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Unexpected error without side effects; retryable.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/consents/get(listMyConsents)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Components.Responses.InternalError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Components.Responses.InternalError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Overload, unavailable dependency, durable write failure or platform-wide stop; retryable.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/consents/get(listMyConsents)/responses/503`.
+            ///
+            /// HTTP response code: `503 serviceUnavailable`.
+            case serviceUnavailable(Components.Responses.ServiceUnavailable)
+            /// The associated value of the enum case if `self` is `.serviceUnavailable`.
+            ///
+            /// - Throws: An error if `self` is not `.serviceUnavailable`.
+            /// - SeeAlso: `.serviceUnavailable`.
+            public var serviceUnavailable: Components.Responses.ServiceUnavailable {
+                get throws {
+                    switch self {
+                    case let .serviceUnavailable(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "serviceUnavailable",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case applicationProblemJson
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "application/problem+json":
+                    self = .applicationProblemJson
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .applicationProblemJson:
+                    return "application/problem+json"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .applicationProblemJson
+                ]
+            }
+        }
+    }
     /// Register my device
     ///
     /// Registers or refreshes a push token for the token's subscriber. 201 for a new device, including a token moved from another subscriber (device.reassigned); 200 when the subscriber already had the token. The token is never returned. A Web Push or UnifiedPush token is the subscription endpoint and needs its keys; an APNs token needs apns_environment. The subscriber comes from the token; a token can never register a device for another subscriber.
@@ -5443,6 +5860,405 @@ public enum Operations {
             }
         }
     }
+    /// Get the content of a content-free push
+    ///
+    /// A content-free push carries only that there is a new notification and an opaque identifier, relay_id, the delivery identifier (CH-33). The app's notification service extension (iOS) or data message handler (Android) fetches the content here over TLS with the subscriber's own token and shows it once the device is unlocked. The content is the delivery's render as sent, never rendered again. A delivery of another subscriber, a channel other than push and web_push, a message kept as its digest only (security_subtype, retention none) or an erased one answers delivery_not_found, and the device shows its neutral text; content never falls back into the push payload.
+    ///
+    /// - Remark: HTTP `GET /v1/subscriber/push_content/{delivery_id}`.
+    /// - Remark: Generated from `#/paths//v1/subscriber/push_content/{delivery_id}/get(getMyPushContent)`.
+    public enum GetMyPushContent {
+        public static let id: Swift.String = "getMyPushContent"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/path`.
+            public struct Path: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/path/delivery_id`.
+                public var deliveryId: Components.Schemas.IdDlv
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - deliveryId:
+                public init(deliveryId: Components.Schemas.IdDlv) {
+                    self.deliveryId = deliveryId
+                }
+            }
+            public var path: Operations.GetMyPushContent.Input.Path
+            /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/header`.
+            public struct Headers: Sendable, Hashable {
+                /// Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                ///
+                /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/header/Relay-Version`.
+                public var relayVersion: Components.Parameters.RelayVersion?
+                /// Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true.
+                ///
+                /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/header/Relay-Beta`.
+                public var relayBeta: Components.Parameters.RelayBeta?
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetMyPushContent.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - relayVersion: Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                ///   - relayBeta: Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true.
+                ///   - accept:
+                public init(
+                    relayVersion: Components.Parameters.RelayVersion? = nil,
+                    relayBeta: Components.Parameters.RelayBeta? = nil,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetMyPushContent.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.relayVersion = relayVersion
+                    self.relayBeta = relayBeta
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.GetMyPushContent.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            public init(
+                path: Operations.GetMyPushContent.Input.Path,
+                headers: Operations.GetMyPushContent.Input.Headers = .init()
+            ) {
+                self.path = path
+                self.headers = headers
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/responses/200/headers`.
+                public struct Headers: Sendable, Hashable {
+                    /// RFC 9745 deprecation date of the API version or field in use.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/responses/200/headers/Deprecation`.
+                    public var deprecation: Components.Headers.Deprecation?
+                    /// Link with rel="deprecation" to the deprecation notice.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/responses/200/headers/Link`.
+                    public var link: Components.Headers.Link?
+                    /// Remaining quota of the most restrictive API rate limit policy (IETF draft format).
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/responses/200/headers/RateLimit`.
+                    public var rateLimit: Components.Headers.RateLimit?
+                    /// API rate limit policies of this tenant and environment.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/responses/200/headers/RateLimit-Policy`.
+                    public var rateLimitPolicy: Components.Headers.RateLimitPolicy?
+                    /// Dated API version that served the request.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/responses/200/headers/Relay-Version`.
+                    public var relayVersion: Components.Headers.RelayVersion
+                    /// Identifier of this request; present on every response.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/responses/200/headers/Request-Id`.
+                    public var requestId: Components.Headers.RequestId
+                    /// RFC 8594 sunset date of the API version in use.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/responses/200/headers/Sunset`.
+                    public var sunset: Components.Headers.Sunset?
+                    /// Limit of the most restrictive policy.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/responses/200/headers/X-RateLimit-Limit`.
+                    public var xRateLimitLimit: Components.Headers.XRateLimitLimit?
+                    /// Remaining weight in the most restrictive policy.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/responses/200/headers/X-RateLimit-Remaining`.
+                    public var xRateLimitRemaining: Components.Headers.XRateLimitRemaining?
+                    /// Seconds until the most restrictive policy resets (delta seconds).
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/responses/200/headers/X-RateLimit-Reset`.
+                    public var xRateLimitReset: Components.Headers.XRateLimitReset?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - deprecation: RFC 9745 deprecation date of the API version or field in use.
+                    ///   - link: Link with rel="deprecation" to the deprecation notice.
+                    ///   - rateLimit: Remaining quota of the most restrictive API rate limit policy (IETF draft format).
+                    ///   - rateLimitPolicy: API rate limit policies of this tenant and environment.
+                    ///   - relayVersion: Dated API version that served the request.
+                    ///   - requestId: Identifier of this request; present on every response.
+                    ///   - sunset: RFC 8594 sunset date of the API version in use.
+                    ///   - xRateLimitLimit: Limit of the most restrictive policy.
+                    ///   - xRateLimitRemaining: Remaining weight in the most restrictive policy.
+                    ///   - xRateLimitReset: Seconds until the most restrictive policy resets (delta seconds).
+                    public init(
+                        deprecation: Components.Headers.Deprecation? = nil,
+                        link: Components.Headers.Link? = nil,
+                        rateLimit: Components.Headers.RateLimit? = nil,
+                        rateLimitPolicy: Components.Headers.RateLimitPolicy? = nil,
+                        relayVersion: Components.Headers.RelayVersion,
+                        requestId: Components.Headers.RequestId,
+                        sunset: Components.Headers.Sunset? = nil,
+                        xRateLimitLimit: Components.Headers.XRateLimitLimit? = nil,
+                        xRateLimitRemaining: Components.Headers.XRateLimitRemaining? = nil,
+                        xRateLimitReset: Components.Headers.XRateLimitReset? = nil
+                    ) {
+                        self.deprecation = deprecation
+                        self.link = link
+                        self.rateLimit = rateLimit
+                        self.rateLimitPolicy = rateLimitPolicy
+                        self.relayVersion = relayVersion
+                        self.requestId = requestId
+                        self.sunset = sunset
+                        self.xRateLimitLimit = xRateLimitLimit
+                        self.xRateLimitRemaining = xRateLimitRemaining
+                        self.xRateLimitReset = xRateLimitReset
+                    }
+                }
+                /// Received HTTP response headers
+                public var headers: Operations.GetMyPushContent.Output.Ok.Headers
+                /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/subscriber/push_content/{delivery_id}/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.PushContent)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.PushContent {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetMyPushContent.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                public init(
+                    headers: Operations.GetMyPushContent.Output.Ok.Headers,
+                    body: Operations.GetMyPushContent.Output.Ok.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// The push content.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/push_content/{delivery_id}/get(getMyPushContent)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.GetMyPushContent.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.GetMyPushContent.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Malformed request, missing or invalid Idempotency-Key, or unsupported version.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/push_content/{delivery_id}/get(getMyPushContent)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Components.Responses.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Components.Responses.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Missing, malformed, invalid, expired or revoked credentials, or step-up required.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/push_content/{delivery_id}/get(getMyPushContent)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Components.Responses.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Components.Responses.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Insufficient scope or role, environment mismatch, suspended tenant or unconfigured channel.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/push_content/{delivery_id}/get(getMyPushContent)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Components.Responses.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Components.Responses.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Resource not found in this tenant and environment (resources of others also return 404).
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/push_content/{delivery_id}/get(getMyPushContent)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Components.Responses.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Components.Responses.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Rate limited (retryable, with Retry-After) or quota exhausted (not retryable).
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/push_content/{delivery_id}/get(getMyPushContent)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Components.Responses.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            public var tooManyRequests: Components.Responses.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Unexpected error without side effects; retryable.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/push_content/{delivery_id}/get(getMyPushContent)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Components.Responses.InternalError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Components.Responses.InternalError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Overload, unavailable dependency, durable write failure or platform-wide stop; retryable.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/push_content/{delivery_id}/get(getMyPushContent)/responses/503`.
+            ///
+            /// HTTP response code: `503 serviceUnavailable`.
+            case serviceUnavailable(Components.Responses.ServiceUnavailable)
+            /// The associated value of the enum case if `self` is `.serviceUnavailable`.
+            ///
+            /// - Throws: An error if `self` is not `.serviceUnavailable`.
+            /// - SeeAlso: `.serviceUnavailable`.
+            public var serviceUnavailable: Components.Responses.ServiceUnavailable {
+                get throws {
+                    switch self {
+                    case let .serviceUnavailable(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "serviceUnavailable",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case applicationProblemJson
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "application/problem+json":
+                    self = .applicationProblemJson
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .applicationProblemJson:
+                    return "application/problem+json"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .applicationProblemJson
+                ]
+            }
+        }
+    }
     /// Record a push receipt
     ///
     /// The mobile or web SDK reports that a push of the token's subscriber was displayed or clicked (actor client_sdk). A displayed receipt is the only delivery evidence of a push and raises the delivery to delivered; a clicked receipt is engagement and leaves delivery as it is. Both are recorded in the delivery's ledger and are decision input (DS-13, DS-12). A delivery of another subscriber or of another channel is 404. occurred_at is the device's time, never later than the server's.
@@ -5872,6 +6688,508 @@ public enum Operations {
             /// Overload, unavailable dependency, durable write failure or platform-wide stop; retryable.
             ///
             /// - Remark: Generated from `#/paths//v1/subscriber/push_receipts/post(recordMyPushReceipt)/responses/503`.
+            ///
+            /// HTTP response code: `503 serviceUnavailable`.
+            case serviceUnavailable(Components.Responses.ServiceUnavailable)
+            /// The associated value of the enum case if `self` is `.serviceUnavailable`.
+            ///
+            /// - Throws: An error if `self` is not `.serviceUnavailable`.
+            /// - SeeAlso: `.serviceUnavailable`.
+            public var serviceUnavailable: Components.Responses.ServiceUnavailable {
+                get throws {
+                    switch self {
+                    case let .serviceUnavailable(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "serviceUnavailable",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case applicationProblemJson
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "application/problem+json":
+                    self = .applicationProblemJson
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .applicationProblemJson:
+                    return "application/problem+json"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .applicationProblemJson
+                ]
+            }
+        }
+    }
+    /// Respond to a waitpoint that asks me
+    ///
+    /// The token subscriber answers a question or a review it is a responder of, in the session of its subscriber token: the evidence level of the response is relay_session (AG-26). The value is checked against the waitpoint's response schema and the response size limit before anything is recorded; a value that does not fit is not written and is answered 422 with the failing fields (INV-31). The response carries the subject_digest the request showed and is refused when it is not the waitpoint's (AG-11). The first valid response resolves the waitpoint; the same response sent again is answered as the first was, so a repeated click changes nothing, and any other later response is rejected and the rejection recorded (AG-28). A subscriber that is not a responder is answered 404: knowing the identifier does not let it respond. A response is collected and passed to the waiter; it is never an approval and gives no authority (AG-25, E-49). A waitpoint of the profile guardian_approval takes no response here: it closes only with the decision given on the Access approval surface (AG-62, AG-32). The operation takes no Idempotency-Key: a waitpoint is resolved once.
+    ///
+    /// - Remark: HTTP `POST /v1/subscriber/waitpoints/{waitpoint_id}/response`.
+    /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)`.
+    public enum RespondToMyWaitpoint {
+        public static let id: Swift.String = "respondToMyWaitpoint"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/path`.
+            public struct Path: Sendable, Hashable {
+                /// Waitpoint identifier.
+                ///
+                /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/path/waitpoint_id`.
+                public var waitpointId: Components.Parameters.WaitpointId
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - waitpointId: Waitpoint identifier.
+                public init(waitpointId: Components.Parameters.WaitpointId) {
+                    self.waitpointId = waitpointId
+                }
+            }
+            public var path: Operations.RespondToMyWaitpoint.Input.Path
+            /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/header`.
+            public struct Headers: Sendable, Hashable {
+                /// Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                ///
+                /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/header/Relay-Version`.
+                public var relayVersion: Components.Parameters.RelayVersion?
+                /// Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true.
+                ///
+                /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/header/Relay-Beta`.
+                public var relayBeta: Components.Parameters.RelayBeta?
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.RespondToMyWaitpoint.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - relayVersion: Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                ///   - relayBeta: Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true.
+                ///   - accept:
+                public init(
+                    relayVersion: Components.Parameters.RelayVersion? = nil,
+                    relayBeta: Components.Parameters.RelayBeta? = nil,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.RespondToMyWaitpoint.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.relayVersion = relayVersion
+                    self.relayBeta = relayBeta
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.RespondToMyWaitpoint.Input.Headers
+            /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/requestBody`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/requestBody/content/application\/json`.
+                case json(Components.Schemas.WaitpointResponseRequest)
+            }
+            public var body: Operations.RespondToMyWaitpoint.Input.Body
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            ///   - body:
+            public init(
+                path: Operations.RespondToMyWaitpoint.Input.Path,
+                headers: Operations.RespondToMyWaitpoint.Input.Headers = .init(),
+                body: Operations.RespondToMyWaitpoint.Input.Body
+            ) {
+                self.path = path
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/responses/200/headers`.
+                public struct Headers: Sendable, Hashable {
+                    /// RFC 9745 deprecation date of the API version or field in use.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/responses/200/headers/Deprecation`.
+                    public var deprecation: Components.Headers.Deprecation?
+                    /// Link with rel="deprecation" to the deprecation notice.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/responses/200/headers/Link`.
+                    public var link: Components.Headers.Link?
+                    /// Remaining quota of the most restrictive API rate limit policy (IETF draft format).
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/responses/200/headers/RateLimit`.
+                    public var rateLimit: Components.Headers.RateLimit?
+                    /// API rate limit policies of this tenant and environment.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/responses/200/headers/RateLimit-Policy`.
+                    public var rateLimitPolicy: Components.Headers.RateLimitPolicy?
+                    /// Dated API version that served the request.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/responses/200/headers/Relay-Version`.
+                    public var relayVersion: Components.Headers.RelayVersion
+                    /// Identifier of this request; present on every response.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/responses/200/headers/Request-Id`.
+                    public var requestId: Components.Headers.RequestId
+                    /// RFC 8594 sunset date of the API version in use.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/responses/200/headers/Sunset`.
+                    public var sunset: Components.Headers.Sunset?
+                    /// Limit of the most restrictive policy.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/responses/200/headers/X-RateLimit-Limit`.
+                    public var xRateLimitLimit: Components.Headers.XRateLimitLimit?
+                    /// Remaining weight in the most restrictive policy.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/responses/200/headers/X-RateLimit-Remaining`.
+                    public var xRateLimitRemaining: Components.Headers.XRateLimitRemaining?
+                    /// Seconds until the most restrictive policy resets (delta seconds).
+                    ///
+                    /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/responses/200/headers/X-RateLimit-Reset`.
+                    public var xRateLimitReset: Components.Headers.XRateLimitReset?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - deprecation: RFC 9745 deprecation date of the API version or field in use.
+                    ///   - link: Link with rel="deprecation" to the deprecation notice.
+                    ///   - rateLimit: Remaining quota of the most restrictive API rate limit policy (IETF draft format).
+                    ///   - rateLimitPolicy: API rate limit policies of this tenant and environment.
+                    ///   - relayVersion: Dated API version that served the request.
+                    ///   - requestId: Identifier of this request; present on every response.
+                    ///   - sunset: RFC 8594 sunset date of the API version in use.
+                    ///   - xRateLimitLimit: Limit of the most restrictive policy.
+                    ///   - xRateLimitRemaining: Remaining weight in the most restrictive policy.
+                    ///   - xRateLimitReset: Seconds until the most restrictive policy resets (delta seconds).
+                    public init(
+                        deprecation: Components.Headers.Deprecation? = nil,
+                        link: Components.Headers.Link? = nil,
+                        rateLimit: Components.Headers.RateLimit? = nil,
+                        rateLimitPolicy: Components.Headers.RateLimitPolicy? = nil,
+                        relayVersion: Components.Headers.RelayVersion,
+                        requestId: Components.Headers.RequestId,
+                        sunset: Components.Headers.Sunset? = nil,
+                        xRateLimitLimit: Components.Headers.XRateLimitLimit? = nil,
+                        xRateLimitRemaining: Components.Headers.XRateLimitRemaining? = nil,
+                        xRateLimitReset: Components.Headers.XRateLimitReset? = nil
+                    ) {
+                        self.deprecation = deprecation
+                        self.link = link
+                        self.rateLimit = rateLimit
+                        self.rateLimitPolicy = rateLimitPolicy
+                        self.relayVersion = relayVersion
+                        self.requestId = requestId
+                        self.sunset = sunset
+                        self.xRateLimitLimit = xRateLimitLimit
+                        self.xRateLimitRemaining = xRateLimitRemaining
+                        self.xRateLimitReset = xRateLimitReset
+                    }
+                }
+                /// Received HTTP response headers
+                public var headers: Operations.RespondToMyWaitpoint.Output.Ok.Headers
+                /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/subscriber/waitpoints/{waitpoint_id}/response/POST/responses/200/content/application\/json`.
+                    case json(Components.Schemas.WaitpointResponseReceipt)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.WaitpointResponseReceipt {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RespondToMyWaitpoint.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                public init(
+                    headers: Operations.RespondToMyWaitpoint.Output.Ok.Headers,
+                    body: Operations.RespondToMyWaitpoint.Output.Ok.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// The response resolved the waitpoint, now or when it was first sent.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.RespondToMyWaitpoint.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.RespondToMyWaitpoint.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Malformed request, missing or invalid Idempotency-Key, or unsupported version.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Components.Responses.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Components.Responses.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Missing, malformed, invalid, expired or revoked credentials, or step-up required.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Components.Responses.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Components.Responses.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Insufficient scope or role, environment mismatch, suspended tenant or unconfigured channel.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Components.Responses.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Components.Responses.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Resource not found in this tenant and environment (resources of others also return 404).
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Components.Responses.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Components.Responses.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Idempotency key in progress (retryable) or resource conflict.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)/responses/409`.
+            ///
+            /// HTTP response code: `409 conflict`.
+            case conflict(Components.Responses.Conflict)
+            /// The associated value of the enum case if `self` is `.conflict`.
+            ///
+            /// - Throws: An error if `self` is not `.conflict`.
+            /// - SeeAlso: `.conflict`.
+            public var conflict: Components.Responses.Conflict {
+                get throws {
+                    switch self {
+                    case let .conflict(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "conflict",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Body, field or batch limit exceeded.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)/responses/413`.
+            ///
+            /// HTTP response code: `413 contentTooLarge`.
+            case contentTooLarge(Components.Responses.PayloadTooLarge)
+            /// The associated value of the enum case if `self` is `.contentTooLarge`.
+            ///
+            /// - Throws: An error if `self` is not `.contentTooLarge`.
+            /// - SeeAlso: `.contentTooLarge`.
+            public var contentTooLarge: Components.Responses.PayloadTooLarge {
+                get throws {
+                    switch self {
+                    case let .contentTooLarge(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "contentTooLarge",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Content-Type not accepted.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)/responses/415`.
+            ///
+            /// HTTP response code: `415 unsupportedMediaType`.
+            case unsupportedMediaType(Components.Responses.UnsupportedMediaType)
+            /// The associated value of the enum case if `self` is `.unsupportedMediaType`.
+            ///
+            /// - Throws: An error if `self` is not `.unsupportedMediaType`.
+            /// - SeeAlso: `.unsupportedMediaType`.
+            public var unsupportedMediaType: Components.Responses.UnsupportedMediaType {
+                get throws {
+                    switch self {
+                    case let .unsupportedMediaType(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unsupportedMediaType",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Validation failed, unknown field, idempotency key reuse or a contract error such as an unmapped CloudEvents type.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)/responses/422`.
+            ///
+            /// HTTP response code: `422 unprocessableContent`.
+            case unprocessableContent(Components.Responses.UnprocessableContent)
+            /// The associated value of the enum case if `self` is `.unprocessableContent`.
+            ///
+            /// - Throws: An error if `self` is not `.unprocessableContent`.
+            /// - SeeAlso: `.unprocessableContent`.
+            public var unprocessableContent: Components.Responses.UnprocessableContent {
+                get throws {
+                    switch self {
+                    case let .unprocessableContent(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unprocessableContent",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Rate limited (retryable, with Retry-After) or quota exhausted (not retryable).
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Components.Responses.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            public var tooManyRequests: Components.Responses.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Unexpected error without side effects; retryable.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Components.Responses.InternalError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Components.Responses.InternalError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Overload, unavailable dependency, durable write failure or platform-wide stop; retryable.
+            ///
+            /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)/responses/503`.
             ///
             /// HTTP response code: `503 serviceUnavailable`.
             case serviceUnavailable(Components.Responses.ServiceUnavailable)

@@ -70,18 +70,27 @@ public final class RelayPreferencesModel: ObservableObject {
   @Published public private(set) var permission: RelayPermission = .notDetermined
   @Published public private(set) var lastError: RelayError?
   @Published public var pendingTurnOff: RelayPreferenceCell?
+  @Published public private(set) var consents: [RelayConsent] = []
 
   public let categories: [String: RelayCategoryInfo]
+  /// Where the subscriber changes consent in Access; without it no link is shown (X-44).
+  public let consentManagementURL: URL?
+  /// Display names of brands (subtenants) by their id.
+  public let brandNames: [String: String]
   let api: RelayPreferencesAPI
   let settings: any RelayNotificationSettingsReader
 
   public init(
     api: RelayPreferencesAPI,
     categories: [RelayCategoryInfo] = [],
-    settings: any RelayNotificationSettingsReader = SystemNotificationSettingsReader()
+    settings: any RelayNotificationSettingsReader = SystemNotificationSettingsReader(),
+    consentManagementURL: URL? = nil,
+    brandNames: [String: String] = [:]
   ) {
     self.api = api
     self.settings = settings
+    self.consentManagementURL = consentManagementURL
+    self.brandNames = brandNames
     var map: [String: RelayCategoryInfo] = [:]
     for category in categories { map[category.key] = category }
     self.categories = map
@@ -94,6 +103,21 @@ public final class RelayPreferencesModel: ObservableObject {
     } catch {
       lastError = error as? RelayError ?? .invalidResponse("preferences")
     }
+    await loadConsents()
+  }
+
+  // X-44
+  // PC-59
+  /// Reads the read-only consent copy; when it cannot be read the preferences still show.
+  public func loadConsents() async {
+    guard let page = try? await api.consents(limit: 100) else { return }
+    consents = page.consents
+  }
+
+  /// The brand a consent belongs to, by its display name when the host app gave one.
+  public func brandName(of consent: RelayConsent) -> String? {
+    guard let brand = consent.brand else { return nil }
+    return brandNames[brand] ?? brand
   }
 
   public func state(of cell: RelayPreferenceCell) -> RelayPreferenceRowState {

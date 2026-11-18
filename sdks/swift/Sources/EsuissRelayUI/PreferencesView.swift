@@ -34,6 +34,9 @@ public struct RelayPreferencesView: View {
           }
         }
       }
+      if !model.consents.isEmpty || model.consentManagementURL != nil {
+        consentSection
+      }
     }
     .navigationTitle(strings.text("prefs.title"))
     .task { await model.load() }
@@ -85,6 +88,31 @@ public struct RelayPreferencesView: View {
         }
       }
     }
+  }
+
+  // X-44
+  // PC-59
+  private var consentSection: some View {
+    Section(
+      header: Text(strings.text("consent.title")),
+      footer: Text(strings.text("consent.readOnly"))
+    ) {
+      ForEach(model.consents) { consent in
+        LabeledContent(
+          consentLabel(consent),
+          value: strings.text("consent.status.\(consent.status.rawValue)")
+        )
+      }
+      if let url = model.consentManagementURL {
+        Link(strings.text("consent.manage"), destination: url)
+      }
+    }
+  }
+
+  private func consentLabel(_ consent: RelayConsent) -> String {
+    let channel = strings.channelName(consent.channel)
+    guard let brand = model.brandName(of: consent) else { return channel }
+    return "\(channel) · \(brand)"
   }
 
   // X-51

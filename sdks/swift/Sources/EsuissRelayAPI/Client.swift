@@ -489,6 +489,458 @@ public struct Client: APIProtocol {
             }
         )
     }
+    /// List my consents
+    ///
+    /// Read-only copy of the commercial consents Access holds for the token subscriber: the current record of each brand and channel, from Relay's consent copy, newest first (X-44, PC-59). The preference component and the hosted preference page show it next to the notification preferences and link to Access to change it; Relay never writes consent through this API and never touches Access's session or token.
+    ///
+    /// - Remark: HTTP `GET /v1/subscriber/consents`.
+    /// - Remark: Generated from `#/paths//v1/subscriber/consents/get(listMyConsents)`.
+    public func listMyConsents(_ input: Operations.ListMyConsents.Input) async throws -> Operations.ListMyConsents.Output {
+        try await client.send(
+            input: input,
+            forOperation: Operations.ListMyConsents.id,
+            serializer: { input in
+                let path = try converter.renderedPath(
+                    template: "/v1/subscriber/consents",
+                    parameters: []
+                )
+                var request: HTTPTypes.HTTPRequest = .init(
+                    soar_path: path,
+                    method: .get
+                )
+                suppressMutabilityWarning(&request)
+                try converter.setHeaderFieldAsURI(
+                    in: &request.headerFields,
+                    name: "Relay-Version",
+                    value: input.headers.relayVersion
+                )
+                try converter.setHeaderFieldAsURI(
+                    in: &request.headerFields,
+                    name: "Relay-Beta",
+                    value: input.headers.relayBeta
+                )
+                try converter.setQueryItemAsURI(
+                    in: &request,
+                    style: .form,
+                    explode: true,
+                    name: "limit",
+                    value: input.query.limit
+                )
+                try converter.setQueryItemAsURI(
+                    in: &request,
+                    style: .form,
+                    explode: true,
+                    name: "starting_after",
+                    value: input.query.startingAfter
+                )
+                try converter.setQueryItemAsURI(
+                    in: &request,
+                    style: .form,
+                    explode: true,
+                    name: "ending_before",
+                    value: input.query.endingBefore
+                )
+                converter.setAcceptHeader(
+                    in: &request.headerFields,
+                    contentTypes: input.headers.accept
+                )
+                return (request, nil)
+            },
+            deserializer: { response, responseBody in
+                switch response.status.code {
+                case 200:
+                    let headers: Operations.ListMyConsents.Output.Ok.Headers = .init(
+                        deprecation: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Deprecation",
+                            as: Components.Headers.Deprecation.self
+                        ),
+                        link: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Link",
+                            as: Components.Headers.Link.self
+                        ),
+                        rateLimit: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "RateLimit",
+                            as: Components.Headers.RateLimit.self
+                        ),
+                        rateLimitPolicy: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "RateLimit-Policy",
+                            as: Components.Headers.RateLimitPolicy.self
+                        ),
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        sunset: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Sunset",
+                            as: Components.Headers.Sunset.self
+                        ),
+                        xRateLimitLimit: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Limit",
+                            as: Components.Headers.XRateLimitLimit.self
+                        ),
+                        xRateLimitRemaining: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Remaining",
+                            as: Components.Headers.XRateLimitRemaining.self
+                        ),
+                        xRateLimitReset: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Reset",
+                            as: Components.Headers.XRateLimitReset.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ListMyConsents.Output.Ok.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ConsentList.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .ok(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 400:
+                    let headers: Components.Responses.BadRequest.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.BadRequest.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .badRequest(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 401:
+                    let headers: Components.Responses.Unauthorized.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        wwwAuthenticate: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "WWW-Authenticate",
+                            as: Components.Headers.WWWAuthenticate.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.Unauthorized.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .unauthorized(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 403:
+                    let headers: Components.Responses.Forbidden.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.Forbidden.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .forbidden(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 422:
+                    let headers: Components.Responses.UnprocessableContent.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.UnprocessableContent.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .unprocessableContent(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 429:
+                    let headers: Components.Responses.TooManyRequests.Headers = .init(
+                        rateLimit: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "RateLimit",
+                            as: Components.Headers.RateLimit.self
+                        ),
+                        rateLimitPolicy: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "RateLimit-Policy",
+                            as: Components.Headers.RateLimitPolicy.self
+                        ),
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Retry-After",
+                            as: Components.Headers.RetryAfter.self
+                        ),
+                        xRateLimitLimit: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Limit",
+                            as: Components.Headers.XRateLimitLimit.self
+                        ),
+                        xRateLimitRemaining: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Remaining",
+                            as: Components.Headers.XRateLimitRemaining.self
+                        ),
+                        xRateLimitReset: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Reset",
+                            as: Components.Headers.XRateLimitReset.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.TooManyRequests.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 500:
+                    let headers: Components.Responses.InternalError.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Retry-After",
+                            as: Components.Headers.RetryAfter.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.InternalError.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .internalServerError(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 503:
+                    let headers: Components.Responses.ServiceUnavailable.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Retry-After",
+                            as: Components.Headers.RetryAfter.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.ServiceUnavailable.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .serviceUnavailable(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                default:
+                    return .undocumented(
+                        statusCode: response.status.code,
+                        .init(
+                            headerFields: response.headerFields,
+                            body: responseBody
+                        )
+                    )
+                }
+            }
+        )
+    }
     /// Register my device
     ///
     /// Registers or refreshes a push token for the token's subscriber. 201 for a new device, including a token moved from another subscriber (device.reassigned); 200 when the subscriber already had the token. The token is never returned. A Web Push or UnifiedPush token is the subscription endpoint and needs its keys; an APNs token needs apns_environment. The subscriber comes from the token; a token can never register a device for another subscriber.
@@ -6024,6 +6476,439 @@ public struct Client: APIProtocol {
             }
         )
     }
+    /// Get the content of a content-free push
+    ///
+    /// A content-free push carries only that there is a new notification and an opaque identifier, relay_id, the delivery identifier (CH-33). The app's notification service extension (iOS) or data message handler (Android) fetches the content here over TLS with the subscriber's own token and shows it once the device is unlocked. The content is the delivery's render as sent, never rendered again. A delivery of another subscriber, a channel other than push and web_push, a message kept as its digest only (security_subtype, retention none) or an erased one answers delivery_not_found, and the device shows its neutral text; content never falls back into the push payload.
+    ///
+    /// - Remark: HTTP `GET /v1/subscriber/push_content/{delivery_id}`.
+    /// - Remark: Generated from `#/paths//v1/subscriber/push_content/{delivery_id}/get(getMyPushContent)`.
+    public func getMyPushContent(_ input: Operations.GetMyPushContent.Input) async throws -> Operations.GetMyPushContent.Output {
+        try await client.send(
+            input: input,
+            forOperation: Operations.GetMyPushContent.id,
+            serializer: { input in
+                let path = try converter.renderedPath(
+                    template: "/v1/subscriber/push_content/{}",
+                    parameters: [
+                        input.path.deliveryId
+                    ]
+                )
+                var request: HTTPTypes.HTTPRequest = .init(
+                    soar_path: path,
+                    method: .get
+                )
+                suppressMutabilityWarning(&request)
+                try converter.setHeaderFieldAsURI(
+                    in: &request.headerFields,
+                    name: "Relay-Version",
+                    value: input.headers.relayVersion
+                )
+                try converter.setHeaderFieldAsURI(
+                    in: &request.headerFields,
+                    name: "Relay-Beta",
+                    value: input.headers.relayBeta
+                )
+                converter.setAcceptHeader(
+                    in: &request.headerFields,
+                    contentTypes: input.headers.accept
+                )
+                return (request, nil)
+            },
+            deserializer: { response, responseBody in
+                switch response.status.code {
+                case 200:
+                    let headers: Operations.GetMyPushContent.Output.Ok.Headers = .init(
+                        deprecation: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Deprecation",
+                            as: Components.Headers.Deprecation.self
+                        ),
+                        link: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Link",
+                            as: Components.Headers.Link.self
+                        ),
+                        rateLimit: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "RateLimit",
+                            as: Components.Headers.RateLimit.self
+                        ),
+                        rateLimitPolicy: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "RateLimit-Policy",
+                            as: Components.Headers.RateLimitPolicy.self
+                        ),
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        sunset: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Sunset",
+                            as: Components.Headers.Sunset.self
+                        ),
+                        xRateLimitLimit: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Limit",
+                            as: Components.Headers.XRateLimitLimit.self
+                        ),
+                        xRateLimitRemaining: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Remaining",
+                            as: Components.Headers.XRateLimitRemaining.self
+                        ),
+                        xRateLimitReset: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Reset",
+                            as: Components.Headers.XRateLimitReset.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.GetMyPushContent.Output.Ok.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.PushContent.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .ok(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 400:
+                    let headers: Components.Responses.BadRequest.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.BadRequest.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .badRequest(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 401:
+                    let headers: Components.Responses.Unauthorized.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        wwwAuthenticate: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "WWW-Authenticate",
+                            as: Components.Headers.WWWAuthenticate.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.Unauthorized.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .unauthorized(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 403:
+                    let headers: Components.Responses.Forbidden.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.Forbidden.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .forbidden(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 404:
+                    let headers: Components.Responses.NotFound.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.NotFound.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .notFound(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 429:
+                    let headers: Components.Responses.TooManyRequests.Headers = .init(
+                        rateLimit: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "RateLimit",
+                            as: Components.Headers.RateLimit.self
+                        ),
+                        rateLimitPolicy: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "RateLimit-Policy",
+                            as: Components.Headers.RateLimitPolicy.self
+                        ),
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Retry-After",
+                            as: Components.Headers.RetryAfter.self
+                        ),
+                        xRateLimitLimit: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Limit",
+                            as: Components.Headers.XRateLimitLimit.self
+                        ),
+                        xRateLimitRemaining: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Remaining",
+                            as: Components.Headers.XRateLimitRemaining.self
+                        ),
+                        xRateLimitReset: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Reset",
+                            as: Components.Headers.XRateLimitReset.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.TooManyRequests.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 500:
+                    let headers: Components.Responses.InternalError.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Retry-After",
+                            as: Components.Headers.RetryAfter.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.InternalError.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .internalServerError(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 503:
+                    let headers: Components.Responses.ServiceUnavailable.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Retry-After",
+                            as: Components.Headers.RetryAfter.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.ServiceUnavailable.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .serviceUnavailable(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                default:
+                    return .undocumented(
+                        statusCode: response.status.code,
+                        .init(
+                            headerFields: response.headerFields,
+                            body: responseBody
+                        )
+                    )
+                }
+            }
+        )
+    }
     /// Record a push receipt
     ///
     /// The mobile or web SDK reports that a push of the token's subscriber was displayed or clicked (actor client_sdk). A displayed receipt is the only delivery evidence of a push and raises the delivery to delivered; a clicked receipt is engagement and leaves delivery as it is. Both are recorded in the delivery's ledger and are decision input (DS-13, DS-12). A delivery of another subscriber or of another channel is 404. occurred_at is the device's time, never later than the server's.
@@ -6313,6 +7198,601 @@ public struct Client: APIProtocol {
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
                     return .notFound(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 413:
+                    let headers: Components.Responses.PayloadTooLarge.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.PayloadTooLarge.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .contentTooLarge(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 415:
+                    let headers: Components.Responses.UnsupportedMediaType.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.UnsupportedMediaType.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .unsupportedMediaType(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 422:
+                    let headers: Components.Responses.UnprocessableContent.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.UnprocessableContent.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .unprocessableContent(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 429:
+                    let headers: Components.Responses.TooManyRequests.Headers = .init(
+                        rateLimit: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "RateLimit",
+                            as: Components.Headers.RateLimit.self
+                        ),
+                        rateLimitPolicy: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "RateLimit-Policy",
+                            as: Components.Headers.RateLimitPolicy.self
+                        ),
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Retry-After",
+                            as: Components.Headers.RetryAfter.self
+                        ),
+                        xRateLimitLimit: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Limit",
+                            as: Components.Headers.XRateLimitLimit.self
+                        ),
+                        xRateLimitRemaining: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Remaining",
+                            as: Components.Headers.XRateLimitRemaining.self
+                        ),
+                        xRateLimitReset: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Reset",
+                            as: Components.Headers.XRateLimitReset.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.TooManyRequests.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 500:
+                    let headers: Components.Responses.InternalError.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Retry-After",
+                            as: Components.Headers.RetryAfter.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.InternalError.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .internalServerError(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 503:
+                    let headers: Components.Responses.ServiceUnavailable.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Retry-After",
+                            as: Components.Headers.RetryAfter.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.ServiceUnavailable.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .serviceUnavailable(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                default:
+                    return .undocumented(
+                        statusCode: response.status.code,
+                        .init(
+                            headerFields: response.headerFields,
+                            body: responseBody
+                        )
+                    )
+                }
+            }
+        )
+    }
+    /// Respond to a waitpoint that asks me
+    ///
+    /// The token subscriber answers a question or a review it is a responder of, in the session of its subscriber token: the evidence level of the response is relay_session (AG-26). The value is checked against the waitpoint's response schema and the response size limit before anything is recorded; a value that does not fit is not written and is answered 422 with the failing fields (INV-31). The response carries the subject_digest the request showed and is refused when it is not the waitpoint's (AG-11). The first valid response resolves the waitpoint; the same response sent again is answered as the first was, so a repeated click changes nothing, and any other later response is rejected and the rejection recorded (AG-28). A subscriber that is not a responder is answered 404: knowing the identifier does not let it respond. A response is collected and passed to the waiter; it is never an approval and gives no authority (AG-25, E-49). A waitpoint of the profile guardian_approval takes no response here: it closes only with the decision given on the Access approval surface (AG-62, AG-32). The operation takes no Idempotency-Key: a waitpoint is resolved once.
+    ///
+    /// - Remark: HTTP `POST /v1/subscriber/waitpoints/{waitpoint_id}/response`.
+    /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)`.
+    public func respondToMyWaitpoint(_ input: Operations.RespondToMyWaitpoint.Input) async throws -> Operations.RespondToMyWaitpoint.Output {
+        try await client.send(
+            input: input,
+            forOperation: Operations.RespondToMyWaitpoint.id,
+            serializer: { input in
+                let path = try converter.renderedPath(
+                    template: "/v1/subscriber/waitpoints/{}/response",
+                    parameters: [
+                        input.path.waitpointId
+                    ]
+                )
+                var request: HTTPTypes.HTTPRequest = .init(
+                    soar_path: path,
+                    method: .post
+                )
+                suppressMutabilityWarning(&request)
+                try converter.setHeaderFieldAsURI(
+                    in: &request.headerFields,
+                    name: "Relay-Version",
+                    value: input.headers.relayVersion
+                )
+                try converter.setHeaderFieldAsURI(
+                    in: &request.headerFields,
+                    name: "Relay-Beta",
+                    value: input.headers.relayBeta
+                )
+                converter.setAcceptHeader(
+                    in: &request.headerFields,
+                    contentTypes: input.headers.accept
+                )
+                let body: OpenAPIRuntime.HTTPBody?
+                switch input.body {
+                case let .json(value):
+                    body = try converter.setRequiredRequestBodyAsJSON(
+                        value,
+                        headerFields: &request.headerFields,
+                        contentType: "application/json; charset=utf-8"
+                    )
+                }
+                return (request, body)
+            },
+            deserializer: { response, responseBody in
+                switch response.status.code {
+                case 200:
+                    let headers: Operations.RespondToMyWaitpoint.Output.Ok.Headers = .init(
+                        deprecation: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Deprecation",
+                            as: Components.Headers.Deprecation.self
+                        ),
+                        link: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Link",
+                            as: Components.Headers.Link.self
+                        ),
+                        rateLimit: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "RateLimit",
+                            as: Components.Headers.RateLimit.self
+                        ),
+                        rateLimitPolicy: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "RateLimit-Policy",
+                            as: Components.Headers.RateLimitPolicy.self
+                        ),
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        sunset: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Sunset",
+                            as: Components.Headers.Sunset.self
+                        ),
+                        xRateLimitLimit: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Limit",
+                            as: Components.Headers.XRateLimitLimit.self
+                        ),
+                        xRateLimitRemaining: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Remaining",
+                            as: Components.Headers.XRateLimitRemaining.self
+                        ),
+                        xRateLimitReset: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "X-RateLimit-Reset",
+                            as: Components.Headers.XRateLimitReset.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.RespondToMyWaitpoint.Output.Ok.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.WaitpointResponseReceipt.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .ok(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 400:
+                    let headers: Components.Responses.BadRequest.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.BadRequest.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .badRequest(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 401:
+                    let headers: Components.Responses.Unauthorized.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        wwwAuthenticate: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "WWW-Authenticate",
+                            as: Components.Headers.WWWAuthenticate.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.Unauthorized.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .unauthorized(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 403:
+                    let headers: Components.Responses.Forbidden.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.Forbidden.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .forbidden(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 404:
+                    let headers: Components.Responses.NotFound.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.NotFound.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .notFound(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 409:
+                    let headers: Components.Responses.Conflict.Headers = .init(
+                        relayVersion: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Relay-Version",
+                            as: Components.Headers.RelayVersion.self
+                        ),
+                        requestId: try converter.getRequiredHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Request-Id",
+                            as: Components.Headers.RequestId.self
+                        ),
+                        retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                            in: response.headerFields,
+                            name: "Retry-After",
+                            as: Components.Headers.RetryAfter.self
+                        )
+                    )
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Components.Responses.Conflict.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/problem+json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/problem+json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.Problem.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .applicationProblemJson(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .conflict(.init(
                         headers: headers,
                         body: body
                     ))

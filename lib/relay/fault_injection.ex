@@ -23,7 +23,11 @@ defmodule Relay.FaultInjection do
   @timed [:added_latency, :delayed_delivery_report]
   @channels ~w(push web_push email sms voice whatsapp in_app slack teams telegram discord)
 
-  @type operator :: %{required(:kind) => :installation_operator, required(:ref) => String.t()}
+  @type operator :: %{
+          required(:kind) => :installation_operator,
+          required(:ref) => String.t(),
+          optional(:access_record_ref) => String.t() | nil
+        }
   @type provider_fault :: nil | {:fail, Record.kind()} | {:delay, pos_integer()}
 
   @doc "Supervised children: the node's fault injection cache, unless `config :relay, Relay.FaultInjection, cache: false`."
@@ -165,8 +169,8 @@ defmodule Relay.FaultInjection do
         opts = Keyword.put(opts, :draw, fn -> rem(key, 100) + 1 end)
 
         case pick(records, [:delayed_delivery_report], point, opts) do
-          %Record{delay_ms: ms} -> ms
-          nil -> 0
+          %Record{delay_ms: ms} when is_integer(ms) -> ms
+          _none -> 0
         end
     end
   end

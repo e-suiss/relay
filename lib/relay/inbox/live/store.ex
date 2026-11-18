@@ -28,4 +28,35 @@ defmodule Relay.Inbox.Live.Store do
     {Repo.code!(row["result"], [:created, :exists, :recipient_not_found, :recipient_deleted]),
      row["subject_key_id"]}
   end
+
+  # C-24
+  # AG-34
+  # AG-35
+  # IN-6
+  @doc "Per notification of `notification_ids`: its sender type and, for a notification about a waitpoint, the waitpoint's identifier, kind, profile, state, subject digest, sealed content and key, resolution time and the kind and identifier of the recipient whose response resolved it."
+  @spec annotations([Relay.Id.t()]) :: [map()]
+  def annotations([]), do: []
+
+  def annotations(notification_ids) do
+    %Postgrex.Result{columns: columns, rows: rows} =
+      Repo.scoped_query!(
+        """
+        SELECT n.id AS notification_id, n.sender_type, w.id AS waitpoint_id, w.kind, w.profile,
+          w.state, w.subject_digest, w.content_ct, w.field_key_id, w.resolved_at,
+          r.responder_recipient_id, rr.kind AS responder_kind
+        FROM relay.notifications n
+        LEFT JOIN relay.waitpoints w ON n.subject_type = 'waitpoint'
+          AND w.tenant_id = n.tenant_id AND w.environment = n.environment
+          AND w.id::text = n.subject_id
+        LEFT JOIN relay.waitpoint_responses r ON r.tenant_id = w.tenant_id
+          AND r.environment = w.environment AND r.id = w.resolution_response_id
+        LEFT JOIN relay.recipients rr ON rr.tenant_id = r.tenant_id
+          AND rr.environment = r.environment AND rr.id = r.responder_recipient_id
+        WHERE n.id = ANY ($1)
+        """,
+        [Enum.uniq(notification_ids)]
+      )
+
+    Enum.map(rows, &(columns |> Enum.zip(&1) |> Map.new()))
+  end
 end

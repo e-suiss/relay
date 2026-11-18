@@ -70,6 +70,22 @@ defmodule RelayWeb.Api.PreferenceController do
     Work.answer(conn, Preferences.get(scope, principal.subscriber_id))
   end
 
+  # X-44
+  # PC-59 (1)
+  @spec consents_mine(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def consents_mine(conn, _params) do
+    %{scope: scope, principal: principal, operation: operation} = conn.assigns
+
+    case Work.page(conn) do
+      {:ok, page} ->
+        answer = Preferences.consents(scope, principal.subscriber_id, page, operation.endpoint)
+        Work.answer(conn, answer)
+
+      {:error, error} ->
+        Response.problem(conn, error)
+    end
+  end
+
   # PC-57 (5)
   # PC-57 (6)
   # API-45

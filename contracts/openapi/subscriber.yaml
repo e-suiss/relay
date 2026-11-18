@@ -303,6 +303,167 @@ paths:
       x-relay-step-up: false
       x-relay-choice: true
       x-relay-choice-note: "Path, the combined body of preference writes and profile, and applying them atomically are chosen by the contract."
+  "/v1/subscriber/consents":
+    get:
+      operationId: listMyConsents
+      tags:
+        - preferences
+      summary: List my consents
+      description: "Read-only copy of the commercial consents Access holds for the token subscriber: the current record of each brand and channel, from Relay's consent copy, newest first (X-44, PC-59). The preference component and the hosted preference page show it next to the notification preferences and link to Access to change it; Relay never writes consent through this API and never touches Access's session or token."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+      security:
+        - subscriber_bearer:
+            - preferences
+      responses:
+        "200":
+          description: A page of consents.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ConsentList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+        - subscriber_not_found
+      x-relay-scopes:
+        - preferences
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: "X-44 has the component show consent read-only from Relay's copy; the subscriber path is chosen by the contract."
+  "/v1/subscriber/push_content/{delivery_id}":
+    get:
+      operationId: getMyPushContent
+      tags:
+        - devices
+      summary: Get the content of a content-free push
+      description: "A content-free push carries only that there is a new notification and an opaque identifier, relay_id, the delivery identifier (CH-33). The app's notification service extension (iOS) or data message handler (Android) fetches the content here over TLS with the subscriber's own token and shows it once the device is unlocked. The content is the delivery's render as sent, never rendered again. A delivery of another subscriber, a channel other than push and web_push, a message kept as its digest only (security_subtype, retention none) or an erased one answers delivery_not_found, and the device shows its neutral text; content never falls back into the push payload."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - name: delivery_id
+          in: path
+          required: true
+          schema:
+            "$ref": "./components/schemas.yaml#/Id_dlv"
+      security:
+        - subscriber_bearer:
+            - "inbox:read"
+      responses:
+        "200":
+          description: The push content.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/PushContent"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - delivery_not_found
+      x-relay-scopes:
+        - "inbox:read"
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: "CH-33 has the app fetch content-free push content from Relay over TLS; the path and fetching it by the delivery identifier the push carries are chosen by the contract."
   "/v1/subscriber/devices":
     post:
       operationId: registerMyDevice
@@ -4139,6 +4300,128 @@ components:
         expires_at:
           oneOf:
             - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        sender_type:
+          description: "Who produced the notification, shown on every surface (C-24, AG-34); absent on an announcement."
+          oneOf:
+            - type: string
+              enum:
+                - human
+                - system
+                - agent
+            - type: "null"
+        approval:
+          type: boolean
+          description: "true for an approval item: its only action is the deep link to the Access approval surface and it is never answered here (IN-6, AG-32)."
+        waitpoint:
+          description: "The decision request the item is about, or null (AG-35)."
+          oneOf:
+            - "$ref": "#/components/schemas/InboxWaitpoint"
+            - type: "null"
+      additionalProperties: false
+    PushContent:
+      type: object
+      description: "The rendered content of one of the subscriber's push deliveries, for a content-free push (CH-33). content holds the channel's rendered fields, such as title, subtitle, body and url."
+      required:
+        - object
+        - delivery_id
+        - notification_id
+        - channel
+        - locale
+        - content
+      properties:
+        object:
+          type: string
+          enum:
+            - push_content
+        delivery_id:
+          "$ref": "./components/schemas.yaml#/Id_dlv"
+        notification_id:
+          "$ref": "./components/schemas.yaml#/Id_ntf"
+        channel:
+          type: string
+          enum:
+            - push
+            - web_push
+        locale:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Locale"
+            - type: "null"
+        content:
+          type: object
+      additionalProperties: false
+    InboxWaitpoint:
+      type: object
+      description: "The waitpoint of an item awaiting a response (AG-35, §8.6): awaiting while it is open, responded once a response resolved it (who and when), not_awaited once it expired or was cancelled. options are the structured actions a response names by value. An approval waitpoint has no options to answer here; approval_url is the deep link to the Access approval surface."
+      required:
+        - id
+        - kind
+        - status
+        - subject_digest
+        - options
+        - responder
+        - responded_at
+        - approval_url
+      properties:
+        id:
+          "$ref": "./components/schemas.yaml#/Id_wp"
+        kind:
+          type: string
+          enum:
+            - response
+            - approval
+        status:
+          type: string
+          enum:
+            - awaiting
+            - processing
+            - responded
+            - not_awaited
+        subject_digest:
+          oneOf:
+            - type: string
+              pattern: "^[0-9a-f]{64}$"
+            - type: "null"
+        options:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            required:
+              - label
+              - value
+            properties:
+              label:
+                type: string
+                maxLength: 80
+              value:
+                type: string
+                maxLength: 64
+            additionalProperties: false
+        responder:
+          oneOf:
+            - type: object
+              required:
+                - kind
+                - recipient_id
+              properties:
+                kind:
+                  type: string
+                  enum:
+                    - subscriber
+                    - agent
+                recipient_id:
+                  type: string
+              additionalProperties: false
+            - type: "null"
+        responded_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        approval_url:
+          oneOf:
+            - type: string
+              maxLength: 2048
             - type: "null"
       additionalProperties: false
     InboxCounters:

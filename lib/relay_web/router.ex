@@ -1000,6 +1000,12 @@ defmodule RelayWeb.Router do
     patch "/subscriber/preferences", PreferenceController, :update_mine,
       private: %{relay_operation: "updateMyPreferences"}
 
+    get "/subscriber/consents", PreferenceController, :consents_mine,
+      private: %{relay_operation: "listMyConsents"}
+
+    get "/subscriber/push_content/:delivery_id", PushContentController, :show,
+      private: %{relay_operation: "getMyPushContent"}
+
     post "/subscriber/devices", DeviceController, :create_mine,
       private: %{relay_operation: "registerMyDevice"}
 

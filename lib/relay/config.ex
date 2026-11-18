@@ -70,6 +70,7 @@ defmodule Relay.Config do
     Relay.Api.Discovery,
     Relay.Region,
     Relay.Platform.PoolRule,
+    Relay.TenantLifecycle,
     Oban
   ]
   @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.ReportRepo, Relay.Platform.MaintRepo]

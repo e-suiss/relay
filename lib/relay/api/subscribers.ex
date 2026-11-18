@@ -220,6 +220,11 @@ defmodule Relay.Api.Subscribers do
 
   defp bulk_write(_scope, {:error, error}), do: {:error, error}
 
+  # API-66
+  @doc "The API view of a described subscriber, without its internal fields."
+  @spec view(map()) :: map()
+  def view(view), do: clean(view)
+
   defp clean(view), do: Map.drop(view, ["_id", "_cursor_at"])
 
   defp not_found, do: Relay.Error.new(:subscriber_not_found, "no subscriber has this id")

@@ -12728,6 +12728,119 @@ Id_exp:
   pattern: "^exp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
   examples:
     - exp_01j9zq3k4m5n6p7q8r9s0t1v2w
+SubscriberExport:
+  type: object
+  description: "The data of one subscriber (OP-26): the subscriber and its newest deliveries."
+  required:
+    - object
+    - subscriber
+    - deliveries
+    - truncated
+    - exported_at
+  properties:
+    object:
+      type: string
+      const: subscriber_export
+    subscriber:
+      "$ref": "#/Subscriber"
+    deliveries:
+      type: array
+      items:
+        "$ref": "#/SubscriberExportDelivery"
+    truncated:
+      type: boolean
+    exported_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+SubscriberExportDelivery:
+  type: object
+  description: "One delivery of the subscriber, with the columns of the deliveries export."
+  required:
+    - id
+    - created_at
+    - notification_id
+    - channel
+    - provider
+    - is_test
+    - decision
+    - decision_reason
+    - decision_rule_id
+    - delivery_rank
+    - failure_kind
+    - failure_class
+    - failure_rule_id
+    - attempt_count
+    - duplicate_delivered
+    - has_conflict
+    - accepted_at
+    - delivered_at
+  properties:
+    id:
+      "$ref": "#/Id_dlv"
+    created_at:
+      "$ref": "#/Timestamp"
+    notification_id:
+      "$ref": "#/Id_ntf"
+    channel:
+      oneOf:
+        - type: string
+        - type: "null"
+    provider:
+      oneOf:
+        - type: string
+        - type: "null"
+    decision:
+      oneOf:
+        - type: string
+        - type: "null"
+    decision_reason:
+      oneOf:
+        - type: string
+        - type: "null"
+    decision_rule_id:
+      oneOf:
+        - type: string
+        - type: "null"
+    failure_kind:
+      oneOf:
+        - type: string
+        - type: "null"
+    failure_class:
+      oneOf:
+        - type: string
+        - type: "null"
+    failure_rule_id:
+      oneOf:
+        - type: string
+        - type: "null"
+    is_test:
+      type: boolean
+    delivery_rank:
+      type: string
+      enum:
+        - none
+        - accepted
+        - delivered
+    attempt_count:
+      type: integer
+      minimum: 0
+    duplicate_delivered:
+      oneOf:
+        - type: boolean
+        - type: "null"
+    has_conflict:
+      oneOf:
+        - type: boolean
+        - type: "null"
+    accepted_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    delivered_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
 ExportKind:
   type: string
   description: "What an export holds: the deliveries with their decisions and outcomes, the delivery ledger events, or the daily usage records."

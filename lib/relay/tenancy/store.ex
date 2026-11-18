@@ -74,7 +74,7 @@ defmodule Relay.Tenancy.Store do
   @doc "Reads the tenant row the established scope can see."
   @spec tenant() :: map() | nil
   def tenant do
-    "SELECT id, kind, access_tenant_id, region, sector, default_timezone, default_locale, status, status_reason, version FROM relay.tenants"
+    "SELECT id, kind, access_tenant_id, region, sector, default_timezone, default_locale, status, status_reason, key_ref, version FROM relay.tenants"
     |> Repo.scoped_query!([])
     |> rows()
     |> List.first()
@@ -344,6 +344,48 @@ defmodule Relay.Tenancy.Store do
     |> Repo.scoped_query!([key_id])
     |> rows()
     |> List.first()
+  end
+
+  # OP-85
+  @doc "Records the tenant's own key reference in the established `live` scope and audits the change: `:changed`, `:unchanged` or `:tenant_closed`."
+  @spec tenant_key_custody_set(String.t(), digest(), Actor.t()) ::
+          :changed | :unchanged | :tenant_closed
+  def tenant_key_custody_set(key_ref, digest, %Actor{} = actor) do
+    [row] =
+      Repo.call!("relay_fn.tenant_key_custody_set", [key_ref, digest] ++ Actor.params(actor))
+
+    Repo.code!(row["tenant_key_custody_set"], [:changed, :unchanged, :tenant_closed])
+  end
+
+  # OP-85
+  @doc "Reads the tenant keys of the established scope that are not destroyed, with their wrapped form."
+  @spec unshredded_tenant_keys() :: [map()]
+  def unshredded_tenant_keys do
+    """
+    SELECT tenant_id, environment::text AS environment, id, purpose, state, kek_ref, wrapped_key
+    FROM relay.tenant_keys
+    WHERE state <> 'destroyed'
+    ORDER BY created_at, id
+    """
+    |> Repo.scoped_query!([])
+    |> rows()
+  end
+
+  # OP-85
+  @doc "Replaces the wrapped form of a tenant key wrapped under `expected_kek_ref` with one wrapped under `kek_ref`."
+  @spec tenant_key_rewrap(Relay.Id.t(), String.t(), String.t(), binary()) ::
+          :rewrapped | :unchanged | :conflict | :destroyed | :not_found
+  def tenant_key_rewrap(key_id, expected_kek_ref, kek_ref, wrapped_key) do
+    [row] =
+      Repo.call!("relay_fn.tenant_key_rewrap", [key_id, expected_kek_ref, kek_ref, wrapped_key])
+
+    Repo.code!(row["tenant_key_rewrap"], [
+      :rewrapped,
+      :unchanged,
+      :conflict,
+      :destroyed,
+      :not_found
+    ])
   end
 
   defp rows(%Postgrex.Result{columns: columns, rows: rows}),

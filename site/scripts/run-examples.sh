@@ -107,3 +107,16 @@ for example in examples/typescript/*.ts; do
   node "$example"
   echo "::endgroup::"
 done
+
+for example in examples/python/*.py; do
+  case "$example" in
+    examples/python/credentials.py | *_run.py) continue ;;
+  esac
+  runner="${example%.py}_run.py"
+  if [ -f "$runner" ]; then
+    example="$runner"
+  fi
+  echo "::group::$example"
+  (cd "$root" && PYTHONPATH="$root/sdks/python/src:$root/site/examples/python" SSL_CERT_FILE="$CA" python3 "site/$example")
+  echo "::endgroup::"
+done

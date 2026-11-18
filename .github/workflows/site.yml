@@ -237,7 +237,11 @@ jobs:
           cd site
           test -f package-lock.json || npm install --package-lock-only --no-audit
           npm ci --no-audit
-      - name: Run every curl and TypeScript example of the docs
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.15.2"
+      - run: python -m pip install --require-hashes --no-deps -r sdks/python/requirements-dev.lock
+      - name: Run every curl, TypeScript and Python example of the docs
         run: site/scripts/run-examples.sh
       - if: failure()
         run: tail -n 300 "$RUNNER_TEMP/relay.log"

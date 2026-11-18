@@ -5,6 +5,11 @@ route:
   group_interval: 5m
   repeat_interval: 4h
   routes:
+    - matchers: ['alertname="RelayWakeUpTest"']
+      receiver: page
+      group_by: [alertname]
+      group_wait: 0s
+      repeat_interval: 168h
     - matchers: ['severity="page"', 'class="marketing"']
       receiver: page
       mute_time_intervals: [night]
@@ -29,4 +34,10 @@ time_intervals:
             end_time: "07:00"
 receivers:
   - name: page
+    webhook_configs:
+      - url_file: /etc/alertmanager/secrets/page-webhook-url
+        send_resolved: true
   - name: ticket
+    webhook_configs:
+      - url_file: /etc/alertmanager/secrets/ticket-webhook-url
+        send_resolved: true

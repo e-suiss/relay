@@ -1,0 +1,22 @@
+{
+  "id": "2026-11-18-push-delay",
+  "title": "Delayed push notifications on iOS",
+  "status": "monitoring",
+  "impact": "degraded",
+  "components": ["push"],
+  "regions": ["eu"],
+  "started_at": "2026-11-18T09:12:00Z",
+  "resolved_at": null,
+  "updates": [
+    {
+      "at": "2026-11-18T09:20:00Z",
+      "status": "investigating",
+      "body": "Transactional and security push notifications to iOS devices in the EU region are delayed by up to 10 minutes. Nothing was lost; delayed messages are being delivered."
+    },
+    {
+      "at": "2026-11-18T09:48:00Z",
+      "status": "monitoring",
+      "body": "The push provider recovered at 09:41 UTC. The backlog was delivered by 09:46 UTC. We are monitoring."
+    }
+  ]
+}

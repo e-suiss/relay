@@ -80,15 +80,38 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          fetch-depth: 0
+      # X-53
+      - id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT" in
+            pull_request) base="$PR_BASE" ;;
+            push) base="$BEFORE" ;;
+            *) base="" ;;
+          esac
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "check=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$base" HEAD | grep -qE '^(sdks/php/|\.github/workflows/sdk-php\.yml$)'; then
+            echo "check=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "check=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.scope.outputs.check == 'true'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: "8.2"
           extensions: curl, sodium
           coverage: none
           tools: composer:2.11.1
-      - run: composer install --no-interaction --no-progress --no-plugins --no-scripts
-      - run: php codegen/generate.php
-      - id: diff
+      - if: steps.scope.outputs.check == 'true'
+        run: ./regenerate.sh
+      - if: steps.scope.outputs.check == 'true'
+        id: diff
         run: |
           git add -N src/Generated
           if git diff --quiet -- src/Generated; then

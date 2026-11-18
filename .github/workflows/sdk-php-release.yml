@@ -30,8 +30,7 @@ jobs:
           tools: composer:2.11.1
       - working-directory: sdks/php
         run: |
-          composer install --no-interaction --no-progress --no-plugins --no-scripts
-          php codegen/generate.php
+          ./regenerate.sh
           git add -N src/Generated
           git diff --exit-code -- src/Generated
           vendor/bin/phpunit --testsuite unit

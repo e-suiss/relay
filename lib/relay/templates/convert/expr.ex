@@ -59,7 +59,7 @@ defmodule Relay.Templates.Convert.Expr do
 
   # OP-96
   @doc "Prints an expression with its filters."
-  @spec expression(expression()) :: iodata()
+  @spec expression(expression()) :: iolist()
   def expression({value, filters}), do: [value(value) | Enum.map(filters, &filter/1)]
 
   defp filter({name, []}), do: [" | ", name]
@@ -72,7 +72,7 @@ defmodule Relay.Templates.Convert.Expr do
 
   # OP-96
   @doc "Prints a condition: operands, comparison operators and `and`/`or`."
-  @spec condition(condition()) :: iodata()
+  @spec condition(condition()) :: iolist()
   def condition(parts) do
     parts
     |> Enum.map(fn

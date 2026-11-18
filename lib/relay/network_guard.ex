@@ -13,7 +13,7 @@ defmodule Relay.NetworkGuard do
   end
 
   @enabled Application.compile_env(:relay, [__MODULE__, :enabled], false)
-  @repos [Relay.Repo, Relay.QueueRepo, Relay.Platform.MaintRepo]
+  @repos [Relay.Repo, Relay.QueueRepo, Relay.Platform.MaintRepo, Relay.Platform.ArchiveRepo]
 
   @type target :: :valkey | :keys | :http | :dns
 

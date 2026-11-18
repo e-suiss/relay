@@ -380,6 +380,28 @@ defmodule RelayWeb.Telemetry do
   @spec operations_metrics() :: [Telemetry.Metrics.t()]
   def operations_metrics do
     [
+      last_value("relay.archive.backlog",
+        event_name: [:relay, :archive, :state],
+        measurement: :backlog,
+        description: "Detached partitions waiting for the cold archive"
+      ),
+      last_value("relay.archive.failure.timestamp_seconds",
+        event_name: [:relay, :archive, :failure],
+        measurement: &now/1,
+        tags: [:code],
+        description: "Last time an archive attempt failed"
+      ),
+      counter("relay.archive.archived.total",
+        event_name: [:relay, :archive, :archived],
+        tags: [:table],
+        description: "Partitions moved to the cold archive"
+      ),
+      sum("relay.archive.archived_rows.total",
+        event_name: [:relay, :archive, :archived],
+        measurement: :rows,
+        tags: [:table],
+        description: "Rows moved to the cold archive"
+      ),
       last_value("relay.queue.oldest_job_age.seconds",
         event_name: [:relay, :load_shed, :delay],
         measurement: fn %{ms: ms} -> ms / 1000 end,
@@ -550,6 +572,7 @@ defmodule RelayWeb.Telemetry do
   # PC-50
   # IN-51
   # E-104
+  # OP-84
   @doc "The stage 1 alarm metrics."
   @spec alarm_metrics() :: [Telemetry.Metrics.t()]
   def alarm_metrics do
@@ -646,6 +669,16 @@ defmodule RelayWeb.Telemetry do
         event_name: [:relay, :access, :event, :unresolved],
         tags: [:kind],
         description: "Access account events Relay could not map to a pairwise sub"
+      ),
+      last_value("relay.archive.failures",
+        event_name: [:relay, :archive, :state],
+        measurement: :failures,
+        description: "Archive attempts in a row that failed"
+      ),
+      last_value("relay.archive.backlog_age.seconds",
+        event_name: [:relay, :archive, :state],
+        measurement: :backlog_age_s,
+        description: "Age of the oldest detached partition waiting for the cold archive"
       )
     ]
   end

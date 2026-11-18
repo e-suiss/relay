@@ -2,6 +2,7 @@
   "nif": [],
   "port": [
     {"crate": "pkcs11_port", "rule": "TN-63"},
-    {"crate": "mjml_port", "rule": "T-98"}
+    {"crate": "mjml_port", "rule": "T-98"},
+    {"crate": "archive_port", "rule": "OP-84"}
   ]
 }

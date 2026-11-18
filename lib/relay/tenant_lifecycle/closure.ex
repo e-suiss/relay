@@ -2,7 +2,7 @@ defmodule Relay.TenantLifecycle.Closure do
   @moduledoc """
   Closing a tenant in two steps, both installation operator actions with step-up (OP-86, OP-26).
 
-  Step one records the closure in the tenant's `live` environment, sets the tenant `closed` so that every entry point refuses new work, and queues the full export in the same transaction, all audited as `tenant.closed`. The export job (`Relay.TenantLifecycle.ClosureJob`) writes every export kind of both environments, page by page, as JSON lines and CSV files to the installation's object store (`Relay.TenantLifecycle.ExportStore`) under the closure's own prefix, then a `manifest.json` with each file's environment, kind, format, row count, size and SHA-256; when it is written the closure is `export_ready` (`tenant.export_ready`) and its files are offered through signed links that expire after a day. The formats are a list: Parquet joins it when the archive writer is available.
+  Step one records the closure in the tenant's `live` environment, sets the tenant `closed` so that every entry point refuses new work, and queues the full export in the same transaction, all audited as `tenant.closed`. The export job (`Relay.TenantLifecycle.ClosureJob`) writes every export kind of both environments, page by page, as JSON lines, CSV and Parquet files to the installation's object store (`Relay.TenantLifecycle.ExportStore`) under the closure's own prefix, then a `manifest.json` with each file's environment, kind, format, row count, size and SHA-256; when it is written the closure is `export_ready` (`tenant.export_ready`) and its files are offered through signed links that expire after a day.
 
   Step two crypto-shreds the tenant (`Relay.Keys.Erasure.shred_tenant/2`) in both environments: no earlier than 30 days after the export was ready, or once the tenant's explicit confirmation is recorded (`tenant.closure_confirmed`). It starts with `tenant.shred_started`, each environment writes `tenant.shredded`, and a step that fails is run again by repeating the request. Records under a legal retention obligation stay readable for their period.
   """
@@ -14,7 +14,7 @@ defmodule Relay.TenantLifecycle.Closure do
   alias Relay.TenantLifecycle.ExportStore
   alias Relay.TenantLifecycle.Store
 
-  @formats ~w(jsonl csv)
+  @formats ~w(jsonl csv parquet)
   @environments [:live, :test]
   @delivery_page 5_000
   @subscriber_page 500
@@ -26,7 +26,11 @@ defmodule Relay.TenantLifecycle.Closure do
     ref: "relay:tenant_closure",
     on_behalf_of_ref: "relay:tenant_closure"
   }
-  @content_types %{"jsonl" => "application/x-ndjson", "csv" => "text/csv; charset=utf-8"}
+  @content_types %{
+    "jsonl" => "application/x-ndjson",
+    "csv" => "text/csv; charset=utf-8",
+    "parquet" => "application/vnd.apache.parquet"
+  }
 
   @type digest_fun ::
           (Scope.t(), String.t(), String.t(), String.t(), String.t() | nil -> <<_::256>>)
@@ -37,7 +41,7 @@ defmodule Relay.TenantLifecycle.Closure do
   def system_actor, do: @system
 
   # OP-86
-  @doc "The export formats this installation writes; Parquet is added when the archive writer is available."
+  @doc "The export formats this installation writes: JSON lines, CSV and Parquet."
   @spec formats() :: [String.t(), ...]
   def formats, do: @formats
 
@@ -348,25 +352,23 @@ defmodule Relay.TenantLifecycle.Closure do
     name = "#{environment}/#{kind}/part-#{String.pad_leading(Integer.to_string(number), 5, "0")}"
 
     Enum.reduce_while(part.formats, {:ok, []}, fn format, {:ok, acc} ->
-      body = IO.iodata_to_binary(encode(format, part.columns, rows))
       key = name <> "." <> format
 
-      case ExportStore.put(part.prefix <> key, body, Map.fetch!(@content_types, format)) do
-        :ok ->
-          entry = %{
-            "environment" => environment,
-            "kind" => kind,
-            "format" => format,
-            "key" => key,
-            "rows" => length(rows),
-            "bytes" => byte_size(body),
-            "sha256" => Base.encode16(:crypto.hash(:sha256, body), case: :lower)
-          }
+      with {:ok, body} <- body(format, part.columns, rows),
+           :ok <- ExportStore.put(part.prefix <> key, body, Map.fetch!(@content_types, format)) do
+        entry = %{
+          "environment" => environment,
+          "kind" => kind,
+          "format" => format,
+          "key" => key,
+          "rows" => length(rows),
+          "bytes" => byte_size(body),
+          "sha256" => Base.encode16(:crypto.hash(:sha256, body), case: :lower)
+        }
 
-          {:cont, {:ok, [entry | acc]}}
-
-        {:error, error} ->
-          {:halt, {:error, error}}
+        {:cont, {:ok, [entry | acc]}}
+      else
+        {:error, error} -> {:halt, {:error, error}}
       end
     end)
     |> case do
@@ -384,6 +386,46 @@ defmodule Relay.TenantLifecycle.Closure do
   def encode("csv", columns, rows) do
     [Relay.Delivery.export_csv_line(columns) | Enum.map(rows, &Relay.Delivery.export_csv_line/1)]
   end
+
+  defp body("parquet", columns, rows), do: parquet(columns, rows)
+  defp body(format, columns, rows), do: {:ok, IO.iodata_to_binary(encode(format, columns, rows))}
+
+  # OP-86
+  # OP-84
+  # sobelow_skip ["Traversal.FileModule"]
+  @doc "One file of rows as Parquet through `Relay.Parquet`, every value in its text form: ISO 8601 times and dates, `true` and `false`, decimal integers."
+  @spec parquet([String.t(), ...], [[term()]], keyword()) :: {:ok, binary()} | {:error, Error.t()}
+  def parquet(columns, rows, opts \\ []) do
+    dir = Path.join(System.tmp_dir!(), "relay-export-" <> Relay.Id.to_string(Relay.Id.generate()))
+
+    case File.mkdir_p(dir) do
+      :ok ->
+        try do
+          write_parquet(Path.join(dir, "part.parquet"), columns, rows, opts)
+        after
+          File.rm_rf(dir)
+        end
+
+      {:error, _reason} ->
+        {:error, Error.new(:service_unavailable, "export scratch directory unavailable")}
+    end
+  end
+
+  # sobelow_skip ["Traversal.FileModule"]
+  defp write_parquet(path, columns, rows, opts) do
+    text = Enum.map(rows, fn row -> Enum.map(row, &text/1) end)
+
+    with {:ok, _summary} <- Relay.Parquet.write(path, columns, text, opts),
+         do: {:ok, File.read!(path)}
+  end
+
+  defp text(nil), do: nil
+  defp text(true), do: "true"
+  defp text(false), do: "false"
+  defp text(n) when is_integer(n), do: Integer.to_string(n)
+  defp text(%DateTime{} = at), do: DateTime.to_iso8601(at)
+  defp text(%Date{} = day), do: Date.to_iso8601(day)
+  defp text(value) when is_binary(value), do: value
 
   defp columns("subscribers"), do: @subscriber_columns
   defp columns(kind), do: Relay.Delivery.export_columns(kind)

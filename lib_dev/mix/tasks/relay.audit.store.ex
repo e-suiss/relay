@@ -1,6 +1,6 @@
 defmodule Mix.Tasks.Relay.Audit.Store do
-  @shortdoc "Creates the object-locked audit checkpoint bucket on the local MinIO"
-  @moduledoc "Runs `RelayDev.ObjectStore.setup/2` against the MinIO service of `deploy/compose.yaml`."
+  @shortdoc "Creates the object-locked audit checkpoint and archive buckets on the local MinIO"
+  @moduledoc "Runs `RelayDev.ObjectStore.setup/2` against the MinIO service of `deploy/compose.yaml` for the audit checkpoint bucket and the cold archive bucket."
 
   use Mix.Task
   use Boundary, classify_to: RelayDev
@@ -9,9 +9,14 @@ defmodule Mix.Tasks.Relay.Audit.Store do
   def run(_args) do
     {:ok, _} = Application.ensure_all_started(:req)
 
-    case RelayDev.ObjectStore.setup() do
-      :ok -> Mix.shell().info("audit checkpoint bucket ready")
-      {:error, reason} -> Mix.raise("audit checkpoint bucket setup failed: #{inspect(reason)}")
+    for {name, opts} <- [
+          {"audit checkpoint", RelayDev.ObjectStore.local()},
+          {"archive", RelayDev.ObjectStore.local(bucket: "relay-archive")}
+        ] do
+      case RelayDev.ObjectStore.setup(opts) do
+        :ok -> Mix.shell().info("#{name} bucket ready")
+        {:error, reason} -> Mix.raise("#{name} bucket setup failed: #{inspect(reason)}")
+      end
     end
   end
 end

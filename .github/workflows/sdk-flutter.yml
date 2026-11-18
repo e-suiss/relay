@@ -1,0 +1,76 @@
+name: sdk-flutter
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sdks/flutter/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - ".github/workflows/sdk-flutter.yml"
+  pull_request:
+    paths:
+      - "sdks/flutter/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - ".github/workflows/sdk-flutter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-flutter-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: sdks/flutter
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.47.9
+      - name: Dependencies from the committed lockfile
+        run: |
+          if [ -f pubspec.lock ]; then
+            flutter pub get --enforce-lockfile
+          else
+            flutter pub get
+          fi
+      # T-78
+      - name: Locked packages are at least 7 days older than the lockfile
+        run: |
+          if git ls-files --error-unmatch pubspec.lock >/dev/null 2>&1; then
+            export LOCK_DATE="$(git log -1 --format=%cI -- pubspec.lock)"
+          fi
+          dart run tool/check_lock_age.dart
+      # X-48
+      - name: Regenerate models from the contract
+        run: dart run tool/generate.dart
+      - run: dart format .
+      - name: Collect generated, locked and formatted differences
+        run: |
+          git add -N .
+          git diff --binary -- . > "$RUNNER_TEMP/sdk-flutter.patch"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: sdk-flutter-patch
+          path: ${{ runner.temp }}/sdk-flutter.patch
+          if-no-files-found: ignore
+      - run: dart analyze --fatal-infos
+      - run: flutter test
+      - name: Committed code equals generated, locked and formatted code
+        run: |
+          if [ -s "$RUNNER_TEMP/sdk-flutter.patch" ]; then
+            git diff --stat -- .
+            exit 1
+          fi

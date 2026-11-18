@@ -4380,7 +4380,8 @@ components:
         subject_digest:
           description: "The digest of the subject the request is about, in the form respondToMyWaitpoint takes back."
           oneOf:
-            - "$ref": "./components/schemas.yaml#/Sha256Digest"
+            - type: string
+              pattern: "^sha256:[0-9a-f]{64}$"
             - type: "null"
         options:
           type: array

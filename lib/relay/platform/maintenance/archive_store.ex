@@ -270,7 +270,7 @@ defmodule Relay.Platform.Maintenance.ArchiveStore do
   end
 
   @doc "One row as a line of the PostgreSQL `COPY` text format."
-  @spec copy_line([binary() | nil]) :: iodata()
+  @spec copy_line([binary() | nil]) :: iolist()
   def copy_line(row), do: [Enum.map_intersperse(row, "\t", &copy_value/1), "\n"]
 
   defp copy_value(nil), do: "\\N"

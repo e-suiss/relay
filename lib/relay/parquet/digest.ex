@@ -7,7 +7,7 @@ defmodule Relay.Parquet.Digest do
 
   # OP-84
   @doc "The canonical encoding of one row."
-  @spec encode_row([binary() | nil]) :: iodata()
+  @spec encode_row([binary() | nil]) :: iolist()
   def encode_row(row) when is_list(row), do: Enum.map(row, &encode_value/1)
 
   defp encode_value(nil), do: <<0>>

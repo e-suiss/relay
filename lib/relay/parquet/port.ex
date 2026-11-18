@@ -44,13 +44,21 @@ defmodule Relay.Parquet.Port do
   @spec write(Path.t(), [String.t(), ...], Enumerable.t(), keyword()) ::
           {:ok, Relay.Parquet.summary()} | {:error, Error.t()}
   def write(path, [_ | _] = columns, rows, opts) do
-    session(opts, fn port, timeout ->
-      with :ok <- call_ok(port, open_frame(path, columns), timeout),
-           :ok <- send_rows(port, rows, length(columns), timeout),
-           {:ok, frame} <- call(port, <<@version, 3>>, timeout) do
-        summary(frame)
+    with {:ok, port, timeout} <- start(opts) do
+      try do
+        write_file(port, timeout, path, columns, rows)
+      after
+        close(port)
       end
-    end)
+    end
+  end
+
+  defp write_file(port, timeout, path, columns, rows) do
+    with :ok <- call_ok(port, open_frame(path, columns), timeout),
+         :ok <- send_rows(port, rows, length(columns), timeout),
+         {:ok, frame} <- call(port, <<@version, 3>>, timeout) do
+      summary(frame)
+    end
   end
 
   # OP-84
@@ -58,13 +66,21 @@ defmodule Relay.Parquet.Port do
   @doc "Reads a Parquet file back; see `Relay.Parquet.verify/2`."
   @spec verify(Path.t(), keyword()) :: {:ok, Relay.Parquet.verified()} | {:error, Error.t()}
   def verify(path, opts) do
-    session(opts, fn port, timeout ->
-      with {:ok, frame} <- call(port, path_frame(4, path), timeout),
-           {:ok, summary, rest} <- split_summary(frame),
-           {:ok, columns} <- columns(rest) do
-        {:ok, Map.put(summary, :columns, columns)}
+    with {:ok, port, timeout} <- start(opts) do
+      try do
+        verify_file(port, timeout, path)
+      after
+        close(port)
       end
-    end)
+    end
+  end
+
+  defp verify_file(port, timeout, path) do
+    with {:ok, frame} <- call(port, path_frame(4, path), timeout),
+         {:ok, summary, rest} <- split_summary(frame),
+         {:ok, columns} <- columns(rest) do
+      {:ok, Map.put(summary, :columns, columns)}
+    end
   end
 
   # OP-84
@@ -74,13 +90,21 @@ defmodule Relay.Parquet.Port do
           {:ok, [String.t()], acc} | {:error, Error.t()}
         when acc: term()
   def reduce(path, acc, fun, opts) do
-    session(opts, fn port, timeout ->
-      with {:ok, frame} <- call(port, path_frame(5, path), timeout),
-           {:ok, columns} <- opened_columns(frame),
-           {:ok, acc} <- read_batches(port, length(columns), acc, fun, timeout) do
-        {:ok, columns, acc}
+    with {:ok, port, timeout} <- start(opts) do
+      try do
+        reduce_file(port, timeout, path, acc, fun)
+      after
+        close(port)
       end
-    end)
+    end
+  end
+
+  defp reduce_file(port, timeout, path, acc, fun) do
+    with {:ok, frame} <- call(port, path_frame(5, path), timeout),
+         {:ok, columns} <- opened_columns(frame),
+         {:ok, acc} <- read_batches(port, length(columns), acc, fun, timeout) do
+      {:ok, columns, acc}
+    end
   end
 
   defp opened_columns(<<@version, 0, rest::binary>>), do: columns(rest)
@@ -227,17 +251,12 @@ defmodule Relay.Parquet.Port do
     end
   end
 
-  defp session(opts, fun) do
-    timeout = Keyword.get(opts, :timeout, @default_timeout)
+  defp start(opts) do
     executable = Keyword.get_lazy(opts, :executable, &bundled_program/0)
 
     with :ok <- verify_program(executable, Keyword.get(opts, :sha256, @embedded_sha256)),
          {:ok, port} <- open(executable) do
-      try do
-        fun.(port, timeout)
-      after
-        close(port)
-      end
+      {:ok, port, Keyword.get(opts, :timeout, @default_timeout)}
     end
   end
 

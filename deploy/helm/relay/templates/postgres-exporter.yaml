@@ -1,0 +1,89 @@
+{{- if .Values.postgresExporter.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-postgres-exporter
+  labels:
+    app.kubernetes.io/name: relay-postgres-exporter
+    app.kubernetes.io/part-of: {{ .Release.Name }}
+data:
+  queries.yaml: |
+    {{- .Files.Get "files/postgres-exporter-queries.yaml" | nindent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-postgres-exporter
+  labels:
+    app.kubernetes.io/name: relay-postgres-exporter
+    app.kubernetes.io/part-of: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: relay-postgres-exporter
+      app.kubernetes.io/part-of: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.postgresExporter.port | quote }}
+        prometheus.io/path: /metrics
+      labels:
+        app.kubernetes.io/name: relay-postgres-exporter
+        app.kubernetes.io/part-of: {{ .Release.Name }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres-exporter
+          image: {{ .Values.postgresExporter.image.repository }}@{{ required "postgresExporter.image.digest is required" .Values.postgresExporter.image.digest }}
+          args:
+            - --extend.query-path=/etc/postgres-exporter/queries.yaml
+            - --web.listen-address=:{{ .Values.postgresExporter.port }}
+          env:
+            - name: DATA_SOURCE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgresExporter.dataSourceSecret }}
+                  key: data-source-name
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.postgresExporter.port }}
+          readinessProbe:
+            httpGet: {path: /metrics, port: metrics}
+          resources:
+            {{- toYaml .Values.postgresExporter.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: queries
+              mountPath: /etc/postgres-exporter
+              readOnly: true
+      volumes:
+        - name: queries
+          configMap:
+            name: {{ .Release.Name }}-postgres-exporter
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-postgres-exporter
+  labels:
+    app.kubernetes.io/name: relay-postgres-exporter
+    app.kubernetes.io/part-of: {{ .Release.Name }}
+spec:
+  selector:
+    app.kubernetes.io/name: relay-postgres-exporter
+    app.kubernetes.io/part-of: {{ .Release.Name }}
+  ports:
+    - name: metrics
+      port: {{ .Values.postgresExporter.port }}
+      targetPort: metrics
+{{- end }}

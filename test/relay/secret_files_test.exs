@@ -49,7 +49,10 @@ defmodule Relay.SecretFilesTest do
     "VALKEY_URL" => "redis://valkey.internal:6379",
     "PORT" => "4000",
     "METRICS_PORT" => "9568",
-    "RELAY_ROLES" => "api,worker,socket"
+    "RELAY_ROLES" => "api,worker,socket",
+    "RELAY_REGION" => "tr",
+    "RELAY_NODE_COUNT" => "3",
+    "RELAY_DATABASE_POOLER" => "none"
   }
 
   defp secret_files(dir) do

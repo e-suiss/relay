@@ -8,17 +8,19 @@ defmodule Relay.Realtime do
   use Boundary,
     top_level?: true,
     deps: [Relay, Relay.Platform],
-    exports: [Admission, Connections, Envelope, Feed, Source, OpaqueSource]
+    exports: [Admission, Connections, Drain, Envelope, Feed, Source, OpaqueSource]
 
   alias Relay.Realtime.Admission
   alias Relay.Realtime.Connections
+  alias Relay.Realtime.Drain
 
   @type stream :: :inbox | {:opaque, String.t()}
 
   # IN-52
-  @doc "Supervised children: the node's connection admission bucket."
+  # IN-34
+  @doc "Supervised children: the node's connection admission bucket and its list of open connections."
   @spec children() :: [module(), ...]
-  def children, do: [Admission]
+  def children, do: [Admission, Drain]
 
   # IN-34
   # IN-52

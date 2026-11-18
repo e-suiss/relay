@@ -1,0 +1,72 @@
+{{- if .Values.postgresHA.enabled }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Release.Name }}-pg
+  labels:
+    app.kubernetes.io/name: relay-postgres
+    app.kubernetes.io/part-of: {{ .Release.Name }}
+spec:
+  instances: {{ .Values.postgresHA.instances }}
+  imageName: {{ .Values.postgresHA.image.repository }}@{{ required "postgresHA.image.digest is required" .Values.postgresHA.image.digest }}
+  primaryUpdateStrategy: unsupervised
+  postgresql:
+    shared_preload_libraries:
+      {{- toYaml .Values.database.serverRequirements.sharedPreloadLibraries | nindent 6 }}
+    synchronous:
+      method: any
+      number: 1
+    parameters:
+      archive_timeout: {{ .Values.postgresHA.archiveTimeout | quote }}
+      max_slot_wal_keep_size: {{ .Values.postgresHA.maxSlotWalKeepSize | quote }}
+  storage:
+    size: {{ .Values.postgresHA.storageSize }}
+  walStorage:
+    size: {{ .Values.postgresHA.walStorageSize }}
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: {{ .Release.Name }}-pg-backup
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: {{ .Release.Name }}-pg-backup
+  labels:
+    app.kubernetes.io/name: relay-postgres
+    app.kubernetes.io/part-of: {{ .Release.Name }}
+spec:
+  retentionPolicy: {{ .Values.postgresHA.backup.retentionPolicy | quote }}
+  configuration:
+    destinationPath: {{ required "postgresHA.backup.destinationPath is required" .Values.postgresHA.backup.destinationPath | quote }}
+    endpointURL: {{ required "postgresHA.backup.endpointUrl is required" .Values.postgresHA.backup.endpointUrl | quote }}
+    s3Credentials:
+      accessKeyId:
+        name: {{ .Values.postgresHA.backup.credentialsSecret }}
+        key: access-key-id
+      secretAccessKey:
+        name: {{ .Values.postgresHA.backup.credentialsSecret }}
+        key: secret-access-key
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: {{ .Release.Name }}-pg-daily
+  labels:
+    app.kubernetes.io/name: relay-postgres
+    app.kubernetes.io/part-of: {{ .Release.Name }}
+spec:
+  schedule: {{ .Values.postgresHA.backup.schedule | quote }}
+  backupOwnerReference: self
+  cluster:
+    name: {{ .Release.Name }}-pg
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
+{{- end }}

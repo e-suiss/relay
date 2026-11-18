@@ -31,6 +31,14 @@
   value: {{ .Values.host | quote }}
 - name: RELAY_PREVIEW_HOST
   value: {{ .Values.previewHost | quote }}
+- name: RELAY_REGION
+  value: {{ required "region is required" .Values.region | quote }}
+- name: RELAY_EGRESS_IPS
+  value: {{ join "," .Values.egressIps | quote }}
+- name: RELAY_NODE_COUNT
+  value: {{ include "relay.nodeCount" . | quote }}
+- name: RELAY_DATABASE_POOLER
+  value: {{ ternary "pgbouncer" "none" .Values.pgbouncer.enabled | quote }}
 - name: RELAY_ACCESS_ISSUER
   value: {{ required "access.issuer is required" .Values.access.issuer | quote }}
 - name: RELAY_ACCESS_CLIENT_ID
@@ -84,6 +92,18 @@
 {{- with .Values.keyStore.env }}
 {{ toYaml . }}
 {{- end }}
+{{- end -}}
+
+{{- define "relay.nodeCount" -}}
+{{- $count := 0 -}}
+{{- range .Values.nodes -}}
+{{- if and $.Values.keda.enabled (eq .name $.Values.keda.node) -}}
+{{- $count = add $count $.Values.keda.maxReplicas -}}
+{{- else -}}
+{{- $count = add $count .replicas -}}
+{{- end -}}
+{{- end -}}
+{{- $count -}}
 {{- end -}}
 
 {{- define "relay.image" -}}

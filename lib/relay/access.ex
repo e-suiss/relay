@@ -176,7 +176,7 @@ defmodule Relay.Access do
   @doc """
   Verifies an Access access token for the server API (E-93): an `at+jwt` token of the linked issuer or of an Access environment of its `access_tenant` (E-96, E-103) whose `aud` is Relay's own Access `client_id` (`client_id/0`), bound by `cnf.jkt` to the key of the request's DPoP proof (`Relay.Access.Dpop`). Options: `:proof` (the `DPoP` header value), `:method` and `:url` (the request's method and external URL, which the proof must name), `:ip` (the client address, for last use) and `:certificate` (the DER client certificate of the connection, for RFC 8705 binding).
 
-  The token names its Access tenant in `access_tenant` and its Access client in `client_id` (`Relay.AccessClaims`); tenant, environment and sub-tenant come from the API client trace, never from the token or the request. A client whose trace is not known is `auth_invalid_token` (E-79 (3)). The granted scopes are the trace's API-75 scopes, narrowed to those the token carries when it carries a `scope` claim; an Access service token carries none, so the registration alone grants them. A client still waiting for its environment and scopes is `auth_client_pending` (E-99), a revoked or suspended client `auth_revoked_client`, a suspended tenant or sub-tenant `auth_tenant_suspended`, a link without keys or an unset `client_id` `service_unavailable`. A token bound to a certificate (`cnf.x5t#S256`) also needs that certificate.
+  The token names its Access tenant in `access_tenant` and its Access client in `client_id` (`Relay.AccessClaims`); tenant, environment and sub-tenant come from the API client trace, never from the token or the request. A client whose trace is not known is `auth_invalid_token` (E-79 (3)), unless Access told this installation that its tenant belongs to another region: that token is `421 wrong_region`, never redirected (OP-90). The granted scopes are the trace's API-75 scopes, narrowed to those the token carries when it carries a `scope` claim; an Access service token carries none, so the registration alone grants them. A client still waiting for its environment and scopes is `auth_client_pending` (E-99), a revoked or suspended client `auth_revoked_client`, a suspended tenant or sub-tenant `auth_tenant_suspended`, a link without keys or an unset `client_id` `service_unavailable`. A token bound to a certificate (`cnf.x5t#S256`) also needs that certificate.
   """
   @spec verify_server_token(String.t(), keyword()) ::
           {:ok, principal()} | {:error, Relay.Error.t()}
@@ -364,8 +364,17 @@ defmodule Relay.Access do
   defp resolve(tenant, client) do
     case Clients.resolve(tenant, client) do
       {:ok, resolved} -> {:ok, resolved}
-      :unknown -> invalid("the API client is not registered")
+      :unknown -> unknown(tenant)
     end
+  end
+
+  # OP-90
+  # INV-41
+  # API-7
+  defp unknown(tenant) do
+    if ClientStore.region_refused?(tenant),
+      do: {:error, Relay.Error.new(:wrong_region, "the tenant belongs to another region")},
+      else: invalid("the API client is not registered")
   end
 
   # API-44

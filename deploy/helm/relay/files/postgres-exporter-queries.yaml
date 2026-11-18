@@ -1,0 +1,134 @@
+relay_pg_xid:
+  query: |
+    SELECT max(age(datfrozenxid))::float8 AS age
+    FROM pg_database
+    WHERE datallowconn
+  metrics:
+    - age:
+        usage: GAUGE
+        description: "Oldest unfrozen transaction ID age of any database, in transactions"
+
+relay_pg_long_transaction:
+  query: |
+    SELECT coalesce(max(extract(epoch FROM clock_timestamp() - xact_start)), 0)::float8 AS max_age_seconds
+    FROM pg_stat_activity
+    WHERE xact_start IS NOT NULL AND state <> 'idle' AND backend_type = 'client backend'
+  metrics:
+    - max_age_seconds:
+        usage: GAUGE
+        description: "Age of the longest open transaction, in seconds"
+
+relay_pg_replication_slot:
+  query: |
+    SELECT slot_name, slot_type,
+      CASE WHEN active THEN 1 ELSE 0 END::float8 AS active,
+      coalesce(extract(epoch FROM clock_timestamp() - inactive_since), 0)::float8 AS inactive_seconds,
+      coalesce(safe_wal_size, 0)::float8 AS safe_wal_size_bytes,
+      CASE WHEN wal_status IN ('unreserved', 'lost') THEN 1 ELSE 0 END::float8 AS wal_at_risk,
+      CASE WHEN pg_is_in_recovery() OR restart_lsn IS NULL THEN 0
+        ELSE pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) END::float8 AS retained_bytes
+    FROM pg_replication_slots
+  metrics:
+    - slot_name:
+        usage: LABEL
+        description: "Replication slot name"
+    - slot_type:
+        usage: LABEL
+        description: "Replication slot type"
+    - active:
+        usage: GAUGE
+        description: "1 while a consumer is attached to the slot"
+    - inactive_seconds:
+        usage: GAUGE
+        description: "Seconds since the slot lost its consumer, 0 while active"
+    - safe_wal_size_bytes:
+        usage: GAUGE
+        description: "WAL that can still be written before the slot risks losing required WAL"
+    - wal_at_risk:
+        usage: GAUGE
+        description: "1 when the slot's wal_status is unreserved or lost"
+    - retained_bytes:
+        usage: GAUGE
+        description: "WAL the slot keeps on disk, in bytes"
+
+relay_pg_archiver:
+  query: |
+    SELECT failed_count::float8 AS failed_count,
+      archived_count::float8 AS archived_count,
+      CASE WHEN last_failed_time IS NOT NULL
+        AND last_failed_time > coalesce(last_archived_time, '-infinity'::timestamptz)
+        THEN 1 ELSE 0 END::float8 AS failing
+    FROM pg_stat_archiver
+  metrics:
+    - failed_count:
+        usage: COUNTER
+        description: "WAL files the archiver failed to archive"
+    - archived_count:
+        usage: COUNTER
+        description: "WAL files archived"
+    - failing:
+        usage: GAUGE
+        description: "1 while the last archive attempt failed"
+
+relay_pg_dead_tuples:
+  query: |
+    SELECT schemaname, relname,
+      (n_dead_tup::float8 / greatest(n_live_tup + n_dead_tup, 1)) AS ratio
+    FROM pg_stat_user_tables
+    WHERE schemaname IN ('relay', 'relay_queue') AND n_live_tup + n_dead_tup >= 10000
+    ORDER BY ratio DESC
+    LIMIT 20
+  metrics:
+    - schemaname:
+        usage: LABEL
+        description: "Schema of the table"
+    - relname:
+        usage: LABEL
+        description: "Table or leaf partition"
+    - ratio:
+        usage: GAUGE
+        description: "Dead tuples over live and dead tuples, the 20 highest tables"
+
+relay_pg_index_bloat:
+  query: |
+    WITH idx AS (
+      SELECT n.nspname AS schemaname, ci.relname AS indexname, ci.relpages, ci.reltuples,
+        coalesce((SELECT sum(s.avg_width) FROM pg_attribute a
+          JOIN pg_stats s ON s.schemaname = n.nspname AND s.tablename = ct.relname
+            AND s.attname = a.attname
+          WHERE a.attrelid = ci.oid AND a.attnum > 0), 0) AS width,
+        current_setting('block_size')::float8 AS block_size
+      FROM pg_index i
+      JOIN pg_class ci ON ci.oid = i.indexrelid
+      JOIN pg_class ct ON ct.oid = i.indrelid
+      JOIN pg_namespace n ON n.oid = ci.relnamespace
+      JOIN pg_am am ON am.oid = ci.relam AND am.amname = 'btree'
+      WHERE n.nspname IN ('relay', 'relay_queue') AND ci.relpages > 128 AND ci.reltuples > 0
+    )
+    SELECT schemaname, indexname,
+      greatest(0, 1 - ceil(reltuples * (width + 12) / (block_size * 0.9)) / relpages)::float8 AS ratio
+    FROM idx
+    ORDER BY ratio DESC
+    LIMIT 20
+  metrics:
+    - schemaname:
+        usage: LABEL
+        description: "Schema of the index"
+    - indexname:
+        usage: LABEL
+        description: "B-tree index"
+    - ratio:
+        usage: GAUGE
+        description: "Estimated share of the index's pages that are bloat, the 20 highest indexes"
+
+relay_pg_invalid_index:
+  query: |
+    SELECT count(*)::float8 AS count
+    FROM pg_index i
+    JOIN pg_class c ON c.oid = i.indexrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE NOT i.indisvalid AND n.nspname IN ('relay', 'relay_queue', 'relay_private')
+  metrics:
+    - count:
+        usage: GAUGE
+        description: "Invalid indexes, left by a failed concurrent index build"

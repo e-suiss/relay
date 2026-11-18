@@ -12,7 +12,10 @@ config :swoosh, api_client: false, local: false
 
 config :relay, Relay.Repo,
   migration_primary_key: [type: :binary_id],
-  migration_timestamps: [type: :utc_datetime_usec]
+  migration_timestamps: [type: :utc_datetime_usec],
+  disconnect_on_error_codes: [:read_only_sql_transaction]
+
+config :relay, Relay.QueueRepo, disconnect_on_error_codes: [:read_only_sql_transaction]
 
 config :relay, Relay.Platform.Valkey,
   adapter: Relay.Platform.Valkey.Redix,

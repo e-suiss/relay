@@ -64,6 +64,19 @@ defmodule Relay.Access.ClientStore do
     end
   end
 
+  # OP-90
+  # INV-41
+  @doc "True when Access told this installation that the Access tenant belongs to another region (a `tenant.created` refused with `region_mismatch`) and no tenant of this installation maps it."
+  @spec region_refused?(String.t()) :: boolean()
+  def region_refused?(access_tenant_id) do
+    [row] =
+      Repo.call_unscoped!(:api_client_resolve, "relay_ops.access_tenant_region_refused", [
+        access_tenant_id
+      ])
+
+    row["access_tenant_region_refused"] == true
+  end
+
   # TN-36
   @doc "The installation's API client generation."
   @spec generation() :: non_neg_integer()

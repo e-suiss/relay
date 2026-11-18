@@ -7299,6 +7299,14 @@ RelayConfiguration:
       type: string
       format: uri
       description: "Present with urn:suiss:relay:webhook_endpoints:1."
+    egress_ips:
+      type: array
+      description: "The fixed egress addresses (single addresses or CIDR ranges) this installation's region sends from: webhook deliveries and calls to providers that admit only listed addresses. They never leave the region. Empty when the installation publishes none."
+      items:
+        type: string
+        minLength: 1
+        maxLength: 64
+      uniqueItems: true
   additionalProperties: false
 JsonWebKey:
   type: object

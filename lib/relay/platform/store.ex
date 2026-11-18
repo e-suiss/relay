@@ -5,6 +5,7 @@ defmodule Relay.Platform.Store do
 
   require Logger
 
+  alias Relay.Platform.PoolRule
   alias Relay.Repo
 
   @type query_fun :: (String.t(), list() -> {:ok, [[term()]]} | {:error, term()})
@@ -236,6 +237,30 @@ defmodule Relay.Platform.Store do
   @spec start_query_stats_check() :: :ignore
   def start_query_stats_check do
     _ = query_stats_check()
+    :ignore
+  end
+
+  # OP-30
+  # OP-88
+  @doc "Child specification that reads `max_connections` once while the supervision tree starts and checks the pooling rule (`Relay.Platform.PoolRule`); it never stops the node."
+  @spec pool_rule_check_child() :: Supervisor.child_spec()
+  def pool_rule_check_child do
+    %{
+      id: :relay_pool_rule_check,
+      start: {__MODULE__, :start_pool_rule_check, []},
+      restart: :temporary
+    }
+  end
+
+  @doc "Supervisor start function of `pool_rule_check_child/0`: always `:ignore`."
+  @spec start_pool_rule_check() :: :ignore
+  def start_pool_rule_check do
+    case repo_query("SELECT current_setting('max_connections')::integer", []) do
+      {:ok, [[max]]} when is_integer(max) and max > 0 -> _ = PoolRule.check(max)
+      {:ok, _rows} -> :ok
+      {:error, reason} -> Logger.warning("pool rule check could not run", reason: reason)
+    end
+
     :ignore
   end
 

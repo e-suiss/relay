@@ -1,0 +1,13 @@
+keda:
+  enabled: true
+  prometheusAddress: http://prometheus.monitoring:9090
+pgbouncer:
+  enabled: true
+  databaseHost: relay-pg-rw
+postgresExporter:
+  enabled: true
+postgresHA:
+  enabled: true
+  backup:
+    destinationPath: s3://relay-postgres-backup/tr
+    endpointUrl: https://s3.tr.example.com

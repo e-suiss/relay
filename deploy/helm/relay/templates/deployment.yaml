@@ -9,7 +9,14 @@ metadata:
     app.kubernetes.io/instance: {{ $.Release.Name }}
     relay.suiss.app/node: {{ .name }}
 spec:
+  {{- if not (and $.Values.keda.enabled (eq .name $.Values.keda.node)) }}
   replicas: {{ .replicas }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ $.Values.rollout.maxUnavailable }}
+      maxSurge: {{ $.Values.rollout.maxSurge }}
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ $.Release.Name }}

@@ -776,3 +776,169 @@ groups:
         annotations:
           summary: "The nightly inbox reconciliation found counters that drifted from their items"
           runbook_url: runbooks/inbox-counter-drift.md
+  - name: relay-database
+    rules:
+      - alert: RelayPostgresDiskHigh
+        expr: |
+          max by (persistentvolumeclaim) (
+            1 - kubelet_volume_stats_available_bytes{persistentvolumeclaim=~".*(postgres|pg).*"}
+              / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~".*(postgres|pg).*"}
+          ) > 0.70
+          or
+          max by (mountpoint) (
+            1 - node_filesystem_avail_bytes{mountpoint=~"/var/lib/postgresql.*"}
+              / node_filesystem_size_bytes{mountpoint=~"/var/lib/postgresql.*"}
+          ) > 0.70
+        for: 10m
+        labels:
+          severity: warning
+          decision: OP-31
+        annotations:
+          summary: "A PostgreSQL volume is more than 70% full"
+          runbook_url: runbooks/postgres-disk.md
+      - alert: RelayPostgresDiskCritical
+        expr: |
+          max by (persistentvolumeclaim) (
+            1 - kubelet_volume_stats_available_bytes{persistentvolumeclaim=~".*(postgres|pg).*"}
+              / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~".*(postgres|pg).*"}
+          ) > 0.85
+          or
+          max by (mountpoint) (
+            1 - node_filesystem_avail_bytes{mountpoint=~"/var/lib/postgresql.*"}
+              / node_filesystem_size_bytes{mountpoint=~"/var/lib/postgresql.*"}
+          ) > 0.85
+        for: 5m
+        labels:
+          severity: page
+          decision: OP-31
+        annotations:
+          summary: "A PostgreSQL volume is more than 85% full"
+          runbook_url: runbooks/postgres-disk.md
+      - alert: RelayPostgresLongTransaction
+        expr: max(relay_pg_long_transaction_max_age_seconds) > 300
+        labels:
+          severity: warning
+          decision: OP-81
+        annotations:
+          summary: "A PostgreSQL transaction has been open for more than five minutes"
+          runbook_url: runbooks/postgres-long-transaction.md
+      - alert: RelayPostgresLongTransactionCritical
+        expr: max(relay_pg_long_transaction_max_age_seconds) > 1800
+        labels:
+          severity: page
+          decision: OP-81
+        annotations:
+          summary: "A PostgreSQL transaction has been open for more than thirty minutes"
+          runbook_url: runbooks/postgres-long-transaction.md
+      - alert: RelayPostgresXidAge
+        expr: max(relay_pg_xid_age) > 600000000
+        labels:
+          severity: warning
+          decision: OP-81
+        annotations:
+          summary: "The oldest unfrozen transaction ID is more than 600 million transactions old"
+          runbook_url: runbooks/postgres-xid-age.md
+      - alert: RelayPostgresXidAgeCritical
+        expr: max(relay_pg_xid_age) > 1000000000
+        labels:
+          severity: page
+          decision: OP-81
+        annotations:
+          summary: "The oldest unfrozen transaction ID is more than one billion transactions old"
+          runbook_url: runbooks/postgres-xid-age.md
+      - alert: RelayPostgresSlotInactive
+        expr: max by (slot_name) (relay_pg_replication_slot_inactive_seconds) > 1800
+        labels:
+          severity: warning
+          decision: OP-81
+        annotations:
+          summary: "Replication slot {{ $labels.slot_name }} has had no consumer for more than thirty minutes"
+          runbook_url: runbooks/postgres-replication-slot.md
+      - alert: RelayPostgresSlotWalRetention
+        expr: max by (slot_name) (relay_pg_replication_slot_retained_bytes) > 0.75 * 64 * 1024 * 1024 * 1024
+        for: 10m
+        labels:
+          severity: warning
+          decision: OP-81
+        annotations:
+          summary: "Replication slot {{ $labels.slot_name }} keeps more than 75% of max_slot_wal_keep_size"
+          runbook_url: runbooks/postgres-replication-slot.md
+      - alert: RelayPostgresSlotWalAtRisk
+        expr: max by (slot_name) (relay_pg_replication_slot_wal_at_risk) == 1
+        labels:
+          severity: page
+          decision: OP-31
+        annotations:
+          summary: "Replication slot {{ $labels.slot_name }} is about to lose or has lost WAL it needs"
+          runbook_url: runbooks/postgres-replication-slot.md
+      - alert: RelayPostgresArchiverFailing
+        expr: max(relay_pg_archiver_failing) == 1
+        for: 10m
+        labels:
+          severity: page
+          decision: OP-81
+        annotations:
+          summary: "WAL archiving has been failing for ten minutes"
+          runbook_url: runbooks/postgres-archiver.md
+      - alert: RelayPostgresDeadTuples
+        expr: max by (schemaname, relname) (relay_pg_dead_tuples_ratio) > 0.20
+        for: 30m
+        labels:
+          severity: warning
+          decision: OP-81
+        annotations:
+          summary: "More than 20% of the rows of {{ $labels.schemaname }}.{{ $labels.relname }} are dead"
+          runbook_url: runbooks/postgres-vacuum.md
+      - alert: RelayPostgresIndexBloat
+        expr: max by (schemaname, indexname) (relay_pg_index_bloat_ratio) > 0.50
+        for: 6h
+        labels:
+          severity: ticket
+          decision: OP-81
+        annotations:
+          summary: "Index {{ $labels.schemaname }}.{{ $labels.indexname }} is estimated to be more than half bloat"
+          runbook_url: runbooks/postgres-index-health.md
+      - alert: RelayPostgresInvalidIndex
+        expr: max(relay_pg_invalid_index_count) > 0
+        for: 1h
+        labels:
+          severity: ticket
+          decision: OP-81
+        annotations:
+          summary: "An invalid index is left behind by a failed concurrent index build"
+          runbook_url: runbooks/postgres-index-health.md
+      - alert: RelayPoolRuleExceeded
+        expr: max(relay_postgres_pool_rule_exceeded) == 1
+        for: 15m
+        labels:
+          severity: warning
+          decision: OP-88
+        annotations:
+          summary: "The nodes' connection demand exceeds half of max_connections without a pooler"
+          runbook_url: runbooks/postgres-pool-rule.md
+  - name: relay-container
+    rules:
+      - alert: RelayContainerMemoryHigh
+        expr: |
+          max by (namespace, pod, container) (container_memory_working_set_bytes{container="relay"})
+            / max by (namespace, pod, container) (container_spec_memory_limit_bytes{container="relay"} > 0)
+            > 0.75
+        for: 15m
+        labels:
+          severity: warning
+          decision: OP-89
+        annotations:
+          summary: "{{ $labels.pod }} uses more than 75% of its memory limit"
+          runbook_url: runbooks/container-memory.md
+      - alert: RelayContainerMemoryCritical
+        expr: |
+          max by (namespace, pod, container) (container_memory_working_set_bytes{container="relay"})
+            / max by (namespace, pod, container) (container_spec_memory_limit_bytes{container="relay"} > 0)
+            > 0.90
+        for: 2m
+        labels:
+          severity: page
+          decision: OP-89
+        annotations:
+          summary: "{{ $labels.pod }} uses more than 90% of its memory limit"
+          runbook_url: runbooks/container-memory.md

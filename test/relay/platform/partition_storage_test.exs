@@ -109,6 +109,7 @@ defmodule Relay.Platform.PartitionStorageTest do
              end)
 
     assert created == "created"
+
     assert options == [
              "autovacuum_analyze_scale_factor=0.02",
              "autovacuum_vacuum_cost_limit=2000",

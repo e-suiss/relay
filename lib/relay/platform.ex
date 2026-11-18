@@ -131,6 +131,11 @@ defmodule Relay.Platform do
       else: []
   end
 
+  # OP-87
+  @doc "True once this node has started to drain."
+  @spec draining?() :: boolean()
+  def draining?, do: Drain.draining?()
+
   # INV-53
   @doc "Wakes the outbox dispatchers; call it after a transaction that appended outbox rows commits."
   @spec wake_outbox() :: :ok | {:error, Relay.Error.t()}

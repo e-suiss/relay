@@ -128,6 +128,7 @@ defmodule Relay.Api.EdgeUnitTest do
 
       on_exit(fn -> :telemetry.detach(ref) end)
       conn = conn(:post, "https://relay.test/v1/events")
+
       timeout = %DBConnection.ConnectionError{
         message: "dropped from queue",
         reason: :queue_timeout

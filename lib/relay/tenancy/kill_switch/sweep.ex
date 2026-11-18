@@ -29,16 +29,21 @@ defmodule Relay.Tenancy.KillSwitch.Sweep do
     if more? do
       {:snooze, 1}
     else
-      effective(job, platform?)
+      effective(job, scope, kill_switch_id, platform?)
     end
   end
 
   # TN-44
-  defp effective(%Oban.Job{inserted_at: %DateTime{} = engaged_at}, platform?) do
+  defp effective(%Oban.Job{inserted_at: %DateTime{} = engaged_at}, scope, id, platform?) do
     duration_ms = max(DateTime.diff(Relay.Clock.utc_now(), engaged_at, :millisecond), 0)
     meta = %{platform: platform?}
     :telemetry.execute([:relay, :kill_switch, :effective], %{duration_ms: duration_ms}, meta)
+
+    case KillSwitch.record_effect(scope, id, duration_ms) do
+      {:ok, _recorded} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
   end
 
-  defp effective(_job, _platform?), do: :ok
+  defp effective(_job, _scope, _id, _platform?), do: :ok
 end

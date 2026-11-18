@@ -41,6 +41,22 @@ defmodule Relay.Channels.Push.PolicyTest do
       assert granted.reasons == []
     end
 
+    test "CH-65 (3): a device without the permission takes one level lower and the difference is recorded" do
+      critical = %{enabled: true, declared: true, grant: :permit, entitled: true}
+      facts = %{message_class: "security", interruption: "critical", critical: critical}
+      denied = %{"critical_alerts" => "denied", "time_sensitive" => "granted"}
+
+      device = %{platform: "apns", interruption_permissions: denied}
+      lowered = PushFixture.policy(Map.merge(facts, device))
+
+      assert lowered.level == :time_sensitive
+      assert lowered.reasons == [:interruption_platform_lowered]
+
+      kept = PushFixture.policy(Map.merge(facts, %{platform: "apns"}))
+      assert kept.level == :critical
+      assert kept.reasons == []
+    end
+
     test "CH-23: a notification without a subject collapses with nothing" do
       assert PushFixture.policy().collapse == nil
 

@@ -235,7 +235,8 @@ defmodule Relay.Tenancy.KillSwitchStoreTest do
         assert error_message("DELETE FROM relay.kill_switches WHERE id = $1", [ksw]) =~
                  "invariant_violation"
 
-        assert error_message("TRUNCATE relay.kill_switches") =~ "invariant_violation"
+        truncate = "TRUNCATE relay.kill_switches, relay.kill_switch_effects"
+        assert error_message(truncate) =~ "invariant_violation"
 
         assert [[1]] =
                  rows(

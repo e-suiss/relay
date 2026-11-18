@@ -46,9 +46,7 @@ api_commit() {
   tree=$(jq -n --arg base "$base_tree" --argjson tree "$entries" '{base_tree: $base, tree: $tree}' |
     gh api "repos/$REPO/git/trees" --input - --jq .sha)
   jq -n --arg message "$(git log -1 --format=%B "$commit")" --arg tree "$tree" --arg parent "$parent" \
-    --arg name "$(git log -1 --format=%an "$commit")" --arg email "$(git log -1 --format=%ae "$commit")" \
-    --arg date "$(git log -1 --format=%aI "$commit")" \
-    '{message: $message, tree: $tree, parents: [$parent], author: {name: $name, email: $email, date: $date}}' |
+    '{message: $message, tree: $tree, parents: [$parent]}' |
     gh api "repos/$REPO/git/commits" --input - --jq .sha
 }
 

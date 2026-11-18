@@ -5810,6 +5810,17 @@ export interface components {
             importance: components["schemas"]["AndroidChannelImportance"];
         };
         /**
+         * @description One interruption permission as the app reads it from the operating system.
+         * @enum {string}
+         */
+        DeviceInterruptionPermission: "granted" | "denied" | "not_determined";
+        /** @description The interruption permissions the device reports on every app start (CH-65): on iOS critical_alerts (the Critical Alerts entitlement and the user's grant) and time_sensitive; on Android dnd_access (Do Not Disturb access of the channel that carries critical). A level the device cannot take is delivered one level lower and never dropped: critical without critical_alerts or dnd_access goes as time-sensitive, time-sensitive with time_sensitive denied as active. A device that reports nothing keeps the level. */
+        DeviceInterruptionPermissions: {
+            critical_alerts?: components["schemas"]["DeviceInterruptionPermission"];
+            time_sensitive?: components["schemas"]["DeviceInterruptionPermission"];
+            dnd_access?: components["schemas"]["DeviceInterruptionPermission"];
+        };
+        /**
          * @description active: registered and seen recently. stale: not seen for the stale period, still a target. disabled: soft deleted, never a target again; a new registration of the same token creates a new device.
          * @enum {string}
          */
@@ -5834,6 +5845,8 @@ export interface components {
             locale: components["schemas"]["Locale"] | null;
             /** @description The IANA time zone the device reported with its registration; null when it reported none or one Relay does not know. */
             timezone?: components["schemas"]["TimeZone"] | null;
+            /** @description The interruption permissions the device reported with its last registration; null when it reported none. */
+            interruption_permissions?: components["schemas"]["DeviceInterruptionPermissions"] | null;
             state: components["schemas"]["DeviceState"];
             disabled_reason: components["schemas"]["DeviceDisabledReason"] | null;
             registered_at: components["schemas"]["Timestamp"];
@@ -5865,6 +5878,7 @@ export interface components {
             android_channels?: components["schemas"]["AndroidChannel"][];
             locale?: components["schemas"]["Locale"];
             timezone?: components["schemas"]["TimeZone"];
+            interruption_permissions?: components["schemas"]["DeviceInterruptionPermissions"];
             previous_token?: components["schemas"]["DeviceToken"];
         };
         /** @description Names a device by its token, as the app or the tenant holds it. */

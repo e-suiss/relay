@@ -129,17 +129,6 @@ defmodule Relay.Channels.Apns do
 
   defp topic(bundle, reason), do: SettingsCheck.mismatch("bundle_id", bundle, reason)
 
-  # CH-65 (3)
-  defp level(request, push) do
-    device = Common.device(request)
-
-    Relay.Channels.Push.Interruption.permitted(
-      push.level,
-      device[:platform] || "apns",
-      device[:interruption_permissions]
-    )
-  end
-
   defp origin(request) do
     origins = Common.config(__MODULE__, :origins, @origins)
 
@@ -159,7 +148,7 @@ defmodule Relay.Channels.Apns do
         apns_id: request.delivery_id,
         apns_priority: push.mapping.apns_priority,
         device_token: Relay.Redacted.expose(request.target.value),
-        interruption_level: level(request, push),
+        interruption_level: push.level,
         collapse_id: push.collapse && push.collapse.apns,
         expiration: expiration,
         aps: aps(request, push, type),

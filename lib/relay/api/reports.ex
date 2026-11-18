@@ -4,7 +4,7 @@ defmodule Relay.Api.Reports do
   """
 
   @type answer :: {:ok, {100..599, [{String.t(), String.t()}], map()}} | {:error, Relay.Error.t()}
-  @type kind :: :deliveries | :skips | :costs | :variants | :render_problems
+  @type kind :: :deliveries | :skips | :costs | :variants | :render_problems | :fallback_zones
 
   @max_days 92
   @counters ~w(accepted enqueued dispatched provider_accepted delivered engaged sdk_receipts
@@ -15,7 +15,8 @@ defmodule Relay.Api.Reports do
     skips: "skip_report",
     costs: "cost_report",
     variants: "variant_report",
-    render_problems: "render_problem_report"
+    render_problems: "render_problem_report",
+    fallback_zones: "fallback_timezone_report"
   }
 
   # DS-35
@@ -119,6 +120,14 @@ defmodule Relay.Api.Reports do
       "human_clicks" => r["human_clicks"],
       "bot_clicks" => r["bot_clicks"],
       "recomputed_at" => r["recomputed_at"]
+    }
+  end
+
+  def row(:fallback_zones, r) do
+    %{
+      "day" => Date.to_iso8601(r["report_day"]),
+      "source" => r["source"],
+      "deliveries" => r["deliveries"]
     }
   end
 

@@ -361,6 +361,9 @@ defmodule RelayWeb.Router do
     get "/reports/render_problems", ReportController, :render_problems,
       private: %{relay_operation: "getRenderProblemReport"}
 
+    get "/reports/fallback_timezones", ReportController, :fallback_timezones,
+      private: %{relay_operation: "getFallbackTimezoneReport"}
+
     # X-12
     post "/subscriber_lookups", SubscriberController, :lookup,
       private: %{relay_operation: "lookupSubscribers"}

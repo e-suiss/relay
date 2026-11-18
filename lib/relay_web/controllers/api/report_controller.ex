@@ -31,6 +31,11 @@ defmodule RelayWeb.Api.ReportController do
   @spec render_problems(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def render_problems(conn, _params), do: report(conn, :render_problems)
 
+  # X-6
+  # WF-46
+  @spec fallback_timezones(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def fallback_timezones(conn, _params), do: report(conn, :fallback_zones)
+
   defp report(conn, kind) do
     case Reports.period(conn.query_params) do
       {:ok, period} -> Work.answer(conn, Reports.get(conn.assigns.scope, kind, period))

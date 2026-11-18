@@ -167,10 +167,26 @@ public enum class RelayPermission(
     NOT_DETERMINED("not_determined"),
 }
 
-/** What the device allows: the permission and whether `critical` channels may break through DND (CH-65). */
+// CH-65
+
+/** An interruption permission as Relay records it with the device registration. */
+public enum class RelayInterruptionPermission(
+    public val wire: String,
+) {
+    GRANTED("granted"),
+    DENIED("denied"),
+    NOT_DETERMINED("not_determined"),
+}
+
+/**
+ * What the device allows: the permission, whether `critical` channels may break through DND, and the
+ * DND access reported with the registration (CH-65). A `null` [dndAccess] reports nothing, so Relay
+ * keeps the level it has.
+ */
 public data class RelayNotificationSettings(
     val permission: RelayPermission,
     val dndAccessGranted: Boolean = false,
+    val dndAccess: RelayInterruptionPermission? = null,
 )
 
 /** Reads the device's notification settings; tests replace it. */
@@ -198,7 +214,12 @@ public class SystemNotificationSettingsReader(
 
                 else -> RelayPermission.DENIED
             }
-        return RelayNotificationSettings(permission, manager?.isNotificationPolicyAccessGranted ?: false)
+        val dnd = manager?.isNotificationPolicyAccessGranted
+        return RelayNotificationSettings(
+            permission = permission,
+            dndAccessGranted = dnd ?: false,
+            dndAccess = dnd?.let { if (it) RelayInterruptionPermission.GRANTED else RelayInterruptionPermission.DENIED },
+        )
     }
 
     public companion object {

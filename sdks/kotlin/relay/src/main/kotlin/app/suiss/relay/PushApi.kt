@@ -4,11 +4,14 @@ import android.content.Context
 import app.suiss.relay.api.model.AndroidChannel
 import app.suiss.relay.api.model.AndroidChannelImportance
 import app.suiss.relay.api.model.Device
+import app.suiss.relay.api.model.DeviceInterruptionPermission
+import app.suiss.relay.api.model.DeviceInterruptionPermissions
 import app.suiss.relay.api.model.DevicePermission
 import app.suiss.relay.api.model.DevicePlatform
 import app.suiss.relay.api.model.DeviceRegistration
 import app.suiss.relay.api.model.DeviceStatusWrite
 import app.suiss.relay.api.model.DeviceStatusWriteSignals
+import app.suiss.relay.api.model.PushContent
 import app.suiss.relay.api.model.PushReceipt
 import java.time.Instant
 import java.util.Locale
@@ -49,6 +52,36 @@ public data class RelayPushPayload(
                 neutralBody = data["relay_neutral_body"],
             )
         }
+    }
+}
+
+// CH-33
+
+/** The content Relay rendered for the delivery of a content-free push, fetched over TLS. */
+public data class RelayPushContent(
+    val deliveryId: String,
+    val notificationId: String,
+    val title: String? = null,
+    val subtitle: String? = null,
+    val body: String? = null,
+    val url: String? = null,
+    val locale: String? = null,
+) {
+    internal companion object {
+        fun from(content: PushContent): RelayPushContent {
+            val fields = content.content as? Map<*, *> ?: emptyMap<String, Any>()
+            return RelayPushContent(
+                deliveryId = content.deliveryId,
+                notificationId = content.notificationId,
+                title = fields.text("title"),
+                subtitle = fields.text("subtitle"),
+                body = fields.text("body"),
+                url = fields.text("url"),
+                locale = content.locale,
+            )
+        }
+
+        private fun Map<*, *>.text(name: String): String? = (get(name) as? String)?.takeIf { it.isNotEmpty() }
     }
 }
 
@@ -159,6 +192,7 @@ public class RelayPushApi internal constructor(
                 platform = DevicePlatform.entries.first { it.value == platform.wire },
                 token = token,
                 androidChannels = reported.toSet().takeIf { it.isNotEmpty() },
+                interruptionPermissions = interruptionPermissions(current),
                 locale = DeviceContext.locale(),
                 previousToken = previous,
                 timezone = DeviceContext.timeZone(),
@@ -169,6 +203,12 @@ public class RelayPushApi internal constructor(
         storage.save(RelayDeviceRecord(device.id, token))
         http.configuration.logger.log(RelayLogger.Level.INFO, "push device registered")
         return device.id
+    }
+
+    // CH-65
+    private fun interruptionPermissions(settings: RelayNotificationSettings): DeviceInterruptionPermissions? {
+        val dnd = settings.dndAccess ?: return null
+        return DeviceInterruptionPermissions(dndAccess = DeviceInterruptionPermission.entries.first { it.value == dnd.wire })
     }
 
     /** Sends the stored token again with the current permission and channels (every app start, CH-28). */
@@ -239,9 +279,19 @@ public class RelayPushApi internal constructor(
     // CH-33
 
     /**
-     * Fetches the content of a content-free push over TLS. `null` means the generic text stays: no
-     * network, no time left, no permission or an identifier that does not name an inbox item.
+     * Fetches the content of a content-free push by its delivery id (`relay_id`) over TLS. `null` means
+     * the generic text stays: no network, no time left, no permission, `delivery_not_found` or an
+     * identifier that does not name a delivery.
      */
+    public suspend fun pushContent(payload: RelayPushPayload): RelayPushContent? {
+        val deliveryId = payload.deliveryId ?: return null
+        return runCatching {
+            val answer = http.send(RelayScope.INBOX_READ, "GET", http.url("v1/subscriber/push_content/$deliveryId"))
+            RelayPushContent.from(http.decode<PushContent>(answer))
+        }.getOrNull()
+    }
+
+    /** Fetches the inbox item a push names by its inbox item id; `null` keeps the generic text. */
     public suspend fun content(payload: RelayPushPayload): RelayInboxItem? {
         val itemId = payload.itemId ?: return null
         return runCatching { RelayInboxApi(http).item(itemId) }.getOrNull()

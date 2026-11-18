@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.suiss.relay.ui.RelayPreferenceRowState
 import app.suiss.relay.ui.RelayPreferencesModel
 import app.suiss.relay.ui.RelayTurnOffChoice
+import app.suiss.relay.ui.waitpointStatusText
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -16,6 +17,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import java.time.ZoneId
 import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
@@ -153,6 +155,108 @@ class UiTest {
                 localized(Locale.forLanguageTag("tr-TR")).getString(R.string.relay_prefs_locked_tenant),
             )
         }
+
+    @Test
+    fun `PC-59 X-44 the preference centre reads the consents and never writes them`() =
+        runBlocking<Unit> {
+            val harness = Harness()
+            val model =
+                RelayPreferencesModel(RelayPreferencesApi(harness.http)) { RelayNotificationSettings(RelayPermission.GRANTED) }
+            harness.server.enqueue("GET /v1/subscriber/preferences", Reply.json(200, preferences("{}")))
+            val first = consent("cns_1", "email", "active", null) + "," + consent("cns_2", "sms", "pending_iys", "\"stn_1\"")
+            harness.server.enqueue(
+                "GET /v1/subscriber/consents",
+                Reply.json(200, consents(first, true, "cns_2")),
+                Reply.json(200, consents(consent("cns_3", "whatsapp", "revoked", null), false, null)),
+            )
+            model.load()
+            val consents = model.consents.value
+            assertEquals(listOf("cns_1", "cns_2", "cns_3"), consents.map { it.id })
+            assertEquals(RelayConsentStatus.ACTIVE, consents[0].status)
+            assertNull(consents[0].brand)
+            assertEquals("explicit_opt_in", consents[0].consentKind)
+            assertEquals(RelayConsentStatus.PENDING_IYS, consents[1].status)
+            assertEquals("stn_1", consents[1].brand)
+            assertEquals(RelayConsentStatus.REVOKED, consents[2].status)
+            val requests = harness.server.requests("GET /v1/subscriber/consents")
+            assertEquals(listOf("limit=100", "limit=100&starting_after=cns_2"), requests.map { it.query })
+            assertTrue(harness.server.recorded.none { it.request.method != "GET" })
+            assertEquals(4, model.preferences.value!!.cells.size)
+        }
+
+    @Test
+    fun `X-44 unreadable consents leave the preferences shown`() =
+        runBlocking<Unit> {
+            val harness = Harness()
+            val model =
+                RelayPreferencesModel(RelayPreferencesApi(harness.http)) { RelayNotificationSettings(RelayPermission.GRANTED) }
+            harness.server.enqueue("GET /v1/subscriber/preferences", Reply.json(200, preferences("{}")))
+            harness.server.enqueue("GET /v1/subscriber/consents", Reply.problem(403, "auth_insufficient_scope", retryable = false))
+            model.load()
+            assertTrue(model.consents.value.isEmpty())
+            assertEquals(4, model.preferences.value!!.cells.size)
+            assertNull(model.lastError.value)
+        }
+
+    @Test
+    fun `X-44 AG-35 consent and waitpoint texts in both languages`() {
+        val english = localized(Locale.forLanguageTag("en-US"))
+        val turkish = localized(Locale.forLanguageTag("tr-TR"))
+        assertEquals("Marketing permissions", english.getString(R.string.relay_consents_title))
+        assertEquals("Pazarlama izinleri", turkish.getString(R.string.relay_consents_title))
+        assertEquals("İYS bekleniyor", turkish.getString(R.string.relay_consent_pending_iys))
+        assertEquals("Email: Given", english.getString(R.string.relay_consent_status, "Email", "Given"))
+        assertEquals("Sent by an AI agent", english.getString(R.string.relay_inbox_sender_agent))
+        assertEquals("Bir yapay zekâ ajanı gönderdi", turkish.getString(R.string.relay_inbox_sender_agent))
+        val utc = ZoneId.of("UTC")
+        val en = Locale.forLanguageTag("en-US")
+        val awaiting = RelayWaitpoint("wp_1", RelayWaitpointKind.RESPONSE, RelayWaitpointStatus.AWAITING, subjectDigest = Fixtures.DIGEST)
+        assertEquals("Waiting for your response", waitpointStatusText(awaiting, english.resources, en, utc))
+        assertEquals(
+            "Yanıtınız işleniyor…",
+            waitpointStatusText(awaiting.copy(status = RelayWaitpointStatus.PROCESSING), turkish.resources, en, utc),
+        )
+        assertEquals(
+            "No longer expecting a response",
+            waitpointStatusText(awaiting.copy(status = RelayWaitpointStatus.NOT_AWAITED), english.resources, en, utc),
+        )
+        val byAgent =
+            awaiting.copy(
+                status = RelayWaitpointStatus.RESPONDED,
+                responder = RelayWaitpointResponder(isAgent = true, recipientId = "agt_1"),
+                respondedAt = "2026-11-01T10:00:00Z",
+            )
+        val line = waitpointStatusText(byAgent, english.resources, en, utc)
+        assertTrue(line.startsWith("Answered by an agent on "))
+        assertTrue(line.contains("2026"))
+        assertEquals(
+            "Başka bir alıcı yanıtladı",
+            waitpointStatusText(byAgent.copy(responder = null, respondedAt = null), turkish.resources, en, utc),
+        )
+        val bySubscriber = RelayWaitpointResponder(isAgent = false, recipientId = "sub_1")
+        assertEquals(
+            "Answered by you",
+            waitpointStatusText(byAgent.copy(responder = bySubscriber, respondedAt = "not a time"), english.resources, en, utc),
+        )
+    }
+
+    private fun consent(
+        id: String,
+        channel: String,
+        status: String,
+        brand: String?,
+    ): String =
+        """{"object":"consent","id":"$id","brand":${brand ?: "null"},"channel":"$channel","status":"$status",""" +
+            """"consent_kind":"explicit_opt_in","recipient_type":"individual","source":"web","occurred_at":"2026-11-01T09:30:00Z"}"""
+
+    private fun consents(
+        data: String,
+        more: Boolean,
+        next: String?,
+    ): String {
+        val cursor = next?.let { "\"$it\"" } ?: "null"
+        return """{"object":"list","data":[$data],"has_more":$more,"next_cursor":$cursor,"previous_cursor":null}"""
+    }
 
     private fun localized(locale: Locale): Context {
         val configuration = Configuration(context.resources.configuration)

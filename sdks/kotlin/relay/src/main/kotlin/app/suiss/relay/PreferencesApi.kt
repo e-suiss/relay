@@ -1,6 +1,8 @@
 package app.suiss.relay
 
 import app.suiss.relay.api.model.Channel
+import app.suiss.relay.api.model.Consent
+import app.suiss.relay.api.model.ConsentList
 import app.suiss.relay.api.model.MyPreferencesPatch
 import app.suiss.relay.api.model.PreferenceLevel
 import app.suiss.relay.api.model.PreferenceValue
@@ -121,6 +123,59 @@ public data class RelayPreferences(
     }
 }
 
+// PC-59
+// X-44
+
+/** The status of a commercial consent as Access recorded it. */
+public enum class RelayConsentStatus(
+    public val wire: String,
+) {
+    NONE("none"),
+    PENDING("pending"),
+    PENDING_IYS("pending_iys"),
+    ACTIVE("active"),
+    REVOKED("revoked"),
+    EXPIRED("expired"),
+}
+
+/**
+ * A read-only copy of a commercial consent for one brand and channel. Access holds and changes it;
+ * Relay and the SDK only show it. A `null` [brand] is the tenant itself.
+ */
+public data class RelayConsent(
+    val id: String,
+    val channel: String,
+    val status: RelayConsentStatus,
+    val brand: String? = null,
+    val consentKind: String? = null,
+    val recipientType: String? = null,
+    val source: String = "",
+    val occurredAt: String = "",
+) {
+    internal companion object {
+        fun from(consent: Consent): RelayConsent? {
+            val status = RelayConsentStatus.entries.firstOrNull { it.wire == consent.status.value } ?: return null
+            return RelayConsent(
+                id = consent.id,
+                channel = consent.channel.value,
+                status = status,
+                brand = consent.brand,
+                consentKind = consent.consentKind?.value,
+                recipientType = consent.recipientType?.value,
+                source = consent.source,
+                occurredAt = consent.occurredAt,
+            )
+        }
+    }
+}
+
+/** A page of consents, newest first. */
+public data class RelayConsentPage(
+    val consents: List<RelayConsent>,
+    val hasMore: Boolean,
+    val nextCursor: String?,
+)
+
 // X-31
 
 /**
@@ -134,6 +189,23 @@ public class RelayPreferencesApi internal constructor(
         RelayPreferences.from(
             http.decode<SubscriberPreferences>(http.send(RelayScope.PREFERENCES, "GET", http.url("v1/subscriber/preferences"))),
         )
+
+    // PC-59
+    // X-44
+
+    /** Reads one page of the subscriber's consents; they are never written from the device. */
+    public suspend fun consents(
+        limit: Int? = null,
+        startingAfter: String? = null,
+    ): RelayConsentPage {
+        val url = http.url("v1/subscriber/consents", mapOf("limit" to limit?.toString(), "starting_after" to startingAfter))
+        val list = http.decode<ConsentList>(http.send(RelayScope.PREFERENCES, "GET", url))
+        return RelayConsentPage(
+            consents = list.`data`.mapNotNull { runCatching { RelayConsent.from(it) }.getOrNull() },
+            hasMore = list.hasMore,
+            nextCursor = list.nextCursor,
+        )
+    }
 
     public suspend fun set(
         category: String,

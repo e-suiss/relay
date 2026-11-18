@@ -164,6 +164,31 @@ public class RelayInboxStore internal constructor(
         commit(operation, item, snoozeUntil)
     }
 
+    // AG-26
+    // AG-32
+    // AG-35
+
+    /**
+     * Sends the option the user chose as the response to the item's waitpoint and shows the receipt.
+     * An approval is never answered here (IN-6); a refused response puts the waitpoint back as it was.
+     */
+    public suspend fun respond(
+        item: RelayInboxItem,
+        option: RelayWaitpointOption,
+    ) {
+        val waitpoint = item.waitpoint ?: return
+        if (item.isApproval || !waitpoint.acceptsResponse || option !in waitpoint.options) return
+        val digest = waitpoint.subjectDigest ?: return
+        updateWaitpoint(item.id) { it.copy(status = RelayWaitpointStatus.PROCESSING) }
+        try {
+            val receipt = api.respond(waitpoint.id, option.value, digest)
+            updateWaitpoint(item.id) { receipt.applyTo(it) }
+        } catch (error: RelayException) {
+            updateWaitpoint(item.id) { it.copy(status = waitpoint.status) }
+            mutableError.value = error
+        }
+    }
+
     /** Takes back the last hide or archive before it reached the server. */
     public fun undo() {
         val (item, job) = pendingUndo ?: return
@@ -344,6 +369,17 @@ public class RelayInboxStore internal constructor(
             mutableItems.value = list
             onItemsRemoved(listOf(updated))
         }
+    }
+
+    private fun updateWaitpoint(
+        itemId: String,
+        change: (RelayWaitpoint) -> RelayWaitpoint,
+    ) {
+        mutableItems.value =
+            mutableItems.value.map { item ->
+                val waitpoint = item.waitpoint
+                if (item.id == itemId && waitpoint != null) item.copy(waitpoint = change(waitpoint)) else item
+            }
     }
 
     private fun insert(

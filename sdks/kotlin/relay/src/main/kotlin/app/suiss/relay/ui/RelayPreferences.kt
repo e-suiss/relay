@@ -19,13 +19,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.suiss.relay.R
 import app.suiss.relay.RelayCategoryInfo
+import app.suiss.relay.RelayConsent
+import app.suiss.relay.RelayConsentStatus
 import app.suiss.relay.RelayDigestChoice
 import app.suiss.relay.RelayException
 import app.suiss.relay.RelayLockBeneficiary
@@ -92,15 +96,44 @@ public class RelayPreferencesModel(
     private val mutablePermission = MutableStateFlow(RelayPermission.NOT_DETERMINED)
     private val mutablePending = MutableStateFlow<RelayPreferenceCell?>(null)
     private val mutableError = MutableStateFlow<RelayException?>(null)
+    private val mutableConsents = MutableStateFlow<List<RelayConsent>>(emptyList())
 
     public val preferences: StateFlow<RelayPreferences?> = mutablePreferences
     public val permission: StateFlow<RelayPermission> = mutablePermission
     public val pendingTurnOff: StateFlow<RelayPreferenceCell?> = mutablePending
     public val lastError: StateFlow<RelayException?> = mutableError
 
+    /** The subscriber's consents, read-only; empty when they cannot be read (PC-59, X-44). */
+    public val consents: StateFlow<List<RelayConsent>> = mutableConsents
+
     public suspend fun load() {
         mutablePermission.value = settings.read().permission
         write { api.load() }
+        loadConsents()
+    }
+
+    // PC-59
+    // X-44
+    private suspend fun loadConsents() {
+        mutableConsents.value =
+            try {
+                readConsents()
+            } catch (error: RelayException) {
+                emptyList()
+            }
+    }
+
+    private suspend fun readConsents(): List<RelayConsent> {
+        val all = mutableListOf<RelayConsent>()
+        var cursor: String? = null
+        var pages = 0
+        do {
+            val answer = api.consents(limit = CONSENT_PAGE_SIZE, startingAfter = cursor)
+            all += answer.consents
+            cursor = answer.nextCursor.takeIf { answer.hasMore }
+            pages += 1
+        } while (cursor != null && pages < CONSENT_PAGES)
+        return all
     }
 
     public fun state(cell: RelayPreferenceCell): RelayPreferenceRowState = RelayPreferenceRowState.of(cell, mutablePermission.value)
@@ -151,6 +184,11 @@ public class RelayPreferencesModel(
             mutableError.value = error
         }
     }
+
+    private companion object {
+        const val CONSENT_PAGES = 5
+        const val CONSENT_PAGE_SIZE = 100
+    }
 }
 
 /** The display name of a channel. */
@@ -180,7 +218,9 @@ public fun relayChannelName(channel: String): String {
 
 /**
  * The preference centre: one section per category with a row per channel. Locked, administrator and
- * device states are shown in words, and turning a digest category off asks three choices.
+ * device states are shown in words, and turning a digest category off asks three choices. The
+ * consents follow read-only; [consentChangeUrl] is the integrator's link to change them in Access, and
+ * without it no link is shown. [brandNames] names the brands (subtenant ids) of the consents.
  */
 @Composable
 public fun RelayPreferencesScreen(
@@ -188,9 +228,12 @@ public fun RelayPreferencesScreen(
     modifier: Modifier = Modifier,
     onOpenSettings: (() -> Unit)? = null,
     onRequestPermission: (() -> Unit)? = null,
+    consentChangeUrl: String? = null,
+    brandNames: Map<String, String> = emptyMap(),
 ) {
     val theme = LocalRelayTheme.current
     val preferences by model.preferences.collectAsState()
+    val consents by model.consents.collectAsState()
     val pending by model.pendingTurnOff.collectAsState()
     model.permission.collectAsState()
     val scope = rememberCoroutineScope()
@@ -225,6 +268,9 @@ public fun RelayPreferencesScreen(
                     )
                 }
             }
+        }
+        if (consents.isNotEmpty()) {
+            item(key = "consents") { RelayConsentSection(consents, consentChangeUrl, brandNames) }
         }
     }
     if (pending != null) {
@@ -317,6 +363,75 @@ public fun RelayPreferenceRow(
 
             RelayPreferenceRowState.LOCKED_ON, RelayPreferenceRowState.ADMIN_DISABLED -> {
                 Spacer(Modifier)
+            }
+        }
+    }
+}
+
+// PC-59
+// X-44
+
+/** The text of a consent status. */
+@Composable
+public fun relayConsentStatusText(status: RelayConsentStatus): String =
+    stringResource(
+        when (status) {
+            RelayConsentStatus.NONE -> R.string.relay_consent_none
+            RelayConsentStatus.PENDING -> R.string.relay_consent_pending
+            RelayConsentStatus.PENDING_IYS -> R.string.relay_consent_pending_iys
+            RelayConsentStatus.ACTIVE -> R.string.relay_consent_active
+            RelayConsentStatus.REVOKED -> R.string.relay_consent_revoked
+            RelayConsentStatus.EXPIRED -> R.string.relay_consent_expired
+        },
+    )
+
+// PC-59
+// X-44
+
+/** The consents, read-only, with the integrator's link to change them in Access when there is one. */
+@Composable
+public fun RelayConsentSection(
+    consents: List<RelayConsent>,
+    consentChangeUrl: String?,
+    brandNames: Map<String, String> = emptyMap(),
+) {
+    val theme = LocalRelayTheme.current
+    val uriHandler = LocalUriHandler.current
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+        Text(
+            stringResource(R.string.relay_consents_title),
+            color = theme.secondaryText,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+        Text(
+            stringResource(R.string.relay_consents_hint),
+            color = theme.secondaryText,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+        consents.forEach { consent ->
+            val channel = relayChannelName(consent.channel)
+            val name = consent.brand?.let { "$channel · ${brandNames[it] ?: it}" } ?: channel
+            val status = relayConsentStatusText(consent.status)
+            val label = stringResource(R.string.relay_consent_status, name, status)
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .semantics(mergeDescendants = true) { contentDescription = label },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(name, color = theme.primaryText, modifier = Modifier.weight(1f))
+                Text(status, color = theme.secondaryText)
+            }
+        }
+        consentChangeUrl?.let { url ->
+            TextButton(
+                onClick = { runCatching { uriHandler.openUri(url) } },
+                modifier = Modifier.padding(horizontal = 8.dp),
+            ) {
+                Text(stringResource(R.string.relay_consents_manage), color = theme.accent)
             }
         }
     }

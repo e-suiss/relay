@@ -3,6 +3,7 @@ package app.suiss.relay
 import android.app.NotificationManager
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import app.suiss.relay.api.model.InboxItem
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -225,5 +226,125 @@ class InboxTest {
             harness.server.enqueue("GET /v1/subscriber/inbox/items", Reply.json(200, Fixtures.list("", "c1")))
             assertNull(client.messaging.handle(mapOf("sync" to "true", "counter_version" to "3")))
             assertEquals(2, client.store.counters.value.unseen)
+        }
+
+    @Test
+    fun `AG-34 AG-35 an item carries its sender type, approval flag and waitpoint`() =
+        runBlocking<Unit> {
+            val harness = Harness()
+            val client = harness.client()
+            val agentItem =
+                Fixtures.item(extra = ",\"sender_type\":\"agent\",\"approval\":false,\"waitpoint\":${Fixtures.waitpoint()}")
+            harness.server.enqueue("GET /v1/subscriber/inbox/items", Reply.json(200, Fixtures.list(agentItem, "c1")))
+            client.store.coldSync()
+            val item = client.store.items.value.single()
+            assertTrue(item.isFromAgent)
+            assertFalse(item.isApproval)
+            val waitpoint = item.waitpoint!!
+            assertEquals(Fixtures.WAITPOINT_ID, waitpoint.id)
+            assertEquals(RelayWaitpointKind.RESPONSE, waitpoint.kind)
+            assertEquals(RelayWaitpointStatus.AWAITING, waitpoint.status)
+            assertEquals(listOf(RelayWaitpointOption("Yes", "yes"), RelayWaitpointOption("No", "no")), waitpoint.options)
+            assertTrue(waitpoint.acceptsResponse)
+            val plain = RelayInboxItem.from(harness.http.gson.fromJson(Fixtures.item(), InboxItem::class.java))
+            assertNull(plain.senderType)
+            assertNull(plain.waitpoint)
+            assertFalse(plain.isApproval)
+        }
+
+    @Test
+    fun `AG-26 AG-28 a response carries the subject digest and the receipt resolves the waitpoint`() =
+        runBlocking<Unit> {
+            val harness = Harness()
+            val client = harness.client()
+            val item = Fixtures.item(extra = ",\"sender_type\":\"agent\",\"approval\":false,\"waitpoint\":${Fixtures.waitpoint()}")
+            harness.server.enqueue("GET /v1/subscriber/inbox/items", Reply.json(200, Fixtures.list(item, "c1")))
+            client.store.coldSync()
+            harness.server.enqueue(
+                "POST /v1/subscriber/waitpoints/${Fixtures.WAITPOINT_ID}/response",
+                Reply.json(
+                    200,
+                    """{"object":"waitpoint_response_receipt","waitpoint_id":"${Fixtures.WAITPOINT_ID}","status":"responded",""" +
+                        """"responder":{"kind":"subscriber","recipient_id":"${Fixtures.SUBSCRIBER_ID}"},""" +
+                        """"evidence_level":"relay_session","responded_at":"2026-11-01T10:00:00Z"}""",
+                ),
+            )
+            val shown = client.store.items.value.single()
+            client.store.respond(shown, shown.waitpoint!!.options.first())
+            val request = harness.server.requests("POST /v1/subscriber/waitpoints/${Fixtures.WAITPOINT_ID}/response").single()
+            assertEquals("yes", request.json.get("response").asString)
+            assertEquals("sha256:${Fixtures.DIGEST}", request.json.get("subject_digest").asString)
+            assertNull(request.json.get("approval"))
+            assertNull(request.header("Idempotency-Key"))
+            val waitpoint = client.store.items.value.single().waitpoint!!
+            assertEquals(RelayWaitpointStatus.RESPONDED, waitpoint.status)
+            assertEquals(RelayWaitpointResponder(isAgent = false, recipientId = Fixtures.SUBSCRIBER_ID), waitpoint.responder)
+            assertEquals("2026-11-01T10:00:00Z", waitpoint.respondedAt)
+            assertFalse(waitpoint.acceptsResponse)
+        }
+
+    @Test
+    fun `AG-28 a refused response puts the waitpoint back`() =
+        runBlocking<Unit> {
+            val harness = Harness()
+            val client = harness.client()
+            val item = Fixtures.item(extra = ",\"waitpoint\":${Fixtures.waitpoint()}")
+            harness.server.enqueue("GET /v1/subscriber/inbox/items", Reply.json(200, Fixtures.list(item, "c1")))
+            client.store.coldSync()
+            harness.server.enqueue(
+                "POST /v1/subscriber/waitpoints/${Fixtures.WAITPOINT_ID}/response",
+                Reply.problem(409, "waitpoint_already_resolved", retryable = false),
+            )
+            val shown = client.store.items.value.single()
+            client.store.respond(shown, shown.waitpoint!!.options.last())
+            assertEquals(RelayWaitpointStatus.AWAITING, client.store.items.value.single().waitpoint!!.status)
+            assertTrue(client.store.lastError.value is RelayException.Problem)
+        }
+
+    @Test
+    fun `IN-6 AG-32 an approval item is never answered`() =
+        runBlocking<Unit> {
+            val harness = Harness()
+            val client = harness.client()
+            val approval =
+                Fixtures.item(
+                    extra =
+                        ",\"sender_type\":\"system\",\"approval\":true,\"waitpoint\":" +
+                            Fixtures.waitpoint(kind = "approval", approvalUrl = "https://access.test/approvals/1"),
+                )
+            harness.server.enqueue("GET /v1/subscriber/inbox/items", Reply.json(200, Fixtures.list(approval, "c1")))
+            client.store.coldSync()
+            val item = client.store.items.value.single()
+            assertTrue(item.isApproval)
+            assertFalse(item.isFromAgent)
+            assertEquals("https://access.test/approvals/1", item.waitpoint!!.approvalUrl)
+            assertFalse(item.waitpoint!!.acceptsResponse)
+            client.store.respond(item, item.waitpoint!!.options.first())
+            assertTrue(harness.server.requests("POST /v1/subscriber/waitpoints/${Fixtures.WAITPOINT_ID}/response").isEmpty())
+            assertEquals(RelayWaitpointStatus.AWAITING, client.store.items.value.single().waitpoint!!.status)
+        }
+
+    @Test
+    fun `AG-35 the delta sync carries the waitpoint fields`() =
+        runBlocking<Unit> {
+            val harness = Harness()
+            val change =
+                """{"type":"updated","cursor":"c2","item_id":"${Fixtures.ITEM_ID}","state_version":2,"item":""" +
+                    Fixtures.item(
+                        version = 2,
+                        extra = ",\"sender_type\":\"agent\",\"waitpoint\":${Fixtures.waitpoint(status = "not_awaited")}",
+                    ) + "}"
+            harness.server.enqueue(
+                "GET /v1/subscriber/inbox/changes",
+                Reply.json(
+                    200,
+                    """{"object":"inbox_changes","changes":[$change],"cursor":"c2","has_more":false,"truncated":false,""" +
+                        """"resync_required":false,"counters":${Fixtures.counters(0, 1, 3)}}""",
+                ),
+            )
+            val delta = RelayInboxApi(harness.http).changes("c1")
+            val upsert = delta.changes.single() as RelayInboxChange.Upsert
+            assertTrue(upsert.item.isFromAgent)
+            assertEquals(RelayWaitpointStatus.NOT_AWAITED, upsert.item.waitpoint?.status)
         }
 }

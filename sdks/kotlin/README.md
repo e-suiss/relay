@@ -51,16 +51,27 @@ override fun onMessageReceived(message: RemoteMessage) {
 ```
 
 Channel ids are `relay.<category>.<level>` and never change between releases. Registration reports the
-notification permission and each channel's current importance on every launch; the DND access status
-for `critical` channels is available from `SystemNotificationSettingsReader`.
+notification permission, each channel's current importance and the DND access status on every launch;
+`SystemNotificationSettingsReader` reads them, and a custom reader that leaves `dndAccess` unset reports
+nothing, so Relay keeps the level it has.
 
 Compose:
 
 ```kotlin
 RelayThemeProvider(RelayTheme(accent = brandColor)) {
     RelayInbox(client.store)
+    RelayPreferencesScreen(
+        model = RelayPreferencesModel(client.preferences, categories, SystemNotificationSettingsReader(context)),
+        consentChangeUrl = "https://account.example.com/consents",
+    )
 }
 ```
+
+The inbox labels items sent by an AI agent and shows each waitpoint's state: its options while it
+awaits a response, then processing, who answered and when, or that it is no longer awaited. An approval
+is never answered in the app; its only action opens the approval page in the account. The preference
+centre shows the subscriber's consents read-only, with a link to change them when you pass
+`consentChangeUrl`.
 
 ## Behaviour
 
@@ -70,7 +81,9 @@ RelayThemeProvider(RelayTheme(accent = brandColor)) {
   between 1 and 60 seconds.
 - In the background the connection closes; in the foreground the SDK refreshes the counters,
   reconnects, syncs, and drains the offline queue last.
-- When content cannot be fetched for a content-free push, a generic text is shown instead.
+- A content-free push carries only its delivery id; the SDK fetches the content over TLS with the
+  subscriber token. When it cannot be fetched, a generic text is shown instead and the push payload is
+  never used as content.
 - Device status signals are sent with a time to live and are never logged.
 
 ## Development

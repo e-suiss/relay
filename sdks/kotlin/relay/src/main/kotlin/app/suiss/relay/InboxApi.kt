@@ -9,6 +9,122 @@ import app.suiss.relay.api.model.InboxItemList
 import app.suiss.relay.api.model.InboxItemState
 import app.suiss.relay.api.model.InboxReadAll
 import app.suiss.relay.api.model.InboxReadAllResult
+import app.suiss.relay.api.model.InboxWaitpoint
+import app.suiss.relay.api.model.WaitpointResponseRequest
+import com.google.gson.JsonObject
+
+// AG-34
+// C-24
+
+/** Who produced a notification. */
+public enum class RelaySenderType(
+    public val wire: String,
+) {
+    HUMAN("human"),
+    SYSTEM("system"),
+    AGENT("agent"),
+    ;
+
+    internal companion object {
+        fun of(wire: String?): RelaySenderType? = entries.firstOrNull { it.wire == wire }
+    }
+}
+
+// AG-35
+
+/** Whether a waitpoint asks for a response or stands for an approval given in Access. */
+public enum class RelayWaitpointKind(
+    public val wire: String,
+) {
+    RESPONSE("response"),
+    APPROVAL("approval"),
+}
+
+/** The state of a waitpoint: open, a response being processed, answered, or not awaited any more. */
+public enum class RelayWaitpointStatus(
+    public val wire: String,
+) {
+    AWAITING("awaiting"),
+    PROCESSING("processing"),
+    RESPONDED("responded"),
+    NOT_AWAITED("not_awaited"),
+    ;
+
+    internal companion object {
+        fun of(wire: String?): RelayWaitpointStatus? = entries.firstOrNull { it.wire == wire }
+    }
+}
+
+/** One structured answer of a waitpoint; a response names it by [value]. */
+public data class RelayWaitpointOption(
+    val label: String,
+    val value: String,
+)
+
+/** Who answered a waitpoint. */
+public data class RelayWaitpointResponder(
+    val isAgent: Boolean,
+    val recipientId: String,
+)
+
+// AG-26
+// AG-32
+// AG-35
+
+/**
+ * The decision request an inbox item is about. A response waitpoint is answered with one of its
+ * options; an approval waitpoint is never answered here and only links to [approvalUrl].
+ */
+public data class RelayWaitpoint(
+    val id: String,
+    val kind: RelayWaitpointKind,
+    val status: RelayWaitpointStatus,
+    val subjectDigest: String? = null,
+    val options: List<RelayWaitpointOption> = emptyList(),
+    val responder: RelayWaitpointResponder? = null,
+    val respondedAt: String? = null,
+    val approvalUrl: String? = null,
+) {
+    /** Whether the options can be sent as a response now. */
+    val acceptsResponse: Boolean
+        get() = kind == RelayWaitpointKind.RESPONSE && status == RelayWaitpointStatus.AWAITING && subjectDigest != null
+
+    internal companion object {
+        fun from(waitpoint: InboxWaitpoint?): RelayWaitpoint? {
+            if (waitpoint == null) return null
+            val kind = RelayWaitpointKind.entries.firstOrNull { it.wire == waitpoint.kind?.value } ?: return null
+            val status = RelayWaitpointStatus.of(waitpoint.status?.value) ?: return null
+            return RelayWaitpoint(
+                id = waitpoint.id,
+                kind = kind,
+                status = status,
+                subjectDigest = waitpoint.subjectDigest,
+                options = waitpoint.options.orEmpty().map { RelayWaitpointOption(it.label, it.`value`) },
+                responder =
+                    waitpoint.responder?.let {
+                        RelayWaitpointResponder(isAgent = it.kind?.value == "agent", recipientId = it.recipientId)
+                    },
+                respondedAt = waitpoint.respondedAt,
+                approvalUrl = waitpoint.approvalUrl,
+            )
+        }
+    }
+}
+
+/** What became of a response (AG-28): processing, responded (who and when) or not awaited any more. */
+public data class RelayWaitpointReceipt(
+    val status: RelayWaitpointStatus,
+    val responder: RelayWaitpointResponder? = null,
+    val respondedAt: String? = null,
+) {
+    /** The waitpoint as the receipt leaves it. */
+    public fun applyTo(waitpoint: RelayWaitpoint): RelayWaitpoint =
+        waitpoint.copy(
+            status = status,
+            responder = responder ?: waitpoint.responder,
+            respondedAt = respondedAt ?: waitpoint.respondedAt,
+        )
+}
 
 /** An inbox item as the SDK and its components show it. */
 public data class RelayInboxItem(
@@ -30,9 +146,18 @@ public data class RelayInboxItem(
     val actions: List<Pair<String, String>> = emptyList(),
     val isRightToLeft: Boolean = false,
     val isAnnouncement: Boolean = false,
+    val senderType: RelaySenderType? = null,
+    val approval: Boolean = false,
+    val waitpoint: RelayWaitpoint? = null,
 ) {
     /** Whether the item belongs in the inbox tab. */
     val isVisibleInInbox: Boolean get() = !hidden && !expired && !archived && snoozedUntil == null
+
+    /** Whether an AI agent produced the item; the components then show the agent label (X-6, AG-34). */
+    val isFromAgent: Boolean get() = senderType == RelaySenderType.AGENT
+
+    /** Whether the item is an approval: its only action is the link to Access, never an answer (IN-6, AG-32). */
+    val isApproval: Boolean get() = approval || waitpoint?.kind == RelayWaitpointKind.APPROVAL
 
     /** Applies a server state; an older or equal `state_version` is ignored (IN-5). */
     public fun applying(state: RelayItemState): RelayInboxItem =
@@ -70,6 +195,9 @@ public data class RelayInboxItem(
                 actions = item.actions.map { it.label to it.url },
                 isRightToLeft = item.dir?.value == "rtl",
                 isAnnouncement = item.kind?.value == "announcement",
+                senderType = RelaySenderType.of(item.senderType?.value),
+                approval = item.approval == true,
+                waitpoint = RelayWaitpoint.from(item.waitpoint),
             )
     }
 }
@@ -172,6 +300,9 @@ public class RelayInboxApi internal constructor(
                             body = item.body,
                             url = item.url,
                             isRightToLeft = item.dir?.value == "rtl",
+                            senderType = RelaySenderType.of(item.senderType?.value),
+                            approval = item.approval == true,
+                            waitpoint = RelayWaitpoint.from(item.waitpoint),
                         ),
                     )
                 } else {
@@ -197,6 +328,31 @@ public class RelayInboxApi internal constructor(
         return http.decode<InboxReadAllResult>(answer).counters.toRelay()
     }
 
+    // AG-26
+    // AG-28
+
+    /**
+     * Sends the response to a waitpoint with the subject digest the item showed (scope `inbox:write`).
+     * A response is collected and passed to the waiter; it is never an approval. It takes no
+     * idempotency key: the first valid response resolves the waitpoint and a repeat is answered alike.
+     */
+    public suspend fun respond(
+        waitpointId: String,
+        value: String,
+        subjectDigest: String,
+    ): RelayWaitpointReceipt {
+        val digest = if (subjectDigest.startsWith(DIGEST_PREFIX)) subjectDigest else DIGEST_PREFIX + subjectDigest
+        val body = WaitpointResponseRequest(response = value, subjectDigest = digest)
+        val answer = http.send(RelayScope.INBOX_WRITE, "POST", http.url("v1/subscriber/waitpoints/$waitpointId/response"), body)
+        val receipt = http.decode<JsonObject>(answer)
+        val status = RelayWaitpointStatus.of(receipt.string("status")) ?: throw RelayException.InvalidResponse("unreadable receipt")
+        val responder =
+            receipt.get("responder")?.takeIf { it.isJsonObject }?.asJsonObject?.let { who ->
+                who.string("recipient_id")?.let { RelayWaitpointResponder(isAgent = who.string("kind") == "agent", recipientId = it) }
+            }
+        return RelayWaitpointReceipt(status, responder, receipt.string("responded_at"))
+    }
+
     // IN-12
 
     /** Sends one queued intent with the idempotency key it was queued with. */
@@ -211,5 +367,9 @@ public class RelayInboxApi internal constructor(
         val url = http.url("v1/subscriber/inbox/items/${intent.itemId}/intents")
         val result = http.decode<InboxIntentResult>(http.send(RelayScope.INBOX_WRITE, "POST", url, body, intent.idempotencyKey))
         return result.state.toRelay() to result.counters.toRelay()
+    }
+
+    private companion object {
+        const val DIGEST_PREFIX = "sha256:"
     }
 }

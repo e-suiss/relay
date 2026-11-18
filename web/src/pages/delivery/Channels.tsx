@@ -22,11 +22,7 @@ import { formatMicros } from "../reports/Reports";
 
 type ProviderAccount = ServerSchemas["ProviderAccount"];
 
-function Breaker({
-  state,
-}: {
-  state: BreakerState;
-}) {
+function Breaker({ state }: { state: BreakerState }) {
   const { t } = useI18n();
   const tone = state === "closed" ? "ok" : state === "open" ? "bad" : "warn";
   return (
